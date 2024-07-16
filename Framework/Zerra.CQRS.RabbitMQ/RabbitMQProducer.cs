@@ -101,9 +101,10 @@ namespace Zerra.CQRS.RabbitMQ
                     if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
                         claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
 
-                    var rabbitMessage = new RabbitMQCommandMessage()
+                    var rabbitMessage = new RabbitMQMessage()
                     {
-                        Message = command,
+                        MessageData = RabbitMQCommon.Serialize(command),
+                        MessageType = command.GetType(),
                         Claims = claims,
                         Source = source
                     };
@@ -227,9 +228,10 @@ namespace Zerra.CQRS.RabbitMQ
                     if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
                         claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
 
-                    var rabbitMessage = new RabbitMQEventMessage()
+                    var rabbitMessage = new RabbitMQMessage()
                     {
-                        Message = @event,
+                        MessageData = RabbitMQCommon.Serialize(@event),
+                        MessageType = @event.GetType(),
                         Claims = claims,
                         Source = source
                     };

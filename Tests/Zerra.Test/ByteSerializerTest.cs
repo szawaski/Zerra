@@ -8,7 +8,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Threading.Tasks;
-using Zerra.Serialization.Json;
 using Zerra.Serialization.Bytes;
 
 namespace Zerra.Test
@@ -19,37 +18,153 @@ namespace Zerra.Test
         public ByteSerializerTest()
         {
 #if DEBUG
-            JsonSerializerOld.Testing = false;
+            Zerra.Serialization.Bytes.IO.ByteReader.Testing = true;
+            Zerra.Serialization.Bytes.IO.ByteWriter.Testing = true;
 #endif
         }
 
         [TestMethod]
-        public void AllTypes()
+        public void TypesBasic()
         {
-            var options = new ByteSerializerOptions()
-            {
-                IndexSize = ByteSerializerIndexSize.UInt16
-            };
-
-            var model1 = AllTypesModel.Create();
-            var bytes = ByteSerializer.Serialize(model1, options);
-            Assert.AreEqual(8351, bytes.Length);
-            var model2 = ByteSerializer.Deserialize<AllTypesModel>(bytes, options);
-            AssertHelper.AreEqual(model1, model2);
-        }
-
-        [TestMethod]
-        public void CoreTypes()
-        {
-            var model1 = CoreTypesModel.Create();
+            var model1 = TypesBasicModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
-            //Assert.AreEqual(270, bytes.Length);
-            var model2 = ByteSerializer.Deserialize<AllTypesModel>(bytes);
+            Assert.AreEqual(315, bytes.Length);
+            var model2 = ByteSerializer.Deserialize<TypesBasicModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
 
         [TestMethod]
-        public void BoxedCollections()
+        public void TypesArray()
+        {
+            var model1 = TypesArrayModel.Create();
+            var bytes = ByteSerializer.Serialize(model1);
+            Assert.AreEqual(1131, bytes.Length);
+            var model2 = ByteSerializer.Deserialize<TypesArrayModel>(bytes);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void TypesList()
+        {
+            var model1 = TypesListModel.Create();
+            var bytes = ByteSerializer.Serialize(model1);
+            Assert.AreEqual(1131, bytes.Length);
+            var model2 = ByteSerializer.Deserialize<TypesListModel>(bytes);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void TypesIList()
+        {
+            var model1 = TypesIListModel.Create();
+            var bytes = ByteSerializer.Serialize(model1);
+            Assert.AreEqual(1131, bytes.Length);
+            var model2 = ByteSerializer.Deserialize<TypesIListModel>(bytes);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void TypesIReadOnlyList()
+        {
+            var model1 = TypesIReadOnlyListModel.Create();
+            var bytes = ByteSerializer.Serialize(model1);
+            Assert.AreEqual(1131, bytes.Length);
+            var model2 = ByteSerializer.Deserialize<TypesIReadOnlyListModel>(bytes);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void TypesHashSet()
+        {
+            var model1 = TypesHashSetModel.Create();
+            var bytes = ByteSerializer.Serialize(model1);
+            Assert.AreEqual(1128, bytes.Length);
+            var model2 = ByteSerializer.Deserialize<TypesHashSetModel>(bytes);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void TypesISet()
+        {
+            var model1 = TypesISetModel.Create();
+            var bytes = ByteSerializer.Serialize(model1);
+            Assert.AreEqual(1128, bytes.Length);
+            var model2 = ByteSerializer.Deserialize<TypesISetModel>(bytes);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void TypesIReadOnlySet()
+        {
+            var model1 = TypesIReadOnlySetModel.Create();
+            var bytes = ByteSerializer.Serialize(model1);
+            Assert.AreEqual(1128, bytes.Length);
+            var model2 = ByteSerializer.Deserialize<TypesIReadOnlySetModel>(bytes);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void TypesICollection()
+        {
+            var model1 = TypesICollectionModel.Create();
+            var bytes = ByteSerializer.Serialize(model1);
+            Assert.AreEqual(1131, bytes.Length);
+            var model2 = ByteSerializer.Deserialize<TypesICollectionModel>(bytes);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void TypesIReadOnlyCollection()
+        {
+            var model1 = TypesIReadOnlyCollectionModel.Create();
+            var bytes = ByteSerializer.Serialize(model1);
+            Assert.AreEqual(1131, bytes.Length);
+            var model2 = ByteSerializer.Deserialize<TypesIReadOnlyCollectionModel>(bytes);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void TypesIEnumerable()
+        {
+            var model1 = TypesIEnumerableModel.Create();
+            var bytes = ByteSerializer.Serialize(model1);
+            Assert.AreEqual(1131, bytes.Length);
+            var model2 = ByteSerializer.Deserialize<TypesIEnumerableModel>(bytes);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void TypesDictionary()
+        {
+            var model1 = TypesDictionaryModel.Create();
+            var bytes = ByteSerializer.Serialize(model1);
+            Assert.AreEqual(462, bytes.Length);
+            var model2 = ByteSerializer.Deserialize<TypesDictionaryModel>(bytes);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void TypesOther()
+        {
+            var model1 = TypesOtherModel.Create();
+            var bytes = ByteSerializer.Serialize(model1);
+            Assert.AreEqual(70, bytes.Length);
+            var model2 = ByteSerializer.Deserialize<TypesOtherModel>(bytes);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void TypesCore()
+        {
+            var model1 = TypesCoreModel.Create();
+            var bytes = ByteSerializer.Serialize(model1);
+            Assert.AreEqual(270, bytes.Length);
+            var model2 = ByteSerializer.Deserialize<TypesCoreModel>(bytes);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void TypesBoxedCollections()
         {
             var options = new ByteSerializerOptions()
             {
@@ -57,9 +172,24 @@ namespace Zerra.Test
                 UseTypes = true
             };
 
-            var model1 = BoxedCollectionsModel.Create();
+            var model1 = TypesBoxedCollectionsModel.Create();
             var bytes = ByteSerializer.Serialize(model1, options);
-            var model2 = ByteSerializer.Deserialize<BoxedCollectionsModel>(bytes, options);
+            var model2 = ByteSerializer.Deserialize<TypesBoxedCollectionsModel>(bytes, options);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void TypesAll()
+        {
+            var options = new ByteSerializerOptions()
+            {
+                IndexSize = ByteSerializerIndexSize.UInt16
+            };
+
+            var model1 = TypesAllModel.Create();
+            var bytes = ByteSerializer.Serialize(model1, options);
+            Assert.AreEqual(8393, bytes.Length);
+            var model2 = ByteSerializer.Deserialize<TypesAllModel>(bytes, options);
             AssertHelper.AreEqual(model1, model2);
         }
 
@@ -72,9 +202,9 @@ namespace Zerra.Test
                 UseTypes = true
             };
 
-            var model1 = AllTypesModel.Create();
+            var model1 = TypesAllModel.Create();
             var bytes = ByteSerializer.Serialize(model1, options);
-            var model2 = ByteSerializer.Deserialize<AllTypesModel>(bytes, options);
+            var model2 = ByteSerializer.Deserialize<TypesAllModel>(bytes, options);
             AssertHelper.AreEqual(model1, model2);
         }
 
@@ -87,9 +217,9 @@ namespace Zerra.Test
                 UsePropertyNames = true
             };
 
-            var model1 = AllTypesModel.Create();
+            var model1 = TypesAllModel.Create();
             var bytes = ByteSerializer.Serialize(model1, options);
-            var model2 = ByteSerializer.Deserialize<AllTypesModel>(bytes, options);
+            var model2 = ByteSerializer.Deserialize<TypesAllModel>(bytes, options);
             AssertHelper.AreEqual(model1, model2);
         }
 
@@ -228,7 +358,7 @@ namespace Zerra.Test
 
             var model1 = new Exception("bad things happened");
             model1.Data.Add("stuff", "things");
-            
+
             var bytes = ByteSerializer.Serialize(model1, options);
             var model2 = ByteSerializer.Deserialize<Exception>(bytes, options);
             Assert.AreEqual(model1.Message, model2.Message);
@@ -261,15 +391,6 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void HashSet()
-        {
-            var model1 = HashSetModel.Create();
-            var bytes = ByteSerializer.Serialize(model1);
-            var model2 = ByteSerializer.Deserialize<HashSetModel>(bytes);
-            AssertHelper.AreEqual(model1, model2);
-        }
-
-        [TestMethod]
         public void Record()
         {
             var model1 = new RecordModel(true) { Property2 = 42, Property3 = "moo" };
@@ -289,12 +410,13 @@ namespace Zerra.Test
                 IndexSize = ByteSerializerIndexSize.UInt16
             };
 
-            var model1 = AllTypesModel.Create();
+            var model1 = TypesAllModel.Create();
             using (var ms = new MemoryStream())
             {
                 await ByteSerializer.SerializeAsync(ms, model1, options);
+                Assert.AreEqual(8393, ms.Length);
                 ms.Position = 0;
-                var model2 = await ByteSerializer.DeserializeAsync<AllTypesModel>(ms, options);
+                var model2 = await ByteSerializer.DeserializeAsync<TypesAllModel>(ms, options);
                 AssertHelper.AreEqual(model1, model2);
             }
         }

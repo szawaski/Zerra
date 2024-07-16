@@ -82,13 +82,17 @@ namespace Zerra.CQRS.RabbitMQ
                         var inHandlerContext = false;
                         try
                         {
-                            RabbitMQEventMessage? message;
+                            RabbitMQMessage? message;
                             if (symmetricConfig != null)
-                                message = RabbitMQCommon.Deserialize<RabbitMQEventMessage>(SymmetricEncryptor.Decrypt(symmetricConfig, e.Body.Span));
+                                message = RabbitMQCommon.Deserialize<RabbitMQMessage>(SymmetricEncryptor.Decrypt(symmetricConfig, e.Body.Span));
                             else
-                                message = RabbitMQCommon.Deserialize<RabbitMQEventMessage>(e.Body.Span);
+                                message = RabbitMQCommon.Deserialize<RabbitMQMessage>(e.Body.Span);
 
-                            if (message == null || message.Message == null || message.Source == null)
+                            if (message == null || message.MessageType == null || message.MessageData == null || message.Source == null)
+                                throw new Exception("Invalid Message");
+
+                            var @event = RabbitMQCommon.Deserialize(message.MessageType, message.MessageData) as IEvent;
+                            if (@event == null)
                                 throw new Exception("Invalid Message");
 
                             if (message.Claims != null)
@@ -98,7 +102,7 @@ namespace Zerra.CQRS.RabbitMQ
                             }
 
                             inHandlerContext = true;
-                            await handlerAsync(message.Message, message.Source, false);
+                            await handlerAsync(@event, message.Source, false);
                             inHandlerContext = false;
                         }
                         catch (Exception ex)

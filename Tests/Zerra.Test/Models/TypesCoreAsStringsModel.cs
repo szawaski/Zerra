@@ -4,7 +4,7 @@
 
 namespace Zerra.Test
 {
-    public class CoreTypesAsStringsModel
+    public class TypesCoreAsStringsModel
     {
         public string BooleanThing { get; set; }
         public string ByteThing { get; set; }

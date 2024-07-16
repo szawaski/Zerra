@@ -72,8 +72,6 @@ namespace Zerra.Serialization.Bytes.Converters
                     if (!reader.TryRead(out string? typeName, out state.BytesNeeded))
                     {
                         state.Current.HasNullChecked = true;
-                        if (StackRequired)
-                            state.StashFrame();
                         returnValue = default;
                         return false;
                     }
@@ -109,8 +107,9 @@ namespace Zerra.Serialization.Bytes.Converters
 
                     if (!newConverter.TryReadValueBoxed(ref reader, ref state, out var valueObject))
                     {
+                        if (StackRequired)
+                            state.StashFrame();
                         state.Current.HasNullChecked = true;
-                        state.StashFrame();
                         returnValue = default;
                         return false;
                     }
@@ -122,6 +121,13 @@ namespace Zerra.Serialization.Bytes.Converters
                 }
             }
 
+            if (StackRequired)
+            {
+                if (state.StackSize >= maxStackDepth)
+                    throw new StackOverflowException($"{nameof(ByteConverter)} has reach the max depth of {state.StackSize}");
+                state.PushFrame(false);
+            }
+
             if (isInterfacedObject)
             {
                 var emptyImplementationType = EmptyImplementations.GetEmptyImplementationType(typeDetail.Type);
@@ -131,9 +137,9 @@ namespace Zerra.Serialization.Bytes.Converters
 
                 if (!newConverter.TryReadValueBoxed(ref reader, ref state, out var valueObject))
                 {
-                    state.Current.HasNullChecked = true;
                     if (StackRequired)
                         state.StashFrame();
+                    state.Current.HasNullChecked = true;
                     returnValue = default;
                     return false;
                 }
@@ -144,18 +150,11 @@ namespace Zerra.Serialization.Bytes.Converters
                 return true;
             }
 
-            if (StackRequired)
-            {
-                if (state.StackSize >= maxStackDepth)
-                    throw new StackOverflowException($"{nameof(ByteConverter)} has reach the max depth of {state.StackSize}");
-                state.PushFrame(false);
-            }
-
             if (!TryReadValue(ref reader, ref state, out var value))
             {
-                state.Current.HasNullChecked = true;
                 if (StackRequired)
                     state.StashFrame();
+                state.Current.HasNullChecked = true;
                 returnValue = value;
                 return false;
             }
@@ -199,8 +198,6 @@ namespace Zerra.Serialization.Bytes.Converters
                     if (!writer.TryWrite(typeName, out state.BytesNeeded))
                     {
                         state.Current.HasWrittenIsNull = true;
-                        if (StackRequired)
-                            state.StashFrame();
                         return false;
                     }
 
@@ -253,9 +250,9 @@ namespace Zerra.Serialization.Bytes.Converters
                     var newConverter = ByteConverterFactory<TParent>.Get(typeFromValue, memberKey, getter, setter);
                     if (!newConverter.TryWriteValueBoxed(ref writer, ref state, value))
                     {
-                        state.Current.HasWrittenIsNull = true;
                         if (StackRequired)
                             state.StashFrame();
+                        state.Current.HasWrittenIsNull = true;
                         return false;
                     }
                     if (StackRequired)
@@ -266,9 +263,9 @@ namespace Zerra.Serialization.Bytes.Converters
 
             if (!TryWriteValue(ref writer, ref state, (TValue)value))
             {
-                state.Current.HasWrittenIsNull = true;
                 if (StackRequired)
                     state.StashFrame();
+                state.Current.HasWrittenIsNull = true;
                 return false;
             }
             if (StackRequired)
@@ -302,8 +299,6 @@ namespace Zerra.Serialization.Bytes.Converters
                     if (!reader.TryRead(out string? typeName, out state.BytesNeeded))
                     {
                         state.Current.HasNullChecked = true;
-                        if (StackRequired)
-                            state.StashFrame();
                         returnValue = default;
                         return false;
                     }
@@ -339,9 +334,9 @@ namespace Zerra.Serialization.Bytes.Converters
 
                     if (!newConverter.TryReadValueBoxed(ref reader, ref state, out var valueObject))
                     {
-                        state.Current.HasNullChecked = true;
                         if (StackRequired)
                             state.StashFrame();
+                        state.Current.HasNullChecked = true;
                         returnValue = default;
                         return false;
                     }
@@ -369,9 +364,9 @@ namespace Zerra.Serialization.Bytes.Converters
 
                 if (!newConverter.TryReadValueBoxed(ref reader, ref state, out var valueObject))
                 {
-                    state.Current.HasNullChecked = true;
                     if (StackRequired)
                         state.StashFrame();
+                    state.Current.HasNullChecked = true;
                     returnValue = default;
                     return false;
                 }
@@ -384,9 +379,9 @@ namespace Zerra.Serialization.Bytes.Converters
 
             if (!TryReadValue(ref reader, ref state, out var value))
             {
-                state.Current.HasNullChecked = true;
                 if (StackRequired)
                     state.StashFrame();
+                state.Current.HasNullChecked = true;
                 returnValue = value;
                 return false;
             }
@@ -430,8 +425,6 @@ namespace Zerra.Serialization.Bytes.Converters
                     if (!writer.TryWrite(typeName, out state.BytesNeeded))
                     {
                         state.Current.HasWrittenIsNull = true;
-                        if (StackRequired)
-                            state.StashFrame();
                         return false;
                     }
 
@@ -456,9 +449,9 @@ namespace Zerra.Serialization.Bytes.Converters
 
                     if (!newConverter.TryWriteValueBoxed(ref writer, ref state, value))
                     {
-                        state.Current.HasWrittenIsNull = true;
                         if (StackRequired)
                             state.StashFrame();
+                        state.Current.HasWrittenIsNull = true;
                         return false;
                     }
                     if (StackRequired)
@@ -483,9 +476,9 @@ namespace Zerra.Serialization.Bytes.Converters
                     var newConverter = ByteConverterFactory<TParent>.Get(typeFromValue, memberKey, getter, setter);
                     if (!newConverter.TryWriteValueBoxed(ref writer, ref state, value))
                     {
-                        state.Current.HasWrittenIsNull = true;
                         if (StackRequired)
                             state.StashFrame();
+                        state.Current.HasWrittenIsNull = true;
                         return false;
                     }
                     if (StackRequired)
@@ -496,9 +489,9 @@ namespace Zerra.Serialization.Bytes.Converters
 
             if (!TryWriteValue(ref writer, ref state, value))
             {
-                state.Current.HasWrittenIsNull = true;
                 if (StackRequired)
                     state.StashFrame();
+                state.Current.HasWrittenIsNull = true;
                 return false;
             }
             if (StackRequired)
@@ -528,8 +521,7 @@ namespace Zerra.Serialization.Bytes.Converters
                 {
                     if (!reader.TryRead(out string? typeName, out state.BytesNeeded))
                     {
-                        if (StackRequired)
-                            state.StashFrame();
+                        state.Current.ChildHasNullChecked = true;
                         return false;
                     }
 
@@ -564,7 +556,6 @@ namespace Zerra.Serialization.Bytes.Converters
 
                     if (!newConverter.TryReadValueBoxed(ref reader, ref state, out var valueObject))
                     {
-                        state.Current.ChildHasNullChecked = true;
                         if (StackRequired)
                             state.StashFrame();
                         return false;
@@ -596,9 +587,9 @@ namespace Zerra.Serialization.Bytes.Converters
 
                 if (!newConverter.TryReadValueBoxed(ref reader, ref state, out var valueObject))
                 {
-                    state.Current.ChildHasNullChecked = true;
                     if (StackRequired)
                         state.StashFrame();
+                    state.Current.ChildHasNullChecked = true;
                     return false;
                 }
 
@@ -614,9 +605,9 @@ namespace Zerra.Serialization.Bytes.Converters
 
             if (!TryReadValue(ref reader, ref state, out var value))
             {
-                state.Current.ChildHasNullChecked = true;
                 if (StackRequired)
                     state.StashFrame();
+                state.Current.ChildHasNullChecked = true;
                 return false;
             }
 
@@ -664,8 +655,6 @@ namespace Zerra.Serialization.Bytes.Converters
                         if (!writer.TryWrite(indexPropertyName, out state.BytesNeeded))
                         {
                             state.Current.ChildHasWrittenIsNull = true;
-                            if (StackRequired)
-                                state.StashFrame();
                             return false;
                         }
                     }
@@ -676,8 +665,6 @@ namespace Zerra.Serialization.Bytes.Converters
                             if (!writer.TryWrite(indexProperty, out state.BytesNeeded))
                             {
                                 state.Current.ChildHasWrittenIsNull = true;
-                                if (StackRequired)
-                                    state.StashFrame();
                                 return false;
                             }
                         }
@@ -686,8 +673,6 @@ namespace Zerra.Serialization.Bytes.Converters
                             if (!writer.TryWrite((byte)indexProperty, out state.BytesNeeded))
                             {
                                 state.Current.ChildHasWrittenIsNull = true;
-                                if (StackRequired)
-                                    state.StashFrame();
                                 return false;
                             }
                         }
@@ -727,8 +712,6 @@ namespace Zerra.Serialization.Bytes.Converters
                     if (!writer.TryWrite(typeName, out state.BytesNeeded))
                     {
                         state.Current.ChildHasWrittenIsNull = true;
-                        if (StackRequired)
-                            state.StashFrame();
                         return false;
                     }
 
@@ -753,9 +736,9 @@ namespace Zerra.Serialization.Bytes.Converters
 
                     if (!newConverter.TryWriteValueBoxed(ref writer, ref state, value))
                     {
-                        state.Current.ChildHasWrittenIsNull = true;
                         if (StackRequired)
                             state.StashFrame();
+                        state.Current.ChildHasWrittenIsNull = true;
                         return false;
                     }
 
@@ -786,9 +769,9 @@ namespace Zerra.Serialization.Bytes.Converters
 
                     if (!newConverter.TryWriteValueBoxed(ref writer, ref state, value))
                     {
-                        state.Current.ChildHasWrittenIsNull = true;
                         if (StackRequired)
                             state.StashFrame();
+                        state.Current.ChildHasWrittenIsNull = true;
                         return false;
                     }
 
@@ -805,9 +788,9 @@ namespace Zerra.Serialization.Bytes.Converters
 
             if (!TryWriteValue(ref writer, ref state, value))
             {
-                state.Current.ChildHasWrittenIsNull = true;
                 if (StackRequired)
                     state.StashFrame();
+                state.Current.ChildHasWrittenIsNull = true;
                 return false;
             }
 

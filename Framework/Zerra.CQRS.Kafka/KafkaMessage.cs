@@ -2,11 +2,14 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System;
+
 namespace Zerra.CQRS.Kafka
 {
-    public sealed class KafkaCommandMessage
+    public sealed class KafkaMessage
     {
-        public ICommand? Message { get; set; }
+        public byte[]? MessageData { get; set; }
+        public Type? MessageType { get; set; }
         public string[][]? Claims { get; set; }
         public string? Source { get; set; }
     }

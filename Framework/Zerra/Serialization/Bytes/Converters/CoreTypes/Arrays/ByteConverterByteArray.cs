@@ -29,11 +29,8 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.Arrays
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, byte[]? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, byte[] value)
         {
-            if (value is null)
-                throw new InvalidOperationException($"{nameof(ByteSerializer)} should not be in this state.");
-
             if (!state.Current.HasWrittenLength)
             {
                 if (!writer.TryWrite(value.Length, out state.BytesNeeded))

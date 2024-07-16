@@ -99,13 +99,17 @@ namespace Zerra.CQRS.RabbitMQ
                         var inHandlerContext = false;
                         try
                         {
-                            RabbitMQCommandMessage? message;
+                            RabbitMQMessage? message;
                             if (symmetricConfig != null)
-                                message = RabbitMQCommon.Deserialize<RabbitMQCommandMessage>(SymmetricEncryptor.Decrypt(symmetricConfig, e.Body.Span));
+                                message = RabbitMQCommon.Deserialize<RabbitMQMessage>(SymmetricEncryptor.Decrypt(symmetricConfig, e.Body.Span));
                             else
-                                message = RabbitMQCommon.Deserialize<RabbitMQCommandMessage>(e.Body.Span);
+                                message = RabbitMQCommon.Deserialize<RabbitMQMessage>(e.Body.Span);
 
-                            if (message == null || message.Message == null || message.Source == null)
+                            if (message == null || message.MessageType == null || message.MessageData == null || message.Source == null)
+                                throw new Exception("Invalid Message");
+
+                            var command = RabbitMQCommon.Deserialize(message.MessageType, message.MessageData) as ICommand;
+                            if (command == null)
                                 throw new Exception("Invalid Message");
 
                             if (message.Claims != null)
@@ -116,9 +120,9 @@ namespace Zerra.CQRS.RabbitMQ
 
                             inHandlerContext = true;
                             if (awaitResponse)
-                                await handlerAwaitAsync(message.Message, message.Source, false);
+                                await handlerAwaitAsync(command, message.Source, false);
                             else
-                                await handlerAsync(message.Message, message.Source, false);
+                                await handlerAsync(command, message.Source, false);
                             inHandlerContext = false;
 
                             if (acknowledgment != null)

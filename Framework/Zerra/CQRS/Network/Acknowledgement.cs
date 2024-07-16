@@ -12,7 +12,7 @@ namespace Zerra.CQRS.Network
     {
         public bool Success { get; set; }
         public string? ErrorMessage { get; set; }
-        public string? ErrorType { get; set; }
+        public Type? ErrorType { get; set; }
         public byte[]? ErrorData { get; set; }
 
         public Acknowledgement() { }
@@ -44,7 +44,7 @@ namespace Zerra.CQRS.Network
                 var type = ex.GetType();
                 ack.Success = false;
                 ack.ErrorMessage = ex.Message;
-                ack.ErrorType = type.FullName;
+                ack.ErrorType = type;
                 ack.ErrorData = ByteSerializer.Serialize(ex, type, byteSerializerOptions);
             }
         }
@@ -57,12 +57,11 @@ namespace Zerra.CQRS.Network
                 return;
 
             Exception? ex = null;
-            if (!String.IsNullOrEmpty(ack.ErrorType) && ack.ErrorData != null && ack.ErrorData.Length > 0)
+            if (ack.ErrorType != null && ack.ErrorData != null && ack.ErrorData.Length > 0)
             {
                 try
                 {
-                    var type = Discovery.GetTypeFromName(ack.ErrorType);
-                    ex = (Exception?)ByteSerializer.Deserialize(type, ack.ErrorData, byteSerializerOptions);
+                    ex = (Exception?)ByteSerializer.Deserialize(ack.ErrorType, ack.ErrorData, byteSerializerOptions);
                 }
                 catch { }
             }

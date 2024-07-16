@@ -34,11 +34,8 @@ namespace Zerra.Serialization.Bytes.Converters.IReadOnlySets
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, IReadOnlySet<TimeOnly>? value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, IReadOnlySet<TimeOnly> value)
         {
-            if (value is null)
-                throw new InvalidOperationException($"{nameof(ByteSerializer)} should not be in this state.");
-
             if (!state.Current.HasWrittenLength)
             {
                 if (!writer.TryWrite(value.Count, out state.BytesNeeded))

@@ -2,13 +2,16 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace Zerra.Test
 {
-    public class AllTypesAsStringsModel
+    public class TypesAllAsStringsModel
     {
         public string BooleanThing { get; set; }
         public string ByteThing { get; set; }
@@ -221,7 +224,12 @@ namespace Zerra.Test
         public string[] StringArrayEmptyNull { get; set; }
 
         public string[] EnumArray { get; set; }
+        public string[] EnumArrayEmpty { get; set; }
+        public string[] EnumArrayNull { get; set; }
+
         public string[] EnumArrayNullable { get; set; }
+        public string[] EnumArrayNullableEmpty { get; set; }
+        public string[] EnumArrayNullableNull { get; set; }
 
         public List<string> BooleanListT { get; set; }
         public List<string> ByteListT { get; set; }
@@ -1270,5 +1278,89 @@ namespace Zerra.Test
         public ConcurrentDictionary<int, SimpleModel> DictionaryThing8 { get; set; }
 
         public string[][] StringArrayOfArrayThing { get; set; }
+
+        public static void AreEqual(TypesAllModel model1, TypesAllAsStringsModel model2)
+        {
+            Assert.IsNotNull(model1);
+            Assert.IsNotNull(model2);
+            Assert.AreNotEqual<object>(model1, model2);
+
+            Assert.AreEqual(model1.BooleanThing.ToString().ToLower(), model2.BooleanThing);
+            Assert.AreEqual(model1.ByteThing.ToString(), model2.ByteThing);
+            Assert.AreEqual(model1.SByteThing.ToString(), model2.SByteThing);
+            Assert.AreEqual(model1.Int16Thing.ToString(), model2.Int16Thing);
+            Assert.AreEqual(model1.UInt16Thing.ToString(), model2.UInt16Thing);
+            Assert.AreEqual(model1.Int32Thing.ToString(), model2.Int32Thing);
+            Assert.AreEqual(model1.UInt32Thing.ToString(), model2.UInt32Thing);
+            Assert.AreEqual(model1.Int64Thing.ToString(), model2.Int64Thing);
+            Assert.AreEqual(model1.UInt64Thing.ToString(), model2.UInt64Thing);
+            Assert.AreEqual(model1.SingleThing.ToString(), model2.SingleThing);
+            Assert.AreEqual(model1.DoubleThing.ToString(), model2.DoubleThing);
+            Assert.AreEqual(model1.DecimalThing.ToString(), model2.DecimalThing);
+            Assert.AreEqual(model1.CharThing.ToString(), model2.CharThing);
+            Assert.AreEqual(model1.DateTimeThing, DateTime.Parse(model2.DateTimeThing, null, DateTimeStyles.RoundtripKind)); //extra zeros removed at end of fractional sectons
+            Assert.AreEqual(model1.DateTimeOffsetThing, DateTimeOffset.Parse(model2.DateTimeOffsetThing, null, DateTimeStyles.RoundtripKind));//extra zeros removed at end of fractional sectons
+            Assert.AreEqual(model1.TimeSpanThing, TimeSpan.Parse(model2.TimeSpanThing));
+#if NET6_0_OR_GREATER
+            Assert.AreEqual(model1.DateOnlyThing, DateOnly.Parse(model2.DateOnlyThing)); //extra zeros removed at end of fractional sectons
+            Assert.AreEqual(model1.TimeOnlyThing, TimeOnly.Parse(model2.TimeOnlyThing));
+#endif
+            Assert.AreEqual(model1.GuidThing, Guid.Parse(model2.GuidThing));
+
+            Assert.AreEqual(model1.BooleanThingNullable?.ToString().ToLower(), model2.BooleanThingNullable);
+            Assert.AreEqual(model1.ByteThingNullable?.ToString(), model2.ByteThingNullable);
+            Assert.AreEqual(model1.SByteThingNullable?.ToString(), model2.SByteThingNullable);
+            Assert.AreEqual(model1.Int16ThingNullable?.ToString(), model2.Int16ThingNullable);
+            Assert.AreEqual(model1.UInt16ThingNullable?.ToString(), model2.UInt16ThingNullable);
+            Assert.AreEqual(model1.Int32ThingNullable?.ToString(), model2.Int32ThingNullable);
+            Assert.AreEqual(model1.UInt32ThingNullable?.ToString(), model2.UInt32ThingNullable);
+            Assert.AreEqual(model1.Int64ThingNullable?.ToString(), model2.Int64ThingNullable);
+            Assert.AreEqual(model1.UInt64ThingNullable?.ToString(), model2.UInt64ThingNullable);
+            Assert.AreEqual(model1.SingleThingNullable?.ToString(), model2.SingleThingNullable);
+            Assert.AreEqual(model1.DoubleThingNullable?.ToString(), model2.DoubleThingNullable);
+            Assert.AreEqual(model1.DecimalThingNullable?.ToString(), model2.DecimalThingNullable);
+            Assert.AreEqual(model1.CharThingNullable?.ToString(), model2.CharThingNullable);
+            Assert.AreEqual(model1.DateTimeThingNullable, DateTime.Parse(model2.DateTimeThingNullable, null, DateTimeStyles.RoundtripKind));//extra zeros removed at end of fractional sectons
+            Assert.AreEqual(model1.DateTimeOffsetThingNullable, DateTimeOffset.Parse(model2.DateTimeOffsetThingNullable));//extra zeros removed at end of fractional sectons
+            Assert.AreEqual(model1.TimeSpanThingNullable, TimeSpan.Parse(model2.TimeSpanThingNullable));
+#if NET6_0_OR_GREATER
+            Assert.AreEqual(model1.DateOnlyThingNullable, DateOnly.Parse(model2.DateOnlyThingNullable)); //extra zeros removed at end of fractional sectons
+            Assert.AreEqual(model1.TimeOnlyThingNullable, TimeOnly.Parse(model2.TimeOnlyThingNullable));
+#endif
+            Assert.AreEqual(model1.GuidThingNullable, Guid.Parse(model2.GuidThingNullable));
+
+            Assert.IsNull(model1.ByteThingNullableNull);
+            Assert.IsNull(model1.SByteThingNullableNull);
+            Assert.IsNull(model1.Int16ThingNullableNull);
+            Assert.IsNull(model1.UInt16ThingNullableNull);
+            Assert.IsNull(model1.Int32ThingNullableNull);
+            Assert.IsNull(model1.UInt32ThingNullableNull);
+            Assert.IsNull(model1.Int64ThingNullableNull);
+            Assert.IsNull(model1.UInt64ThingNullableNull);
+            Assert.IsNull(model1.SingleThingNullableNull);
+            Assert.IsNull(model1.DoubleThingNullableNull);
+            Assert.IsNull(model1.DecimalThingNullableNull);
+            Assert.IsNull(model1.CharThingNullableNull);
+            Assert.IsNull(model1.DateTimeThingNullableNull);
+            Assert.IsNull(model1.DateTimeOffsetThingNullableNull);
+            Assert.IsNull(model1.TimeSpanThingNullableNull);
+#if NET6_0_OR_GREATER
+            Assert.IsNull(model1.DateOnlyThingNullableNull);
+            Assert.IsNull(model1.TimeOnlyThingNullableNull);
+#endif
+            Assert.IsNull(model1.GuidThingNullableNull);
+
+            Assert.AreEqual(model1.EnumThing.ToString(), model2.EnumThing);
+            Assert.AreEqual(model1.EnumThingNullable?.ToString(), model2.EnumThingNullable);
+            Assert.AreEqual(model1.EnumThingNullableNull?.ToString(), model2.EnumThingNullableNull);
+
+            Assert.AreEqual(model1.StringThing, model2.StringThing);
+
+            Assert.IsNull(model1.StringThingNull);
+            Assert.IsNull(model2.StringThingNull);
+
+            Assert.AreEqual(String.Empty, model1.StringThingEmpty);
+            Assert.AreEqual(String.Empty, model2.StringThingEmpty);
+        }
     }
 }

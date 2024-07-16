@@ -185,7 +185,7 @@ namespace Zerra.Test
             var key = SymmetricEncryptor.GenerateKey(SymmetricAlgorithmType.AESwithShift);
             var options = new ByteSerializerOptions() { IndexSize = ByteSerializerIndexSize.UInt16 };
 
-            var model1 = AllTypesModel.Create();
+            var model1 = TypesAllModel.Create();
             using (var ms = new MemoryStream())
             using (var cryptoStreamWriter = SymmetricEncryptor.Encrypt(SymmetricAlgorithmType.AES, key, ms, true))
             using (var cryptoStreamReader = SymmetricEncryptor.Decrypt(SymmetricAlgorithmType.AES, key, ms, false))
@@ -195,7 +195,7 @@ namespace Zerra.Test
                 cryptoStreamWriter.FlushFinalBlock();
                 ms.Position = 0;
                 var bytes = ms.ToArray();
-                var model2 = await ByteSerializer.DeserializeAsync<AllTypesModel>(cryptoStreamReader, options);
+                var model2 = await ByteSerializer.DeserializeAsync<TypesAllModel>(cryptoStreamReader, options);
                 AssertHelper.AreEqual(model1, model2);
             }
         }
@@ -206,7 +206,7 @@ namespace Zerra.Test
             var key = SymmetricEncryptor.GenerateKey(SymmetricAlgorithmType.AESwithShift);
             var options = new ByteSerializerOptions() { IndexSize = ByteSerializerIndexSize.UInt16 };
 
-            var model1 = AllTypesModel.Create();
+            var model1 = TypesAllModel.Create();
             using (var ms = new MemoryStream())
             using (var cryptoStreamWriter = SymmetricEncryptor.Encrypt(SymmetricAlgorithmType.AESwithShift, key, ms, true))
             using (var cryptoStreamReader = SymmetricEncryptor.Decrypt(SymmetricAlgorithmType.AESwithShift, key, ms, false))
@@ -216,7 +216,7 @@ namespace Zerra.Test
                 cryptoStreamWriter.FlushFinalBlock();
                 ms.Position = 0;
                 var bytes = ms.ToArray();
-                var model2 = await ByteSerializer.DeserializeAsync<AllTypesModel>(cryptoStreamReader, options);
+                var model2 = await ByteSerializer.DeserializeAsync<TypesAllModel>(cryptoStreamReader, options);
                 AssertHelper.AreEqual(model1, model2);
             }
         }

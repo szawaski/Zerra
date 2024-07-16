@@ -6,7 +6,7 @@ using System;
 
 namespace Zerra.Test
 {
-    public class CoreTypesAlternatingModel
+    public class TypesCoreAlternatingModel
     {
         public bool BooleanThing { get; set; }
         public sbyte SByteThing { get; set; }
@@ -27,9 +27,9 @@ namespace Zerra.Test
         public DateTime? DateTimeThingNullable { get; set; }
         public TimeSpan? TimeSpanThingNullable { get; set; }
 
-        public static CoreTypesAlternatingModel Create()
+        public static TypesCoreAlternatingModel Create()
         {
-            var model = new CoreTypesAlternatingModel()
+            var model = new TypesCoreAlternatingModel()
             {
                 BooleanThing = true,
                 SByteThing = -2,

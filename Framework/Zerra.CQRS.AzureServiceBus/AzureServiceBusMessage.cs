@@ -2,11 +2,14 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-namespace Zerra.CQRS.RabbitMQ
+using System;
+
+namespace Zerra.CQRS.AzureServiceBus
 {
-    public sealed class RabbitMQCommandMessage
+    public sealed class AzureServiceBusMessage
     {
-        public ICommand? Message { get; set; }
+        public byte[]? MessageData { get; set; }
+        public Type? MessageType { get; set; }
         public string[][]? Claims { get; set; }
         public string? Source { get; set; }
     }

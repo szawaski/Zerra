@@ -99,9 +99,10 @@ namespace Zerra.CQRS.AzureServiceBus
                 if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
                     claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
 
-                var message = new AzureServiceBusCommandMessage()
+                var message = new AzureServiceBusMessage()
                 {
-                    Message = command,
+                    MessageData = AzureServiceBusCommon.Serialize(command),
+                    MessageType = command.GetType(),
                     Claims = claims,
                     Source = source
                 };
@@ -118,7 +119,6 @@ namespace Zerra.CQRS.AzureServiceBus
 
                     try
                     {
-
                         Acknowledgement? ack = null;
                         _ = ackCallbacks.TryAdd(ackKey, (ackFromCallback) =>
                         {
@@ -180,9 +180,10 @@ namespace Zerra.CQRS.AzureServiceBus
                 if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
                     claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
 
-                var message = new AzureServiceBusEventMessage()
+                var message = new AzureServiceBusMessage()
                 {
-                    Message = @event,
+                    MessageData = AzureServiceBusCommon.Serialize(@event),
+                    MessageType = @event.GetType(),
                     Claims = claims,
                     Source = source
                 };
