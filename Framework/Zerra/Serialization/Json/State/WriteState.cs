@@ -62,6 +62,7 @@ namespace Zerra.Serialization.Json.State
 
         public void StashFrame()
         {
+            Debug.Assert(stackCount > 0);
             if (stashCount == 0)
             {
                 stashCount = stackCount;
