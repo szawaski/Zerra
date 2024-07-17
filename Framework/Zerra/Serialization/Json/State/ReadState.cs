@@ -22,6 +22,7 @@ namespace Zerra.Serialization.Json.State
 
         public bool IsFinalBlock;
 
+        public JsonValueType EntryValueType;
         public bool Nameless { get; set; }
         public bool DoNotWriteNullProperties { get; set; }
         public bool EnumAsNumber { get; set; }
@@ -87,31 +88,6 @@ namespace Zerra.Serialization.Json.State
                 Current = new()
                 {
                     Graph = graph
-                };
-            }
-            else
-            {
-                if (stackCount++ > 0)
-                {
-                    Current = stack[stackCount - 1];
-                }
-                if (stackCount == stashCount)
-                    stashCount = 0;
-            }
-        }
-        public void PushFrame(JsonValueType valueType, char firstChar)
-        {
-            if (stashCount == 0)
-            {
-                if (stackCount++ > 0)
-                {
-                    EnsureStackSize();
-                    stack[stackCount - 2] = Current;
-                }
-                Current = new()
-                {
-                    ValueType = valueType,
-                    FirstChar = firstChar
                 };
             }
             else

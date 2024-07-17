@@ -15,6 +15,8 @@ namespace Zerra.Serialization.Json.Converters
     public abstract class JsonConverter<TParent, TValue> : JsonConverter<TParent>,
         IJsonConverterHandles<TValue>
     {
+        protected virtual bool StackRequired { get; } = true;
+
         protected TypeDetail<TValue> typeDetail { get; private set; } = null!;
         private string? memberKey;
         private Func<TParent, TValue?>? getter;
@@ -48,7 +50,22 @@ namespace Zerra.Serialization.Json.Converters
 
         public override sealed bool TryReadBoxed(ref JsonReader reader, ref ReadState state, out object? returnValue)
         {
-            state.PushFrame();
+            if (state.EntryValueType == JsonValueType.NotDetermined)
+            {
+                if (!reader.TryReadValueType(out state.EntryValueType))
+                {
+                    returnValue = default;
+                    return false;
+                }
+            }
+            var valueType = state.EntryValueType;
+
+            if (StackRequired)
+            {
+                if (state.StackSize >= maxStackDepth)
+                    throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
+                state.PushFrame();
+            }
 
             if (isInterfacedObject)
             {
@@ -57,51 +74,52 @@ namespace Zerra.Serialization.Json.Converters
 
                 var newConverter = JsonConverterFactory<TParent>.Get(newTypeDetail, memberKey, getter, setter);
 
-                if (!newConverter.TryReadValueBoxed(ref reader, ref state, out var valueObject))
+                if (!newConverter.TryReadValueBoxed(ref reader, ref state, valueType, out var valueObject))
                 {
-                    state.StashFrame();
+                    if (StackRequired)
+                        state.StashFrame();
                     returnValue = default;
                     return false;
                 }
 
-                state.EndFrame();
+                if (StackRequired)
+                    state.EndFrame();
                 returnValue = valueObject;
                 return true;
             }
 
-            if (!ReadValueType(ref reader, ref state))
+            if (!TryReadValue(ref reader, ref state, valueType, out var value))
             {
-                state.StashFrame();
-                returnValue = default;
-                return false;
-            }
-
-            if (!TryReadValue(ref reader, ref state, out var value))
-            {
-                state.StashFrame();
+                if (StackRequired)
+                    state.StashFrame();
                 returnValue = value;
                 return false;
             }
 
-            state.EndFrame();
+            if (StackRequired)
+                state.EndFrame();
             returnValue = value;
             return true;
         }
         public override sealed bool TryWriteBoxed(ref JsonWriter writer, ref WriteState state, object? value)
         {
-            state.PushFrame();
-
             if (isNullable)
             {
                 if (value is null)
                 {
                     if (!writer.TryWriteNull(out state.CharsNeeded))
                     {
-                        state.StashFrame();
                         return false;
                     }
                     return true;
                 }
+            }
+
+            if (StackRequired)
+            {
+                if (state.StackSize >= maxStackDepth)
+                    throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
+                state.PushFrame();
             }
 
             if (isInterfacedObject)
@@ -113,26 +131,47 @@ namespace Zerra.Serialization.Json.Converters
                     var newConverter = JsonConverterFactory<TParent>.Get(typeFromValue, memberKey, getter, setter);
                     if (!newConverter.TryWriteValueBoxed(ref writer, ref state, value!))
                     {
-                        state.StashFrame();
+                        if (StackRequired)
+                            state.StashFrame();
                         return false;
                     }
-                    state.EndFrame();
+
+                    if (StackRequired)
+                        state.EndFrame();
                     return true;
                 }
             }
 
             if (!TryWriteValue(ref writer, ref state, (TValue?)value!))
             {
-                state.StashFrame();
+                if (StackRequired)
+                    state.StashFrame();
                 return false;
             }
-            state.EndFrame();
+
+            if (StackRequired)
+                state.EndFrame();
             return true;
         }
 
         public bool TryRead(ref JsonReader reader, ref ReadState state, out TValue? returnValue)
         {
-            state.PushFrame();
+            if (state.EntryValueType == JsonValueType.NotDetermined)
+            {
+                if (!reader.TryReadValueType(out state.EntryValueType))
+                {
+                    returnValue = default;
+                    return false;
+                }
+            }
+            var valueType = state.EntryValueType;
+
+            if (StackRequired)
+            {
+                if (state.StackSize >= maxStackDepth)
+                    throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
+                state.PushFrame();
+            }
 
             if (isInterfacedObject)
             {
@@ -141,51 +180,52 @@ namespace Zerra.Serialization.Json.Converters
 
                 var newConverter = JsonConverterFactory<TParent>.Get(newTypeDetail, memberKey, getter, setter);
 
-                if (!newConverter.TryReadValueBoxed(ref reader, ref state, out var valueObject))
+                if (!newConverter.TryReadValueBoxed(ref reader, ref state, valueType, out var valueObject))
                 {
-                    state.StashFrame();
+                    if (StackRequired)
+                        state.StashFrame();
                     returnValue = default;
                     return false;
                 }
 
-                state.EndFrame();
+                if (StackRequired)
+                    state.EndFrame();
                 returnValue = (TValue?)valueObject;
                 return true;
             }
 
-            if (!ReadValueType(ref reader, ref state))
+            if (!TryReadValue(ref reader, ref state, valueType, out var value))
             {
-                state.StashFrame();
-                returnValue = default;
-                return false;
-            }
-
-            if (!TryReadValue(ref reader, ref state, out var value))
-            {
-                state.StashFrame();
+                if (StackRequired)
+                    state.StashFrame();
                 returnValue = value;
                 return false;
             }
 
-            state.EndFrame();
+            if (StackRequired)
+                state.EndFrame();
             returnValue = value;
             return true;
         }
         public bool TryWrite(ref JsonWriter writer, ref WriteState state, TValue? value)
         {
-            state.PushFrame();
-
             if (isNullable)
             {
                 if (value is null)
                 {
                     if (!writer.TryWriteNull(out state.CharsNeeded))
                     {
-                        state.StashFrame();
                         return false;
                     }
                     return true;
                 }
+            }
+
+            if (StackRequired)
+            {
+                if (state.StackSize >= maxStackDepth)
+                    throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
+                state.PushFrame();
             }
 
             if (isInterfacedObject)
@@ -216,9 +256,21 @@ namespace Zerra.Serialization.Json.Converters
 
         public override sealed bool TryReadFromParent(ref JsonReader reader, ref ReadState state, TParent? parent)
         {
-            if (state.StackSize > maxStackDepth)
-                throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
-            state.PushFrame();
+            if (state.Current.ChildValueType == JsonValueType.NotDetermined)
+            {
+                if (!reader.TryReadValueType(out state.Current.ChildValueType))
+                {
+                    return false;
+                }
+            }
+            var valueType = state.Current.ChildValueType;
+
+            if (StackRequired)
+            {
+                if (state.StackSize >= maxStackDepth)
+                    throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
+                state.PushFrame();
+            }
 
             if (isInterfacedObject)
             {
@@ -227,46 +279,39 @@ namespace Zerra.Serialization.Json.Converters
 
                 var newConverter = JsonConverterFactory<TParent>.Get(newTypeDetail, memberKey, getter, setter);
 
-                if (!newConverter.TryReadValueBoxed(ref reader, ref state, out var valueObject))
+                if (!newConverter.TryReadValueBoxed(ref reader, ref state, valueType, out var valueObject))
                 {
-                    state.StashFrame();
+                    if (StackRequired)
+                        state.StashFrame();
                     return false;
                 }
 
                 if (setter is not null && parent is not null)
                     setter(parent, (TValue?)valueObject);
-                state.EndFrame();
+                if (StackRequired)
+                    state.EndFrame();
+                state.Current.ChildValueType = JsonValueType.NotDetermined;
                 return true;
             }
 
-            if (!ReadValueType(ref reader, ref state))
+            if (!TryReadValue(ref reader, ref state, valueType, out var value))
             {
-                state.StashFrame();
-                return false;
-            }
-
-            if (!TryReadValue(ref reader, ref state, out var value))
-            {
-                state.StashFrame();
+                if (StackRequired)
+                    state.StashFrame();
                 return false;
             }
 
             if (setter is not null && parent is not null)
                 setter(parent, value);
-            state.EndFrame();
+            if (StackRequired)
+                state.EndFrame();
+            state.Current.ChildValueType = JsonValueType.NotDetermined;
             return true;
         }
         public override sealed bool TryWriteFromParent(ref JsonWriter writer, ref WriteState state, TParent parent, string? propertyName)
         {
-            if (state.StackSize >= maxStackDepth)
-                throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
-            state.PushFrame();
-
             if (getter == null)
-            {
-                state.EndFrame();
                 return true;
-            }
             var value = getter(parent);
 
             if (propertyName is not null)
@@ -275,14 +320,12 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.DoNotWriteNullProperties)
                     {
-                        state.EndFrame();
                         return true;
                     }
                     if (!state.Current.HasWrittenPropertyName)
                     {
                         if (!writer.TryWritePropertyName(propertyName, out state.CharsNeeded))
                         {
-                            state.StashFrame();
                             return false;
                         }
                         state.Current.HasWrittenPropertyName = true;
@@ -291,10 +334,8 @@ namespace Zerra.Serialization.Json.Converters
                     {
                         if (!writer.TryWriteNull(out state.CharsNeeded))
                         {
-                            state.StashFrame();
                             return false;
                         }
-                        state.EndFrame();
                         return true;
                     }
                 }
@@ -304,7 +345,6 @@ namespace Zerra.Serialization.Json.Converters
                     {
                         if (!writer.TryWritePropertyName(propertyName, out state.CharsNeeded))
                         {
-                            state.StashFrame();
                             return false;
                         }
                         state.Current.HasWrittenPropertyName = true;
@@ -319,13 +359,18 @@ namespace Zerra.Serialization.Json.Converters
                     {
                         if (!writer.TryWriteNull(out state.CharsNeeded))
                         {
-                            state.StashFrame();
                             return false;
                         }
-                        state.EndFrame();
                         return true;
                     }
                 }
+            }
+
+            if (StackRequired)
+            {
+                if (state.StackSize >= maxStackDepth)
+                    throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
+                state.PushFrame();
             }
 
             if (isInterfacedObject)
@@ -337,10 +382,13 @@ namespace Zerra.Serialization.Json.Converters
                     var newConverter = JsonConverterFactory<TParent>.Get(typeFromValue, memberKey, getter, setter);
                     if (!newConverter.TryWriteValueBoxed(ref writer, ref state, value!))
                     {
-                        state.StashFrame();
+                        if (StackRequired)
+                            state.StashFrame();
                         return false;
                     }
-                    state.EndFrame();
+
+                    if (StackRequired)
+                        state.EndFrame();
                     state.Current.HasWrittenPropertyName = false;
                     return true;
                 }
@@ -348,25 +396,21 @@ namespace Zerra.Serialization.Json.Converters
 
             if (!TryWriteValue(ref writer, ref state, value!))
             {
-                state.StashFrame();
+                if (StackRequired)
+                    state.StashFrame();
                 return false;
             }
 
-            state.EndFrame();
+            if (StackRequired)
+                state.EndFrame();
             state.Current.HasWrittenPropertyName = false;
             return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override sealed bool TryReadValueBoxed(ref JsonReader reader, ref ReadState state, out object? value)
+        public override sealed bool TryReadValueBoxed(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out object? value)
         {
-            if (!ReadValueType(ref reader, ref state))
-            {
-                value = default;
-                return false;
-            }
-
-            var read = TryReadValue(ref reader, ref state, out var v);
+            var read = TryReadValue(ref reader, ref state, valueType, out var v);
             value = v;
             return read;
         }
@@ -375,7 +419,7 @@ namespace Zerra.Serialization.Json.Converters
             => TryWriteValue(ref writer, ref state, (TValue)value);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected abstract bool TryReadValue(ref JsonReader reader, ref ReadState state, out TValue? value);
+        protected abstract bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out TValue? value);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected abstract bool TryWriteValue(ref JsonWriter writer, ref WriteState state, TValue value);
 
@@ -414,10 +458,12 @@ namespace Zerra.Serialization.Json.Converters
             }
 
             char c;
-            if (state.NumberStage != ReadNumberStage.Value)
+            if (state.NumberStage != ReadNumberStage.Setup)
             {
                 switch (state.NumberStage)
                 {
+                    case ReadNumberStage.Value:
+                        goto startValue;
                     case ReadNumberStage.ValueContinue:
                         goto startValueContinue;
                     case ReadNumberStage.Decimal:
@@ -429,8 +475,32 @@ namespace Zerra.Serialization.Json.Converters
                 }
             }
 
-            //startValue:
-            switch (state.Current.FirstChar)
+        startValue:
+            if (!reader.TryReadNext(out c))
+            {
+                if (state.IsFinalBlock)
+                {
+                    value = buffer.Slice(0, state.StringPosition).ToString();
+                    if (state.StringBuffer != null)
+                    {
+                        BufferArrayPool<char>.Return(state.StringBuffer);
+                        state.StringBuffer = null;
+                    }
+                    state.StringPosition = 0;
+                    state.NumberStage = ReadNumberStage.Setup;
+                    return true;
+                }
+                state.CharsNeeded = 1;
+                if (state.StringBuffer == null)
+                {
+                    state.StringBuffer = BufferArrayPool<char>.Rent(buffer.Length);
+                    buffer.Slice(0, state.StringPosition).CopyTo(state.StringBuffer);
+                }
+                value = default;
+                state.NumberStage = ReadNumberStage.Value;
+                return false;
+            }
+            switch (c)
             {
                 case '0': break;
                 case '1': break;
@@ -454,7 +524,7 @@ namespace Zerra.Serialization.Json.Converters
                 if (oldRented != null)
                     BufferArrayPool<char>.Return(oldRented);
             }
-            buffer[state.StringPosition++] = state.Current.FirstChar;
+            buffer[state.StringPosition++] = c;
 
         startValueContinue:
             for (; ; )
@@ -470,7 +540,7 @@ namespace Zerra.Serialization.Json.Converters
                             state.StringBuffer = null;
                         }
                         state.StringPosition = 0;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         return true;
                     }
                     state.CharsNeeded = 1;
@@ -513,7 +583,7 @@ namespace Zerra.Serialization.Json.Converters
                             state.StringBuffer = null;
                         }
                         state.StringPosition = 0;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         return true;
                     case ',':
                     case '}':
@@ -526,7 +596,7 @@ namespace Zerra.Serialization.Json.Converters
                             state.StringBuffer = null;
                         }
                         state.StringPosition = 0;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         return true;
                     default: throw reader.CreateException("Unexpected character");
                 }
@@ -556,7 +626,7 @@ namespace Zerra.Serialization.Json.Converters
                             state.StringBuffer = null;
                         }
                         state.StringPosition = 0;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         return true;
                     }
                     state.CharsNeeded = 1;
@@ -596,7 +666,7 @@ namespace Zerra.Serialization.Json.Converters
                             state.StringBuffer = null;
                         }
                         state.StringPosition = 0;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         return true;
                     case ',':
                     case '}':
@@ -609,7 +679,7 @@ namespace Zerra.Serialization.Json.Converters
                             state.StringBuffer = null;
                         }
                         state.StringPosition = 0;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         return true;
                     default: throw reader.CreateException("Unexpected character");
                 }
@@ -637,7 +707,7 @@ namespace Zerra.Serialization.Json.Converters
                         state.StringBuffer = null;
                     }
                     state.StringPosition = 0;
-                    state.NumberStage = ReadNumberStage.Value;
+                    state.NumberStage = ReadNumberStage.Setup;
                     return true;
                 }
                 state.CharsNeeded = 1;
@@ -692,7 +762,7 @@ namespace Zerra.Serialization.Json.Converters
                             state.StringBuffer = null;
                         }
                         state.StringPosition = 0;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         return true;
                     }
                     state.CharsNeeded = 1;
@@ -729,7 +799,7 @@ namespace Zerra.Serialization.Json.Converters
                             state.StringBuffer = null;
                         }
                         state.StringPosition = 0;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         return true;
                     case ',':
                     case '}':
@@ -742,7 +812,7 @@ namespace Zerra.Serialization.Json.Converters
                             state.StringBuffer = null;
                         }
                         state.StringPosition = 0;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         return true;
                     default: throw reader.CreateException("Unexpected character");
                 }
@@ -760,11 +830,11 @@ namespace Zerra.Serialization.Json.Converters
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected bool ReadNumberAsInt64(ref JsonReader reader, ref ReadState state, out long value)
+        protected bool ReadNumberAsInt64(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out long value)
         {
             double workingNumber;
             char c;
-            if (state.NumberStage == ReadNumberStage.Value)
+            if (state.NumberStage == ReadNumberStage.Setup)
             {
                 state.NumberInt64 = 0;
                 state.NumberWorkingDouble = 0;
@@ -773,9 +843,9 @@ namespace Zerra.Serialization.Json.Converters
                 state.NumberParseFailed = false;
                 value = 0;
                 workingNumber = 0;
-                if (state.Current.ValueType == JsonValueType.String)
+                if (valueType == JsonValueType.String)
                     state.NumberStage = ReadNumberStage.ValueContinue;
-                else if (state.Current.ValueType != JsonValueType.Number)
+                else if (valueType != JsonValueType.Number)
                     reader.CreateException("Bad JsonSerializer state");
             }
             else
@@ -785,6 +855,8 @@ namespace Zerra.Serialization.Json.Converters
 
                 switch (state.NumberStage)
                 {
+                    case ReadNumberStage.Value:
+                        goto startValue;
                     case ReadNumberStage.ValueContinue:
                         goto startValueContinue;
                     case ReadNumberStage.Decimal:
@@ -796,8 +868,26 @@ namespace Zerra.Serialization.Json.Converters
                 }
             }
 
-            //startValue:
-            switch (state.Current.FirstChar)
+        startValue:
+            if (!reader.TryReadNext(out c))
+            {
+                if (state.IsFinalBlock)
+                {
+                    if (valueType == JsonValueType.String)
+                        throw reader.CreateException("Unexpected character");
+                    if (state.NumberIsNegative)
+                        value *= -1;
+                    state.NumberStage = ReadNumberStage.Setup;
+                    if (state.NumberParseFailed)
+                        value = default;
+                    return true;
+                }
+                state.CharsNeeded = 1;
+                state.NumberInt64 = value;
+                state.NumberStage = ReadNumberStage.Value;
+                return false;
+            }
+            switch (c)
             {
                 case '0': value = 0; break;
                 case '1': value = 1; break;
@@ -814,7 +904,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.NumberIsNegative = true;
                     break;
                 default:
-                    if (state.Current.ValueType == JsonValueType.String)
+                    if (valueType == JsonValueType.String)
                     {
                         if (state.ErrorOnTypeMismatch)
                             throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
@@ -835,11 +925,11 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock)
                     {
-                        if (state.Current.ValueType == JsonValueType.String)
+                        if (valueType == JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
                         if (state.NumberIsNegative)
                             value *= -1;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
@@ -871,11 +961,11 @@ namespace Zerra.Serialization.Json.Converters
                     case '\r':
                     case '\n':
                     case '\t':
-                        if (state.Current.ValueType == JsonValueType.String)
+                        if (valueType == JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
                         if (state.NumberIsNegative)
                             value *= -1;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
@@ -885,21 +975,21 @@ namespace Zerra.Serialization.Json.Converters
                         reader.BackOne();
                         if (state.NumberIsNegative)
                             value *= -1;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
                     case '"':
-                        if (state.Current.ValueType != JsonValueType.String)
+                        if (valueType != JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
                         if (state.NumberIsNegative)
                             value *= -1;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
                     default:
-                        if (state.Current.ValueType == JsonValueType.String)
+                        if (valueType == JsonValueType.String)
                         {
                             if (state.ErrorOnTypeMismatch)
                                 throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
@@ -921,11 +1011,11 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock)
                     {
-                        if (state.Current.ValueType == JsonValueType.String)
+                        if (valueType == JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
                         if (state.NumberIsNegative)
                             value *= -1;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
@@ -954,9 +1044,9 @@ namespace Zerra.Serialization.Json.Converters
                     case '\r':
                     case '\n':
                     case '\t':
-                        if (state.Current.ValueType == JsonValueType.String)
+                        if (valueType == JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
@@ -964,21 +1054,21 @@ namespace Zerra.Serialization.Json.Converters
                     case '}':
                     case ']':
                         reader.BackOne();
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
                     case '"':
-                        if (state.Current.ValueType != JsonValueType.String)
+                        if (valueType != JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
                         if (state.NumberIsNegative)
                             value *= -1;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
                     default:
-                        if (state.Current.ValueType == JsonValueType.String)
+                        if (valueType == JsonValueType.String)
                         {
                             if (state.ErrorOnTypeMismatch)
                                 throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
@@ -998,11 +1088,11 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (state.IsFinalBlock)
                 {
-                    if (state.Current.ValueType == JsonValueType.String)
+                    if (valueType == JsonValueType.String)
                         throw reader.CreateException("Unexpected character");
                     if (state.NumberIsNegative)
                         value *= -1;
-                    state.NumberStage = ReadNumberStage.Value;
+                    state.NumberStage = ReadNumberStage.Setup;
                     if (state.NumberParseFailed)
                         value = default;
                     return true;
@@ -1030,7 +1120,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.NumberWorkingIsNegative = true;
                     break;
                 default:
-                    if (state.Current.ValueType == JsonValueType.String)
+                    if (valueType == JsonValueType.String)
                     {
                         if (state.ErrorOnTypeMismatch)
                             throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
@@ -1051,14 +1141,14 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock)
                     {
-                        if (state.Current.ValueType == JsonValueType.String)
+                        if (valueType == JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
                         if (state.NumberWorkingIsNegative)
                             workingNumber *= -1;
                         value *= (long)Math.Pow(10, workingNumber);
                         if (state.NumberIsNegative)
                             value *= -1;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
@@ -1086,14 +1176,14 @@ namespace Zerra.Serialization.Json.Converters
                     case '\r':
                     case '\n':
                     case '\t':
-                        if (state.Current.ValueType == JsonValueType.String)
+                        if (valueType == JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
                         if (state.NumberWorkingIsNegative)
                             workingNumber *= -1;
                         value *= (long)Math.Pow(10, workingNumber);
                         if (state.NumberIsNegative)
                             value *= -1;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
@@ -1106,21 +1196,21 @@ namespace Zerra.Serialization.Json.Converters
                         value *= (long)Math.Pow(10, workingNumber);
                         if (state.NumberIsNegative)
                             value *= -1;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
                     case '"':
-                        if (state.Current.ValueType != JsonValueType.String)
+                        if (valueType != JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
                         if (state.NumberIsNegative)
                             value *= -1;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
                     default:
-                        if (state.Current.ValueType == JsonValueType.String)
+                        if (valueType == JsonValueType.String)
                         {
                             if (state.ErrorOnTypeMismatch)
                                 throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
@@ -1136,11 +1226,11 @@ namespace Zerra.Serialization.Json.Converters
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected bool ReadNumberAsUInt64(ref JsonReader reader, ref ReadState state, out ulong value)
+        protected bool ReadNumberAsUInt64(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out ulong value)
         {
             double workingNumber;
             char c;
-            if (state.NumberStage == ReadNumberStage.Value)
+            if (state.NumberStage == ReadNumberStage.Setup)
             {
                 state.NumberUInt64 = 0;
                 state.NumberWorkingDouble = 0;
@@ -1149,9 +1239,9 @@ namespace Zerra.Serialization.Json.Converters
                 state.NumberParseFailed = false;
                 value = 0;
                 workingNumber = 0;
-                if (state.Current.ValueType == JsonValueType.String)
+                if (valueType == JsonValueType.String)
                     state.NumberStage = ReadNumberStage.ValueContinue;
-                else if (state.Current.ValueType != JsonValueType.Number)
+                else if (valueType != JsonValueType.Number)
                     reader.CreateException("Bad JsonSerializer state");
             }
             else
@@ -1161,6 +1251,8 @@ namespace Zerra.Serialization.Json.Converters
 
                 switch (state.NumberStage)
                 {
+                    case ReadNumberStage.Value:
+                        goto startValue;
                     case ReadNumberStage.ValueContinue:
                         goto startValueContinue;
                     case ReadNumberStage.Decimal:
@@ -1172,8 +1264,24 @@ namespace Zerra.Serialization.Json.Converters
                 }
             }
 
-            //startValue:
-            switch (state.Current.FirstChar)
+        startValue:
+            if (!reader.TryReadNext(out c))
+            {
+                if (state.IsFinalBlock)
+                {
+                    if (valueType == JsonValueType.String)
+                        throw reader.CreateException("Unexpected character");
+                    state.NumberStage = ReadNumberStage.Setup;
+                    if (state.NumberParseFailed)
+                        value = default;
+                    return true;
+                }
+                state.CharsNeeded = 1;
+                state.NumberUInt64 = value;
+                state.NumberStage = ReadNumberStage.Value;
+                return false;
+            }
+            switch (c)
             {
                 case '0': value = 0; break;
                 case '1': value = 1; break;
@@ -1189,7 +1297,7 @@ namespace Zerra.Serialization.Json.Converters
                     value = 0;
                     break;
                 default:
-                    if (state.Current.ValueType == JsonValueType.String)
+                    if (valueType == JsonValueType.String)
                     {
                         if (state.ErrorOnTypeMismatch)
                             throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
@@ -1210,9 +1318,9 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock)
                     {
-                        if (state.Current.ValueType == JsonValueType.String)
+                        if (valueType == JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
@@ -1244,9 +1352,9 @@ namespace Zerra.Serialization.Json.Converters
                     case '\r':
                     case '\n':
                     case '\t':
-                        if (state.Current.ValueType == JsonValueType.String)
+                        if (valueType == JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
@@ -1254,19 +1362,19 @@ namespace Zerra.Serialization.Json.Converters
                     case '}':
                     case ']':
                         reader.BackOne();
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
                     case '"':
-                        if (state.Current.ValueType != JsonValueType.String)
+                        if (valueType != JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
                     default:
-                        if (state.Current.ValueType == JsonValueType.String)
+                        if (valueType == JsonValueType.String)
                         {
                             if (state.ErrorOnTypeMismatch)
                                 throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
@@ -1288,9 +1396,9 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock)
                     {
-                        if (state.Current.ValueType == JsonValueType.String)
+                        if (valueType == JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
@@ -1319,9 +1427,9 @@ namespace Zerra.Serialization.Json.Converters
                     case '\r':
                     case '\n':
                     case '\t':
-                        if (state.Current.ValueType == JsonValueType.String)
+                        if (valueType == JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
@@ -1329,19 +1437,19 @@ namespace Zerra.Serialization.Json.Converters
                     case '}':
                     case ']':
                         reader.BackOne();
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
                     case '"':
-                        if (state.Current.ValueType != JsonValueType.String)
+                        if (valueType != JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
                     default:
-                        if (state.Current.ValueType == JsonValueType.String)
+                        if (valueType == JsonValueType.String)
                         {
                             if (state.ErrorOnTypeMismatch)
                                 throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
@@ -1361,9 +1469,9 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (state.IsFinalBlock)
                 {
-                    if (state.Current.ValueType == JsonValueType.String)
+                    if (valueType == JsonValueType.String)
                         throw reader.CreateException("Unexpected character");
-                    state.NumberStage = ReadNumberStage.Value;
+                    state.NumberStage = ReadNumberStage.Setup;
                     if (state.NumberParseFailed)
                         value = default;
                     return true;
@@ -1391,7 +1499,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.NumberWorkingIsNegative = true;
                     break;
                 default:
-                    if (state.Current.ValueType == JsonValueType.String)
+                    if (valueType == JsonValueType.String)
                     {
                         if (state.ErrorOnTypeMismatch)
                             throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
@@ -1412,12 +1520,12 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock)
                     {
-                        if (state.Current.ValueType == JsonValueType.String)
+                        if (valueType == JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
                         if (state.NumberWorkingIsNegative)
                             workingNumber *= -1;
                         value *= (ulong)Math.Pow(10, workingNumber);
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
@@ -1445,12 +1553,12 @@ namespace Zerra.Serialization.Json.Converters
                     case '\r':
                     case '\n':
                     case '\t':
-                        if (state.Current.ValueType == JsonValueType.String)
+                        if (valueType == JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
                         if (state.NumberWorkingIsNegative)
                             workingNumber *= -1;
                         value *= (ulong)Math.Pow(10, workingNumber);
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
@@ -1461,19 +1569,19 @@ namespace Zerra.Serialization.Json.Converters
                         if (state.NumberWorkingIsNegative)
                             workingNumber *= -1;
                         value *= (ulong)Math.Pow(10, workingNumber);
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
                     case '"':
-                        if (state.Current.ValueType != JsonValueType.String)
+                        if (valueType != JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
                     default:
-                        if (state.Current.ValueType == JsonValueType.String)
+                        if (valueType == JsonValueType.String)
                         {
                             if (state.ErrorOnTypeMismatch)
                                 throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
@@ -1489,11 +1597,11 @@ namespace Zerra.Serialization.Json.Converters
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected bool ReadNumberAsDouble(ref JsonReader reader, ref ReadState state, out double value)
+        protected bool ReadNumberAsDouble(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out double value)
         {
             double workingNumber;
             char c;
-            if (state.NumberStage == ReadNumberStage.Value)
+            if (state.NumberStage == ReadNumberStage.Setup)
             {
                 state.NumberDouble = 0;
                 state.NumberWorkingDouble = 0;
@@ -1502,9 +1610,9 @@ namespace Zerra.Serialization.Json.Converters
                 state.NumberParseFailed = false;
                 value = 0;
                 workingNumber = 0;
-                if (state.Current.ValueType == JsonValueType.String)
+                if (valueType == JsonValueType.String)
                     state.NumberStage = ReadNumberStage.ValueContinue;
-                else if (state.Current.ValueType != JsonValueType.Number)
+                else if (valueType != JsonValueType.Number)
                     reader.CreateException("Bad JsonSerializer state");
             }
             else
@@ -1514,6 +1622,8 @@ namespace Zerra.Serialization.Json.Converters
 
                 switch (state.NumberStage)
                 {
+                    case ReadNumberStage.Value:
+                        goto startValue;
                     case ReadNumberStage.ValueContinue:
                         goto startValueContinue;
                     case ReadNumberStage.Decimal:
@@ -1525,8 +1635,26 @@ namespace Zerra.Serialization.Json.Converters
                 }
             }
 
-            //startValue:
-            switch (state.Current.FirstChar)
+        startValue:
+            if (!reader.TryReadNext(out c))
+            {
+                if (state.IsFinalBlock)
+                {
+                    if (valueType == JsonValueType.String)
+                        throw reader.CreateException("Unexpected character");
+                    if (state.NumberIsNegative)
+                        value *= -1;
+                    state.NumberStage = ReadNumberStage.Setup;
+                    if (state.NumberParseFailed)
+                        value = default;
+                    return true;
+                }
+                state.CharsNeeded = 1;
+                state.NumberDouble = value;
+                state.NumberStage = ReadNumberStage.Value;
+                return false;
+            }
+            switch (c)
             {
                 case '0': value = 0; break;
                 case '1': value = 1; break;
@@ -1543,7 +1671,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.NumberIsNegative = true;
                     break;
                 default:
-                    if (state.Current.ValueType == JsonValueType.String)
+                    if (valueType == JsonValueType.String)
                     {
                         if (state.ErrorOnTypeMismatch)
                             throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
@@ -1564,11 +1692,11 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock)
                     {
-                        if (state.Current.ValueType == JsonValueType.String)
+                        if (valueType == JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
                         if (state.NumberIsNegative)
                             value *= -1;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
@@ -1600,11 +1728,11 @@ namespace Zerra.Serialization.Json.Converters
                     case '\r':
                     case '\n':
                     case '\t':
-                        if (state.Current.ValueType == JsonValueType.String)
+                        if (valueType == JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
                         if (state.NumberIsNegative)
                             value *= -1;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
@@ -1614,21 +1742,21 @@ namespace Zerra.Serialization.Json.Converters
                         reader.BackOne();
                         if (state.NumberIsNegative)
                             value *= -1;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
                     case '"':
-                        if (state.Current.ValueType != JsonValueType.String)
+                        if (valueType != JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
                         if (state.NumberIsNegative)
                             value *= -1;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
                     default:
-                        if (state.Current.ValueType == JsonValueType.String)
+                        if (valueType == JsonValueType.String)
                         {
                             if (state.ErrorOnTypeMismatch)
                                 throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
@@ -1650,11 +1778,11 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock)
                     {
-                        if (state.Current.ValueType == JsonValueType.String)
+                        if (valueType == JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
                         if (state.NumberIsNegative)
                             value *= -1;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
@@ -1684,11 +1812,11 @@ namespace Zerra.Serialization.Json.Converters
                     case '\r':
                     case '\n':
                     case '\t':
-                        if (state.Current.ValueType == JsonValueType.String)
+                        if (valueType == JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
                         if (state.NumberIsNegative)
                             value *= -1;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
@@ -1698,21 +1826,21 @@ namespace Zerra.Serialization.Json.Converters
                         reader.BackOne();
                         if (state.NumberIsNegative)
                             value *= -1;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
                     case '"':
-                        if (state.Current.ValueType != JsonValueType.String)
+                        if (valueType != JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
                         if (state.NumberIsNegative)
                             value *= -1;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
                     default:
-                        if (state.Current.ValueType == JsonValueType.String)
+                        if (valueType == JsonValueType.String)
                         {
                             if (state.ErrorOnTypeMismatch)
                                 throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
@@ -1735,7 +1863,7 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.NumberIsNegative)
                         value *= -1;
-                    state.NumberStage = ReadNumberStage.Value;
+                    state.NumberStage = ReadNumberStage.Setup;
                     if (state.NumberParseFailed)
                         value = default;
                     return true;
@@ -1763,7 +1891,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.NumberWorkingIsNegative = true;
                     break;
                 default:
-                    if (state.Current.ValueType == JsonValueType.String)
+                    if (valueType == JsonValueType.String)
                     {
                         if (state.ErrorOnTypeMismatch)
                             throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
@@ -1784,14 +1912,14 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock)
                     {
-                        if (state.Current.ValueType == JsonValueType.String)
+                        if (valueType == JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
                         if (state.NumberWorkingIsNegative)
                             workingNumber *= -1;
                         value *= (double)Math.Pow(10, workingNumber);
                         if (state.NumberIsNegative)
                             value *= -1;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
@@ -1819,14 +1947,14 @@ namespace Zerra.Serialization.Json.Converters
                     case '\r':
                     case '\n':
                     case '\t':
-                        if (state.Current.ValueType == JsonValueType.String)
+                        if (valueType == JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
                         if (state.NumberWorkingIsNegative)
                             workingNumber *= -1;
                         value *= (double)Math.Pow(10, workingNumber);
                         if (state.NumberIsNegative)
                             value *= -1;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
@@ -1839,21 +1967,21 @@ namespace Zerra.Serialization.Json.Converters
                         value *= (double)Math.Pow(10, workingNumber);
                         if (state.NumberIsNegative)
                             value *= -1;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
                     case '"':
-                        if (state.Current.ValueType != JsonValueType.String)
+                        if (valueType != JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
                         if (state.NumberIsNegative)
                             value *= -1;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
                     default:
-                        if (state.Current.ValueType == JsonValueType.String)
+                        if (valueType == JsonValueType.String)
                         {
                             if (state.ErrorOnTypeMismatch)
                                 throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
@@ -1869,11 +1997,11 @@ namespace Zerra.Serialization.Json.Converters
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected bool ReadNumberAsDecimal(ref JsonReader reader, ref ReadState state, out decimal value)
+        protected bool ReadNumberAsDecimal(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out decimal value)
         {
             decimal workingNumber;
             char c;
-            if (state.NumberStage == ReadNumberStage.Value)
+            if (state.NumberStage == ReadNumberStage.Setup)
             {
                 state.NumberDecimal = 0;
                 state.NumberWorkingDecimal = 0;
@@ -1882,9 +2010,9 @@ namespace Zerra.Serialization.Json.Converters
                 state.NumberWorkingIsNegative = false;
                 value = 0;
                 workingNumber = 0m;
-                if (state.Current.ValueType == JsonValueType.String)
+                if (valueType == JsonValueType.String)
                     state.NumberStage = ReadNumberStage.ValueContinue;
-                else if (state.Current.ValueType != JsonValueType.Number)
+                else if (valueType != JsonValueType.Number)
                     reader.CreateException("Bad JsonSerializer state");
             }
             else
@@ -1894,6 +2022,8 @@ namespace Zerra.Serialization.Json.Converters
 
                 switch (state.NumberStage)
                 {
+                    case ReadNumberStage.Value:
+                        goto startValue;
                     case ReadNumberStage.ValueContinue:
                         goto startValueContinue;
                     case ReadNumberStage.Decimal:
@@ -1905,8 +2035,26 @@ namespace Zerra.Serialization.Json.Converters
                 }
             }
 
-            //startValue:
-            switch (state.Current.FirstChar)
+        startValue:
+            if (!reader.TryReadNext(out c))
+            {
+                if (state.IsFinalBlock)
+                {
+                    if (valueType == JsonValueType.String)
+                        throw reader.CreateException("Unexpected character");
+                    if (state.NumberIsNegative)
+                        value *= -1;
+                    state.NumberStage = ReadNumberStage.Setup;
+                    if (state.NumberParseFailed)
+                        value = default;
+                    return true;
+                }
+                state.CharsNeeded = 1;
+                state.NumberDecimal = value;
+                state.NumberStage = ReadNumberStage.Value;
+                return false;
+            }
+            switch (c)
             {
                 case '0': value = 0; break;
                 case '1': value = 1; break;
@@ -1923,7 +2071,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.NumberIsNegative = true;
                     break;
                 default:
-                    if (state.Current.ValueType == JsonValueType.String)
+                    if (valueType == JsonValueType.String)
                     {
                         if (state.ErrorOnTypeMismatch)
                             throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
@@ -1944,11 +2092,11 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock)
                     {
-                        if (state.Current.ValueType == JsonValueType.String)
+                        if (valueType == JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
                         if (state.NumberIsNegative)
                             value *= -1;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
@@ -1980,11 +2128,11 @@ namespace Zerra.Serialization.Json.Converters
                     case '\r':
                     case '\n':
                     case '\t':
-                        if (state.Current.ValueType == JsonValueType.String)
+                        if (valueType == JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
                         if (state.NumberIsNegative)
                             value *= -1;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
@@ -1994,21 +2142,21 @@ namespace Zerra.Serialization.Json.Converters
                         reader.BackOne();
                         if (state.NumberIsNegative)
                             value *= -1;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
                     case '"':
-                        if (state.Current.ValueType != JsonValueType.String)
+                        if (valueType != JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
                         if (state.NumberIsNegative)
                             value *= -1;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
                     default:
-                        if (state.Current.ValueType == JsonValueType.String)
+                        if (valueType == JsonValueType.String)
                         {
                             if (state.ErrorOnTypeMismatch)
                                 throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
@@ -2030,11 +2178,11 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock)
                     {
-                        if (state.Current.ValueType == JsonValueType.String)
+                        if (valueType == JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
                         if (state.NumberIsNegative)
                             value *= -1;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
@@ -2064,11 +2212,11 @@ namespace Zerra.Serialization.Json.Converters
                     case '\r':
                     case '\n':
                     case '\t':
-                        if (state.Current.ValueType == JsonValueType.String)
+                        if (valueType == JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
                         if (state.NumberIsNegative)
                             value *= -1;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
@@ -2078,21 +2226,21 @@ namespace Zerra.Serialization.Json.Converters
                         reader.BackOne();
                         if (state.NumberIsNegative)
                             value *= -1;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
                     case '"':
-                        if (state.Current.ValueType != JsonValueType.String)
+                        if (valueType != JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
                         if (state.NumberIsNegative)
                             value *= -1;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
                     default:
-                        if (state.Current.ValueType == JsonValueType.String)
+                        if (valueType == JsonValueType.String)
                         {
                             if (state.ErrorOnTypeMismatch)
                                 throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
@@ -2113,11 +2261,11 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (state.IsFinalBlock)
                 {
-                    if (state.Current.ValueType == JsonValueType.String)
+                    if (valueType == JsonValueType.String)
                         throw reader.CreateException("Unexpected character");
                     if (state.NumberIsNegative)
                         value *= -1;
-                    state.NumberStage = ReadNumberStage.Value;
+                    state.NumberStage = ReadNumberStage.Setup;
                     if (state.NumberParseFailed)
                         value = default;
                     return true;
@@ -2145,7 +2293,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.NumberWorkingIsNegative = true;
                     break;
                 default:
-                    if (state.Current.ValueType == JsonValueType.String)
+                    if (valueType == JsonValueType.String)
                     {
                         if (state.ErrorOnTypeMismatch)
                             throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
@@ -2166,14 +2314,14 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock)
                     {
-                        if (state.Current.ValueType == JsonValueType.String)
+                        if (valueType == JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
                         if (state.NumberWorkingIsNegative)
                             workingNumber *= -1;
                         value *= (decimal)Math.Pow(10, (double)workingNumber);
                         if (state.NumberIsNegative)
                             value *= -1;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
@@ -2201,14 +2349,14 @@ namespace Zerra.Serialization.Json.Converters
                     case '\r':
                     case '\n':
                     case '\t':
-                        if (state.Current.ValueType == JsonValueType.String)
+                        if (valueType == JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
                         if (state.NumberWorkingIsNegative)
                             workingNumber *= -1;
                         value *= (decimal)Math.Pow(10, (double)workingNumber);
                         if (state.NumberIsNegative)
                             value *= -1;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
@@ -2221,21 +2369,21 @@ namespace Zerra.Serialization.Json.Converters
                         value *= (decimal)Math.Pow(10, (double)workingNumber);
                         if (state.NumberIsNegative)
                             value *= -1;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
                     case '"':
-                        if (state.Current.ValueType != JsonValueType.String)
+                        if (valueType != JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
                         if (state.NumberIsNegative)
                             value *= -1;
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
                     default:
-                        if (state.Current.ValueType == JsonValueType.String)
+                        if (valueType == JsonValueType.String)
                         {
                             if (state.ErrorOnTypeMismatch)
                                 throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");

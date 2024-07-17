@@ -5,6 +5,7 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Zerra.Serialization.Json.State;
 
 namespace Zerra.Serialization.Json.IO
 {
@@ -20,15 +21,32 @@ namespace Zerra.Serialization.Json.IO
 
         private const byte openBracketByte = (byte)'[';
         private const byte closeBracketByte = (byte)']';
+        private const byte openBraceByte = (byte)'{';
+        private const byte closeBraceByte = (byte)'}';
         private const byte commaByte = (byte)',';
         private const byte quoteByte = (byte)'"';
         private const byte escapeByte = (byte)'\\';
+        private const byte nByte = (byte)'n';
         private const byte uByte = (byte)'u';
         private const byte lByte = (byte)'l';
+        private const byte tByte = (byte)'t';
         private const byte rByte = (byte)'r';
         private const byte eByte = (byte)'e';
+        private const byte fByte = (byte)'f';
         private const byte aByte = (byte)'a';
         private const byte sByte = (byte)'s';
+
+        private const byte zeroByte = (byte)'0';
+        private const byte oneByte = (byte)'1';
+        private const byte twoByte = (byte)'2';
+        private const byte threeByte = (byte)'3';
+        private const byte fourByte = (byte)'4';
+        private const byte fiveByte = (byte)'5';
+        private const byte sixByte = (byte)'6';
+        private const byte sevenByte = (byte)'7';
+        private const byte eightByte = (byte)'8';
+        private const byte nineByte = (byte)'9';
+        private const byte minusByte = (byte)'-';
 
         //JSON whitespace
         private const byte spaceByte = (byte)' ';
@@ -178,95 +196,199 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryValidateULL(out bool valid)
+        public bool TryReadValueType(out JsonValueType valueType)
         {
+            if (position + 1 > length)
+            {
+                valueType = default;
+                return false;
+            }
+
             if (useBytes)
             {
-                if (position + 3 > length)
+                var b = bufferBytes[position];
+                switch (b)
                 {
-                    valid = default;
-                    return false;
+                    case quoteByte:
+                        position++;
+                        valueType = JsonValueType.String;
+                        return true;
+
+                    case openBraceByte:
+                        position++;
+                        valueType = JsonValueType.Object;
+                        return true;
+
+                    case openBracketByte:
+                        position++;
+                        valueType = JsonValueType.Array;
+                        return true;
+
+                    case nByte:
+                        {
+                            if (position + 4 > length)
+                            {
+                                valueType = default;
+                                return false;
+                            }
+                            var valid = true;
+                            position++;
+                            valid &= bufferBytes[position++] == 'u';
+                            valid &= bufferBytes[position++] == 'l';
+                            valid &= bufferBytes[position++] == 'l';
+                            if (!valid)
+                                throw CreateException("Invalid number/true/false/null");
+                        }
+                        valueType = JsonValueType.Null_Completed;
+                        return true;
+
+                    case tByte:
+                        {
+                            if (position + 4 > length)
+                            {
+                                valueType = default;
+                                return false;
+                            }
+                            var valid = true;
+                            position++;
+                            valid &= bufferBytes[position++] == 'r';
+                            valid &= bufferBytes[position++] == 'u';
+                            valid &= bufferBytes[position++] == 'e';
+                            if (!valid)
+                                throw CreateException("Invalid number/true/false/null");
+                        }
+                        valueType = JsonValueType.True_Completed;
+                        return true;
+
+                    case fByte:
+                        {
+                            if (position + 5 > length)
+                            {
+                                valueType = default;
+                                return false;
+                            }
+                            var valid = true;
+                            position++;
+                            valid &= bufferBytes[position++] == 'a';
+                            valid &= bufferBytes[position++] == 'l';
+                            valid &= bufferBytes[position++] == 's';
+                            valid &= bufferBytes[position++] == 'e';
+                            if (!valid)
+                                throw CreateException("Invalid number/true/false/null");
+                        }
+                        valueType = JsonValueType.False_Completed;
+                        return true;
+
+                    case zeroByte:
+                    case oneByte:
+                    case twoByte:
+                    case threeByte:
+                    case fourByte:
+                    case fiveByte:
+                    case sixByte:
+                    case sevenByte:
+                    case eightByte:
+                    case nineByte:
+                    case minusByte:
+                        valueType = JsonValueType.Number;
+                        return true;
+
+                    default:
+                        throw CreateException("Invalid JSON value");
                 }
-                valid = true;
-                valid &= bufferBytes[position++] == uByte;
-                valid &= bufferBytes[position++] == lByte;
-                valid &= bufferBytes[position++] == lByte;
-                return true;
             }
             else
             {
-                if (position + 3 > length)
+                var c = bufferChars[position];
+                switch (c)
                 {
-                    valid = default;
-                    return false;
+                    case '"':
+                        position++;
+                        valueType = JsonValueType.String;
+                        return true;
+
+                    case '{':
+                        position++;
+                        valueType = JsonValueType.Object;
+                        return true;
+
+                    case '[':
+                        position++;
+                        valueType = JsonValueType.Array;
+                        return true;
+
+                    case 'n':
+                        {
+                            if (position + 4 > length)
+                            {
+                                valueType = default;
+                                return false;
+                            }
+                            var valid = true;
+                            position++;
+                            valid &= bufferChars[position++] == 'u';
+                            valid &= bufferChars[position++] == 'l';
+                            valid &= bufferChars[position++] == 'l';
+                            if (!valid)
+                                throw CreateException("Invalid number/true/false/null");
+                        }
+                        valueType = JsonValueType.Null_Completed;
+                        return true;
+
+                    case 't':
+                        {
+                            if (position + 4 > length)
+                            {
+                                valueType = default;
+                                return false;
+                            }
+                            var valid = true;
+                            position++;
+                            valid &= bufferChars[position++] == 'r';
+                            valid &= bufferChars[position++] == 'u';
+                            valid &= bufferChars[position++] == 'e';
+                            if (!valid)
+                                throw CreateException("Invalid number/true/false/null");
+                        }
+                        valueType = JsonValueType.True_Completed;
+                        return true;
+
+                    case 'f':
+                        {
+                            if (position + 5 > length)
+                            {
+                                valueType = default;
+                                return false;
+                            }
+                            var valid = true;
+                            position++;
+                            valid &= bufferChars[position++] == 'a';
+                            valid &= bufferChars[position++] == 'l';
+                            valid &= bufferChars[position++] == 's';
+                            valid &= bufferChars[position++] == 'e';
+                            if (!valid)
+                                throw CreateException("Invalid number/true/false/null");
+                        }
+                        valueType = JsonValueType.False_Completed;
+                        return true;
+
+                    case '0':
+                    case '1':
+                    case '2':
+                    case '3':
+                    case '4':
+                    case '5':
+                    case '6':
+                    case '7':
+                    case '8':
+                    case '9':
+                    case '-':
+                        valueType = JsonValueType.Number;
+                        return true;
+
+                    default:
+                        throw CreateException("Invalid JSON value");
                 }
-                valid = true;
-                valid &= bufferChars[position++] == 'u';
-                valid &= bufferChars[position++] == 'l';
-                valid &= bufferChars[position++] == 'l';
-                return true;
-            }
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryValidateRUE(out bool valid)
-        {
-            if (useBytes)
-            {
-                if (position + 3 > length)
-                {
-                    valid = default;
-                    return false;
-                }
-                valid = true;
-                valid &= bufferBytes[position++] == rByte;
-                valid &= bufferBytes[position++] == uByte;
-                valid &= bufferBytes[position++] == eByte;
-                return true;
-            }
-            else
-            {
-                if (position + 3 > length)
-                {
-                    valid = default;
-                    return false;
-                }
-                valid = true;
-                valid &= bufferChars[position++] == 'r';
-                valid &= bufferChars[position++] == 'u';
-                valid &= bufferChars[position++] == 'e';
-                return true;
-            }
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryValidateALSE(out bool valid)
-        {
-            if (useBytes)
-            {
-                if (position + 4 > length)
-                {
-                    valid = default;
-                    return false;
-                }
-                valid = true;
-                valid &= bufferBytes[position++] == aByte;
-                valid &= bufferBytes[position++] == lByte;
-                valid &= bufferBytes[position++] == sByte;
-                valid &= bufferBytes[position++] == eByte;
-                return true;
-            }
-            else
-            {
-                if (position + 4 > length)
-                {
-                    valid = default;
-                    return false;
-                }
-                valid = true;
-                valid &= bufferChars[position++] == 'a';
-                valid &= bufferChars[position++] == 'l';
-                valid &= bufferChars[position++] == 's';
-                valid &= bufferChars[position++] == 'e';
-                return true;
             }
         }
 

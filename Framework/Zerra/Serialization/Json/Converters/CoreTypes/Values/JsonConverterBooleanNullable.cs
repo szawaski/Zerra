@@ -10,9 +10,11 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
 {
     internal sealed class JsonConverterBooleanNullable<TParent> : JsonConverter<TParent, bool?>
     {
-        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, out bool? value)
+        protected override bool StackRequired => false;
+
+        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out bool? value)
         {
-            switch (state.Current.ValueType)
+            switch (valueType)
             {
                 case JsonValueType.Object:
                     if (state.ErrorOnTypeMismatch)
@@ -42,7 +44,7 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                     }
                     return true;
                 case JsonValueType.Number:
-                    if (!ReadNumberAsDouble(ref reader, ref state, out var number))
+                    if (!ReadNumberAsDouble(ref reader, ref state, valueType, out var number))
                     {
                         value = default;
                         return false;

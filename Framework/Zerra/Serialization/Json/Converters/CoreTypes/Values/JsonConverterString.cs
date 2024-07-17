@@ -10,9 +10,11 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
 {
     internal sealed class JsonConverterString<TParent> : JsonConverter<TParent, string?>
     {
-        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, out string? value)
+        protected override bool StackRequired => false;
+
+        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out string? value)
         {
-            switch (state.Current.ValueType)
+            switch (valueType)
             {
                 case JsonValueType.Object:
                     if (state.ErrorOnTypeMismatch)

@@ -10,8 +10,7 @@ namespace Zerra.Serialization.Json.State
     public struct ReadFrame
     {
         public Graph? Graph;
-        public JsonValueType ValueType;
-        public char FirstChar;
+        public JsonValueType ChildValueType;
 
         public byte State;
 

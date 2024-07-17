@@ -7,15 +7,14 @@ namespace Zerra.Serialization.Json.State
     public enum JsonValueType : byte
     {
         NotDetermined = 0,
-        ReadingInProgress = 1,
 
-        Object = 2,
-        Array = 3,
-        String = 4,
-        Number = 5,
+        Object = 1,
+        Array = 2,
+        String = 3,
+        Number = 4,
 
-        Null_Completed = 6,
-        False_Completed = 7,
-        True_Completed = 8
+        Null_Completed = 5,
+        False_Completed = 6,
+        True_Completed = 7
     }
 }

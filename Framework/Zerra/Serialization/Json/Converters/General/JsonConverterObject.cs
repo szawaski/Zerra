@@ -73,21 +73,21 @@ namespace Zerra.Serialization.Json.Converters.General
             }
         }
 
-        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, out TValue? value)
+        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out TValue? value)
         {
-            if (state.Current.ValueType == JsonValueType.Null_Completed)
+            if (valueType == JsonValueType.Null_Completed)
             {
                 value = default;
                 return true;
             }
 
-            if (state.Current.ValueType != JsonValueType.Object)
+            if (valueType != JsonValueType.Object)
             {
                 if (state.ErrorOnTypeMismatch)
                     throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
 
                 value = default;
-                return Drain(ref reader, ref state);
+                return Drain(ref reader, ref state, valueType);
             }
 
             Dictionary<string, object?>? collectedValues;
@@ -198,7 +198,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     if (property is null)
                     {
                         state.PushFrame();
-                        if (!Drain(ref reader, ref state))
+                        if (!Drain(ref reader, ref state, default))
                         {
                             state.Current.HasReadProperty = true;
                             state.Current.HasReadSeperator = true;

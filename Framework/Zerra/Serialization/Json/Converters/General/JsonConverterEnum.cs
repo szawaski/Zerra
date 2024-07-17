@@ -11,12 +11,12 @@ namespace Zerra.Serialization.Json.Converters.General
 {
     internal sealed class JsonConverterEnum<TParent, TValue> : JsonConverter<TParent, TValue>
     {
-        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, out TValue? value)
+        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out TValue? value)
         {
             if (!typeDetail.EnumUnderlyingType.HasValue)
                 throw new InvalidOperationException($"{nameof(JsonConverterEnum<TParent, TValue>)} can only handle enum types.");
 
-            switch (state.Current.ValueType)
+            switch (valueType)
             {
                 case JsonValueType.Object:
                     if (state.ErrorOnTypeMismatch)
@@ -46,7 +46,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     }
                     return true;
                 case JsonValueType.Number:
-                    if (!ReadNumberAsUInt64(ref reader, ref state, out var number))
+                    if (!ReadNumberAsUInt64(ref reader, ref state, valueType, out var number))
                     {
                         value = default;
                         return false;

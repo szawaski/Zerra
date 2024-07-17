@@ -10,9 +10,11 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
 {
     internal sealed class JsonConverterUInt64Nullable<TParent> : JsonConverter<TParent, ulong?>
     {
-        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, out ulong? value)
+        protected override bool StackRequired => false;
+
+        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out ulong? value)
         {
-            switch (state.Current.ValueType)
+            switch (valueType)
             {
                 case JsonValueType.Object:
                     if (state.ErrorOnTypeMismatch)
@@ -26,7 +28,7 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                     return DrainArray(ref reader, ref state);
                 case JsonValueType.String:
                 case JsonValueType.Number:
-                    if (!ReadNumberAsUInt64(ref reader, ref state, out var number))
+                    if (!ReadNumberAsUInt64(ref reader, ref state, valueType, out var number))
                     {
                         value = default;
                         return false;

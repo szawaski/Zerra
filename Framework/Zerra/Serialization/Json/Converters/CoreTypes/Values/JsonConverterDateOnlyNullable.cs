@@ -12,9 +12,11 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
 {
     internal sealed class JsonConverterDateOnlyNullable<TParent> : JsonConverter<TParent, DateOnly?>
     {
-        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, out DateOnly? value)
+        protected override bool StackRequired => false;
+
+        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out DateOnly? value)
         {
-            switch (state.Current.ValueType)
+            switch (valueType)
             {
                 case JsonValueType.Object:
                     if (state.ErrorOnTypeMismatch)

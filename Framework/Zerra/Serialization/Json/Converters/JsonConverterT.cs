@@ -14,7 +14,7 @@ namespace Zerra.Serialization.Json.Converters
         public abstract bool TryWriteFromParent(ref JsonWriter writer, ref WriteState state, TParent parent, string? propertyName = null);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public abstract bool TryReadValueBoxed(ref JsonReader reader, ref ReadState state, out object? value);
+        public abstract bool TryReadValueBoxed(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out object? value);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public abstract bool TryWriteValueBoxed(ref JsonWriter writer, ref WriteState state, object value);
 

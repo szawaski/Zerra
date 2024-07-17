@@ -25,99 +25,14 @@ namespace Zerra.Serialization.Json.Converters
         public abstract bool TryWriteBoxed(ref JsonWriter writer, ref WriteState state, object? value);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static bool ReadValueType(ref JsonReader reader, ref ReadState state)
+        protected static bool Drain(ref JsonReader reader, ref ReadState state, JsonValueType valueType)
         {
-            if (state.Current.ValueType == JsonValueType.NotDetermined)
+            if (valueType == JsonValueType.NotDetermined)
             {
-                if (!reader.TryReadNextSkipWhiteSpace(out state.Current.FirstChar))
-                {
-                    state.CharsNeeded = 1;
-                    return false;
-                }
-            }
-            else
-            {
-                if (state.Current.ValueType != JsonValueType.ReadingInProgress)
-                    return true;
-            }
-
-            switch (state.Current.FirstChar)
-            {
-                case '"':
-                    state.Current.ValueType = JsonValueType.String;
-                    break;
-
-                case '{':
-                    state.Current.ValueType = JsonValueType.Object;
-                    break;
-
-                case '[':
-                    state.Current.ValueType = JsonValueType.Array;
-                    break;
-
-                case 'n':
-                    if (!reader.TryValidateULL(out var valid))
-                    {
-                        state.Current.ValueType = JsonValueType.ReadingInProgress;
-                        state.CharsNeeded = 3;
-                        return false;
-                    }
-                    if (!valid)
-                        throw reader.CreateException("Invalid number/true/false/null");
-                    state.Current.ValueType = JsonValueType.Null_Completed;
-                    break;
-                case 't':
-                    if (!reader.TryValidateRUE(out valid))
-                    {
-                        state.Current.ValueType = JsonValueType.ReadingInProgress;
-                        state.CharsNeeded = 3;
-                        return false;
-                    }
-                    if (!valid)
-                        throw reader.CreateException("Invalid number/true/false/null");
-                    state.Current.ValueType = JsonValueType.True_Completed;
-                    break;
-                case 'f':
-                    if (!reader.TryValidateALSE(out valid))
-                    {
-                        state.Current.ValueType = JsonValueType.ReadingInProgress;
-                        state.CharsNeeded = 4;
-                        return false;
-                    }
-                    if (!valid)
-                        throw reader.CreateException("Invalid number/true/false/null");
-                    state.Current.ValueType = JsonValueType.False_Completed;
-                    break;
-
-                case '0':
-                case '1':
-                case '2':
-                case '3':
-                case '4':
-                case '5':
-                case '6':
-                case '7':
-                case '8':
-                case '9':
-                case '-':
-                    state.Current.ValueType = JsonValueType.Number;
-                    break;
-                default:
-                    throw reader.CreateException("Invalid number/true/false/null");
-            }
-
-            return true;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static bool Drain(ref JsonReader reader, ref ReadState state)
-        {
-            if (state.Current.ValueType <= JsonValueType.ReadingInProgress)
-            {
-                if (!ReadValueType(ref reader, ref state))
+                if (!reader.TryReadValueType(out valueType))
                     return false;
             }
-            switch (state.Current.ValueType)
+            switch (valueType)
             {
                 case JsonValueType.Object:
                     return DrainObject(ref reader, ref state);
@@ -179,7 +94,7 @@ namespace Zerra.Serialization.Json.Converters
                 if (!state.Current.HasReadValue)
                 {
                     state.PushFrame();
-                    if (!Drain(ref reader, ref state))
+                    if (!Drain(ref reader, ref state, default))
                     {
                         state.Current.HasReadProperty = true;
                         state.Current.HasReadSeperator = true;
@@ -241,7 +156,7 @@ namespace Zerra.Serialization.Json.Converters
                     reader.BackOne();
 
                     state.PushFrame();
-                    if (!Drain(ref reader, ref state))
+                    if (!Drain(ref reader, ref state, default))
                     {
                         state.StashFrame();
                         return false;
@@ -320,10 +235,12 @@ namespace Zerra.Serialization.Json.Converters
         protected static bool DrainNumber(ref JsonReader reader, ref ReadState state)
         {
             char c;
-            if (state.NumberStage != ReadNumberStage.Value)
+            if (state.NumberStage != ReadNumberStage.Setup)
             {
                 switch (state.NumberStage)
                 {
+                    case ReadNumberStage.Value:
+                        goto startValue;
                     case ReadNumberStage.ValueContinue:
                         goto startValueContinue;
                     case ReadNumberStage.Decimal:
@@ -335,8 +252,19 @@ namespace Zerra.Serialization.Json.Converters
                 }
             }
 
-            //startValue:
-            switch (state.Current.FirstChar)
+        startValue:
+            if (!reader.TryReadNext(out c))
+            {
+                if (state.IsFinalBlock)
+                {
+                    state.NumberStage = ReadNumberStage.Setup;
+                    return true;
+                }
+                state.CharsNeeded = 1;
+                state.NumberStage = ReadNumberStage.ValueContinue;
+                return false;
+            }
+            switch (c)
             {
                 case '0': break;
                 case '1': break;
@@ -360,7 +288,7 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock)
                     {
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         return true;
                     }
                     state.CharsNeeded = 1;
@@ -388,13 +316,13 @@ namespace Zerra.Serialization.Json.Converters
                     case '\r':
                     case '\n':
                     case '\t':
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         return true;
                     case ',':
                     case '}':
                     case ']':
                         reader.BackOne();
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         return true;
                 }
             }
@@ -406,7 +334,7 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock)
                     {
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         return true;
                     }
                     state.CharsNeeded = 1;
@@ -432,13 +360,13 @@ namespace Zerra.Serialization.Json.Converters
                     case '\r':
                     case '\n':
                     case '\t':
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         return true;
                     case ',':
                     case '}':
                     case ']':
                         reader.BackOne();
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         return true;
                 }
             }
@@ -448,7 +376,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (state.IsFinalBlock)
                 {
-                    state.NumberStage = ReadNumberStage.Value;
+                    state.NumberStage = ReadNumberStage.Setup;
                     return true;
                 }
                 state.CharsNeeded = 1;
@@ -480,7 +408,7 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock)
                     {
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         return true;
                     }
                     state.NumberStage = ReadNumberStage.ExponentContinue;
@@ -503,13 +431,13 @@ namespace Zerra.Serialization.Json.Converters
                     case '\r':
                     case '\n':
                     case '\t':
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         return true;
                     case ',':
                     case '}':
                     case ']':
                         reader.BackOne();
-                        state.NumberStage = ReadNumberStage.Value;
+                        state.NumberStage = ReadNumberStage.Setup;
                         return true;
                 }
             }

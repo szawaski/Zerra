@@ -25,21 +25,21 @@ namespace Zerra.Serialization.Json.Converters.Collections.Collections
             writeConverter = JsonConverterFactory<IEnumerator<TValue>>.Get(valueTypeDetail, null, Getter, null);
         }
 
-        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, out IReadOnlyCollection<TValue>? value)
+        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out IReadOnlyCollection<TValue>? value)
         {
-            if (state.Current.ValueType == JsonValueType.Null_Completed)
+            if (valueType == JsonValueType.Null_Completed)
             {
                 value = default;
                 return true;
             }
 
-            if (state.Current.ValueType != JsonValueType.Array)
+            if (valueType != JsonValueType.Array)
             {
                 if (state.ErrorOnTypeMismatch)
                     throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
 
                 value = default;
-                return Drain(ref reader, ref state);
+                return Drain(ref reader, ref state, valueType);
             }
 
             ICollection<TValue> Collection;

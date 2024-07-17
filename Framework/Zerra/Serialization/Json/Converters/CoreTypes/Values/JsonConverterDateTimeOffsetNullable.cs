@@ -11,9 +11,11 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
 {
     internal sealed class JsonConverterDateTimeOffsetNullable<TParent> : JsonConverter<TParent, DateTimeOffset?>
     {
-        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, out DateTimeOffset? value)
+        protected override bool StackRequired => false;
+
+        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out DateTimeOffset? value)
         {
-            switch (state.Current.ValueType)
+            switch (valueType)
             {
                 case JsonValueType.Object:
                     if (state.ErrorOnTypeMismatch)

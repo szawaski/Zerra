@@ -6,10 +6,11 @@ namespace Zerra.Serialization.Json.State
 {
     public enum ReadNumberStage : byte
     {
-        Value = 0,
-        ValueContinue = 1,
-        Decimal = 2,
-        Exponent = 3,
-        ExponentContinue = 4
+        Setup = 0,
+        Value = 1,
+        ValueContinue = 2,
+        Decimal = 3,
+        Exponent = 4,
+        ExponentContinue = 5
     }
 }
