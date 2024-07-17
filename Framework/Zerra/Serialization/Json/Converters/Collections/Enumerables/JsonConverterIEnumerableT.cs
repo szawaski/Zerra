@@ -3,29 +3,30 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using Zerra.Reflection;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 
-namespace Zerra.Serialization.Json.Converters.Collections.Lists
+namespace Zerra.Serialization.Json.Converters.Collections.Enumerables
 {
-    internal sealed class JsonConverterIReadOnlyListT<TParent, TValue> : JsonConverter<TParent, IReadOnlyList<TValue>>
+    internal sealed class JsonConverterIEnumerableT<TParent, TValue> : JsonConverter<TParent, IEnumerable<TValue>>
     {
-        private JsonConverter<List<TValue>> readConverter = null!;
+        private JsonConverter<ArrayAccessor<TValue>> readConverter = null!;
         private JsonConverter<IEnumerator<TValue>> writeConverter = null!;
 
         private static TValue Getter(IEnumerator<TValue> parent) => parent.Current;
-        private static void Setter(List<TValue> parent, TValue value) => parent.Add(value);
+        private static void Setter(ArrayAccessor<TValue> parent, TValue value) => parent.Set(value);
 
         protected override sealed void Setup()
         {
             var valueTypeDetail = TypeAnalyzer<TValue>.GetTypeDetail();
-            readConverter = JsonConverterFactory<List<TValue>>.Get(valueTypeDetail, null, null, Setter);
+            readConverter = JsonConverterFactory<ArrayAccessor<TValue>>.Get(valueTypeDetail, null, null, Setter);
             writeConverter = JsonConverterFactory<IEnumerator<TValue>>.Get(valueTypeDetail, null, Getter, null);
         }
 
-        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, out IReadOnlyList<TValue>? value)
+        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, out IEnumerable<TValue>? value)
         {
             if (state.Current.ValueType == JsonValueType.Null_Completed)
             {
@@ -42,7 +43,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
                 return Drain(ref reader, ref state);
             }
 
-            List<TValue> list;
+            ArrayAccessor<TValue> accessor;
             char c;
 
             if (!state.Current.HasReadFirstArrayElement)
@@ -65,22 +66,22 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
 
                     if (c == ']')
                     {
-                        value = (IReadOnlyList<TValue>)new List<TValue>(0);
+                        value = Array.Empty<TValue>();
                         return true;
                     }
 
                     if (reader.TryPeakArrayLength(c, out var length))
                     {
-                        list = new List<TValue>(length);
+                        accessor = new ArrayAccessor<TValue>(new TValue[length]);
                     }
                     else
                     {
-                        list = new List<TValue>();
+                        accessor = new ArrayAccessor<TValue>();
                     }
 
                     reader.BackOne();
 
-                    if (!readConverter.TryReadFromParent(ref reader, ref state, list))
+                    if (!readConverter.TryReadFromParent(ref reader, ref state, accessor))
                     {
                         state.Current.WorkingFirstChar = c;
                         value = default;
@@ -90,21 +91,21 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
                 }
                 else
                 {
-                    list = (List<TValue>)state.Current.Object!;
+                    accessor = (ArrayAccessor<TValue>)state.Current.Object!;
                 }
 
                 if (!reader.TryReadNextSkipWhiteSpace(out c))
                 {
                     state.CharsNeeded = 1;
                     state.Current.HasReadValue = true;
-                    state.Current.Object = list;
+                    state.Current.Object = accessor;
                     value = default;
                     return false;
                 }
 
                 if (c == ']')
                 {
-                    value = list;
+                    value = accessor.ToArray();
                     return true;
                 }
 
@@ -115,8 +116,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
             }
             else
             {
-                list = (List<TValue>)state.Current.Object!;
-                value = (IReadOnlyList<TValue>)state.Current.Object!;
+                accessor = (ArrayAccessor<TValue>)state.Current.Object!;
             }
 
             for (; ; )
@@ -129,7 +129,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
                         {
                             state.CharsNeeded = 1;
                             state.Current.HasReadFirstArrayElement = true;
-                            state.Current.Object = list;
+                            state.Current.Object = accessor;
                             value = default;
                             return false;
                         }
@@ -144,11 +144,11 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
 
                     reader.BackOne();
 
-                    if (!readConverter.TryReadFromParent(ref reader, ref state, list))
+                    if (!readConverter.TryReadFromParent(ref reader, ref state, accessor))
                     {
                         state.Current.HasReadFirstArrayElement = true;
                         state.Current.WorkingFirstChar = c;
-                        state.Current.Object = list;
+                        state.Current.Object = accessor;
                         value = default;
                         return false;
                     }
@@ -160,7 +160,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
                     state.CharsNeeded = 1;
                     state.Current.HasReadFirstArrayElement = true;
                     state.Current.HasReadValue = true;
-                    state.Current.Object = list;
+                    state.Current.Object = accessor;
                     value = default;
                     return false;
                 }
@@ -174,17 +174,20 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
                 state.Current.HasReadValue = false;
             }
 
-            value = list;
+            value = accessor.ToArray();
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, IReadOnlyList<TValue> value)
+        protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, IEnumerable<TValue> value)
         {
             IEnumerator<TValue> enumerator;
 
             if (!state.Current.HasWrittenStart)
             {
-                if (value.Count == 0)
+                var count = 0;
+                foreach (var item in value)
+                    count++;
+                if (count == 0)
                 {
                     if (!writer.TryWriteEmptyBracket(out state.CharsNeeded))
                     {

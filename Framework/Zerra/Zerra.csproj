@@ -106,4 +106,9 @@ Zerra.Reflection.TypeAnalyzer
         </None>
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Serialization\Json\Converters\Collections\Dictionaries\" />
+      <Folder Include="Serialization\Json\Converters\Collections\Sets\" />
+    </ItemGroup>
+
 </Project>

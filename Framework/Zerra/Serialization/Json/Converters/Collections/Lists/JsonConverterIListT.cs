@@ -96,13 +96,12 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
                 {
                     state.CharsNeeded = 1;
                     state.Current.HasReadValue = true;
-                    value = default;
+                    state.Current.Object = value;
                     return false;
                 }
 
                 if (c == ']')
                 {
-                    value = new List<TValue>(0);
                     return true;
                 }
 
@@ -126,7 +125,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
                         {
                             state.CharsNeeded = 1;
                             state.Current.HasReadFirstArrayElement = true;
-                            value = default;
+                            state.Current.Object = value;
                             return false;
                         }
                     }
@@ -144,7 +143,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
                     {
                         state.Current.HasReadFirstArrayElement = true;
                         state.Current.WorkingFirstChar = c;
-                        value = default;
+                        state.Current.Object = value;
                         return false;
                     }
                     state.Current.WorkingFirstChar = null;
@@ -155,7 +154,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
                     state.CharsNeeded = 1;
                     state.Current.HasReadFirstArrayElement = true;
                     state.Current.HasReadValue = true;
-                    value = default;
+                    state.Current.Object = value;
                     return false;
                 }
 
@@ -173,19 +172,19 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
 
         protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, IList<TValue> value)
         {
-            if (value.Count == 0)
-            {
-                if (!writer.TryWriteEmptyBracket(out state.CharsNeeded))
-                {
-                    return false;
-                }
-                return true;
-            }
-
             IEnumerator<TValue> enumerator;
 
             if (!state.Current.HasWrittenStart)
             {
+                if (value.Count == 0)
+                {
+                    if (!writer.TryWriteEmptyBracket(out state.CharsNeeded))
+                    {
+                        return false;
+                    }
+                    return true;
+                }
+
                 if (!writer.TryWriteOpenBracket(out state.CharsNeeded))
                 {
                     return false;
