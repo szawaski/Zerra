@@ -10,9 +10,7 @@ namespace Zerra.Serialization.Bytes.State
     [StructLayout(LayoutKind.Auto)]
     public struct ReadFrame
     {
-        public Type? ReadType;
         public Type? ChildReadType;
-        public bool HasNullChecked;
         public bool ChildHasNullChecked;
 
         public bool HasCreated;
