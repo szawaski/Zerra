@@ -25,6 +25,9 @@ namespace Zerra.Serialization.Bytes.State
         public ReadFrame Current;
         public int BytesNeeded;
 
+        public bool EntryHasNullChecked;
+        public Type? EntryReadType;
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EnsureStackSize()
         {

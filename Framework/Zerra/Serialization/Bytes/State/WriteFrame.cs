@@ -10,11 +10,9 @@ namespace Zerra.Serialization.Bytes.State
     [StructLayout(LayoutKind.Auto)]
     public struct WriteFrame
     {
-        public Type? WriteType;
         public Type? ChildWriteType;
         public object? Object;
 
-        public bool HasWrittenIsNull;
         public bool ChildHasWrittenIsNull;
 
         public bool HasWrittenLength;
