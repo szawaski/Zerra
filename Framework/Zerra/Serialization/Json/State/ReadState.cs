@@ -31,6 +31,7 @@ namespace Zerra.Serialization.Json.State
         public char[]? StringBuffer;
         public int StringPosition;
 
+        public bool ReadStringStart;
         public bool ReadStringEscape;
         public bool ReadStringEscapeUnicode;
 

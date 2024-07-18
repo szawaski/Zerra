@@ -11,15 +11,15 @@ namespace Zerra.Serialization.Json.Converters.Collections
 {
     internal sealed class JsonConverterArrayT<TParent, TValue> : JsonConverter<TParent, TValue[]>
     {
-        private JsonConverter<ArrayAccessor<TValue>> converter = null!;
+        private JsonConverter<ArrayOrListAccessor<TValue>> converter = null!;
 
-        private static TValue Getter(ArrayAccessor<TValue> parent) => parent.Get();
-        private static void Setter(ArrayAccessor<TValue> parent, TValue value) => parent.Set(value);
+        private static TValue Getter(ArrayOrListAccessor<TValue> parent) => parent.Get();
+        private static void Setter(ArrayOrListAccessor<TValue> parent, TValue value) => parent.Add(value);
 
         protected override sealed void Setup()
         {
             var valueTypeDetail = TypeAnalyzer<TValue>.GetTypeDetail();
-            converter = JsonConverterFactory<ArrayAccessor<TValue>>.Get(valueTypeDetail, null, Getter, Setter);
+            converter = JsonConverterFactory<ArrayOrListAccessor<TValue>>.Get(valueTypeDetail, null, Getter, Setter);
         }
 
         protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out TValue[]? value)
@@ -40,61 +40,13 @@ namespace Zerra.Serialization.Json.Converters.Collections
             }
 
             char c;
-            ArrayAccessor<TValue> accessor;
+            ArrayOrListAccessor<TValue> accessor;
 
-            if (!state.Current.HasReadFirstArrayElement)
+            if (!state.Current.HasCreated)
             {
-                if (!state.Current.HasReadValue)
-                {
-                    if (!state.Current.WorkingFirstChar.HasValue)
-                    {
-                        if (!reader.TryReadNextSkipWhiteSpace(out c))
-                        {
-                            state.CharsNeeded = 1;
-                            value = default;
-                            return false;
-                        }
-                    }
-                    else
-                    {
-                        c = state.Current.WorkingFirstChar.Value;
-                    }
-
-                    if (c == ']')
-                    {
-                        value = Array.Empty<TValue>();
-                        return true;
-                    }
-
-                    if (reader.TryPeakArrayLength(c, out var length))
-                    {
-                        accessor = new ArrayAccessor<TValue>(new TValue[length]);
-                    }
-                    else
-                    {
-                        accessor = new ArrayAccessor<TValue>();
-                    }
-
-                    reader.BackOne();
-
-                    if (!converter.TryReadFromParent(ref reader, ref state, accessor))
-                    {
-                        state.Current.WorkingFirstChar = c;
-                        value = default;
-                        return false;
-                    }
-                    accessor.Index++;
-                    state.Current.WorkingFirstChar = null;
-                }
-                else
-                {
-                    accessor = (ArrayAccessor<TValue>)state.Current.Object!;
-                }
-
                 if (!reader.TryReadNextSkipWhiteSpace(out c))
                 {
                     state.CharsNeeded = 1;
-                    state.Current.HasReadValue = true;
                     value = default;
                     return false;
                 }
@@ -105,55 +57,34 @@ namespace Zerra.Serialization.Json.Converters.Collections
                     return true;
                 }
 
-                if (c != ',')
-                    throw reader.CreateException("Unexpected character");
+                reader.BackOne();
 
-                state.Current.HasReadValue = false;
+                if (reader.TryPeakArrayLength(out var length))
+                    accessor = new ArrayOrListAccessor<TValue>(new TValue[length]);
+                else
+                    accessor = new ArrayOrListAccessor<TValue>();
             }
             else
             {
-                accessor = (ArrayAccessor<TValue>)state.Current.Object!;
+                accessor = (ArrayOrListAccessor<TValue>)state.Current.Object!;
             }
 
             for (; ; )
             {
                 if (!state.Current.HasReadValue)
                 {
-                    if (!state.Current.WorkingFirstChar.HasValue)
-                    {
-                        if (!reader.TryReadNextSkipWhiteSpace(out c))
-                        {
-                            state.CharsNeeded = 1;
-                            state.Current.HasReadFirstArrayElement = true;
-                            value = default;
-                            return false;
-                        }
-                    }
-                    else
-                    {
-                        c = state.Current.WorkingFirstChar.Value;
-                    }
-
-                    if (c == ']')
-                        break;
-
-                    reader.BackOne();
-
                     if (!converter.TryReadFromParent(ref reader, ref state, accessor))
                     {
-                        state.Current.HasReadFirstArrayElement = true;
-                        state.Current.WorkingFirstChar = c;
+                        state.Current.HasCreated = true;
                         value = default;
                         return false;
                     }
-                    accessor.Index++;
-                    state.Current.WorkingFirstChar = null;
                 }
 
                 if (!reader.TryReadNextSkipWhiteSpace(out c))
                 {
                     state.CharsNeeded = 1;
-                    state.Current.HasReadFirstArrayElement = true;
+                    state.Current.HasCreated = true;
                     state.Current.HasReadValue = true;
                     value = default;
                     return false;
@@ -183,7 +114,7 @@ namespace Zerra.Serialization.Json.Converters.Collections
                 return true;
             }
 
-            ArrayAccessor<TValue> accessor;
+            ArrayOrListAccessor<TValue> accessor;
 
             if (!state.Current.HasWrittenStart)
             {
@@ -191,11 +122,11 @@ namespace Zerra.Serialization.Json.Converters.Collections
                 {
                     return false;
                 }
-                accessor = new ArrayAccessor<TValue>(value);
+                accessor = new ArrayOrListAccessor<TValue>(value);
             }
             else
             {
-                accessor = (ArrayAccessor<TValue>)state.Current.Object!;
+                accessor = (ArrayOrListAccessor<TValue>)state.Current.Object!;
             }
 
             while (accessor.Index < accessor.Length)

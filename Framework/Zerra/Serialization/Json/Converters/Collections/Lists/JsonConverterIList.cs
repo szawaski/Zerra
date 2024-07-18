@@ -45,71 +45,27 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
 
             char c;
 
-            if (!state.Current.HasReadFirstArrayElement)
+            if (!state.Current.HasCreated)
             {
-                if (!state.Current.HasReadValue)
-                {
-                    if (!state.Current.WorkingFirstChar.HasValue)
-                    {
-                        if (!reader.TryReadNextSkipWhiteSpace(out c))
-                        {
-                            state.CharsNeeded = 1;
-                            value = default;
-                            return false;
-                        }
-                    }
-                    else
-                    {
-                        c = state.Current.WorkingFirstChar.Value;
-                    }
-
-                    if (c == ']')
-                    {
-                        value = new List<TValue>(0);
-                        return true;
-                    }
-
-                    if (reader.TryPeakArrayLength(c, out var length))
-                    {
-                        value = new List<TValue>(length);
-                    }
-                    else
-                    {
-                        value = new List<TValue>();
-                    }
-
-                    reader.BackOne();
-
-                    if (!readConverter.TryReadFromParent(ref reader, ref state, value))
-                    {
-                        state.Current.WorkingFirstChar = c;
-                        value = default;
-                        return false;
-                    }
-                    state.Current.WorkingFirstChar = null;
-                }
-                else
-                {
-                    value = (IList)state.Current.Object!;
-                }
-
                 if (!reader.TryReadNextSkipWhiteSpace(out c))
                 {
                     state.CharsNeeded = 1;
-                    state.Current.HasReadValue = true;
-                    state.Current.Object = value;
+                    value = default;
                     return false;
                 }
 
                 if (c == ']')
                 {
+                    value = new List<TValue>(0);
                     return true;
                 }
 
-                if (c != ',')
-                    throw reader.CreateException("Unexpected character");
+                reader.BackOne();
 
-                state.Current.HasReadValue = false;
+                if (reader.TryPeakArrayLength(out var length))
+                    value = new List<TValue>(length);
+                else
+                    value = new List<TValue>();
             }
             else
             {
@@ -120,40 +76,18 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
             {
                 if (!state.Current.HasReadValue)
                 {
-                    if (!state.Current.WorkingFirstChar.HasValue)
-                    {
-                        if (!reader.TryReadNextSkipWhiteSpace(out c))
-                        {
-                            state.CharsNeeded = 1;
-                            state.Current.HasReadFirstArrayElement = true;
-                            state.Current.Object = value;
-                            return false;
-                        }
-                    }
-                    else
-                    {
-                        c = state.Current.WorkingFirstChar.Value;
-                    }
-
-                    if (c == ']')
-                        break;
-
-                    reader.BackOne();
-
                     if (!readConverter.TryReadFromParent(ref reader, ref state, value))
                     {
-                        state.Current.HasReadFirstArrayElement = true;
-                        state.Current.WorkingFirstChar = c;
+                        state.Current.HasCreated = true;
                         state.Current.Object = value;
                         return false;
                     }
-                    state.Current.WorkingFirstChar = null;
                 }
 
                 if (!reader.TryReadNextSkipWhiteSpace(out c))
                 {
                     state.CharsNeeded = 1;
-                    state.Current.HasReadFirstArrayElement = true;
+                    state.Current.HasCreated = true;
                     state.Current.HasReadValue = true;
                     state.Current.Object = value;
                     return false;

@@ -91,9 +91,17 @@ namespace Zerra.Serialization.Json.Converters.General
             }
 
             Dictionary<string, object?>? collectedValues;
+            char c;
 
             if (!state.Current.HasCreated)
             {
+                if (!reader.TryReadNextSkipWhiteSpace(out c))
+                {
+                    state.CharsNeeded = 1;
+                    value = default;
+                    return false;
+                }
+
                 if (collectValues)
                 {
                     value = default;
@@ -109,6 +117,11 @@ namespace Zerra.Serialization.Json.Converters.General
                     value = default;
                     collectedValues = null;
                 }
+
+                if (c == '}')
+                    return true;
+
+                reader.BackOne();
 
                 state.Current.HasCreated = true;
             }
@@ -126,45 +139,19 @@ namespace Zerra.Serialization.Json.Converters.General
                 }
             }
 
-            char c;
             for (; ; )
             {
                 JsonConverterObjectMember? property;
                 if (!state.Current.HasReadProperty)
                 {
-                    if (!state.Current.WorkingFirstChar.HasValue)
+                    if (!ReadString(ref reader, ref state, false, out var name))
                     {
-                        if (!reader.TryReadNextSkipWhiteSpace(out c))
-                        {
-                            state.CharsNeeded = 1;
-                            if (collectValues)
-                                state.Current.Object = collectedValues;
-                            else
-                                state.Current.Object = value;
-                            return false;
-                        }
-                    }
-                    else
-                    {
-                        c = state.Current.WorkingFirstChar.Value;
-                    }
-
-                    if (c == '}')
-                        break;
-
-                    if (c != '"')
-                        throw reader.CreateException("Unexpected character");
-
-                    if (!ReadString(ref reader, ref state, out var name))
-                    {
-                        state.Current.WorkingFirstChar = c;
                         if (collectValues)
                             state.Current.Object = collectedValues;
                         else
                             state.Current.Object = value;
                         return false;
                     }
-                    state.Current.WorkingFirstChar = null;
 
                     if (String.IsNullOrWhiteSpace(name))
                         throw reader.CreateException("Unexpected character");
@@ -183,6 +170,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     {
                         state.CharsNeeded = 1;
                         state.Current.HasReadProperty = true;
+                        state.Current.Property = property;
                         if (collectValues)
                             state.Current.Object = collectedValues;
                         else
@@ -197,20 +185,17 @@ namespace Zerra.Serialization.Json.Converters.General
                 {
                     if (property is null)
                     {
-                        state.PushFrame();
-                        if (!Drain(ref reader, ref state, default))
+                        if (!DrainFromParent(ref reader, ref state))
                         {
                             state.Current.HasReadProperty = true;
-                            state.Current.HasReadSeperator = true;
                             state.Current.Property = property;
+                            state.Current.HasReadSeperator = true;
                             if (collectValues)
                                 state.Current.Object = collectedValues;
                             else
                                 state.Current.Object = value;
-                            state.StashFrame();
                             return false;
                         }
-                        state.EndFrame();
                     }
                     else
                     {

@@ -54,6 +54,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (!reader.TryReadValueType(out state.EntryValueType))
                 {
+                    state.CharsNeeded = 1;
                     returnValue = default;
                     return false;
                 }
@@ -160,6 +161,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (!reader.TryReadValueType(out state.EntryValueType))
                 {
+                    state.CharsNeeded = 1;
                     returnValue = default;
                     return false;
                 }
@@ -260,6 +262,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (!reader.TryReadValueType(out state.Current.ChildValueType))
                 {
+                    state.CharsNeeded = 1;
                     return false;
                 }
             }

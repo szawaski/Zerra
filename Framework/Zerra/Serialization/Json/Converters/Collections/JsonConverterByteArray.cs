@@ -29,7 +29,7 @@ namespace Zerra.Serialization.Json.Converters.Collections
                 return Drain(ref reader, ref state, valueType);
             }
 
-            if (!ReadString(ref reader, ref state, out var str))
+            if (!ReadString(ref reader, ref state, true, out var str))
             {
                 value = default;
                 return false;

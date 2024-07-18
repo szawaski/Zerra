@@ -13,16 +13,16 @@ namespace Zerra.Serialization.Json.Converters.Collections.Collections
 {
     internal sealed class JsonConverterICollection<TParent, TValue> : JsonConverter<TParent, ICollection>
     {
-        private JsonConverter<ArrayAccessor<object>> readConverter = null!;
+        private JsonConverter<ArrayOrListAccessor<object>> readConverter = null!;
         private JsonConverter<IEnumerator> writeConverter = null!;
 
         private static object Getter(IEnumerator parent) => parent.Current;
-        private static void Setter(ArrayAccessor<object> parent, object value) => parent.Set(value);
+        private static void Setter(ArrayOrListAccessor<object> parent, object value) => parent.Add(value);
 
         protected override sealed void Setup()
         {
             var valueTypeDetail = TypeAnalyzer<TValue>.GetTypeDetail();
-            readConverter = JsonConverterFactory<ArrayAccessor<object>>.Get(valueTypeDetail, null, null, Setter);
+            readConverter = JsonConverterFactory<ArrayOrListAccessor<object>>.Get(valueTypeDetail, null, null, Setter);
             writeConverter = JsonConverterFactory<IEnumerator>.Get(valueTypeDetail, null, Getter, null);
         }
 
@@ -43,122 +43,53 @@ namespace Zerra.Serialization.Json.Converters.Collections.Collections
                 return Drain(ref reader, ref state, valueType);
             }
 
-            ArrayAccessor<object> accessor;
+            ArrayOrListAccessor<object> accessor;
             char c;
 
-            if (!state.Current.HasReadFirstArrayElement)
+            if (!state.Current.HasCreated)
             {
-                if (!state.Current.HasReadValue)
-                {
-                    if (!state.Current.WorkingFirstChar.HasValue)
-                    {
-                        if (!reader.TryReadNextSkipWhiteSpace(out c))
-                        {
-                            state.CharsNeeded = 1;
-                            value = default;
-                            return false;
-                        }
-                    }
-                    else
-                    {
-                        c = state.Current.WorkingFirstChar.Value;
-                    }
-
-                    if (c == ']')
-                    {
-                        value = Array.Empty<object>();
-                        return true;
-                    }
-
-                    if (reader.TryPeakArrayLength(c, out var length))
-                    {
-                        accessor = new ArrayAccessor<object>(new object[length]);
-                    }
-                    else
-                    {
-                        accessor = new ArrayAccessor<object>();
-                    }
-
-                    reader.BackOne();
-
-                    if (!readConverter.TryReadFromParent(ref reader, ref state, accessor))
-                    {
-                        state.Current.WorkingFirstChar = c;
-                        value = default;
-                        return false;
-                    }
-                    state.Current.WorkingFirstChar = null;
-                }
-                else
-                {
-                    accessor = (ArrayAccessor<object>)state.Current.Object!;
-                }
-
                 if (!reader.TryReadNextSkipWhiteSpace(out c))
                 {
                     state.CharsNeeded = 1;
-                    state.Current.HasReadValue = true;
-                    state.Current.Object = accessor;
                     value = default;
                     return false;
                 }
 
                 if (c == ']')
                 {
-                    value = accessor.ToArray();
+                    value = Array.Empty<object>();
                     return true;
                 }
 
-                if (c != ',')
-                    throw reader.CreateException("Unexpected character");
+                reader.BackOne();
 
-                state.Current.HasReadValue = false;
+                if (reader.TryPeakArrayLength(out var length))
+                    accessor = new ArrayOrListAccessor<object>(new object[length]);
+                else
+                    accessor = new ArrayOrListAccessor<object>();
             }
             else
             {
-                accessor = (ArrayAccessor<object>)state.Current.Object!;
+                accessor = (ArrayOrListAccessor<object>)state.Current.Object!;
             }
 
             for (; ; )
             {
                 if (!state.Current.HasReadValue)
                 {
-                    if (!state.Current.WorkingFirstChar.HasValue)
-                    {
-                        if (!reader.TryReadNextSkipWhiteSpace(out c))
-                        {
-                            state.CharsNeeded = 1;
-                            state.Current.HasReadFirstArrayElement = true;
-                            state.Current.Object = accessor;
-                            value = default;
-                            return false;
-                        }
-                    }
-                    else
-                    {
-                        c = state.Current.WorkingFirstChar.Value;
-                    }
-
-                    if (c == ']')
-                        break;
-
-                    reader.BackOne();
-
                     if (!readConverter.TryReadFromParent(ref reader, ref state, accessor))
                     {
-                        state.Current.HasReadFirstArrayElement = true;
-                        state.Current.WorkingFirstChar = c;
+                        state.Current.HasCreated = true;
                         state.Current.Object = accessor;
                         value = default;
                         return false;
                     }
-                    state.Current.WorkingFirstChar = null;
                 }
 
                 if (!reader.TryReadNextSkipWhiteSpace(out c))
                 {
                     state.CharsNeeded = 1;
-                    state.Current.HasReadFirstArrayElement = true;
+                    state.Current.HasCreated = true;
                     state.Current.HasReadValue = true;
                     state.Current.Object = accessor;
                     value = default;

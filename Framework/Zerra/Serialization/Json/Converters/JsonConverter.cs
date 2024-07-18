@@ -25,13 +25,68 @@ namespace Zerra.Serialization.Json.Converters
         public abstract bool TryWriteBoxed(ref JsonWriter writer, ref WriteState state, object? value);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static bool Drain(ref JsonReader reader, ref ReadState state, JsonValueType valueType)
+        protected static bool DrainFromParent(ref JsonReader reader, ref ReadState state)
         {
-            if (valueType == JsonValueType.NotDetermined)
+            if (state.Current.ChildValueType == JsonValueType.NotDetermined)
             {
-                if (!reader.TryReadValueType(out valueType))
+                if (!reader.TryReadValueType(out state.Current.ChildValueType))
                     return false;
             }
+
+            switch (state.Current.ChildValueType)
+            {
+                case JsonValueType.Object:
+                    state.PushFrame();
+                    if (!DrainObject(ref reader, ref state))
+                    {
+                        state.StashFrame();
+                        return false;
+                    }
+                    state.EndFrame();
+                    state.Current.ChildValueType = JsonValueType.NotDetermined;
+                    return true;
+                case JsonValueType.Array:
+                    state.PushFrame();
+                    if (!DrainArray(ref reader, ref state))
+                    {
+                        state.StashFrame();
+                        return false;
+                    }
+                    state.EndFrame();
+                    state.Current.ChildValueType = JsonValueType.NotDetermined;
+                    return true;
+                case JsonValueType.String:
+                    state.PushFrame();
+                    if (!DrainString(ref reader, ref state))
+                    {
+                        state.StashFrame();
+                        return false;
+                    }
+                    state.EndFrame();
+                    state.Current.ChildValueType = JsonValueType.NotDetermined;
+                    return true;
+                case JsonValueType.Null_Completed:
+                    return true;
+                case JsonValueType.False_Completed:
+                    return true;
+                case JsonValueType.True_Completed:
+                    return true;
+                case JsonValueType.Number:
+                    if (!DrainNumber(ref reader, ref state))
+                    {
+                        state.StashFrame();
+                        return false;
+                    }
+                    state.EndFrame();
+                    state.Current.ChildValueType = JsonValueType.NotDetermined;
+                    return true;
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static bool Drain(ref JsonReader reader, ref ReadState state, JsonValueType valueType)
+        {
             switch (valueType)
             {
                 case JsonValueType.Object:
@@ -56,23 +111,28 @@ namespace Zerra.Serialization.Json.Converters
         protected static bool DrainObject(ref JsonReader reader, ref ReadState state)
         {
             char c;
+
+            if (!state.Current.HasCreated)
+            {
+                if (!reader.TryReadNextSkipWhiteSpace(out c))
+                {
+                    state.CharsNeeded = 1;
+                    return false;
+                }
+
+                if (c == '}')
+                    return true;
+
+                reader.BackOne();
+
+                state.Current.HasCreated = true;
+            }
+
             for (; ; )
             {
                 if (!state.Current.HasReadProperty)
                 {
-                    if (!reader.TryReadNextSkipWhiteSpace(out c))
-                    {
-                        state.CharsNeeded = 1;
-                        return false;
-                    }
-
-                    if (c == '}')
-                        break;
-
-                    if (c != '"')
-                        throw reader.CreateException("Unexpected character");
-
-                    if (!ReadString(ref reader, ref state, out var name))
+                    if (!ReadString(ref reader, ref state, false, out var name))
                         return false;
 
                     if (String.IsNullOrWhiteSpace(name))
@@ -93,15 +153,12 @@ namespace Zerra.Serialization.Json.Converters
 
                 if (!state.Current.HasReadValue)
                 {
-                    state.PushFrame();
-                    if (!Drain(ref reader, ref state, default))
+                    if (!DrainFromParent(ref reader, ref state))
                     {
                         state.Current.HasReadProperty = true;
                         state.Current.HasReadSeperator = true;
-                        state.StashFrame();
                         return false;
                     }
-                    state.EndFrame();
                 }
 
                 if (!reader.TryReadNextSkipWhiteSpace(out c))
@@ -130,44 +187,38 @@ namespace Zerra.Serialization.Json.Converters
         protected static bool DrainArray(ref JsonReader reader, ref ReadState state)
         {
             char c;
+
+            if (!state.Current.HasCreated)
+            {
+                if (!reader.TryReadNextSkipWhiteSpace(out c))
+                {
+                    state.CharsNeeded = 1;
+                    return false;
+                }
+
+                if (c == ']')
+                {
+                    return true;
+                }
+
+                reader.BackOne();
+            }
+
             for (; ; )
             {
                 if (!state.Current.HasReadValue)
                 {
-                    if (!state.Current.WorkingFirstChar.HasValue)
+                    if (!DrainFromParent(ref reader, ref state))
                     {
-                        if (!reader.TryReadNextSkipWhiteSpace(out c))
-                        {
-                            state.CharsNeeded = 1;
-                            state.Current.HasReadFirstArrayElement = true;
-                            return false;
-                        }
-                    }
-                    else
-                    {
-                        c = state.Current.WorkingFirstChar.Value;
-                    }
-
-                    if (c == ']')
-                    {
-                        return true;
-                    }
-
-                    reader.BackOne();
-
-                    state.PushFrame();
-                    if (!Drain(ref reader, ref state, default))
-                    {
-                        state.StashFrame();
+                        state.Current.HasCreated = true;
                         return false;
                     }
-                    state.EndFrame();
-                    state.Current.WorkingFirstChar = null;
                 }
 
                 if (!reader.TryReadNextSkipWhiteSpace(out c))
                 {
                     state.CharsNeeded = 1;
+                    state.Current.HasCreated = true;
                     state.Current.HasReadValue = true;
                     return false;
                 }
@@ -444,13 +495,24 @@ namespace Zerra.Serialization.Json.Converters
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static bool ReadString(ref JsonReader reader, ref ReadState state,
+        protected static bool ReadString(ref JsonReader reader, ref ReadState state, bool hasStarted,
 #if !NETSTANDARD2_0
             [MaybeNullWhen(false)]
 #endif
         out string value)
         {
             scoped Span<char> buffer;
+
+            if (!hasStarted && !state.ReadStringStart)
+            {
+                if (!reader.TryReadNextQuote())
+                {
+                    state.CharsNeeded = 1;
+                    value = default;
+                    return false;
+                }
+                state.ReadStringStart = true;
+            }
 
             if (state.StringBuffer == null)
             {
@@ -509,6 +571,8 @@ namespace Zerra.Serialization.Json.Converters
                             state.StringBuffer = null;
                         }
                         state.StringPosition = 0;
+                        if (!hasStarted)
+                            state.ReadStringStart = false;
                         return true;
                     }
                     state.ReadStringEscape = true;

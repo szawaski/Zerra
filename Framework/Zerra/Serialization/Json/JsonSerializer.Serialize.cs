@@ -404,7 +404,17 @@ namespace Zerra.Serialization.Json
             {
                 var write = converter.TryWrite(ref writer, ref state, value);
                 if (write)
+                {
                     state.CharsNeeded = 0;
+                }
+                else if (state.CharsNeeded == 0)
+                {
+#if DEBUG
+                    throw new Exception($"{nameof(state.CharsNeeded)} not indicated");
+#else
+                    state.CharsNeeded = 1;
+#endif
+                }
                 var result = writer.ToString();
                 return result;
             }
@@ -421,7 +431,17 @@ namespace Zerra.Serialization.Json
             {
                 var write = converter.TryWriteBoxed(ref writer, ref state, value);
                 if (write)
+                {
                     state.CharsNeeded = 0;
+                }
+                else if (state.CharsNeeded == 0)
+                {
+#if DEBUG
+                    throw new Exception($"{nameof(state.CharsNeeded)} not indicated");
+#else
+                    state.CharsNeeded = 1;
+#endif
+                }
                 var result = writer.ToString();
                 return result;
             }
@@ -439,7 +459,17 @@ namespace Zerra.Serialization.Json
             {
                 var write = converter.TryWrite(ref writer, ref state, value);
                 if (write)
+                {
                     state.CharsNeeded = 0;
+                }
+                else if (state.CharsNeeded == 0)
+                {
+#if DEBUG
+                    throw new Exception($"{nameof(state.CharsNeeded)} not indicated");
+#else
+                    state.CharsNeeded = 1;
+#endif
+                }
                 return writer.Length;
             }
             finally
@@ -455,7 +485,17 @@ namespace Zerra.Serialization.Json
             {
                 var write = converter.TryWriteBoxed(ref writer, ref state, value);
                 if (write)
+                {
                     state.CharsNeeded = 0;
+                }
+                else if (state.CharsNeeded == 0)
+                {
+#if DEBUG
+                    throw new Exception($"{nameof(state.CharsNeeded)} not indicated");
+#else
+                    state.CharsNeeded = 1;
+#endif
+                }
                 return writer.Length;
             }
             finally

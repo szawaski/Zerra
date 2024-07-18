@@ -469,7 +469,17 @@ namespace Zerra.Serialization.Json
             var reader = new JsonReader(buffer);
             var read = converter.TryRead(ref reader, ref state, out result);
             if (read)
+            {
                 state.CharsNeeded = 0;
+            }
+            else if (state.CharsNeeded == 0)
+            {
+#if DEBUG
+                throw new Exception($"{nameof(state.CharsNeeded)} not indicated");
+#else
+                state.CharsNeeded = 1;
+#endif
+            }
             return reader.Position;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -478,7 +488,17 @@ namespace Zerra.Serialization.Json
             var reader = new JsonReader(buffer);
             var read = converter.TryReadBoxed(ref reader, ref state, out result);
             if (read)
+            {
                 state.CharsNeeded = 0;
+            }
+            else if (state.CharsNeeded == 0)
+            {
+#if DEBUG
+                throw new Exception($"{nameof(state.CharsNeeded)} not indicated");
+#else
+                state.CharsNeeded = 1;
+#endif
+            }
             return reader.Position;
         }
 
@@ -488,7 +508,17 @@ namespace Zerra.Serialization.Json
             var reader = new JsonReader(buffer);
             var read = converter.TryRead(ref reader, ref state, out result);
             if (read)
+            {
                 state.CharsNeeded = 0;
+            }
+            else if (state.CharsNeeded == 0)
+            {
+#if DEBUG
+                throw new Exception($"{nameof(state.CharsNeeded)} not indicated");
+#else
+                state.CharsNeeded = 1;
+#endif
+            }
             return reader.Position;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -497,7 +527,17 @@ namespace Zerra.Serialization.Json
             var reader = new JsonReader(buffer);
             var read = converter.TryReadBoxed(ref reader, ref state, out result);
             if (read)
+            {
                 state.CharsNeeded = 0;
+            }
+            else if (state.CharsNeeded == 0)
+            {
+#if DEBUG
+                throw new Exception($"{nameof(state.CharsNeeded)} not indicated");
+#else
+                state.CharsNeeded = 1;
+#endif
+            }
             return reader.Position;
         }
     }

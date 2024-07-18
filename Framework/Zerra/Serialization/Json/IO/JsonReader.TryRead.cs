@@ -194,6 +194,34 @@ namespace Zerra.Serialization.Json.IO
                 return true;
             }
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe bool TryReadNextQuote()
+        {
+            if (useBytes)
+            {
+            bytesAgain:
+                if (position >= length)
+                    return false;
+                var b = bufferBytes[position++];
+                if (b == spaceByte || b == tabByte || b == returnByte || b == newlineByte)
+                    goto bytesAgain;
+                if (b != quoteByte)
+                    throw CreateException("Unexpected character");
+                return true;
+            }
+            else
+            {
+            charsAgain:
+                if (position >= length)
+                    return false;
+                var c = bufferChars[position++];
+                if (c == ' ' || c == '\t' || c == '\r' || c == '\n')
+                    goto charsAgain;
+                if (c != '"')
+                    throw CreateException("Unexpected character");
+                return true;
+            }
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryReadValueType(out JsonValueType valueType)
@@ -477,31 +505,16 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryPeakArrayLength(char firstChar, out int length)
+        public unsafe bool TryPeakArrayLength(out int length)
         {
             if (useBytes)
             {
                 fixed (byte* ptr = bufferBytes.Slice(position))
                 {
-                    var openBrackets = 0;
+                    var openBrackets = 1;
+                    var openBraces = 0;
                     var quoted = false;
                     length = 0;
-
-                    switch (firstChar)
-                    {
-                        case ',':
-                            throw CreateException("Unexpected Character");
-                        case '[':
-                            openBrackets++;
-                            break;
-                        case ']':
-                            return true;
-                        case '"':
-                            quoted = !quoted;
-                            break;
-                    }
-
-                    length++;
 
                     byte* ptr2 = ptr;
                     for (var i = position; i < bufferBytes.Length; i++)
@@ -510,7 +523,7 @@ namespace Zerra.Serialization.Json.IO
                         switch (b)
                         {
                             case commaByte:
-                                if (!quoted && openBrackets == 0)
+                                if (!quoted && openBrackets == 1 && openBraces == 0)
                                     length++;
                                 continue;
                             case openBracketByte:
@@ -520,10 +533,21 @@ namespace Zerra.Serialization.Json.IO
                             case closeBracketByte:
                                 if (!quoted)
                                 {
-                                    if (openBrackets == 0)
+                                    if (--openBrackets == 0)
+                                    {
+                                        if (i != position)
+                                            length++;
                                         return true;
-                                    openBrackets--;
+                                    }
                                 }
+                                continue;
+                            case openBraceByte:
+                                if (!quoted)
+                                    openBraces++;
+                                continue;
+                            case closeBraceByte:
+                                if (!quoted)
+                                    openBraces--;
                                 continue;
                             case quoteByte:
                                 quoted = !quoted;
@@ -537,25 +561,9 @@ namespace Zerra.Serialization.Json.IO
             {
                 fixed (char* ptr = bufferChars.Slice(position))
                 {
-                    var openBrackets = 0;
+                    var openBrackets = 1;
                     var quoted = false;
                     length = 0;
-
-                    switch (firstChar)
-                    {
-                        case ',':
-                            throw CreateException("Unexpected Character");
-                        case '[':
-                            openBrackets++;
-                            break;
-                        case ']':
-                            return true;
-                        case '"':
-                            quoted = !quoted;
-                            break;
-                    }
-
-                    length++;
 
                     char* ptr2 = ptr;
                     for (var i = position; i < bufferChars.Length; i++)
@@ -564,7 +572,7 @@ namespace Zerra.Serialization.Json.IO
                         switch (c)
                         {
                             case ',':
-                                if (!quoted && openBrackets == 0)
+                                if (!quoted && openBrackets == 1)
                                     length++;
                                 continue;
                             case '[':
@@ -574,9 +582,12 @@ namespace Zerra.Serialization.Json.IO
                             case ']':
                                 if (!quoted)
                                 {
-                                    if (openBrackets == 0)
+                                    if (--openBrackets == 0)
+                                    {
+                                        if (i != position)
+                                            length++;
                                         return true;
-                                    openBrackets--;
+                                    }
                                 }
                                 continue;
                             case '"':

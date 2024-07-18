@@ -43,21 +43,22 @@ namespace Zerra.Serialization.Json.IO
         {
             if (useBytes)
             {
+                var charPostion = Math.Max(position - 1, 0);
 #if NETSTANDARD2_0
-                var character = encoding.GetString(bufferBytes.Slice(position, 3).ToArray())[0];
+                var character = encoding.GetString(bufferBytes.Slice(charPostion, 4).ToArray())[0];
 #else
-                var character = encoding.GetString(bufferBytes.Slice(position, 3))[0];
+                var character = encoding.GetString(bufferBytes.Slice(charPostion, 4))[0];
 #endif
 
-                var start1 = (position - 1) > errorHelperLength ? (position - 1) - errorHelperLength : 0;
-                var length1 = start1 + errorHelperLength > (position - 1) ? (position - 1) - start1 : errorHelperLength;
+                var start1 = charPostion > errorHelperLength ? charPostion - errorHelperLength : 0;
+                var length1 = start1 + errorHelperLength > charPostion ? charPostion - start1 : errorHelperLength;
 #if NETSTANDARD2_0
                 var helper1 = encoding.GetString(bufferBytes.Slice(start1, length1).ToArray());
 #else
                 var helper1 = encoding.GetString(bufferBytes.Slice(start1, length1));
 #endif
 
-                var start2 = position + 1;
+                var start2 = charPostion + 1;
                 var length2 = start2 + errorHelperLength > bufferBytes.Length ? bufferBytes.Length - start2 : errorHelperLength;
 #if NETSTANDARD2_0
                 var helper2 = encoding.GetString(bufferBytes.Slice(start2, length2).ToArray());
@@ -65,7 +66,7 @@ namespace Zerra.Serialization.Json.IO
                 var helper2 = encoding.GetString(bufferBytes.Slice(start2, length2));
 #endif
 
-                return new FormatException($"JSON Error: {message} at position {position} character {character} between {helper1} and {helper2}");
+                return new FormatException($"JSON Error: {message} at position {position} character ~{character}~ between ~{helper1}~ and ~{helper2}~");
             }
             else
             {
