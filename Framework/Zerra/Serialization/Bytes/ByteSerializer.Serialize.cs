@@ -417,7 +417,17 @@ namespace Zerra.Serialization.Bytes
 #endif
                 var write = converter.TryWrite(ref writer, ref state, value);
                 if (write)
+                {
                     state.BytesNeeded = 0;
+                }
+                else if (state.BytesNeeded == 0)
+                {
+#if DEBUG
+                    throw new Exception($"{nameof(state.BytesNeeded)} not indicated");
+#else
+                    state.BytesNeeded = 1;
+#endif
+                }
 #if DEBUG
                 if (!write && ByteWriter.Testing && writer.Position + state.BytesNeeded <= writer.Length)
                     goto again;
@@ -441,7 +451,17 @@ namespace Zerra.Serialization.Bytes
 #endif
                 var write = converter.TryWriteBoxed(ref writer, ref state, value);
                 if (write)
+                {
                     state.BytesNeeded = 0;
+                }
+                else if (state.BytesNeeded == 0)
+                {
+#if DEBUG
+                    throw new Exception($"{nameof(state.BytesNeeded)} not indicated");
+#else
+                    state.BytesNeeded = 1;
+#endif
+                }
 #if DEBUG
                 if (!write && ByteWriter.Testing && writer.Position + state.BytesNeeded <= writer.Length)
                     goto again;
@@ -464,7 +484,17 @@ namespace Zerra.Serialization.Bytes
 #endif
             var write = converter.TryWrite(ref writer, ref state, value);
             if (write)
+            {
                 state.BytesNeeded = 0;
+            }
+            else if (state.BytesNeeded == 0)
+            {
+#if DEBUG
+                throw new Exception($"{nameof(state.BytesNeeded)} not indicated");
+#else
+                state.BytesNeeded = 1;
+#endif
+            }
 #if DEBUG
             if (!write && ByteWriter.Testing && writer.Position + state.BytesNeeded <= writer.Length)
                 goto again;
@@ -480,7 +510,17 @@ namespace Zerra.Serialization.Bytes
 #endif
             var write = converter.TryWriteBoxed(ref writer, ref state, value);
             if (write)
+            {
                 state.BytesNeeded = 0;
+            }
+            else if (state.BytesNeeded == 0)
+            {
+#if DEBUG
+                throw new Exception($"{nameof(state.BytesNeeded)} not indicated");
+#else
+                state.BytesNeeded = 1;
+#endif
+            }
 #if DEBUG
             if (!write && ByteWriter.Testing && writer.Position + state.BytesNeeded <= writer.Length)
                 goto again;

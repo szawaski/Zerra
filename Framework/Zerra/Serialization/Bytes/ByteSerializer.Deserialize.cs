@@ -463,11 +463,21 @@ namespace Zerra.Serialization.Bytes
         {
             var reader = new ByteReader(buffer, encoding);
 #if DEBUG
-            again:
+        again:
 #endif
             var read = converter.TryRead(ref reader, ref state, out result);
             if (read)
+            {
                 state.BytesNeeded = 0;
+            }
+            else if (state.BytesNeeded == 0)
+            {
+#if DEBUG
+                throw new Exception($"{nameof(state.BytesNeeded)} not indicated");
+#else
+                state.BytesNeeded = 1;
+#endif
+            }
 #if DEBUG
             if (!read && ByteReader.Testing && reader.Position + state.BytesNeeded <= reader.Length)
                 goto again;
@@ -483,7 +493,17 @@ namespace Zerra.Serialization.Bytes
 #endif
             var read = converter.TryReadBoxed(ref reader, ref state, out result);
             if (read)
+            {
                 state.BytesNeeded = 0;
+            }
+            else if (state.BytesNeeded == 0)
+            {
+#if DEBUG
+                throw new Exception($"{nameof(state.BytesNeeded)} not indicated");
+#else
+                state.BytesNeeded = 1;
+#endif
+            }
 #if DEBUG
             if (!read && ByteReader.Testing && reader.Position + state.BytesNeeded <= reader.Length)
                 goto again;
