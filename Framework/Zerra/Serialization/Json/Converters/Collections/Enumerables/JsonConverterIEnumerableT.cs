@@ -28,12 +28,6 @@ namespace Zerra.Serialization.Json.Converters.Collections.Enumerables
 
         protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out IEnumerable<TValue>? value)
         {
-            if (valueType == JsonValueType.Null_Completed)
-            {
-                value = default;
-                return true;
-            }
-
             if (valueType != JsonValueType.Array)
             {
                 if (state.ErrorOnTypeMismatch)

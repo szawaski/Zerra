@@ -27,12 +27,6 @@ namespace Zerra.Serialization.Json.Converters.Collections.Collections
 
         protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out ICollection<TValue>? value)
         {
-            if (valueType == JsonValueType.Null_Completed)
-            {
-                value = default;
-                return true;
-            }
-
             if (valueType != JsonValueType.Array)
             {
                 if (state.ErrorOnTypeMismatch)

@@ -58,6 +58,11 @@ namespace Zerra.Serialization.Json.Converters
                     returnValue = default;
                     return false;
                 }
+                if (state.EntryValueType == JsonValueType.Null_Completed)
+                {
+                    returnValue = default;
+                    return true;
+                }
             }
             var valueType = state.EntryValueType;
 
@@ -165,6 +170,11 @@ namespace Zerra.Serialization.Json.Converters
                     returnValue = default;
                     return false;
                 }
+                if (state.EntryValueType == JsonValueType.Null_Completed)
+                {
+                    returnValue = default;
+                    return true;
+                }
             }
             var valueType = state.EntryValueType;
 
@@ -264,6 +274,12 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     state.CharsNeeded = 1;
                     return false;
+                }
+                if (state.EntryValueType == JsonValueType.Null_Completed)
+                {
+                    if (setter is not null && parent is not null)
+                        setter(parent, default);
+                    return true;
                 }
             }
             var valueType = state.Current.ChildValueType;
