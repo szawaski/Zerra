@@ -9,6 +9,7 @@ using System.Runtime.CompilerServices;
 using Zerra.Collections;
 using Zerra.Reflection;
 using Zerra.Serialization.Json.Converters.Collections;
+using Zerra.Serialization.Json.Converters.Collections.Dictionaries;
 using Zerra.Serialization.Json.Converters.General;
 
 namespace Zerra.Serialization.Json.Converters
@@ -151,12 +152,12 @@ namespace Zerra.Serialization.Json.Converters
             //    return (JsonConverter<TParent>)converter;
             //}
 
-            ////IDictionary<,> of type - specific types that inherit this
-            //if (typeDetail.HasIDictionaryGeneric)
-            //{
-            //    var converter = typeof(JsonConverterIDictionaryTOfT<,,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0], typeDetail.InnerTypes[1]).CreatorBoxed();
-            //    return (JsonConverter<TParent>)converter;
-            //}
+            //IDictionary<,> of type - specific types that inherit this
+            if (typeDetail.HasIDictionaryGeneric)
+            {
+                var converter = typeof(JsonConverterIDictionaryTOfT<,,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0], typeDetail.InnerTypes[1]).CreatorBoxed();
+                return (JsonConverter<TParent>)converter;
+            }
 
             ////IDictionary of type - specific types that inherit this
             //if (typeDetail.HasIDictionary)
