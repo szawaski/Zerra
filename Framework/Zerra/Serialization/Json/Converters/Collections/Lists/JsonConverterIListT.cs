@@ -21,8 +21,8 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
         protected override sealed void Setup()
         {
             var valueTypeDetail = TypeAnalyzer<TValue>.GetTypeDetail();
-            readConverter = JsonConverterFactory<IList<TValue>>.Get(valueTypeDetail, null, null, Setter);
-            writeConverter = JsonConverterFactory<IEnumerator<TValue>>.Get(valueTypeDetail, null, Getter, null);
+            readConverter = JsonConverterFactory<IList<TValue>>.Get(valueTypeDetail, nameof(JsonConverterIListT<TParent, TValue>), null, Setter);
+            writeConverter = JsonConverterFactory<IEnumerator<TValue>>.Get(valueTypeDetail, nameof(JsonConverterIListT<TParent, TValue>), Getter, null);
         }
 
         protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out IList<TValue>? value)

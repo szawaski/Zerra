@@ -40,15 +40,15 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
 
             if (canWriteAsProperties)
             {
-                readKeyConverter = JsonConverterFactory<IDictionaryAccessor<TKey, TValue>>.Get(keyDetail, null, null, KeySetter);
-                readValueConverter = JsonConverterFactory<IDictionaryAccessor<TKey, TValue>>.Get(valueDetail, null, null, ValueSetter);
-                //writeKeyConverter = JsonConverterFactory<IEnumerator<KeyValuePair<TKey, TValue>>>.Get(valueDetail, null, KeyGetter, null);
-                writeValueConverter = JsonConverterFactory<IEnumerator<KeyValuePair<TKey, TValue>>>.Get(valueDetail, null, ValueGetter, null);
+                readKeyConverter = JsonConverterFactory<IDictionaryAccessor<TKey, TValue>>.Get(keyDetail, nameof(JsonConverterIDictionaryTOfT<TParent, TDictionary, TKey, TValue>), null, KeySetter);
+                readValueConverter = JsonConverterFactory<IDictionaryAccessor<TKey, TValue>>.Get(valueDetail, nameof(JsonConverterIDictionaryTOfT<TParent, TDictionary, TKey, TValue>), null, ValueSetter);
+                //writeKeyConverter = JsonConverterFactory<IEnumerator<KeyValuePair<TKey, TValue>>>.Get(valueDetail, nameof(JsonConverterIDictionaryTOfT<TParent, TDictionary, TKey, TValue>), KeyGetter, null);
+                writeValueConverter = JsonConverterFactory<IEnumerator<KeyValuePair<TKey, TValue>>>.Get(valueDetail, nameof(JsonConverterIDictionaryTOfT<TParent, TDictionary, TKey, TValue>), ValueGetter, null);
             }
             else
             {
-                readConverter = JsonConverterFactory<IDictionary<TKey, TValue>>.Get(keyDetail, null, null, Setter);
-                writeConverter = JsonConverterFactory<IEnumerator<KeyValuePair<TKey, TValue>>>.Get(valueDetail, null, Getter, null);
+                readConverter = JsonConverterFactory<IDictionary<TKey, TValue>>.Get(keyDetail, nameof(JsonConverterIDictionaryTOfT<TParent, TDictionary, TKey, TValue>), null, Setter);
+                writeConverter = JsonConverterFactory<IEnumerator<KeyValuePair<TKey, TValue>>>.Get(valueDetail, nameof(JsonConverterIDictionaryTOfT<TParent, TDictionary, TKey, TValue>), Getter, null);
             }
         }
 

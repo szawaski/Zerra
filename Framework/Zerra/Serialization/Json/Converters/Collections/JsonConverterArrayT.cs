@@ -19,7 +19,7 @@ namespace Zerra.Serialization.Json.Converters.Collections
         protected override sealed void Setup()
         {
             var valueTypeDetail = TypeAnalyzer<TValue>.GetTypeDetail();
-            converter = JsonConverterFactory<ArrayOrListAccessor<TValue>>.Get(valueTypeDetail, null, Getter, Setter);
+            converter = JsonConverterFactory<ArrayOrListAccessor<TValue>>.Get(valueTypeDetail, nameof(JsonConverterArrayT<TParent, TValue>), Getter, Setter);
         }
 
         protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out TValue[]? value)

@@ -22,12 +22,12 @@ namespace Zerra.Serialization.Json.Converters
         private static readonly Type parentType = typeof(TParent);
 
         internal static JsonConverter<TParent> GetRoot(TypeDetail typeDetail)
-             => Get(typeDetail, null, null, null);
+             => Get(typeDetail, "Root", null, null);
 
-        public static JsonConverter<TParent> Get(TypeDetail typeDetail, string? memberKey, Delegate? getter, Delegate? setter)
+        public static JsonConverter<TParent> Get(TypeDetail typeDetail, string memberKey, Delegate? getter, Delegate? setter)
         {
             var cache2 = cache.GetOrAdd(typeDetail.Type, x => new());
-            var converter = cache2.GetOrAdd(memberKey ?? string.Empty, x =>
+            var converter = cache2.GetOrAdd(memberKey, x =>
             {
                 var newConverter = Create(typeDetail);
                 Debug.WriteLine($"{typeDetail.Type.GetNiceName()} - {newConverter.GetType().GetNiceName()}");
