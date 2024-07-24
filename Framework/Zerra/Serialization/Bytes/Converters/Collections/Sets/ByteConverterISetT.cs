@@ -21,8 +21,8 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Sets
         protected override sealed void Setup()
         {
             var valueTypeDetail = TypeAnalyzer<TValue>.GetTypeDetail();
-            readConverter = ByteConverterFactory<ISet<TValue>>.Get(valueTypeDetail, null, null, Setter);
-            writeConverter = ByteConverterFactory<IEnumerator<TValue>>.Get(valueTypeDetail, null, Getter, null);
+            readConverter = ByteConverterFactory<ISet<TValue>>.Get(valueTypeDetail, nameof(ByteConverterISetT<TParent, TValue>), null, Setter);
+            writeConverter = ByteConverterFactory<IEnumerator<TValue>>.Get(valueTypeDetail, nameof(ByteConverterISetT<TParent, TValue>), Getter, null);
         }
 
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out ISet<TValue>? value)

@@ -22,8 +22,8 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Dictionaries
         protected override sealed void Setup()
         {
             var dictionaryEntryTypeDetail = TypeAnalyzer<DictionaryEntry>.GetTypeDetail();
-            readConverter = ByteConverterFactory<IDictionary>.Get(dictionaryEntryTypeDetail, null, null, Setter);
-            writeConverter = ByteConverterFactory<IDictionaryEnumerator>.Get(dictionaryEntryTypeDetail, null, Getter, null);
+            readConverter = ByteConverterFactory<IDictionary>.Get(dictionaryEntryTypeDetail, nameof(ByteConverterIDictionary<TParent>), null, Setter);
+            writeConverter = ByteConverterFactory<IDictionaryEnumerator>.Get(dictionaryEntryTypeDetail, nameof(ByteConverterIDictionary<TParent>), Getter, null);
         }
 
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out IDictionary? value)
