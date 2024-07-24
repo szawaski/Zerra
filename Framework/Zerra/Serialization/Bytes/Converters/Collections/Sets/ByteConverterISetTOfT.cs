@@ -54,7 +54,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Sets
             }
             else
             {
-                set = (HashSet<TValue>)state.Current.Object!;
+                set = (ISet<TValue>)state.Current.Object!;
                 if (!state.Current.DrainBytes)
                     value = (TSet)state.Current.Object!;
                 else

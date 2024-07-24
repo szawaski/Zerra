@@ -54,7 +54,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
             }
             else
             {
-                list = (List<TValue>)state.Current.Object!;
+                list = (IList<TValue>)state.Current.Object!;
                 if (!state.Current.DrainBytes)
                     value = (TList?)state.Current.Object;
                 else
@@ -83,7 +83,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
 
             if (state.Current.Object is null)
             {
-                var collection = (IList<TValue>)value;
+                var collection = (IList<TValue>)value!;
 
                 if (!writer.TryWrite(collection.Count, out state.BytesNeeded))
                 {

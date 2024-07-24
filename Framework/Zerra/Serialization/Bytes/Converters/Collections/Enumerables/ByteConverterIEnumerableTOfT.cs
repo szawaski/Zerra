@@ -62,7 +62,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
                 }
                 else
                 {
-                    var enumerable = (IEnumerable<TValue>)value;
+                    var enumerable = (IEnumerable<TValue>)value!;
 
                     var count = 0;
                     foreach (var item in enumerable)

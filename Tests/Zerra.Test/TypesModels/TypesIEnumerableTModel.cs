@@ -7,7 +7,7 @@ using System.Collections.Generic;
 
 namespace Zerra.Test
 {
-    public class TypesIEnumerableModel
+    public class TypesIEnumerableTModel
     {
         public IEnumerable<bool> BooleanIEnumerableT { get; set; }
         public IEnumerable<byte> ByteIEnumerableT { get; set; }
@@ -157,9 +157,9 @@ namespace Zerra.Test
         public IEnumerable<SimpleModel> ClassIEnumerableEmpty { get; set; }
         public IEnumerable<SimpleModel> ClassIEnumerableNull { get; set; }
 
-        public static TypesIEnumerableModel Create()
+        public static TypesIEnumerableTModel Create()
         {
-            var model = new TypesIEnumerableModel()
+            var model = new TypesIEnumerableTModel()
             {
                 BooleanIEnumerableT = new List<bool>() { true, false, true },
                 ByteIEnumerableT = new List<byte>() { 1, 2, 3 },

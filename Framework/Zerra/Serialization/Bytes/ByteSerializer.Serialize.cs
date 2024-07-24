@@ -423,7 +423,8 @@ namespace Zerra.Serialization.Bytes
                 else if (state.BytesNeeded == 0)
                 {
 #if DEBUG
-                    throw new Exception($"{nameof(state.BytesNeeded)} not indicated");
+                    if (!ByteWriter.Testing)
+                        throw new Exception($"{nameof(state.BytesNeeded)} not indicated");
 #else
                     state.BytesNeeded = 1;
 #endif
@@ -457,7 +458,8 @@ namespace Zerra.Serialization.Bytes
                 else if (state.BytesNeeded == 0)
                 {
 #if DEBUG
-                    throw new Exception($"{nameof(state.BytesNeeded)} not indicated");
+                    if (!ByteWriter.Testing)
+                        throw new Exception($"{nameof(state.BytesNeeded)} not indicated");
 #else
                     state.BytesNeeded = 1;
 #endif
@@ -490,7 +492,8 @@ namespace Zerra.Serialization.Bytes
             else if (state.BytesNeeded == 0)
             {
 #if DEBUG
-                throw new Exception($"{nameof(state.BytesNeeded)} not indicated");
+                if (!ByteWriter.Testing)
+                    throw new Exception($"{nameof(state.BytesNeeded)} not indicated");
 #else
                 state.BytesNeeded = 1;
 #endif
@@ -515,8 +518,10 @@ namespace Zerra.Serialization.Bytes
             }
             else if (state.BytesNeeded == 0)
             {
+
 #if DEBUG
-                throw new Exception($"{nameof(state.BytesNeeded)} not indicated");
+                if (!ByteWriter.Testing)
+                    throw new Exception($"{nameof(state.BytesNeeded)} not indicated");
 #else
                 state.BytesNeeded = 1;
 #endif

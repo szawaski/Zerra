@@ -83,7 +83,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Dictionaries
 
             if (state.Current.Object is null)
             {
-                var dictionary = (IDictionary)value;
+                var dictionary = (IDictionary)value!;
                 if (!writer.TryWrite(dictionary.Count, out state.BytesNeeded))
                 {
                     return false;

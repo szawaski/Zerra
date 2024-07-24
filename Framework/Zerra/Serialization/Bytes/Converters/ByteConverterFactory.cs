@@ -9,6 +9,7 @@ using System.Runtime.CompilerServices;
 using Zerra.Collections;
 using Zerra.Reflection;
 using Zerra.Serialization.Bytes.Converters.Collections;
+using Zerra.Serialization.Bytes.Converters.Collections.Collections;
 using Zerra.Serialization.Bytes.Converters.Collections.Dictionaries;
 using Zerra.Serialization.Bytes.Converters.Collections.Enumerables;
 using Zerra.Serialization.Bytes.Converters.Collections.Lists;
@@ -184,6 +185,14 @@ namespace Zerra.Serialization.Bytes.Converters
             if (typeDetail.HasIDictionary)
             {
                 var converter = typeof(ByteConverterIDictionaryOfT<,>).GetGenericTypeDetail(parentType, typeDetail.Type).CreatorBoxed();
+                return (ByteConverter<TParent>)converter;
+            }
+
+
+            //ICollection<T> of type - specific types that inherit this
+            if (typeDetail.HasICollectionGeneric)
+            {
+                var converter = typeof(ByteConverterICollectionTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0]).CreatorBoxed();
                 return (ByteConverter<TParent>)converter;
             }
 

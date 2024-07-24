@@ -92,7 +92,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Dictionaries
 
             if (state.Current.Object is null)
             {
-                var collection = (ICollection<KeyValuePair<TKey, TValue>>)value;
+                var collection = (ICollection<KeyValuePair<TKey, TValue>>)value!;
 
                 if (!writer.TryWrite(collection.Count, out state.BytesNeeded))
                 {
