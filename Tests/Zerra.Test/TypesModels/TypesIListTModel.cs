@@ -7,7 +7,7 @@ using System.Collections.Generic;
 
 namespace Zerra.Test
 {
-    public class TypesIListModel
+    public class TypesIListTModel
     {
         public IList<bool> BooleanIListT { get; set; }
         public IList<byte> ByteIListT { get; set; }
@@ -157,9 +157,9 @@ namespace Zerra.Test
         public IList<SimpleModel> ClassIListEmpty { get; set; }
         public IList<SimpleModel> ClassIListNull { get; set; }
 
-        public static TypesIListModel Create()
+        public static TypesIListTModel Create()
         {
-            var model = new TypesIListModel()
+            var model = new TypesIListTModel()
             {
                 BooleanIListT = new List<bool>() { true, false, true },
                 ByteIListT = new List<byte>() { 1, 2, 3 },

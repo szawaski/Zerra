@@ -1786,9 +1786,9 @@ namespace Zerra.Test
         [TestMethod]
         public void StringHashSet()
         {
-            var model1 = TypesHashSetModel.Create();
-            var json = JsonSerializerOld.Serialize(model1);
-            var model2 = JsonSerializerOld.Deserialize<TypesHashSetModel>(json);
+            var model1 = TypesHashSetTModel.Create();
+            var json = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TypesHashSetTModel>(json);
             AssertHelper.AreEqual(model1, model2);
         }
 
@@ -2444,11 +2444,11 @@ namespace Zerra.Test
         [TestMethod]
         public async Task StreamHashSet()
         {
-            var model1 = TypesHashSetModel.Create();
+            var model1 = TypesHashSetTModel.Create();
             using var stream = new MemoryStream();
             await JsonSerializerOld.SerializeAsync(stream, model1);
             stream.Position = 0;
-            var model2 = await JsonSerializerOld.DeserializeAsync<TypesHashSetModel>(stream);
+            var model2 = await JsonSerializer.DeserializeAsync<TypesHashSetTModel>(stream);
             AssertHelper.AreEqual(model1, model2);
         }
 

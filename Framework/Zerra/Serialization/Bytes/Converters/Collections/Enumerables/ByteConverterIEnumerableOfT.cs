@@ -22,8 +22,8 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
         protected override sealed void Setup()
         {
             var valueTypeDetail = TypeAnalyzer<object>.GetTypeDetail();
-            readConverter = ByteConverterFactory<ArrayAccessor<object>>.Get(valueTypeDetail, null, null, Setter);
-            writeConverter = ByteConverterFactory<IEnumerator>.Get(valueTypeDetail, null, Getter, null);
+            readConverter = ByteConverterFactory<ArrayAccessor<object>>.Get(valueTypeDetail, nameof(ByteConverterIEnumerableOfT<TParent, TEnumerable>), null, Setter);
+            writeConverter = ByteConverterFactory<IEnumerator>.Get(valueTypeDetail, nameof(ByteConverterIEnumerableOfT<TParent, TEnumerable>), Getter, null);
         }
 
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TEnumerable? value)
@@ -50,7 +50,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
                 }
                 else
                 {
-                    var enumerable = (IEnumerable)value;
+                    var enumerable = (IEnumerable)value!;
 
                     var count = 0;
                     foreach (var item in enumerable)

@@ -7,7 +7,7 @@ using System.Collections.Generic;
 
 namespace Zerra.Test
 {
-    public class TypesIReadOnlyListModel
+    public class TypesIReadOnlyListTModel
     {
         public IReadOnlyList<bool> BooleanIReadOnlyListT { get; set; }
         public IReadOnlyList<byte> ByteIReadOnlyListT { get; set; }
@@ -157,9 +157,9 @@ namespace Zerra.Test
         public IReadOnlyList<SimpleModel> ClassIReadOnlyListEmpty { get; set; }
         public IReadOnlyList<SimpleModel> ClassIReadOnlyListNull { get; set; }
 
-        public static TypesIReadOnlyListModel Create()
+        public static TypesIReadOnlyListTModel Create()
         {
-            var model = new TypesIReadOnlyListModel()
+            var model = new TypesIReadOnlyListTModel()
             {
                 BooleanIReadOnlyListT = new List<bool>() { true, false, true },
                 ByteIReadOnlyListT = new List<byte>() { 1, 2, 3 },

@@ -10,7 +10,7 @@ using Zerra.Serialization.Bytes.State;
 
 namespace Zerra.Serialization.Bytes.Converters.Collections.Collections
 {
-    internal sealed class ByteConverterICollectionT<TParent, TValue> : ByteConverter<TParent, ICollection<TValue>>
+    internal sealed class ByteConverterICollectionTOfT<TParent, TCollection, TValue> : ByteConverter<TParent, TCollection>
     {
         private ByteConverter<ICollection<TValue>> readConverter = null!;
         private ByteConverter<IEnumerator<TValue>> writeConverter = null!;
@@ -21,12 +21,14 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Collections
         protected override sealed void Setup()
         {
             var valueTypeDetail = TypeAnalyzer<TValue>.GetTypeDetail();
-            readConverter = ByteConverterFactory<ICollection<TValue>>.Get(valueTypeDetail, nameof(ByteConverterICollectionT<TParent, TValue>), null, Setter);
-            writeConverter = ByteConverterFactory<IEnumerator<TValue>>.Get(valueTypeDetail, nameof(ByteConverterICollectionT<TParent, TValue>), Getter, null);
+            readConverter = ByteConverterFactory<ICollection<TValue>>.Get(valueTypeDetail, nameof(ByteConverterICollectionTOfT<TParent, TCollection, TValue>), null, Setter);
+            writeConverter = ByteConverterFactory<IEnumerator<TValue>>.Get(valueTypeDetail, nameof(ByteConverterICollectionTOfT<TParent, TCollection, TValue>), Getter, null);
         }
 
-        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out ICollection<TValue>? value)
+        protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TCollection? value)
         {
+            ICollection<TValue> Collection;
+
             if (!state.Current.EnumerableLength.HasValue)
             {
                 if (!reader.TryRead(out state.Current.EnumerableLength, out state.BytesNeeded))
@@ -37,7 +39,8 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Collections
 
                 if (!state.Current.DrainBytes)
                 {
-                    value = new List<TValue>(state.Current.EnumerableLength!.Value);
+                    value = typeDetail.Creator();
+                    Collection = (ICollection<TValue>)value!;
                     if (state.Current.EnumerableLength!.Value == 0)
                         return true;
                 }
@@ -46,46 +49,52 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Collections
                     value = default;
                     if (state.Current.EnumerableLength!.Value == 0)
                         return true;
-                    value = new ICollectionTCounter<TValue>();
+                    Collection = new ICollectionTCounter<TValue>();
                 }
             }
             else
             {
-                value = (ICollection<TValue>)state.Current.Object!;
+                Collection = (ICollection<TValue>)state.Current.Object!;
+                if (!state.Current.DrainBytes)
+                    value = (TCollection?)state.Current.Object;
+                else
+                    value = default;
             }
 
-            if (value.Count == state.Current.EnumerableLength.Value)
+            if (Collection.Count == state.Current.EnumerableLength.Value)
                 return true;
 
             for (; ; )
             {
-                if (!readConverter.TryReadFromParent(ref reader, ref state, value, true))
+                if (!readConverter.TryReadFromParent(ref reader, ref state, Collection, true))
                 {
-                    state.Current.Object = value;
+                    state.Current.Object = Collection;
                     return false;
                 }
 
-                if (value.Count == state.Current.EnumerableLength!.Value)
+                if (Collection.Count == state.Current.EnumerableLength!.Value)
                     return true;
             }
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, ICollection<TValue> value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TCollection value)
         {
             IEnumerator<TValue> enumerator;
 
             if (state.Current.Object is null)
             {
-                if (!writer.TryWrite(value.Count, out state.BytesNeeded))
+                var collection = (ICollection<TValue>)value!;
+
+                if (!writer.TryWrite(collection.Count, out state.BytesNeeded))
                 {
                     return false;
                 }
-                if (value.Count == 0)
+                if (collection.Count == 0)
                 {
                     return true;
                 }
 
-                enumerator = value.GetEnumerator();
+                enumerator = collection.GetEnumerator();
             }
             else
             {

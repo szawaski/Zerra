@@ -21,8 +21,8 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
         protected override sealed void Setup()
         {
             var valueTypeDetail = TypeAnalyzer<object>.GetTypeDetail();
-            readConverter = ByteConverterFactory<IList>.Get(valueTypeDetail, null, null, Setter);
-            writeConverter = ByteConverterFactory<IEnumerator>.Get(valueTypeDetail, null, Getter, null);
+            readConverter = ByteConverterFactory<IList>.Get(valueTypeDetail, nameof(ByteConverterIListOfT<TParent, TList>), null, Setter);
+            writeConverter = ByteConverterFactory<IEnumerator>.Get(valueTypeDetail, nameof(ByteConverterIListOfT<TParent, TList>), Getter, null);
         }
 
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TList? value)
@@ -83,7 +83,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
 
             if (state.Current.Object is null)
             {
-                var collection = (ICollection)value;
+                var collection = (ICollection)value!;
 
                 if (!writer.TryWrite(collection.Count, out state.BytesNeeded))
                 {

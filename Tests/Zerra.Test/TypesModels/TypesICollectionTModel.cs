@@ -7,7 +7,7 @@ using System.Collections.Generic;
 
 namespace Zerra.Test
 {
-    public class TypesICollectionModel
+    public class TypesICollectionTModel
     {
         public ICollection<bool> BooleanICollectionT { get; set; }
         public ICollection<byte> ByteICollectionT { get; set; }
@@ -157,9 +157,9 @@ namespace Zerra.Test
         public ICollection<SimpleModel> ClassICollectionEmpty { get; set; }
         public ICollection<SimpleModel> ClassICollectionNull { get; set; }
 
-        public static TypesICollectionModel Create()
+        public static TypesICollectionTModel Create()
         {
-            var model = new TypesICollectionModel()
+            var model = new TypesICollectionTModel()
             {
                 BooleanICollectionT = new List<bool>() { true, false, true },
                 ByteICollectionT = new List<byte>() { 1, 2, 3 },

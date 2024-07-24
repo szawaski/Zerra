@@ -1084,12 +1084,14 @@ namespace Zerra.Serialization.Bytes.IO
         public unsafe bool TryWrite(IEnumerable<float> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 4;
-            if (!EnsureSize(sizeNeeded) 
+            if (!EnsureSize(sizeNeeded)
 #if DEBUG
             || Skip()
 #endif
             )
+            {
                 return false;
+            }
             foreach (var value in values)
             {
                 var tmpValue = *(uint*)&value;

@@ -9,6 +9,7 @@ using System.Runtime.CompilerServices;
 using Zerra.Collections;
 using Zerra.Reflection;
 using Zerra.Serialization.Bytes.Converters.Collections;
+using Zerra.Serialization.Bytes.Converters.Collections.Collections;
 using Zerra.Serialization.Bytes.Converters.Collections.Dictionaries;
 using Zerra.Serialization.Bytes.Converters.Collections.Enumerables;
 using Zerra.Serialization.Bytes.Converters.Collections.Lists;
@@ -26,12 +27,12 @@ namespace Zerra.Serialization.Bytes.Converters
         private static readonly Type parentType = typeof(TParent);
 
         internal static ByteConverter<TParent> GetRoot(TypeDetail typeDetail)
-             => Get(typeDetail, null, null, null);
+             => Get(typeDetail, "Root", null, null);
 
-        public static ByteConverter<TParent> Get(TypeDetail typeDetail, string? memberKey, Delegate? getter, Delegate? setter)
+        public static ByteConverter<TParent> Get(TypeDetail typeDetail, string memberKey, Delegate? getter, Delegate? setter)
         {
             var cache2 = cache.GetOrAdd(typeDetail.Type, x => new());
-            var converter = cache2.GetOrAdd(memberKey ?? string.Empty, x =>
+            var converter = cache2.GetOrAdd(memberKey, x =>
             {
                 var newConverter = Create(typeDetail);
                 Debug.WriteLine($"{typeDetail.Type.GetNiceName()} - {newConverter.GetType().GetNiceName()}");
@@ -184,6 +185,14 @@ namespace Zerra.Serialization.Bytes.Converters
             if (typeDetail.HasIDictionary)
             {
                 var converter = typeof(ByteConverterIDictionaryOfT<,>).GetGenericTypeDetail(parentType, typeDetail.Type).CreatorBoxed();
+                return (ByteConverter<TParent>)converter;
+            }
+
+
+            //ICollection<T> of type - specific types that inherit this
+            if (typeDetail.HasICollectionGeneric)
+            {
+                var converter = typeof(ByteConverterICollectionTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0]).CreatorBoxed();
                 return (ByteConverter<TParent>)converter;
             }
 

@@ -7,7 +7,7 @@ using System.Collections.Generic;
 
 namespace Zerra.Test
 {
-    public class TypesHashSetModel
+    public class TypesHashSetTModel
     {
         public HashSet<bool> BooleanHashSet { get; set; }
         public HashSet<byte> ByteHashSet { get; set; }
@@ -157,9 +157,9 @@ namespace Zerra.Test
         public HashSet<SimpleModel> ClassHashSetEmpty { get; set; }
         public HashSet<SimpleModel> ClassHashSetNull { get; set; }
 
-        public static TypesHashSetModel Create()
+        public static TypesHashSetTModel Create()
         {
-            var model = new TypesHashSetModel()
+            var model = new TypesHashSetTModel()
             {
                 BooleanHashSet = new HashSet<bool>() { true, false, true },
                 ByteHashSet = new HashSet<byte>() { 1, 2, 3 },

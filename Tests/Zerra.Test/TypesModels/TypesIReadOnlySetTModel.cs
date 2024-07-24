@@ -9,7 +9,7 @@ using System.Collections.Generic;
 
 namespace Zerra.Test
 {
-    public class TypesIReadOnlySetModel
+    public class TypesIReadOnlySetTModel
     {
         public IReadOnlySet<bool> BooleanIReadOnlySet { get; set; }
         public IReadOnlySet<byte> ByteIReadOnlySet { get; set; }
@@ -159,9 +159,9 @@ namespace Zerra.Test
         public IReadOnlySet<SimpleModel> ClassIReadOnlySetEmpty { get; set; }
         public IReadOnlySet<SimpleModel> ClassIReadOnlySetNull { get; set; }
 
-        public static TypesIReadOnlySetModel Create()
+        public static TypesIReadOnlySetTModel Create()
         {
-            var model = new TypesIReadOnlySetModel()
+            var model = new TypesIReadOnlySetTModel()
             {
                 BooleanIReadOnlySet = new HashSet<bool>() { true, false, true },
                 ByteIReadOnlySet = new HashSet<byte>() { 1, 2, 3 },
