@@ -562,6 +562,7 @@ namespace Zerra.Serialization.Json.IO
                 fixed (char* ptr = bufferChars.Slice(position))
                 {
                     var openBrackets = 1;
+                    var openBraces = 0;
                     var quoted = false;
                     length = 0;
 
@@ -572,7 +573,7 @@ namespace Zerra.Serialization.Json.IO
                         switch (c)
                         {
                             case ',':
-                                if (!quoted && openBrackets == 1)
+                                if (!quoted && openBrackets == 1 && openBraces == 0)
                                     length++;
                                 continue;
                             case '[':
@@ -589,6 +590,14 @@ namespace Zerra.Serialization.Json.IO
                                         return true;
                                     }
                                 }
+                                continue;
+                            case '{':
+                                if (!quoted)
+                                    openBraces++;
+                                continue;
+                            case '}':
+                                if (!quoted)
+                                    openBraces--;
                                 continue;
                             case '"':
                                 quoted = !quoted;

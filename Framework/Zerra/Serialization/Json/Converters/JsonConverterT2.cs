@@ -355,6 +355,7 @@ namespace Zerra.Serialization.Json.Converters
                         {
                             return false;
                         }
+                        state.Current.HasWrittenPropertyName = false;
                         return true;
                     }
                 }

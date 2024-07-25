@@ -998,6 +998,8 @@ namespace Zerra.Serialization.Json.IO
             }
             else
             {
+                bufferChars[position++] = '"';
+
                 if (value.Year < 10)
                     bufferChars[position++] = '0';
                 if (value.Year < 100)
@@ -1015,6 +1017,8 @@ namespace Zerra.Serialization.Json.IO
                 if (value.Day < 10)
                     bufferChars[position++] = '0';
                 WriteInt64Chars(value.Day);
+
+                bufferChars[position++] = '"';
 
                 return true;
             }
@@ -2157,10 +2161,11 @@ namespace Zerra.Serialization.Json.IO
                     }
                 }
 
+                position += pCount;
+
                 bufferChars[position++] = '"';
                 bufferChars[position++] = ':';
-
-                position += pCount;
+    
                 return true;
             }
         }
