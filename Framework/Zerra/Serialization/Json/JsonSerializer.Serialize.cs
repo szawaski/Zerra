@@ -19,7 +19,7 @@ namespace Zerra.Serialization.Json
         public static string? Serialize<T>(T? obj, JsonSerializerOptions? options = null)
         {
             if (obj == null)
-                return null;
+                return "null";
 
             options ??= defaultOptions;
 
@@ -43,7 +43,7 @@ namespace Zerra.Serialization.Json
         public static string? Serialize(object? obj, JsonSerializerOptions? options = null)
         {
             if (obj == null)
-                return null;
+                return "null";
 
             options ??= defaultOptions;
 
@@ -70,7 +70,7 @@ namespace Zerra.Serialization.Json
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
             if (obj == null)
-                return null;
+                return "null";
 
             options ??= defaultOptions;
 

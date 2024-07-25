@@ -226,6 +226,7 @@ namespace Zerra.Serialization.Json.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryReadValueType(out JsonValueType valueType)
         {
+        whiteSpaceGoAgain:
             if (position + 1 > length)
             {
                 valueType = default;
@@ -237,6 +238,13 @@ namespace Zerra.Serialization.Json.IO
                 var b = bufferBytes[position];
                 switch (b)
                 {
+                    case spaceByte:
+                    case returnByte:
+                    case newlineByte:
+                    case tabByte:
+                        position++;
+                        goto whiteSpaceGoAgain;
+
                     case quoteByte:
                         position++;
                         valueType = JsonValueType.String;
@@ -330,6 +338,13 @@ namespace Zerra.Serialization.Json.IO
                 var c = bufferChars[position];
                 switch (c)
                 {
+                    case ' ':
+                    case '\r':
+                    case '\n':
+                    case '\t':
+                        position++;
+                        goto whiteSpaceGoAgain;
+
                     case '"':
                         position++;
                         valueType = JsonValueType.String;

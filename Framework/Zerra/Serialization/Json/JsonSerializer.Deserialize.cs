@@ -15,13 +15,17 @@ using Zerra.Reflection;
 namespace Zerra.Serialization.Json
 {
     public partial class JsonSerializer
-    {   
+    {
         public static T? Deserialize<T>(ReadOnlySpan<char> chars, JsonSerializerOptions? options = null)
         {
-            if (chars == null) 
+            if (chars == null)
                 throw new ArgumentNullException(nameof(chars));
             if (chars.Length == 0)
+            {
+                if (typeof(T) == typeof(string))
+                    return (T)(object)String.Empty;
                 return default;
+            }
 
             options ??= defaultOptions;
 
@@ -33,9 +37,11 @@ namespace Zerra.Serialization.Json
                 Nameless = options.Nameless,
                 DoNotWriteNullProperties = options.DoNotWriteNullProperties,
                 EnumAsNumber = options.EnumAsNumber,
-                ErrorOnTypeMismatch = options.ErrorOnTypeMismatch
+                ErrorOnTypeMismatch = options.ErrorOnTypeMismatch,
+
+                IsFinalBlock = true
             };
-            
+
             T? result;
 
             Read(converter, chars, ref state, out result);
@@ -47,8 +53,16 @@ namespace Zerra.Serialization.Json
         }
         public static object? Deserialize(Type type, ReadOnlySpan<char> chars, JsonSerializerOptions? options = null)
         {
-            if (type == null) throw new ArgumentNullException(nameof(type));
-            if (chars == null) throw new ArgumentNullException(nameof(chars));
+            if (type == null)
+                throw new ArgumentNullException(nameof(type));
+            if (chars == null)
+                throw new ArgumentNullException(nameof(chars));
+            if (chars.Length == 0)
+            {
+                if (type == typeof(string))
+                    return String.Empty;
+                return default;
+            }
 
             options ??= defaultOptions;
 
@@ -60,9 +74,11 @@ namespace Zerra.Serialization.Json
                 Nameless = options.Nameless,
                 DoNotWriteNullProperties = options.DoNotWriteNullProperties,
                 EnumAsNumber = options.EnumAsNumber,
-                ErrorOnTypeMismatch = options.ErrorOnTypeMismatch
+                ErrorOnTypeMismatch = options.ErrorOnTypeMismatch,
+
+                IsFinalBlock = true
             };
-            
+
             object? result;
 
             ReadBoxed(converter, chars, ref state, out result);
@@ -109,6 +125,8 @@ namespace Zerra.Serialization.Json
 
                 if (position == 0)
                 {
+                    if (typeof(T) == typeof(string))
+                        return (T)(object)String.Empty;
                     return default;
                 }
 
@@ -119,7 +137,7 @@ namespace Zerra.Serialization.Json
                     EnumAsNumber = options.EnumAsNumber,
                     ErrorOnTypeMismatch = options.ErrorOnTypeMismatch
                 };
-                
+
                 T? result;
 
                 for (; ; )
@@ -207,6 +225,8 @@ namespace Zerra.Serialization.Json
 
                 if (position == 0)
                 {
+                    if (type == typeof(string))
+                        return String.Empty;
                     return default;
                 }
 
@@ -217,7 +237,7 @@ namespace Zerra.Serialization.Json
                     EnumAsNumber = options.EnumAsNumber,
                     ErrorOnTypeMismatch = options.ErrorOnTypeMismatch
                 };
-                
+
                 object? result;
 
                 for (; ; )
@@ -304,6 +324,8 @@ namespace Zerra.Serialization.Json
 
                 if (position == 0)
                 {
+                    if (typeof(T) == typeof(string))
+                        return (T)(object)String.Empty;
                     return default;
                 }
 
@@ -314,7 +336,7 @@ namespace Zerra.Serialization.Json
                     EnumAsNumber = options.EnumAsNumber,
                     ErrorOnTypeMismatch = options.ErrorOnTypeMismatch
                 };
-                
+
                 T? result;
 
                 for (; ; )
@@ -402,6 +424,8 @@ namespace Zerra.Serialization.Json
 
                 if (position == 0)
                 {
+                    if (type == typeof(string))
+                        return String.Empty;
                     return default;
                 }
 
@@ -412,7 +436,7 @@ namespace Zerra.Serialization.Json
                     EnumAsNumber = options.EnumAsNumber,
                     ErrorOnTypeMismatch = options.ErrorOnTypeMismatch
                 };
-                
+
                 object? result;
 
                 for (; ; )

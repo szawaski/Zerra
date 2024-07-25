@@ -19,7 +19,7 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                 case JsonValueType.Object:
                     if (state.ErrorOnTypeMismatch)
                         throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
-                    value = default;
+                    value = String.Empty;
                     return DrainObject(ref reader, ref state);
                 case JsonValueType.Array:
                     if (state.ErrorOnTypeMismatch)

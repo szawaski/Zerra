@@ -586,12 +586,30 @@ namespace Zerra.Serialization.Json.Converters
                     case '8': break;
                     case '9': break;
                     case '.':
-                        state.NumberStage = ReadNumberStage.Decimal;
-                        break;
+                        if (state.StringPosition + 1 > buffer.Length)
+                        {
+                            var oldRented = state.StringBuffer;
+                            state.StringBuffer = BufferArrayPool<char>.Rent(buffer.Length * 2);
+                            buffer.CopyTo(state.StringBuffer);
+                            buffer = state.StringBuffer;
+                            if (oldRented != null)
+                                BufferArrayPool<char>.Return(oldRented);
+                        }
+                        buffer[state.StringPosition++] = c;
+                        goto startDecimal;
                     case 'e':
                     case 'E':
-                        state.NumberStage = ReadNumberStage.Exponent;
-                        break;
+                        if (state.StringPosition + 1 > buffer.Length)
+                        {
+                            var oldRented = state.StringBuffer;
+                            state.StringBuffer = BufferArrayPool<char>.Rent(buffer.Length * 2);
+                            buffer.CopyTo(state.StringBuffer);
+                            buffer = state.StringBuffer;
+                            if (oldRented != null)
+                                BufferArrayPool<char>.Return(oldRented);
+                        }
+                        buffer[state.StringPosition++] = c;
+                        goto startExponent;
                     case ' ':
                     case '\r':
                     case '\n':
@@ -673,8 +691,17 @@ namespace Zerra.Serialization.Json.Converters
                     case '9': break;
                     case 'e':
                     case 'E':
-                        state.NumberStage = ReadNumberStage.Exponent;
-                        break;
+                        if (state.StringPosition + 1 > buffer.Length)
+                        {
+                            var oldRented = state.StringBuffer;
+                            state.StringBuffer = BufferArrayPool<char>.Rent(buffer.Length * 2);
+                            buffer.CopyTo(state.StringBuffer);
+                            buffer = state.StringBuffer;
+                            if (oldRented != null)
+                                BufferArrayPool<char>.Return(oldRented);
+                        }
+                        buffer[state.StringPosition++] = c;
+                        goto startExponent;
                     case ' ':
                     case '\r':
                     case '\n':
