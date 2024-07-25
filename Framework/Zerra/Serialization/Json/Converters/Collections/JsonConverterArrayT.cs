@@ -70,6 +70,7 @@ namespace Zerra.Serialization.Json.Converters.Collections
                     if (!converter.TryReadFromParent(ref reader, ref state, accessor))
                     {
                         state.Current.HasCreated = true;
+                        state.Current.Object = accessor;
                         value = default;
                         return false;
                     }
@@ -80,6 +81,7 @@ namespace Zerra.Serialization.Json.Converters.Collections
                     state.CharsNeeded = 1;
                     state.Current.HasCreated = true;
                     state.Current.HasReadValue = true;
+                    state.Current.Object = accessor;
                     value = default;
                     return false;
                 }

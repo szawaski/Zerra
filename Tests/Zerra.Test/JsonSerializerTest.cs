@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using Microsoft.VisualStudio.TestPlatform.PlatformAbstractions.Interfaces;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Concurrent;
@@ -28,15 +29,15 @@ namespace Zerra.Test
         public void StringMatchesNewtonsoft()
         {
             var baseModel = TypesAllModel.Create();
-            var json1 = JsonSerializerOld.Serialize(baseModel);
-            var json2 = Newtonsoft.Json.JsonConvert.SerializeObject(baseModel, 
+            var json1 = JsonSerializer.Serialize(baseModel);
+            var json2 = Newtonsoft.Json.JsonConvert.SerializeObject(baseModel,
                 new Newtonsoft.Json.Converters.StringEnumConverter(),
                 new NewtonsoftDateOnlyConverter(),
                 new NewtonsoftTimeOnlyConverter());
 
             //swap serializers
-            var model1 = JsonSerializerOld.Deserialize<TypesAllModel>(json2);
-            var model2 = Newtonsoft.Json.JsonConvert.DeserializeObject<TypesAllModel>(json1, 
+            var model1 = JsonSerializer.Deserialize<TypesAllModel>(json2);
+            var model2 = Newtonsoft.Json.JsonConvert.DeserializeObject<TypesAllModel>(json1,
                 new Newtonsoft.Json.Converters.StringEnumConverter(),
                 new NewtonsoftDateOnlyConverter(),
                 new NewtonsoftTimeOnlyConverter());
@@ -50,13 +51,13 @@ namespace Zerra.Test
             options.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
 
             var baseModel = TypesAllModel.Create();
-            var json1 = JsonSerializerOld.Serialize(baseModel);
+            var json1 = JsonSerializer.Serialize(baseModel);
             var json2 = System.Text.Json.JsonSerializer.Serialize(baseModel, options);
 
             Assert.IsTrue(json1 == json2);
 
             //swap serializers
-            var model1 = JsonSerializerOld.Deserialize<TypesAllModel>(json2);
+            var model1 = JsonSerializer.Deserialize<TypesAllModel>(json2);
             var model2 = System.Text.Json.JsonSerializer.Deserialize<TypesAllModel>(json1, options);
             AssertHelper.AreEqual(model1, model2);
         }
@@ -65,26 +66,26 @@ namespace Zerra.Test
         public void StringTypes()
         {
             var baseModel = TypesAllModel.Create();
-            var json = JsonSerializerOld.Serialize(baseModel);
-            var model = JsonSerializerOld.Deserialize<TypesAllModel>(json);
+            var json = JsonSerializer.Serialize(baseModel);
+            var model = JsonSerializer.Deserialize<TypesAllModel>(json);
             AssertHelper.AreEqual(baseModel, model);
         }
 
         [TestMethod]
         public void StringEnumAsNumbers()
         {
-            var options = new JsonSerializerOptionsOld()
+            var options = new JsonSerializerOptions()
             {
                 EnumAsNumber = true
             };
 
             var baseModel = TypesAllModel.Create();
-            var json = JsonSerializerOld.Serialize(baseModel, options);
+            var json = JsonSerializer.Serialize(baseModel, options);
             Assert.IsFalse(json.Contains(EnumModel.EnumItem0.EnumName()));
             Assert.IsFalse(json.Contains(EnumModel.EnumItem1.EnumName()));
             Assert.IsFalse(json.Contains(EnumModel.EnumItem2.EnumName()));
             Assert.IsFalse(json.Contains(EnumModel.EnumItem3.EnumName()));
-            var model = JsonSerializerOld.Deserialize<TypesAllModel>(json, options);
+            var model = JsonSerializer.Deserialize<TypesAllModel>(json, options);
             AssertHelper.AreEqual(baseModel, model);
         }
 
@@ -92,12 +93,12 @@ namespace Zerra.Test
         public void StringConvertNullables()
         {
             var baseModel = BasicTypesNotNullable.Create();
-            var json1 = JsonSerializerOld.Serialize(baseModel);
-            var model1 = JsonSerializerOld.Deserialize<BasicTypesNullable>(json1);
+            var json1 = JsonSerializer.Serialize(baseModel);
+            var model1 = JsonSerializer.Deserialize<BasicTypesNullable>(json1);
             BasicTypesNotNullable.AssertAreEqual(baseModel, model1);
 
-            var json2 = JsonSerializerOld.Serialize(model1);
-            var model2 = JsonSerializerOld.Deserialize<BasicTypesNotNullable>(json2);
+            var json2 = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<BasicTypesNotNullable>(json2);
             BasicTypesNotNullable.AssertAreEqual(baseModel, model2);
         }
 
@@ -105,12 +106,12 @@ namespace Zerra.Test
         public void StringConvertTypes()
         {
             var baseModel = TypesAllModel.Create();
-            var json1 = JsonSerializerOld.Serialize(baseModel);
-            var model1 = JsonSerializerOld.Deserialize<TypesAllAsStringsModel>(json1);
+            var json1 = JsonSerializer.Serialize(baseModel);
+            var model1 = JsonSerializer.Deserialize<TypesAllAsStringsModel>(json1);
             TypesAllAsStringsModel.AreEqual(baseModel, model1);
 
-            var json2 = JsonSerializerOld.Serialize(model1);
-            var model2 = JsonSerializerOld.Deserialize<TypesAllModel>(json2);
+            var json2 = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TypesAllModel>(json2);
             AssertHelper.AreEqual(baseModel, model2);
         }
 
@@ -157,82 +158,16 @@ namespace Zerra.Test
             StringTestNumberAsString(Decimal.MinValue);
             StringTestNumberAsString(Decimal.MaxValue);
         }
-        private static void StringTestNumber(byte value)
+        private static void StringTestNumber<T>(T value)
         {
-            var json = JsonSerializerOld.Serialize(value);
-            var result = JsonSerializerOld.Deserialize<byte>(json);
+            var json = JsonSerializer.Serialize(value);
+            var result = JsonSerializer.Deserialize<T>(json);
             Assert.AreEqual(value, result);
         }
-        private static void StringTestNumber(sbyte value)
+        private static void StringTestNumberAsString<T>(T value)
         {
-            var json = JsonSerializerOld.Serialize(value);
-            var result = JsonSerializerOld.Deserialize<sbyte>(json);
-            Assert.AreEqual(value, result);
-        }
-        private static void StringTestNumber(short value)
-        {
-            var json = JsonSerializerOld.Serialize(value);
-            var result = JsonSerializerOld.Deserialize<short>(json);
-            Assert.AreEqual(value, result);
-        }
-        private static void StringTestNumber(ushort value)
-        {
-            var json = JsonSerializerOld.Serialize(value);
-            var result = JsonSerializerOld.Deserialize<ushort>(json);
-            Assert.AreEqual(value, result);
-        }
-        private static void StringTestNumber(int value)
-        {
-            var json = JsonSerializerOld.Serialize(value);
-            var result = JsonSerializerOld.Deserialize<int>(json);
-            Assert.AreEqual(value, result);
-        }
-        private static void StringTestNumber(uint value)
-        {
-            var json = JsonSerializerOld.Serialize(value);
-            var result = JsonSerializerOld.Deserialize<uint>(json);
-            Assert.AreEqual(value, result);
-        }
-        private static void StringTestNumber(long value)
-        {
-            var json = JsonSerializerOld.Serialize(value);
-            var result = JsonSerializerOld.Deserialize<long>(json);
-            Assert.AreEqual(value, result);
-        }
-        private static void StringTestNumber(ulong value)
-        {
-            var json = JsonSerializerOld.Serialize(value);
-            var result = JsonSerializerOld.Deserialize<ulong>(json);
-            Assert.AreEqual(value, result);
-        }
-        private static void StringTestNumber(decimal value)
-        {
-            var json = JsonSerializerOld.Serialize(value);
-            var result = JsonSerializerOld.Deserialize<decimal>(json);
-            Assert.AreEqual(value, result);
-        }
-        private static void StringTestNumber(float value)
-        {
-            var json = JsonSerializerOld.Serialize(value);
-            var result = JsonSerializerOld.Deserialize<float>(json);
-            Assert.AreEqual(value, result);
-        }
-        private static void StringTestNumber(double value)
-        {
-            var json = JsonSerializerOld.Serialize(value);
-            var result = JsonSerializerOld.Deserialize<double>(json);
-            Assert.AreEqual(value, result);
-        }
-        private static void StringTestNumberAsString(double value)
-        {
-            var json = JsonSerializerOld.Serialize(value);
-            var result = JsonSerializerOld.Deserialize<string>(json);
-            Assert.AreEqual(json, result);
-        }
-        private static void StringTestNumberAsString(decimal value)
-        {
-            var json = JsonSerializerOld.Serialize(value);
-            var result = JsonSerializerOld.Deserialize<string>(json);
+            var json = JsonSerializer.Serialize(value);
+            var result = JsonSerializer.Deserialize<string>(json);
             Assert.AreEqual(json, result);
         }
 
@@ -252,8 +187,8 @@ namespace Zerra.Test
                 Thing4 = 4
             };
 
-            var json2 = JsonSerializerOld.Serialize(model2);
-            var result2 = JsonSerializerOld.Deserialize<EnumConversionModel1>(json2);
+            var json2 = JsonSerializer.Serialize(model2);
+            var result2 = JsonSerializer.Deserialize<EnumConversionModel1>(json2);
             Assert.AreEqual(model2.Thing1, (int)result2.Thing1);
             Assert.AreEqual(model2.Thing2, (int?)result2.Thing2);
             Assert.AreEqual(model2.Thing3, (int)result2.Thing3);
@@ -267,8 +202,8 @@ namespace Zerra.Test
                 Thing4 = null
             };
 
-            var json3 = JsonSerializerOld.Serialize(model3);
-            var result3 = JsonSerializerOld.Deserialize<EnumConversionModel1>(json3);
+            var json3 = JsonSerializer.Serialize(model3);
+            var result3 = JsonSerializer.Deserialize<EnumConversionModel1>(json3);
             Assert.AreEqual(model3.Thing1, (int)result3.Thing1);
             Assert.AreEqual(default, result3.Thing2);
             Assert.AreEqual(model3.Thing3, (int)result3.Thing3);
@@ -279,7 +214,7 @@ namespace Zerra.Test
         public void StringPretty()
         {
             var baseModel = TypesAllModel.Create();
-            var json = JsonSerializerOld.Serialize(baseModel);
+            var json = JsonSerializer.Serialize(baseModel);
             string jsonPretty;
             using (var stringReader = new StringReader(json))
             using (var stringWriter = new StringWriter())
@@ -289,7 +224,7 @@ namespace Zerra.Test
                 jsonWriter.WriteToken(jsonReader);
                 jsonPretty = stringWriter.ToString();
             }
-            var model = JsonSerializerOld.Deserialize<TypesAllModel>(jsonPretty);
+            var model = JsonSerializer.Deserialize<TypesAllModel>(jsonPretty);
             AssertHelper.AreEqual(baseModel, model);
         }
 
@@ -310,54 +245,54 @@ namespace Zerra.Test
         [TestMethod]
         public void StringDoNotWriteNullProperties()
         {
-            var options = new JsonSerializerOptionsOld()
+            var options = new JsonSerializerOptions()
             {
                 DoNotWriteNullProperties = true
             };
 
             var baseModel = TypesAllModel.Create();
-            var json = JsonSerializerOld.Serialize(baseModel, options);
-            var model = JsonSerializerOld.Deserialize<TypesAllModel>(json, options);
+            var json = JsonSerializer.Serialize(baseModel, options);
+            var model = JsonSerializer.Deserialize<TypesAllModel>(json, options);
             AssertHelper.AreEqual(baseModel, model);
         }
 
         [TestMethod]
         public void StringEmptys()
         {
-            var json1 = JsonSerializerOld.Serialize<string>(null);
+            var json1 = JsonSerializer.Serialize<string>(null);
             Assert.AreEqual("null", json1);
 
-            var json2 = JsonSerializerOld.Serialize<string>(String.Empty);
+            var json2 = JsonSerializer.Serialize<string>(String.Empty);
             Assert.AreEqual("\"\"", json2);
 
-            var json3 = JsonSerializerOld.Serialize<object>(null);
+            var json3 = JsonSerializer.Serialize<object>(null);
             Assert.AreEqual("null", json3);
 
-            var json4 = JsonSerializerOld.Serialize<object>(new object());
+            var json4 = JsonSerializer.Serialize<object>(new object());
             Assert.AreEqual("{}", json4);
 
-            var model1 = JsonSerializerOld.Deserialize<string>("null");
+            var model1 = JsonSerializer.Deserialize<string>("null");
             Assert.IsNull(model1);
 
-            var model2 = JsonSerializerOld.Deserialize<string>("");
+            var model2 = JsonSerializer.Deserialize<string>("");
             Assert.AreEqual("", model2);
 
-            var model3 = JsonSerializerOld.Deserialize<string>("\"\"");
+            var model3 = JsonSerializer.Deserialize<string>("\"\"");
             Assert.AreEqual("", model3);
 
-            var model4 = JsonSerializerOld.Deserialize<string>("{}");
+            var model4 = JsonSerializer.Deserialize<string>("{}");
             Assert.AreEqual("", model4);
 
-            var model5 = JsonSerializerOld.Deserialize<object>("null");
+            var model5 = JsonSerializer.Deserialize<object>("null");
             Assert.IsNull(model5);
 
-            var model6 = JsonSerializerOld.Deserialize<object>("");
+            var model6 = JsonSerializer.Deserialize<object>("");
             Assert.IsNull(model6);
 
-            var model7 = JsonSerializerOld.Deserialize<object>("\"\"");
+            var model7 = JsonSerializer.Deserialize<object>("\"\"");
             Assert.IsNull(model7);
 
-            var model8 = JsonSerializerOld.Deserialize<object>("{}");
+            var model8 = JsonSerializer.Deserialize<object>("{}");
             Assert.IsNotNull(model8);
         }
 
@@ -367,8 +302,8 @@ namespace Zerra.Test
             for (var i = 0; i < (int)byte.MaxValue; i++)
             {
                 var c = (char)i;
-                var json = JsonSerializerOld.Serialize(c);
-                var result = JsonSerializerOld.Deserialize<char>(json);
+                var json = JsonSerializer.Serialize(c);
+                var result = JsonSerializer.Deserialize<char>(json);
                 Assert.AreEqual(c, result);
 
                 switch (c)
@@ -1704,8 +1639,8 @@ namespace Zerra.Test
         public void StringExceptionObject()
         {
             var model1 = new Exception("bad things happened");
-            var bytes = JsonSerializerOld.Serialize(model1);
-            var model2 = JsonSerializerOld.Deserialize<Exception>(bytes);
+            var bytes = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<Exception>(bytes);
             Assert.AreEqual(model1.Message, model2.Message);
         }
 
@@ -1718,8 +1653,8 @@ namespace Zerra.Test
                 Property2 = 6,
                 Property3 = 7
             };
-            var json = JsonSerializerOld.Serialize(model1);
-            var model2 = JsonSerializerOld.Deserialize<ITestInterface>(json);
+            var json = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<ITestInterface>(json);
 
             Assert.AreEqual(5, model2.Property1);
             Assert.AreEqual(6, model2.Property2);
@@ -1729,8 +1664,8 @@ namespace Zerra.Test
         public void StringEmptyModel()
         {
             var baseModel = TypesAllModel.Create();
-            var json = JsonSerializerOld.Serialize(baseModel);
-            var model = JsonSerializerOld.Deserialize<EmptyModel>(json);
+            var json = JsonSerializer.Serialize(baseModel);
+            var model = JsonSerializer.Deserialize<EmptyModel>(json);
             Assert.IsNotNull(model);
         }
 
@@ -1741,9 +1676,9 @@ namespace Zerra.Test
             var baseModelJson = baseModel.ToJsonString();
             var typeDetail = Zerra.Reflection.TypeAnalyzer.GetTypeDetail(typeof(GetsSetsModel));
 
-            var json = JsonSerializerOld.Serialize(baseModel);
+            var json = JsonSerializer.Serialize(baseModel);
 
-            var model = JsonSerializerOld.Deserialize<GetsSetsModel>(baseModelJson);
+            var model = JsonSerializer.Deserialize<GetsSetsModel>(baseModelJson);
             Assert.IsNotNull(model);
         }
 
@@ -1751,13 +1686,13 @@ namespace Zerra.Test
         public void StringReducedModel()
         {
             var model1 = TypesCoreAlternatingModel.Create();
-            var json1 = JsonSerializerOld.Serialize(model1);
-            var result1 = JsonSerializerOld.Deserialize<TypesCoreModel>(json1);
+            var json1 = JsonSerializer.Serialize(model1);
+            var result1 = JsonSerializer.Deserialize<TypesCoreModel>(json1);
             AssertHelper.AreEqual(model1, result1);
 
             var model2 = TypesCoreModel.Create();
-            var json2 = JsonSerializerOld.Serialize(model2);
-            var result2 = JsonSerializerOld.Deserialize<TypesCoreAlternatingModel>(json2);
+            var json2 = JsonSerializer.Serialize(model2);
+            var result2 = JsonSerializer.Deserialize<TypesCoreAlternatingModel>(json2);
             AssertHelper.AreEqual(result2, model2);
         }
 
@@ -1768,8 +1703,8 @@ namespace Zerra.Test
             for (var i = 0; i < 1000; i++)
                 models.Add(TypesAllModel.Create());
 
-            var json = JsonSerializerOld.Serialize(models);
-            var result = JsonSerializerOld.Deserialize<TypesAllModel[]>(json);
+            var json = JsonSerializer.Serialize(models);
+            var result = JsonSerializer.Deserialize<TypesAllModel[]>(json);
 
             for (var i = 0; i < models.Count; i++)
                 AssertHelper.AreEqual(models[i], result[i]);
@@ -1779,8 +1714,8 @@ namespace Zerra.Test
         public void StringBoxing()
         {
             var baseModel = TestBoxingModel.Create();
-            var json = JsonSerializerOld.Serialize(baseModel);
-            var model = JsonSerializerOld.Deserialize<TestBoxingModel>(json);
+            var json = JsonSerializer.Serialize(baseModel);
+            var model = JsonSerializer.Deserialize<TestBoxingModel>(json);
         }
 
         [TestMethod]
@@ -1796,12 +1731,12 @@ namespace Zerra.Test
         public void StringRecord()
         {
             var baseModel = new RecordModel(true) { Property2 = 42, Property3 = "moo" };
-            var json = JsonSerializerOld.Serialize(baseModel);
-            var model = JsonSerializerOld.Deserialize<RecordModel>(json);
-            //Assert.IsNotNull(model);
-            //Assert.AreEqual(baseModel.Property1, model.Property1);
-            //Assert.AreEqual(baseModel.Property2, model.Property2);
-            //Assert.AreEqual(baseModel.Property3, model.Property3);
+            var json = JsonSerializer.Serialize(baseModel);
+            var model = JsonSerializer.Deserialize<RecordModel>(json);
+            Assert.IsNotNull(model);
+            Assert.AreEqual(baseModel.Property1, model.Property1);
+            Assert.AreEqual(baseModel.Property2, model.Property2);
+            Assert.AreEqual(baseModel.Property3, model.Property3);
         }
 
         [TestMethod]
@@ -1818,15 +1753,15 @@ namespace Zerra.Test
                 }
             };
 
-            var json = JsonSerializerOld.Serialize(baseModel);
+            var json = JsonSerializer.Serialize(baseModel);
 
-            Assert.IsTrue(json.Contains("\"1property\""));
+            Assert.IsTrue(json.Contains("\"_1_Property\""));
             Assert.IsTrue(json.Contains("\"property2\""));
-            Assert.IsTrue(json.Contains("\"3property\""));
+            Assert.IsTrue(json.Contains("\"_3_Property\""));
 
             json.Replace("\"property2\"", "\"PROPERTY2\"");
 
-            var model = JsonSerializerOld.Deserialize<JsonNameTestModel>(json);
+            var model = JsonSerializer.Deserialize<JsonNameTestModel>(json);
             Assert.AreEqual(baseModel._1_Property, model._1_Property);
             Assert.AreEqual(baseModel.property2, model.property2);
             Assert.IsNotNull(model._3_Property);
@@ -1840,20 +1775,20 @@ namespace Zerra.Test
             var baseModel = TypesAllModel.Create();
 
             using var stream1 = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream1, baseModel);
+            await JsonSerializer.SerializeAsync(stream1, baseModel);
             stream1.Position = 0;
             using var sr1 = new StreamReader(stream1, Encoding.UTF8);
             var json1 = await sr1.ReadToEndAsync();
 
-            var json2 = Newtonsoft.Json.JsonConvert.SerializeObject(baseModel, 
+            var json2 = Newtonsoft.Json.JsonConvert.SerializeObject(baseModel,
                 new Newtonsoft.Json.Converters.StringEnumConverter(),
                 new NewtonsoftDateOnlyConverter(),
                 new NewtonsoftTimeOnlyConverter());
 
             //swap serializers
             using var stream2 = new MemoryStream(Encoding.UTF8.GetBytes(json2));
-            var model1 = await JsonSerializerOld.DeserializeAsync<TypesAllModel>(stream2);
-            var model2 = Newtonsoft.Json.JsonConvert.DeserializeObject<TypesAllModel>(json1, 
+            var model1 = await JsonSerializer.DeserializeAsync<TypesAllModel>(stream2);
+            var model2 = Newtonsoft.Json.JsonConvert.DeserializeObject<TypesAllModel>(json1,
                 new Newtonsoft.Json.Converters.StringEnumConverter(),
                 new NewtonsoftDateOnlyConverter(),
                 new NewtonsoftTimeOnlyConverter());
@@ -1869,7 +1804,7 @@ namespace Zerra.Test
             var baseModel = TypesAllModel.Create();
 
             using var stream1 = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream1, baseModel);
+            await JsonSerializer.SerializeAsync(stream1, baseModel);
             stream1.Position = 0;
             using var sr1 = new StreamReader(stream1, Encoding.UTF8);
             var json1 = await sr1.ReadToEndAsync();
@@ -1884,7 +1819,7 @@ namespace Zerra.Test
 
             //swap serializers
             using var stream3 = new MemoryStream(Encoding.UTF8.GetBytes(json2));
-            var model1 = await JsonSerializerOld.DeserializeAsync<TypesAllModel>(stream3);
+            var model1 = await JsonSerializer.DeserializeAsync<TypesAllModel>(stream3);
 
             using var stream4 = new MemoryStream(Encoding.UTF8.GetBytes(json1));
             var model2 = await System.Text.Json.JsonSerializer.DeserializeAsync<TypesAllModel>(stream4, options);
@@ -1898,7 +1833,8 @@ namespace Zerra.Test
             var baseModel = TypesAllModel.Create();
 
             using var stream = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream, baseModel);
+            await JsonSerializer.SerializeAsync(stream, baseModel);
+            await JsonSerializer.SerializeAsync(stream, baseModel);
             stream.Position = 0;
             using var sr = new StreamReader(stream, Encoding.UTF8);
             var json = sr.ReadToEnd();
@@ -1911,7 +1847,7 @@ namespace Zerra.Test
         [TestMethod]
         public async Task StreamEnumAsNumber()
         {
-            var options = new JsonSerializerOptionsOld()
+            var options = new JsonSerializerOptions()
             {
                 EnumAsNumber = true
             };
@@ -1919,7 +1855,7 @@ namespace Zerra.Test
             var baseModel = TypesAllModel.Create();
 
             using var stream = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream, baseModel, options);
+            await JsonSerializer.SerializeAsync(stream, baseModel, options);
             stream.Position = 0;
             using var sr = new StreamReader(stream, Encoding.UTF8);
             var json = sr.ReadToEnd();
@@ -1930,7 +1866,7 @@ namespace Zerra.Test
             Assert.IsFalse(json.Contains(EnumModel.EnumItem3.EnumName()));
 
             stream.Position = 0;
-            var model = await JsonSerializerOld.DeserializeAsync<TypesAllModel>(stream, options);
+            var model = await JsonSerializer.DeserializeAsync<TypesAllModel>(stream, options);
             AssertHelper.AreEqual(baseModel, model);
         }
 
@@ -1940,17 +1876,17 @@ namespace Zerra.Test
             var baseModel = BasicTypesNotNullable.Create();
 
             using var stream1 = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream1, baseModel);
+            await JsonSerializer.SerializeAsync(stream1, baseModel);
 
             stream1.Position = 0;
-            var model1 = await JsonSerializerOld.DeserializeAsync<BasicTypesNullable>(stream1);
+            var model1 = await JsonSerializer.DeserializeAsync<BasicTypesNullable>(stream1);
             BasicTypesNotNullable.AssertAreEqual(baseModel, model1);
 
             using var stream2 = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream2, model1);
+            await JsonSerializer.SerializeAsync(stream2, model1);
 
             stream2.Position = 0;
-            var model2 = await JsonSerializerOld.DeserializeAsync<BasicTypesNotNullable>(stream2);
+            var model2 = await JsonSerializer.DeserializeAsync<BasicTypesNotNullable>(stream2);
             BasicTypesNotNullable.AssertAreEqual(baseModel, model2);
         }
 
@@ -1960,17 +1896,17 @@ namespace Zerra.Test
             var baseModel = TypesAllModel.Create();
 
             using var stream1 = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream1, baseModel);
+            await JsonSerializer.SerializeAsync(stream1, baseModel);
 
             stream1.Position = 0;
-            var model1 = await JsonSerializerOld.DeserializeAsync<TypesAllAsStringsModel>(stream1);
+            var model1 = await JsonSerializer.DeserializeAsync<TypesAllAsStringsModel>(stream1);
             TypesAllAsStringsModel.AreEqual(baseModel, model1);
 
             using var stream2 = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream2, model1);
+            await JsonSerializer.SerializeAsync(stream2, model1);
 
             stream2.Position = 0;
-            var model2 = await JsonSerializerOld.DeserializeAsync<TypesAllModel>(stream2);
+            var model2 = await JsonSerializer.DeserializeAsync<TypesAllModel>(stream2);
             AssertHelper.AreEqual(baseModel, model2);
         }
 
@@ -2017,117 +1953,23 @@ namespace Zerra.Test
             await StreamTestNumberAsStream(Decimal.MinValue);
             await StreamTestNumberAsStream(Decimal.MaxValue);
         }
-        private static async Task StreamTestNumber(byte value)
+        private static async Task StreamTestNumber<T>(T value)
         {
             using var stream = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream, value);
+            await JsonSerializer.SerializeAsync(stream, value);
             stream.Position = 0;
-            var result = await JsonSerializerOld.DeserializeAsync<byte>(stream);
+            var result = await JsonSerializer.DeserializeAsync<T>(stream);
             Assert.AreEqual(value, result);
         }
-        private static async Task StreamTestNumber(sbyte value)
+        private static async Task StreamTestNumberAsStream<T>(T value)
         {
             using var stream = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream, value);
-            stream.Position = 0;
-            var result = await JsonSerializerOld.DeserializeAsync<sbyte>(stream);
-            Assert.AreEqual(value, result);
-        }
-        private static async Task StreamTestNumber(short value)
-        {
-            using var stream = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream, value);
-            stream.Position = 0;
-            var result = await JsonSerializerOld.DeserializeAsync<short>(stream);
-            Assert.AreEqual(value, result);
-        }
-        private static async Task StreamTestNumber(ushort value)
-        {
-            using var stream = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream, value);
-            stream.Position = 0;
-            var result = await JsonSerializerOld.DeserializeAsync<ushort>(stream);
-            Assert.AreEqual(value, result);
-        }
-        private static async Task StreamTestNumber(int value)
-        {
-            using var stream = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream, value);
+            await JsonSerializer.SerializeAsync(stream, value);
             using var sr = new StreamReader(stream, Encoding.UTF8);
             stream.Position = 0;
             var json = await sr.ReadToEndAsync();
             stream.Position = 0;
-            var result = await JsonSerializerOld.DeserializeAsync<int>(stream);
-            Assert.AreEqual(value, result);
-        }
-        private static async Task StreamTestNumber(uint value)
-        {
-            using var stream = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream, value);
-            stream.Position = 0;
-            var result = await JsonSerializerOld.DeserializeAsync<uint>(stream);
-            Assert.AreEqual(value, result);
-        }
-        private static async Task StreamTestNumber(long value)
-        {
-            using var stream = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream, value);
-            stream.Position = 0;
-            var result = await JsonSerializerOld.DeserializeAsync<long>(stream);
-            Assert.AreEqual(value, result);
-        }
-        private static async Task StreamTestNumber(ulong value)
-        {
-            using var stream = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream, value);
-            stream.Position = 0;
-            var result = await JsonSerializerOld.DeserializeAsync<ulong>(stream);
-            Assert.AreEqual(value, result);
-        }
-        private static async Task StreamTestNumber(decimal value)
-        {
-            using var stream = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream, value);
-            stream.Position = 0;
-            var result = await JsonSerializerOld.DeserializeAsync<decimal>(stream);
-            Assert.AreEqual(value, result);
-        }
-        private static async Task StreamTestNumber(float value)
-        {
-            using var stream = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream, value);
-            stream.Position = 0;
-            var result = await JsonSerializerOld.DeserializeAsync<float>(stream);
-            Assert.AreEqual(value, result);
-        }
-        private static async Task StreamTestNumber(double value)
-        {
-            using var stream = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream, value);
-            stream.Position = 0;
-            var result = await JsonSerializerOld.DeserializeAsync<double>(stream);
-            Assert.AreEqual(value, result);
-        }
-        private static async Task StreamTestNumberAsStream(double value)
-        {
-            using var stream = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream, value);
-            using var sr = new StreamReader(stream, Encoding.UTF8);
-            stream.Position = 0;
-            var json = await sr.ReadToEndAsync();
-            stream.Position = 0;
-            var result = await JsonSerializerOld.DeserializeAsync<string>(stream);
-            Assert.AreEqual(json, result);
-        }
-        private static async Task StreamTestNumberAsStream(decimal value)
-        {
-            using var stream = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream, value);
-            using var sr = new StreamReader(stream, Encoding.UTF8);
-            stream.Position = 0;
-            var json = await sr.ReadToEndAsync();
-            stream.Position = 0;
-            var result = await JsonSerializerOld.DeserializeAsync<string>(stream);
+            var result = await JsonSerializer.DeserializeAsync<string>(stream);
             Assert.AreEqual(json, result);
         }
 
@@ -2148,9 +1990,9 @@ namespace Zerra.Test
             };
 
             using var stream2 = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream2, model2);
+            await JsonSerializer.SerializeAsync(stream2, model2);
             stream2.Position = 0;
-            var result2 = await JsonSerializerOld.DeserializeAsync<EnumConversionModel1>(stream2);
+            var result2 = await JsonSerializer.DeserializeAsync<EnumConversionModel1>(stream2);
             Assert.AreEqual(model2.Thing1, (int)result2.Thing1);
             Assert.AreEqual(model2.Thing2, (int?)result2.Thing2);
             Assert.AreEqual(model2.Thing3, (int)result2.Thing3);
@@ -2165,9 +2007,9 @@ namespace Zerra.Test
             };
 
             using var stream3 = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream3, model3);
+            await JsonSerializer.SerializeAsync(stream3, model3);
             stream3.Position = 0;
-            var result3 = await JsonSerializerOld.DeserializeAsync<EnumConversionModel1>(stream3);
+            var result3 = await JsonSerializer.DeserializeAsync<EnumConversionModel1>(stream3);
             Assert.AreEqual(model3.Thing1, (int)result3.Thing1);
             Assert.AreEqual(default, result3.Thing2);
             Assert.AreEqual(model3.Thing3, (int)result3.Thing3);
@@ -2179,7 +2021,7 @@ namespace Zerra.Test
         {
             var baseModel = TypesAllModel.Create();
             using var stream1 = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream1, baseModel);
+            await JsonSerializer.SerializeAsync(stream1, baseModel);
             using var sr1 = new StreamReader(stream1, Encoding.UTF8);
             stream1.Position = 0;
             var json = await sr1.ReadToEndAsync();
@@ -2195,7 +2037,7 @@ namespace Zerra.Test
             }
 
             using var stream2 = new MemoryStream(Encoding.UTF8.GetBytes(jsonPretty));
-            var model = await JsonSerializerOld.DeserializeAsync<TypesAllModel>(stream2);
+            var model = await JsonSerializer.DeserializeAsync<TypesAllModel>(stream2);
             AssertHelper.AreEqual(baseModel, model);
         }
 
@@ -2220,7 +2062,7 @@ namespace Zerra.Test
         [TestMethod]
         public async Task StreamDoNotWriteNullProperties()
         {
-            var options = new JsonSerializerOptionsOld()
+            var options = new JsonSerializerOptions()
             {
                 DoNotWriteNullProperties = true
             };
@@ -2228,10 +2070,10 @@ namespace Zerra.Test
             var baseModel = TypesAllModel.Create();
 
             using var stream = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream, baseModel, options);
+            await JsonSerializer.SerializeAsync(stream, baseModel, options);
 
             stream.Position = 0;
-            var model = await JsonSerializerOld.DeserializeAsync<TypesAllModel>(stream, options);
+            var model = await JsonSerializer.DeserializeAsync<TypesAllModel>(stream, options);
             AssertHelper.AreEqual(baseModel, model);
         }
 
@@ -2239,55 +2081,55 @@ namespace Zerra.Test
         public async Task StreamEmptys()
         {
             using var stream1 = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync<string>(stream1, null);
+            await JsonSerializer.SerializeAsync<string>(stream1, null);
             using var sr1 = new StreamReader(stream1, Encoding.UTF8);
             stream1.Position = 0;
             var json1 = await sr1.ReadToEndAsync();
             Assert.AreEqual("null", json1);
 
             using var stream2 = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync<string>(stream2, String.Empty);
+            await JsonSerializer.SerializeAsync<string>(stream2, String.Empty);
             using var sr2 = new StreamReader(stream2, Encoding.UTF8);
             stream2.Position = 0;
             var json2 = await sr2.ReadToEndAsync();
             Assert.AreEqual("\"\"", json2);
 
             using var stream3 = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync<object>(stream3, null);
+            await JsonSerializer.SerializeAsync<object>(stream3, null);
             using var sr3 = new StreamReader(stream3, Encoding.UTF8);
             stream3.Position = 0;
             var json3 = await sr3.ReadToEndAsync();
             Assert.AreEqual("null", json3);
 
             using var stream4 = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync<object>(stream4, new object());
+            await JsonSerializer.SerializeAsync<object>(stream4, new object());
             using var sr4 = new StreamReader(stream4, Encoding.UTF8);
             stream4.Position = 0;
             var json4 = await sr4.ReadToEndAsync();
             Assert.AreEqual("{}", json4);
 
-            var model1 = await JsonSerializerOld.DeserializeAsync<string>(new MemoryStream(Encoding.UTF8.GetBytes("null")));
+            var model1 = await JsonSerializer.DeserializeAsync<string>(new MemoryStream(Encoding.UTF8.GetBytes("null")));
             Assert.IsNull(model1);
 
-            var model2 = await JsonSerializerOld.DeserializeAsync<string>(new MemoryStream(Encoding.UTF8.GetBytes("")));
+            var model2 = await JsonSerializer.DeserializeAsync<string>(new MemoryStream(Encoding.UTF8.GetBytes("")));
             Assert.AreEqual("", model2);
 
-            var model3 = await JsonSerializerOld.DeserializeAsync<string>(new MemoryStream(Encoding.UTF8.GetBytes("\"\"")));
+            var model3 = await JsonSerializer.DeserializeAsync<string>(new MemoryStream(Encoding.UTF8.GetBytes("\"\"")));
             Assert.AreEqual("", model3);
 
-            var model4 = await JsonSerializerOld.DeserializeAsync<string>(new MemoryStream(Encoding.UTF8.GetBytes("{}")));
+            var model4 = await JsonSerializer.DeserializeAsync<string>(new MemoryStream(Encoding.UTF8.GetBytes("{}")));
             Assert.AreEqual("", model4);
 
-            var model5 = await JsonSerializerOld.DeserializeAsync<object>(new MemoryStream(Encoding.UTF8.GetBytes("null")));
+            var model5 = await JsonSerializer.DeserializeAsync<object>(new MemoryStream(Encoding.UTF8.GetBytes("null")));
             Assert.IsNull(model5);
 
-            var model6 = await JsonSerializerOld.DeserializeAsync<object>(new MemoryStream(Encoding.UTF8.GetBytes("")));
+            var model6 = await JsonSerializer.DeserializeAsync<object>(new MemoryStream(Encoding.UTF8.GetBytes("")));
             Assert.IsNull(model6);
 
-            var model7 = await JsonSerializerOld.DeserializeAsync<object>(new MemoryStream(Encoding.UTF8.GetBytes("\"\"")));
+            var model7 = await JsonSerializer.DeserializeAsync<object>(new MemoryStream(Encoding.UTF8.GetBytes("\"\"")));
             Assert.IsNull(model7);
 
-            var model8 = await JsonSerializerOld.DeserializeAsync<object>(new MemoryStream(Encoding.UTF8.GetBytes("{}")));
+            var model8 = await JsonSerializer.DeserializeAsync<object>(new MemoryStream(Encoding.UTF8.GetBytes("{}")));
             Assert.IsNotNull(model8);
         }
 
@@ -2298,12 +2140,12 @@ namespace Zerra.Test
             {
                 var c = (char)i;
                 using var stream = new MemoryStream();
-                await JsonSerializerOld.SerializeAsync(stream, c);
+                await JsonSerializer.SerializeAsync(stream, c);
                 using var sr = new StreamReader(stream, Encoding.UTF8);
                 stream.Position = 0;
                 var json = await sr.ReadToEndAsync();
                 stream.Position = 0;
-                var result = await JsonSerializerOld.DeserializeAsync<char>(stream);
+                var result = await JsonSerializer.DeserializeAsync<char>(stream);
                 Assert.AreEqual(c, result);
 
                 switch (c)
@@ -2331,9 +2173,9 @@ namespace Zerra.Test
         {
             var model1 = new Exception("bad things happened");
             using var stream = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream, model1);
+            await JsonSerializer.SerializeAsync(stream, model1);
             stream.Position = 0;
-            var model2 = await JsonSerializerOld.DeserializeAsync<Exception>(stream);
+            var model2 = await JsonSerializer.DeserializeAsync<Exception>(stream);
             Assert.AreEqual(model1.Message, model2.Message);
         }
 
@@ -2347,9 +2189,9 @@ namespace Zerra.Test
                 Property3 = 7
             };
             using var stream = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream, model1);
+            await JsonSerializer.SerializeAsync(stream, model1);
             stream.Position = 0;
-            var model2 = await JsonSerializerOld.DeserializeAsync<ITestInterface>(stream);
+            var model2 = await JsonSerializer.DeserializeAsync<ITestInterface>(stream);
 
             Assert.AreEqual(5, model2.Property1);
             Assert.AreEqual(6, model2.Property2);
@@ -2361,10 +2203,10 @@ namespace Zerra.Test
             var baseModel = TypesAllModel.Create();
 
             using var stream = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream, baseModel);
+            await JsonSerializer.SerializeAsync(stream, baseModel);
 
             stream.Position = 0;
-            var model = await JsonSerializerOld.DeserializeAsync<EmptyModel>(stream);
+            var model = await JsonSerializer.DeserializeAsync<EmptyModel>(stream);
             Assert.IsNotNull(model);
         }
 
@@ -2376,10 +2218,10 @@ namespace Zerra.Test
             var typeDetail = Zerra.Reflection.TypeAnalyzer.GetTypeDetail(typeof(GetsSetsModel));
 
             using var stream = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream, baseModel);
+            await JsonSerializer.SerializeAsync(stream, baseModel);
 
             stream.Position = 0;
-            var model = await JsonSerializerOld.DeserializeAsync<GetsSetsModel>(stream);
+            var model = await JsonSerializer.DeserializeAsync<GetsSetsModel>(stream);
             Assert.IsNotNull(model);
         }
 
@@ -2388,41 +2230,33 @@ namespace Zerra.Test
         {
             var model1 = TypesCoreAlternatingModel.Create();
             using var stream1 = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream1, model1);
+            await JsonSerializer.SerializeAsync(stream1, model1);
             stream1.Position = 0;
-            var result1 = await JsonSerializerOld.DeserializeAsync<TypesCoreModel>(stream1);
+            var result1 = await JsonSerializer.DeserializeAsync<TypesCoreModel>(stream1);
             AssertHelper.AreEqual(model1, result1);
 
             var model2 = TypesCoreModel.Create();
             using var stream2 = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream2, model2);
+            await JsonSerializer.SerializeAsync(stream2, model2);
             stream2.Position = 0;
-            var result2 = await JsonSerializerOld.DeserializeAsync<TypesCoreAlternatingModel>(stream2);
+            var result2 = await JsonSerializer.DeserializeAsync<TypesCoreAlternatingModel>(stream2);
             AssertHelper.AreEqual(result2, model2);
         }
 
         [TestMethod]
         public async Task StreamLargeModel()
         {
-#if DEBUG
-            JsonSerializerOld.Testing = false;
-#endif
-
             var models = new List<TypesAllModel>();
             for (var i = 0; i < 1000; i++)
                 models.Add(TypesAllModel.Create());
 
             using var stream = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream, models);
+            await JsonSerializer.SerializeAsync(stream, models);
             stream.Position = 0;
-            var result = await JsonSerializerOld.DeserializeAsync<TypesAllModel[]>(stream);
+            var result = await JsonSerializer.DeserializeAsync<TypesAllModel[]>(stream);
 
             for (var i = 0; i < models.Count; i++)
                 AssertHelper.AreEqual(models[i], result[i]);
-
-#if DEBUG
-            JsonSerializerOld.Testing = true;
-#endif
         }
 
         [TestMethod]
@@ -2431,14 +2265,14 @@ namespace Zerra.Test
             var baseModel = new RecordModel(true) { Property2 = 42, Property3 = "moo" };
 
             using var stream = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream, baseModel);
+            await JsonSerializer.SerializeAsync(stream, baseModel);
 
             stream.Position = 0;
-            var model = await JsonSerializerOld.DeserializeAsync<RecordModel>(stream);
-            //Assert.IsNotNull(model);
-            //Assert.AreEqual(baseModel.Property1, model.Property1);
-            //Assert.AreEqual(baseModel.Property2, model.Property2);
-            //Assert.AreEqual(baseModel.Property3, model.Property3);
+            var model = await JsonSerializer.DeserializeAsync<RecordModel>(stream);
+            Assert.IsNotNull(model);
+            Assert.AreEqual(baseModel.Property1, model.Property1);
+            Assert.AreEqual(baseModel.Property2, model.Property2);
+            Assert.AreEqual(baseModel.Property3, model.Property3);
         }
 
         [TestMethod]
@@ -2446,7 +2280,7 @@ namespace Zerra.Test
         {
             var model1 = TypesHashSetTModel.Create();
             using var stream = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream, model1);
+            await JsonSerializer.SerializeAsync(stream, model1);
             stream.Position = 0;
             var model2 = await JsonSerializer.DeserializeAsync<TypesHashSetTModel>(stream);
             AssertHelper.AreEqual(model1, model2);
@@ -2458,14 +2292,14 @@ namespace Zerra.Test
             var baseModel = TestBoxingModel.Create();
 
             using var stream = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream, baseModel);
+            await JsonSerializer.SerializeAsync(stream, baseModel);
 
             stream.Position = 0;
             using var sr = new StreamReader(stream, Encoding.UTF8);
             var json = await sr.ReadToEndAsync();
 
             stream.Position = 0;
-            var model = await JsonSerializerOld.DeserializeAsync<TestBoxingModel>(stream);
+            var model = await JsonSerializer.DeserializeAsync<TestBoxingModel>(stream);
         }
 
         [TestMethod]
@@ -2483,20 +2317,20 @@ namespace Zerra.Test
             };
 
             using var stream = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream, baseModel);
+            await JsonSerializer.SerializeAsync(stream, baseModel);
 
             stream.Position = 0;
             using var sr = new StreamReader(stream, Encoding.UTF8);
             var json = await sr.ReadToEndAsync();
 
-            Assert.IsTrue(json.Contains("\"1property\""));
+            Assert.IsTrue(json.Contains("\"_1_Property\""));
             Assert.IsTrue(json.Contains("\"property2\""));
-            Assert.IsTrue(json.Contains("\"3property\""));
+            Assert.IsTrue(json.Contains("\"_3_Property\""));
 
             json.Replace("\"property2\"", "\"PROPERTY2\"");
 
             using var stream2 = new MemoryStream(Encoding.UTF8.GetBytes(json));
-            var model = await JsonSerializerOld.DeserializeAsync<JsonNameTestModel>(stream2);
+            var model = await JsonSerializer.DeserializeAsync<JsonNameTestModel>(stream2);
             Assert.AreEqual(baseModel._1_Property, model._1_Property);
             Assert.AreEqual(baseModel.property2, model.property2);
             Assert.IsNotNull(model._3_Property);
