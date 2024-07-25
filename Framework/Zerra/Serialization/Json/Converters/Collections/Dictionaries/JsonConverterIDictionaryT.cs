@@ -226,18 +226,18 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
         {
             if (canWriteAsProperties)
             {
-                if (value.Count == 0)
-                {
-                    if (!writer.TryWriteEmptyBrace(out state.CharsNeeded))
-                    {
-                        return false;
-                    }
-                    return true;
-                }
-
                 IEnumerator<KeyValuePair<TKey, TValue>> enumerator;
                 if (!state.Current.HasWrittenStart)
                 {
+                    if (value.Count == 0)
+                    {
+                        if (!writer.TryWriteEmptyBrace(out state.CharsNeeded))
+                        {
+                            return false;
+                        }
+                        return true;
+                    }
+
                     if (!writer.TryWriteOpenBrace(out state.CharsNeeded))
                     {
                         return false;
@@ -302,18 +302,18 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
             }
             else
             {
-                if (value.Count == 0)
-                {
-                    if (!writer.TryWriteEmptyBracket(out state.CharsNeeded))
-                    {
-                        return false;
-                    }
-                    return true;
-                }
-
                 IEnumerator<KeyValuePair<TKey, TValue>> enumerator;
                 if (!state.Current.HasWrittenStart)
                 {
+                    if (value.Count == 0)
+                    {
+                        if (!writer.TryWriteEmptyBracket(out state.CharsNeeded))
+                        {
+                            return false;
+                        }
+                        return true;
+                    }
+
                     if (!writer.TryWriteOpenBracket(out state.CharsNeeded))
                     {
                         return false;

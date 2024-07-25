@@ -224,21 +224,21 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
 
         protected override bool TryWriteValue(ref JsonWriter writer, ref WriteState state, TDictionary value)
         {
-            var dictionary = (IDictionary<TKey, TValue>)value!;
             if (canWriteAsProperties)
             {
-                if (dictionary.Count == 0)
-                {
-                    if (!writer.TryWriteEmptyBrace(out state.CharsNeeded))
-                    {
-                        return false;
-                    }
-                    return true;
-                }
-
                 IEnumerator<KeyValuePair<TKey, TValue>> enumerator;
                 if (!state.Current.HasWrittenStart)
                 {
+                    var dictionary = (IDictionary<TKey, TValue>)value!;
+                    if (dictionary.Count == 0)
+                    {
+                        if (!writer.TryWriteEmptyBrace(out state.CharsNeeded))
+                        {
+                            return false;
+                        }
+                        return true;
+                    }
+
                     if (!writer.TryWriteOpenBrace(out state.CharsNeeded))
                     {
                         return false;
@@ -303,18 +303,19 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
             }
             else
             {
-                if (dictionary.Count == 0)
-                {
-                    if (!writer.TryWriteEmptyBracket(out state.CharsNeeded))
-                    {
-                        return false;
-                    }
-                    return true;
-                }
-
                 IEnumerator<KeyValuePair<TKey, TValue>> enumerator;
                 if (!state.Current.HasWrittenStart)
                 {
+                    var dictionary = (IDictionary<TKey, TValue>)value!;
+                    if (dictionary.Count == 0)
+                    {
+                        if (!writer.TryWriteEmptyBracket(out state.CharsNeeded))
+                        {
+                            return false;
+                        }
+                        return true;
+                    }
+
                     if (!writer.TryWriteOpenBracket(out state.CharsNeeded))
                     {
                         return false;

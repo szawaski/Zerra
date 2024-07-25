@@ -11,19 +11,19 @@ using Zerra.Serialization.Json.State;
 
 namespace Zerra.Serialization.Json.Converters.Collections.Lists
 {
-    internal sealed class JsonConverterIList<TParent, TValue> : JsonConverter<TParent, IList>
+    internal sealed class JsonConverterIList<TParent> : JsonConverter<TParent, IList>
     {
         private JsonConverter<IList> readConverter = null!;
         private JsonConverter<IEnumerator> writeConverter = null!;
 
         private static object Getter(IEnumerator parent) => parent.Current;
-        private static void Setter(IList parent, TValue value) => parent.Add(value);
+        private static void Setter(IList parent, object value) => parent.Add(value);
 
         protected override sealed void Setup()
         {
-            var valueTypeDetail = TypeAnalyzer<TValue>.GetTypeDetail();
-            readConverter = JsonConverterFactory<IList>.Get(valueTypeDetail, nameof(JsonConverterIList<TParent, TValue>), null, Setter);
-            writeConverter = JsonConverterFactory<IEnumerator>.Get(valueTypeDetail, nameof(JsonConverterIList<TParent, TValue>), Getter, null);
+            var valueTypeDetail = TypeAnalyzer<object>.GetTypeDetail();
+            readConverter = JsonConverterFactory<IList>.Get(valueTypeDetail, nameof(JsonConverterIList<TParent>), null, Setter);
+            writeConverter = JsonConverterFactory<IEnumerator>.Get(valueTypeDetail, nameof(JsonConverterIList<TParent>), Getter, null);
         }
 
         protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out IList? value)
@@ -50,16 +50,16 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
 
                 if (c == ']')
                 {
-                    value = new List<TValue>(0);
+                    value = new List<object>(0);
                     return true;
                 }
 
                 reader.BackOne();
 
                 if (reader.TryPeakArrayLength(out var length))
-                    value = new List<TValue>(length);
+                    value = new List<object>(length);
                 else
-                    value = new List<TValue>();
+                    value = new List<object>();
             }
             else
             {

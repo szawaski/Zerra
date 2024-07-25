@@ -99,19 +99,19 @@ namespace Zerra.Serialization.Json.Converters.Collections
 
         protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, TValue[] value)
         {
-            if (value.Length == 0)
-            {
-                if (!writer.TryWriteEmptyBracket(out state.CharsNeeded))
-                {
-                    return false;
-                }
-                return true;
-            }
-
             ArrayOrListAccessor<TValue> accessor;
 
             if (!state.Current.HasWrittenStart)
             {
+                if (value.Length == 0)
+                {
+                    if (!writer.TryWriteEmptyBracket(out state.CharsNeeded))
+                    {
+                        return false;
+                    }
+                    return true;
+                }
+
                 if (!writer.TryWriteOpenBracket(out state.CharsNeeded))
                 {
                     return false;

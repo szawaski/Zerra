@@ -10,7 +10,7 @@ using Zerra.Serialization.Json.State;
 
 namespace Zerra.Serialization.Json.Converters.Collections.Enumerables
 {
-    internal sealed class JsonConverterIEnumerable<TParent, TValue> : JsonConverter<TParent, IEnumerable>
+    internal sealed class JsonConverterIEnumerable<TParent> : JsonConverter<TParent, IEnumerable>
     {
         private JsonConverter<ArrayOrListAccessor<object>> readConverter = null!;
         private JsonConverter<IEnumerator> writeConverter = null!;
@@ -20,9 +20,9 @@ namespace Zerra.Serialization.Json.Converters.Collections.Enumerables
 
         protected override sealed void Setup()
         {
-            var valueTypeDetail = TypeAnalyzer<TValue>.GetTypeDetail();
-            readConverter = JsonConverterFactory<ArrayOrListAccessor<object>>.Get(valueTypeDetail, nameof(JsonConverterIEnumerable<TParent, TValue>), null, Setter);
-            writeConverter = JsonConverterFactory<IEnumerator>.Get(valueTypeDetail, nameof(JsonConverterIEnumerable<TParent, TValue>), Getter, null);
+            var valueTypeDetail = TypeAnalyzer<object>.GetTypeDetail();
+            readConverter = JsonConverterFactory<ArrayOrListAccessor<object>>.Get(valueTypeDetail, nameof(JsonConverterIEnumerable<TParent>), null, Setter);
+            writeConverter = JsonConverterFactory<IEnumerator>.Get(valueTypeDetail, nameof(JsonConverterIEnumerable<TParent>), Getter, null);
         }
 
         protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out IEnumerable? value)
@@ -108,17 +108,17 @@ namespace Zerra.Serialization.Json.Converters.Collections.Enumerables
 
             if (!state.Current.HasWrittenStart)
             {
-                var count = 0;
-                foreach (var item in value)
-                    count++;
-                if (count == 0)
-                {
-                    if (!writer.TryWriteEmptyBracket(out state.CharsNeeded))
-                    {
-                        return false;
-                    }
-                    return true;
-                }
+                //var count = 0;
+                //foreach (var item in value)
+                //    count++;
+                //if (count == 0)
+                //{
+                //    if (!writer.TryWriteEmptyBracket(out state.CharsNeeded))
+                //    {
+                //        return false;
+                //    }
+                //    return true;
+                //}
 
                 if (!writer.TryWriteOpenBracket(out state.CharsNeeded))
                 {

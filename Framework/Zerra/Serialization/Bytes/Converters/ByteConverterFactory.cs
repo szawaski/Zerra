@@ -188,7 +188,6 @@ namespace Zerra.Serialization.Bytes.Converters
                 return (ByteConverter<TParent>)converter;
             }
 
-
             //ICollection<T> of type - specific types that inherit this
             if (typeDetail.HasICollectionGeneric)
             {

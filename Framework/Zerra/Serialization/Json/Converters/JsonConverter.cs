@@ -19,7 +19,7 @@ namespace Zerra.Serialization.Json.Converters
         //The max converter stack before we unwind
         protected const int maxStackDepth = 31;
 
-        public abstract void Setup(TypeDetail typeDetail, string? memberKey, Delegate? getterDelegate, Delegate? setterDelegate);
+        public abstract void Setup(TypeDetail typeDetail, string memberKey, Delegate? getterDelegate, Delegate? setterDelegate);
 
         public abstract bool TryReadBoxed(ref JsonReader reader, ref ReadState state, out object? value);
         public abstract bool TryWriteBoxed(ref JsonWriter writer, ref WriteState state, object? value);

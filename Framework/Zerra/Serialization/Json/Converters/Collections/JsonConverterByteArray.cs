@@ -41,18 +41,18 @@ namespace Zerra.Serialization.Json.Converters.Collections
 
         protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, byte[] value)
         {
-            if (value.Length == 0)
-            {
-                if (!writer.TryWriteEmptyString(out state.CharsNeeded))
-                {
-                    return false;
-                }
-                return true;
-            }
-
             string str;
             if (!state.Current.HasWrittenStart)
             {
+                if (value.Length == 0)
+                {
+                    if (!writer.TryWriteEmptyString(out state.CharsNeeded))
+                    {
+                        return false;
+                    }
+                    return true;
+                }
+
                 str = Convert.ToBase64String(value);
             }
             else

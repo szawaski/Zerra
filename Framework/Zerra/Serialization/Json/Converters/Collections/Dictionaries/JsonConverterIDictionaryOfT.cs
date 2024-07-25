@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using Zerra.Reflection;
 using Zerra.Serialization.Json.IO;
@@ -10,56 +11,55 @@ using Zerra.Serialization.Json.State;
 
 namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
 {
-    internal sealed class JsonConverterIReadOnlyDictionaryT<TParent, TKey, TValue> : JsonConverter<TParent, IReadOnlyDictionary<TKey, TValue>>
-        where TKey : notnull
+    internal sealed class JsonConverterIDictionaryOfT<TParent, TDictionary> : JsonConverter<TParent, TDictionary>
     {
-        private JsonConverter<DictionaryAccessor<TKey, TValue>> readKeyConverter = null!;
-        private JsonConverter<DictionaryAccessor<TKey, TValue>> readValueConverter = null!;
+        private JsonConverter<DictionaryAccessor<object, object>> readKeyConverter = null!;
+        private JsonConverter<DictionaryAccessor<object, object>> readValueConverter = null!;
         //private JsonConverter<IEnumerator<KeyValuePair<TKey, TValue>>> writeKeyConverter = null!;
-        private JsonConverter<IEnumerator<KeyValuePair<TKey, TValue>>> writeValueConverter = null!;
+        private JsonConverter<IDictionaryEnumerator> writeValueConverter = null!;
 
-        private JsonConverter<Dictionary<TKey, TValue>> readConverter = null!;
-        private JsonConverter<IEnumerator<KeyValuePair<TKey, TValue>>> writeConverter = null!;
+        private JsonConverter<IDictionary> readConverter = null!;
+        private JsonConverter<IDictionaryEnumerator> writeConverter = null!;
 
-        //private static TKey KeyGetter(IEnumerator<KeyValuePair<TKey, TValue>> parent) => parent.Current.Key;
-        private static TValue ValueGetter(IEnumerator<KeyValuePair<TKey, TValue>> parent) => parent.Current.Value;
-        private static void KeySetter(DictionaryAccessor<TKey, TValue> parent, TKey value) => parent.SetKey(value);
-        private static void ValueSetter(DictionaryAccessor<TKey, TValue> parent, TValue value) => parent.Add(value);
+        //private static TKey KeyGetter(IDictionaryEnumerator parent) => parent.Current.Key;
+        private static object? ValueGetter(IDictionaryEnumerator parent) => parent.Entry.Value;
+        private static void KeySetter(DictionaryAccessor<object, object> parent, object value) => parent.SetKey(value);
+        private static void ValueSetter(DictionaryAccessor<object, object> parent, object value) => parent.Add(value);
 
-        private static KeyValuePair<TKey, TValue> Getter(IEnumerator<KeyValuePair<TKey, TValue>> parent) => parent.Current;
-        private static void Setter(Dictionary<TKey, TValue> parent, KeyValuePair<TKey, TValue> value) => parent.Add(value.Key, value.Value);
+        private static DictionaryEntry Getter(IDictionaryEnumerator parent) => parent.Entry;
+        private static void Setter(IDictionary parent, DictionaryEntry value) => parent.Add(value.Key, value.Value);
 
         private bool canWriteAsProperties;
 
         protected override sealed void Setup()
         {
-            var keyDetail = TypeAnalyzer<TKey>.GetTypeDetail();
-            var valueDetail = TypeAnalyzer<TValue>.GetTypeDetail();
+            var keyDetail = TypeAnalyzer<object>.GetTypeDetail();
+            var valueDetail = TypeAnalyzer<object>.GetTypeDetail();
 
             canWriteAsProperties = keyDetail.CoreType.HasValue;
 
             if (canWriteAsProperties)
             {
-                readKeyConverter = JsonConverterFactory<DictionaryAccessor<TKey, TValue>>.Get(keyDetail, nameof(JsonConverterIReadOnlyDictionaryT<TParent, TKey, TValue>), null, KeySetter);
-                readValueConverter = JsonConverterFactory<DictionaryAccessor<TKey, TValue>>.Get(valueDetail, nameof(JsonConverterIReadOnlyDictionaryT<TParent, TKey, TValue>), null, ValueSetter);
-                //writeKeyConverter = JsonConverterFactory<IEnumerator<KeyValuePair<TKey, TValue>>>.Get(valueDetail, nameof(JsonConverterIReadOnlyDictionaryT<TParent, TKey, TValue>), KeyGetter, null);
-                writeValueConverter = JsonConverterFactory<IEnumerator<KeyValuePair<TKey, TValue>>>.Get(valueDetail, nameof(JsonConverterIReadOnlyDictionaryT<TParent, TKey, TValue>), ValueGetter, null);
+                readKeyConverter = JsonConverterFactory<DictionaryAccessor<object, object>>.Get(keyDetail, nameof(JsonConverterIDictionaryOfT<TParent, TDictionary>), null, KeySetter);
+                readValueConverter = JsonConverterFactory<DictionaryAccessor<object, object>>.Get(valueDetail, nameof(JsonConverterIDictionaryOfT<TParent, TDictionary>), null, ValueSetter);
+                //writeKeyConverter = JsonConverterFactory<IDictionaryEnumerator>.Get(valueDetail, nameof(JsonConverterIDictionaryOfT<TParent, TDictionary>), KeyGetter, null);
+                writeValueConverter = JsonConverterFactory<IDictionaryEnumerator>.Get(valueDetail, nameof(JsonConverterIDictionaryOfT<TParent, TDictionary>), ValueGetter, null);
             }
             else
             {
-                readConverter = JsonConverterFactory<Dictionary<TKey, TValue>>.Get(keyDetail, nameof(JsonConverterIReadOnlyDictionaryT<TParent, TKey, TValue>), null, Setter);
-                writeConverter = JsonConverterFactory<IEnumerator<KeyValuePair<TKey, TValue>>>.Get(valueDetail, nameof(JsonConverterIReadOnlyDictionaryT<TParent, TKey, TValue>), Getter, null);
+                readConverter = JsonConverterFactory<IDictionary>.Get(keyDetail, nameof(JsonConverterIDictionaryOfT<TParent, TDictionary>), null, Setter);
+                writeConverter = JsonConverterFactory<IDictionaryEnumerator>.Get(valueDetail, nameof(JsonConverterIDictionaryOfT<TParent, TDictionary>), Getter, null);
             }
         }
 
-        protected override bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out IReadOnlyDictionary<TKey, TValue>? value)
+        protected override bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out TDictionary? value)
         {
             char c;
 
             if (valueType == JsonValueType.Object && canWriteAsProperties)
             {
-                DictionaryAccessor<TKey, TValue> accessor;
-            
+                DictionaryAccessor<object, object> accessor;
+
                 if (!state.Current.HasCreated)
                 {
                     if (!reader.TryReadNextSkipWhiteSpace(out c))
@@ -69,7 +69,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                         return false;
                     }
 
-                    accessor = new DictionaryAccessor<TKey, TValue>(new Dictionary<TKey, TValue>());
+                    accessor = new DictionaryAccessor<object, object>(new Dictionary<object, object>());
 
                     if (c == '}')
                     {
@@ -83,7 +83,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                 }
                 else
                 {
-                    accessor = (DictionaryAccessor<TKey, TValue>)state.Current.Object!;
+                    accessor = (DictionaryAccessor<object, object>)state.Current.Object!;
                 }
 
                 for (; ; )
@@ -148,12 +148,12 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                     state.Current.HasReadValue = false;
                 }
 
-                value = accessor.Dictionary;
+                value = (TDictionary)(object)accessor.Dictionary;
                 return true;
             }
             else if (valueType == JsonValueType.Array)
             {
-                Dictionary<TKey, TValue> dictionary;
+                IDictionary dictionary;
 
                 if (!state.Current.HasCreated)
                 {
@@ -164,7 +164,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                         return false;
                     }
 
-                    dictionary = new Dictionary<TKey, TValue>();
+                    dictionary = new Dictionary<object, object>();
 
                     if (c == ']')
                     {
@@ -176,7 +176,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                 }
                 else
                 {
-                    dictionary = (Dictionary<TKey, TValue>)state.Current.Object!;
+                    dictionary = (IDictionary)state.Current.Object!;
                 }
 
                 for (; ; )
@@ -209,7 +209,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                     state.Current.HasReadValue = false;
                 }
 
-                value = dictionary;
+                value = (TDictionary)dictionary;
                 return true;
             }
             else
@@ -222,14 +222,15 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
             }
         }
 
-        protected override bool TryWriteValue(ref JsonWriter writer, ref WriteState state, IReadOnlyDictionary<TKey, TValue> value)
+        protected override bool TryWriteValue(ref JsonWriter writer, ref WriteState state, TDictionary value)
         {
             if (canWriteAsProperties)
             {
-                IEnumerator<KeyValuePair<TKey, TValue>> enumerator;
+                IDictionaryEnumerator enumerator;
                 if (!state.Current.HasWrittenStart)
                 {
-                    if (value.Count == 0)
+                    var dictionary = (IDictionary)value!;
+                    if (dictionary.Count == 0)
                     {
                         if (!writer.TryWriteEmptyBrace(out state.CharsNeeded))
                         {
@@ -242,11 +243,11 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                     {
                         return false;
                     }
-                    enumerator = value.GetEnumerator();
+                    enumerator = dictionary.GetEnumerator();
                 }
                 else
                 {
-                    enumerator = (IEnumerator<KeyValuePair<TKey, TValue>>)state.Current.Enumerator!;
+                    enumerator = (IDictionaryEnumerator)state.Current.Enumerator!;
                 }
 
                 while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
@@ -263,7 +264,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
 
                     if (!state.Current.HasWrittenPropertyName)
                     {
-                        if (!writer.TryWritePropertyName(enumerator.Current.Key.ToString(), out state.CharsNeeded))
+                        if (!writer.TryWritePropertyName(enumerator.Entry.Key.ToString(), out state.CharsNeeded))
                         {
                             state.Current.HasWrittenStart = true;
                             state.Current.Enumerator = enumerator;
@@ -302,10 +303,11 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
             }
             else
             {
-                IEnumerator<KeyValuePair<TKey, TValue>> enumerator;
+                IDictionaryEnumerator enumerator;
                 if (!state.Current.HasWrittenStart)
                 {
-                    if (value.Count == 0)
+                    var dictionary = (IDictionary)value!;
+                    if (dictionary.Count == 0)
                     {
                         if (!writer.TryWriteEmptyBracket(out state.CharsNeeded))
                         {
@@ -318,11 +320,11 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                     {
                         return false;
                     }
-                    enumerator = value.GetEnumerator();
+                    enumerator = dictionary.GetEnumerator();
                 }
                 else
                 {
-                    enumerator = (IEnumerator<KeyValuePair<TKey, TValue>>)state.Current.Enumerator!;
+                    enumerator = (IDictionaryEnumerator)state.Current.Enumerator!;
                 }
 
                 while (state.Current.EnumeratorInProgress || enumerator.MoveNext())

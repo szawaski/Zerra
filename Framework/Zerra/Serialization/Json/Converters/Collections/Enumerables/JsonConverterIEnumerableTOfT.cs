@@ -3,29 +3,30 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using Zerra.Reflection;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 
-namespace Zerra.Serialization.Json.Converters.Collections.Lists
+namespace Zerra.Serialization.Json.Converters.Collections.Enumerables
 {
-    internal sealed class JsonConverterIReadOnlyListT<TParent, TValue> : JsonConverter<TParent, IReadOnlyList<TValue>>
+    internal sealed class JsonConverterIEnumerableTOfT<TParent, TEnumerable, TValue> : JsonConverter<TParent, TEnumerable>
     {
-        private JsonConverter<List<TValue>> readConverter = null!;
+        private JsonConverter<ArrayOrListAccessor<TValue>> readConverter = null!;
         private JsonConverter<IEnumerator<TValue>> writeConverter = null!;
 
         private static TValue Getter(IEnumerator<TValue> parent) => parent.Current;
-        private static void Setter(List<TValue> parent, TValue value) => parent.Add(value);
+        private static void Setter(ArrayOrListAccessor<TValue> parent, TValue value) => parent.Add(value);
 
         protected override sealed void Setup()
         {
             var valueTypeDetail = TypeAnalyzer<TValue>.GetTypeDetail();
-            readConverter = JsonConverterFactory<List<TValue>>.Get(valueTypeDetail, nameof(JsonConverterIReadOnlyListT<TParent, TValue>), null, Setter);
-            writeConverter = JsonConverterFactory<IEnumerator<TValue>>.Get(valueTypeDetail, nameof(JsonConverterIReadOnlyListT<TParent, TValue>), Getter, null);
+            readConverter = JsonConverterFactory<ArrayOrListAccessor<TValue>>.Get(valueTypeDetail, nameof(JsonConverterIEnumerableTOfT<TParent, TEnumerable, TValue>), null, Setter);
+            writeConverter = JsonConverterFactory<IEnumerator<TValue>>.Get(valueTypeDetail, nameof(JsonConverterIEnumerableTOfT<TParent, TEnumerable, TValue>), Getter, null);
         }
 
-        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out IReadOnlyList<TValue>? value)
+        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out TEnumerable? value)
         {
             if (valueType != JsonValueType.Array)
             {
@@ -36,7 +37,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
                 return Drain(ref reader, ref state, valueType);
             }
 
-            List<TValue> list;
+            ArrayOrListAccessor<TValue> accessor;
             char c;
 
             if (!state.Current.HasCreated)
@@ -50,30 +51,30 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
 
                 if (c == ']')
                 {
-                    value = Array.Empty<TValue>();
+                    value = (TEnumerable)(object)Array.Empty<TValue>();
                     return true;
                 }
 
                 reader.BackOne();
 
                 if (reader.TryPeakArrayLength(out var length))
-                    list = new List<TValue>(length);
+                    accessor = new ArrayOrListAccessor<TValue>(new TValue[length]);
                 else
-                    list = new List<TValue>();
+                    accessor = new ArrayOrListAccessor<TValue>();
             }
             else
             {
-                list = (List<TValue>)state.Current.Object!;
+                accessor = (ArrayOrListAccessor<TValue>)state.Current.Object!;
             }
 
             for (; ; )
             {
                 if (!state.Current.HasReadValue)
                 {
-                    if (!readConverter.TryReadFromParent(ref reader, ref state, list))
+                    if (!readConverter.TryReadFromParent(ref reader, ref state, accessor))
                     {
                         state.Current.HasCreated = true;
-                        state.Current.Object = list;
+                        state.Current.Object = accessor;
                         value = default;
                         return false;
                     }
@@ -84,7 +85,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
                     state.CharsNeeded = 1;
                     state.Current.HasCreated = true;
                     state.Current.HasReadValue = true;
-                    state.Current.Object = list;
+                    state.Current.Object = accessor;
                     value = default;
                     return false;
                 }
@@ -98,30 +99,34 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
                 state.Current.HasReadValue = false;
             }
 
-            value = list;
+            value = (TEnumerable)(object)accessor.ToArray();
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, IReadOnlyList<TValue> value)
+        protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, TEnumerable value)
         {
             IEnumerator<TValue> enumerator;
 
             if (!state.Current.HasWrittenStart)
             {
-                if (value.Count == 0)
-                {
-                    if (!writer.TryWriteEmptyBracket(out state.CharsNeeded))
-                    {
-                        return false;
-                    }
-                    return true;
-                }
+                var enumerable = (IEnumerable<TValue>)value!;
+                //var count = 0;
+                //foreach (var item in enumerable)
+                //    count++;
+                //if (count == 0)
+                //{
+                //    if (!writer.TryWriteEmptyBracket(out state.CharsNeeded))
+                //    {
+                //        return false;
+                //    }
+                //    return true;
+                //}
 
                 if (!writer.TryWriteOpenBracket(out state.CharsNeeded))
                 {
                     return false;
                 }
-                enumerator = value.GetEnumerator();
+                enumerator = enumerable.GetEnumerator();
             }
             else
             {

@@ -109,17 +109,17 @@ namespace Zerra.Serialization.Json.Converters.Collections.Enumerables
 
             if (!state.Current.HasWrittenStart)
             {
-                var count = 0;
-                foreach (var item in value)
-                    count++;
-                if (count == 0)
-                {
-                    if (!writer.TryWriteEmptyBracket(out state.CharsNeeded))
-                    {
-                        return false;
-                    }
-                    return true;
-                }
+                //var count = 0;
+                //foreach (var item in value)
+                //    count++;
+                //if (count == 0)
+                //{
+                //    if (!writer.TryWriteEmptyBracket(out state.CharsNeeded))
+                //    {
+                //        return false;
+                //    }
+                //    return true;
+                //}
 
                 if (!writer.TryWriteOpenBracket(out state.CharsNeeded))
                 {

@@ -17,14 +17,14 @@ namespace Zerra.Serialization.Bytes.Converters
         protected virtual bool StackRequired { get; } = true;
 
         protected TypeDetail<TValue> typeDetail { get; private set; } = null!;
-        private string? memberKey;
+        private string memberKey = null!;
         private Func<TParent, TValue?>? getter;
         private Action<TParent, TValue?>? setter;
 
         private bool isNullable;
         private bool isInterfacedObject;
 
-        public override void Setup(TypeDetail typeDetail, string? memberKey, Delegate? getterDelegate, Delegate? setterDelegate)
+        public override void Setup(TypeDetail typeDetail, string memberKey, Delegate? getterDelegate, Delegate? setterDelegate)
         {
             this.typeDetail = (TypeDetail<TValue>)typeDetail;
             this.memberKey = memberKey;

@@ -10,22 +10,22 @@ using Zerra.Serialization.Json.State;
 
 namespace Zerra.Serialization.Json.Converters.Collections.Lists
 {
-    internal sealed class JsonConverterIReadOnlyListT<TParent, TValue> : JsonConverter<TParent, IReadOnlyList<TValue>>
+    internal sealed class JsonConverterIListTOfT<TParent, TList, TValue> : JsonConverter<TParent, TList>
     {
-        private JsonConverter<List<TValue>> readConverter = null!;
+        private JsonConverter<IList<TValue>> readConverter = null!;
         private JsonConverter<IEnumerator<TValue>> writeConverter = null!;
 
         private static TValue Getter(IEnumerator<TValue> parent) => parent.Current;
-        private static void Setter(List<TValue> parent, TValue value) => parent.Add(value);
+        private static void Setter(IList<TValue> parent, TValue value) => parent.Add(value);
 
         protected override sealed void Setup()
         {
             var valueTypeDetail = TypeAnalyzer<TValue>.GetTypeDetail();
-            readConverter = JsonConverterFactory<List<TValue>>.Get(valueTypeDetail, nameof(JsonConverterIReadOnlyListT<TParent, TValue>), null, Setter);
-            writeConverter = JsonConverterFactory<IEnumerator<TValue>>.Get(valueTypeDetail, nameof(JsonConverterIReadOnlyListT<TParent, TValue>), Getter, null);
+            readConverter = JsonConverterFactory<IList<TValue>>.Get(valueTypeDetail, nameof(JsonConverterIListTOfT<TParent, TList, TValue>), null, Setter);
+            writeConverter = JsonConverterFactory<IEnumerator<TValue>>.Get(valueTypeDetail, nameof(JsonConverterIListTOfT<TParent, TList, TValue>), Getter, null);
         }
 
-        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out IReadOnlyList<TValue>? value)
+        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out TList? value)
         {
             if (valueType != JsonValueType.Array)
             {
@@ -36,7 +36,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
                 return Drain(ref reader, ref state, valueType);
             }
 
-            List<TValue> list;
+            IList<TValue> list;
             char c;
 
             if (!state.Current.HasCreated)
@@ -50,7 +50,8 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
 
                 if (c == ']')
                 {
-                    value = Array.Empty<TValue>();
+                    list = new List<TValue>(0);
+                    value = (TList)list;
                     return true;
                 }
 
@@ -63,7 +64,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
             }
             else
             {
-                list = (List<TValue>)state.Current.Object!;
+                list = (IList<TValue>)state.Current.Object!;
             }
 
             for (; ; )
@@ -98,17 +99,18 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
                 state.Current.HasReadValue = false;
             }
 
-            value = list;
+            value = (TList)list;
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, IReadOnlyList<TValue> value)
+        protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, TList value)
         {
             IEnumerator<TValue> enumerator;
 
             if (!state.Current.HasWrittenStart)
             {
-                if (value.Count == 0)
+                var list = (IList<TValue>)value!;
+                if (list.Count == 0)
                 {
                     if (!writer.TryWriteEmptyBracket(out state.CharsNeeded))
                     {
@@ -121,7 +123,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
                 {
                     return false;
                 }
-                enumerator = value.GetEnumerator();
+                enumerator = list.GetEnumerator();
             }
             else
             {

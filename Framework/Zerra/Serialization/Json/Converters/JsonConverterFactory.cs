@@ -9,7 +9,10 @@ using System.Runtime.CompilerServices;
 using Zerra.Collections;
 using Zerra.Reflection;
 using Zerra.Serialization.Json.Converters.Collections;
+using Zerra.Serialization.Json.Converters.Collections.Collections;
 using Zerra.Serialization.Json.Converters.Collections.Dictionaries;
+using Zerra.Serialization.Json.Converters.Collections.Enumerables;
+using Zerra.Serialization.Json.Converters.Collections.Lists;
 using Zerra.Serialization.Json.Converters.General;
 
 namespace Zerra.Serialization.Json.Converters
@@ -131,26 +134,26 @@ namespace Zerra.Serialization.Json.Converters
                 return (JsonConverter<TParent>)converter;
             }
 
-            ////IList<T> of type - specific types that inherit this
-            //if (typeDetail.HasIListGeneric)
-            //{
-            //    var converter = typeof(JsonConverterIListTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0]).CreatorBoxed();
-            //    return (JsonConverter<TParent>)converter;
-            //}
+            //IList<T> of type - specific types that inherit this
+            if (typeDetail.HasIListGeneric)
+            {
+                var converter = typeof(JsonConverterIListTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0]).CreatorBoxed();
+                return (JsonConverter<TParent>)converter;
+            }
 
-            ////IList of type - specific types that inherit this
-            //if (typeDetail.HasIList)
-            //{
-            //    var converter = typeof(JsonConverterIListOfT<,>).GetGenericTypeDetail(parentType, typeDetail.Type).CreatorBoxed();
-            //    return (JsonConverter<TParent>)converter;
-            //}
+            //IList of type - specific types that inherit this
+            if (typeDetail.HasIList)
+            {
+                var converter = typeof(JsonConverterIListOfT<,>).GetGenericTypeDetail(parentType, typeDetail.Type).CreatorBoxed();
+                return (JsonConverter<TParent>)converter;
+            }
 
-            ////ISet<T> of type - specific types that inherit this
-            //if (typeDetail.HasISetGeneric)
-            //{
-            //    var converter = typeof(JsonConverterISetTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0]).CreatorBoxed();
-            //    return (JsonConverter<TParent>)converter;
-            //}
+            //ISet<T> of type - specific types that inherit this
+            if (typeDetail.HasISetGeneric)
+            {
+                var converter = typeof(JsonConverterISetTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0]).CreatorBoxed();
+                return (JsonConverter<TParent>)converter;
+            }
 
             //IDictionary<,> of type - specific types that inherit this
             if (typeDetail.HasIDictionaryGeneric)
@@ -159,26 +162,33 @@ namespace Zerra.Serialization.Json.Converters
                 return (JsonConverter<TParent>)converter;
             }
 
-            ////IDictionary of type - specific types that inherit this
-            //if (typeDetail.HasIDictionary)
-            //{
-            //    var converter = typeof(JsonConverterIDictionaryOfT<,>).GetGenericTypeDetail(parentType, typeDetail.Type).CreatorBoxed();
-            //    return (JsonConverter<TParent>)converter;
-            //}
+            //IDictionary of type - specific types that inherit this
+            if (typeDetail.HasIDictionary)
+            {
+                var converter = typeof(JsonConverterIDictionaryOfT<,>).GetGenericTypeDetail(parentType, typeDetail.Type).CreatorBoxed();
+                return (JsonConverter<TParent>)converter;
+            }
 
-            ////IEnumerable<T> of type  - specific types that inherit this (This cannot read because we have no interface to populate the collection)
-            //if (typeDetail.HasIEnumerableGeneric)
-            //{
-            //    var converter = typeof(JsonConverterIEnumerableTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.IEnumerableGenericInnerType).CreatorBoxed();
-            //    return (JsonConverter<TParent>)converter;
-            //}
+            //ICollection<T> of type - specific types that inherit this
+            if (typeDetail.HasICollectionGeneric)
+            {
+                var converter = typeof(JsonConverterICollectionTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0]).CreatorBoxed();
+                return (JsonConverter<TParent>)converter;
+            }
 
-            ////IEnumerable - specific types that inherit this (This cannot read because we have no interface to populate the collection)
-            //if (typeDetail.HasIEnumerable)
-            //{
-            //    var converter = typeof(JsonConverterIEnumerableOfT<,>).GetGenericTypeDetail(parentType, typeDetail.Type).CreatorBoxed();
-            //    return (JsonConverter<TParent>)converter;
-            //}
+            //IEnumerable<T> of type  - specific types that inherit this (This cannot read because we have no interface to populate the collection)
+            if (typeDetail.HasIEnumerableGeneric)
+            {
+                var converter = typeof(JsonConverterIEnumerableTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.IEnumerableGenericInnerType).CreatorBoxed();
+                return (JsonConverter<TParent>)converter;
+            }
+
+            //IEnumerable - specific types that inherit this (This cannot read because we have no interface to populate the collection)
+            if (typeDetail.HasIEnumerable)
+            {
+                var converter = typeof(JsonConverterIEnumerableOfT<,>).GetGenericTypeDetail(parentType, typeDetail.Type).CreatorBoxed();
+                return (JsonConverter<TParent>)converter;
+            }
 
             //Object
             var converterObject = typeof(JsonConverterObject<,>).GetGenericTypeDetail(parentType, typeDetail.Type).CreatorBoxed();
