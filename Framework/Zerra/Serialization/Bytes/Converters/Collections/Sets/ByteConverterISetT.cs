@@ -74,7 +74,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Sets
             }
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, ISet<TValue> value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in ISet<TValue> value)
         {
             IEnumerator<TValue> enumerator;
 

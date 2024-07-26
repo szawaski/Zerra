@@ -32,7 +32,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.ICollectionTs
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, ICollection<long> value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in ICollection<long> value)
         {
             if (!state.Current.HasWrittenLength)
             {

@@ -29,7 +29,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TEnumerable? value)
             => throw new NotSupportedException($"Cannot deserialize {typeDetail.Type.GetNiceName()} because no interface to populate the collection");
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TEnumerable value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in TEnumerable value)
         {
             IEnumerator enumerator;
 

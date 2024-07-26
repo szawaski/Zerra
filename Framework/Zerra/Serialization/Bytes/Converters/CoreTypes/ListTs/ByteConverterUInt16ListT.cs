@@ -30,7 +30,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.ListTs
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, List<ushort> value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in List<ushort> value)
         {
             if (!state.Current.HasWrittenLength)
             {
