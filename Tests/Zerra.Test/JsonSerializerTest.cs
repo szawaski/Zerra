@@ -1836,7 +1836,6 @@ namespace Zerra.Test
 
             using var stream = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream, baseModel);
-            await JsonSerializer.SerializeAsync(stream, baseModel);
             stream.Position = 0;
             using var sr = new StreamReader(stream, Encoding.UTF8);
             var json = sr.ReadToEnd();

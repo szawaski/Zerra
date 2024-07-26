@@ -318,6 +318,7 @@ namespace Zerra.Serialization.Json.Converters.General
                 {
                     state.Current.HasWrittenStart = true;
                     state.Current.Enumerator = enumerator;
+                    state.Current.EnumeratorInProgress = true;
                     return false;
                 }
 
