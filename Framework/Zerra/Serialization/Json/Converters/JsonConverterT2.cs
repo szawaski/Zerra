@@ -296,7 +296,7 @@ namespace Zerra.Serialization.Json.Converters
                 state.PushFrame();
             }
 
-            if (isObject)
+            if (isObject && valueType != JsonValueType.Object)
             {
                 TypeDetail newTypeDetail = valueType switch
                 {

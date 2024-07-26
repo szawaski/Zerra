@@ -241,11 +241,47 @@ namespace Zerra.Test
         }
 
         [TestMethod]
+        public void StringTypesIDictionaryT()
+        {
+            var model1 = TypesIDictionaryTModel.Create();
+            var bytes = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TypesIDictionaryTModel>(bytes);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void StringTypesIDictionaryTOfT()
+        {
+            var model1 = TypesIDictionaryTOfTModel.Create();
+            var bytes = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TypesIDictionaryTOfTModel>(bytes);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void StringTypesIReadOnlyDictionaryT()
+        {
+            var model1 = TypesIReadOnlyDictionaryTModel.Create();
+            var bytes = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TypesIReadOnlyDictionaryTModel>(bytes);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
         public void StringTypesIDictionary()
         {
             var model1 = TypesIDictionaryModel.Create();
             var json = JsonSerializer.Serialize(model1);
             var model2 = JsonSerializer.Deserialize<TypesIDictionaryModel>(json);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void StringTypesIDictionaryOfT()
+        {
+            var model1 = TypesIDictionaryOfTModel.Create();
+            var bytes = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TypesIDictionaryOfTModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
 
