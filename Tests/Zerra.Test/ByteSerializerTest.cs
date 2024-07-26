@@ -54,6 +54,16 @@ namespace Zerra.Test
         }
 
         [TestMethod]
+        public void TypesIListT()
+        {
+            var model1 = TypesIListTModel.Create();
+            var bytes = ByteSerializer.Serialize(model1);
+            Assert.AreEqual(1131, bytes.Length);
+            var model2 = ByteSerializer.Deserialize<TypesIListTModel>(bytes);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
         public void TypesIListTOfT()
         {
             var model1 = TypesIListTOfTModel.Create();
