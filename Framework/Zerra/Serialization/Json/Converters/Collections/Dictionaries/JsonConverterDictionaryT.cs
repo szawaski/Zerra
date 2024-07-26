@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using Zerra.Reflection;
 using Zerra.Serialization.Json.IO;
@@ -47,8 +48,9 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
             }
             else
             {
-                readConverter = JsonConverterFactory<Dictionary<TKey, TValue>>.Get(keyDetail, nameof(JsonConverterDictionaryT<TParent, TKey, TValue>), null, Setter);
-                writeConverter = JsonConverterFactory<IEnumerator<KeyValuePair<TKey, TValue>>>.Get(valueDetail, nameof(JsonConverterDictionaryT<TParent, TKey, TValue>), Getter, null);
+                var keyValuePairTypeDetail = TypeAnalyzer<KeyValuePair<TKey, TValue>>.GetTypeDetail();
+                readConverter = JsonConverterFactory<Dictionary<TKey, TValue>>.Get(keyValuePairTypeDetail, nameof(JsonConverterDictionaryT<TParent, TKey, TValue>), null, Setter);
+                writeConverter = JsonConverterFactory<IEnumerator<KeyValuePair<TKey, TValue>>>.Get(keyValuePairTypeDetail, nameof(JsonConverterDictionaryT<TParent, TKey, TValue>), Getter, null);
             }
         }
 
@@ -179,6 +181,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                         if (!readConverter.TryReadFromParent(ref reader, ref state, value))
                         {
                             state.Current.HasCreated = true;
+                            state.Current.Object = value;
                             return false;
                         }
                     }
@@ -187,6 +190,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                     {
                         state.CharsNeeded = 1;
                         state.Current.HasCreated = true;
+                        state.Current.Object = value;
                         state.Current.HasReadValue = true;
                         return false;
                     }
@@ -292,6 +296,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                         if (!writer.TryWriteComma(out state.CharsNeeded))
                         {
                             state.Current.HasWrittenStart = true;
+                            state.Current.Enumerator = enumerator;
                             state.Current.EnumeratorInProgress = true;
                             return false;
                         }

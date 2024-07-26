@@ -185,6 +185,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                         if (!readConverter.TryReadFromParent(ref reader, ref state, dictionary))
                         {
                             state.Current.HasCreated = true;
+                            state.Current.Object = dictionary;
                             value = default;
                             return false;
                         }
@@ -194,6 +195,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                     {
                         state.CharsNeeded = 1;
                         state.Current.HasCreated = true;
+                        state.Current.Object = dictionary;
                         state.Current.HasReadValue = true;
                         value = default;
                         return false;
@@ -304,6 +306,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                         if (!writer.TryWriteComma(out state.CharsNeeded))
                         {
                             state.Current.HasWrittenStart = true;
+                            state.Current.Enumerator = enumerator;
                             state.Current.EnumeratorInProgress = true;
                             return false;
                         }

@@ -47,8 +47,9 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
             }
             else
             {
-                readConverter = JsonConverterFactory<Dictionary<TKey, TValue>>.Get(keyDetail, nameof(JsonConverterIReadOnlyDictionaryT<TParent, TKey, TValue>), null, Setter);
-                writeConverter = JsonConverterFactory<IEnumerator<KeyValuePair<TKey, TValue>>>.Get(valueDetail, nameof(JsonConverterIReadOnlyDictionaryT<TParent, TKey, TValue>), Getter, null);
+                var keyValuePairTypeDetail = TypeAnalyzer<KeyValuePair<TKey, TValue>>.GetTypeDetail();
+                readConverter = JsonConverterFactory<Dictionary<TKey, TValue>>.Get(keyValuePairTypeDetail, nameof(JsonConverterIReadOnlyDictionaryT<TParent, TKey, TValue>), null, Setter);
+                writeConverter = JsonConverterFactory<IEnumerator<KeyValuePair<TKey, TValue>>>.Get(keyValuePairTypeDetail, nameof(JsonConverterIReadOnlyDictionaryT<TParent, TKey, TValue>), Getter, null);
             }
         }
 
@@ -184,6 +185,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                         if (!readConverter.TryReadFromParent(ref reader, ref state, dictionary))
                         {
                             state.Current.HasCreated = true;
+                            state.Current.Object = dictionary;
                             value = default;
                             return false;
                         }
@@ -193,6 +195,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                     {
                         state.CharsNeeded = 1;
                         state.Current.HasCreated = true;
+                        state.Current.Object = dictionary;
                         state.Current.HasReadValue = true;
                         value = default;
                         return false;
@@ -300,6 +303,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                         if (!writer.TryWriteComma(out state.CharsNeeded))
                         {
                             state.Current.HasWrittenStart = true;
+                            state.Current.Enumerator = enumerator;
                             state.Current.EnumeratorInProgress = true;
                             return false;
                         }
