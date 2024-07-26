@@ -66,10 +66,13 @@ namespace Zerra.Serialization.Json.Converters
                     state.Current.ChildValueType = JsonValueType.NotDetermined;
                     return true;
                 case JsonValueType.Null_Completed:
+                    state.Current.ChildValueType = JsonValueType.NotDetermined;
                     return true;
                 case JsonValueType.False_Completed:
+                    state.Current.ChildValueType = JsonValueType.NotDetermined;
                     return true;
                 case JsonValueType.True_Completed:
+                    state.Current.ChildValueType = JsonValueType.NotDetermined;
                     return true;
                 case JsonValueType.Number:
                     if (!DrainNumber(ref reader, ref state))
@@ -264,9 +267,14 @@ namespace Zerra.Serialization.Json.Converters
                     }
 
                     if (c == 'u')
+                    {
                         state.ReadStringEscapeUnicode = true;
+                    }
                     else
+                    {
+                        state.ReadStringEscape = false;
                         continue;
+                    }
                 }
 
                 //reading escape unicode

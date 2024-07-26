@@ -11,7 +11,7 @@ namespace Zerra.Serialization.Json.Converters
     public abstract class JsonConverter<TParent> : JsonConverter
     {
         public abstract bool TryReadFromParent(ref JsonReader reader, ref ReadState state, TParent? parent);
-        public abstract bool TryWriteFromParent(ref JsonWriter writer, ref WriteState state, TParent parent, string? propertyName = null);
+        public abstract bool TryWriteFromParent(ref JsonWriter writer, ref WriteState state, TParent parent, string? propertyName = null, bool ignoreDoNotWriteNullProperties = false);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public abstract bool TryReadValueBoxed(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out object? value);

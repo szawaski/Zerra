@@ -233,7 +233,7 @@ namespace Zerra.Serialization.Json.IO
         {
             if (useBytes)
             {
-                if (value < 192)
+                if (value < 128)
                 {
                     sizeNeeded = 3;
                     if (!EnsureSize(sizeNeeded))
@@ -342,7 +342,7 @@ namespace Zerra.Serialization.Json.IO
                 {
                     bufferChars[position++] = '"';
                     bufferChars[position++] = '"';
-                } 
+                }
                 return true;
             }
 
@@ -2112,24 +2112,27 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryWritePropertyName(string? value, out int sizeNeeded)
+        public unsafe bool TryWritePropertyName(string? value, bool startWithComma, out int sizeNeeded)
         {
             if (value == null)
             {
-                sizeNeeded = 3;
+                sizeNeeded = startWithComma ? 4 : 3;
                 return true;
             }
             if (value.Length == 0)
             {
-                sizeNeeded = 3;
+                sizeNeeded = startWithComma ? 4 : 3;
                 return true;
             }
 
             if (useBytes)
             {
-                sizeNeeded = encoding.GetMaxByteCount(value.Length) + 3;
+                sizeNeeded = encoding.GetMaxByteCount(value.Length) + (startWithComma ? 4 : 3);
                 if (!EnsureSize(sizeNeeded))
                     return false;
+
+                if (startWithComma)
+                    bufferBytes[position++] = commaByte;
 
                 bufferBytes[position++] = quoteByte;
 
@@ -2146,9 +2149,12 @@ namespace Zerra.Serialization.Json.IO
             }
             else
             {
-                sizeNeeded = value.Length + 3;
+                sizeNeeded = value.Length + (startWithComma ? 4 : 3);
                 if (!EnsureSize(sizeNeeded))
                     return false;
+
+                if (startWithComma)
+                    bufferChars[position++] = ',';
 
                 bufferChars[position++] = '"';
 
@@ -2165,7 +2171,7 @@ namespace Zerra.Serialization.Json.IO
 
                 bufferChars[position++] = '"';
                 bufferChars[position++] = ':';
-    
+
                 return true;
             }
         }

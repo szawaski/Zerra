@@ -252,44 +252,14 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
 
                 while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
                 {
-                    if (state.Current.HasWrittenFirst && !state.Current.HasWrittenSeperator)
-                    {
-                        if (!writer.TryWriteComma(out state.CharsNeeded))
-                        {
-                            state.Current.HasWrittenStart = true;
-                            state.Current.EnumeratorInProgress = true;
-                            return false;
-                        }
-                    }
-
-                    if (!state.Current.HasWrittenPropertyName)
-                    {
-                        if (!writer.TryWritePropertyName(enumerator.Entry.Key.ToString(), out state.CharsNeeded))
-                        {
-                            state.Current.HasWrittenStart = true;
-                            state.Current.Enumerator = enumerator;
-                            state.Current.EnumeratorInProgress = true;
-                            state.Current.HasWrittenSeperator = true;
-                            return false;
-                        }
-                    }
-
-                    if (!writeValueConverter.TryWriteFromParent(ref writer, ref state, enumerator))
+                    if (!writeValueConverter.TryWriteFromParent(ref writer, ref state, enumerator, enumerator.Entry.Key.ToString(), true))
                     {
                         state.Current.HasWrittenStart = true;
                         state.Current.Enumerator = enumerator;
                         state.Current.EnumeratorInProgress = true;
-                        state.Current.HasWrittenSeperator = true;
-                        state.Current.HasWrittenPropertyName = true;
                         return false;
                     }
 
-                    if (!state.Current.HasWrittenFirst)
-                        state.Current.HasWrittenFirst = true;
-                    if (state.Current.HasWrittenSeperator)
-                        state.Current.HasWrittenSeperator = false;
-                    if (state.Current.HasWrittenPropertyName)
-                        state.Current.HasWrittenPropertyName = false;
                     if (state.Current.EnumeratorInProgress)
                         state.Current.EnumeratorInProgress = false;
                 }

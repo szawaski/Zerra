@@ -18,10 +18,10 @@ namespace Zerra.TestDev
             System.Threading.Thread.CurrentThread.Priority = System.Threading.ThreadPriority.Highest;
             var timer = Stopwatch.StartNew();
 
-            //UtfTest();
+            UtfTest();
 
             //TestMe();
-            JsonSerializerTest.TempTestSpeed();
+            //JsonSerializerTest.TempTestSpeed();
             //ByteSerializerTest.TempTestSpeed();
 
             //var tester = new EncryptionTest();

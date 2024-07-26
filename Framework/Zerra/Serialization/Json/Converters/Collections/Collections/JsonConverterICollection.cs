@@ -11,7 +11,7 @@ using Zerra.Serialization.Json.State;
 
 namespace Zerra.Serialization.Json.Converters.Collections.Collections
 {
-    internal sealed class JsonConverterICollection<TParent, TValue> : JsonConverter<TParent, ICollection>
+    internal sealed class JsonConverterICollection<TParent> : JsonConverter<TParent, ICollection>
     {
         private JsonConverter<ArrayOrListAccessor<object>> readConverter = null!;
         private JsonConverter<IEnumerator> writeConverter = null!;
@@ -21,9 +21,9 @@ namespace Zerra.Serialization.Json.Converters.Collections.Collections
 
         protected override sealed void Setup()
         {
-            var valueTypeDetail = TypeAnalyzer<TValue>.GetTypeDetail();
-            readConverter = JsonConverterFactory<ArrayOrListAccessor<object>>.Get(valueTypeDetail, nameof(JsonConverterICollection<TParent, TValue>), null, Setter);
-            writeConverter = JsonConverterFactory<IEnumerator>.Get(valueTypeDetail, nameof(JsonConverterICollection<TParent, TValue>), Getter, null);
+            var valueTypeDetail = TypeAnalyzer<object>.GetTypeDetail();
+            readConverter = JsonConverterFactory<ArrayOrListAccessor<object>>.Get(valueTypeDetail, nameof(JsonConverterICollection<TParent>), null, Setter);
+            writeConverter = JsonConverterFactory<IEnumerator>.Get(valueTypeDetail, nameof(JsonConverterICollection<TParent>), Getter, null);
         }
 
         protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out ICollection? value)

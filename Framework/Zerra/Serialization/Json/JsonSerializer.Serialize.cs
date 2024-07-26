@@ -11,11 +11,14 @@ using Zerra.Serialization.Json.IO;
 using Zerra.Reflection;
 using Zerra.Serialization.Json.Converters;
 using Zerra.Serialization.Json.State;
+using System.Text;
 
 namespace Zerra.Serialization.Json
 {
     public partial class JsonSerializer
     {
+        private static ReadOnlyMemory<byte> nullBytes = Encoding.UTF8.GetBytes("null");
+
         public static string? Serialize<T>(T? obj, JsonSerializerOptions? options = null)
         {
             if (obj == null)
@@ -244,7 +247,14 @@ namespace Zerra.Serialization.Json
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
             if (obj == null)
+            {
+#if NETSTANDARD2_0
+                await stream.WriteAsync(nullBytes.ToArray(), 0, nullBytes.Length);
+#else
+                await stream.WriteAsync(nullBytes);
+#endif
                 return;
+            }
 
             options ??= defaultOptions;
 
@@ -292,12 +302,14 @@ namespace Zerra.Serialization.Json
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
             if (obj == null)
+            {
+#if NETSTANDARD2_0
+                await stream.WriteAsync(nullBytes.ToArray(), 0, nullBytes.Length);
+#else
+                await stream.WriteAsync(nullBytes);
+#endif
                 return;
-
-            if (stream == null)
-                throw new ArgumentNullException(nameof(stream));
-            if (obj == null)
-                return;
+            }
 
             options ??= defaultOptions;
 
@@ -347,12 +359,14 @@ namespace Zerra.Serialization.Json
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
             if (obj == null)
+            {
+#if NETSTANDARD2_0
+                await stream.WriteAsync(nullBytes.ToArray(), 0, nullBytes.Length);
+#else
+                await stream.WriteAsync(nullBytes);
+#endif
                 return;
-
-            if (stream == null)
-                throw new ArgumentNullException(nameof(stream));
-            if (obj == null)
-                return;
+            }
 
             options ??= defaultOptions;
 

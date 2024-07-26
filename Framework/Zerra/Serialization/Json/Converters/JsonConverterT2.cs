@@ -279,6 +279,8 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (setter is not null && parent is not null)
                         setter(parent, default);
+
+                    state.Current.ChildValueType = JsonValueType.NotDetermined;
                     return true;
                 }
             }
@@ -327,7 +329,7 @@ namespace Zerra.Serialization.Json.Converters
             state.Current.ChildValueType = JsonValueType.NotDetermined;
             return true;
         }
-        public override sealed bool TryWriteFromParent(ref JsonWriter writer, ref WriteState state, TParent parent, string? propertyName)
+        public override sealed bool TryWriteFromParent(ref JsonWriter writer, ref WriteState state, TParent parent, string? propertyName, bool ignoreDoNotWriteNullProperties)
         {
             if (getter == null)
                 return true;
@@ -335,55 +337,52 @@ namespace Zerra.Serialization.Json.Converters
 
             if (propertyName is not null)
             {
-                if (value is null)
+                if (isNullable && value is null)
                 {
-                    if (state.DoNotWriteNullProperties)
+                    if (!ignoreDoNotWriteNullProperties && state.DoNotWriteNullProperties)
                     {
                         return true;
                     }
+
                     if (!state.Current.HasWrittenPropertyName)
                     {
-                        if (!writer.TryWritePropertyName(propertyName, out state.CharsNeeded))
+                        if (!writer.TryWritePropertyName(propertyName, state.Current.HasWrittenFirst, out state.CharsNeeded))
                         {
                             return false;
                         }
+                        if (!state.Current.HasWrittenFirst)
+                            state.Current.HasWrittenFirst = true;
                         state.Current.HasWrittenPropertyName = true;
                     }
-                    if (isNullable)
+
+                    if (!writer.TryWriteNull(out state.CharsNeeded))
                     {
-                        if (!writer.TryWriteNull(out state.CharsNeeded))
-                        {
-                            return false;
-                        }
-                        state.Current.HasWrittenPropertyName = false;
-                        return true;
+                        return false;
                     }
+                    state.Current.HasWrittenPropertyName = false;
+                    return true;
                 }
                 else
                 {
                     if (!state.Current.HasWrittenPropertyName)
                     {
-                        if (!writer.TryWritePropertyName(propertyName, out state.CharsNeeded))
+                        if (!writer.TryWritePropertyName(propertyName, state.Current.HasWrittenFirst, out state.CharsNeeded))
                         {
                             return false;
                         }
+                        if (!state.Current.HasWrittenFirst)
+                            state.Current.HasWrittenFirst = true;
                         state.Current.HasWrittenPropertyName = true;
                     }
                 }
             }
-            else
+            else if (isNullable && value is null)
             {
-                if (isNullable)
+                if (!writer.TryWriteNull(out state.CharsNeeded))
                 {
-                    if (value is null)
-                    {
-                        if (!writer.TryWriteNull(out state.CharsNeeded))
-                        {
-                            return false;
-                        }
-                        return true;
-                    }
+                    return false;
                 }
+                return true;
             }
 
             if (StackRequired)

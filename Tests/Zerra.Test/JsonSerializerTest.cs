@@ -550,6 +550,8 @@ namespace Zerra.Test
 
             model1.EnumArray = ((string[])jsonObject[nameof(TypesAllModel.EnumArray)]).Select(x => (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToArray();
             model1.EnumArrayNullable = ((string[])jsonObject[nameof(TypesAllModel.EnumArrayNullable)]).Select(x => x == null ? (EnumModel?)null : (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToArray();
+            model1.EnumArrayEmpty = ((string[])jsonObject[nameof(TypesAllModel.EnumArrayEmpty)]).Select(x => (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToArray();
+            model1.EnumArrayNullableEmpty = ((string[])jsonObject[nameof(TypesAllModel.EnumArrayNullableEmpty)]).Select(x => x == null ? (EnumModel?)null : (EnumModel)Enum.Parse(typeof(EnumModel), x)).ToArray();
 
             model1.BooleanListT = ((bool[])jsonObject[nameof(TypesAllModel.BooleanListT)]).ToList();
             model1.ByteListT = ((byte[])jsonObject[nameof(TypesAllModel.ByteListT)]).ToList();
@@ -1683,7 +1685,7 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void StringReducedModel()
+        public void StringDrainModel()
         {
             var model1 = TypesCoreAlternatingModel.Create();
             var json1 = JsonSerializer.Serialize(model1);
@@ -2226,7 +2228,7 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public async Task StreamReducedModel()
+        public async Task StreamDrainModel()
         {
             var model1 = TypesCoreAlternatingModel.Create();
             using var stream1 = new MemoryStream();

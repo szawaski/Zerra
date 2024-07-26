@@ -135,7 +135,9 @@ namespace Zerra.Serialization.Json
                     Nameless = options.Nameless,
                     DoNotWriteNullProperties = options.DoNotWriteNullProperties,
                     EnumAsNumber = options.EnumAsNumber,
-                    ErrorOnTypeMismatch = options.ErrorOnTypeMismatch
+                    ErrorOnTypeMismatch = options.ErrorOnTypeMismatch,
+
+                    IsFinalBlock = isFinalBlock
                 };
 
                 T? result;
@@ -147,7 +149,7 @@ namespace Zerra.Serialization.Json
                     if (state.CharsNeeded == 0)
                         break;
 
-                    if (isFinalBlock)
+                    if (state.IsFinalBlock)
                         throw new EndOfStreamException();
 
                     Buffer.BlockCopy(buffer, bytesUsed, buffer, 0, length - bytesUsed);
@@ -166,7 +168,7 @@ namespace Zerra.Serialization.Json
 
                         if (read == 0)
                         {
-                            isFinalBlock = true;
+                            state.IsFinalBlock = true;
                             break;
                         }
                         position += read;
@@ -235,7 +237,9 @@ namespace Zerra.Serialization.Json
                     Nameless = options.Nameless,
                     DoNotWriteNullProperties = options.DoNotWriteNullProperties,
                     EnumAsNumber = options.EnumAsNumber,
-                    ErrorOnTypeMismatch = options.ErrorOnTypeMismatch
+                    ErrorOnTypeMismatch = options.ErrorOnTypeMismatch,
+
+                    IsFinalBlock = isFinalBlock
                 };
 
                 object? result;
@@ -247,7 +251,7 @@ namespace Zerra.Serialization.Json
                     if (state.CharsNeeded == 0)
                         break;
 
-                    if (isFinalBlock)
+                    if (state.IsFinalBlock)
                         throw new EndOfStreamException();
 
                     Buffer.BlockCopy(buffer, bytesUsed, buffer, 0, length - bytesUsed);
@@ -266,7 +270,7 @@ namespace Zerra.Serialization.Json
 
                         if (read == 0)
                         {
-                            isFinalBlock = true;
+                            state.IsFinalBlock = true;
                             break;
                         }
                         position += read;
@@ -334,7 +338,9 @@ namespace Zerra.Serialization.Json
                     Nameless = options.Nameless,
                     DoNotWriteNullProperties = options.DoNotWriteNullProperties,
                     EnumAsNumber = options.EnumAsNumber,
-                    ErrorOnTypeMismatch = options.ErrorOnTypeMismatch
+                    ErrorOnTypeMismatch = options.ErrorOnTypeMismatch,
+
+                    IsFinalBlock = isFinalBlock
                 };
 
                 T? result;
@@ -346,7 +352,7 @@ namespace Zerra.Serialization.Json
                     if (state.CharsNeeded == 0)
                         break;
 
-                    if (isFinalBlock)
+                    if (state.IsFinalBlock)
                         throw new EndOfStreamException();
 
                     Buffer.BlockCopy(buffer, usedBytes, buffer, 0, length - usedBytes);
@@ -365,7 +371,7 @@ namespace Zerra.Serialization.Json
 
                         if (read == 0)
                         {
-                            isFinalBlock = true;
+                            state.IsFinalBlock = true;
                             break;
                         }
                         position += read;
@@ -434,7 +440,9 @@ namespace Zerra.Serialization.Json
                     Nameless = options.Nameless,
                     DoNotWriteNullProperties = options.DoNotWriteNullProperties,
                     EnumAsNumber = options.EnumAsNumber,
-                    ErrorOnTypeMismatch = options.ErrorOnTypeMismatch
+                    ErrorOnTypeMismatch = options.ErrorOnTypeMismatch,
+
+                    IsFinalBlock = isFinalBlock
                 };
 
                 object? result;
@@ -446,7 +454,7 @@ namespace Zerra.Serialization.Json
                     if (state.CharsNeeded == 0)
                         break;
 
-                    if (isFinalBlock)
+                    if (state.IsFinalBlock)
                         throw new EndOfStreamException();
 
                     Buffer.BlockCopy(buffer, bytesUsed, buffer, 0, length - bytesUsed);
@@ -465,7 +473,7 @@ namespace Zerra.Serialization.Json
 
                         if (read == 0)
                         {
-                            isFinalBlock = true;
+                            state.IsFinalBlock = true;
                             break;
                         }
                         position += read;
