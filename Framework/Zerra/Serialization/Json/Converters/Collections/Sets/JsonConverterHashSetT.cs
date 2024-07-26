@@ -106,7 +106,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.HashSets
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, HashSet<TValue> value)
+        protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, in HashSet<TValue> value)
         {
             IEnumerator<TValue> enumerator;
 

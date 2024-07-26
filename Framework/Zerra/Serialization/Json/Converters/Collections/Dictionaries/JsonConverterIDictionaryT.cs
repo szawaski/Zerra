@@ -53,7 +53,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
             }
         }
 
-        protected override bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out IDictionary<TKey, TValue>? value)
+        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out IDictionary<TKey, TValue>? value)
         {
             char c;
 
@@ -223,7 +223,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
             }
         }
 
-        protected override bool TryWriteValue(ref JsonWriter writer, ref WriteState state, IDictionary<TKey, TValue> value)
+        protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, in IDictionary<TKey, TValue> value)
         {
             if (canWriteAsProperties)
             {

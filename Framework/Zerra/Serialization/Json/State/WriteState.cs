@@ -29,6 +29,8 @@ namespace Zerra.Serialization.Json.State
         public int WorkingStringIndex;
         public int WorkingStringStart;
 
+        public Graph? Graph;
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EnsureStackSize()
         {

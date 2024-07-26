@@ -42,7 +42,7 @@ namespace Zerra.TestDev
 
         public static Task TempTestSpeed()
         {
-            var item = TypesCoreModel.Create();
+            var item = TypesAllModel.Create();
             var data = System.Text.Json.JsonSerializer.Serialize(item);
 
             var method = typeof(JsonSerializerTest).GetMethod(nameof(TempTestSpeed2), BindingFlags.Static | BindingFlags.NonPublic).MakeGenericMethod(item.GetType());

@@ -46,6 +46,8 @@ namespace Zerra.Serialization.Json.State
         public double NumberWorkingDouble;
         public decimal NumberWorkingDecimal;
         public bool NumberWorkingIsNegative;
+
+        public Graph? Graph;
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EnsureStackSize()

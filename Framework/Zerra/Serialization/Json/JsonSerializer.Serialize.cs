@@ -19,7 +19,7 @@ namespace Zerra.Serialization.Json
     {
         private static ReadOnlyMemory<byte> nullBytes = Encoding.UTF8.GetBytes("null");
 
-        public static string? Serialize<T>(T? obj, JsonSerializerOptions? options = null)
+        public static string? Serialize<T>(T? obj, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (obj == null)
                 return "null";
@@ -33,7 +33,8 @@ namespace Zerra.Serialization.Json
             {
                 Nameless = options.Nameless,
                 DoNotWriteNullProperties = options.DoNotWriteNullProperties,
-                EnumAsNumber = options.EnumAsNumber
+                EnumAsNumber = options.EnumAsNumber,
+                Graph = graph
             };
 
             var result = Write(converter, defaultBufferSize, ref state, obj);
@@ -43,7 +44,7 @@ namespace Zerra.Serialization.Json
 
             return result;
         }
-        public static string? Serialize(object? obj, JsonSerializerOptions? options = null)
+        public static string? Serialize(object? obj, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (obj == null)
                 return "null";
@@ -57,7 +58,8 @@ namespace Zerra.Serialization.Json
             {
                 Nameless = options.Nameless,
                 DoNotWriteNullProperties = options.DoNotWriteNullProperties,
-                EnumAsNumber = options.EnumAsNumber
+                EnumAsNumber = options.EnumAsNumber,
+                Graph = graph
             };
 
             var result = WriteBoxed(converter, defaultBufferSize, ref state, obj);
@@ -68,7 +70,7 @@ namespace Zerra.Serialization.Json
             return result;
 
         }
-        public static string? Serialize(object? obj, Type type, JsonSerializerOptions? options = null)
+        public static string? Serialize(object? obj, Type type, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
@@ -84,7 +86,8 @@ namespace Zerra.Serialization.Json
             {
                 Nameless = options.Nameless,
                 DoNotWriteNullProperties = options.DoNotWriteNullProperties,
-                EnumAsNumber = options.EnumAsNumber
+                EnumAsNumber = options.EnumAsNumber,
+                Graph = graph
             };
 
             var result = WriteBoxed(converter, defaultBufferSize, ref state, obj);
@@ -95,7 +98,7 @@ namespace Zerra.Serialization.Json
             return result;
         }
 
-        public static void Serialize<T>(Stream stream, T? obj, JsonSerializerOptions? options = null)
+        public static void Serialize<T>(Stream stream, T? obj, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
@@ -115,7 +118,8 @@ namespace Zerra.Serialization.Json
                 {
                     Nameless = options.Nameless,
                     DoNotWriteNullProperties = options.DoNotWriteNullProperties,
-                    EnumAsNumber = options.EnumAsNumber
+                    EnumAsNumber = options.EnumAsNumber,
+                    Graph = graph
                 };
 
                 for (; ; )
@@ -143,7 +147,7 @@ namespace Zerra.Serialization.Json
                 BufferArrayPool<byte>.Return(buffer);
             }
         }
-        public static void Serialize(Stream stream, object? obj, JsonSerializerOptions? options = null)
+        public static void Serialize(Stream stream, object? obj, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
@@ -163,7 +167,8 @@ namespace Zerra.Serialization.Json
                 {
                     Nameless = options.Nameless,
                     DoNotWriteNullProperties = options.DoNotWriteNullProperties,
-                    EnumAsNumber = options.EnumAsNumber
+                    EnumAsNumber = options.EnumAsNumber,
+                    Graph = graph
                 };
 
                 for (; ; )
@@ -191,7 +196,7 @@ namespace Zerra.Serialization.Json
                 BufferArrayPool<byte>.Return(buffer);
             }
         }
-        public static void Serialize(Stream stream, object? obj, Type type, JsonSerializerOptions? options = null)
+        public static void Serialize(Stream stream, object? obj, Type type, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
@@ -213,7 +218,8 @@ namespace Zerra.Serialization.Json
                 {
                     Nameless = options.Nameless,
                     DoNotWriteNullProperties = options.DoNotWriteNullProperties,
-                    EnumAsNumber = options.EnumAsNumber
+                    EnumAsNumber = options.EnumAsNumber,
+                    Graph = graph
                 };
 
                 for (; ; )
@@ -242,7 +248,7 @@ namespace Zerra.Serialization.Json
             }
         }
 
-        public static async Task SerializeAsync<T>(Stream stream, T? obj, JsonSerializerOptions? options = null)
+        public static async Task SerializeAsync<T>(Stream stream, T? obj, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
@@ -269,7 +275,8 @@ namespace Zerra.Serialization.Json
                 {
                     Nameless = options.Nameless,
                     DoNotWriteNullProperties = options.DoNotWriteNullProperties,
-                    EnumAsNumber = options.EnumAsNumber
+                    EnumAsNumber = options.EnumAsNumber,
+                    Graph = graph
                 };
 
                 for (; ; )
@@ -297,7 +304,7 @@ namespace Zerra.Serialization.Json
                 BufferArrayPool<byte>.Return(buffer);
             }
         }
-        public static async Task SerializeAsync(Stream stream, object? obj, JsonSerializerOptions? options = null)
+        public static async Task SerializeAsync(Stream stream, object? obj, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
@@ -324,7 +331,8 @@ namespace Zerra.Serialization.Json
                 {
                     Nameless = options.Nameless,
                     DoNotWriteNullProperties = options.DoNotWriteNullProperties,
-                    EnumAsNumber = options.EnumAsNumber
+                    EnumAsNumber = options.EnumAsNumber,
+                    Graph = graph
                 };
 
                 for (; ; )
@@ -352,7 +360,7 @@ namespace Zerra.Serialization.Json
                 BufferArrayPool<byte>.Return(buffer);
             }
         }
-        public static async Task SerializeAsync(Stream stream, object? obj, Type type, JsonSerializerOptions? options = null)
+        public static async Task SerializeAsync(Stream stream, object? obj, Type type, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
@@ -381,7 +389,8 @@ namespace Zerra.Serialization.Json
                 {
                     Nameless = options.Nameless,
                     DoNotWriteNullProperties = options.DoNotWriteNullProperties,
-                    EnumAsNumber = options.EnumAsNumber
+                    EnumAsNumber = options.EnumAsNumber,
+                    Graph = graph
                 };
 
                 for (; ; )

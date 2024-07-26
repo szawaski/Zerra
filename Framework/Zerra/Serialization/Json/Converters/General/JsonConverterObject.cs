@@ -287,7 +287,7 @@ namespace Zerra.Serialization.Json.Converters.General
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, TValue value)
+        protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, in TValue value)
         {
             if (membersByName.Count == 0)
             {

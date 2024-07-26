@@ -22,7 +22,7 @@ namespace Zerra.Serialization.Json.Converters
         public abstract void Setup(TypeDetail typeDetail, string memberKey, Delegate? getterDelegate, Delegate? setterDelegate);
 
         public abstract bool TryReadBoxed(ref JsonReader reader, ref ReadState state, out object? value);
-        public abstract bool TryWriteBoxed(ref JsonWriter writer, ref WriteState state, object? value);
+        public abstract bool TryWriteBoxed(ref JsonWriter writer, ref WriteState state, in object? value);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected static bool DrainFromParent(ref JsonReader reader, ref ReadState state)

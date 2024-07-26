@@ -99,7 +99,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, TList value)
+        protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, in TList value)
         {
             IEnumerator enumerator;
 

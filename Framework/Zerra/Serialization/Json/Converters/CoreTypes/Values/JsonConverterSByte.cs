@@ -51,7 +51,7 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
             }
         }
 
-        protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, sbyte value)
+        protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, in sbyte value)
             => writer.TryWrite(value, out state.CharsNeeded);
     }
 }

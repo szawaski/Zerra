@@ -16,9 +16,9 @@ namespace Zerra.Serialization.Json.Converters
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public abstract bool TryReadValueBoxed(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out object? value);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public abstract bool TryWriteValueBoxed(ref JsonWriter writer, ref WriteState state, object value);
+        public abstract bool TryWriteValueBoxed(ref JsonWriter writer, ref WriteState state, in object value);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public abstract void CollectedValuesSetter(TParent? parent, object? value);
+        public abstract void CollectedValuesSetter(TParent? parent, in object? value);
     }
 }

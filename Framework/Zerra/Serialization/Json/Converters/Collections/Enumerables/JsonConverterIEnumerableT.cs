@@ -103,7 +103,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Enumerables
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, IEnumerable<TValue> value)
+        protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, in IEnumerable<TValue> value)
         {
             IEnumerator<TValue> enumerator;
 

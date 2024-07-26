@@ -99,7 +99,7 @@ namespace Zerra.Serialization.Json.Converters.Collections
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, TValue[] value)
+        protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, in TValue[] value)
         {
             ArrayOrListAccessor<TValue> accessor;
 
