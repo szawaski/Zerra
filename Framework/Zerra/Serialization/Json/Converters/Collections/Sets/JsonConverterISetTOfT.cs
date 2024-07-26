@@ -50,28 +50,18 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
 
                 if (c == ']')
                 {
-#if NETSTANDARD2_0
-                    set = new HashSet<TValue>();
-#else
-                    set = new HashSet<TValue>(0);
-#endif
-                    value = (TSet)set;
+                    value = typeDetail.Creator();
                     return true;
                 }
 
                 reader.BackOne();
 
-                if (reader.TryPeakArrayLength(out var length))
-#if NETSTANDARD2_0
-                    set = new HashSet<TValue>();
-#else
-                    set = new HashSet<TValue>(length);
-#endif
-                else
-                    set = new HashSet<TValue>();
+                value = typeDetail.Creator();
+                set = (ISet<TValue>)value!;
             }
             else
             {
+                value = (TSet)state.Current.Object!;
                 set = (ISet<TValue>)state.Current.Object!;
             }
 
@@ -83,7 +73,6 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
                     {
                         state.Current.HasCreated = true;
                         state.Current.Object = set;
-                        value = default;
                         return false;
                     }
                 }
@@ -94,7 +83,6 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
                     state.Current.HasCreated = true;
                     state.Current.HasReadValue = true;
                     state.Current.Object = set;
-                    value = default;
                     return false;
                 }
 
@@ -107,7 +95,6 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
                 state.Current.HasReadValue = false;
             }
 
-            value = (TSet)set;
             return true;
         }
 

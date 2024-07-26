@@ -29,7 +29,7 @@ namespace Zerra.Serialization.Json.Converters
         {
             if (state.Current.ChildValueType == JsonValueType.NotDetermined)
             {
-                if (!reader.TryReadValueType(out state.Current.ChildValueType))
+                if (!reader.TryReadValueType(out state.Current.ChildValueType, out state.CharsNeeded))
                     return false;
             }
 
@@ -245,9 +245,8 @@ namespace Zerra.Serialization.Json.Converters
                 //reading segment
                 if (!state.ReadStringEscape)
                 {
-                    if (!reader.TryReadSpanUntilQuoteOrEscape(out var s))
+                    if (!reader.TryReadSpanUntilQuoteOrEscape(out var s, out state.CharsNeeded))
                     {
-                        state.CharsNeeded = 1;
                         return false;
                     }
                     c = s[s.Length - 1];
@@ -279,9 +278,8 @@ namespace Zerra.Serialization.Json.Converters
                 }
 
                 //reading escape unicode
-                if (!reader.TryReadEscapeHex(out var unicodeSpan))
+                if (!reader.TryReadEscapeHex(out var unicodeSpan, out state.CharsNeeded))
                 {
-                    state.CharsNeeded = 4;
                     return false;
                 }
                 if (!lowUnicodeHexToChar.TryGetValue(unicodeSpan.ToString(), out var unicodeChar))
@@ -548,9 +546,8 @@ namespace Zerra.Serialization.Json.Converters
                 //reading segment
                 if (!state.ReadStringEscape)
                 {
-                    if (!reader.TryReadSpanUntilQuoteOrEscape(out var s))
+                    if (!reader.TryReadSpanUntilQuoteOrEscape(out var s, out state.CharsNeeded))
                     {
-                        state.CharsNeeded = 1;
                         if (state.StringBuffer == null)
                         {
                             state.StringBuffer = BufferArrayPool<char>.Rent(buffer.Length);
@@ -645,9 +642,8 @@ namespace Zerra.Serialization.Json.Converters
                 }
 
                 //reading escape unicode
-                if (!reader.TryReadEscapeHex(out var unicodeSpan))
+                if (!reader.TryReadEscapeHex(out var unicodeSpan, out state.CharsNeeded))
                 {
-                    state.CharsNeeded = 4;
                     if (state.StringBuffer == null)
                     {
                         state.StringBuffer = BufferArrayPool<char>.Rent(buffer.Length);

@@ -52,6 +52,8 @@ namespace Zerra.Test
                     return TypeAnalyzer.Convert(model1, type2.Type).Equals(model2);
                 else if (type1.CoreType != CoreType.String && type2.CoreType == CoreType.String)
                     return TypeAnalyzer.Convert(model2, type1.Type).Equals(model1);
+                else if (type1.CoreType != type2.CoreType)
+                    return TypeAnalyzer.Convert(model2, type1.Type).Equals(model1);
                 else
                     return model1.Equals(model2);
             }

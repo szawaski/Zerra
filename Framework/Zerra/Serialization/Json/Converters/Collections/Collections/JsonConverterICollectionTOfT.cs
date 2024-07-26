@@ -50,20 +50,18 @@ namespace Zerra.Serialization.Json.Converters.Collections.Collections
 
                 if (c == ']')
                 {
-                    collection = new List<TValue>(0);
-                    value = (TCollection)collection;
+                    value = typeDetail.Creator();
                     return true;
                 }
 
                 reader.BackOne();
 
-                if (reader.TryPeakArrayLength(out var length))
-                    collection = new List<TValue>(length);
-                else
-                    collection = new List<TValue>();
+                value = typeDetail.Creator();
+                collection = (ICollection<TValue>)value!;
             }
             else
             {
+                value = (TCollection)state.Current.Object!;
                 collection = (ICollection<TValue>)state.Current.Object!;
             }
 
@@ -75,7 +73,6 @@ namespace Zerra.Serialization.Json.Converters.Collections.Collections
                     {
                         state.Current.HasCreated = true;
                         state.Current.Object = collection;
-                        value = default;
                         return false;
                     }
                 }
@@ -86,7 +83,6 @@ namespace Zerra.Serialization.Json.Converters.Collections.Collections
                     state.Current.HasCreated = true;
                     state.Current.HasReadValue = true;
                     state.Current.Object = collection;
-                    value = default;
                     return false;
                 }
 
@@ -99,7 +95,6 @@ namespace Zerra.Serialization.Json.Converters.Collections.Collections
                 state.Current.HasReadValue = false;
             }
 
-            value = (TCollection)collection;
             return true;
         }
 

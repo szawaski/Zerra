@@ -505,7 +505,7 @@ namespace Zerra.Serialization.Json
                 if (!write && JsonWriter.Testing && writer.Position + state.CharsNeeded <= writer.Length)
                     goto again;
 #endif
-                return writer.Length;
+                return writer.Position;
             }
             finally
             {
@@ -538,7 +538,7 @@ namespace Zerra.Serialization.Json
                 if (!write && JsonWriter.Testing && writer.Position + state.CharsNeeded <= writer.Length)
                     goto again;
 #endif
-                return writer.Length;
+                return writer.Position;
             }
             finally
             {

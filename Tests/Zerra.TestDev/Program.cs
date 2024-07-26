@@ -18,9 +18,9 @@ namespace Zerra.TestDev
             System.Threading.Thread.CurrentThread.Priority = System.Threading.ThreadPriority.Highest;
             var timer = Stopwatch.StartNew();
 
-            UtfTest();
+            //UtfTest();
 
-            //TestMe();
+            TestMe();
             //JsonSerializerTest.TempTestSpeed();
             //ByteSerializerTest.TempTestSpeed();
 
@@ -117,7 +117,7 @@ namespace Zerra.TestDev
         private static void TestMe()
         {
             Stopwatch timer;
-            var iterations = 2000000000;
+            var iterations = 20000000;
             var loops = 10;
             var totals = new Dictionary<string, long>();
 
@@ -154,23 +154,31 @@ namespace Zerra.TestDev
 
         private static void Scenario1(ref Holder holder)
         {
-            int value;
-            DoThing(out value);
-            holder.Value = value;
+            DoThing1(out holder.Value);
         }
 
         private static void Scenario2(ref Holder holder)
         {
-            DoThing(out holder.Value);
+            DoThing2(ref holder.Value);
         }
 
         private struct Holder
         {
             public int Value;
         }
-        private static void DoThing(out int value)
+        private static void DoThing1(out int value)
         {
-            value = 5;
+            if (true)
+            {
+                value = 5;
+            }
+        }
+        private static void DoThing2(ref int value)
+        {
+            if (false)
+            {
+                value = 5;
+            }
         }
     }
 }

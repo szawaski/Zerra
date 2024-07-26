@@ -271,8 +271,9 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadValueType(out JsonValueType valueType)
+        public bool TryReadValueType(out JsonValueType valueType, out int sizeNeeded)
         {
+            sizeNeeded = 1;
         whiteSpaceGoAgain:
             if (position + 1 > length
 #if DEBUG
@@ -315,6 +316,7 @@ namespace Zerra.Serialization.Json.IO
                         {
                             if (position + 4 > length)
                             {
+                                sizeNeeded = 4;
                                 valueType = default;
                                 return false;
                             }
@@ -333,6 +335,7 @@ namespace Zerra.Serialization.Json.IO
                         {
                             if (position + 4 > length)
                             {
+                                sizeNeeded = 4;
                                 valueType = default;
                                 return false;
                             }
@@ -351,6 +354,7 @@ namespace Zerra.Serialization.Json.IO
                         {
                             if (position + 5 > length)
                             {
+                                sizeNeeded = 5;
                                 valueType = default;
                                 return false;
                             }
@@ -415,6 +419,7 @@ namespace Zerra.Serialization.Json.IO
                         {
                             if (position + 4 > length)
                             {
+                                sizeNeeded = 4;
                                 valueType = default;
                                 return false;
                             }
@@ -433,6 +438,7 @@ namespace Zerra.Serialization.Json.IO
                         {
                             if (position + 4 > length)
                             {
+                                sizeNeeded = 4;
                                 valueType = default;
                                 return false;
                             }
@@ -451,6 +457,7 @@ namespace Zerra.Serialization.Json.IO
                         {
                             if (position + 5 > length)
                             {
+                                sizeNeeded = 5;
                                 valueType = default;
                                 return false;
                             }
@@ -487,10 +494,11 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadEscapeHex(out ReadOnlySpan<char> s)
+        public unsafe bool TryReadEscapeHex(out ReadOnlySpan<char> s, out int sizeNeeded)
         {
             if (useBytes)
             {
+                sizeNeeded = 4;
                 if (position + 4 > length
 #if DEBUG
             || Skip()
@@ -510,6 +518,7 @@ namespace Zerra.Serialization.Json.IO
             }
             else
             {
+                sizeNeeded = 4;
                 if (position + 4 > length
 #if DEBUG
             || Skip()
@@ -526,10 +535,11 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadSpanUntilQuoteOrEscape(out ReadOnlySpan<char> s)
+        public bool TryReadSpanUntilQuoteOrEscape(out ReadOnlySpan<char> s, out int sizeNeeded)
         {
             if (useBytes)
             {
+                sizeNeeded = 1;
                 if (position >= length
 #if DEBUG
             || Skip()
@@ -546,6 +556,7 @@ namespace Zerra.Serialization.Json.IO
                     if (position >= length)
                     {
                         position = start;
+                        sizeNeeded = length - position + 1;
                         s = default;
                         return false;
                     }
@@ -560,6 +571,7 @@ namespace Zerra.Serialization.Json.IO
             }
             else
             {
+                sizeNeeded = 1;
                 if (position >= length
 #if DEBUG
             || Skip()
@@ -576,6 +588,7 @@ namespace Zerra.Serialization.Json.IO
                     if (position >= length)
                     {
                         position = start;
+                        sizeNeeded = length - position + 1;
                         s = default;
                         return false;
                     }

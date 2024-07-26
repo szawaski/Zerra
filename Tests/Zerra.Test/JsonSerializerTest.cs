@@ -65,12 +65,215 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void StringTypes()
+        public void StringTypesBasic()
         {
-            var baseModel = TypesAllModel.Create();
-            var json = JsonSerializer.Serialize(baseModel);
-            var model = JsonSerializer.Deserialize<TypesAllModel>(json);
-            AssertHelper.AreEqual(baseModel, model);
+            var model1 = TypesBasicModel.Create();
+            var json = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TypesBasicModel>(json);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void StringTypesArray()
+        {
+            var model1 = TypesArrayModel.Create();
+            var json = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TypesArrayModel>(json);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void StringTypesListT()
+        {
+            var model1 = TypesListTModel.Create();
+            var json = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TypesListTModel>(json);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void StringTypesIListTOfT()
+        {
+            var model1 = TypesIListTOfTModel.Create();
+            var json = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TypesIListTOfTModel>(json);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void StringTypesIReadOnlyTList()
+        {
+            var model1 = TypesIReadOnlyListTModel.Create();
+            var json = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TypesIReadOnlyListTModel>(json);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void StringTypesIList()
+        {
+            var model1 = TypesIListModel.Create();
+            var json = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TypesIListModel>(json);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void StringTypesIListOfT()
+        {
+            var model1 = TypesIListOfTModel.Create();
+            var json = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TypesIListOfTModel>(json);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void StringTypesHashSetT()
+        {
+            var model1 = TypesHashSetTModel.Create();
+            var json = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TypesHashSetTModel>(json);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void StringTypesISetT()
+        {
+            var model1 = TypesISetTModel.Create();
+            var json = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TypesISetTModel>(json);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void StringTypesISetTOfT()
+        {
+            var model1 = TypesISetTOfTModel.Create();
+            var json = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TypesISetTOfTModel>(json);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void StringTypesIReadOnlySetT()
+        {
+            var model1 = TypesIReadOnlySetTModel.Create();
+            var json = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TypesIReadOnlySetTModel>(json);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void StringTypesICollection()
+        {
+            var model1 = TypesICollectionModel.Create();
+            var json = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TypesICollectionModel>(json);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void StringTypesICollectionT()
+        {
+            var model1 = TypesICollectionTModel.Create();
+            var json = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TypesICollectionTModel>(json);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void StringTypesICollectionTOfT()
+        {
+            var model1 = TypesICollectionTOfTModel.Create();
+            var json = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TypesICollectionTOfTModel>(json);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void StringTypesIReadOnlyCollectionT()
+        {
+            var model1 = TypesIReadOnlyCollectionTModel.Create();
+            var json = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TypesIReadOnlyCollectionTModel>(json);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void StringTypesIEnumerableT()
+        {
+            var model1 = TypesIEnumerableTModel.Create();
+            var json = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TypesIEnumerableTModel>(json);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void StringTypesIEnumerableTOfT()
+        {
+            var model1 = TypesIEnumerableTOfTModel.Create();
+            var json = JsonSerializer.Serialize(model1);
+        }
+
+        [TestMethod]
+        public void StringTypesIEnumerable()
+        {
+            var model1 = TypesIEnumerableModel.Create();
+            var json = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TypesIEnumerableModel>(json);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void StringTypesIEnumerableOfT()
+        {
+            var model1 = TypesIEnumerableOfTModel.Create();
+            var json = JsonSerializer.Serialize(model1);
+        }
+
+        [TestMethod]
+        public void StringTypesDictionaryT()
+        {
+            var model1 = TypesDictionaryTModel.Create();
+            var json = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TypesDictionaryTModel>(json);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void StringTypesIDictionary()
+        {
+            var model1 = TypesIDictionaryModel.Create();
+            var json = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TypesIDictionaryModel>(json);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void StringTypesOther()
+        {
+            var model1 = TypesOtherModel.Create();
+            var json = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TypesOtherModel>(json);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void StringTypesCore()
+        {
+            var model1 = TypesCoreModel.Create();
+            var json = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TypesCoreModel>(json);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void StringTypesAll()
+        {
+            var model1 = TypesAllModel.Create();
+            var json = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TypesAllModel>(json);
+            AssertHelper.AreEqual(model1, model2);
         }
 
         [TestMethod]

@@ -23,6 +23,7 @@ namespace Zerra.Serialization.Json.Converters
         private Action<TParent, TValue?>? setter;
 
         private bool isNullable;
+        private bool isObject;
         private bool isInterfacedObject;
 
         public override void Setup(TypeDetail typeDetail, string memberKey, Delegate? getterDelegate, Delegate? setterDelegate)
@@ -41,6 +42,7 @@ namespace Zerra.Serialization.Json.Converters
             }
 
             isNullable = typeDetail.IsNullable || !typeDetail.Type.IsValueType;
+            isObject = typeDetail.Type == typeof(object);
             isInterfacedObject = typeDetail.Type.IsInterface && !typeDetail.HasIEnumerableGeneric && !typeDetail.HasIEnumerable;
 
             Setup();
@@ -52,9 +54,8 @@ namespace Zerra.Serialization.Json.Converters
         {
             if (state.EntryValueType == JsonValueType.NotDetermined)
             {
-                if (!reader.TryReadValueType(out state.EntryValueType))
+                if (!reader.TryReadValueType(out state.EntryValueType, out state.CharsNeeded))
                 {
-                    state.CharsNeeded = 1;
                     returnValue = default;
                     return false;
                 }
@@ -164,9 +165,8 @@ namespace Zerra.Serialization.Json.Converters
         {
             if (state.EntryValueType == JsonValueType.NotDetermined)
             {
-                if (!reader.TryReadValueType(out state.EntryValueType))
+                if (!reader.TryReadValueType(out state.EntryValueType, out state.CharsNeeded))
                 {
-                    state.CharsNeeded = 1;
                     returnValue = default;
                     return false;
                 }
@@ -274,12 +274,11 @@ namespace Zerra.Serialization.Json.Converters
         {
             if (state.Current.ChildValueType == JsonValueType.NotDetermined)
             {
-                if (!reader.TryReadValueType(out state.Current.ChildValueType))
+                if (!reader.TryReadValueType(out state.Current.ChildValueType, out state.CharsNeeded))
                 {
-                    state.CharsNeeded = 1;
                     return false;
                 }
-                if (state.EntryValueType == JsonValueType.Null_Completed)
+                if (state.Current.ChildValueType == JsonValueType.Null_Completed)
                 {
                     if (setter is not null && parent is not null)
                         setter(parent, default);
@@ -295,6 +294,35 @@ namespace Zerra.Serialization.Json.Converters
                 if (state.StackSize >= maxStackDepth)
                     throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
                 state.PushFrame();
+            }
+
+            if (isObject)
+            {
+                TypeDetail newTypeDetail = valueType switch
+                {
+                    JsonValueType.Object => TypeAnalyzer<object>.GetTypeDetail(),
+                    JsonValueType.Array => TypeAnalyzer<object[]>.GetTypeDetail(),
+                    JsonValueType.String => TypeAnalyzer<string>.GetTypeDetail(),
+                    JsonValueType.Number => TypeAnalyzer<decimal>.GetTypeDetail(),
+                    JsonValueType.True_Completed or JsonValueType.False_Completed => TypeAnalyzer<bool>.GetTypeDetail(),
+                    _ => throw new NotSupportedException(),
+                };
+
+                var newConverter = JsonConverterFactory<TParent>.Get(newTypeDetail, memberKey, getter, setter);
+
+                if (!newConverter.TryReadValueBoxed(ref reader, ref state, valueType, out var valueObject))
+                {
+                    if (StackRequired)
+                        state.StashFrame();
+                    return false;
+                }
+
+                if (setter is not null && parent is not null)
+                    setter(parent, (TValue?)valueObject);
+                if (StackRequired)
+                    state.EndFrame();
+                state.Current.ChildValueType = JsonValueType.NotDetermined;
+                return true;
             }
 
             if (isInterfacedObject)
@@ -396,7 +424,7 @@ namespace Zerra.Serialization.Json.Converters
                 state.PushFrame();
             }
 
-            if (isInterfacedObject)
+            if (isInterfacedObject || isObject)
             {
                 var typeFromValue = value is null ? typeDetail : value.GetType().GetTypeDetail();
 
