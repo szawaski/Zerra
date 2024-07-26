@@ -32,7 +32,7 @@ namespace Zerra.Serialization.Bytes.Converters.HashSets
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, DateOnly?[] value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in DateOnly?[] value)
         {
             if (!state.Current.HasWrittenLength)
             {

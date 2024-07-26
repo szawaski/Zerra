@@ -34,7 +34,7 @@ namespace Zerra.Serialization.Bytes.Converters.ILists
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, IList<TimeOnly> value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in IList<TimeOnly> value)
         {
             if (!state.Current.HasWrittenLength)
             {

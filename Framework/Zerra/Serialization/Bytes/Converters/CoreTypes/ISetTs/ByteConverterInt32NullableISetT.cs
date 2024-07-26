@@ -32,7 +32,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.ISetTs
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, ISet<int?> value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in ISet<int?> value)
         {
             if (!state.Current.HasWrittenLength)
             {

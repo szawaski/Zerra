@@ -269,7 +269,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
             };
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TValue value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in TValue value)
         {
             object obj = value!;
 

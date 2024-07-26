@@ -25,6 +25,6 @@ namespace Zerra.Serialization.Bytes.Converters
         public abstract void Setup(TypeDetail typeDetail, string memberKey, Delegate? getterDelegate, Delegate? setterDelegate);
 
         public abstract bool TryReadBoxed(ref ByteReader reader, ref ReadState state, out object? value);
-        public abstract bool TryWriteBoxed(ref ByteWriter writer, ref WriteState state, object? value);
+        public abstract bool TryWriteBoxed(ref ByteWriter writer, ref WriteState state, in object? value);
     }
 }

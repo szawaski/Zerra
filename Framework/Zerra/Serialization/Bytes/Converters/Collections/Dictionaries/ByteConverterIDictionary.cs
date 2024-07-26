@@ -70,7 +70,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Dictionaries
             }
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, IDictionary value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in IDictionary value)
         {
             IDictionaryEnumerator enumerator;
 

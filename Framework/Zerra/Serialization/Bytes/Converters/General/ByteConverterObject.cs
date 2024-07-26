@@ -321,7 +321,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TValue value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in TValue value)
         {
             if (indexSizeUInt16Only && !state.IndexSizeUInt16 && !state.UsePropertyNames)
                 throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members for index size");

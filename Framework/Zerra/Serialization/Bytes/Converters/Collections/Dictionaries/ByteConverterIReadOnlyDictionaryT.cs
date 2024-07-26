@@ -78,7 +78,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Dictionaries
             }
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, IReadOnlyDictionary<TKey, TValue> value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in IReadOnlyDictionary<TKey, TValue> value)
         {
             IEnumerator<KeyValuePair<TKey, TValue>> enumerator;
 

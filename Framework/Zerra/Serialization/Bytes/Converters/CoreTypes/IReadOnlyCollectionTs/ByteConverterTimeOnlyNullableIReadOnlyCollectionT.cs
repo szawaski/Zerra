@@ -34,7 +34,7 @@ namespace Zerra.Serialization.Bytes.Converters.IReadOnlyCollections
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, IReadOnlyCollection<TimeOnly?> value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in IReadOnlyCollection<TimeOnly?> value)
         {
             if (!state.Current.HasWrittenLength)
             {

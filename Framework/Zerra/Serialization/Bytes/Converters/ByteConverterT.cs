@@ -16,9 +16,9 @@ namespace Zerra.Serialization.Bytes.Converters
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public abstract bool TryReadValueBoxed(ref ByteReader reader, ref ReadState state, out object? value);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public abstract bool TryWriteValueBoxed(ref ByteWriter writer, ref WriteState state, object value);
+        public abstract bool TryWriteValueBoxed(ref ByteWriter writer, ref WriteState state, in object value);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public abstract void CollectedValuesSetter(TParent? parent, object? value);
+        public abstract void CollectedValuesSetter(TParent? parent, in object? value);
     }
 }

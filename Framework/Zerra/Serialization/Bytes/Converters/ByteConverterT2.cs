@@ -157,7 +157,7 @@ namespace Zerra.Serialization.Bytes.Converters
             returnValue = value;
             return true;
         }
-        public override sealed bool TryWriteBoxed(ref ByteWriter writer, ref WriteState state, object? value)
+        public override sealed bool TryWriteBoxed(ref ByteWriter writer, ref WriteState state, in object? value)
         {
             if (isNullable)
             {
@@ -371,7 +371,7 @@ namespace Zerra.Serialization.Bytes.Converters
             returnValue = value;
             return true;
         }
-        public bool TryWrite(ref ByteWriter writer, ref WriteState state, TValue? value)
+        public bool TryWrite(ref ByteWriter writer, ref WriteState state, in TValue? value)
         {
             if (isNullable)
             {
@@ -775,16 +775,16 @@ namespace Zerra.Serialization.Bytes.Converters
             return read;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override sealed bool TryWriteValueBoxed(ref ByteWriter writer, ref WriteState state, object value)
+        public override sealed bool TryWriteValueBoxed(ref ByteWriter writer, ref WriteState state, in object value)
             => TryWriteValue(ref writer, ref state, (TValue)value);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected abstract bool TryReadValue(ref ByteReader reader, ref ReadState state, out TValue? value);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected abstract bool TryWriteValue(ref ByteWriter writer, ref WriteState state, TValue value);
+        protected abstract bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in TValue value);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override void CollectedValuesSetter(TParent? parent, object? value)
+        public override void CollectedValuesSetter(TParent? parent, in object? value)
         {
             if (setter is not null && parent is not null && value is not null)
                 setter(parent, (TValue)value);

@@ -29,7 +29,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.Arrays
             return true;
         }
 
-        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, long?[] value)
+        protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in long?[] value)
         {
             if (!state.Current.HasWrittenLength)
             {
