@@ -245,7 +245,7 @@ namespace Zerra.Test
         {
             var model1 = TypesDictionaryTModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
-            Assert.AreEqual(117, bytes.Length);
+            Assert.AreEqual(193, bytes.Length);
             var model2 = ByteSerializer.Deserialize<TypesDictionaryTModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
@@ -255,7 +255,7 @@ namespace Zerra.Test
         {
             var model1 = TypesIDictionaryTModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
-            Assert.AreEqual(117, bytes.Length);
+            Assert.AreEqual(193, bytes.Length);
             var model2 = ByteSerializer.Deserialize<TypesIDictionaryTModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
@@ -279,7 +279,7 @@ namespace Zerra.Test
         {
             var model1 = TypesIReadOnlyDictionaryTModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
-            Assert.AreEqual(117, bytes.Length);
+            Assert.AreEqual(193, bytes.Length);
             var model2 = ByteSerializer.Deserialize<TypesIReadOnlyDictionaryTModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
