@@ -72,6 +72,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
                     if (!readConverter.TryReadFromParent(ref reader, ref state, value))
                     {
                         state.Current.HasCreated = true;
+                        state.Current.Object = value;
                         return false;
                     }
                 }
@@ -81,6 +82,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
                     state.CharsNeeded = 1;
                     state.Current.HasCreated = true;
                     state.Current.HasReadValue = true;
+                    state.Current.Object = value;
                     return false;
                 }
 
@@ -138,6 +140,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
                 if (!writeConverter.TryWriteFromParent(ref writer, ref state, enumerator))
                 {
                     state.Current.HasWrittenStart = true;
+                    state.Current.HasWrittenSeperator = true;
                     state.Current.EnumeratorInProgress = true;
                     state.Current.Object = enumerator;
                     return false;

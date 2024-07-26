@@ -70,7 +70,7 @@ namespace Zerra.Serialization.Json.IO
             }
             else
             {
-                var character = bufferChars[position];
+                var character = bufferChars[Math.Max(position - 1, 0)];
 
                 var start1 = (position - 1) > errorHelperLength ? (position - 1) - errorHelperLength : 0;
                 var length1 = start1 + errorHelperLength > (position - 1) ? (position - 1) - start1 : errorHelperLength;

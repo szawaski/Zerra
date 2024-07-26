@@ -25,6 +25,9 @@ namespace Zerra.Serialization.Json.IO
         private int position;
         private int length;
 
+        public readonly int Position => position;
+        public readonly int Length => length;
+
         public JsonWriter()
         {
             throw new NotSupportedException($"{nameof(JsonWriter)} cannot use default constructor");
@@ -54,8 +57,6 @@ namespace Zerra.Serialization.Json.IO
             this.length = buffer.Length;
             this.useBytes = true;
         }
-
-        public readonly int Length => position;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool EnsureSize(int sizeNeeded)

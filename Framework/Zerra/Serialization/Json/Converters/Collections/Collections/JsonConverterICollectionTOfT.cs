@@ -146,6 +146,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Collections
                 if (!writeConverter.TryWriteFromParent(ref writer, ref state, enumerator))
                 {
                     state.Current.HasWrittenStart = true;
+                    state.Current.HasWrittenSeperator = true;
                     state.Current.EnumeratorInProgress = true;
                     state.Current.Object = enumerator;
                     return false;

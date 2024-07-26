@@ -140,6 +140,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Enumerables
                     if (!writer.TryWriteComma(out state.CharsNeeded))
                     {
                         state.Current.HasWrittenStart = true;
+                        state.Current.HasWrittenSeperator = true;
                         state.Current.EnumeratorInProgress = true;
                         state.Current.Object = enumerator;
                         return false;

@@ -54,13 +54,40 @@ namespace Zerra.Serialization.Json.IO
         private const byte returnByte = (byte)'\r';
         private const byte newlineByte = (byte)'\n';
 
+#if DEBUG
+        public static bool Testing = false;
+
+        private static bool Alternate = false;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool Skip()
+        {
+            if (!JsonReader.Testing)
+                return false;
+            if (JsonReader.Alternate)
+            {
+                JsonReader.Alternate = false;
+                return false;
+            }
+            else
+            {
+                JsonReader.Alternate = true;
+                return true;
+            }
+        }
+#endif
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryReadNext(out char c)
         {
             if (useBytes)
             {
-                if (position >= length)
+                if (position >= length
+#if DEBUG
+            || Skip()
+#endif
+                )
                 {
                     c = default;
                     return false;
@@ -111,7 +138,11 @@ namespace Zerra.Serialization.Json.IO
             }
             else
             {
-                if (position >= length)
+                if (position >= length
+#if DEBUG
+            || Skip()
+#endif
+            )
                 {
                     c = default;
                     return false;
@@ -126,7 +157,11 @@ namespace Zerra.Serialization.Json.IO
             if (useBytes)
             {
             bytesAgain:
-                if (position >= length)
+                if (position >= length
+#if DEBUG
+            || Skip()
+#endif
+            )
                 {
                     c = default;
                     return false;
@@ -183,7 +218,11 @@ namespace Zerra.Serialization.Json.IO
             else
             {
             charsAgain:
-                if (position >= length)
+                if (position >= length
+#if DEBUG
+            || Skip()
+#endif
+            )
                 {
                     c = default;
                     return false;
@@ -200,7 +239,11 @@ namespace Zerra.Serialization.Json.IO
             if (useBytes)
             {
             bytesAgain:
-                if (position >= length)
+                if (position >= length
+#if DEBUG
+            || Skip()
+#endif
+            )
                     return false;
                 var b = bufferBytes[position++];
                 if (b == spaceByte || b == tabByte || b == returnByte || b == newlineByte)
@@ -212,7 +255,11 @@ namespace Zerra.Serialization.Json.IO
             else
             {
             charsAgain:
-                if (position >= length)
+                if (position >= length
+#if DEBUG
+            || Skip()
+#endif
+            )
                     return false;
                 var c = bufferChars[position++];
                 if (c == ' ' || c == '\t' || c == '\r' || c == '\n')
@@ -227,7 +274,11 @@ namespace Zerra.Serialization.Json.IO
         public bool TryReadValueType(out JsonValueType valueType)
         {
         whiteSpaceGoAgain:
-            if (position + 1 > length)
+            if (position + 1 > length
+#if DEBUG
+            || Skip()
+#endif
+            )
             {
                 valueType = default;
                 return false;
@@ -440,7 +491,11 @@ namespace Zerra.Serialization.Json.IO
         {
             if (useBytes)
             {
-                if (position + 4 > length)
+                if (position + 4 > length
+#if DEBUG
+            || Skip()
+#endif
+            )
                 {
                     s = default;
                     return false;
@@ -455,7 +510,11 @@ namespace Zerra.Serialization.Json.IO
             }
             else
             {
-                if (position + 4 > length)
+                if (position + 4 > length
+#if DEBUG
+            || Skip()
+#endif
+            )
                 {
                     s = default;
                     return false;
@@ -471,7 +530,11 @@ namespace Zerra.Serialization.Json.IO
         {
             if (useBytes)
             {
-                if (position >= length)
+                if (position >= length
+#if DEBUG
+            || Skip()
+#endif
+            )
                 {
                     s = default;
                     return false;
@@ -497,7 +560,11 @@ namespace Zerra.Serialization.Json.IO
             }
             else
             {
-                if (position >= length)
+                if (position >= length
+#if DEBUG
+            || Skip()
+#endif
+            )
                 {
                     s = default;
                     return false;

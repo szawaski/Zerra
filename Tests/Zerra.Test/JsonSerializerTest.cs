@@ -22,6 +22,8 @@ namespace Zerra.Test
         {
 #if DEBUG
             JsonSerializerOld.Testing = true;
+            Zerra.Serialization.Json.IO.JsonReader.Testing = true;
+            Zerra.Serialization.Json.IO.JsonWriter.Testing = true;
 #endif
         }
 

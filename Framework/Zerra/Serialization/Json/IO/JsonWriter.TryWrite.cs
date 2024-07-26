@@ -8,7 +8,8 @@ using System.Runtime.CompilerServices;
 namespace Zerra.Serialization.Json.IO
 {
     public ref partial struct JsonWriter
-    {        //https://www.rfc-editor.org/rfc/rfc4627
+    {        
+        //https://www.rfc-editor.org/rfc/rfc4627
 
         //last byte 128 to 191
         //1 bytes: 0 to 127
@@ -51,12 +52,38 @@ namespace Zerra.Serialization.Json.IO
         private const byte aByte = (byte)'a';
         private const byte sByte = (byte)'s';
 
+#if DEBUG
+        public static bool Testing = false;
+
+        private static bool Alternate = false;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool Skip()
+        {
+            if (!JsonWriter.Testing)
+                return false;
+            if (JsonWriter.Alternate)
+            {
+                JsonWriter.Alternate = false;
+                return false;
+            }
+            else
+            {
+                JsonWriter.Alternate = true;
+                return true;
+            }
+        }
+#endif
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(byte value, out int sizeNeeded)
         {
             sizeNeeded = 4;
-            if (!EnsureSize(sizeNeeded))
+            if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                 return false;
             if (useBytes)
                 WriteUInt64Bytes(value);
@@ -69,7 +96,11 @@ namespace Zerra.Serialization.Json.IO
         public bool TryWrite(sbyte value, out int sizeNeeded)
         {
             sizeNeeded = 3;
-            if (!EnsureSize(sizeNeeded))
+            if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                 return false;
             if (useBytes)
                 WriteInt64Bytes(value);
@@ -82,7 +113,11 @@ namespace Zerra.Serialization.Json.IO
         public bool TryWrite(short value, out int sizeNeeded)
         {
             sizeNeeded = 6;
-            if (!EnsureSize(sizeNeeded))
+            if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                 return false;
             if (useBytes)
                 WriteInt64Bytes(value);
@@ -95,7 +130,11 @@ namespace Zerra.Serialization.Json.IO
         public bool TryWrite(ushort value, out int sizeNeeded)
         {
             sizeNeeded = 5;
-            if (!EnsureSize(sizeNeeded))
+            if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                 return false;
             if (useBytes)
                 WriteUInt64Bytes(value);
@@ -108,7 +147,11 @@ namespace Zerra.Serialization.Json.IO
         public bool TryWrite(int value, out int sizeNeeded)
         {
             sizeNeeded = 11;
-            if (!EnsureSize(sizeNeeded))
+            if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                 return false;
             if (useBytes)
                 WriteInt64Bytes(value);
@@ -121,7 +164,11 @@ namespace Zerra.Serialization.Json.IO
         public bool TryWrite(uint value, out int sizeNeeded)
         {
             sizeNeeded = 10;
-            if (!EnsureSize(sizeNeeded))
+            if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                 return false;
             if (useBytes)
                 WriteUInt64Bytes(value);
@@ -134,7 +181,11 @@ namespace Zerra.Serialization.Json.IO
         public bool TryWrite(long value, out int sizeNeeded)
         {
             sizeNeeded = 20;
-            if (!EnsureSize(sizeNeeded))
+            if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                 return false;
             if (useBytes)
                 WriteInt64Bytes(value);
@@ -147,7 +198,11 @@ namespace Zerra.Serialization.Json.IO
         public bool TryWrite(ulong value, out int sizeNeeded)
         {
             sizeNeeded = 20;
-            if (!EnsureSize(sizeNeeded))
+            if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                 return false;
             if (useBytes)
                 WriteUInt64Bytes(value);
@@ -160,7 +215,11 @@ namespace Zerra.Serialization.Json.IO
         public bool TryWrite(float value, out int sizeNeeded)
         {
             sizeNeeded = 16; //min
-            if (!EnsureSize(sizeNeeded))
+            if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                 return false;
 
             WriteLowerChars(value.ToString());
@@ -172,7 +231,11 @@ namespace Zerra.Serialization.Json.IO
         public bool TryWrite(double value, out int sizeNeeded)
         {
             sizeNeeded = 32; //min
-            if (!EnsureSize(sizeNeeded))
+            if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                 return false;
 
             WriteLowerChars(value.ToString());
@@ -184,7 +247,11 @@ namespace Zerra.Serialization.Json.IO
         public bool TryWrite(decimal value, out int sizeNeeded)
         {
             sizeNeeded = 31;
-            if (!EnsureSize(sizeNeeded))
+            if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                 return false;
 
             WriteLowerChars(value.ToString());
@@ -200,7 +267,11 @@ namespace Zerra.Serialization.Json.IO
                 if (value < 192)
                 {
                     sizeNeeded = 1;
-                    if (!EnsureSize(sizeNeeded))
+                    if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                         return false;
                     bufferBytes[position++] = (byte)value;
                     return true;
@@ -208,7 +279,11 @@ namespace Zerra.Serialization.Json.IO
                 else
                 {
                     sizeNeeded = 4;
-                    if (!EnsureSize(sizeNeeded))
+                    if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                         return false;
                     var valueArray = stackalloc char[] { value };
                     fixed (byte* pBuffer = &bufferBytes[position])
@@ -221,7 +296,11 @@ namespace Zerra.Serialization.Json.IO
             else
             {
                 sizeNeeded = 1;
-                if (!EnsureSize(sizeNeeded))
+                if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                     return false;
                 bufferChars[position++] = value;
                 return true;
@@ -236,7 +315,11 @@ namespace Zerra.Serialization.Json.IO
                 if (value < 128)
                 {
                     sizeNeeded = 3;
-                    if (!EnsureSize(sizeNeeded))
+                    if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                         return false;
                     bufferBytes[position++] = quoteByte;
                     bufferBytes[position++] = (byte)value;
@@ -246,7 +329,11 @@ namespace Zerra.Serialization.Json.IO
                 else
                 {
                     sizeNeeded = 6;
-                    if (!EnsureSize(sizeNeeded))
+                    if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                         return false;
 
                     bufferBytes[position++] = quoteByte;
@@ -263,7 +350,11 @@ namespace Zerra.Serialization.Json.IO
             else
             {
                 sizeNeeded = 3;
-                if (!EnsureSize(sizeNeeded))
+                if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                     return false;
 
                 bufferChars[position++] = '"';
@@ -291,7 +382,11 @@ namespace Zerra.Serialization.Json.IO
             if (useBytes)
             {
                 sizeNeeded = encoding.GetMaxByteCount(value.Length);
-                if (!EnsureSize(sizeNeeded))
+                if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                     return false;
 
                 fixed (char* pSource = value)
@@ -304,7 +399,11 @@ namespace Zerra.Serialization.Json.IO
             else
             {
                 sizeNeeded = value.Length;
-                if (!EnsureSize(sizeNeeded))
+                if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                     return false;
 
                 var pCount = value.Length;
@@ -331,7 +430,11 @@ namespace Zerra.Serialization.Json.IO
             if (value.Length == 0)
             {
                 sizeNeeded = 2;
-                if (!EnsureSize(sizeNeeded))
+                if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                     return false;
                 if (useBytes)
                 {
@@ -349,7 +452,11 @@ namespace Zerra.Serialization.Json.IO
             if (useBytes)
             {
                 sizeNeeded = encoding.GetMaxByteCount(value.Length) + 2;
-                if (!EnsureSize(sizeNeeded))
+                if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                     return false;
 
                 bufferBytes[position++] = quoteByte;
@@ -365,7 +472,11 @@ namespace Zerra.Serialization.Json.IO
             else
             {
                 sizeNeeded = value.Length + 2;
-                if (!EnsureSize(sizeNeeded))
+                if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                     return false;
 
                 bufferChars[position++] = '"';
@@ -416,7 +527,11 @@ namespace Zerra.Serialization.Json.IO
             //ISO8601
             //"yyyy-MM-ddTHH:mm:ss.fffffff+00:00"
             sizeNeeded = 35;
-            if (!EnsureSize(sizeNeeded))
+            if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                 return false;
 
             if (useBytes)
@@ -616,7 +731,11 @@ namespace Zerra.Serialization.Json.IO
             //ISO8601
             //"yyyy-MM-ddTHH:mm:ss.fffffff+00:00"
             sizeNeeded = 35;
-            if (!EnsureSize(sizeNeeded))
+            if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                 return false;
 
             if (useBytes)
@@ -779,7 +898,11 @@ namespace Zerra.Serialization.Json.IO
             //ISO8601
             //(-)dddddddd.HH:mm:ss.fffffff
             sizeNeeded = 28;
-            if (!EnsureSize(sizeNeeded))
+            if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                 return false;
 
             if (useBytes)
@@ -967,7 +1090,11 @@ namespace Zerra.Serialization.Json.IO
             //ISO8601
             //"yyyy-MM-dd"
             sizeNeeded = 12;
-            if (!EnsureSize(sizeNeeded))
+            if (!EnsureSize(sizeNeeded) 
+#if DEBUG
+            || Skip()
+#endif
+            )
                 return false;
 
             if (useBytes)
@@ -1030,7 +1157,11 @@ namespace Zerra.Serialization.Json.IO
             //ISO8601
             //"HH:mm:ss.fffffff"
             sizeNeeded = 18;
-            if (!EnsureSize(sizeNeeded))
+            if (!EnsureSize(sizeNeeded) 
+#if DEBUG
+            || Skip()
+#endif
+            )
                 return false;
 
             if (useBytes)
@@ -1126,7 +1257,11 @@ namespace Zerra.Serialization.Json.IO
         public bool TryWrite(Guid value, out int sizeNeeded)
         {
             sizeNeeded = 38;
-            if (!EnsureSize(sizeNeeded))
+            if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                 return false;
 
             if (useBytes)
@@ -1158,7 +1293,11 @@ namespace Zerra.Serialization.Json.IO
             if (useBytes)
             {
                 sizeNeeded = encoding.GetMaxByteCount(value.Length);
-                if (!EnsureSize(sizeNeeded))
+                if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                     return false;
 
                 fixed (char* pSource = value)
@@ -1171,7 +1310,11 @@ namespace Zerra.Serialization.Json.IO
             else
             {
                 sizeNeeded = value.Length;
-                if (!EnsureSize(sizeNeeded))
+                if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                     return false;
 
                 var pCount = value.Length;
@@ -1981,7 +2124,11 @@ namespace Zerra.Serialization.Json.IO
         public unsafe bool TryWriteQuote(out int sizeNeeded)
         {
             sizeNeeded = 1;
-            if (!EnsureSize(sizeNeeded))
+            if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                 return false;
 
             if (useBytes)
@@ -2000,7 +2147,11 @@ namespace Zerra.Serialization.Json.IO
         public unsafe bool TryWriteColon(out int sizeNeeded)
         {
             sizeNeeded = 1;
-            if (!EnsureSize(sizeNeeded))
+            if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                 return false;
 
             if (useBytes)
@@ -2019,7 +2170,11 @@ namespace Zerra.Serialization.Json.IO
         public unsafe bool TryWriteEscape(out int sizeNeeded)
         {
             sizeNeeded = 1;
-            if (!EnsureSize(sizeNeeded))
+            if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                 return false;
 
             if (useBytes)
@@ -2038,7 +2193,11 @@ namespace Zerra.Serialization.Json.IO
         public unsafe bool TryWriteNull(out int sizeNeeded)
         {
             sizeNeeded = 4;
-            if (!EnsureSize(sizeNeeded))
+            if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                 return false;
 
             if (useBytes)
@@ -2063,7 +2222,11 @@ namespace Zerra.Serialization.Json.IO
         public unsafe bool TryWriteTrue(out int sizeNeeded)
         {
             sizeNeeded = 4;
-            if (!EnsureSize(sizeNeeded))
+            if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                 return false;
 
             if (useBytes)
@@ -2088,7 +2251,11 @@ namespace Zerra.Serialization.Json.IO
         public unsafe bool TryWriteFalse(out int sizeNeeded)
         {
             sizeNeeded = 5;
-            if (!EnsureSize(sizeNeeded))
+            if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                 return false;
 
             if (useBytes)
@@ -2128,7 +2295,11 @@ namespace Zerra.Serialization.Json.IO
             if (useBytes)
             {
                 sizeNeeded = encoding.GetMaxByteCount(value.Length) + (startWithComma ? 4 : 3);
-                if (!EnsureSize(sizeNeeded))
+                if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                     return false;
 
                 if (startWithComma)
@@ -2150,7 +2321,11 @@ namespace Zerra.Serialization.Json.IO
             else
             {
                 sizeNeeded = value.Length + (startWithComma ? 4 : 3);
-                if (!EnsureSize(sizeNeeded))
+                if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                     return false;
 
                 if (startWithComma)
@@ -2180,7 +2355,11 @@ namespace Zerra.Serialization.Json.IO
         public unsafe bool TryWriteComma(out int sizeNeeded)
         {
             sizeNeeded = 1;
-            if (!EnsureSize(sizeNeeded))
+            if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                 return false;
 
             if (useBytes)
@@ -2199,7 +2378,11 @@ namespace Zerra.Serialization.Json.IO
         public unsafe bool TryWriteOpenBracket(out int sizeNeeded)
         {
             sizeNeeded = 1;
-            if (!EnsureSize(sizeNeeded))
+            if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                 return false;
 
             if (useBytes)
@@ -2218,7 +2401,11 @@ namespace Zerra.Serialization.Json.IO
         public unsafe bool TryWriteCloseBracket(out int sizeNeeded)
         {
             sizeNeeded = 1;
-            if (!EnsureSize(sizeNeeded))
+            if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                 return false;
 
             if (useBytes)
@@ -2237,7 +2424,11 @@ namespace Zerra.Serialization.Json.IO
         public unsafe bool TryWriteEmptyBracket(out int sizeNeeded)
         {
             sizeNeeded = 2;
-            if (!EnsureSize(sizeNeeded))
+            if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                 return false;
 
             if (useBytes)
@@ -2258,7 +2449,11 @@ namespace Zerra.Serialization.Json.IO
         public unsafe bool TryWriteOpenBrace(out int sizeNeeded)
         {
             sizeNeeded = 1;
-            if (!EnsureSize(sizeNeeded))
+            if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                 return false;
 
             if (useBytes)
@@ -2277,7 +2472,11 @@ namespace Zerra.Serialization.Json.IO
         public unsafe bool TryWriteCloseBrace(out int sizeNeeded)
         {
             sizeNeeded = 1;
-            if (!EnsureSize(sizeNeeded))
+            if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                 return false;
 
             if (useBytes)
@@ -2296,7 +2495,11 @@ namespace Zerra.Serialization.Json.IO
         public unsafe bool TryWriteEmptyBrace(out int sizeNeeded)
         {
             sizeNeeded = 2;
-            if (!EnsureSize(sizeNeeded))
+            if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                 return false;
 
             if (useBytes)
@@ -2317,7 +2520,11 @@ namespace Zerra.Serialization.Json.IO
         public unsafe bool TryWriteEmptyString(out int sizeNeeded)
         {
             sizeNeeded = 2;
-            if (!EnsureSize(sizeNeeded))
+            if (!EnsureSize(sizeNeeded)
+#if DEBUG
+            || Skip()
+#endif
+            )
                 return false;
             if (useBytes)
             {

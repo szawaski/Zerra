@@ -75,6 +75,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.Current.ChildValueType = JsonValueType.NotDetermined;
                     return true;
                 case JsonValueType.Number:
+                    state.PushFrame();
                     if (!DrainNumber(ref reader, ref state))
                     {
                         state.StashFrame();
@@ -314,7 +315,7 @@ namespace Zerra.Serialization.Json.Converters
         startValue:
             if (!reader.TryReadNext(out c))
             {
-                if (state.IsFinalBlock)
+                if (state.IsFinalBlock && reader.Position == reader.Length)
                 {
                     state.NumberStage = ReadNumberStage.Setup;
                     return true;
@@ -345,7 +346,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (!reader.TryReadNext(out c))
                 {
-                    if (state.IsFinalBlock)
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
                     {
                         state.NumberStage = ReadNumberStage.Setup;
                         return true;
@@ -391,7 +392,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (!reader.TryReadNext(out c))
                 {
-                    if (state.IsFinalBlock)
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
                     {
                         state.NumberStage = ReadNumberStage.Setup;
                         return true;
@@ -433,7 +434,7 @@ namespace Zerra.Serialization.Json.Converters
         startExponent:
             if (!reader.TryReadNext(out c))
             {
-                if (state.IsFinalBlock)
+                if (state.IsFinalBlock && reader.Position == reader.Length)
                 {
                     state.NumberStage = ReadNumberStage.Setup;
                     return true;
@@ -465,7 +466,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (!reader.TryReadNext(out c))
                 {
-                    if (state.IsFinalBlock)
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
                     {
                         state.NumberStage = ReadNumberStage.Setup;
                         return true;

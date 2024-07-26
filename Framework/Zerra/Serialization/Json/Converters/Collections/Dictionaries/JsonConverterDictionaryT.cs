@@ -92,8 +92,6 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                     {
                         if (!readKeyConverter.TryReadFromParent(ref reader, ref state, accessor))
                         {
-                            state.Current.HasReadProperty = true;
-                            state.Current.HasReadSeperator = true;
                             state.Current.Object = accessor;
                             value = default;
                             return false;

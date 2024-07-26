@@ -416,6 +416,9 @@ namespace Zerra.Serialization.Json
             var writer = new JsonWriter(false, initialSize);
             try
             {
+#if DEBUG
+            again:
+#endif
                 var write = converter.TryWrite(ref writer, ref state, value);
                 if (write)
                 {
@@ -429,6 +432,10 @@ namespace Zerra.Serialization.Json
                     state.CharsNeeded = 1;
 #endif
                 }
+#if DEBUG
+                if (!write && JsonWriter.Testing && writer.Position + state.CharsNeeded <= writer.Length)
+                    goto again;
+#endif
                 var result = writer.ToString();
                 return result;
             }
@@ -443,6 +450,9 @@ namespace Zerra.Serialization.Json
             var writer = new JsonWriter(false, initialSize);
             try
             {
+#if DEBUG
+            again:
+#endif
                 var write = converter.TryWriteBoxed(ref writer, ref state, value);
                 if (write)
                 {
@@ -456,6 +466,10 @@ namespace Zerra.Serialization.Json
                     state.CharsNeeded = 1;
 #endif
                 }
+#if DEBUG
+                if (!write && JsonWriter.Testing && writer.Position + state.CharsNeeded <= writer.Length)
+                    goto again;
+#endif
                 var result = writer.ToString();
                 return result;
             }
@@ -471,6 +485,9 @@ namespace Zerra.Serialization.Json
             var writer = new JsonWriter(buffer);
             try
             {
+#if DEBUG
+            again:
+#endif
                 var write = converter.TryWrite(ref writer, ref state, value);
                 if (write)
                 {
@@ -484,6 +501,10 @@ namespace Zerra.Serialization.Json
                     state.CharsNeeded = 1;
 #endif
                 }
+#if DEBUG
+                if (!write && JsonWriter.Testing && writer.Position + state.CharsNeeded <= writer.Length)
+                    goto again;
+#endif
                 return writer.Length;
             }
             finally
@@ -497,6 +518,9 @@ namespace Zerra.Serialization.Json
             var writer = new JsonWriter(buffer);
             try
             {
+#if DEBUG
+            again:
+#endif
                 var write = converter.TryWriteBoxed(ref writer, ref state, value);
                 if (write)
                 {
@@ -510,6 +534,10 @@ namespace Zerra.Serialization.Json
                     state.CharsNeeded = 1;
 #endif
                 }
+#if DEBUG
+                if (!write && JsonWriter.Testing && writer.Position + state.CharsNeeded <= writer.Length)
+                    goto again;
+#endif
                 return writer.Length;
             }
             finally

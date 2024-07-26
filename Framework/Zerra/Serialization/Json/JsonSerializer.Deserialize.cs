@@ -499,6 +499,9 @@ namespace Zerra.Serialization.Json
         private static int Read<T>(JsonConverter<object, T> converter, ReadOnlySpan<byte> buffer, ref ReadState state, out T? result)
         {
             var reader = new JsonReader(buffer);
+#if DEBUG
+        again:
+#endif
             var read = converter.TryRead(ref reader, ref state, out result);
             if (read)
             {
@@ -512,12 +515,19 @@ namespace Zerra.Serialization.Json
                 state.CharsNeeded = 1;
 #endif
             }
+#if DEBUG
+            if (!read && JsonReader.Testing && reader.Position + state.CharsNeeded <= reader.Length)
+                goto again;
+#endif
             return reader.Position;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int ReadBoxed(JsonConverter converter, ReadOnlySpan<byte> buffer, ref ReadState state, out object? result)
         {
             var reader = new JsonReader(buffer);
+#if DEBUG
+        again:
+#endif
             var read = converter.TryReadBoxed(ref reader, ref state, out result);
             if (read)
             {
@@ -531,6 +541,10 @@ namespace Zerra.Serialization.Json
                 state.CharsNeeded = 1;
 #endif
             }
+#if DEBUG
+            if (!read && JsonReader.Testing && reader.Position + state.CharsNeeded <= reader.Length)
+                goto again;
+#endif
             return reader.Position;
         }
 
@@ -538,6 +552,9 @@ namespace Zerra.Serialization.Json
         private static int Read<T>(JsonConverter<object, T> converter, ReadOnlySpan<char> buffer, ref ReadState state, out T? result)
         {
             var reader = new JsonReader(buffer);
+#if DEBUG
+        again:
+#endif
             var read = converter.TryRead(ref reader, ref state, out result);
             if (read)
             {
@@ -551,12 +568,19 @@ namespace Zerra.Serialization.Json
                 state.CharsNeeded = 1;
 #endif
             }
+#if DEBUG
+            if (!read && JsonReader.Testing && reader.Position + state.CharsNeeded <= reader.Length)
+                goto again;
+#endif
             return reader.Position;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int ReadBoxed(JsonConverter converter, ReadOnlySpan<char> buffer, ref ReadState state, out object? result)
         {
             var reader = new JsonReader(buffer);
+#if DEBUG
+        again:
+#endif
             var read = converter.TryReadBoxed(ref reader, ref state, out result);
             if (read)
             {
@@ -570,6 +594,10 @@ namespace Zerra.Serialization.Json
                 state.CharsNeeded = 1;
 #endif
             }
+#if DEBUG
+            if (!read && JsonReader.Testing && reader.Position + state.CharsNeeded <= reader.Length)
+                goto again;
+#endif
             return reader.Position;
         }
     }

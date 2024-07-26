@@ -249,20 +249,24 @@ namespace Zerra.Serialization.Json.Converters
                     var newConverter = JsonConverterFactory<TParent>.Get(typeFromValue, memberKey, getter, setter);
                     if (!newConverter.TryWriteValueBoxed(ref writer, ref state, value))
                     {
-                        state.StashFrame();
+                        if (StackRequired)
+                            state.StashFrame();
                         return false;
                     }
-                    state.EndFrame();
+                    if (StackRequired)
+                        state.EndFrame();
                     return true;
                 }
             }
 
             if (!TryWriteValue(ref writer, ref state, value!))
             {
-                state.StashFrame();
+                if (StackRequired)
+                    state.StashFrame();
                 return false;
             }
-            state.EndFrame();
+            if (StackRequired)
+                state.EndFrame();
             return true;
         }
 
@@ -471,8 +475,9 @@ namespace Zerra.Serialization.Json.Converters
                 else
                 {
                     buffer = stackalloc char[128];
-                    state.StringBuffer.CopyTo(buffer);
+                    state.StringBuffer.AsSpan().Slice(0, state.StringPosition).CopyTo(buffer);
                     BufferArrayPool<char>.Return(state.StringBuffer);
+                    state.StringBuffer = null;
                 }
             }
 
@@ -497,7 +502,7 @@ namespace Zerra.Serialization.Json.Converters
         startValue:
             if (!reader.TryReadNext(out c))
             {
-                if (state.IsFinalBlock)
+                if (state.IsFinalBlock && reader.Position == reader.Length)
                 {
                     value = buffer.Slice(0, state.StringPosition).ToString();
                     if (state.StringBuffer != null)
@@ -550,7 +555,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (!reader.TryReadNext(out c))
                 {
-                    if (state.IsFinalBlock)
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
                     {
                         value = buffer.Slice(0, state.StringPosition).ToString();
                         if (state.StringBuffer != null)
@@ -654,7 +659,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (!reader.TryReadNext(out c))
                 {
-                    if (state.IsFinalBlock)
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
                     {
                         value = buffer.Slice(0, state.StringPosition).ToString();
                         if (state.StringBuffer != null)
@@ -744,7 +749,7 @@ namespace Zerra.Serialization.Json.Converters
         startExponent:
             if (!reader.TryReadNext(out c))
             {
-                if (state.IsFinalBlock)
+                if (state.IsFinalBlock && reader.Position == reader.Length)
                 {
                     value = buffer.Slice(0, state.StringPosition).ToString();
                     if (state.StringBuffer != null)
@@ -799,7 +804,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (!reader.TryReadNext(out c))
                 {
-                    if (state.IsFinalBlock)
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
                     {
                         value = buffer.Slice(0, state.StringPosition).ToString();
                         if (state.StringBuffer != null)
@@ -917,7 +922,7 @@ namespace Zerra.Serialization.Json.Converters
         startValue:
             if (!reader.TryReadNext(out c))
             {
-                if (state.IsFinalBlock)
+                if (state.IsFinalBlock && reader.Position == reader.Length)
                 {
                     if (valueType == JsonValueType.String)
                         throw reader.CreateException("Unexpected character");
@@ -969,7 +974,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (!reader.TryReadNext(out c))
                 {
-                    if (state.IsFinalBlock)
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
                     {
                         if (valueType == JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
@@ -1055,7 +1060,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (!reader.TryReadNext(out c))
                 {
-                    if (state.IsFinalBlock)
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
                     {
                         if (valueType == JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
@@ -1132,7 +1137,7 @@ namespace Zerra.Serialization.Json.Converters
         startExponent:
             if (!reader.TryReadNext(out c))
             {
-                if (state.IsFinalBlock)
+                if (state.IsFinalBlock && reader.Position == reader.Length)
                 {
                     if (valueType == JsonValueType.String)
                         throw reader.CreateException("Unexpected character");
@@ -1185,7 +1190,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (!reader.TryReadNext(out c))
                 {
-                    if (state.IsFinalBlock)
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
                     {
                         if (valueType == JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
@@ -1313,7 +1318,7 @@ namespace Zerra.Serialization.Json.Converters
         startValue:
             if (!reader.TryReadNext(out c))
             {
-                if (state.IsFinalBlock)
+                if (state.IsFinalBlock && reader.Position == reader.Length)
                 {
                     if (valueType == JsonValueType.String)
                         throw reader.CreateException("Unexpected character");
@@ -1362,7 +1367,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (!reader.TryReadNext(out c))
                 {
-                    if (state.IsFinalBlock)
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
                     {
                         if (valueType == JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
@@ -1440,7 +1445,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (!reader.TryReadNext(out c))
                 {
-                    if (state.IsFinalBlock)
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
                     {
                         if (valueType == JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
@@ -1513,7 +1518,7 @@ namespace Zerra.Serialization.Json.Converters
         startExponent:
             if (!reader.TryReadNext(out c))
             {
-                if (state.IsFinalBlock)
+                if (state.IsFinalBlock && reader.Position == reader.Length)
                 {
                     if (valueType == JsonValueType.String)
                         throw reader.CreateException("Unexpected character");
@@ -1564,7 +1569,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (!reader.TryReadNext(out c))
                 {
-                    if (state.IsFinalBlock)
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
                     {
                         if (valueType == JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
@@ -1684,7 +1689,7 @@ namespace Zerra.Serialization.Json.Converters
         startValue:
             if (!reader.TryReadNext(out c))
             {
-                if (state.IsFinalBlock)
+                if (state.IsFinalBlock && reader.Position == reader.Length)
                 {
                     if (valueType == JsonValueType.String)
                         throw reader.CreateException("Unexpected character");
@@ -1736,7 +1741,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (!reader.TryReadNext(out c))
                 {
-                    if (state.IsFinalBlock)
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
                     {
                         if (valueType == JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
@@ -1822,7 +1827,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (!reader.TryReadNext(out c))
                 {
-                    if (state.IsFinalBlock)
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
                     {
                         if (valueType == JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
@@ -1905,7 +1910,7 @@ namespace Zerra.Serialization.Json.Converters
         startExponent:
             if (!reader.TryReadNext(out c))
             {
-                if (state.IsFinalBlock)
+                if (state.IsFinalBlock && reader.Position == reader.Length)
                 {
                     if (state.NumberIsNegative)
                         value *= -1;
@@ -1956,7 +1961,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (!reader.TryReadNext(out c))
                 {
-                    if (state.IsFinalBlock)
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
                     {
                         if (valueType == JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
@@ -2084,7 +2089,7 @@ namespace Zerra.Serialization.Json.Converters
         startValue:
             if (!reader.TryReadNext(out c))
             {
-                if (state.IsFinalBlock)
+                if (state.IsFinalBlock && reader.Position == reader.Length)
                 {
                     if (valueType == JsonValueType.String)
                         throw reader.CreateException("Unexpected character");
@@ -2136,7 +2141,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (!reader.TryReadNext(out c))
                 {
-                    if (state.IsFinalBlock)
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
                     {
                         if (valueType == JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
@@ -2222,7 +2227,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (!reader.TryReadNext(out c))
                 {
-                    if (state.IsFinalBlock)
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
                     {
                         if (valueType == JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
@@ -2305,7 +2310,7 @@ namespace Zerra.Serialization.Json.Converters
         startExponent:
             if (!reader.TryReadNext(out c))
             {
-                if (state.IsFinalBlock)
+                if (state.IsFinalBlock && reader.Position == reader.Length)
                 {
                     if (valueType == JsonValueType.String)
                         throw reader.CreateException("Unexpected character");
@@ -2358,7 +2363,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (!reader.TryReadNext(out c))
                 {
-                    if (state.IsFinalBlock)
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
                     {
                         if (valueType == JsonValueType.String)
                             throw reader.CreateException("Unexpected character");
