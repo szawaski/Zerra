@@ -6,6 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 using Zerra.Reflection;
 
@@ -48,14 +49,35 @@ namespace Zerra.Test
             {
                 if (!type2.CoreType.HasValue)
                     return false;
+                if (type1.CoreType == CoreType.String && type2.CoreType == CoreType.DateTime)
+                {
+                    var converted = DateTime.Parse((string)model1, null, DateTimeStyles.RoundtripKind);
+                    return converted.Equals(model2);
+                }
+                else if (type1.CoreType == CoreType.DateTime && type2.CoreType == CoreType.String)
+                {
+                    var converted = DateTime.Parse((string)model2, null, DateTimeStyles.RoundtripKind);
+                    return converted.Equals(model1);
+                }
                 if (type1.CoreType == CoreType.String && type2.CoreType != CoreType.String)
-                    return TypeAnalyzer.Convert(model1, type2.Type).Equals(model2);
+                {
+                    var converted = TypeAnalyzer.Convert(model1, type2.Type);
+                    return converted.Equals(model2);
+                }
                 else if (type1.CoreType != CoreType.String && type2.CoreType == CoreType.String)
-                    return TypeAnalyzer.Convert(model2, type1.Type).Equals(model1);
+                {
+                    var converted = TypeAnalyzer.Convert(model2, type1.Type);
+                    return converted.Equals(model1);
+                }
                 else if (type1.CoreType != type2.CoreType)
-                    return TypeAnalyzer.Convert(model2, type1.Type).Equals(model1);
+                {
+                    var converted = TypeAnalyzer.Convert(model2, type1.Type);
+                    return converted.Equals(model1);
+                }
                 else
+                {
                     return model1.Equals(model2);
+                }
             }
 
             if (type1.HasIEnumerable)
