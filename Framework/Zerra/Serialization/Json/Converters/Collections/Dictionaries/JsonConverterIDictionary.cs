@@ -54,6 +54,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
 
         protected override bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out IDictionary? value)
         {
+            throw new NotSupportedException($"{nameof(JsonConverter)} does not support IDictionary because it cannot determine the types to deserialize");
             char c;
 
             if (valueType == JsonValueType.Object && canWriteAsProperties)
@@ -222,6 +223,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
 
         protected override bool TryWriteValue(ref JsonWriter writer, ref WriteState state, IDictionary value)
         {
+            throw new NotSupportedException($"{nameof(JsonConverter)} does not support IDictionary because it cannot determine the types to deserialize");
             if (canWriteAsProperties)
             {
                 IDictionaryEnumerator enumerator;

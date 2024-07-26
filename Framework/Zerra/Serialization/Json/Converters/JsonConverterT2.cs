@@ -74,6 +74,34 @@ namespace Zerra.Serialization.Json.Converters
                 state.PushFrame();
             }
 
+            if (isObject && valueType != JsonValueType.Object)
+            {
+                TypeDetail newTypeDetail = valueType switch
+                {
+                    JsonValueType.Object => TypeAnalyzer<object>.GetTypeDetail(),
+                    JsonValueType.Array => TypeAnalyzer<object[]>.GetTypeDetail(),
+                    JsonValueType.String => TypeAnalyzer<string>.GetTypeDetail(),
+                    JsonValueType.Number => TypeAnalyzer<decimal>.GetTypeDetail(),
+                    JsonValueType.True_Completed or JsonValueType.False_Completed => TypeAnalyzer<bool>.GetTypeDetail(),
+                    _ => throw new NotSupportedException(),
+                };
+
+                var newConverter = JsonConverterFactory<TParent>.Get(newTypeDetail, memberKey, getter, setter);
+
+                if (!newConverter.TryReadValueBoxed(ref reader, ref state, valueType, out var valueObject))
+                {
+                    if (StackRequired)
+                        state.StashFrame();
+                    returnValue = default;
+                    return false;
+                }
+
+                if (StackRequired)
+                    state.EndFrame();
+                returnValue = valueObject;
+                return true;
+            }
+
             if (isInterfacedObject)
             {
                 var emptyImplementationType = EmptyImplementations.GetEmptyImplementationType(typeDetail.Type);
@@ -183,6 +211,34 @@ namespace Zerra.Serialization.Json.Converters
                 if (state.StackSize >= maxStackDepth)
                     throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
                 state.PushFrame();
+            }
+
+            if (isObject && valueType != JsonValueType.Object)
+            {
+                TypeDetail newTypeDetail = valueType switch
+                {
+                    JsonValueType.Object => TypeAnalyzer<object>.GetTypeDetail(),
+                    JsonValueType.Array => TypeAnalyzer<object[]>.GetTypeDetail(),
+                    JsonValueType.String => TypeAnalyzer<string>.GetTypeDetail(),
+                    JsonValueType.Number => TypeAnalyzer<decimal>.GetTypeDetail(),
+                    JsonValueType.True_Completed or JsonValueType.False_Completed => TypeAnalyzer<bool>.GetTypeDetail(),
+                    _ => throw new NotSupportedException(),
+                };
+
+                var newConverter = JsonConverterFactory<TParent>.Get(newTypeDetail, memberKey, getter, setter);
+
+                if (!newConverter.TryReadValueBoxed(ref reader, ref state, valueType, out var valueObject))
+                {
+                    if (StackRequired)
+                        state.StashFrame();
+                    returnValue = default;
+                    return false;
+                }
+
+                if (StackRequired)
+                    state.EndFrame();
+                returnValue = (TValue?)valueObject;
+                return true;
             }
 
             if (isInterfacedObject)

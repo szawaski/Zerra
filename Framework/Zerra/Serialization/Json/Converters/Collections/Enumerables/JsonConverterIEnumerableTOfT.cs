@@ -27,81 +27,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Enumerables
         }
 
         protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out TEnumerable? value)
-        {
-            if (valueType != JsonValueType.Array)
-            {
-                if (state.ErrorOnTypeMismatch)
-                    throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
-
-                value = default;
-                return Drain(ref reader, ref state, valueType);
-            }
-
-            ArrayOrListAccessor<TValue> accessor;
-            char c;
-
-            if (!state.Current.HasCreated)
-            {
-                if (!reader.TryReadNextSkipWhiteSpace(out c))
-                {
-                    state.CharsNeeded = 1;
-                    value = default;
-                    return false;
-                }
-
-                if (c == ']')
-                {
-                    value = (TEnumerable)(object)Array.Empty<TValue>();
-                    return true;
-                }
-
-                reader.BackOne();
-
-                if (reader.TryPeakArrayLength(out var length))
-                    accessor = new ArrayOrListAccessor<TValue>(new TValue[length]);
-                else
-                    accessor = new ArrayOrListAccessor<TValue>();
-            }
-            else
-            {
-                accessor = (ArrayOrListAccessor<TValue>)state.Current.Object!;
-            }
-
-            for (; ; )
-            {
-                if (!state.Current.HasReadValue)
-                {
-                    if (!readConverter.TryReadFromParent(ref reader, ref state, accessor))
-                    {
-                        state.Current.HasCreated = true;
-                        state.Current.Object = accessor;
-                        value = default;
-                        return false;
-                    }
-                }
-
-                if (!reader.TryReadNextSkipWhiteSpace(out c))
-                {
-                    state.CharsNeeded = 1;
-                    state.Current.HasCreated = true;
-                    state.Current.HasReadValue = true;
-                    state.Current.Object = accessor;
-                    value = default;
-                    return false;
-                }
-
-                if (c == ']')
-                    break;
-
-                if (c != ',')
-                    throw reader.CreateException("Unexpected character");
-
-                state.Current.HasReadValue = false;
-            }
-
-            value = (TEnumerable)(object)accessor.ToArray();
-            return true;
-        }
+=> throw new NotSupportedException($"Cannot deserialize {typeDetail.Type.GetNiceName()} because no interface to populate the collection");
 
         protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, TEnumerable value)
         {
@@ -140,7 +66,6 @@ namespace Zerra.Serialization.Json.Converters.Collections.Enumerables
                     if (!writer.TryWriteComma(out state.CharsNeeded))
                     {
                         state.Current.HasWrittenStart = true;
-                        state.Current.HasWrittenSeperator = true;
                         state.Current.EnumeratorInProgress = true;
                         state.Current.Object = enumerator;
                         return false;
@@ -150,6 +75,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Enumerables
                 if (!writeConverter.TryWriteFromParent(ref writer, ref state, enumerator))
                 {
                     state.Current.HasWrittenStart = true;
+                    state.Current.HasWrittenSeperator = true;
                     state.Current.EnumeratorInProgress = true;
                     state.Current.Object = enumerator;
                     return false;

@@ -92,6 +92,15 @@ namespace Zerra.Test
         }
 
         [TestMethod]
+        public void TypesIListT()
+        {
+            var model1 = TypesIListTModel.Create();
+            var bytes = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TypesIListTModel>(bytes);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
         public void StringTypesIListTOfT()
         {
             var model1 = TypesIListTOfTModel.Create();
@@ -267,23 +276,23 @@ namespace Zerra.Test
             AssertHelper.AreEqual(model1, model2);
         }
 
-        [TestMethod]
-        public void StringTypesIDictionary()
-        {
-            var model1 = TypesIDictionaryModel.Create();
-            var json = JsonSerializer.Serialize(model1);
-            var model2 = JsonSerializer.Deserialize<TypesIDictionaryModel>(json);
-            AssertHelper.AreEqual(model1, model2);
-        }
+        //[TestMethod]
+        //public void StringTypesIDictionary()
+        //{
+        //    var model1 = TypesIDictionaryModel.Create();
+        //    var json = JsonSerializer.Serialize(model1);
+        //    var model2 = JsonSerializer.Deserialize<TypesIDictionaryModel>(json);
+        //    AssertHelper.AreEqual(model1, model2);
+        //}
 
-        [TestMethod]
-        public void StringTypesIDictionaryOfT()
-        {
-            var model1 = TypesIDictionaryOfTModel.Create();
-            var bytes = JsonSerializer.Serialize(model1);
-            var model2 = JsonSerializer.Deserialize<TypesIDictionaryOfTModel>(bytes);
-            AssertHelper.AreEqual(model1, model2);
-        }
+        //[TestMethod]
+        //public void StringTypesIDictionaryOfT()
+        //{
+        //    var model1 = TypesIDictionaryOfTModel.Create();
+        //    var bytes = JsonSerializer.Serialize(model1);
+        //    var model2 = JsonSerializer.Deserialize<TypesIDictionaryOfTModel>(bytes);
+        //    AssertHelper.AreEqual(model1, model2);
+        //}
 
         [TestMethod]
         public void StringTypesOther()
@@ -516,13 +525,13 @@ namespace Zerra.Test
             Assert.IsNull(model1);
 
             var model2 = JsonSerializer.Deserialize<string>("");
-            Assert.AreEqual("", model2);
+            Assert.AreEqual(String.Empty, model2);
 
             var model3 = JsonSerializer.Deserialize<string>("\"\"");
-            Assert.AreEqual("", model3);
+            Assert.AreEqual(String.Empty, model3);
 
             var model4 = JsonSerializer.Deserialize<string>("{}");
-            Assert.AreEqual("", model4);
+            Assert.AreEqual(String.Empty, model4);
 
             var model5 = JsonSerializer.Deserialize<object>("null");
             Assert.IsNull(model5);
@@ -531,7 +540,7 @@ namespace Zerra.Test
             Assert.IsNull(model6);
 
             var model7 = JsonSerializer.Deserialize<object>("\"\"");
-            Assert.IsNull(model7);
+            Assert.AreEqual(String.Empty, model7);
 
             var model8 = JsonSerializer.Deserialize<object>("{}");
             Assert.IsNotNull(model8);
@@ -2073,17 +2082,325 @@ namespace Zerra.Test
         [TestMethod]
         public async Task StreamTypes()
         {
-            var baseModel = TypesAllModel.Create();
-
+            var model1 = TypesAllModel.Create();
             using var stream = new MemoryStream();
-            await JsonSerializer.SerializeAsync(stream, baseModel);
+            await JsonSerializer.SerializeAsync(stream, model1);
             stream.Position = 0;
-            using var sr = new StreamReader(stream, Encoding.UTF8);
-            var json = sr.ReadToEnd();
+            var model2 = await JsonSerializer.DeserializeAsync<TypesAllModel>(stream);
+            AssertHelper.AreEqual(model1, model2);
+        }
 
+        [TestMethod]
+        public async Task StreamTypesBasic()
+        {
+            var model1 = TypesBasicModel.Create();
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, model1);
             stream.Position = 0;
-            var model = await JsonSerializer.DeserializeAsync<TypesAllModel>(stream);
-            AssertHelper.AreEqual(baseModel, model);
+            var model2 = await JsonSerializer.DeserializeAsync<TypesBasicModel>(stream);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public async Task StreamTypesArray()
+        {
+            var model1 = TypesArrayModel.Create();
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, model1);
+            stream.Position = 0;
+            var model2 = await JsonSerializer.DeserializeAsync<TypesArrayModel>(stream);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public async Task StreamTypesListT()
+        {
+            var model1 = TypesListTModel.Create();
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, model1);
+            stream.Position = 0;
+            var model2 = await JsonSerializer.DeserializeAsync<TypesListTModel>(stream);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public async Task StreamTypesIListT()
+        {
+            var model1 = TypesIListTModel.Create();
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, model1);
+            stream.Position = 0;
+            var model2 = await JsonSerializer.DeserializeAsync<TypesIListTModel>(stream);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public async Task StreamTypesIListTOfT()
+        {
+            var model1 = TypesIListTOfTModel.Create();
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, model1);
+            stream.Position = 0;
+            var model2 = await JsonSerializer.DeserializeAsync<TypesIListTOfTModel>(stream);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public async Task StreamTypesIReadOnlyTList()
+        {
+            var model1 = TypesIReadOnlyListTModel.Create();
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, model1);
+            stream.Position = 0;
+            var model2 = await JsonSerializer.DeserializeAsync<TypesIReadOnlyListTModel>(stream);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public async Task StreamTypesIList()
+        {
+            var model1 = TypesIListModel.Create();
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, model1);
+            stream.Position = 0;
+            var model2 = await JsonSerializer.DeserializeAsync<TypesIListModel>(stream);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public async Task StreamTypesIListOfT()
+        {
+            var model1 = TypesIListOfTModel.Create();
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, model1);
+            stream.Position = 0;
+            var model2 = await JsonSerializer.DeserializeAsync<TypesIListOfTModel>(stream);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public async Task StreamTypesHashSetT()
+        {
+            var model1 = TypesHashSetTModel.Create();
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, model1);
+            stream.Position = 0;
+            var model2 = await JsonSerializer.DeserializeAsync<TypesHashSetTModel>(stream);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public async Task StreamTypesISetT()
+        {
+            var model1 = TypesISetTModel.Create();
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, model1);
+            stream.Position = 0;
+            var model2 = await JsonSerializer.DeserializeAsync<TypesISetTModel>(stream);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public async Task StreamTypesISetTOfT()
+        {
+            var model1 = TypesISetTOfTModel.Create();
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, model1);
+            stream.Position = 0;
+            var model2 = await JsonSerializer.DeserializeAsync<TypesISetTOfTModel>(stream);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public async Task StreamTypesIReadOnlySetT()
+        {
+            var model1 = TypesIReadOnlySetTModel.Create();
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, model1);
+            stream.Position = 0;
+            var model2 = await JsonSerializer.DeserializeAsync<TypesIReadOnlySetTModel>(stream);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public async Task StreamTypesICollection()
+        {
+            var model1 = TypesICollectionModel.Create();
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, model1);
+            stream.Position = 0;
+            var model2 = await JsonSerializer.DeserializeAsync<TypesICollectionModel>(stream);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public async Task StreamTypesICollectionT()
+        {
+            var model1 = TypesICollectionTModel.Create();
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, model1);
+            stream.Position = 0;
+            var model2 = await JsonSerializer.DeserializeAsync<TypesICollectionTModel>(stream);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public async Task StreamTypesICollectionTOfT()
+        {
+            var model1 = TypesICollectionTOfTModel.Create();
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, model1);
+            stream.Position = 0;
+            var model2 = await JsonSerializer.DeserializeAsync<TypesICollectionTOfTModel>(stream);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public async Task StreamTypesIReadOnlyCollectionT()
+        {
+            var model1 = TypesIReadOnlyCollectionTModel.Create();
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, model1);
+            stream.Position = 0;
+            var model2 = await JsonSerializer.DeserializeAsync<TypesIReadOnlyCollectionTModel>(stream);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public async Task StreamTypesIEnumerableT()
+        {
+            var model1 = TypesIEnumerableTModel.Create();
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, model1);
+            stream.Position = 0;
+            var model2 = await JsonSerializer.DeserializeAsync<TypesIEnumerableTModel>(stream);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public async Task StreamTypesIEnumerableTOfT()
+        {
+            var model1 = TypesIEnumerableTOfTModel.Create();
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, model1);
+        }
+
+        [TestMethod]
+        public async Task StreamTypesIEnumerable()
+        {
+            var model1 = TypesIEnumerableModel.Create();
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, model1);
+            stream.Position = 0;
+            var model2 = await JsonSerializer.DeserializeAsync<TypesIEnumerableModel>(stream);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public async Task StreamTypesIEnumerableOfT()
+        {
+            var model1 = TypesIEnumerableOfTModel.Create();
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, model1);
+        }
+
+        [TestMethod]
+        public async Task StreamTypesDictionaryT()
+        {
+            var model1 = TypesDictionaryTModel.Create();
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, model1);
+            stream.Position = 0;
+            var model2 = await JsonSerializer.DeserializeAsync<TypesDictionaryTModel>(stream);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public async Task StreamTypesIDictionaryT()
+        {
+            var model1 = TypesIDictionaryTModel.Create();
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, model1);
+            stream.Position = 0;
+            var model2 = await JsonSerializer.DeserializeAsync<TypesIDictionaryTModel>(stream);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public async Task StreamTypesIDictionaryTOfT()
+        {
+            var model1 = TypesIDictionaryTOfTModel.Create();
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, model1);
+            stream.Position = 0;
+            var model2 = await JsonSerializer.DeserializeAsync<TypesIDictionaryTOfTModel>(stream);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public async Task StreamTypesIReadOnlyDictionaryT()
+        {
+            var model1 = TypesIReadOnlyDictionaryTModel.Create();
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, model1);
+            stream.Position = 0;
+            var model2 = await JsonSerializer.DeserializeAsync<TypesIReadOnlyDictionaryTModel>(stream);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        //[TestMethod]
+        //public async Task StreamTypesIDictionary()
+        //{
+        //    var model1 = TypesIDictionaryModel.Create();
+        //    using var stream = new MemoryStream();
+        //    await JsonSerializer.SerializeAsync(stream, model1);
+        //    stream.Position = 0;
+        //    var model2 = await JsonSerializer.DeserializeAsync<TypesIDictionaryModel>(stream);
+        //    AssertHelper.AreEqual(model1, model2);
+        //}
+
+        //[TestMethod]
+        //public async Task StreamTypesIDictionaryOfT()
+        //{
+        //    var model1 = TypesIDictionaryOfTModel.Create();
+        //    using var stream = new MemoryStream();
+        //    await JsonSerializer.SerializeAsync(stream, model1);
+        //    stream.Position = 0;
+        //    var model2 = await JsonSerializer.DeserializeAsync<TypesIDictionaryOfTModel>(stream);
+        //    AssertHelper.AreEqual(model1, model2);
+        //}
+
+        [TestMethod]
+        public async Task StreamTypesOther()
+        {
+            var model1 = TypesOtherModel.Create();
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, model1);
+            stream.Position = 0;
+            var model2 = await JsonSerializer.DeserializeAsync<TypesOtherModel>(stream);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public async Task StreamTypesCore()
+        {
+            var model1 = TypesCoreModel.Create();
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, model1);
+            stream.Position = 0;
+            var model2 = await JsonSerializer.DeserializeAsync<TypesCoreModel>(stream);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public async Task StreamTypesAll()
+        {
+            var model1 = TypesAllModel.Create();
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, model1);
+            stream.Position = 0;
+            var model2 = await JsonSerializer.DeserializeAsync<TypesAllModel>(stream);
+            AssertHelper.AreEqual(model1, model2);
         }
 
         [TestMethod]
@@ -2354,13 +2671,13 @@ namespace Zerra.Test
             Assert.IsNull(model1);
 
             var model2 = await JsonSerializer.DeserializeAsync<string>(new MemoryStream(Encoding.UTF8.GetBytes("")));
-            Assert.AreEqual("", model2);
+            Assert.AreEqual(String.Empty, model2);
 
             var model3 = await JsonSerializer.DeserializeAsync<string>(new MemoryStream(Encoding.UTF8.GetBytes("\"\"")));
-            Assert.AreEqual("", model3);
+            Assert.AreEqual(String.Empty, model3);
 
             var model4 = await JsonSerializer.DeserializeAsync<string>(new MemoryStream(Encoding.UTF8.GetBytes("{}")));
-            Assert.AreEqual("", model4);
+            Assert.AreEqual(String.Empty, model4);
 
             var model5 = await JsonSerializer.DeserializeAsync<object>(new MemoryStream(Encoding.UTF8.GetBytes("null")));
             Assert.IsNull(model5);
@@ -2369,7 +2686,7 @@ namespace Zerra.Test
             Assert.IsNull(model6);
 
             var model7 = await JsonSerializer.DeserializeAsync<object>(new MemoryStream(Encoding.UTF8.GetBytes("\"\"")));
-            Assert.IsNull(model7);
+            Assert.AreEqual(String.Empty, model7);
 
             var model8 = await JsonSerializer.DeserializeAsync<object>(new MemoryStream(Encoding.UTF8.GetBytes("{}")));
             Assert.IsNotNull(model8);
