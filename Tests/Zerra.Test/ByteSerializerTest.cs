@@ -235,8 +235,42 @@ namespace Zerra.Test
         {
             var model1 = TypesDictionaryTModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
-            Assert.AreEqual(462, bytes.Length);
+            Assert.AreEqual(117, bytes.Length);
             var model2 = ByteSerializer.Deserialize<TypesDictionaryTModel>(bytes);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void TypesIDictionaryT()
+        {
+            var model1 = TypesIDictionaryTModel.Create();
+            var bytes = ByteSerializer.Serialize(model1);
+            Assert.AreEqual(117, bytes.Length);
+            var model2 = ByteSerializer.Deserialize<TypesIDictionaryTModel>(bytes);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void TypesIDictionaryTOfT()
+        {
+            var options = new ByteSerializerOptions()
+            {
+                UseTypes = true
+            };
+
+            var model1 = TypesIDictionaryTOfTModel.Create();
+            var bytes = ByteSerializer.Serialize(model1, options);
+            var model2 = ByteSerializer.Deserialize<TypesIDictionaryTOfTModel>(bytes, options);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public void TypesIReadOnlyDictionaryT()
+        {
+            var model1 = TypesIReadOnlyDictionaryTModel.Create();
+            var bytes = ByteSerializer.Serialize(model1);
+            Assert.AreEqual(117, bytes.Length);
+            var model2 = ByteSerializer.Deserialize<TypesIReadOnlyDictionaryTModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
 
@@ -245,7 +279,6 @@ namespace Zerra.Test
         {
             var options = new ByteSerializerOptions()
             {
-                IndexSize = ByteSerializerIndexSize.UInt16,
                 UseTypes = true
             };
 
@@ -255,6 +288,19 @@ namespace Zerra.Test
             AssertHelper.AreEqual(model1, model2);
         }
 
+        [TestMethod]
+        public void TypesIDictionaryOfT()
+        {
+            var options = new ByteSerializerOptions()
+            {
+                UseTypes = true
+            };
+
+            var model1 = TypesIDictionaryOfTModel.Create();
+            var bytes = ByteSerializer.Serialize(model1, options);
+            var model2 = ByteSerializer.Deserialize<TypesIDictionaryOfTModel>(bytes, options);
+            AssertHelper.AreEqual(model1, model2);
+        }
 
         [TestMethod]
         public void TypesOther()
