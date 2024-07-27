@@ -40,14 +40,14 @@ namespace Zerra.CQRS.Relay
                 Url = serviceUrl
             };
 
-            var json = JsonSerializerOld.Serialize(info);
+            var json = JsonSerializer.Serialize(info);
             var bytes = Encoding.UTF8.GetBytes(json);
 
             using var request = new HttpRequestMessage(HttpMethod.Post, relayUrl);
 
             request.Content = new WriteStreamContent(async (postStream) =>
             {
-                await JsonSerializerOld.SerializeAsync(postStream, info);
+                await JsonSerializer.SerializeAsync(postStream, info);
             });
             request.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJson);
 

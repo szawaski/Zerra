@@ -33,7 +33,7 @@ namespace Zerra.CQRS.Network
             var providerName = interfaceType.Name;
             var stringArguments = new string[arguments.Length];
             for (var i = 0; i < arguments.Length; i++)
-                stringArguments[i] = JsonSerializerOld.Serialize(arguments);
+                stringArguments[i] = JsonSerializer.Serialize(arguments);
 
             var data = new ApiRequestData()
             {
@@ -53,7 +53,7 @@ namespace Zerra.CQRS.Network
             var providerName = interfaceType.Name;
             var stringArguments = new string[arguments.Length];
             for (var i = 0; i < arguments.Length; i++)
-                stringArguments[i] = JsonSerializerOld.Serialize(arguments);
+                stringArguments[i] = JsonSerializer.Serialize(arguments);
 
             var data = new ApiRequestData()
             {
@@ -71,7 +71,7 @@ namespace Zerra.CQRS.Network
         protected override Task DispatchInternal(SemaphoreSlim throttle, Type commandType, ICommand command, bool messageAwait, string source)
         {
             var commendTypeName = commandType.GetNiceFullName();
-            var commandData = JsonSerializerOld.Serialize(command, commandType);
+            var commandData = JsonSerializer.Serialize(command, commandType);
 
             var data = new ApiRequestData()
             {

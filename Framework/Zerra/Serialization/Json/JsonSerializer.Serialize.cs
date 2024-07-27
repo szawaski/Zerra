@@ -98,6 +98,85 @@ namespace Zerra.Serialization.Json
             return result;
         }
 
+        public static byte[] SerializeBytes<T>(T? obj, JsonSerializerOptions? options = null, Graph? graph = null)
+        {
+            if (obj == null)
+                return nullBytes.ToArray();
+
+            options ??= defaultOptions;
+
+            var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
+            var converter = (JsonConverter<object, T>)JsonConverterFactory<object>.GetRoot(typeDetail);
+
+            var state = new WriteState()
+            {
+                Nameless = options.Nameless,
+                DoNotWriteNullProperties = options.DoNotWriteNullProperties,
+                EnumAsNumber = options.EnumAsNumber,
+                Graph = graph
+            };
+
+            var result = WriteBytes(converter, defaultBufferSize, ref state, obj);
+
+            if (state.CharsNeeded > 0)
+                throw new EndOfStreamException();
+
+            return result;
+        }
+        public static byte[] SerializeBytes(object? obj, JsonSerializerOptions? options = null, Graph? graph = null)
+        {
+            if (obj == null)
+                return nullBytes.ToArray();
+
+            options ??= defaultOptions;
+
+            var typeDetail = obj.GetType().GetTypeDetail();
+            var converter = JsonConverterFactory<object>.GetRoot(typeDetail);
+
+            var state = new WriteState()
+            {
+                Nameless = options.Nameless,
+                DoNotWriteNullProperties = options.DoNotWriteNullProperties,
+                EnumAsNumber = options.EnumAsNumber,
+                Graph = graph
+            };
+
+            var result = WriteBoxedBytes(converter, defaultBufferSize, ref state, obj);
+
+            if (state.CharsNeeded > 0)
+                throw new EndOfStreamException();
+
+            return result;
+
+        }
+        public static byte[] SerializeBytes(object? obj, Type type, JsonSerializerOptions? options = null, Graph? graph = null)
+        {
+            if (type == null)
+                throw new ArgumentNullException(nameof(type));
+            if (obj == null)
+                return nullBytes.ToArray();
+
+            options ??= defaultOptions;
+
+            var typeDetail = type.GetTypeDetail();
+            var converter = JsonConverterFactory<object>.GetRoot(typeDetail);
+
+            var state = new WriteState()
+            {
+                Nameless = options.Nameless,
+                DoNotWriteNullProperties = options.DoNotWriteNullProperties,
+                EnumAsNumber = options.EnumAsNumber,
+                Graph = graph
+            };
+
+            var result = WriteBoxedBytes(converter, defaultBufferSize, ref state, obj);
+
+            if (state.CharsNeeded > 0)
+                throw new EndOfStreamException();
+
+            return result;
+        }
+
         public static void Serialize<T>(Stream stream, T? obj, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (stream == null)
@@ -487,6 +566,76 @@ namespace Zerra.Serialization.Json
                 writer.Dispose();
             }
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static byte[] WriteBytes<T>(JsonConverter<object, T> converter, int initialSize, ref WriteState state, T value)
+        {
+            var writer = new JsonWriter(true, initialSize);
+            try
+            {
+#if DEBUG
+            again:
+#endif
+                var write = converter.TryWrite(ref writer, ref state, value);
+                if (write)
+                {
+                    state.CharsNeeded = 0;
+                }
+                else if (state.CharsNeeded == 0)
+                {
+#if DEBUG
+                    throw new Exception($"{nameof(state.CharsNeeded)} not indicated");
+#else
+                    state.CharsNeeded = 1;
+#endif
+                }
+#if DEBUG
+                if (!write && JsonWriter.Testing && writer.Position + state.CharsNeeded <= writer.Length)
+                    goto again;
+#endif
+                var result = writer.ToByteArray();
+                return result;
+            }
+            finally
+            {
+                writer.Dispose();
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static byte[] WriteBoxedBytes(JsonConverter<object> converter, int initialSize, ref WriteState state, object value)
+        {
+            var writer = new JsonWriter(true, initialSize);
+            try
+            {
+#if DEBUG
+            again:
+#endif
+                var write = converter.TryWriteBoxed(ref writer, ref state, value);
+                if (write)
+                {
+                    state.CharsNeeded = 0;
+                }
+                else if (state.CharsNeeded == 0)
+                {
+#if DEBUG
+                    throw new Exception($"{nameof(state.CharsNeeded)} not indicated");
+#else
+                    state.CharsNeeded = 1;
+#endif
+                }
+#if DEBUG
+                if (!write && JsonWriter.Testing && writer.Position + state.CharsNeeded <= writer.Length)
+                    goto again;
+#endif
+                var result = writer.ToByteArray();
+                return result;
+            }
+            finally
+            {
+                writer.Dispose();
+            }
+        }
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Write<T>(JsonConverter<object, T> converter, Span<byte> buffer, ref WriteState state, T value)

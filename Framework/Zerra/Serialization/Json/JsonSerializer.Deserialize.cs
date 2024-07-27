@@ -16,6 +16,13 @@ namespace Zerra.Serialization.Json
 {
     public partial class JsonSerializer
     {
+#if NETSTANDARD2_0
+        public static T? Deserialize<T>(string? str, JsonSerializerOptions? options = null, Graph? graph = null)
+            => Deserialize<T>(str.AsSpan(), options, graph);
+        public static object? Deserialize(Type type, string? str, JsonSerializerOptions? options = null, Graph? graph = null)
+            => Deserialize(type, str.AsSpan(), options, graph);
+#endif
+
         public static T? Deserialize<T>(ReadOnlySpan<char> chars, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (chars == null)
@@ -84,6 +91,81 @@ namespace Zerra.Serialization.Json
             object? result;
 
             ReadBoxed(converter, chars, ref state, out result);
+
+            if (state.CharsNeeded > 0)
+                throw new EndOfStreamException();
+
+            return result;
+        }
+
+        public static T? Deserialize<T>(ReadOnlySpan<byte> bytes, JsonSerializerOptions? options = null, Graph? graph = null)
+        {
+            if (bytes == null)
+                throw new ArgumentNullException(nameof(bytes));
+            if (bytes.Length == 0)
+            {
+                if (typeof(T) == typeof(string))
+                    return (T)(object)String.Empty;
+                return default;
+            }
+
+            options ??= defaultOptions;
+
+            var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
+            var converter = (JsonConverter<object, T>)JsonConverterFactory<object>.GetRoot(typeDetail);
+
+            var state = new ReadState()
+            {
+                Nameless = options.Nameless,
+                DoNotWriteNullProperties = options.DoNotWriteNullProperties,
+                EnumAsNumber = options.EnumAsNumber,
+                ErrorOnTypeMismatch = options.ErrorOnTypeMismatch,
+                Graph = graph,
+
+                IsFinalBlock = true
+            };
+
+            T? result;
+
+            Read(converter, bytes, ref state, out result);
+
+            if (state.CharsNeeded > 0)
+                throw new EndOfStreamException();
+
+            return result;
+        }
+        public static object? Deserialize(Type type, ReadOnlySpan<byte> bytes, JsonSerializerOptions? options = null, Graph? graph = null)
+        {
+            if (type == null)
+                throw new ArgumentNullException(nameof(type));
+            if (bytes == null)
+                throw new ArgumentNullException(nameof(bytes));
+            if (bytes.Length == 0)
+            {
+                if (type == typeof(string))
+                    return String.Empty;
+                return default;
+            }
+
+            options ??= defaultOptions;
+
+            var typeDetail = type.GetTypeDetail();
+            var converter = JsonConverterFactory<object>.GetRoot(typeDetail);
+
+            var state = new ReadState()
+            {
+                Nameless = options.Nameless,
+                DoNotWriteNullProperties = options.DoNotWriteNullProperties,
+                EnumAsNumber = options.EnumAsNumber,
+                ErrorOnTypeMismatch = options.ErrorOnTypeMismatch,
+                Graph = graph,
+
+                IsFinalBlock = true
+            };
+
+            object? result;
+
+            ReadBoxed(converter, bytes, ref state, out result);
 
             if (state.CharsNeeded > 0)
                 throw new EndOfStreamException();

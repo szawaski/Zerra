@@ -19,7 +19,7 @@ namespace Zerra.CQRS.Network
             IgnoreIndexAttribute = true
         };
 
-        private static readonly JsonSerializerOptionsOld jsonSerializerNamelessOptions = new()
+        private static readonly JsonSerializerOptions jsonSerializerNamelessOptions = new()
         {
             Nameless = true
         };
@@ -29,8 +29,8 @@ namespace Zerra.CQRS.Network
             return contentType switch
             {
                 ContentType.Bytes => ByteSerializer.Serialize(obj, byteSerializerOptions),
-                ContentType.Json => JsonSerializerOld.SerializeBytes(obj),
-                ContentType.JsonNameless => JsonSerializerOld.SerializeBytes(obj, jsonSerializerNamelessOptions),
+                ContentType.Json => JsonSerializer.SerializeBytes(obj),
+                ContentType.JsonNameless => JsonSerializer.SerializeBytes(obj, jsonSerializerNamelessOptions),
                 _ => throw new NotImplementedException(),
             };
         }
@@ -39,8 +39,8 @@ namespace Zerra.CQRS.Network
             return contentType switch
             {
                 ContentType.Bytes => ByteSerializer.Deserialize<T>(bytes, byteSerializerOptions),
-                ContentType.Json => JsonSerializerOld.Deserialize<T>(bytes),
-                ContentType.JsonNameless => JsonSerializerOld.Deserialize<T>(bytes, jsonSerializerNamelessOptions),
+                ContentType.Json => JsonSerializer.Deserialize<T>(bytes),
+                ContentType.JsonNameless => JsonSerializer.Deserialize<T>(bytes, jsonSerializerNamelessOptions),
                 _ => throw new NotImplementedException(),
             };
         }
@@ -49,8 +49,8 @@ namespace Zerra.CQRS.Network
             return contentType switch
             {
                 ContentType.Bytes => ByteSerializer.Deserialize(type, bytes, byteSerializerOptions),
-                ContentType.Json => JsonSerializerOld.Deserialize(type, bytes),
-                ContentType.JsonNameless => JsonSerializerOld.Deserialize(type, bytes, jsonSerializerNamelessOptions),
+                ContentType.Json => JsonSerializer.Deserialize(type, bytes),
+                ContentType.JsonNameless => JsonSerializer.Deserialize(type, bytes, jsonSerializerNamelessOptions),
                 _ => throw new NotImplementedException(),
             };
         }
@@ -63,10 +63,10 @@ namespace Zerra.CQRS.Network
                     ByteSerializer.Serialize(stream, obj, byteSerializerOptions);
                     return;
                 case ContentType.Json:
-                    JsonSerializerOld.Serialize(stream, obj);
+                    JsonSerializer.Serialize(stream, obj);
                     return;
                 case ContentType.JsonNameless:
-                    JsonSerializerOld.Serialize(stream, obj, jsonSerializerNamelessOptions);
+                    JsonSerializer.Serialize(stream, obj, jsonSerializerNamelessOptions);
                     return;
                 default:
                     throw new NotImplementedException();
@@ -77,8 +77,8 @@ namespace Zerra.CQRS.Network
             return contentType switch
             {
                 ContentType.Bytes => ByteSerializer.Deserialize<T>(stream, byteSerializerOptions),
-                ContentType.Json => JsonSerializerOld.Deserialize<T>(stream),
-                ContentType.JsonNameless => JsonSerializerOld.Deserialize<T>(stream, jsonSerializerNamelessOptions),
+                ContentType.Json => JsonSerializer.Deserialize<T>(stream),
+                ContentType.JsonNameless => JsonSerializer.Deserialize<T>(stream, jsonSerializerNamelessOptions),
                 _ => throw new NotImplementedException(),
             };
         }
@@ -87,8 +87,8 @@ namespace Zerra.CQRS.Network
             return contentType switch
             {
                 ContentType.Bytes => ByteSerializer.Deserialize(type, stream, byteSerializerOptions),
-                ContentType.Json => JsonSerializerOld.Deserialize(type, stream),
-                ContentType.JsonNameless => JsonSerializerOld.Deserialize(type, stream, jsonSerializerNamelessOptions),
+                ContentType.Json => JsonSerializer.Deserialize(type, stream),
+                ContentType.JsonNameless => JsonSerializer.Deserialize(type, stream, jsonSerializerNamelessOptions),
                 _ => throw new NotImplementedException(),
             };
         }
@@ -98,8 +98,8 @@ namespace Zerra.CQRS.Network
             return contentType switch
             {
                 ContentType.Bytes => ByteSerializer.SerializeAsync(stream, obj, byteSerializerOptions),
-                ContentType.Json => JsonSerializerOld.SerializeAsync(stream, obj),
-                ContentType.JsonNameless => JsonSerializerOld.SerializeAsync(stream, obj, jsonSerializerNamelessOptions),
+                ContentType.Json => JsonSerializer.SerializeAsync(stream, obj),
+                ContentType.JsonNameless => JsonSerializer.SerializeAsync(stream, obj, jsonSerializerNamelessOptions),
                 _ => throw new NotImplementedException(),
             };
         }
@@ -108,8 +108,8 @@ namespace Zerra.CQRS.Network
             return contentType switch
             {
                 ContentType.Bytes => ByteSerializer.DeserializeAsync<T>(stream, byteSerializerOptions),
-                ContentType.Json => JsonSerializerOld.DeserializeAsync<T>(stream),
-                ContentType.JsonNameless => JsonSerializerOld.DeserializeAsync<T>(stream, jsonSerializerNamelessOptions),
+                ContentType.Json => JsonSerializer.DeserializeAsync<T>(stream),
+                ContentType.JsonNameless => JsonSerializer.DeserializeAsync<T>(stream, jsonSerializerNamelessOptions),
                 _ => throw new NotImplementedException(),
             };
         }
@@ -118,8 +118,8 @@ namespace Zerra.CQRS.Network
             return contentType switch
             {
                 ContentType.Bytes => ByteSerializer.DeserializeAsync(type, stream, byteSerializerOptions),
-                ContentType.Json => JsonSerializerOld.DeserializeAsync(type, stream),
-                ContentType.JsonNameless => JsonSerializerOld.DeserializeAsync(type, stream, jsonSerializerNamelessOptions),
+                ContentType.Json => JsonSerializer.DeserializeAsync(type, stream),
+                ContentType.JsonNameless => JsonSerializer.DeserializeAsync(type, stream, jsonSerializerNamelessOptions),
                 _ => throw new NotImplementedException(),
             };
         }
@@ -140,12 +140,12 @@ namespace Zerra.CQRS.Network
                     ByteSerializer.Serialize(stream, content);
                     return;
                 case ContentType.Json:
-                    content.ErrorString = JsonSerializerOld.Serialize(ex, errorType);
-                    JsonSerializerOld.Serialize(stream, content);
+                    content.ErrorString = JsonSerializer.Serialize(ex, errorType);
+                    JsonSerializer.Serialize(stream, content);
                     return;
                 case ContentType.JsonNameless:
-                    content.ErrorString = JsonSerializerOld.Serialize(ex, errorType, jsonSerializerNamelessOptions);
-                    JsonSerializerOld.Serialize(stream, content, jsonSerializerNamelessOptions);
+                    content.ErrorString = JsonSerializer.Serialize(ex, errorType, jsonSerializerNamelessOptions);
+                    JsonSerializer.Serialize(stream, content, jsonSerializerNamelessOptions);
                     return;
                 default:
                     throw new NotImplementedException();
@@ -156,8 +156,8 @@ namespace Zerra.CQRS.Network
             ExceptionContent? content = contentType switch
             {
                 ContentType.Bytes => ByteSerializer.Deserialize<ExceptionContent>(stream),
-                ContentType.Json => JsonSerializerOld.Deserialize<ExceptionContent>(stream),
-                ContentType.JsonNameless => JsonSerializerOld.Deserialize<ExceptionContent>(stream, jsonSerializerNamelessOptions),
+                ContentType.Json => JsonSerializer.Deserialize<ExceptionContent>(stream),
+                ContentType.JsonNameless => JsonSerializer.Deserialize<ExceptionContent>(stream, jsonSerializerNamelessOptions),
                 _ => throw new NotImplementedException(),
             };
             if (content == null)
@@ -177,11 +177,11 @@ namespace Zerra.CQRS.Network
                             break;
                         case ContentType.Json:
                             if (!String.IsNullOrEmpty(content.ErrorString))
-                                ex = (Exception?)JsonSerializerOld.Deserialize(type, content.ErrorString);
+                                ex = (Exception?)JsonSerializer.Deserialize(type, content.ErrorString);
                             break;
                         case ContentType.JsonNameless:
                             if (!String.IsNullOrEmpty(content.ErrorString))
-                                ex = (Exception?)JsonSerializerOld.Deserialize(type, content.ErrorString, jsonSerializerNamelessOptions);
+                                ex = (Exception?)JsonSerializer.Deserialize(type, content.ErrorString, jsonSerializerNamelessOptions);
                             break;
                     }
                 }
@@ -206,11 +206,11 @@ namespace Zerra.CQRS.Network
                     content.ErrorBytes = ByteSerializer.Serialize(ex, errorType, byteSerializerOptions);
                     return ByteSerializer.SerializeAsync(stream, content);
                 case ContentType.Json:
-                    content.ErrorString = JsonSerializerOld.Serialize(ex, errorType);
-                    return JsonSerializerOld.SerializeAsync(stream, content);
+                    content.ErrorString = JsonSerializer.Serialize(ex, errorType);
+                    return JsonSerializer.SerializeAsync(stream, content);
                 case ContentType.JsonNameless:
-                    content.ErrorString = JsonSerializerOld.Serialize(ex, errorType, jsonSerializerNamelessOptions);
-                    return JsonSerializerOld.SerializeAsync(stream, content, jsonSerializerNamelessOptions);
+                    content.ErrorString = JsonSerializer.Serialize(ex, errorType, jsonSerializerNamelessOptions);
+                    return JsonSerializer.SerializeAsync(stream, content, jsonSerializerNamelessOptions);
                 default:
                     throw new NotImplementedException();
             }
@@ -220,8 +220,8 @@ namespace Zerra.CQRS.Network
             ExceptionContent? content = contentType switch
             {
                 ContentType.Bytes => await ByteSerializer.DeserializeAsync<ExceptionContent>(stream),
-                ContentType.Json => await JsonSerializerOld.DeserializeAsync<ExceptionContent>(stream),
-                ContentType.JsonNameless => await JsonSerializerOld.DeserializeAsync<ExceptionContent>(stream, jsonSerializerNamelessOptions),
+                ContentType.Json => await JsonSerializer.DeserializeAsync<ExceptionContent>(stream),
+                ContentType.JsonNameless => await JsonSerializer.DeserializeAsync<ExceptionContent>(stream, jsonSerializerNamelessOptions),
                 _ => throw new NotImplementedException(),
             };
             if (content == null)
@@ -241,11 +241,11 @@ namespace Zerra.CQRS.Network
                             break;
                         case ContentType.Json:
                             if (!String.IsNullOrEmpty(content.ErrorString))
-                                ex = (Exception?)JsonSerializerOld.Deserialize(type, content.ErrorString);
+                                ex = (Exception?)JsonSerializer.Deserialize(type, content.ErrorString);
                             break;
                         case ContentType.JsonNameless:
                             if (!String.IsNullOrEmpty(content.ErrorString))
-                                ex = (Exception?)JsonSerializerOld.Deserialize(type, content.ErrorString, jsonSerializerNamelessOptions);
+                                ex = (Exception?)JsonSerializer.Deserialize(type, content.ErrorString, jsonSerializerNamelessOptions);
                             break;
                     }
                 }

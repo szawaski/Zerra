@@ -60,7 +60,7 @@ namespace Zerra.CQRS.Settings
             try
             {
                 var data = File.ReadAllText(filePath, Encoding.UTF8);
-                settings = JsonSerializerOld.Deserialize<ServiceSettings>(data) ?? new();
+                settings = JsonSerializer.Deserialize<ServiceSettings>(data) ?? new();
             }
             catch (Exception ex)
             {
