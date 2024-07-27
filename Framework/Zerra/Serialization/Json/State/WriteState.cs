@@ -40,7 +40,7 @@ namespace Zerra.Serialization.Json.State
                 Array.Resize(ref stack, stack.Length * 2);
         }
 
-        public void PushFrame()
+        public void PushFrame(Graph? graph)
         {
             if (stashCount == 0)
             {
@@ -49,7 +49,10 @@ namespace Zerra.Serialization.Json.State
                     EnsureStackSize();
                     stack[stackCount - 2] = Current;
                 }
-                Current = new();
+                Current = new()
+                {
+                    Graph = graph
+                };
             }
             else
             {

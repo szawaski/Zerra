@@ -185,7 +185,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         }
 
                         property = null;
-                        _ = membersByName?.TryGetValue(name!, out property);
+                        _ = membersByName!.TryGetValue(name!, out property);
                     }
                     else
                     {

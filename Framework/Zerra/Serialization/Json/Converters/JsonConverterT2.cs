@@ -71,7 +71,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (state.StackSize >= maxStackDepth)
                     throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
-                state.PushFrame();
+                state.PushFrame(state.Graph);
             }
 
             if (isObject && valueType != JsonValueType.Object)
@@ -154,7 +154,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (state.StackSize >= maxStackDepth)
                     throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
-                state.PushFrame();
+                state.PushFrame(state.Graph);
             }
 
             if (isInterfacedObject)
@@ -210,7 +210,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (state.StackSize >= maxStackDepth)
                     throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
-                state.PushFrame();
+                state.PushFrame(state.Graph);
             }
 
             if (isObject && valueType != JsonValueType.Object)
@@ -293,7 +293,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (state.StackSize >= maxStackDepth)
                     throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
-                state.PushFrame();
+                state.PushFrame(state.Graph);
             }
 
             if (isInterfacedObject)
@@ -326,7 +326,7 @@ namespace Zerra.Serialization.Json.Converters
             return true;
         }
 
-        public override sealed bool TryReadFromParent(ref JsonReader reader, ref ReadState state, TParent? parent)
+        public override sealed bool TryReadFromParent(ref JsonReader reader, ref ReadState state, TParent? parent, string? propertyName)
         {
             if (state.Current.ChildValueType == JsonValueType.NotDetermined)
             {
@@ -349,7 +349,15 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (state.StackSize >= maxStackDepth)
                     throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
-                state.PushFrame();
+                if (propertyName is not null)
+                {
+                    var childGraph = state.Current.Graph?.GetChildGraph(propertyName);
+                    state.PushFrame(childGraph);
+                }
+                else
+                {
+                    state.PushFrame(null);
+                }
             }
 
             if (isObject && valueType != JsonValueType.Object)
@@ -477,7 +485,15 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (state.StackSize >= maxStackDepth)
                     throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
-                state.PushFrame();
+                if (propertyName is not null)
+                {
+                    var childGraph = state.Current.Graph?.GetChildGraph(propertyName);
+                    state.PushFrame(childGraph);
+                }
+                else
+                {
+                    state.PushFrame(null);
+                }
             }
 
             if (isInterfacedObject || isObject)

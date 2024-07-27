@@ -7,6 +7,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Xml.Linq;
 using Zerra.Reflection;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
@@ -151,7 +152,13 @@ namespace Zerra.Serialization.Json.Converters.General
                         throw reader.CreateException("Unexpected character");
 
                     property = null;
-                    _ = membersByName?.TryGetValue(name!, out property);
+                    if (membersByName!.TryGetValue(name!, out property) == true)
+                    {
+                        if (state.Current.Graph is not null && !state.Current.Graph.HasProperty(name))
+                        {
+                            property = null;
+                        }
+                    }
                 }
                 else
                 {
@@ -195,7 +202,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     {
                         if (collectValues)
                         {
-                            if (!property.ConverterSetCollectedValues.TryReadFromParent(ref reader, ref state, collectedValues))
+                            if (!property.ConverterSetCollectedValues.TryReadFromParent(ref reader, ref state, collectedValues, property.Member.Name))
                             {
                                 state.Current.HasReadProperty = true;
                                 state.Current.HasReadSeperator = true;
@@ -209,7 +216,7 @@ namespace Zerra.Serialization.Json.Converters.General
                         }
                         else
                         {
-                            if (!property.Converter.TryReadFromParent(ref reader, ref state, value))
+                            if (!property.Converter.TryReadFromParent(ref reader, ref state, value, property.Member.Name))
                             {
                                 state.Current.HasReadProperty = true;
                                 state.Current.HasReadSeperator = true;
@@ -314,6 +321,11 @@ namespace Zerra.Serialization.Json.Converters.General
 
             while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
             {
+                if (state.Current.Graph is not null && !state.Current.Graph.HasProperty(enumerator.Current.Key))
+                {
+                    continue;
+                }
+
                 if (!enumerator.Current.Value.Converter.TryWriteFromParent(ref writer, ref state, value, enumerator.Current.Key, false))
                 {
                     state.Current.HasWrittenStart = true;

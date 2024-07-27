@@ -9,7 +9,6 @@ namespace Zerra.Serialization.Json.State
     [StructLayout(LayoutKind.Auto)]
     public struct ReadFrame
     {
-        public Graph? Graph;
         public JsonValueType ChildValueType;
 
         public byte State;
@@ -21,5 +20,7 @@ namespace Zerra.Serialization.Json.State
         public bool HasReadSeperator;
         public bool HasReadValue;
         public object? Property;
+
+        public Graph? Graph;
     }
 }

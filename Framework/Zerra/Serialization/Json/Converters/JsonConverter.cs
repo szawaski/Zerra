@@ -36,7 +36,7 @@ namespace Zerra.Serialization.Json.Converters
             switch (state.Current.ChildValueType)
             {
                 case JsonValueType.Object:
-                    state.PushFrame();
+                    state.PushFrame(null);
                     if (!DrainObject(ref reader, ref state))
                     {
                         state.StashFrame();
@@ -46,7 +46,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.Current.ChildValueType = JsonValueType.NotDetermined;
                     return true;
                 case JsonValueType.Array:
-                    state.PushFrame();
+                    state.PushFrame(null);
                     if (!DrainArray(ref reader, ref state))
                     {
                         state.StashFrame();
@@ -56,7 +56,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.Current.ChildValueType = JsonValueType.NotDetermined;
                     return true;
                 case JsonValueType.String:
-                    state.PushFrame();
+                    state.PushFrame(null);
                     if (!DrainString(ref reader, ref state))
                     {
                         state.StashFrame();
@@ -75,7 +75,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.Current.ChildValueType = JsonValueType.NotDetermined;
                     return true;
                 case JsonValueType.Number:
-                    state.PushFrame();
+                    state.PushFrame(null);
                     if (!DrainNumber(ref reader, ref state))
                     {
                         state.StashFrame();
