@@ -21,7 +21,6 @@ namespace Zerra.Test
         public JsonSerializerTest()
         {
 #if DEBUG
-            JsonSerializerOld.Testing = true;
             Zerra.Serialization.Json.IO.JsonReader.Testing = true;
             Zerra.Serialization.Json.IO.JsonWriter.Testing = true;
 #endif
@@ -577,22 +576,6 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void StringJsonObject()
-        {
-            var baseModel = TypesAllModel.Create();
-            var json = JsonSerializerOld.Serialize(baseModel);
-            var jsonObject = JsonSerializerOld.DeserializeJsonObject(json);
-
-            var json2 = jsonObject.ToString();
-
-            Assert.AreEqual(json, json2);
-
-            var model1 = jsonObject.Bind<TypesAllModel>();
-
-            AssertHelper.AreEqual(baseModel, model1);
-        }
-
-        [TestMethod]
         public void StringExceptionObject()
         {
             var model1 = new Exception("bad things happened");
@@ -748,6 +731,22 @@ namespace Zerra.Test
             AssertHelper.AreNotEqual(model1.Int64Thing, model3.Int64Thing);
             Assert.IsNotNull(model3.ClassThing);
             AssertHelper.AreEqual(model1.ClassThing.Value2, model3.ClassThing.Value2);
+        }
+
+        [TestMethod]
+        public void StringJsonObject()
+        {
+            var baseModel = TypesAllModel.Create();
+            var json = JsonSerializer.Serialize(baseModel);
+            var jsonObject = JsonSerializer.DeserializeJsonObject(json);
+
+            var json2 = jsonObject.ToString();
+
+            Assert.AreEqual(json, json2);
+
+            var model1 = jsonObject.Bind<TypesAllModel>();
+
+            AssertHelper.AreEqual(baseModel, model1);
         }
 
         [TestMethod]
@@ -1652,6 +1651,26 @@ namespace Zerra.Test
             AssertHelper.AreNotEqual(model1.Int64Thing, model3.Int64Thing);
             Assert.IsNotNull(model3.ClassThing);
             AssertHelper.AreEqual(model1.ClassThing.Value2, model3.ClassThing.Value2);
+        }
+
+        [TestMethod]
+        public async Task StreamJsonObject()
+        {
+            var baseModel = TypesAllModel.Create();
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, baseModel);
+            stream.Position = 0;
+            var json = Encoding.UTF8.GetString(stream.ToArray());
+            stream.Position = 0;
+            var jsonObject = await JsonSerializer.DeserializeJsonObjectAsync(stream);
+
+            var json2 = jsonObject.ToString();
+
+            Assert.AreEqual(json, json2);
+
+            var model1 = jsonObject.Bind<TypesAllModel>();
+
+            AssertHelper.AreEqual(baseModel, model1);
         }
     }
 }

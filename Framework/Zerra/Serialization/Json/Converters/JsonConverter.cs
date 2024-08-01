@@ -11,6 +11,8 @@ using System.Runtime.CompilerServices;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Collections;
+using Zerra.Serialization.Json.Converters.Collections;
+using System.Security.AccessControl;
 
 namespace Zerra.Serialization.Json.Converters
 {
@@ -23,6 +25,2003 @@ namespace Zerra.Serialization.Json.Converters
 
         public abstract bool TryReadBoxed(ref JsonReader reader, ref ReadState state, out object? value);
         public abstract bool TryWriteBoxed(ref JsonWriter writer, ref WriteState state, in object? value);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static bool ReadNumberAsString(ref JsonReader reader, ref ReadState state,
+#if !NETSTANDARD2_0
+         [MaybeNullWhen(false)]
+#endif
+        out string value)
+        {
+            scoped Span<char> buffer;
+
+            if (state.StringBuffer == null)
+            {
+                buffer = stackalloc char[128];
+            }
+            else
+            {
+                if (state.StringBuffer.Length > 128)
+                {
+                    buffer = state.StringBuffer;
+                }
+                else
+                {
+                    buffer = stackalloc char[128];
+                    state.StringBuffer.AsSpan().Slice(0, state.StringPosition).CopyTo(buffer);
+                    BufferArrayPool<char>.Return(state.StringBuffer);
+                    state.StringBuffer = null;
+                }
+            }
+
+            char c;
+            if (state.NumberStage != ReadNumberStage.Setup)
+            {
+                switch (state.NumberStage)
+                {
+                    case ReadNumberStage.Value:
+                        goto startValue;
+                    case ReadNumberStage.ValueContinue:
+                        goto startValueContinue;
+                    case ReadNumberStage.Decimal:
+                        goto startDecimal;
+                    case ReadNumberStage.Exponent:
+                        goto startExponent;
+                    case ReadNumberStage.ExponentContinue:
+                        goto startExponentContinue;
+                }
+            }
+
+        startValue:
+            if (!reader.TryReadNext(out c))
+            {
+                if (state.IsFinalBlock && reader.Position == reader.Length)
+                {
+                    value = buffer.Slice(0, state.StringPosition).ToString();
+                    if (state.StringBuffer != null)
+                    {
+                        BufferArrayPool<char>.Return(state.StringBuffer);
+                        state.StringBuffer = null;
+                    }
+                    state.StringPosition = 0;
+                    state.NumberStage = ReadNumberStage.Setup;
+                    return true;
+                }
+                state.CharsNeeded = 1;
+                if (state.StringBuffer == null)
+                {
+                    state.StringBuffer = BufferArrayPool<char>.Rent(buffer.Length);
+                    buffer.Slice(0, state.StringPosition).CopyTo(state.StringBuffer);
+                }
+                value = default;
+                state.NumberStage = ReadNumberStage.Value;
+                return false;
+            }
+            switch (c)
+            {
+                case '0': break;
+                case '1': break;
+                case '2': break;
+                case '3': break;
+                case '4': break;
+                case '5': break;
+                case '6': break;
+                case '7': break;
+                case '8': break;
+                case '9': break;
+                case '-': break;
+                default: throw reader.CreateException("Unexpected character");
+            }
+            if (state.StringPosition + 1 > buffer.Length)
+            {
+                var oldRented = state.StringBuffer;
+                state.StringBuffer = BufferArrayPool<char>.Rent(buffer.Length * 2);
+                buffer.CopyTo(state.StringBuffer);
+                buffer = state.StringBuffer;
+                if (oldRented != null)
+                    BufferArrayPool<char>.Return(oldRented);
+            }
+            buffer[state.StringPosition++] = c;
+
+        startValueContinue:
+            for (; ; )
+            {
+                if (!reader.TryReadNext(out c))
+                {
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
+                    {
+                        value = buffer.Slice(0, state.StringPosition).ToString();
+                        if (state.StringBuffer != null)
+                        {
+                            BufferArrayPool<char>.Return(state.StringBuffer);
+                            state.StringBuffer = null;
+                        }
+                        state.StringPosition = 0;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        return true;
+                    }
+                    state.CharsNeeded = 1;
+                    if (state.StringBuffer == null)
+                    {
+                        state.StringBuffer = BufferArrayPool<char>.Rent(buffer.Length);
+                        buffer.Slice(0, state.StringPosition).CopyTo(state.StringBuffer);
+                    }
+                    value = default;
+                    state.NumberStage = ReadNumberStage.ValueContinue;
+                    return false;
+                }
+                switch (c)
+                {
+                    case '0': break;
+                    case '1': break;
+                    case '2': break;
+                    case '3': break;
+                    case '4': break;
+                    case '5': break;
+                    case '6': break;
+                    case '7': break;
+                    case '8': break;
+                    case '9': break;
+                    case '.':
+                        if (state.StringPosition + 1 > buffer.Length)
+                        {
+                            var oldRented = state.StringBuffer;
+                            state.StringBuffer = BufferArrayPool<char>.Rent(buffer.Length * 2);
+                            buffer.CopyTo(state.StringBuffer);
+                            buffer = state.StringBuffer;
+                            if (oldRented != null)
+                                BufferArrayPool<char>.Return(oldRented);
+                        }
+                        buffer[state.StringPosition++] = c;
+                        goto startDecimal;
+                    case 'e':
+                    case 'E':
+                        if (state.StringPosition + 1 > buffer.Length)
+                        {
+                            var oldRented = state.StringBuffer;
+                            state.StringBuffer = BufferArrayPool<char>.Rent(buffer.Length * 2);
+                            buffer.CopyTo(state.StringBuffer);
+                            buffer = state.StringBuffer;
+                            if (oldRented != null)
+                                BufferArrayPool<char>.Return(oldRented);
+                        }
+                        buffer[state.StringPosition++] = c;
+                        goto startExponent;
+                    case ' ':
+                    case '\r':
+                    case '\n':
+                    case '\t':
+                        value = buffer.Slice(0, state.StringPosition).ToString();
+                        if (state.StringBuffer != null)
+                        {
+                            BufferArrayPool<char>.Return(state.StringBuffer);
+                            state.StringBuffer = null;
+                        }
+                        state.StringPosition = 0;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        return true;
+                    case ',':
+                    case '}':
+                    case ']':
+                        reader.BackOne();
+                        value = buffer.Slice(0, state.StringPosition).ToString();
+                        if (state.StringBuffer != null)
+                        {
+                            BufferArrayPool<char>.Return(state.StringBuffer);
+                            state.StringBuffer = null;
+                        }
+                        state.StringPosition = 0;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        return true;
+                    default: throw reader.CreateException("Unexpected character");
+                }
+                if (state.StringPosition + 1 > buffer.Length)
+                {
+                    var oldRented = state.StringBuffer;
+                    state.StringBuffer = BufferArrayPool<char>.Rent(buffer.Length * 2);
+                    buffer.CopyTo(state.StringBuffer);
+                    buffer = state.StringBuffer;
+                    if (oldRented != null)
+                        BufferArrayPool<char>.Return(oldRented);
+                }
+                buffer[state.StringPosition++] = c;
+            }
+
+        startDecimal:
+            for (; ; )
+            {
+                if (!reader.TryReadNext(out c))
+                {
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
+                    {
+                        value = buffer.Slice(0, state.StringPosition).ToString();
+                        if (state.StringBuffer != null)
+                        {
+                            BufferArrayPool<char>.Return(state.StringBuffer);
+                            state.StringBuffer = null;
+                        }
+                        state.StringPosition = 0;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        return true;
+                    }
+                    state.CharsNeeded = 1;
+                    if (state.StringBuffer == null)
+                    {
+                        state.StringBuffer = BufferArrayPool<char>.Rent(buffer.Length);
+                        buffer.Slice(0, state.StringPosition).CopyTo(state.StringBuffer);
+                    }
+                    value = default;
+                    state.NumberStage = ReadNumberStage.Decimal;
+                    return false;
+                }
+                switch (c)
+                {
+                    case '0': break;
+                    case '1': break;
+                    case '2': break;
+                    case '3': break;
+                    case '4': break;
+                    case '5': break;
+                    case '6': break;
+                    case '7': break;
+                    case '8': break;
+                    case '9': break;
+                    case 'e':
+                    case 'E':
+                        if (state.StringPosition + 1 > buffer.Length)
+                        {
+                            var oldRented = state.StringBuffer;
+                            state.StringBuffer = BufferArrayPool<char>.Rent(buffer.Length * 2);
+                            buffer.CopyTo(state.StringBuffer);
+                            buffer = state.StringBuffer;
+                            if (oldRented != null)
+                                BufferArrayPool<char>.Return(oldRented);
+                        }
+                        buffer[state.StringPosition++] = c;
+                        goto startExponent;
+                    case ' ':
+                    case '\r':
+                    case '\n':
+                    case '\t':
+                        value = buffer.Slice(0, state.StringPosition).ToString();
+                        if (state.StringBuffer != null)
+                        {
+                            BufferArrayPool<char>.Return(state.StringBuffer);
+                            state.StringBuffer = null;
+                        }
+                        state.StringPosition = 0;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        return true;
+                    case ',':
+                    case '}':
+                    case ']':
+                        reader.BackOne();
+                        value = buffer.Slice(0, state.StringPosition).ToString();
+                        if (state.StringBuffer != null)
+                        {
+                            BufferArrayPool<char>.Return(state.StringBuffer);
+                            state.StringBuffer = null;
+                        }
+                        state.StringPosition = 0;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        return true;
+                    default: throw reader.CreateException("Unexpected character");
+                }
+                if (state.StringPosition + 1 > buffer.Length)
+                {
+                    var oldRented = state.StringBuffer;
+                    state.StringBuffer = BufferArrayPool<char>.Rent(buffer.Length * 2);
+                    buffer.CopyTo(state.StringBuffer);
+                    buffer = state.StringBuffer;
+                    if (oldRented != null)
+                        BufferArrayPool<char>.Return(oldRented);
+                }
+                buffer[state.StringPosition++] = c;
+            }
+
+        startExponent:
+            if (!reader.TryReadNext(out c))
+            {
+                if (state.IsFinalBlock && reader.Position == reader.Length)
+                {
+                    value = buffer.Slice(0, state.StringPosition).ToString();
+                    if (state.StringBuffer != null)
+                    {
+                        BufferArrayPool<char>.Return(state.StringBuffer);
+                        state.StringBuffer = null;
+                    }
+                    state.StringPosition = 0;
+                    state.NumberStage = ReadNumberStage.Setup;
+                    return true;
+                }
+                state.CharsNeeded = 1;
+                if (state.StringBuffer == null)
+                {
+                    state.StringBuffer = BufferArrayPool<char>.Rent(buffer.Length);
+                    buffer.Slice(0, state.StringPosition).CopyTo(state.StringBuffer);
+                }
+                value = default;
+                state.NumberStage = ReadNumberStage.Exponent;
+                return false;
+            }
+            switch (c)
+            {
+                case '0': break;
+                case '1': break;
+                case '2': break;
+                case '3': break;
+                case '4': break;
+                case '5': break;
+                case '6': break;
+                case '7': break;
+                case '8': break;
+                case '9': break;
+                case '+': break;
+                case '-': break;
+                default:
+                    throw reader.CreateException("Unexpected character");
+            }
+            if (state.StringPosition + 1 > buffer.Length)
+            {
+                var oldRented = state.StringBuffer;
+                state.StringBuffer = BufferArrayPool<char>.Rent(buffer.Length * 2);
+                buffer.CopyTo(state.StringBuffer);
+                buffer = state.StringBuffer;
+                if (oldRented != null)
+                    BufferArrayPool<char>.Return(oldRented);
+            }
+            buffer[state.StringPosition++] = c;
+
+        startExponentContinue:
+            for (; ; )
+            {
+                if (!reader.TryReadNext(out c))
+                {
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
+                    {
+                        value = buffer.Slice(0, state.StringPosition).ToString();
+                        if (state.StringBuffer != null)
+                        {
+                            BufferArrayPool<char>.Return(state.StringBuffer);
+                            state.StringBuffer = null;
+                        }
+                        state.StringPosition = 0;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        return true;
+                    }
+                    state.CharsNeeded = 1;
+                    if (state.StringBuffer == null)
+                    {
+                        state.StringBuffer = BufferArrayPool<char>.Rent(buffer.Length);
+                        buffer.Slice(0, state.StringPosition).CopyTo(state.StringBuffer);
+                    }
+                    value = default;
+                    state.NumberStage = ReadNumberStage.ExponentContinue;
+                    return false;
+                }
+
+                switch (c)
+                {
+                    case '0': break;
+                    case '1': break;
+                    case '2': break;
+                    case '3': break;
+                    case '4': break;
+                    case '5': break;
+                    case '6': break;
+                    case '7': break;
+                    case '8': break;
+                    case '9': break;
+                    case ' ':
+                    case '\r':
+                    case '\n':
+                    case '\t':
+                        value = buffer.Slice(0, state.StringPosition).ToString();
+                        if (state.StringBuffer != null)
+                        {
+                            BufferArrayPool<char>.Return(state.StringBuffer);
+                            state.StringBuffer = null;
+                        }
+                        state.StringPosition = 0;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        return true;
+                    case ',':
+                    case '}':
+                    case ']':
+                        reader.BackOne();
+                        value = buffer.Slice(0, state.StringPosition).ToString();
+                        if (state.StringBuffer != null)
+                        {
+                            BufferArrayPool<char>.Return(state.StringBuffer);
+                            state.StringBuffer = null;
+                        }
+                        state.StringPosition = 0;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        return true;
+                    default: throw reader.CreateException("Unexpected character");
+                }
+                if (state.StringPosition + 1 > buffer.Length)
+                {
+                    var oldRented = state.StringBuffer;
+                    state.StringBuffer = BufferArrayPool<char>.Rent(buffer.Length * 2);
+                    buffer.CopyTo(state.StringBuffer);
+                    buffer = state.StringBuffer;
+                    if (oldRented != null)
+                        BufferArrayPool<char>.Return(oldRented);
+                }
+                buffer[state.StringPosition++] = c;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static bool ReadNumberAsInt64(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out long value)
+        {
+            double workingNumber;
+            char c;
+            if (state.NumberStage == ReadNumberStage.Setup)
+            {
+                state.NumberInt64 = 0;
+                state.NumberWorkingDouble = 0;
+                state.NumberIsNegative = false;
+                state.NumberWorkingIsNegative = false;
+                state.NumberParseFailed = false;
+                value = 0;
+                workingNumber = 0;
+                if (valueType == JsonValueType.String)
+                    state.NumberStage = ReadNumberStage.ValueContinue;
+                else if (valueType != JsonValueType.Number)
+                    reader.CreateException("Bad JsonSerializer state");
+            }
+            else
+            {
+                value = state.NumberInt64;
+                workingNumber = state.NumberWorkingDouble;
+
+                switch (state.NumberStage)
+                {
+                    case ReadNumberStage.Value:
+                        goto startValue;
+                    case ReadNumberStage.ValueContinue:
+                        goto startValueContinue;
+                    case ReadNumberStage.Decimal:
+                        goto startDecimal;
+                    case ReadNumberStage.Exponent:
+                        goto startExponent;
+                    case ReadNumberStage.ExponentContinue:
+                        goto startExponentContinue;
+                }
+            }
+
+        startValue:
+            if (!reader.TryReadNext(out c))
+            {
+                if (state.IsFinalBlock && reader.Position == reader.Length)
+                {
+                    if (valueType == JsonValueType.String)
+                        throw reader.CreateException("Unexpected character");
+                    if (state.NumberIsNegative)
+                        value *= -1;
+                    state.NumberStage = ReadNumberStage.Setup;
+                    if (state.NumberParseFailed)
+                        value = default;
+                    return true;
+                }
+                state.CharsNeeded = 1;
+                state.NumberInt64 = value;
+                state.NumberStage = ReadNumberStage.Value;
+                return false;
+            }
+            switch (c)
+            {
+                case '0': value = 0; break;
+                case '1': value = 1; break;
+                case '2': value = 2; break;
+                case '3': value = 3; break;
+                case '4': value = 4; break;
+                case '5': value = 5; break;
+                case '6': value = 6; break;
+                case '7': value = 7; break;
+                case '8': value = 8; break;
+                case '9': value = 9; break;
+                case '-':
+                    value = 0;
+                    state.NumberIsNegative = true;
+                    break;
+                default:
+                    if (valueType == JsonValueType.String)
+                    {
+                        if (state.ErrorOnTypeMismatch)
+                            throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                        else
+                            state.NumberParseFailed = true;
+                    }
+                    else
+                    {
+                        throw reader.CreateException("Unexpected character");
+                    }
+                    break;
+            }
+
+        startValueContinue:
+            for (; ; )
+            {
+                if (!reader.TryReadNext(out c))
+                {
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
+                    {
+                        if (valueType == JsonValueType.String)
+                            throw reader.CreateException("Unexpected character");
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    }
+                    state.CharsNeeded = 1;
+                    state.NumberInt64 = value;
+                    state.NumberStage = ReadNumberStage.ValueContinue;
+                    return false;
+                }
+                switch (c)
+                {
+                    case '0': value *= 10; break;
+                    case '1': value = value * 10 + 1; break;
+                    case '2': value = value * 10 + 2; break;
+                    case '3': value = value * 10 + 3; break;
+                    case '4': value = value * 10 + 4; break;
+                    case '5': value = value * 10 + 5; break;
+                    case '6': value = value * 10 + 6; break;
+                    case '7': value = value * 10 + 7; break;
+                    case '8': value = value * 10 + 8; break;
+                    case '9': value = value * 10 + 9; break;
+                    case '.':
+                        workingNumber = 10;
+                        goto startDecimal;
+                    case 'e':
+                    case 'E':
+                        goto startExponent;
+                    case ' ':
+                    case '\r':
+                    case '\n':
+                    case '\t':
+                        if (valueType == JsonValueType.String)
+                            throw reader.CreateException("Unexpected character");
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    case ',':
+                    case '}':
+                    case ']':
+                        reader.BackOne();
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    case '"':
+                        if (valueType != JsonValueType.String)
+                            throw reader.CreateException("Unexpected character");
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    default:
+                        if (valueType == JsonValueType.String)
+                        {
+                            if (state.ErrorOnTypeMismatch)
+                                throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                            else
+                                state.NumberParseFailed = true;
+                        }
+                        else
+                        {
+                            throw reader.CreateException("Unexpected character");
+                        }
+                        break;
+                }
+            }
+
+        startDecimal:
+            for (; ; )
+            {
+                if (!reader.TryReadNext(out c))
+                {
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
+                    {
+                        if (valueType == JsonValueType.String)
+                            throw reader.CreateException("Unexpected character");
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    }
+                    state.CharsNeeded = 1;
+                    state.NumberInt64 = value;
+                    state.NumberStage = ReadNumberStage.Decimal;
+                    return false;
+                }
+                switch (c)
+                {
+                    case '0': break;
+                    case '1': break;
+                    case '2': break;
+                    case '3': break;
+                    case '4': break;
+                    case '5': break;
+                    case '6': break;
+                    case '7': break;
+                    case '8': break;
+                    case '9': break;
+                    case 'e':
+                    case 'E':
+                        goto startExponent;
+                    case ' ':
+                    case '\r':
+                    case '\n':
+                    case '\t':
+                        if (valueType == JsonValueType.String)
+                            throw reader.CreateException("Unexpected character");
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    case ',':
+                    case '}':
+                    case ']':
+                        reader.BackOne();
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    case '"':
+                        if (valueType != JsonValueType.String)
+                            throw reader.CreateException("Unexpected character");
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    default:
+                        if (valueType == JsonValueType.String)
+                        {
+                            if (state.ErrorOnTypeMismatch)
+                                throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                            else
+                                state.NumberParseFailed = true;
+                        }
+                        else
+                        {
+                            throw reader.CreateException("Unexpected character");
+                        }
+                        break;
+                }
+            }
+
+        startExponent:
+            if (!reader.TryReadNext(out c))
+            {
+                if (state.IsFinalBlock && reader.Position == reader.Length)
+                {
+                    if (valueType == JsonValueType.String)
+                        throw reader.CreateException("Unexpected character");
+                    if (state.NumberIsNegative)
+                        value *= -1;
+                    state.NumberStage = ReadNumberStage.Setup;
+                    if (state.NumberParseFailed)
+                        value = default;
+                    return true;
+                }
+                state.CharsNeeded = 1;
+                state.NumberInt64 = value;
+                state.NumberStage = ReadNumberStage.Exponent;
+                return false;
+            }
+            switch (c)
+            {
+                case '0': workingNumber = 0; break;
+                case '1': workingNumber = 1; break;
+                case '2': workingNumber = 2; break;
+                case '3': workingNumber = 3; break;
+                case '4': workingNumber = 4; break;
+                case '5': workingNumber = 5; break;
+                case '6': workingNumber = 6; break;
+                case '7': workingNumber = 7; break;
+                case '8': workingNumber = 8; break;
+                case '9': workingNumber = 9; break;
+                case '+': workingNumber = 0; break;
+                case '-':
+                    workingNumber = 0;
+                    state.NumberWorkingIsNegative = true;
+                    break;
+                default:
+                    if (valueType == JsonValueType.String)
+                    {
+                        if (state.ErrorOnTypeMismatch)
+                            throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                        else
+                            state.NumberParseFailed = true;
+                    }
+                    else
+                    {
+                        throw reader.CreateException("Unexpected character");
+                    }
+                    break;
+            }
+
+        startExponentContinue:
+            for (; ; )
+            {
+                if (!reader.TryReadNext(out c))
+                {
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
+                    {
+                        if (valueType == JsonValueType.String)
+                            throw reader.CreateException("Unexpected character");
+                        if (state.NumberWorkingIsNegative)
+                            workingNumber *= -1;
+                        value *= (long)Math.Pow(10, workingNumber);
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    }
+                    state.CharsNeeded = 1;
+                    state.NumberInt64 = value;
+                    state.NumberDouble = workingNumber;
+                    state.NumberStage = ReadNumberStage.ExponentContinue;
+                    return false;
+                }
+
+                switch (c)
+                {
+                    case '0': workingNumber *= 10; break;
+                    case '1': workingNumber = workingNumber * 10 + 1; break;
+                    case '2': workingNumber = workingNumber * 10 + 2; break;
+                    case '3': workingNumber = workingNumber * 10 + 3; break;
+                    case '4': workingNumber = workingNumber * 10 + 4; break;
+                    case '5': workingNumber = workingNumber * 10 + 5; break;
+                    case '6': workingNumber = workingNumber * 10 + 6; break;
+                    case '7': workingNumber = workingNumber * 10 + 7; break;
+                    case '8': workingNumber = workingNumber * 10 + 8; break;
+                    case '9': workingNumber = workingNumber * 10 + 9; break;
+                    case ' ':
+                    case '\r':
+                    case '\n':
+                    case '\t':
+                        if (valueType == JsonValueType.String)
+                            throw reader.CreateException("Unexpected character");
+                        if (state.NumberWorkingIsNegative)
+                            workingNumber *= -1;
+                        value *= (long)Math.Pow(10, workingNumber);
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    case ',':
+                    case '}':
+                    case ']':
+                        reader.BackOne();
+                        if (state.NumberWorkingIsNegative)
+                            workingNumber *= -1;
+                        value *= (long)Math.Pow(10, workingNumber);
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    case '"':
+                        if (valueType != JsonValueType.String)
+                            throw reader.CreateException("Unexpected character");
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    default:
+                        if (valueType == JsonValueType.String)
+                        {
+                            if (state.ErrorOnTypeMismatch)
+                                throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                            else
+                                state.NumberParseFailed = true;
+                        }
+                        else
+                        {
+                            throw reader.CreateException("Unexpected character");
+                        }
+                        break;
+                }
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static bool ReadNumberAsUInt64(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out ulong value)
+        {
+            double workingNumber;
+            char c;
+            if (state.NumberStage == ReadNumberStage.Setup)
+            {
+                state.NumberUInt64 = 0;
+                state.NumberWorkingDouble = 0;
+                state.NumberIsNegative = false;
+                state.NumberWorkingIsNegative = false;
+                state.NumberParseFailed = false;
+                value = 0;
+                workingNumber = 0;
+                if (valueType == JsonValueType.String)
+                    state.NumberStage = ReadNumberStage.ValueContinue;
+                else if (valueType != JsonValueType.Number)
+                    reader.CreateException("Bad JsonSerializer state");
+            }
+            else
+            {
+                value = state.NumberUInt64;
+                workingNumber = state.NumberWorkingDouble;
+
+                switch (state.NumberStage)
+                {
+                    case ReadNumberStage.Value:
+                        goto startValue;
+                    case ReadNumberStage.ValueContinue:
+                        goto startValueContinue;
+                    case ReadNumberStage.Decimal:
+                        goto startDecimal;
+                    case ReadNumberStage.Exponent:
+                        goto startExponent;
+                    case ReadNumberStage.ExponentContinue:
+                        goto startExponentContinue;
+                }
+            }
+
+        startValue:
+            if (!reader.TryReadNext(out c))
+            {
+                if (state.IsFinalBlock && reader.Position == reader.Length)
+                {
+                    if (valueType == JsonValueType.String)
+                        throw reader.CreateException("Unexpected character");
+                    state.NumberStage = ReadNumberStage.Setup;
+                    if (state.NumberParseFailed)
+                        value = default;
+                    return true;
+                }
+                state.CharsNeeded = 1;
+                state.NumberUInt64 = value;
+                state.NumberStage = ReadNumberStage.Value;
+                return false;
+            }
+            switch (c)
+            {
+                case '0': value = 0; break;
+                case '1': value = 1; break;
+                case '2': value = 2; break;
+                case '3': value = 3; break;
+                case '4': value = 4; break;
+                case '5': value = 5; break;
+                case '6': value = 6; break;
+                case '7': value = 7; break;
+                case '8': value = 8; break;
+                case '9': value = 9; break;
+                case '-':
+                    value = 0;
+                    break;
+                default:
+                    if (valueType == JsonValueType.String)
+                    {
+                        if (state.ErrorOnTypeMismatch)
+                            throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                        else
+                            state.NumberParseFailed = true;
+                    }
+                    else
+                    {
+                        throw reader.CreateException("Unexpected character");
+                    }
+                    break;
+            }
+
+        startValueContinue:
+            for (; ; )
+            {
+                if (!reader.TryReadNext(out c))
+                {
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
+                    {
+                        if (valueType == JsonValueType.String)
+                            throw reader.CreateException("Unexpected character");
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    }
+                    state.CharsNeeded = 1;
+                    state.NumberUInt64 = value;
+                    state.NumberStage = ReadNumberStage.ValueContinue;
+                    return false;
+                }
+                switch (c)
+                {
+                    case '0': value *= 10; break;
+                    case '1': value = value * 10 + 1; break;
+                    case '2': value = value * 10 + 2; break;
+                    case '3': value = value * 10 + 3; break;
+                    case '4': value = value * 10 + 4; break;
+                    case '5': value = value * 10 + 5; break;
+                    case '6': value = value * 10 + 6; break;
+                    case '7': value = value * 10 + 7; break;
+                    case '8': value = value * 10 + 8; break;
+                    case '9': value = value * 10 + 9; break;
+                    case '.':
+                        workingNumber = 10;
+                        goto startDecimal;
+                    case 'e':
+                    case 'E':
+                        goto startExponent;
+                    case ' ':
+                    case '\r':
+                    case '\n':
+                    case '\t':
+                        if (valueType == JsonValueType.String)
+                            throw reader.CreateException("Unexpected character");
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    case ',':
+                    case '}':
+                    case ']':
+                        reader.BackOne();
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    case '"':
+                        if (valueType != JsonValueType.String)
+                            throw reader.CreateException("Unexpected character");
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    default:
+                        if (valueType == JsonValueType.String)
+                        {
+                            if (state.ErrorOnTypeMismatch)
+                                throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                            else
+                                state.NumberParseFailed = true;
+                        }
+                        else
+                        {
+                            throw reader.CreateException("Unexpected character");
+                        }
+                        break;
+                }
+            }
+
+        startDecimal:
+            for (; ; )
+            {
+                if (!reader.TryReadNext(out c))
+                {
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
+                    {
+                        if (valueType == JsonValueType.String)
+                            throw reader.CreateException("Unexpected character");
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    }
+                    state.CharsNeeded = 1;
+                    state.NumberUInt64 = value;
+                    state.NumberStage = ReadNumberStage.Decimal;
+                    return false;
+                }
+                switch (c)
+                {
+                    case '0': break;
+                    case '1': break;
+                    case '2': break;
+                    case '3': break;
+                    case '4': break;
+                    case '5': break;
+                    case '6': break;
+                    case '7': break;
+                    case '8': break;
+                    case '9': break;
+                    case 'e':
+                    case 'E':
+                        goto startExponent;
+                    case ' ':
+                    case '\r':
+                    case '\n':
+                    case '\t':
+                        if (valueType == JsonValueType.String)
+                            throw reader.CreateException("Unexpected character");
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    case ',':
+                    case '}':
+                    case ']':
+                        reader.BackOne();
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    case '"':
+                        if (valueType != JsonValueType.String)
+                            throw reader.CreateException("Unexpected character");
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    default:
+                        if (valueType == JsonValueType.String)
+                        {
+                            if (state.ErrorOnTypeMismatch)
+                                throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                            else
+                                state.NumberParseFailed = true;
+                        }
+                        else
+                        {
+                            throw reader.CreateException("Unexpected character");
+                        }
+                        break;
+                }
+            }
+
+        startExponent:
+            if (!reader.TryReadNext(out c))
+            {
+                if (state.IsFinalBlock && reader.Position == reader.Length)
+                {
+                    if (valueType == JsonValueType.String)
+                        throw reader.CreateException("Unexpected character");
+                    state.NumberStage = ReadNumberStage.Setup;
+                    if (state.NumberParseFailed)
+                        value = default;
+                    return true;
+                }
+                state.CharsNeeded = 1;
+                state.NumberUInt64 = value;
+                state.NumberStage = ReadNumberStage.Exponent;
+                return false;
+            }
+            switch (c)
+            {
+                case '0': workingNumber = 0; break;
+                case '1': workingNumber = 1; break;
+                case '2': workingNumber = 2; break;
+                case '3': workingNumber = 3; break;
+                case '4': workingNumber = 4; break;
+                case '5': workingNumber = 5; break;
+                case '6': workingNumber = 6; break;
+                case '7': workingNumber = 7; break;
+                case '8': workingNumber = 8; break;
+                case '9': workingNumber = 9; break;
+                case '+': workingNumber = 0; break;
+                case '-':
+                    workingNumber = 0;
+                    state.NumberWorkingIsNegative = true;
+                    break;
+                default:
+                    if (valueType == JsonValueType.String)
+                    {
+                        if (state.ErrorOnTypeMismatch)
+                            throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                        else
+                            state.NumberParseFailed = true;
+                    }
+                    else
+                    {
+                        throw reader.CreateException("Unexpected character");
+                    }
+                    break;
+            }
+
+        startExponentContinue:
+            for (; ; )
+            {
+                if (!reader.TryReadNext(out c))
+                {
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
+                    {
+                        if (valueType == JsonValueType.String)
+                            throw reader.CreateException("Unexpected character");
+                        if (state.NumberWorkingIsNegative)
+                            workingNumber *= -1;
+                        value *= (ulong)Math.Pow(10, workingNumber);
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    }
+                    state.CharsNeeded = 1;
+                    state.NumberUInt64 = value;
+                    state.NumberDouble = workingNumber;
+                    state.NumberStage = ReadNumberStage.ExponentContinue;
+                    return false;
+                }
+
+                switch (c)
+                {
+                    case '0': workingNumber *= 10; break;
+                    case '1': workingNumber = workingNumber * 10 + 1; break;
+                    case '2': workingNumber = workingNumber * 10 + 2; break;
+                    case '3': workingNumber = workingNumber * 10 + 3; break;
+                    case '4': workingNumber = workingNumber * 10 + 4; break;
+                    case '5': workingNumber = workingNumber * 10 + 5; break;
+                    case '6': workingNumber = workingNumber * 10 + 6; break;
+                    case '7': workingNumber = workingNumber * 10 + 7; break;
+                    case '8': workingNumber = workingNumber * 10 + 8; break;
+                    case '9': workingNumber = workingNumber * 10 + 9; break;
+                    case ' ':
+                    case '\r':
+                    case '\n':
+                    case '\t':
+                        if (valueType == JsonValueType.String)
+                            throw reader.CreateException("Unexpected character");
+                        if (state.NumberWorkingIsNegative)
+                            workingNumber *= -1;
+                        value *= (ulong)Math.Pow(10, workingNumber);
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    case ',':
+                    case '}':
+                    case ']':
+                        reader.BackOne();
+                        if (state.NumberWorkingIsNegative)
+                            workingNumber *= -1;
+                        value *= (ulong)Math.Pow(10, workingNumber);
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    case '"':
+                        if (valueType != JsonValueType.String)
+                            throw reader.CreateException("Unexpected character");
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    default:
+                        if (valueType == JsonValueType.String)
+                        {
+                            if (state.ErrorOnTypeMismatch)
+                                throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                            else
+                                state.NumberParseFailed = true;
+                        }
+                        else
+                        {
+                            throw reader.CreateException("Unexpected character");
+                        }
+                        break;
+                }
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static bool ReadNumberAsDouble(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out double value)
+        {
+            double workingNumber;
+            char c;
+            if (state.NumberStage == ReadNumberStage.Setup)
+            {
+                state.NumberDouble = 0;
+                state.NumberWorkingDouble = 0;
+                state.NumberIsNegative = false;
+                state.NumberWorkingIsNegative = false;
+                state.NumberParseFailed = false;
+                value = 0;
+                workingNumber = 0;
+                if (valueType == JsonValueType.String)
+                    state.NumberStage = ReadNumberStage.ValueContinue;
+                else if (valueType != JsonValueType.Number)
+                    reader.CreateException("Bad JsonSerializer state");
+            }
+            else
+            {
+                value = state.NumberDouble;
+                workingNumber = state.NumberWorkingDouble;
+
+                switch (state.NumberStage)
+                {
+                    case ReadNumberStage.Value:
+                        goto startValue;
+                    case ReadNumberStage.ValueContinue:
+                        goto startValueContinue;
+                    case ReadNumberStage.Decimal:
+                        goto startDecimal;
+                    case ReadNumberStage.Exponent:
+                        goto startExponent;
+                    case ReadNumberStage.ExponentContinue:
+                        goto startExponentContinue;
+                }
+            }
+
+        startValue:
+            if (!reader.TryReadNext(out c))
+            {
+                if (state.IsFinalBlock && reader.Position == reader.Length)
+                {
+                    if (valueType == JsonValueType.String)
+                        throw reader.CreateException("Unexpected character");
+                    if (state.NumberIsNegative)
+                        value *= -1;
+                    state.NumberStage = ReadNumberStage.Setup;
+                    if (state.NumberParseFailed)
+                        value = default;
+                    return true;
+                }
+                state.CharsNeeded = 1;
+                state.NumberDouble = value;
+                state.NumberStage = ReadNumberStage.Value;
+                return false;
+            }
+            switch (c)
+            {
+                case '0': value = 0; break;
+                case '1': value = 1; break;
+                case '2': value = 2; break;
+                case '3': value = 3; break;
+                case '4': value = 4; break;
+                case '5': value = 5; break;
+                case '6': value = 6; break;
+                case '7': value = 7; break;
+                case '8': value = 8; break;
+                case '9': value = 9; break;
+                case '-':
+                    value = 0;
+                    state.NumberIsNegative = true;
+                    break;
+                default:
+                    if (valueType == JsonValueType.String)
+                    {
+                        if (state.ErrorOnTypeMismatch)
+                            throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                        else
+                            state.NumberParseFailed = true;
+                    }
+                    else
+                    {
+                        throw reader.CreateException("Unexpected character");
+                    }
+                    break;
+            }
+
+        startValueContinue:
+            for (; ; )
+            {
+                if (!reader.TryReadNext(out c))
+                {
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
+                    {
+                        if (valueType == JsonValueType.String)
+                            throw reader.CreateException("Unexpected character");
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    }
+                    state.CharsNeeded = 1;
+                    state.NumberDouble = value;
+                    state.NumberStage = ReadNumberStage.ValueContinue;
+                    return false;
+                }
+                switch (c)
+                {
+                    case '0': value *= 10; break;
+                    case '1': value = value * 10 + 1; break;
+                    case '2': value = value * 10 + 2; break;
+                    case '3': value = value * 10 + 3; break;
+                    case '4': value = value * 10 + 4; break;
+                    case '5': value = value * 10 + 5; break;
+                    case '6': value = value * 10 + 6; break;
+                    case '7': value = value * 10 + 7; break;
+                    case '8': value = value * 10 + 8; break;
+                    case '9': value = value * 10 + 9; break;
+                    case '.':
+                        workingNumber = 10;
+                        goto startDecimal;
+                    case 'e':
+                    case 'E':
+                        goto startExponent;
+                    case ' ':
+                    case '\r':
+                    case '\n':
+                    case '\t':
+                        if (valueType == JsonValueType.String)
+                            throw reader.CreateException("Unexpected character");
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    case ',':
+                    case '}':
+                    case ']':
+                        reader.BackOne();
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    case '"':
+                        if (valueType != JsonValueType.String)
+                            throw reader.CreateException("Unexpected character");
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    default:
+                        if (valueType == JsonValueType.String)
+                        {
+                            if (state.ErrorOnTypeMismatch)
+                                throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                            else
+                                state.NumberParseFailed = true;
+                        }
+                        else
+                        {
+                            throw reader.CreateException("Unexpected character");
+                        }
+                        break;
+                }
+            }
+
+        startDecimal:
+            for (; ; )
+            {
+                if (!reader.TryReadNext(out c))
+                {
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
+                    {
+                        if (valueType == JsonValueType.String)
+                            throw reader.CreateException("Unexpected character");
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    }
+                    state.CharsNeeded = 1;
+                    state.NumberDouble = value;
+                    state.NumberWorkingDouble = workingNumber;
+                    state.NumberStage = ReadNumberStage.Decimal;
+                    return false;
+                }
+                switch (c)
+                {
+                    case '0': break;
+                    case '1': value += 1 / workingNumber; break;
+                    case '2': value += 2 / workingNumber; break;
+                    case '3': value += 3 / workingNumber; break;
+                    case '4': value += 4 / workingNumber; break;
+                    case '5': value += 5 / workingNumber; break;
+                    case '6': value += 6 / workingNumber; break;
+                    case '7': value += 7 / workingNumber; break;
+                    case '8': value += 8 / workingNumber; break;
+                    case '9': value += 9 / workingNumber; break;
+                    case 'e':
+                    case 'E':
+                        goto startExponent;
+                    case ' ':
+                    case '\r':
+                    case '\n':
+                    case '\t':
+                        if (valueType == JsonValueType.String)
+                            throw reader.CreateException("Unexpected character");
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    case ',':
+                    case '}':
+                    case ']':
+                        reader.BackOne();
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    case '"':
+                        if (valueType != JsonValueType.String)
+                            throw reader.CreateException("Unexpected character");
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    default:
+                        if (valueType == JsonValueType.String)
+                        {
+                            if (state.ErrorOnTypeMismatch)
+                                throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                            else
+                                state.NumberParseFailed = true;
+                        }
+                        else
+                        {
+                            throw reader.CreateException("Unexpected character");
+                        }
+                        break;
+                }
+                workingNumber *= 10;
+            }
+
+        startExponent:
+            if (!reader.TryReadNext(out c))
+            {
+                if (state.IsFinalBlock && reader.Position == reader.Length)
+                {
+                    if (state.NumberIsNegative)
+                        value *= -1;
+                    state.NumberStage = ReadNumberStage.Setup;
+                    if (state.NumberParseFailed)
+                        value = default;
+                    return true;
+                }
+                state.CharsNeeded = 1;
+                state.NumberDouble = value;
+                state.NumberStage = ReadNumberStage.Exponent;
+                return false;
+            }
+            switch (c)
+            {
+                case '0': workingNumber = 0; break;
+                case '1': workingNumber = 1; break;
+                case '2': workingNumber = 2; break;
+                case '3': workingNumber = 3; break;
+                case '4': workingNumber = 4; break;
+                case '5': workingNumber = 5; break;
+                case '6': workingNumber = 6; break;
+                case '7': workingNumber = 7; break;
+                case '8': workingNumber = 8; break;
+                case '9': workingNumber = 9; break;
+                case '+': workingNumber = 0; break;
+                case '-':
+                    workingNumber = 0;
+                    state.NumberWorkingIsNegative = true;
+                    break;
+                default:
+                    if (valueType == JsonValueType.String)
+                    {
+                        if (state.ErrorOnTypeMismatch)
+                            throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                        else
+                            state.NumberParseFailed = true;
+                    }
+                    else
+                    {
+                        throw reader.CreateException("Unexpected character");
+                    }
+                    break;
+            }
+
+        startExponentContinue:
+            for (; ; )
+            {
+                if (!reader.TryReadNext(out c))
+                {
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
+                    {
+                        if (valueType == JsonValueType.String)
+                            throw reader.CreateException("Unexpected character");
+                        if (state.NumberWorkingIsNegative)
+                            workingNumber *= -1;
+                        value *= (double)Math.Pow(10, workingNumber);
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    }
+                    state.CharsNeeded = 1;
+                    state.NumberDouble = value;
+                    state.NumberWorkingDouble = workingNumber;
+                    state.NumberStage = ReadNumberStage.ExponentContinue;
+                    return false;
+                }
+
+                switch (c)
+                {
+                    case '0': workingNumber *= 10; break;
+                    case '1': workingNumber = workingNumber * 10 + 1; break;
+                    case '2': workingNumber = workingNumber * 10 + 2; break;
+                    case '3': workingNumber = workingNumber * 10 + 3; break;
+                    case '4': workingNumber = workingNumber * 10 + 4; break;
+                    case '5': workingNumber = workingNumber * 10 + 5; break;
+                    case '6': workingNumber = workingNumber * 10 + 6; break;
+                    case '7': workingNumber = workingNumber * 10 + 7; break;
+                    case '8': workingNumber = workingNumber * 10 + 8; break;
+                    case '9': workingNumber = workingNumber * 10 + 9; break;
+                    case ' ':
+                    case '\r':
+                    case '\n':
+                    case '\t':
+                        if (valueType == JsonValueType.String)
+                            throw reader.CreateException("Unexpected character");
+                        if (state.NumberWorkingIsNegative)
+                            workingNumber *= -1;
+                        value *= (double)Math.Pow(10, workingNumber);
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    case ',':
+                    case '}':
+                    case ']':
+                        reader.BackOne();
+                        if (state.NumberWorkingIsNegative)
+                            workingNumber *= -1;
+                        value *= (double)Math.Pow(10, workingNumber);
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    case '"':
+                        if (valueType != JsonValueType.String)
+                            throw reader.CreateException("Unexpected character");
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    default:
+                        if (valueType == JsonValueType.String)
+                        {
+                            if (state.ErrorOnTypeMismatch)
+                                throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                            else
+                                state.NumberParseFailed = true;
+                        }
+                        else
+                        {
+                            throw reader.CreateException("Unexpected character");
+                        }
+                        break;
+                }
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static bool ReadNumberAsDecimal(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out decimal value)
+        {
+            decimal workingNumber;
+            char c;
+            if (state.NumberStage == ReadNumberStage.Setup)
+            {
+                state.NumberDecimal = 0;
+                state.NumberWorkingDecimal = 0;
+                state.NumberIsNegative = false;
+                state.NumberParseFailed = false;
+                state.NumberWorkingIsNegative = false;
+                value = 0;
+                workingNumber = 0m;
+                if (valueType == JsonValueType.String)
+                    state.NumberStage = ReadNumberStage.ValueContinue;
+                else if (valueType != JsonValueType.Number)
+                    reader.CreateException("Bad JsonSerializer state");
+            }
+            else
+            {
+                value = state.NumberDecimal;
+                workingNumber = state.NumberWorkingDecimal;
+
+                switch (state.NumberStage)
+                {
+                    case ReadNumberStage.Value:
+                        goto startValue;
+                    case ReadNumberStage.ValueContinue:
+                        goto startValueContinue;
+                    case ReadNumberStage.Decimal:
+                        goto startDecimal;
+                    case ReadNumberStage.Exponent:
+                        goto startExponent;
+                    case ReadNumberStage.ExponentContinue:
+                        goto startExponentContinue;
+                }
+            }
+
+        startValue:
+            if (!reader.TryReadNext(out c))
+            {
+                if (state.IsFinalBlock && reader.Position == reader.Length)
+                {
+                    if (valueType == JsonValueType.String)
+                        throw reader.CreateException("Unexpected character");
+                    if (state.NumberIsNegative)
+                        value *= -1;
+                    state.NumberStage = ReadNumberStage.Setup;
+                    if (state.NumberParseFailed)
+                        value = default;
+                    return true;
+                }
+                state.CharsNeeded = 1;
+                state.NumberDecimal = value;
+                state.NumberStage = ReadNumberStage.Value;
+                return false;
+            }
+            switch (c)
+            {
+                case '0': value = 0; break;
+                case '1': value = 1; break;
+                case '2': value = 2; break;
+                case '3': value = 3; break;
+                case '4': value = 4; break;
+                case '5': value = 5; break;
+                case '6': value = 6; break;
+                case '7': value = 7; break;
+                case '8': value = 8; break;
+                case '9': value = 9; break;
+                case '-':
+                    value = 0;
+                    state.NumberIsNegative = true;
+                    break;
+                default:
+                    if (valueType == JsonValueType.String)
+                    {
+                        if (state.ErrorOnTypeMismatch)
+                            throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                        else
+                            state.NumberParseFailed = true;
+                    }
+                    else
+                    {
+                        throw reader.CreateException("Unexpected character");
+                    }
+                    break;
+            }
+
+        startValueContinue:
+            for (; ; )
+            {
+                if (!reader.TryReadNext(out c))
+                {
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
+                    {
+                        if (valueType == JsonValueType.String)
+                            throw reader.CreateException("Unexpected character");
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    }
+                    state.CharsNeeded = 1;
+                    state.NumberDecimal = value;
+                    state.NumberStage = ReadNumberStage.ValueContinue;
+                    return false;
+                }
+                switch (c)
+                {
+                    case '0': value *= 10; break;
+                    case '1': value = value * 10 + 1; break;
+                    case '2': value = value * 10 + 2; break;
+                    case '3': value = value * 10 + 3; break;
+                    case '4': value = value * 10 + 4; break;
+                    case '5': value = value * 10 + 5; break;
+                    case '6': value = value * 10 + 6; break;
+                    case '7': value = value * 10 + 7; break;
+                    case '8': value = value * 10 + 8; break;
+                    case '9': value = value * 10 + 9; break;
+                    case '.':
+                        workingNumber = 10;
+                        goto startDecimal;
+                    case 'e':
+                    case 'E':
+                        goto startExponent;
+                    case ' ':
+                    case '\r':
+                    case '\n':
+                    case '\t':
+                        if (valueType == JsonValueType.String)
+                            throw reader.CreateException("Unexpected character");
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    case ',':
+                    case '}':
+                    case ']':
+                        reader.BackOne();
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    case '"':
+                        if (valueType != JsonValueType.String)
+                            throw reader.CreateException("Unexpected character");
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    default:
+                        if (valueType == JsonValueType.String)
+                        {
+                            if (state.ErrorOnTypeMismatch)
+                                throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                            else
+                                state.NumberParseFailed = true;
+                        }
+                        else
+                        {
+                            throw reader.CreateException("Unexpected character");
+                        }
+                        break;
+                }
+            }
+
+        startDecimal:
+            for (; ; )
+            {
+                if (!reader.TryReadNext(out c))
+                {
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
+                    {
+                        if (valueType == JsonValueType.String)
+                            throw reader.CreateException("Unexpected character");
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    }
+                    state.CharsNeeded = 1;
+                    state.NumberDecimal = value;
+                    state.NumberWorkingDecimal = workingNumber;
+                    state.NumberStage = ReadNumberStage.Decimal;
+                    return false;
+                }
+                switch (c)
+                {
+                    case '0': break;
+                    case '1': value += 1 / workingNumber; break;
+                    case '2': value += 2 / workingNumber; break;
+                    case '3': value += 3 / workingNumber; break;
+                    case '4': value += 4 / workingNumber; break;
+                    case '5': value += 5 / workingNumber; break;
+                    case '6': value += 6 / workingNumber; break;
+                    case '7': value += 7 / workingNumber; break;
+                    case '8': value += 8 / workingNumber; break;
+                    case '9': value += 9 / workingNumber; break;
+                    case 'e':
+                    case 'E':
+                        goto startExponent;
+                    case ' ':
+                    case '\r':
+                    case '\n':
+                    case '\t':
+                        if (valueType == JsonValueType.String)
+                            throw reader.CreateException("Unexpected character");
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    case ',':
+                    case '}':
+                    case ']':
+                        reader.BackOne();
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    case '"':
+                        if (valueType != JsonValueType.String)
+                            throw reader.CreateException("Unexpected character");
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    default:
+                        if (valueType == JsonValueType.String)
+                        {
+                            if (state.ErrorOnTypeMismatch)
+                                throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                            else
+                                state.NumberParseFailed = true;
+                        }
+                        else
+                        {
+                            throw reader.CreateException("Unexpected character");
+                        }
+                        break;
+                }
+                workingNumber *= 10;
+            }
+
+        startExponent:
+            if (!reader.TryReadNext(out c))
+            {
+                if (state.IsFinalBlock && reader.Position == reader.Length)
+                {
+                    if (valueType == JsonValueType.String)
+                        throw reader.CreateException("Unexpected character");
+                    if (state.NumberIsNegative)
+                        value *= -1;
+                    state.NumberStage = ReadNumberStage.Setup;
+                    if (state.NumberParseFailed)
+                        value = default;
+                    return true;
+                }
+                state.CharsNeeded = 1;
+                state.NumberDecimal = value;
+                state.NumberStage = ReadNumberStage.Exponent;
+                return false;
+            }
+            switch (c)
+            {
+                case '0': workingNumber = 0; break;
+                case '1': workingNumber = 1; break;
+                case '2': workingNumber = 2; break;
+                case '3': workingNumber = 3; break;
+                case '4': workingNumber = 4; break;
+                case '5': workingNumber = 5; break;
+                case '6': workingNumber = 6; break;
+                case '7': workingNumber = 7; break;
+                case '8': workingNumber = 8; break;
+                case '9': workingNumber = 9; break;
+                case '+': workingNumber = 0; break;
+                case '-':
+                    workingNumber = 0;
+                    state.NumberWorkingIsNegative = true;
+                    break;
+                default:
+                    if (valueType == JsonValueType.String)
+                    {
+                        if (state.ErrorOnTypeMismatch)
+                            throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                        else
+                            state.NumberParseFailed = true;
+                    }
+                    else
+                    {
+                        throw reader.CreateException("Unexpected character");
+                    }
+                    break;
+            }
+
+        startExponentContinue:
+            for (; ; )
+            {
+                if (!reader.TryReadNext(out c))
+                {
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
+                    {
+                        if (valueType == JsonValueType.String)
+                            throw reader.CreateException("Unexpected character");
+                        if (state.NumberWorkingIsNegative)
+                            workingNumber *= -1;
+                        value *= (decimal)Math.Pow(10, (double)workingNumber);
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    }
+                    state.CharsNeeded = 1;
+                    state.NumberDecimal = value;
+                    state.NumberWorkingDecimal = workingNumber;
+                    state.NumberStage = ReadNumberStage.ExponentContinue;
+                    return false;
+                }
+
+                switch (c)
+                {
+                    case '0': workingNumber *= 10; break;
+                    case '1': workingNumber = workingNumber * 10 + 1; break;
+                    case '2': workingNumber = workingNumber * 10 + 2; break;
+                    case '3': workingNumber = workingNumber * 10 + 3; break;
+                    case '4': workingNumber = workingNumber * 10 + 4; break;
+                    case '5': workingNumber = workingNumber * 10 + 5; break;
+                    case '6': workingNumber = workingNumber * 10 + 6; break;
+                    case '7': workingNumber = workingNumber * 10 + 7; break;
+                    case '8': workingNumber = workingNumber * 10 + 8; break;
+                    case '9': workingNumber = workingNumber * 10 + 9; break;
+                    case ' ':
+                    case '\r':
+                    case '\n':
+                    case '\t':
+                        if (valueType == JsonValueType.String)
+                            throw reader.CreateException("Unexpected character");
+                        if (state.NumberWorkingIsNegative)
+                            workingNumber *= -1;
+                        value *= (decimal)Math.Pow(10, (double)workingNumber);
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    case ',':
+                    case '}':
+                    case ']':
+                        reader.BackOne();
+                        if (state.NumberWorkingIsNegative)
+                            workingNumber *= -1;
+                        value *= (decimal)Math.Pow(10, (double)workingNumber);
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    case '"':
+                        if (valueType != JsonValueType.String)
+                            throw reader.CreateException("Unexpected character");
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    default:
+                        if (valueType == JsonValueType.String)
+                        {
+                            if (state.ErrorOnTypeMismatch)
+                                throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                            else
+                                state.NumberParseFailed = true;
+                        }
+                        else
+                        {
+                            throw reader.CreateException("Unexpected character");
+                        }
+                        break;
+                }
+            }
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected static bool DrainFromParent(ref JsonReader reader, ref ReadState state)
@@ -849,6 +2848,412 @@ namespace Zerra.Serialization.Json.Converters
             if (!writer.TryWriteQuoted(value.Value, out state.CharsNeeded))
                 return false;
             return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool TryReadJsonObject(ref JsonReader reader, ref ReadState state, out JsonObject? value)
+        {
+            if (state.EntryValueType == JsonValueType.NotDetermined)
+            {
+                if (!reader.TryReadValueType(out state.EntryValueType, out state.CharsNeeded))
+                {
+                    value = default;
+                    return false;
+                }
+            }
+
+            switch (state.EntryValueType)
+            {
+                case JsonValueType.Object:
+                    state.PushFrame(null);
+                    if (!ReadJsonObjectObject(ref reader, ref state, out value))
+                    {
+                        state.StashFrame();
+                        value = default;
+                        return false;
+                    }
+                    state.EndFrame();
+                    return true;
+                case JsonValueType.Array:
+                    state.PushFrame(null);
+                    if (!ReadJsonObjectArray(ref reader, ref state, out value))
+                    {
+                        state.StashFrame();
+                        value = default;
+                        return false;
+                    }
+                    state.EndFrame();
+                    return true;
+                case JsonValueType.String:
+                    if (!ReadString(ref reader, ref state, true, out var str))
+                    {
+                        value = default;
+                        return false;
+                    }
+                    value = new JsonObject(str);
+                    return true;
+                case JsonValueType.Null_Completed:
+                    value = new JsonObject();
+                    return true;
+                case JsonValueType.False_Completed:
+                    value = new JsonObject(false);
+                    return true;
+                case JsonValueType.True_Completed:
+                    value = new JsonObject(true);
+                    return true;
+                case JsonValueType.Number:
+                    if (!ReadNumberAsDecimal(ref reader, ref state, state.EntryValueType, out var number))
+                    {
+                        value = default!;
+                        return false;
+                    }
+                    value = new JsonObject(number);
+                    return true;
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static bool ReadJsonObjectFromParent(ref JsonReader reader, ref ReadState state, in JsonObject parent, string property)
+        {
+            if (state.Current.ChildValueType == JsonValueType.NotDetermined)
+            {
+                if (!reader.TryReadValueType(out state.Current.ChildValueType, out state.CharsNeeded))
+                    return false;
+            }
+
+            JsonObject? value;
+
+            switch (state.Current.ChildValueType)
+            {
+                case JsonValueType.Object:
+                    state.PushFrame(null);
+                    if (!ReadJsonObjectObject(ref reader, ref state, out value))
+                    {
+                        state.StashFrame();
+                        return false;
+                    }
+                    parent[property] = value!;
+                    state.EndFrame();
+                    state.Current.ChildValueType = JsonValueType.NotDetermined;
+                    return true;
+                case JsonValueType.Array:
+                    state.PushFrame(null);
+                    if (!ReadJsonObjectArray(ref reader, ref state, out value))
+                    {
+                        state.StashFrame();
+                        return false;
+                    }
+                    parent[property] = value!;
+                    state.EndFrame();
+                    state.Current.ChildValueType = JsonValueType.NotDetermined;
+                    return true;
+                case JsonValueType.String:
+                    if (!ReadString(ref reader, ref state, true, out var str))
+                    {
+                        value = default;
+                        return false;
+                    }
+                    parent[property] = new JsonObject(str!);
+                    state.Current.ChildValueType = JsonValueType.NotDetermined;
+                    return true;
+                case JsonValueType.Null_Completed:
+                    parent[property] = new JsonObject();
+                    state.Current.ChildValueType = JsonValueType.NotDetermined;
+                    return true;
+                case JsonValueType.False_Completed:
+                    parent[property] = new JsonObject(false);
+                    state.Current.ChildValueType = JsonValueType.NotDetermined;
+                    return true;
+                case JsonValueType.True_Completed:
+                    parent[property] = new JsonObject(true);
+                    state.Current.ChildValueType = JsonValueType.NotDetermined;
+                    return true;
+                case JsonValueType.Number:
+                    if (!ReadNumberAsDecimal(ref reader, ref state, state.Current.ChildValueType, out var number))
+                    {
+                        value = default!;
+                        return false;
+                    }
+                    parent[property] = new JsonObject(number!);
+                    state.Current.ChildValueType = JsonValueType.NotDetermined;
+                    return true;
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static bool ReadJsonObjectFromParent(ref JsonReader reader, ref ReadState state, in Action<JsonObject> addMethod)
+        {
+            if (state.Current.ChildValueType == JsonValueType.NotDetermined)
+            {
+                if (!reader.TryReadValueType(out state.Current.ChildValueType, out state.CharsNeeded))
+                    return false;
+            }
+
+            JsonObject? value;
+
+            switch (state.Current.ChildValueType)
+            {
+                case JsonValueType.Object:
+                    state.PushFrame(null);
+                    if (!ReadJsonObjectObject(ref reader, ref state, out value))
+                    {
+                        state.StashFrame();
+                        return false;
+                    }
+                    addMethod(value!);
+                    state.EndFrame();
+                    state.Current.ChildValueType = JsonValueType.NotDetermined;
+                    return true;
+                case JsonValueType.Array:
+                    state.PushFrame(null);
+                    if (!ReadJsonObjectArray(ref reader, ref state, out value))
+                    {
+                        state.StashFrame();
+                        return false;
+                    }
+                    addMethod(value!);
+                    state.EndFrame();
+                    state.Current.ChildValueType = JsonValueType.NotDetermined;
+                    return true;
+                case JsonValueType.String:
+                    if (!ReadString(ref reader, ref state, true, out var str))
+                    {
+                        value = default;
+                        return false;
+                    }
+                    addMethod(new JsonObject(str!));
+                    state.Current.ChildValueType = JsonValueType.NotDetermined;
+                    return true;
+                case JsonValueType.Null_Completed:
+                    addMethod(new JsonObject());
+                    state.Current.ChildValueType = JsonValueType.NotDetermined;
+                    return true;
+                case JsonValueType.False_Completed:
+                    addMethod(new JsonObject(false));
+                    state.Current.ChildValueType = JsonValueType.NotDetermined;
+                    return true;
+                case JsonValueType.True_Completed:
+                    addMethod(new JsonObject(true));
+                    state.Current.ChildValueType = JsonValueType.NotDetermined;
+                    return true;
+                case JsonValueType.Number:
+                    if (!ReadNumberAsDecimal(ref reader, ref state, state.Current.ChildValueType, out var number))
+                    {
+                        value = default!;
+                        return false;
+                    }
+                    addMethod(new JsonObject(number));
+                    state.Current.ChildValueType = JsonValueType.NotDetermined;
+                    return true;
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static bool ReadJsonObject(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out JsonObject? value)
+        {
+            switch (valueType)
+            {
+                case JsonValueType.Object:
+                    return ReadJsonObjectObject(ref reader, ref state, out value);
+                case JsonValueType.Array:
+                    return ReadJsonObjectArray(ref reader, ref state, out value);
+                case JsonValueType.String:
+                    if (!ReadString(ref reader, ref state, true, out var str))
+                    {
+                        value = default;
+                        return false;
+                    }
+                    value = new JsonObject(str);
+                    return true;
+                case JsonValueType.Null_Completed:
+                    value = new JsonObject();
+                    return true;
+                case JsonValueType.False_Completed:
+                    value = new JsonObject(false);
+                    return true;
+                case JsonValueType.True_Completed:
+                    value = new JsonObject(true);
+                    return true;
+                case JsonValueType.Number:
+                    if (!ReadNumberAsDecimal(ref reader, ref state, valueType, out var number))
+                    {
+                        value = default!;
+                        return false;
+                    }
+                    value = new JsonObject(number);
+                    return true;
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static bool ReadJsonObjectObject(ref JsonReader reader, ref ReadState state, out JsonObject? value)
+        {
+            char c;
+
+            if (!state.Current.HasCreated)
+            {
+                if (!reader.TryReadNextSkipWhiteSpace(out c))
+                {
+                    state.CharsNeeded = 1;
+                    value = default;
+                    return false;
+                }
+
+                value = new JsonObject(new Dictionary<string, JsonObject>());
+
+                if (c == '}')
+                    return true;
+
+                reader.BackOne();
+
+                state.Current.HasCreated = true;
+            }
+            else
+            {
+                value = (JsonObject)state.Current.Object!;
+            }
+
+            for (; ; )
+            {
+                string? property;
+                if (!state.Current.HasReadProperty)
+                {
+                    if (!ReadString(ref reader, ref state, false, out property))
+                    {
+                        state.Current.Object = value;
+                        return false;
+                    }
+
+                    if (String.IsNullOrWhiteSpace(property))
+                        throw reader.CreateException("Unexpected character");
+                }
+                else
+                {
+                    property = (string)state.Current.Property!;
+                }
+
+                if (!state.Current.HasReadSeperator)
+                {
+                    if (!reader.TryReadNextSkipWhiteSpace(out c))
+                    {
+                        state.Current.Object = value;
+                        state.Current.Property = property;
+                        state.Current.HasReadProperty = true;
+                        state.CharsNeeded = 1;
+                        return false;
+                    }
+                    if (c != ':')
+                        throw reader.CreateException("Unexpected character");
+                }
+
+                if (!state.Current.HasReadValue)
+                {
+                    if (!ReadJsonObjectFromParent(ref reader, ref state, value, property))
+                    {
+                        state.Current.Object = value;
+                        state.Current.Property = property;
+                        state.Current.HasReadProperty = true;
+                        state.Current.HasReadSeperator = true;
+                        return false;
+                    }
+                }
+
+                if (!reader.TryReadNextSkipWhiteSpace(out c))
+                {
+                    state.CharsNeeded = 1;
+                    state.Current.Object = value;
+                    state.Current.Property = property;
+                    state.Current.HasReadProperty = true;
+                    state.Current.HasReadSeperator = true;
+                    state.Current.HasReadValue = true;
+                    return false;
+                }
+
+                if (c == '}')
+                    break;
+
+                if (c != ',')
+                    throw reader.CreateException("Unexpected character");
+
+                state.Current.HasReadProperty = false;
+                state.Current.HasReadSeperator = false;
+                state.Current.HasReadValue = false;
+            }
+
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static bool ReadJsonObjectArray(ref JsonReader reader, ref ReadState state, out JsonObject? value)
+        {
+            char c;
+
+            ArrayOrListAccessor<JsonObject> accessor;
+            if (!state.Current.HasCreated)
+            {
+                if (!reader.TryReadNextSkipWhiteSpace(out c))
+                {
+                    state.CharsNeeded = 1;
+                    value = default;
+                    return false;
+                }
+
+                if (c == ']')
+                {
+                    value = new JsonObject(new List<JsonObject>(0));
+                    return true;
+                }
+
+                reader.BackOne();
+
+                if (reader.TryPeakArrayLength(out var length))
+                    accessor = new ArrayOrListAccessor<JsonObject>(new JsonObject[length]);
+                else
+                    accessor = new ArrayOrListAccessor<JsonObject>();
+            }
+            else
+            {
+                accessor = (ArrayOrListAccessor<JsonObject>)state.Current.Object!;
+            }
+
+            for (; ; )
+            {
+                if (!state.Current.HasReadValue)
+                {
+                    if (!ReadJsonObjectFromParent(ref reader, ref state, accessor.Add))
+                    {
+                        state.Current.Object = accessor;
+                        state.Current.HasCreated = true;
+                        value = default;
+                        return false;
+                    }
+                }
+
+                if (!reader.TryReadNextSkipWhiteSpace(out c))
+                {
+                    state.CharsNeeded = 1;
+                    state.Current.Object = accessor;
+                    state.Current.HasCreated = true;
+                    state.Current.HasReadValue = true;
+                    value = default;
+                    return false;
+                }
+
+                if (c == ']')
+                {
+                    value = new JsonObject(accessor.ToList());
+                    return true;
+                }
+
+                if (c != ',')
+                    throw reader.CreateException("Unexpected character");
+
+                state.Current.HasReadValue = false;
+            }
         }
     }
 }

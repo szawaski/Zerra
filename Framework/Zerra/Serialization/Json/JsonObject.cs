@@ -20,7 +20,7 @@ namespace Zerra.Serialization.Json
         private readonly decimal valueNumber;
         private readonly string? valueString;
         private readonly Dictionary<string, JsonObject>? valueProperties;
-        private readonly JsonObject[]? valueArray;
+        private readonly List<JsonObject>? valueArray;
 
         public JsonObject()
         {
@@ -51,7 +51,7 @@ namespace Zerra.Serialization.Json
             valueProperties = value;
         }
 
-        public JsonObject(JsonObject[] value)
+        public JsonObject(List<JsonObject> value)
         {
             jsonType = JsonObjectType.Array;
             valueArray = value;
@@ -102,6 +102,18 @@ namespace Zerra.Serialization.Json
                 valueArray![index] = value;
             }
         }
+        public void Add(JsonObject jsonObject)
+        {
+            if (jsonType != JsonObjectType.Array)
+                throw new InvalidCastException();
+            valueArray!.Add(jsonObject);
+        }
+        public bool Remove(JsonObject jsonObject)
+        {
+            if (jsonType != JsonObjectType.Array)
+                throw new InvalidCastException();
+            return valueArray!.Remove(jsonObject);
+        }
 
         public override string ToString()
         {
@@ -120,7 +132,7 @@ namespace Zerra.Serialization.Json
                     break;
                 case JsonObjectType.Boolean:
                     {
-                        _ = sb.Append(valueBoolean);
+                        _ = sb.Append(valueBoolean ? "true" : "false");
                     }
                     break;
                 case JsonObjectType.Number:
@@ -130,7 +142,7 @@ namespace Zerra.Serialization.Json
                     break;
                 case JsonObjectType.String:
                     {
-
+                        ToStringEncoded(valueString, sb);
                     }
                     break;
                 case JsonObjectType.Object:
@@ -512,7 +524,15 @@ namespace Zerra.Serialization.Json
                 return null;
             if (obj.jsonType != JsonObjectType.Array)
                 throw new InvalidCastException();
-            return obj.valueArray;
+            return obj.valueArray!.ToArray();
+        }
+        public static explicit operator List<JsonObject>?(JsonObject obj)
+        {
+            if (obj.IsNull)
+                return null;
+            if (obj.jsonType != JsonObjectType.Array)
+                throw new InvalidCastException();
+            return obj.valueArray!;
         }
 
         public IEnumerator<JsonObject> GetEnumerator()
@@ -635,7 +655,7 @@ namespace Zerra.Serialization.Json
                     if (jsonType != JsonObjectType.String)
                         throw new InvalidCastException();
                     if (valueString == String.Empty)
-                        return null;
+                        return Array.Empty<byte>();
                     return Convert.FromBase64String(valueString!);
                 }
                 else
@@ -684,10 +704,10 @@ namespace Zerra.Serialization.Json
                         }
                         return set;
                     }
-                    else if (typeDetail.Type.IsInterface)
+                    else if (typeDetail.Type.IsArray || typeDetail.Type.IsInterface)
                     {
-                        var array = Array.CreateInstance(innerType, valueArray!.Length);
-                        for (var i = 0; i < valueArray.Length; i++)
+                        var array = Array.CreateInstance(innerType, valueArray!.Count);
+                        for (var i = 0; i < valueArray.Count; i++)
                         {
                             var value = valueArray[i].Bind(innerType);
                             array.SetValue(value, i);

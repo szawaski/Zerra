@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Zerra.Serialization.Json.Converters.Collections
 {
@@ -53,6 +54,14 @@ namespace Zerra.Serialization.Json.Converters.Collections
                 return array!;
             else
                 return list!.ToArray();
+        }
+
+        public List<T> ToList()
+        {
+            if (IsArray)
+                return array!.ToList();
+            else
+                return list!;
         }
     }
 }
