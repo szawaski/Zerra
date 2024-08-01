@@ -481,14 +481,14 @@ namespace Zerra.Test
         [TestMethod]
         public void StringNameless()
         {
-            var options = new JsonSerializerOptionsOld()
+            var options = new JsonSerializerOptions()
             {
                 Nameless = true
             };
 
             var baseModel = TypesAllModel.Create();
-            var json = JsonSerializerOld.Serialize(baseModel, options);
-            var model = JsonSerializerOld.Deserialize<TypesAllModel>(json, options);
+            var json = JsonSerializer.Serialize(baseModel, options);
+            var model = JsonSerializer.Deserialize<TypesAllModel>(json, options);
             AssertHelper.AreEqual(baseModel, model);
         }
 
@@ -2627,7 +2627,7 @@ namespace Zerra.Test
         [TestMethod]
         public async Task StreamNameless()
         {
-            var options = new JsonSerializerOptionsOld()
+            var options = new JsonSerializerOptions()
             {
                 Nameless = true
             };
@@ -2635,10 +2635,10 @@ namespace Zerra.Test
             var baseModel = TypesAllModel.Create();
 
             using var stream = new MemoryStream();
-            await JsonSerializerOld.SerializeAsync(stream, baseModel, options);
+            await JsonSerializer.SerializeAsync(stream, baseModel, options);
 
             stream.Position = 0;
-            var model = await JsonSerializerOld.DeserializeAsync<TypesAllModel>(stream, options);
+            var model = await JsonSerializer.DeserializeAsync<TypesAllModel>(stream, options);
             AssertHelper.AreEqual(baseModel, model);
         }
 
