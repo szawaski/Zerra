@@ -12,16 +12,16 @@ using Zerra.Reflection;
 
 namespace Zerra.Serialization.Json
 {
-    public class JsonObject : IEnumerable
+    public class JsonObjectOld : IEnumerable
     {
         private readonly JsonObjectType jsonType;
         private readonly string? valueString;
-        private readonly Dictionary<string, JsonObject>? valueProperties;
-        private readonly JsonObject[]? valueArray;
+        private readonly Dictionary<string, JsonObjectOld>? valueProperties;
+        private readonly JsonObjectOld[]? valueArray;
 
         public JsonObjectType JsonType => jsonType;
 
-        public JsonObject(string? value, bool literal)
+        public JsonObjectOld(string? value, bool literal)
         {
             jsonType = literal ? JsonObjectType.Literal : JsonObjectType.String;
             valueString = value;
@@ -29,7 +29,7 @@ namespace Zerra.Serialization.Json
             valueArray = null;
         }
 
-        public JsonObject(Dictionary<string, JsonObject> value)
+        public JsonObjectOld(Dictionary<string, JsonObjectOld> value)
         {
             jsonType = JsonObjectType.Object;
             valueString = null;
@@ -37,7 +37,7 @@ namespace Zerra.Serialization.Json
             valueArray = null;
         }
 
-        public JsonObject(JsonObject[] value)
+        public JsonObjectOld(JsonObjectOld[] value)
         {
             jsonType = JsonObjectType.Array;
             valueString = null;
@@ -53,7 +53,7 @@ namespace Zerra.Serialization.Json
             Array
         }
 
-        public JsonObject this[string property]
+        public JsonObjectOld this[string property]
         {
             get
             {
@@ -71,7 +71,7 @@ namespace Zerra.Serialization.Json
             }
         }
 
-        public JsonObject this[int index]
+        public JsonObjectOld this[int index]
         {
             get
             {
@@ -154,7 +154,7 @@ namespace Zerra.Serialization.Json
             }
         }
 
-        public static explicit operator bool(JsonObject obj)
+        public static explicit operator bool(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -162,7 +162,7 @@ namespace Zerra.Serialization.Json
                 throw new InvalidCastException();
             return bool.Parse(obj.valueString);
         }
-        public static explicit operator byte(JsonObject obj)
+        public static explicit operator byte(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -170,7 +170,7 @@ namespace Zerra.Serialization.Json
                 throw new InvalidCastException();
             return byte.Parse(obj.valueString);
         }
-        public static explicit operator sbyte(JsonObject obj)
+        public static explicit operator sbyte(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -178,7 +178,7 @@ namespace Zerra.Serialization.Json
                 throw new InvalidCastException();
             return sbyte.Parse(obj.valueString);
         }
-        public static explicit operator short(JsonObject obj)
+        public static explicit operator short(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -186,7 +186,7 @@ namespace Zerra.Serialization.Json
                 throw new InvalidCastException();
             return short.Parse(obj.valueString);
         }
-        public static explicit operator ushort(JsonObject obj)
+        public static explicit operator ushort(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -194,7 +194,7 @@ namespace Zerra.Serialization.Json
                 throw new InvalidCastException();
             return ushort.Parse(obj.valueString);
         }
-        public static explicit operator int(JsonObject obj)
+        public static explicit operator int(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -202,7 +202,7 @@ namespace Zerra.Serialization.Json
                 throw new InvalidCastException();
             return int.Parse(obj.valueString);
         }
-        public static explicit operator uint(JsonObject obj)
+        public static explicit operator uint(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -210,7 +210,7 @@ namespace Zerra.Serialization.Json
                 throw new InvalidCastException();
             return uint.Parse(obj.valueString);
         }
-        public static explicit operator long(JsonObject obj)
+        public static explicit operator long(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -218,7 +218,7 @@ namespace Zerra.Serialization.Json
                 throw new InvalidCastException();
             return long.Parse(obj.valueString);
         }
-        public static explicit operator ulong(JsonObject obj)
+        public static explicit operator ulong(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -226,7 +226,7 @@ namespace Zerra.Serialization.Json
                 throw new InvalidCastException();
             return ulong.Parse(obj.valueString);
         }
-        public static explicit operator float(JsonObject obj)
+        public static explicit operator float(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -234,7 +234,7 @@ namespace Zerra.Serialization.Json
                 throw new InvalidCastException();
             return float.Parse(obj.valueString);
         }
-        public static explicit operator double(JsonObject obj)
+        public static explicit operator double(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -242,7 +242,7 @@ namespace Zerra.Serialization.Json
                 throw new InvalidCastException();
             return double.Parse(obj.valueString);
         }
-        public static explicit operator decimal(JsonObject obj)
+        public static explicit operator decimal(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -250,7 +250,7 @@ namespace Zerra.Serialization.Json
                 throw new InvalidCastException();
             return decimal.Parse(obj.valueString);
         }
-        public static explicit operator char(JsonObject obj)
+        public static explicit operator char(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -258,7 +258,7 @@ namespace Zerra.Serialization.Json
                 throw new InvalidCastException();
             return obj.valueString[0];
         }
-        public static explicit operator DateTime(JsonObject obj)
+        public static explicit operator DateTime(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -266,7 +266,7 @@ namespace Zerra.Serialization.Json
                 throw new InvalidCastException();
             return DateTime.Parse(obj.valueString, null, DateTimeStyles.RoundtripKind);
         }
-        public static explicit operator DateTimeOffset(JsonObject obj)
+        public static explicit operator DateTimeOffset(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -274,7 +274,7 @@ namespace Zerra.Serialization.Json
                 throw new InvalidCastException();
             return DateTimeOffset.Parse(obj.valueString, null, DateTimeStyles.RoundtripKind);
         }
-        public static explicit operator TimeSpan(JsonObject obj)
+        public static explicit operator TimeSpan(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -282,7 +282,7 @@ namespace Zerra.Serialization.Json
                 throw new InvalidCastException();
             return TimeSpan.Parse(obj.valueString!);
         }
-        public static explicit operator Guid(JsonObject obj)
+        public static explicit operator Guid(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -291,7 +291,7 @@ namespace Zerra.Serialization.Json
             return Guid.Parse(obj.valueString);
         }
 
-        public static explicit operator string?(JsonObject obj)
+        public static explicit operator string?(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -300,7 +300,7 @@ namespace Zerra.Serialization.Json
             return obj.valueString;
         }
 
-        public static explicit operator bool?(JsonObject obj)
+        public static explicit operator bool?(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -308,7 +308,7 @@ namespace Zerra.Serialization.Json
                 return null;
             return bool.Parse(obj.valueString);
         }
-        public static explicit operator byte?(JsonObject obj)
+        public static explicit operator byte?(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -316,7 +316,7 @@ namespace Zerra.Serialization.Json
                 return null;
             return byte.Parse(obj.valueString);
         }
-        public static explicit operator sbyte?(JsonObject obj)
+        public static explicit operator sbyte?(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -324,7 +324,7 @@ namespace Zerra.Serialization.Json
                 return null;
             return sbyte.Parse(obj.valueString);
         }
-        public static explicit operator short?(JsonObject obj)
+        public static explicit operator short?(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -332,7 +332,7 @@ namespace Zerra.Serialization.Json
                 return null;
             return short.Parse(obj.valueString);
         }
-        public static explicit operator ushort?(JsonObject obj)
+        public static explicit operator ushort?(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -340,7 +340,7 @@ namespace Zerra.Serialization.Json
                 return null;
             return ushort.Parse(obj.valueString);
         }
-        public static explicit operator int?(JsonObject obj)
+        public static explicit operator int?(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -348,7 +348,7 @@ namespace Zerra.Serialization.Json
                 return null;
             return int.Parse(obj.valueString);
         }
-        public static explicit operator uint?(JsonObject obj)
+        public static explicit operator uint?(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -356,7 +356,7 @@ namespace Zerra.Serialization.Json
                 return null;
             return uint.Parse(obj.valueString);
         }
-        public static explicit operator long?(JsonObject obj)
+        public static explicit operator long?(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -364,7 +364,7 @@ namespace Zerra.Serialization.Json
                 return null;
             return long.Parse(obj.valueString);
         }
-        public static explicit operator ulong?(JsonObject obj)
+        public static explicit operator ulong?(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -372,7 +372,7 @@ namespace Zerra.Serialization.Json
                 return null;
             return ulong.Parse(obj.valueString);
         }
-        public static explicit operator float?(JsonObject obj)
+        public static explicit operator float?(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -380,7 +380,7 @@ namespace Zerra.Serialization.Json
                 return null;
             return float.Parse(obj.valueString);
         }
-        public static explicit operator double?(JsonObject obj)
+        public static explicit operator double?(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -388,7 +388,7 @@ namespace Zerra.Serialization.Json
                 return null;
             return double.Parse(obj.valueString);
         }
-        public static explicit operator decimal?(JsonObject obj)
+        public static explicit operator decimal?(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -396,7 +396,7 @@ namespace Zerra.Serialization.Json
                 return null;
             return decimal.Parse(obj.valueString);
         }
-        public static explicit operator char?(JsonObject obj)
+        public static explicit operator char?(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -404,7 +404,7 @@ namespace Zerra.Serialization.Json
                 return null;
             return obj.valueString[0];
         }
-        public static explicit operator DateTime?(JsonObject obj)
+        public static explicit operator DateTime?(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -412,7 +412,7 @@ namespace Zerra.Serialization.Json
                 return null;
             return DateTime.Parse(obj.valueString, null, DateTimeStyles.RoundtripKind);
         }
-        public static explicit operator DateTimeOffset?(JsonObject obj)
+        public static explicit operator DateTimeOffset?(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -420,7 +420,7 @@ namespace Zerra.Serialization.Json
                 return null;
             return DateTimeOffset.Parse(obj.valueString);
         }
-        public static explicit operator TimeSpan?(JsonObject obj)
+        public static explicit operator TimeSpan?(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -429,7 +429,7 @@ namespace Zerra.Serialization.Json
             return TimeSpan.Parse(obj.valueString);
         }
 #if NET6_0_OR_GREATER
-        public static explicit operator DateOnly?(JsonObject obj)
+        public static explicit operator DateOnly?(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -437,7 +437,7 @@ namespace Zerra.Serialization.Json
                 return null;
             return DateOnly.Parse(obj.valueString);
         }
-        public static explicit operator TimeOnly?(JsonObject obj)
+        public static explicit operator TimeOnly?(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -446,7 +446,7 @@ namespace Zerra.Serialization.Json
             return TimeOnly.Parse(obj.valueString);
         }
 #endif
-        public static explicit operator Guid?(JsonObject obj)
+        public static explicit operator Guid?(JsonObjectOld obj)
         {
             if (obj.jsonType != JsonObjectType.String && obj.jsonType != JsonObjectType.Literal)
                 throw new InvalidCastException();
@@ -455,7 +455,7 @@ namespace Zerra.Serialization.Json
             return Guid.Parse(obj.valueString);
         }
 
-        public static explicit operator bool[]?(JsonObject obj)
+        public static explicit operator bool[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -466,7 +466,7 @@ namespace Zerra.Serialization.Json
                 array[i] = (bool)obj.valueArray[i];
             return array;
         }
-        public static explicit operator byte[]?(JsonObject obj)
+        public static explicit operator byte[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -480,7 +480,7 @@ namespace Zerra.Serialization.Json
                 array[i] = (byte)obj.valueArray[i];
             return array;
         }
-        public static explicit operator sbyte[]?(JsonObject obj)
+        public static explicit operator sbyte[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -492,7 +492,7 @@ namespace Zerra.Serialization.Json
                 array[i] = (sbyte)obj.valueArray[i];
             return array;
         }
-        public static explicit operator short[]?(JsonObject obj)
+        public static explicit operator short[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -503,7 +503,7 @@ namespace Zerra.Serialization.Json
                 array[i] = (short)obj.valueArray[i];
             return array;
         }
-        public static explicit operator ushort[]?(JsonObject obj)
+        public static explicit operator ushort[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -514,7 +514,7 @@ namespace Zerra.Serialization.Json
                 array[i] = (ushort)obj.valueArray[i];
             return array;
         }
-        public static explicit operator int[]?(JsonObject obj)
+        public static explicit operator int[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -525,7 +525,7 @@ namespace Zerra.Serialization.Json
                 array[i] = (int)obj.valueArray[i];
             return array;
         }
-        public static explicit operator uint[]?(JsonObject obj)
+        public static explicit operator uint[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -536,7 +536,7 @@ namespace Zerra.Serialization.Json
                 array[i] = (uint)obj.valueArray[i];
             return array;
         }
-        public static explicit operator long[]?(JsonObject obj)
+        public static explicit operator long[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -547,7 +547,7 @@ namespace Zerra.Serialization.Json
                 array[i] = (long)obj.valueArray[i];
             return array;
         }
-        public static explicit operator ulong[]?(JsonObject obj)
+        public static explicit operator ulong[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -558,7 +558,7 @@ namespace Zerra.Serialization.Json
                 array[i] = (ulong)obj.valueArray[i];
             return array;
         }
-        public static explicit operator float[]?(JsonObject obj)
+        public static explicit operator float[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -569,7 +569,7 @@ namespace Zerra.Serialization.Json
                 array[i] = (float)obj.valueArray[i];
             return array;
         }
-        public static explicit operator double[]?(JsonObject obj)
+        public static explicit operator double[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -580,7 +580,7 @@ namespace Zerra.Serialization.Json
                 array[i] = (double)obj.valueArray[i];
             return array;
         }
-        public static explicit operator decimal[]?(JsonObject obj)
+        public static explicit operator decimal[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -591,7 +591,7 @@ namespace Zerra.Serialization.Json
                 array[i] = (decimal)obj.valueArray[i];
             return array;
         }
-        public static explicit operator char[]?(JsonObject obj)
+        public static explicit operator char[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -602,7 +602,7 @@ namespace Zerra.Serialization.Json
                 array[i] = (char)obj.valueArray[i];
             return array;
         }
-        public static explicit operator DateTime[]?(JsonObject obj)
+        public static explicit operator DateTime[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -613,7 +613,7 @@ namespace Zerra.Serialization.Json
                 array[i] = (DateTime)obj.valueArray[i];
             return array;
         }
-        public static explicit operator DateTimeOffset[]?(JsonObject obj)
+        public static explicit operator DateTimeOffset[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -624,7 +624,7 @@ namespace Zerra.Serialization.Json
                 array[i] = (DateTimeOffset)obj.valueArray[i];
             return array;
         }
-        public static explicit operator TimeSpan[]?(JsonObject obj)
+        public static explicit operator TimeSpan[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -636,7 +636,7 @@ namespace Zerra.Serialization.Json
             return array;
         }
 #if NET6_0_OR_GREATER
-        public static explicit operator DateOnly[]?(JsonObject obj)
+        public static explicit operator DateOnly[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -647,7 +647,7 @@ namespace Zerra.Serialization.Json
                 array[i] = (DateOnly)obj.valueArray[i];
             return array;
         }
-        public static explicit operator TimeOnly[]?(JsonObject obj)
+        public static explicit operator TimeOnly[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -659,7 +659,7 @@ namespace Zerra.Serialization.Json
             return array;
         }
 #endif
-        public static explicit operator Guid[]?(JsonObject obj)
+        public static explicit operator Guid[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -671,7 +671,7 @@ namespace Zerra.Serialization.Json
             return array;
         }
 
-        public static explicit operator string?[]?(JsonObject obj)
+        public static explicit operator string?[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -683,7 +683,7 @@ namespace Zerra.Serialization.Json
             return array;
         }
 
-        public static explicit operator bool?[]?(JsonObject obj)
+        public static explicit operator bool?[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -694,7 +694,7 @@ namespace Zerra.Serialization.Json
                 array[i] = (bool?)obj.valueArray[i];
             return array;
         }
-        public static explicit operator byte?[]?(JsonObject obj)
+        public static explicit operator byte?[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -705,7 +705,7 @@ namespace Zerra.Serialization.Json
                 array[i] = (byte?)obj.valueArray[i];
             return array;
         }
-        public static explicit operator sbyte?[]?(JsonObject obj)
+        public static explicit operator sbyte?[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -716,7 +716,7 @@ namespace Zerra.Serialization.Json
                 array[i] = (sbyte?)obj.valueArray[i];
             return array;
         }
-        public static explicit operator short?[]?(JsonObject obj)
+        public static explicit operator short?[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -727,7 +727,7 @@ namespace Zerra.Serialization.Json
                 array[i] = (short?)obj.valueArray[i];
             return array;
         }
-        public static explicit operator ushort?[]?(JsonObject obj)
+        public static explicit operator ushort?[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -738,7 +738,7 @@ namespace Zerra.Serialization.Json
                 array[i] = (ushort?)obj.valueArray[i];
             return array;
         }
-        public static explicit operator int?[]?(JsonObject obj)
+        public static explicit operator int?[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -749,7 +749,7 @@ namespace Zerra.Serialization.Json
                 array[i] = (int?)obj.valueArray[i];
             return array;
         }
-        public static explicit operator uint?[]?(JsonObject obj)
+        public static explicit operator uint?[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -760,7 +760,7 @@ namespace Zerra.Serialization.Json
                 array[i] = (uint?)obj.valueArray[i];
             return array;
         }
-        public static explicit operator long?[]?(JsonObject obj)
+        public static explicit operator long?[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -771,7 +771,7 @@ namespace Zerra.Serialization.Json
                 array[i] = (long?)obj.valueArray[i];
             return array;
         }
-        public static explicit operator ulong?[]?(JsonObject obj)
+        public static explicit operator ulong?[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -782,7 +782,7 @@ namespace Zerra.Serialization.Json
                 array[i] = (ulong?)obj.valueArray[i];
             return array;
         }
-        public static explicit operator float?[]?(JsonObject obj)
+        public static explicit operator float?[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -793,7 +793,7 @@ namespace Zerra.Serialization.Json
                 array[i] = (float?)obj.valueArray[i];
             return array;
         }
-        public static explicit operator double?[]?(JsonObject obj)
+        public static explicit operator double?[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -804,7 +804,7 @@ namespace Zerra.Serialization.Json
                 array[i] = (double?)obj.valueArray[i];
             return array;
         }
-        public static explicit operator decimal?[]?(JsonObject obj)
+        public static explicit operator decimal?[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -815,7 +815,7 @@ namespace Zerra.Serialization.Json
                 array[i] = (decimal?)obj.valueArray[i];
             return array;
         }
-        public static explicit operator char?[]?(JsonObject obj)
+        public static explicit operator char?[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -826,7 +826,7 @@ namespace Zerra.Serialization.Json
                 array[i] = (char?)obj.valueArray[i];
             return array;
         }
-        public static explicit operator DateTime?[]?(JsonObject obj)
+        public static explicit operator DateTime?[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -837,7 +837,7 @@ namespace Zerra.Serialization.Json
                 array[i] = (DateTime?)obj.valueArray[i];
             return array;
         }
-        public static explicit operator DateTimeOffset?[]?(JsonObject obj)
+        public static explicit operator DateTimeOffset?[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -848,7 +848,7 @@ namespace Zerra.Serialization.Json
                 array[i] = (DateTimeOffset?)obj.valueArray[i];
             return array;
         }
-        public static explicit operator TimeSpan?[]?(JsonObject obj)
+        public static explicit operator TimeSpan?[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -860,7 +860,7 @@ namespace Zerra.Serialization.Json
             return array;
         }
 #if NET6_0_OR_GREATER
-        public static explicit operator DateOnly?[]?(JsonObject obj)
+        public static explicit operator DateOnly?[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -871,7 +871,7 @@ namespace Zerra.Serialization.Json
                 array[i] = (DateOnly?)obj.valueArray[i];
             return array;
         }
-        public static explicit operator TimeOnly?[]?(JsonObject obj)
+        public static explicit operator TimeOnly?[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -883,7 +883,7 @@ namespace Zerra.Serialization.Json
             return array;
         }
 #endif
-        public static explicit operator Guid?[]?(JsonObject obj)
+        public static explicit operator Guid?[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -895,7 +895,7 @@ namespace Zerra.Serialization.Json
             return array;
         }
 
-        public static explicit operator JsonObject[]?(JsonObject obj)
+        public static explicit operator JsonObjectOld[]?(JsonObjectOld obj)
         {
             if (obj.IsNull)
                 return null;
@@ -904,7 +904,7 @@ namespace Zerra.Serialization.Json
             return obj.valueArray;
         }
 
-        public IEnumerator<JsonObject> GetEnumerator()
+        public IEnumerator<JsonObjectOld> GetEnumerator()
         {
             if (jsonType != JsonObjectType.Array)
                 throw new InvalidCastException();

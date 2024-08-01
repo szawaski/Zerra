@@ -128,10 +128,10 @@ namespace Zerra.Serialization.Json
             }
         }
 
-        public static JsonObject DeserializeJsonObject(string json, Graph? graph = null)
+        public static JsonObjectOld DeserializeJsonObject(string json, Graph? graph = null)
         {
             if (json.Length == 0)
-                return new JsonObject(null, true);
+                return new JsonObjectOld(null, true);
 
             var decodeBuffer = new CharWriterOld();
             try
@@ -617,13 +617,13 @@ namespace Zerra.Serialization.Json
             throw reader.CreateException("Json ended prematurely");
         }
 
-        private static JsonObject FromStringJsonToJsonObject(char c, ref CharReaderOld reader, ref CharWriterOld decodeBuffer, Graph? graph)
+        private static JsonObjectOld FromStringJsonToJsonObject(char c, ref CharReaderOld reader, ref CharWriterOld decodeBuffer, Graph? graph)
         {
             switch (c)
             {
                 case '"':
                     var value = FromStringString(ref reader, ref decodeBuffer);
-                    return new JsonObject(value, false);
+                    return new JsonObjectOld(value, false);
                 case '{':
                     return FromStringObjectToJsonObject(ref reader, ref decodeBuffer, graph);
                 case '[':
@@ -633,9 +633,9 @@ namespace Zerra.Serialization.Json
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static JsonObject FromStringObjectToJsonObject(ref CharReaderOld reader, ref CharWriterOld decodeBuffer, Graph? graph)
+        private static JsonObjectOld FromStringObjectToJsonObject(ref CharReaderOld reader, ref CharWriterOld decodeBuffer, Graph? graph)
         {
-            var properties = new Dictionary<string, JsonObject>();
+            var properties = new Dictionary<string, JsonObjectOld>();
             var canExpectComma = false;
             while (reader.TryReadSkipWhiteSpace(out var c))
             {
@@ -660,19 +660,19 @@ namespace Zerra.Serialization.Json
                         {
                             switch (value.JsonType)
                             {
-                                case JsonObject.JsonObjectType.Literal:
+                                case JsonObjectOld.JsonObjectType.Literal:
                                     if (graph.HasLocalProperty(propertyName))
                                         properties.Add(propertyName, value);
                                     break;
-                                case JsonObject.JsonObjectType.String:
+                                case JsonObjectOld.JsonObjectType.String:
                                     if (graph.HasLocalProperty(propertyName))
                                         properties.Add(propertyName, value);
                                     break;
-                                case JsonObject.JsonObjectType.Array:
+                                case JsonObjectOld.JsonObjectType.Array:
                                     if (graph.HasLocalProperty(propertyName))
                                         properties.Add(propertyName, value);
                                     break;
-                                case JsonObject.JsonObjectType.Object:
+                                case JsonObjectOld.JsonObjectType.Object:
                                     if (graph.HasChild(propertyName))
                                         properties.Add(propertyName, value);
                                     break;
@@ -692,7 +692,7 @@ namespace Zerra.Serialization.Json
                             throw reader.CreateException("Unexpected character");
                         break;
                     case '}':
-                        return new JsonObject(properties);
+                        return new JsonObjectOld(properties);
                     default:
                         throw reader.CreateException("Unexpected character");
                 }
@@ -700,9 +700,9 @@ namespace Zerra.Serialization.Json
             throw reader.CreateException("Json ended prematurely");
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static JsonObject FromStringArrayToJsonObject(ref CharReaderOld reader, ref CharWriterOld decodeBuffer, Graph? graph)
+        private static JsonObjectOld FromStringArrayToJsonObject(ref CharReaderOld reader, ref CharWriterOld decodeBuffer, Graph? graph)
         {
-            var arrayList = new List<JsonObject>();
+            var arrayList = new List<JsonObjectOld>();
 
             var canExpectComma = false;
             while (reader.TryReadSkipWhiteSpace(out var c))
@@ -710,7 +710,7 @@ namespace Zerra.Serialization.Json
                 switch (c)
                 {
                     case ']':
-                        return new JsonObject(arrayList.ToArray());
+                        return new JsonObjectOld(arrayList.ToArray());
                     case ',':
                         if (canExpectComma)
                             canExpectComma = false;
@@ -730,7 +730,7 @@ namespace Zerra.Serialization.Json
             throw reader.CreateException("Json ended prematurely");
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static JsonObject FromStringLiteralToJsonObject(char c, ref CharReaderOld reader, ref CharWriterOld decodeBuffer)
+        private static JsonObjectOld FromStringLiteralToJsonObject(char c, ref CharReaderOld reader, ref CharWriterOld decodeBuffer)
         {
             switch (c)
             {
@@ -748,7 +748,7 @@ namespace Zerra.Serialization.Json
                             throw reader.CreateException("Json ended prematurely");
                         if (c != 'l')
                             throw reader.CreateException("Expected number/true/false/null");
-                        return new JsonObject(null, true);
+                        return new JsonObjectOld(null, true);
                     }
                 case 't':
                     {
@@ -764,7 +764,7 @@ namespace Zerra.Serialization.Json
                             throw reader.CreateException("Json ended prematurely");
                         if (c != 'e')
                             throw reader.CreateException("Expected number/true/false/null");
-                        return new JsonObject("true", true);
+                        return new JsonObjectOld("true", true);
                     }
                 case 'f':
                     {
@@ -784,12 +784,12 @@ namespace Zerra.Serialization.Json
                             throw reader.CreateException("Json ended prematurely");
                         if (c != 'e')
                             throw reader.CreateException("Expected number/true/false/null");
-                        return new JsonObject("false", true);
+                        return new JsonObjectOld("false", true);
                     }
                 default:
                     {
                         var value = FromStringLiteralNumberAsString(c, ref reader, ref decodeBuffer);
-                        return new JsonObject(value, true);
+                        return new JsonObjectOld(value, true);
                     }
             }
             throw reader.CreateException("Json ended prematurely");
