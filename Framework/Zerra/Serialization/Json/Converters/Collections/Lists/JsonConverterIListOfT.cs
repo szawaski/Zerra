@@ -2,9 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using Zerra.Reflection;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;

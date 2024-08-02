@@ -9,7 +9,6 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using Zerra.Collections;
-using Zerra.IO;
 using Zerra.Reflection;
 
 [AttributeUsage(AttributeTargets.Field)]

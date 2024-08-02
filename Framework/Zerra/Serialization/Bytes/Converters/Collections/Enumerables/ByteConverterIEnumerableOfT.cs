@@ -4,7 +4,6 @@
 
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using Zerra.Reflection;
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;

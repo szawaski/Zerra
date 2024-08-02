@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using System;
-using Zerra.Reflection;
 using Zerra.Serialization.Bytes;
 
 namespace Zerra.CQRS.Network

@@ -10,9 +10,7 @@ using Zerra.Serialization.Json.State;
 using System.Runtime.CompilerServices;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Collections;
 using Zerra.Serialization.Json.Converters.Collections;
-using System.Security.AccessControl;
 
 namespace Zerra.Serialization.Json.Converters
 {
