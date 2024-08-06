@@ -60,6 +60,7 @@ namespace Zerra.CQRS.Kafka
 
         Task ICommandProducer.DispatchAsync(ICommand command, string source) { return SendAsync(command, false, source); }
         Task ICommandProducer.DispatchAsyncAwait(ICommand command, string source) { return SendAsync(command, true, source); }
+        Task<TResult> ICommandProducer.DispatchAsyncAwait<TResult>(ICommand<TResult> command, string source) where TResult : default { return SendAsync(command, true, source); }
         Task IEventProducer.DispatchAsync(IEvent @event, string source) { return SendAsync(@event, source); }
 
         private async Task SendAsync(ICommand command, bool requireAcknowledgement, string source)
@@ -108,6 +109,7 @@ namespace Zerra.CQRS.Kafka
                 {
                     MessageData = KafkaCommon.Serialize(command),
                     MessageType = command.GetType(),
+                    HasResult = false,
                     Claims = claims,
                     Source = source
                 };
@@ -129,10 +131,10 @@ namespace Zerra.CQRS.Kafka
 
                     try
                     {
-                        Acknowledgement? ack = null;
+                        Acknowledgement? acknowledgement = null;
                         _ = ackCallbacks.TryAdd(ackKey, (ackFromCallback) =>
                         {
-                            ack = ackFromCallback;
+                            acknowledgement = ackFromCallback;
                             _ = waiter.Release();
                         });
 
@@ -142,7 +144,7 @@ namespace Zerra.CQRS.Kafka
 
                         await waiter.WaitAsync();
 
-                        Acknowledgement.ThrowIfFailed(ack);
+                        Acknowledgement.ThrowIfFailed(acknowledgement);
                     }
                     finally
                     {
@@ -190,6 +192,7 @@ namespace Zerra.CQRS.Kafka
                 {
                     MessageData = KafkaCommon.Serialize(@event),
                     MessageType = @event.GetType(),
+                    HasResult = false,
                     Claims = claims,
                     Source = source
                 };
@@ -232,29 +235,21 @@ namespace Zerra.CQRS.Kafka
                             if (!ackCallbacks.TryRemove(consumerResult.Message.Key, out var callback))
                                 continue;
 
-                            Acknowledgement? ack = null;
+                            Acknowledgement? acknowledgement = null;
                             try
                             {
                                 var response = consumerResult.Message.Value;
                                 if (symmetricConfig != null)
                                     response = SymmetricEncryptor.Decrypt(symmetricConfig, response);
-                                ack = KafkaCommon.Deserialize<Acknowledgement>(response);
-                                ack ??= new Acknowledgement()
-                                {
-                                    Success = false,
-                                    ErrorMessage = "Invalid Acknowledgement"
-                                };
+                                acknowledgement = KafkaCommon.Deserialize<Acknowledgement>(response);
+                                acknowledgement ??= new Acknowledgement("Invalid Acknowledgement");
                             }
                             catch (Exception ex)
                             {
-                                ack = new Acknowledgement()
-                                {
-                                    Success = false,
-                                    ErrorMessage = ex.Message
-                                };
+                                acknowledgement = new Acknowledgement(ex.Message);
                             }
 
-                            callback(ack);
+                            callback(acknowledgement);
 
                             if (canceller.IsCancellationRequested)
                                 break;

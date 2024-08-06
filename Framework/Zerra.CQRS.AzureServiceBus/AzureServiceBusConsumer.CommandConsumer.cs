@@ -26,9 +26,10 @@ namespace Zerra.CQRS.AzureServiceBus
             private readonly SymmetricConfig? symmetricConfig;
             private readonly HandleRemoteCommandDispatch handlerAsync;
             private readonly HandleRemoteCommandDispatch handlerAwaitAsync;
+            private readonly HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync;
             private readonly CancellationTokenSource canceller;
 
-            public CommandConsumer(int maxConcurrent, CommandCounter commandCounter, string queue, SymmetricConfig? symmetricConfig, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
+            public CommandConsumer(int maxConcurrent, CommandCounter commandCounter, string queue, SymmetricConfig? symmetricConfig, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
@@ -43,6 +44,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 this.symmetricConfig = symmetricConfig;
                 this.handlerAsync = handlerAsync;
                 this.handlerAwaitAsync = handlerAwaitAsync;
+                this.handlerWithResultAwaitAsync = handlerWithResultAwaitAsync;
                 this.canceller = new CancellationTokenSource();
             }
 
@@ -51,10 +53,10 @@ namespace Zerra.CQRS.AzureServiceBus
                 if (IsOpen)
                     return;
                 IsOpen = true;
-                _ = ListeningThread(host, client, handlerAsync, handlerAwaitAsync);
+                _ = ListeningThread(host, client);
             }
 
-            private async Task ListeningThread(string host, ServiceBusClient client, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
+            private async Task ListeningThread(string host, ServiceBusClient client)
             {
 
             retry:
@@ -80,7 +82,7 @@ namespace Zerra.CQRS.AzureServiceBus
                                 continue;
                             }
 
-                            _ = HandleMessage(throttle, client, serviceBusMessage, handlerAsync, handlerAwaitAsync);
+                            _ = HandleMessage(throttle, client, serviceBusMessage);
 
                             if (canceller.IsCancellationRequested)
                                 break;
@@ -102,12 +104,11 @@ namespace Zerra.CQRS.AzureServiceBus
                 }
             }
 
-            private async Task HandleMessage(SemaphoreSlim throttle, ServiceBusClient client, ServiceBusReceivedMessage serviceBusMessage, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
+            private async Task HandleMessage(SemaphoreSlim throttle, ServiceBusClient client, ServiceBusReceivedMessage serviceBusMessage)
             {
+                object? result = null;
                 Exception? error = null;
-                var awaitResponse = false;
-                string? ackTopic = null;
-                string? ackKey = null;
+                var awaitResponse = !String.IsNullOrWhiteSpace(serviceBusMessage.ReplyTo);
 
                 var inHandlerContext = false;
                 try
@@ -133,10 +134,6 @@ namespace Zerra.CQRS.AzureServiceBus
                     if (command == null)
                         throw new Exception("Invalid Message");
 
-                    awaitResponse = !String.IsNullOrWhiteSpace(serviceBusMessage.ReplyTo);
-                    ackTopic = serviceBusMessage.ReplyTo;
-                    ackKey = serviceBusMessage.ReplyToSessionId;
-
                     if (message.Claims != null)
                     {
                         var claimsIdentity = new ClaimsIdentity(message.Claims.Select(x => new Claim(x[0], x[1])), "CQRS");
@@ -144,7 +141,9 @@ namespace Zerra.CQRS.AzureServiceBus
                     }
 
                     inHandlerContext = true;
-                    if (awaitResponse)
+                    if (message.HasResult)
+                        result = await handlerWithResultAwaitAsync(command, message.Source, false);
+                    else if (awaitResponse)
                         await handlerAwaitAsync(command, message.Source, false);
                     else
                         await handlerAsync(command, message.Source, false);
@@ -159,9 +158,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 finally
                 {
                     if (!awaitResponse)
-                    {
                         commandCounter.CompleteReceive(throttle);
-                    }
                 }
 
                 if (!awaitResponse)
@@ -169,9 +166,12 @@ namespace Zerra.CQRS.AzureServiceBus
 
                 try
                 {
-                    var ack = new Acknowledgement(error);
+                   var ackTopic = serviceBusMessage.ReplyTo;
+                    var ackKey = serviceBusMessage.ReplyToSessionId;
 
-                    var body = AzureServiceBusCommon.Serialize(ack);
+                    var acknowledgement = new Acknowledgement(result, error);
+
+                    var body = AzureServiceBusCommon.Serialize(acknowledgement);
                     if (symmetricConfig != null)
                         body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
 

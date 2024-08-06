@@ -31,8 +31,9 @@ namespace Zerra.CQRS.AzureEventHub
         private readonly ConcurrentHashSet<Type> commandTypes;
         private readonly ConcurrentHashSet<Type> eventTypes;
 
-        private HandleRemoteCommandDispatch? commandHandlerAsync = null;
-        private HandleRemoteCommandDispatch? commandHandlerAwaitAsync = null;
+        private HandleRemoteCommandDispatch? handlerAsync = null;
+        private HandleRemoteCommandDispatch? handlerAwaitAsync = null;
+        private HandleRemoteCommandWithResultDispatch? handlerWithResultAwaitAsync = null;
         private HandleRemoteEventDispatch? eventHandlerAsync = null;
 
         private bool isOpen;
@@ -57,13 +58,14 @@ namespace Zerra.CQRS.AzureEventHub
             this.eventTypes = new();
         }
 
-        void ICommandConsumer.Setup(CommandCounter commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
+        void ICommandConsumer.Setup(CommandCounter commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
         {
             if (isOpen)
                 throw new InvalidOperationException("Connection already open");
             this.commandCounter = commandCounter;
-            this.commandHandlerAsync = handlerAsync;
-            this.commandHandlerAwaitAsync = handlerAwaitAsync;
+            this.handlerAsync = handlerAsync;
+            this.handlerAwaitAsync = handlerAwaitAsync;
+            this.handlerWithResultAwaitAsync = handlerWithResultAwaitAsync;
         }
         void IEventConsumer.Setup(HandleRemoteEventDispatch handlerAsync)
         {
@@ -93,7 +95,7 @@ namespace Zerra.CQRS.AzureEventHub
             if (maxConcurrent == null)
                 throw new Exception($"{nameof(AzureEventHubConsumer)} is not setup");
 
-            if ((commandCounter == null || commandHandlerAsync == null || commandHandlerAwaitAsync == null) && (eventHandlerAsync == null))
+            if ((commandCounter == null || handlerAsync == null || handlerAwaitAsync == null) && (eventHandlerAsync == null))
                 throw new Exception($"{nameof(AzureEventHubConsumer)} is not setup");
 
             _ = ListeningThread();
@@ -141,7 +143,7 @@ namespace Zerra.CQRS.AzureEventHub
 
                         if (isCommand)
                         {
-                            if (commandCounter == null || commandHandlerAsync == null || commandHandlerAwaitAsync == null)
+                            if (commandCounter == null || handlerAsync == null || handlerAwaitAsync == null)
                                 throw new Exception($"{nameof(AzureEventHubConsumer)} is not setup");
 
                             if (!commandCounter.BeginReceive())
@@ -215,9 +217,9 @@ namespace Zerra.CQRS.AzureEventHub
                 if (isCommand)
                 {
                     if (awaitResponse)
-                        await commandHandlerAwaitAsync!((ICommand)commandOrEvent, message.Source, false);
+                        await handlerAwaitAsync!((ICommand)commandOrEvent, message.Source, false);
                     else
-                        await commandHandlerAsync!((ICommand)commandOrEvent, message.Source, false);
+                        await handlerAsync!((ICommand)commandOrEvent, message.Source, false);
                 }
                 else if (isEvent)
                 {

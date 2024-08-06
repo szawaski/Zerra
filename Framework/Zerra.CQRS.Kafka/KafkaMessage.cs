@@ -10,6 +10,7 @@ namespace Zerra.CQRS.Kafka
     {
         public byte[]? MessageData { get; set; }
         public Type? MessageType { get; set; }
+        public bool HasResult { get; set; }
         public string[][]? Claims { get; set; }
         public string? Source { get; set; }
     }

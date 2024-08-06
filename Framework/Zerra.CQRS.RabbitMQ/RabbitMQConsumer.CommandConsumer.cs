@@ -27,12 +27,13 @@ namespace Zerra.CQRS.RabbitMQ
             private readonly SymmetricConfig? symmetricConfig;
             private readonly HandleRemoteCommandDispatch handlerAsync;
             private readonly HandleRemoteCommandDispatch handlerAwaitAsync;
+            private readonly HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync;
             private readonly CancellationTokenSource canceller;
 
             private IModel? channel = null;
             private SemaphoreSlim? throttle = null;
 
-            public CommandConsumer(int maxConcurrent, CommandCounter commandCounter, string topic, SymmetricConfig? symmetricConfig, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
+            public CommandConsumer(int maxConcurrent, CommandCounter commandCounter, string topic, SymmetricConfig? symmetricConfig, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
@@ -46,6 +47,7 @@ namespace Zerra.CQRS.RabbitMQ
                 this.symmetricConfig = symmetricConfig;
                 this.handlerAsync = handlerAsync;
                 this.handlerAwaitAsync = handlerAwaitAsync;
+                this.handlerWithResultAwaitAsync = handlerWithResultAwaitAsync;
                 this.canceller = new CancellationTokenSource();
             }
 
@@ -54,12 +56,11 @@ namespace Zerra.CQRS.RabbitMQ
                 if (IsOpen)
                     return;
                 IsOpen = true;
-                _ = ListeningThread(connection, handlerAsync, handlerAwaitAsync);
+                _ = ListeningThread(connection);
             }
 
-            private async Task ListeningThread(IConnection connection, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
+            private async Task ListeningThread(IConnection connection)
             {
-
             retry:
 
                 throttle?.Dispose();
@@ -88,13 +89,9 @@ namespace Zerra.CQRS.RabbitMQ
 
                         this.channel.BasicAck(e.DeliveryTag, false);
 
+                        object? result = null;
+                        Exception? error = null;
                         var awaitResponse = !String.IsNullOrWhiteSpace(e.BasicProperties.ReplyTo);
-
-                        Acknowledgement? acknowledgment;
-                        if (awaitResponse)
-                            acknowledgment = new Acknowledgement();
-                        else
-                            acknowledgment = null;
 
                         var inHandlerContext = false;
                         try
@@ -119,33 +116,28 @@ namespace Zerra.CQRS.RabbitMQ
                             }
 
                             inHandlerContext = true;
-                            if (awaitResponse)
+                            if (message.HasResult)
+                                result = await handlerWithResultAwaitAsync(command, message.Source, false);
+                            else if (awaitResponse)
                                 await handlerAwaitAsync(command, message.Source, false);
                             else
                                 await handlerAsync(command, message.Source, false);
                             inHandlerContext = false;
-
-                            if (acknowledgment != null)
-                            {
-                                acknowledgment.Success = true;
-                            }
                         }
                         catch (Exception ex)
                         {
                             if (!inHandlerContext)
                                 _ = Log.ErrorAsync(topic, ex);
 
-                            Acknowledgement.ApplyException(acknowledgment, ex);
+                            error = ex;
                         }
                         finally
                         {
-                            if (acknowledgment == null)
-                            {
+                            if (!awaitResponse)
                                 commandCounter.CompleteReceive(throttle);
-                            }
                         }
 
-                        if (acknowledgment == null)
+                        if (!awaitResponse)
                             return;
 
                         try
@@ -153,7 +145,9 @@ namespace Zerra.CQRS.RabbitMQ
                             var replyProperties = this.channel.CreateBasicProperties();
                             replyProperties.CorrelationId = e.BasicProperties.CorrelationId;
 
-                            var acknowledgmentBody = RabbitMQCommon.Serialize(acknowledgment);
+                            var acknowledgement = new Acknowledgement(result, error);
+
+                            var acknowledgmentBody = RabbitMQCommon.Serialize(acknowledgement);
                             if (symmetricConfig != null)
                                 acknowledgmentBody = SymmetricEncryptor.Encrypt(symmetricConfig, acknowledgmentBody);
 
@@ -171,7 +165,7 @@ namespace Zerra.CQRS.RabbitMQ
 
                     consumer.ConsumerCancelled += (sender, e) =>
                     {
-                        _ = ListeningThread(connection, handlerAsync, handlerAwaitAsync);
+                        _ = ListeningThread(connection);
                         return Task.CompletedTask;
                     };
 
@@ -180,7 +174,6 @@ namespace Zerra.CQRS.RabbitMQ
                 catch (Exception ex)
                 {
                     _ = Log.ErrorAsync(topic, ex);
-
 
                     if (!canceller.IsCancellationRequested)
                     {

@@ -59,6 +59,7 @@ namespace Zerra.CQRS.RabbitMQ
 
         Task ICommandProducer.DispatchAsync(ICommand command, string source) { return SendAsync(command, false, source); }
         Task ICommandProducer.DispatchAsyncAwait(ICommand command, string source) { return SendAsync(command, true, source); }
+        Task<TResult?> ICommandProducer.DispatchAsyncAwait<TResult>(ICommand<TResult> command, string source) where TResult : default { return SendAsync(command, source); }
         Task IEventProducer.DispatchAsync(IEvent @event, string source) { return SendAsync(@event, source); }
 
         private async Task SendAsync(ICommand command, bool requireAcknowledgement, string source)
@@ -105,6 +106,7 @@ namespace Zerra.CQRS.RabbitMQ
                     {
                         MessageData = RabbitMQCommon.Serialize(command),
                         MessageType = command.GetType(),
+                        HasResult = false,
                         Claims = claims,
                         Source = source
                     };
@@ -133,7 +135,7 @@ namespace Zerra.CQRS.RabbitMQ
 
                     if (requireAcknowledgement)
                     {
-                        Acknowledgement? ack = null;
+                        Acknowledgement? acknowledgement = null;
                         using var waiter = new SemaphoreSlim(0, 1);
 
                         consumer!.Received += (sender, e) =>
@@ -149,20 +151,12 @@ namespace Zerra.CQRS.RabbitMQ
                                 if (symmetricConfig != null)
                                     acknowledgementBody = SymmetricEncryptor.Decrypt(symmetricConfig, acknowledgementBody);
 
-                                ack = RabbitMQCommon.Deserialize<Acknowledgement>(acknowledgementBody);
-                                ack ??= new Acknowledgement()
-                                {
-                                    Success = false,
-                                    ErrorMessage = "Invalid Acknowledgement"
-                                };
+                                acknowledgement = RabbitMQCommon.Deserialize<Acknowledgement>(acknowledgementBody);
+                                acknowledgement ??= new Acknowledgement("Invalid Acknowledgement");
                             }
                             catch (Exception ex)
                             {
-                                ack = new Acknowledgement()
-                                {
-                                    Success = false,
-                                    ErrorMessage = ex.Message
-                                };
+                                acknowledgement = new Acknowledgement(ex.Message);
                             }
                             finally
                             {
@@ -172,10 +166,129 @@ namespace Zerra.CQRS.RabbitMQ
 
                         await waiter.WaitAsync();
 
-                        Acknowledgement.ThrowIfFailed(ack);
+                        Acknowledgement.ThrowIfFailed(acknowledgement);
                     }
 
                     channel.Close();
+                }
+                catch (Exception ex)
+                {
+                    _ = Log.ErrorAsync(ex);
+                    throw;
+                }
+            }
+            finally
+            {
+                throttle.Release();
+            }
+        }
+
+        private async Task<TResult?> SendAsync<TResult>(ICommand<TResult> command, string source)
+        {
+            var commandType = command.GetType();
+            if (!topicsByCommandType.TryGetValue(commandType, out var topic))
+                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(RabbitMQProducer)}");
+            if (!throttleByTopic.TryGetValue(topic, out var throttle))
+                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(RabbitMQProducer)}");
+
+            await throttle.WaitAsync();
+
+            try
+            {
+
+                if (!String.IsNullOrWhiteSpace(environment))
+                    topic = StringExtensions.Join(RabbitMQCommon.TopicMaxLength, "_", environment, topic);
+                else
+                    topic = topic.Truncate(RabbitMQCommon.TopicMaxLength);
+
+                try
+                {
+                    if (connection == null || connection!.IsOpen == false)
+                    {
+                        lock (locker)
+                        {
+                            if (connection == null || connection.IsOpen == false)
+                            {
+                                this.connection?.Close();
+                                this.connection?.Dispose();
+                                this.connection = factory.CreateConnection();
+                                _ = Log.InfoAsync($"Sender Reconnected");
+                            }
+                        }
+                    }
+
+                    using var channel = connection.CreateModel();
+
+                    string[][]? claims = null;
+                    if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
+                        claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
+
+                    var rabbitMessage = new RabbitMQMessage()
+                    {
+                        MessageData = RabbitMQCommon.Serialize(command),
+                        MessageType = command.GetType(),
+                        HasResult = true,
+                        Claims = claims,
+                        Source = source
+                    };
+
+                    var body = RabbitMQCommon.Serialize(rabbitMessage);
+                    if (symmetricConfig != null)
+                        body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
+
+                    var properties = channel.CreateBasicProperties();
+
+                    var replyQueue = channel.QueueDeclare(String.Empty, false, true, true);
+                    var consumer = new EventingBasicConsumer(channel);
+                    var consumerTag = channel.BasicConsume(replyQueue.QueueName, true, consumer);
+
+                    var correlationId = Guid.NewGuid().ToString("N");
+                    properties.ReplyTo = replyQueue.QueueName;
+                    properties.CorrelationId = correlationId;
+
+                    channel.BasicPublish(topic, String.Empty, properties, body);
+
+                    Acknowledgement? acknowledgement = null;
+                    TResult? result = default;
+                    using var waiter = new SemaphoreSlim(0, 1);
+
+                    consumer!.Received += (sender, e) =>
+                    {
+                        try
+                        {
+                            if (e.BasicProperties.CorrelationId != correlationId)
+                                throw new Exception("ACK response CorrelationIds should be single and unique");
+
+                            channel.BasicCancel(consumerTag);
+
+                            var acknowledgementBody = e.Body.Span;
+                            if (symmetricConfig != null)
+                                acknowledgementBody = SymmetricEncryptor.Decrypt(symmetricConfig, acknowledgementBody);
+
+                            acknowledgement = RabbitMQCommon.Deserialize<Acknowledgement>(acknowledgementBody);
+                            acknowledgement ??= new Acknowledgement("Invalid Acknowledgement");
+                            if (acknowledgement.Success)
+                            {
+                                result = (TResult?)Acknowledgement.GetResult(acknowledgement);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            acknowledgement = new Acknowledgement(ex.Message);
+                        }
+                        finally
+                        {
+                            _ = waiter.Release();
+                        }
+                    };
+
+                    await waiter.WaitAsync();
+
+                    Acknowledgement.ThrowIfFailed(acknowledgement);
+
+                    channel.Close();
+
+                    return result;
                 }
                 catch (Exception ex)
                 {
@@ -232,6 +345,7 @@ namespace Zerra.CQRS.RabbitMQ
                     {
                         MessageData = RabbitMQCommon.Serialize(@event),
                         MessageType = @event.GetType(),
+                        HasResult = false,
                         Claims = claims,
                         Source = source
                     };

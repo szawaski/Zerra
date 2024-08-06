@@ -28,9 +28,10 @@ namespace Zerra.CQRS.Kafka
             private readonly SymmetricConfig? symmetricConfig;
             private readonly HandleRemoteCommandDispatch handlerAsync;
             private readonly HandleRemoteCommandDispatch handlerAwaitAsync;
+            private readonly HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync;
             private readonly CancellationTokenSource canceller;
 
-            public CommandConsumer(int maxConcurrent, CommandCounter commandCounter, string topic, SymmetricConfig? symmetricConfig, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
+            public CommandConsumer(int maxConcurrent, CommandCounter commandCounter, string topic, SymmetricConfig? symmetricConfig, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
@@ -45,6 +46,7 @@ namespace Zerra.CQRS.Kafka
                 this.symmetricConfig = symmetricConfig;
                 this.handlerAsync = handlerAsync;
                 this.handlerAwaitAsync = handlerAwaitAsync;
+                this.handlerWithResultAwaitAsync = handlerWithResultAwaitAsync;
                 this.canceller = new CancellationTokenSource();
             }
 
@@ -53,10 +55,10 @@ namespace Zerra.CQRS.Kafka
                 if (IsOpen)
                     return;
                 IsOpen = true;
-                _ = ListeningThread(host, handlerAsync, handlerAwaitAsync);
+                _ = ListeningThread(host);
             }
 
-            private async Task ListeningThread(string host, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
+            private async Task ListeningThread(string host)
             {
             retry:
 
@@ -86,7 +88,7 @@ namespace Zerra.CQRS.Kafka
                                 var consumerResult = consumer.Consume(canceller.Token);
                                 consumer.Commit(consumerResult);
 
-                                _ = HandleMessage(throttle, host, consumerResult, handlerAsync, handlerAwaitAsync);
+                                _ = HandleMessage(throttle, host, consumerResult);
 
                                 if (canceller.IsCancellationRequested)
                                     break;
@@ -113,25 +115,16 @@ namespace Zerra.CQRS.Kafka
                 }
             }
 
-            private async Task HandleMessage(SemaphoreSlim throttle, string host, ConsumeResult<string, byte[]> consumerResult, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
+            private async Task HandleMessage(SemaphoreSlim throttle, string host, ConsumeResult<string, byte[]> consumerResult)
             {
                 object? result = null;
                 Exception? error = null;
-                var awaitResponse = false;
-                string? ackTopic = null;
-                string? ackKey = null;
+                var awaitResponse = consumerResult.Message.Key == KafkaCommon.MessageWithAckKey;
 
                 var inHandlerContext = false;
                 try
                 {
-                    awaitResponse = consumerResult.Message.Key == KafkaCommon.MessageWithAckKey;
-                    if (awaitResponse)
-                    {
-                        ackTopic = Encoding.UTF8.GetString(consumerResult.Message.Headers.GetLastBytes(KafkaCommon.AckTopicHeader));
-                        ackKey = Encoding.UTF8.GetString(consumerResult.Message.Headers.GetLastBytes(KafkaCommon.AckKeyHeader));
-                    }
-
-                    if (consumerResult.Message.Key == KafkaCommon.MessageKey || awaitResponse)
+                    if (consumerResult.Message.Key == KafkaCommon.MessageKey || consumerResult.Message.Key == KafkaCommon.MessageWithAckKey)
                     {
                         var body = consumerResult.Message.Value;
                         if (symmetricConfig != null)
@@ -152,6 +145,8 @@ namespace Zerra.CQRS.Kafka
                         }
 
                         inHandlerContext = true;
+                        if (message.HasResult)
+                            result = await handlerWithResultAwaitAsync(command, message.Source, false);
                         if (awaitResponse)
                             await handlerAwaitAsync(command, message.Source, false);
                         else
@@ -172,9 +167,7 @@ namespace Zerra.CQRS.Kafka
                 finally
                 {
                     if (!awaitResponse)
-                    {
                         commandCounter.CompleteReceive(throttle);
-                    }
                 }
 
                 if (!awaitResponse)
@@ -182,8 +175,11 @@ namespace Zerra.CQRS.Kafka
 
                 try
                 {
-                    var ack = new Acknowledgement(error);
-                    var body = KafkaCommon.Serialize(ack);
+                    var ackTopic = Encoding.UTF8.GetString(consumerResult.Message.Headers.GetLastBytes(KafkaCommon.AckTopicHeader));
+                    var ackKey = Encoding.UTF8.GetString(consumerResult.Message.Headers.GetLastBytes(KafkaCommon.AckKeyHeader));
+
+                    var acknowledgement = new Acknowledgement(result, error);
+                    var body = KafkaCommon.Serialize(acknowledgement);
                     if (symmetricConfig != null)
                         body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
 

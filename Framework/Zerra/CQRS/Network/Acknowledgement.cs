@@ -11,7 +11,7 @@ namespace Zerra.CQRS.Network
     {
         public bool Success { get; set; }
         public string? ErrorMessage { get; set; }
-        public Type? ErrorType { get; set; }
+        public Type? DataType { get; set; }
         public byte[]? Data { get; set; }
 
         public Acknowledgement(string errorMessage)
@@ -26,12 +26,13 @@ namespace Zerra.CQRS.Network
             {
                 this.Success = false;
                 this.ErrorMessage = ex.Message;
-                this.ErrorType = ex.GetType();
-                this.Data = ByteSerializer.Serialize(ex, this.ErrorType, byteSerializerOptions);
+                this.DataType = ex.GetType();
+                this.Data = ByteSerializer.Serialize(ex, this.DataType, byteSerializerOptions);
             }
             else
             {
                 this.Success = true;
+
                 this.Data = ByteSerializer.Serialize(result, byteSerializerOptions);
             }
         }
@@ -51,7 +52,7 @@ namespace Zerra.CQRS.Network
             {
                 ack.Success = true;
                 ack.ErrorMessage = null;
-                ack.ErrorType = null;
+                ack.DataType = null;
                 ack.Data = null;
             }
             else
@@ -59,7 +60,7 @@ namespace Zerra.CQRS.Network
                 var type = ex.GetType();
                 ack.Success = false;
                 ack.ErrorMessage = ex.Message;
-                ack.ErrorType = type;
+                ack.DataType = type;
                 ack.Data = ByteSerializer.Serialize(ex, type, byteSerializerOptions);
             }
         }
@@ -72,15 +73,34 @@ namespace Zerra.CQRS.Network
                 return;
 
             Exception? ex = null;
-            if (ack.ErrorType != null && ack.Data != null && ack.Data.Length > 0)
+            if (ack.DataType != null && ack.Data != null && ack.Data.Length > 0)
             {
                 try
                 {
-                    ex = (Exception?)ByteSerializer.Deserialize(ack.ErrorType, ack.Data, byteSerializerOptions);
+                    ex = (Exception?)ByteSerializer.Deserialize(ack.DataType, ack.Data, byteSerializerOptions);
                 }
                 catch { }
             }
             throw new RemoteServiceException(ack.ErrorMessage, ex);
+        }
+
+        public static object? GetResult(Acknowledgement? ack)
+        {
+            if (ack == null)
+                throw new RemoteServiceException("Acknowledgement Failed");
+            if (!ack.Success)
+                return null;
+
+            object? result = null;
+            if (ack.DataType != null && ack.Data != null && ack.Data.Length > 0)
+            {
+                try
+                {
+                    result = ByteSerializer.Deserialize(ack.DataType, ack.Data, byteSerializerOptions);
+                }
+                catch { }
+            }
+            return result;
         }
     }
 }
