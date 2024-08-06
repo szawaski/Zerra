@@ -14,5 +14,6 @@ namespace Zerra.CQRS
         IEnumerable<Type> GetCommandTypes();
         Task DispatchAsync(ICommand command, string source);
         Task DispatchAsyncAwait(ICommand command, string source);
+        Task<TResult?> DispatchAsyncAwait<TResult>(ICommand<TResult> command, string source);
     }
 }

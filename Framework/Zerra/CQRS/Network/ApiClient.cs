@@ -31,7 +31,7 @@ namespace Zerra.CQRS.Network
         protected override TReturn? CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source) where TReturn : default
         {
             var providerName = interfaceType.Name;
-            var stringArguments = new string[arguments.Length];
+            var stringArguments = new string?[arguments.Length];
             for (var i = 0; i < arguments.Length; i++)
                 stringArguments[i] = JsonSerializer.Serialize(arguments);
 
@@ -51,7 +51,7 @@ namespace Zerra.CQRS.Network
         protected override Task<TReturn?> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source) where TReturn : default
         {
             var providerName = interfaceType.Name;
-            var stringArguments = new string[arguments.Length];
+            var stringArguments = new string?[arguments.Length];
             for (var i = 0; i < arguments.Length; i++)
                 stringArguments[i] = JsonSerializer.Serialize(arguments);
 
@@ -83,6 +83,23 @@ namespace Zerra.CQRS.Network
             };
 
             return RequestAsync<object>(throttle, false, serviceUri.OriginalString, commendTypeName, requestContentType, data, false);
+        }
+
+        protected override Task<TResult?> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source) where TResult : default
+        {
+            var commendTypeName = commandType.GetNiceFullName();
+            var commandData = JsonSerializer.Serialize(command, commandType);
+
+            var data = new ApiRequestData()
+            {
+                MessageType = commendTypeName,
+                MessageData = commandData,
+                MessageAwait = true,
+
+                Source = source
+            };
+
+            return RequestAsync<TResult>(throttle, isStream, serviceUri.OriginalString, commendTypeName, requestContentType, data, true);
         }
 
         private static readonly MethodInfo requestAsyncMethod = TypeAnalyzer.GetTypeDetail(typeof(ApiClient)).MethodDetails.First(x => x.MethodInfo.Name == nameof(ApiClient.RequestAsync)).MethodInfo;

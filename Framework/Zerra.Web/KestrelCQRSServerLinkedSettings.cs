@@ -20,6 +20,7 @@ namespace Zerra.Web
         public QueryHandlerDelegate? ProviderHandlerAsync { get; set; }
         public HandleRemoteCommandDispatch? HandlerAsync { get; set; }
         public HandleRemoteCommandDispatch? HandlerAwaitAsync { get; set; }
+        public HandleRemoteCommandWithResultDispatch? HandlerWithResultAwaitAsync { get; set; }
 
         public string? Route { get; }
         public ICqrsAuthorizer? Authorizer { get; }

@@ -23,6 +23,7 @@ namespace Zerra.CQRS.Network
         protected QueryHandlerDelegate? providerHandlerAsync = null;
         protected HandleRemoteCommandDispatch? handlerAsync = null;
         protected HandleRemoteCommandDispatch? handlerAwaitAsync = null;
+        protected HandleRemoteCommandWithResultDispatch? handlerWithResultAwaitAsync = null;
 
         private bool started = false;
         private bool disposed = false;
@@ -63,11 +64,12 @@ namespace Zerra.CQRS.Network
             return interfaceTypes;
         }
 
-        void ICommandConsumer.Setup(CommandCounter commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
+        void ICommandConsumer.Setup(CommandCounter commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
         {
             this.commandCounter = commandCounter;
             this.handlerAsync = handlerAsync;
             this.handlerAwaitAsync = handlerAwaitAsync;
+            this.handlerWithResultAwaitAsync = handlerWithResultAwaitAsync;
         }
 
         void ICommandConsumer.RegisterCommandType(int maxConcurrent, string topic, Type type)

@@ -9,6 +9,8 @@ using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net.Security;
+using System.Reflection;
 using System.Security;
 using System.Security.Principal;
 using System.Threading;
@@ -33,6 +35,7 @@ namespace Zerra.CQRS
         private static readonly Type iCommandType = typeof(ICommand);
         private static readonly Type iEventType = typeof(IEvent);
         private static readonly Type iCommandHandlerType = typeof(ICommandHandler<>);
+        private static readonly Type iCommandWithResultHandlerType = typeof(ICommandHandler<,>);
         private static readonly Type iEventHandlerType = typeof(IEventHandler<>);
         private static readonly Type iBusCacheType = typeof(IBusCache);
         private static readonly Type streamType = typeof(Stream);
@@ -56,7 +59,7 @@ namespace Zerra.CQRS
             var methodDetail = TypeAnalyzer.GetMethodDetail(interfaceType, methodName);
 
             if (methodDetail.ParametersInfo.Count != (arguments != null ? arguments.Length : 0))
-                throw new ArgumentException("{interfaceType.GetNiceName()}.{methodName} invalid number of arguments");
+                throw new ArgumentException($"{interfaceType.GetNiceName()}.{methodName} invalid number of arguments");
 
             var args = new object?[arguments != null ? arguments.Length : 0];
             if (arguments != null && arguments.Length > 0)
@@ -65,8 +68,7 @@ namespace Zerra.CQRS
                 foreach (var argument in arguments)
                 {
                     var parameter = JsonSerializer.Deserialize(methodDetail.ParametersInfo[i].ParameterType, argument);
-                    args[i] = parameter;
-                    i++;
+                    args[i++] = parameter;
                 }
             }
 
@@ -75,7 +77,7 @@ namespace Zerra.CQRS
             if (methodDetail.ReturnType.IsTask)
             {
                 isStream = methodDetail.ReturnType.Type.IsGenericType && methodDetail.ReturnType.InnerTypeDetails[0].BaseTypes.Contains(streamType);
-                var result = (Task)methodDetail.Caller(callerProvider, args)!;
+                var result = methodDetail.CallerAsync(callerProvider, args)!;
                 await result;
 
                 if (methodDetail.ReturnType.Type.IsGenericType)
@@ -104,6 +106,17 @@ namespace Zerra.CQRS
             var networkType = isApi ? NetworkType.Api : NetworkType.Internal;
             return DispatchCommandInternalAsync(command, true, networkType, source);
         }
+        private static readonly MethodDetail dispatchCommandWithResultInternalAsyncMethod = typeof(Bus).GetMethodDetail(nameof(DispatchCommandWithResultInternalAsync));
+        public static async Task<object?> HandleRemoteCommandWithResultDispatchAwaitAsync(ICommand command, string source, bool isApi)
+        {
+            var networkType = isApi ? NetworkType.Api : NetworkType.Internal;
+            var commandType = command.GetType().GetTypeDetail();
+
+            var dispatchCommandWithResultInternalAsyncMethodGeneric = dispatchCommandWithResultInternalAsyncMethod.GetGenericMethodDetail([commandType.InnerType]);
+            var model = await dispatchCommandWithResultInternalAsyncMethodGeneric.CallerAsync(null, [command, networkType, source]);
+
+            return model;
+        }
         public static Task HandleRemoteEventDispatchAsync(IEvent @event, string source, bool isApi)
         {
             var networkType = isApi ? NetworkType.Api : NetworkType.Internal;
@@ -113,9 +126,11 @@ namespace Zerra.CQRS
         public static Task DispatchAsync(ICommand command) => DispatchCommandInternalAsync(command, false, NetworkType.Local, Config.ApplicationIdentifier);
         public static Task DispatchAwaitAsync(ICommand command) => DispatchCommandInternalAsync(command, true, NetworkType.Local, Config.ApplicationIdentifier);
         public static Task DispatchAsync(IEvent @event) => DispatchEventInternalAsync(@event, NetworkType.Local, Config.ApplicationIdentifier);
+        public static Task<TResult> DispatchAwaitAsync<TResult>(ICommand<TResult> command) => DispatchCommandWithResultInternalAsync(command, NetworkType.Local, Config.ApplicationIdentifier);
 
         private static readonly ConcurrentFactoryDictionary<Type, MessageMetadata> commandMetadata = new();
         private static readonly ConcurrentFactoryDictionary<Type, Func<ICommand, Task>?> commandCacheProviders = new();
+        private static readonly ConcurrentFactoryDictionary<Type, Delegate?> commandWithResultCacheProviders = new();
         private static Task DispatchCommandInternalAsync(ICommand command, bool requireAffirmation, NetworkType networkType, string source)
         {
             var commandType = command.GetType();
@@ -169,12 +184,12 @@ namespace Zerra.CQRS
                 var interfaceType = (Type)methodGetProviderInterfaceType.Caller(cacheInstance, null)!;
 
                 var messageHandlerToDispatchProvider = BusRouters.GetCommandHandlerToDispatchInternalInstance(interfaceType, requireAffirmation, networkType, source, metadata.BusLogging);
-                _ = methodSetNextProvider.Caller(cacheInstance, new object[] { messageHandlerToDispatchProvider });
+                _ = methodSetNextProvider.Caller(cacheInstance, [messageHandlerToDispatchProvider]);
 
-                var method = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(ICommandHandler<ICommand>.Handle), new Type[] { commandType });
+                var method = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(ICommandHandler<ICommand>.Handle), [commandType]);
                 Task caller(ICommand arg)
                 {
-                    var task = (Task)method.Caller(cacheInstance, new object?[] { arg })!;
+                    var task = (Task)method.Caller(cacheInstance, [arg])!;
                     return task;
                 }
 
@@ -185,6 +200,76 @@ namespace Zerra.CQRS
                 return cacheProviderDispatchAsync(command);
 
             return _DispatchCommandInternalAsync(command, commandType, requireAffirmation, networkType, source, metadata.BusLogging);
+        }
+        private static Task<TResult> DispatchCommandWithResultInternalAsync<TResult>(ICommand<TResult> command, NetworkType networkType, string source)
+        {
+            var commandType = command.GetType();
+
+            var metadata = commandMetadata.GetOrAdd(commandType, (commandType) =>
+            {
+                var exposed = false;
+                var busLogging = BusLogging.Logged;
+                var authenticate = false;
+                IReadOnlyCollection<string>? roles = null;
+                foreach (var attribute in commandType.GetTypeDetail().Attributes)
+                {
+                    if (attribute is ServiceExposedAttribute serviceExposedAttribute && serviceExposedAttribute.NetworkType >= networkType)
+                    {
+                        exposed = true;
+                    }
+                    else if (attribute is ServiceLogAttribute busLoggedAttribute)
+                    {
+                        busLogging = busLoggedAttribute.BusLogging;
+                    }
+                    else if (attribute is ServiceSecureAttribute serviceSecureAttribute)
+                    {
+                        authenticate = true;
+                        roles = serviceSecureAttribute.Roles;
+                    }
+                }
+                return new MessageMetadata(exposed, busLogging, authenticate, roles);
+            });
+
+            if (networkType != NetworkType.Local && !metadata.Exposed)
+                throw new SecurityException($"Not Exposed Command {commandType.GetNiceName()} for {nameof(NetworkType)}.{networkType.EnumName()}");
+            if (metadata.Authenticate)
+                Authenticate(Thread.CurrentPrincipal, metadata.Roles, () => $"Access Denied for Command {commandType.GetNiceName()}");
+
+            var cacheProviderDispatchAsync = (Func<ICommand<TResult>, Task<TResult>>?)commandWithResultCacheProviders.GetOrAdd(commandType, (commandType) =>
+            {
+                var handlerTypeDetail = TypeAnalyzer.GetGenericTypeDetail(iCommandWithResultHandlerType, commandType, typeof(TResult));
+
+                var busCacheType = Discovery.GetClassByInterface(handlerTypeDetail.Type, iBusCacheType, false);
+                if (busCacheType == null)
+                    return null;
+
+                var busCacheTypeDetail = busCacheType.GetTypeDetail();
+
+                if (!busCacheTypeDetail.TryGetMethod(nameof(LayerProvider<object>.SetNextProvider), out var methodSetNextProvider))
+                    return null;
+
+                var cacheInstance = Instantiator.Create(busCacheType);
+
+                var methodGetProviderInterfaceType = busCacheTypeDetail.GetMethod(nameof(LayerProvider<object>.GetProviderInterfaceType));
+                var interfaceType = (Type)methodGetProviderInterfaceType.Caller(cacheInstance, null)!;
+
+                var messageHandlerToDispatchProvider = BusRouters.GetCommandWithResultHandlerToDispatchInternalInstance(interfaceType, networkType, source, metadata.BusLogging);
+                _ = methodSetNextProvider.Caller(cacheInstance, [messageHandlerToDispatchProvider]);
+
+                var method = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(ICommandHandler<ICommand<TResult>, TResult>.Handle), [commandType, typeof(TResult)]);
+                Task<TResult> caller(ICommand<TResult> arg)
+                {
+                    var task = (Task<TResult>)method.Caller(cacheInstance, [arg])!;
+                    return task;
+                }
+
+                return caller;
+            });
+
+            if (cacheProviderDispatchAsync != null)
+                return (Task<TResult>)cacheProviderDispatchAsync(command);
+
+            return _DispatchCommandWithResultInternalAsync(command, commandType, networkType, source, metadata.BusLogging);
         }
 
         private static readonly ConcurrentFactoryDictionary<Type, MessageMetadata> eventMetadata = new();
@@ -242,12 +327,12 @@ namespace Zerra.CQRS
                 var interfaceType = (Type)methodGetProviderInterfaceType.Caller(cacheInstance, null)!;
 
                 var messageHandlerToDispatchProvider = BusRouters.GetEventHandlerToDispatchInternalInstance(interfaceType, networkType, source, metadata.BusLogging);
-                _ = methodSetNextProvider.Caller(cacheInstance, new object[] { messageHandlerToDispatchProvider });
+                _ = methodSetNextProvider.Caller(cacheInstance, [messageHandlerToDispatchProvider]);
 
-                var method = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(IEventHandler<IEvent>.Handle), new Type[] { eventType });
+                var method = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(IEventHandler<IEvent>.Handle), [eventType]);
                 Task caller(IEvent arg)
                 {
-                    var task = (Task)method.Caller(cacheInstance, new object?[] { arg })!;
+                    var task = (Task)method.Caller(cacheInstance, [arg])!;
                     return task;
                 }
 
@@ -301,6 +386,34 @@ namespace Zerra.CQRS
                     _ = HandleCommandLoggedAsync((ICommand)command, commandType, source);
                 return Task.CompletedTask;
             }
+        }
+        public static Task<TResult> _DispatchCommandWithResultInternalAsync<TResult>(ICommand<TResult> command, Type commandType, NetworkType networkType, string source, BusLogging busLogging)
+        {
+            if (networkType == NetworkType.Local || !handledCommandTypes.Contains(commandType))
+            {
+                ICommandProducer? producer = null;
+                var messageBaseType = commandType;
+                while (producer == null && messageBaseType != null)
+                {
+                    if (commandProducers.TryGetValue(messageBaseType, out producer))
+                    {
+                        if (busLogger == null || busLogging == BusLogging.None || (busLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
+                        {
+                            return producer.DispatchAsyncAwait(command, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source);
+                        }
+                        else
+                        {
+                            return SendCommandWithResultLoggedAsync(command, commandType, networkType, source, producer);
+                        }
+                    }
+                    messageBaseType = messageBaseType.BaseType;
+                }
+            }
+
+            if (busLogger == null || busLogging == BusLogging.None || (busLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
+                return HandleCommandWithResultAsync((ICommand<TResult>)command, commandType, source);
+            else
+                return HandleCommandWithResultLoggedAsync((ICommand<TResult>)command, commandType, source);
         }
         public static Task _DispatchEventInternalAsync(IEvent @event, Type eventType, NetworkType networkType, string source, BusLogging busLogging)
         {
@@ -365,6 +478,28 @@ namespace Zerra.CQRS
             timer.Stop();
             busLogger?.EndCommand(commandType, command, source, false, timer.ElapsedMilliseconds, null);
         }
+        private static async Task<TResult> SendCommandWithResultLoggedAsync<TResult>(ICommand<TResult> command, Type commandType, NetworkType networkType, string source, ICommandProducer producer)
+        {
+            busLogger?.BeginCommand(commandType, command, source, false);
+
+            var timer = Stopwatch.StartNew();
+            TResult result;
+            try
+            {
+                result = await producer.DispatchAsyncAwait(command, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source);
+            }
+            catch (Exception ex)
+            {
+                timer.Stop();
+                busLogger?.EndCommand(commandType, command, source, false, timer.ElapsedMilliseconds, ex);
+                throw;
+            }
+
+            timer.Stop();
+            busLogger?.EndCommand(commandType, command, source, false, timer.ElapsedMilliseconds, null);
+
+            return result;
+        }
         private static async Task SendEventLoggedAsync(IEvent @event, Type eventType, NetworkType networkType, string source, IEventProducer producer)
         {
             busLogger?.BeginEvent(eventType, @event, source, false);
@@ -390,18 +525,29 @@ namespace Zerra.CQRS
             var interfaceType = TypeAnalyzer.GetGenericType(iCommandHandlerType, commandType);
 
             var providerType = ProviderResolver.GetTypeFirst(interfaceType);
-            var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(ICommandHandler<ICommand>.Handle), new Type[] { commandType });
+            var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(ICommandHandler<ICommand>.Handle), [commandType]);
 
             var provider = Instantiator.GetSingle(providerType);
 
-            return (Task)method.Caller(provider, new object?[] { command })!;
+            return (Task)method.Caller(provider, [command])!;
+        }
+        private static Task<TResult> HandleCommandWithResultAsync<TResult>(ICommand<TResult> command, Type commandType, string source)
+        {
+            var interfaceType = TypeAnalyzer.GetGenericType(iCommandWithResultHandlerType, commandType, typeof(TResult));
+
+            var providerType = ProviderResolver.GetTypeFirst(interfaceType);
+            var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(ICommandHandler<ICommand<TResult>, TResult>.Handle), [commandType, typeof(TResult)]);
+
+            var provider = Instantiator.GetSingle(providerType);
+
+            return (Task<TResult>)method.Caller(provider, [command])!;
         }
         private static async Task HandleCommandLoggedAsync(ICommand command, Type commandType, string source)
         {
             var interfaceType = TypeAnalyzer.GetGenericType(iCommandHandlerType, commandType);
 
             var providerType = ProviderResolver.GetTypeFirst(interfaceType);
-            var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(ICommandHandler<ICommand>.Handle), new Type[] { commandType });
+            var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(ICommandHandler<ICommand>.Handle), [commandType]);
 
             var provider = Instantiator.GetSingle(providerType);
 
@@ -410,7 +556,7 @@ namespace Zerra.CQRS
             var timer = Stopwatch.StartNew();
             try
             {
-                await (Task)method.Caller(provider, new object[] { command })!;
+                await (Task)method.Caller(provider, [command])!;
             }
             catch (Exception ex)
             {
@@ -422,16 +568,45 @@ namespace Zerra.CQRS
             timer.Stop();
             busLogger?.EndCommand(commandType, command, source, true, timer.ElapsedMilliseconds, null);
         }
+        private static async Task<TResult> HandleCommandWithResultLoggedAsync<TResult>(ICommand<TResult> command, Type commandType, string source)
+        {
+            var interfaceType = TypeAnalyzer.GetGenericType(iCommandWithResultHandlerType, commandType, typeof(TResult));
+
+            var providerType = ProviderResolver.GetTypeFirst(interfaceType);
+            var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(ICommandHandler<ICommand<TResult>, TResult>.Handle), [commandType, typeof(TResult)]);
+
+            var provider = Instantiator.GetSingle(providerType);
+
+            busLogger?.BeginCommand(commandType, command, source, true);
+
+            var timer = Stopwatch.StartNew();
+            TResult result;
+            try
+            {
+                result = await (Task<TResult>)method.Caller(provider, [command])!;
+            }
+            catch (Exception ex)
+            {
+                timer.Stop();
+                busLogger?.EndCommand(commandType, command, source, true, timer.ElapsedMilliseconds, ex);
+                throw;
+            }
+
+            timer.Stop();
+            busLogger?.EndCommand(commandType, command, source, true, timer.ElapsedMilliseconds, null);
+
+            return result;
+        }
         private static Task HandleEventAsync(IEvent @event, Type eventType, string source)
         {
             var interfaceType = TypeAnalyzer.GetGenericType(iEventHandlerType, eventType);
 
             var providerType = ProviderResolver.GetTypeFirst(interfaceType);
-            var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(IEventHandler<IEvent>.Handle), new Type[] { eventType });
+            var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(IEventHandler<IEvent>.Handle), [eventType]);
 
             var provider = Instantiator.GetSingle(providerType);
 
-            return (Task)method.Caller(provider, new object?[] { @event })!;
+            return (Task)method.Caller(provider, [@event])!;
         }
         private static async Task HandleEventLoggedAsync(IEvent @event, Type eventType, string source)
         {
@@ -440,7 +615,7 @@ namespace Zerra.CQRS
             var providerType = ProviderResolver.GetTypeFirst(interfaceType);
             if (providerType == null)
                 return;
-            var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(IEventHandler<IEvent>.Handle), new Type[] { eventType });
+            var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(IEventHandler<IEvent>.Handle), [eventType]);
 
             var provider = Instantiator.GetSingle(providerType);
 
@@ -449,7 +624,7 @@ namespace Zerra.CQRS
             var timer = Stopwatch.StartNew();
             try
             {
-                await (Task)method.Caller(provider, new object?[] { @event })!;
+                await (Task)method.Caller(provider, [@event])!;
             }
             catch (Exception ex)
             {
@@ -512,7 +687,7 @@ namespace Zerra.CQRS
                     return null;
 
                 var cacheInstance = Instantiator.Create(busCacheType);
-                _ = methodSetNextProvider.Invoke(cacheInstance, new object[] { callerProvider });
+                _ = methodSetNextProvider.Invoke(cacheInstance, [callerProvider]);
 
                 return cacheInstance;
             });
@@ -606,7 +781,7 @@ namespace Zerra.CQRS
                     if (methodDetail.ReturnType.Type.IsGenericType)
                     {
                         var method = sendMethodLoggedGenericAsyncMethod.GetGenericMethodDetail(methodDetail.ReturnType.InnerTypes[0]);
-                        result = method.Caller(null, new object[] { interfaceType, methodName, arguments, networkType, source, methodDetail, methodCaller });
+                        result = method.Caller(null, [interfaceType, methodName, arguments, networkType, source, methodDetail, methodCaller]);
                     }
                     else
                     {
@@ -648,7 +823,7 @@ namespace Zerra.CQRS
                     if (methodDetail.ReturnType.Type.IsGenericType)
                     {
                         var method = callInternalLoggedGenericAsyncMethod.GetGenericMethodDetail(methodDetail.ReturnType.InnerTypes[0]);
-                        result = method.Caller(null, new object[] { interfaceType, methodName, arguments, source, methodDetail });
+                        result = method.Caller(null, [interfaceType, methodName, arguments, source, methodDetail]);
                     }
                     else
                     {
@@ -906,7 +1081,7 @@ namespace Zerra.CQRS
                     }
                 }
 
-                commandConsumer.Setup(commandCounter, HandleRemoteCommandDispatchAsync, HandleRemoteCommandDispatchAwaitAsync);
+                commandConsumer.Setup(commandCounter, HandleRemoteCommandDispatchAsync, HandleRemoteCommandDispatchAwaitAsync, HandleRemoteCommandWithResultDispatchAwaitAsync);
                 _ = commandConsumers.Add(commandConsumer);
                 commandConsumer.Open();
             }
@@ -1254,7 +1429,7 @@ namespace Zerra.CQRS
                                         if (commandConsumer != null)
                                         {
                                             commandConsumerType = commandConsumer.GetType();
-                                            commandConsumer.Setup(commandCounter, HandleRemoteCommandDispatchAsync, HandleRemoteCommandDispatchAwaitAsync);
+                                            commandConsumer.Setup(commandCounter, HandleRemoteCommandDispatchAsync, HandleRemoteCommandDispatchAwaitAsync, HandleRemoteCommandWithResultDispatchAwaitAsync);
                                             _ = commandConsumers.Add(commandConsumer);
                                             //_ = Log.InfoAsync($"Command Consumer: {commandConsumerType.GetNiceName()}");
                                         }

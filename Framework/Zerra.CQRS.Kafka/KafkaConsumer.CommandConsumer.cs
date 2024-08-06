@@ -115,6 +115,7 @@ namespace Zerra.CQRS.Kafka
 
             private async Task HandleMessage(SemaphoreSlim throttle, string host, ConsumeResult<string, byte[]> consumerResult, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
             {
+                object? result = null;
                 Exception? error = null;
                 var awaitResponse = false;
                 string? ackTopic = null;

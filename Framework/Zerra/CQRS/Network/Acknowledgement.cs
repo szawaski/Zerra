@@ -12,12 +12,28 @@ namespace Zerra.CQRS.Network
         public bool Success { get; set; }
         public string? ErrorMessage { get; set; }
         public Type? ErrorType { get; set; }
-        public byte[]? ErrorData { get; set; }
+        public byte[]? Data { get; set; }
 
-        public Acknowledgement() { }
-        public Acknowledgement(Exception? ex)
+        public Acknowledgement(string errorMessage)
         {
-            ApplyException(this, ex);
+            this.Success = false;
+            this.ErrorMessage = errorMessage;
+        }
+        public Acknowledgement(object? result, Exception? ex)
+        {
+            this.Success = ex is null;
+            if (ex is not null)
+            {
+                this.Success = false;
+                this.ErrorMessage = ex.Message;
+                this.ErrorType = ex.GetType();
+                this.Data = ByteSerializer.Serialize(ex, this.ErrorType, byteSerializerOptions);
+            }
+            else
+            {
+                this.Success = true;
+                this.Data = ByteSerializer.Serialize(result, byteSerializerOptions);
+            }
         }
 
         private static readonly ByteSerializerOptions byteSerializerOptions = new()
@@ -36,7 +52,7 @@ namespace Zerra.CQRS.Network
                 ack.Success = true;
                 ack.ErrorMessage = null;
                 ack.ErrorType = null;
-                ack.ErrorData = null;
+                ack.Data = null;
             }
             else
             {
@@ -44,7 +60,7 @@ namespace Zerra.CQRS.Network
                 ack.Success = false;
                 ack.ErrorMessage = ex.Message;
                 ack.ErrorType = type;
-                ack.ErrorData = ByteSerializer.Serialize(ex, type, byteSerializerOptions);
+                ack.Data = ByteSerializer.Serialize(ex, type, byteSerializerOptions);
             }
         }
 
@@ -56,11 +72,11 @@ namespace Zerra.CQRS.Network
                 return;
 
             Exception? ex = null;
-            if (ack.ErrorType != null && ack.ErrorData != null && ack.ErrorData.Length > 0)
+            if (ack.ErrorType != null && ack.Data != null && ack.Data.Length > 0)
             {
                 try
                 {
-                    ex = (Exception?)ByteSerializer.Deserialize(ack.ErrorType, ack.ErrorData, byteSerializerOptions);
+                    ex = (Exception?)ByteSerializer.Deserialize(ack.ErrorType, ack.Data, byteSerializerOptions);
                 }
                 catch { }
             }

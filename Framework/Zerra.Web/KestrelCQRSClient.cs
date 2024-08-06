@@ -276,7 +276,7 @@ namespace Zerra.Web
             {
                 var messageTypeName = commandType.GetNiceName();
 
-                var messageData = JsonSerializer.Serialize(command, commandType);
+                var messageData = ContentTypeSerializer.Serialize(contentType, command);
 
                 string[][]? claims = null;
                 if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
@@ -287,6 +287,7 @@ namespace Zerra.Web
                     MessageType = messageTypeName,
                     MessageData = messageData,
                     MessageAwait = messageAwait,
+                    MessageResult = false,
 
                     Claims = claims,
                     Source = source
@@ -361,6 +362,127 @@ namespace Zerra.Web
                     }
 
                     await responseBodyStream.DisposeAsync();
+                }
+                catch
+                {
+                    if (responseBodyStream != null)
+                    {
+                        await responseBodyStream.DisposeAsync();
+                    }
+                    response?.Dispose();
+                    throw;
+                }
+            }
+            finally
+            {
+                throttle.Release();
+            }
+        }
+
+        protected override async Task<TResult?> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source) where TResult : default
+        {
+            await throttle.WaitAsync();
+
+            try
+            {
+                var messageTypeName = commandType.GetNiceName();
+
+                var messageData = ContentTypeSerializer.Serialize(contentType, command);
+
+                string[][]? claims = null;
+                if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
+                    claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
+
+                var data = new CqrsRequestData()
+                {
+                    MessageType = messageTypeName,
+                    MessageData = messageData,
+                    MessageAwait = true,
+                    MessageResult = true,
+
+                    Claims = claims,
+                    Source = source
+                };
+
+                IDictionary<string, IList<string?>>? authHeaders = null;
+                if (authorizer != null)
+                    authHeaders = authorizer.BuildAuthHeaders();
+
+                var request = new HttpRequestMessage(HttpMethod.Post, serviceUri);
+                HttpResponseMessage? response = null;
+                Stream? responseBodyStream = null;
+                try
+                {
+                    request.Content = new WriteStreamContent(async (requestBodyStream) =>
+                    {
+                        if (symmetricConfig != null)
+                        {
+                            CryptoFlushStream? requestBodyCryptoStream = null;
+                            try
+                            {
+                                requestBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, requestBodyStream, true, true);
+                                await ContentTypeSerializer.SerializeAsync(contentType, requestBodyCryptoStream, data);
+                                await requestBodyCryptoStream.FlushFinalBlockAsync();
+                            }
+                            finally
+                            {
+                                if (requestBodyCryptoStream != null)
+                                {
+                                    await requestBodyCryptoStream.DisposeAsync();
+                                }
+                            }
+                        }
+                        else
+                        {
+                            await ContentTypeSerializer.SerializeAsync(contentType, requestBodyStream, data);
+                            requestBodyStream.Flush();
+                        }
+                    });
+
+                    request.Headers.Add(HttpCommon.ProviderTypeHeader, data.ProviderType);
+                    request.Content.Headers.ContentType = contentType switch
+                    {
+                        ContentType.Bytes => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeBytes),
+                        ContentType.Json => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJson),
+                        ContentType.JsonNameless => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJsonNameless),
+                        _ => throw new NotImplementedException(),
+                    };
+                    request.Headers.TransferEncodingChunked = true;
+                    request.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, "*");
+                    request.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
+                    request.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
+                    request.Headers.Host = serviceUri.Authority;
+                    request.Headers.Add(HttpCommon.OriginHeader, serviceUri.Host);
+
+                    if (authHeaders != null)
+                    {
+                        foreach (var authHeader in authHeaders)
+                        {
+                            foreach (var authHeaderValue in authHeader.Value)
+                                request.Headers.Add(authHeader.Key, authHeaderValue);
+                        }
+                    }
+
+                    response = await client.SendAsync(request);
+                    responseBodyStream = await response.Content.ReadAsStreamAsync();
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseBodyStream);
+                        throw responseException;
+                    }
+
+                    if (isStream)
+                    {
+                        return (TResult)(object)responseBodyStream; //TODO better way to convert type???
+                    }
+                    else
+                    {
+                        var model = await ContentTypeSerializer.DeserializeAsync<TResult>(contentType, responseBodyStream);
+                        await responseBodyStream.DisposeAsync();
+                        response.Dispose();
+                        return model;
+                    }
                 }
                 catch
                 {

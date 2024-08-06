@@ -28,11 +28,12 @@ namespace Zerra.Web
 
         public void Open() { }
 
-        void ICommandConsumer.Setup(CommandCounter commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
+        void ICommandConsumer.Setup(CommandCounter commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
         {
             settings.ReceiveCounter = commandCounter;
             settings.HandlerAsync = handlerAsync;
             settings.HandlerAwaitAsync = handlerAwaitAsync;
+            settings.HandlerWithResultAwaitAsync = handlerWithResultAwaitAsync;
         }
 
         void ICommandConsumer.RegisterCommandType(int maxConcurrent, string topic, Type type)

@@ -76,15 +76,13 @@ namespace Zerra.CQRS.Network
 
             try
             {
-                var returnType = typeof(TReturn);
-
-                var returnTypeDetails = TypeAnalyzer.GetTypeDetail(returnType);
+                var returnTypeDetails = TypeAnalyzer<TReturn>.GetTypeDetail();
 
                 if (returnTypeDetails.IsTask)
                 {
                     var isStream = returnTypeDetails.InnerTypeDetails[0].BaseTypes.Contains(streamType);
                     var callRequestMethodGeneric = TypeAnalyzer.GetGenericMethodDetail(callRequestAsyncMethod, returnTypeDetails.InnerTypes.ToArray());
-                    return (TReturn)callRequestMethodGeneric.Caller(this, new object[] { throttle, isStream, interfaceType, methodName, arguments, source })!;
+                    return (TReturn)callRequestMethodGeneric.Caller(this, [throttle, isStream, interfaceType, methodName, arguments, source])!;
                 }
                 else
                 {
@@ -139,8 +137,30 @@ namespace Zerra.CQRS.Network
                 throw;
             }
         }
+        Task<TResult?> ICommandProducer.DispatchAsyncAwait<TResult>(ICommand<TResult> command, string source) where TResult : default
+        {
+            var commandType = command.GetType();
+            if (!topicsByCommandType.TryGetValue(commandType, out var topic))
+                throw new Exception($"{commandType.GetNiceName()} is not registered with {this.GetType().GetNiceName()}");
+            if (!throttleByTopic.TryGetValue(topic, out var throttle))
+                throw new Exception($"{commandType.GetNiceName()} is not registered with {this.GetType().GetNiceName()}");
+
+            var resultTypeDetails = TypeAnalyzer<TResult>.GetTypeDetail();
+            var isStream = resultTypeDetails.BaseTypes.Contains(streamType);
+
+            try
+            {
+                return DispatchInternal<TResult>(throttle, isStream, commandType, command, source);
+            }
+            catch (Exception ex)
+            {
+                _ = Log.ErrorAsync($"Dispatch Failed", ex);
+                throw;
+            }
+        }
 
         protected abstract Task DispatchInternal(SemaphoreSlim throttle, Type commandType, ICommand command, bool messageAwait, string source);
+        protected abstract Task<TResult?> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source);
 
         public void Dispose()
         {

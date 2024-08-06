@@ -14,6 +14,7 @@ using Zerra.IO;
 using System.IO;
 using Zerra.Serialization.Json;
 using System.Threading.Tasks;
+using Zerra.Serialization.Bytes.Converters.CoreTypes.IReadOnlyListTs;
 
 namespace Zerra.CQRS.Network
 {
@@ -269,20 +270,31 @@ namespace Zerra.CQRS.Network
                             if (!this.commandTypes.Contains(commandType))
                                 throw new CqrsNetworkException($"Unhandled Command Type {commandType.FullName}");
 
-                            var command = (ICommand?)JsonSerializer.Deserialize(commandType, data.MessageData);
+                            var command = (ICommand?)ContentTypeSerializer.Deserialize(requestHeader.ContentType.Value, commandType, data.MessageData);
                             if (command == null)
                                 throw new Exception($"Invalid {nameof(data.MessageData)}");
 
+                            bool hasResult;
+                            object? result = null;
+
                             inHandlerContext = true;
+                            if (data.MessageResult == true)
+                            {
+                                if (handlerWithResultAwaitAsync == null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
+                                result = await handlerWithResultAwaitAsync(command, data.Source, false);
+                                hasResult = true;
+                            }
                             if (data.MessageAwait == true)
                             {
                                 if (handlerAwaitAsync == null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
                                 await handlerAwaitAsync(command, data.Source, false);
+                                hasResult = false;
                             }
                             else
                             {
                                 if (handlerAsync == null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
                                 await handlerAsync(command, data.Source, false);
+                                hasResult = false;
                             }
                             inHandlerContext = false;
 
@@ -296,9 +308,32 @@ namespace Zerra.CQRS.Network
                             await stream.WriteAsync(buffer.Slice(0, responseHeaderLength), cancellationToken);
 #endif
 
-                            //Response Body Empty
-                            responseBodyStream = new HttpProtocolBodyStream(null, stream, null, false);
-                            await responseBodyStream.FlushAsync(cancellationToken);
+                            if (hasResult)
+                            {
+                                //Response Body
+                                responseBodyStream = new HttpProtocolBodyStream(null, stream, null, false);
+                                if (symmetricConfig != null)
+                                {
+                                    responseBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, responseBodyStream, true);
+
+                                    await ContentTypeSerializer.SerializeAsync(requestHeader.ContentType.Value, responseBodyCryptoStream, result);
+#if NET5_0_OR_GREATER
+                                    await responseBodyCryptoStream.FlushFinalBlockAsync();
+#else
+                                    responseBodyCryptoStream.FlushFinalBlock();
+#endif
+                                }
+                                else
+                                {
+                                    await ContentTypeSerializer.SerializeAsync(requestHeader.ContentType.Value, responseBodyStream, result);
+                                }
+                            }
+                            else
+                            {
+                                //Response Body Empty
+                                responseBodyStream = new HttpProtocolBodyStream(null, stream, null, false);
+                                await responseBodyStream.FlushAsync(cancellationToken);
+                            }
 
                             continue;
                         }

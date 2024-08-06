@@ -44,7 +44,7 @@ namespace Zerra.CQRS.Network
                 _ => throw new NotImplementedException(),
             };
         }
-        public static object? Deserialize<T>(ContentType contentType, Type type, byte[] bytes)
+        public static object? Deserialize(ContentType contentType, Type type, byte[] bytes)
         {
             return contentType switch
             {
