@@ -37,8 +37,20 @@ namespace Zerra.CQRS.Network
             }
             else if (!String.IsNullOrWhiteSpace(data.MessageType))
             {
-                await Dispatch(data);
-                return new ApiResponseData();
+                if (data.MessageResult)
+                {
+                    if (contentType == null)
+                        return null;
+
+                    var result = await DispatchWithResult(data);
+                    var bytes = ContentTypeSerializer.Serialize(contentType.Value, result);
+                    return new ApiResponseData(bytes);
+                }
+                else
+                {
+                    await Dispatch(data);
+                    return new ApiResponseData();
+                }
             }
 
             return null;
@@ -113,10 +125,36 @@ namespace Zerra.CQRS.Network
             if (command == null)
                 throw new Exception($"Invalid {nameof(data.MessageData)}");
 
-            if (data.MessageAwait == true)
+            if (data.MessageAwait)
                 return Bus.HandleRemoteCommandDispatchAwaitAsync(command, data.Source, true);
             else
                 return Bus.HandleRemoteCommandDispatchAsync(command, data.Source, true);
+        }
+        private static Task<object?> DispatchWithResult(ApiRequestData data)
+        {
+            if (String.IsNullOrWhiteSpace(data.MessageType)) throw new ArgumentNullException(nameof(ApiRequestData.MessageType));
+            if (data.MessageData == null) throw new ArgumentNullException(nameof(ApiRequestData.MessageData));
+            if (String.IsNullOrWhiteSpace(data.Source)) throw new ArgumentNullException(nameof(ApiRequestData.Source));
+
+            var commandType = Discovery.GetTypeFromName(data.MessageType);
+            var typeDetail = TypeAnalyzer.GetTypeDetail(commandType);
+            if (!typeDetail.Interfaces.Contains(typeof(ICommand)))
+                throw new Exception($"Type {data.MessageType} is not a command");
+
+            var exposed = false;
+            foreach (var attribute in typeDetail.Attributes)
+            {
+                if (attribute is ServiceExposedAttribute item && item.NetworkType >= NetworkType.Api)
+                    exposed = true;
+            }
+            if (!exposed)
+                throw new Exception($"{typeDetail.Type.GetNiceName()} is not exposed");
+
+            var command = (ICommand?)JsonSerializer.Deserialize(commandType, data.MessageData);
+            if (command == null)
+                throw new Exception($"Invalid {nameof(data.MessageData)}");
+
+            return Bus.HandleRemoteCommandWithResultDispatchAwaitAsync(command, data.Source, true);
         }
     }
 }

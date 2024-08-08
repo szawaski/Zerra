@@ -77,13 +77,7 @@ namespace Zerra.CQRS
             if (methodDetail.ReturnType.IsTask)
             {
                 isStream = methodDetail.ReturnType.Type.IsGenericType && methodDetail.ReturnType.InnerTypeDetails[0].BaseTypes.Contains(streamType);
-                var result = methodDetail.CallerAsync(callerProvider, args)!;
-                await result;
-
-                if (methodDetail.ReturnType.Type.IsGenericType)
-                    model = methodDetail.ReturnType.TaskResultGetter(result);
-                else
-                    model = null;
+                model = await methodDetail.CallerAsync(callerProvider, args)!;
             }
             else
             {
