@@ -60,7 +60,7 @@ namespace Zerra.CQRS.Kafka
 
         Task ICommandProducer.DispatchAsync(ICommand command, string source) { return SendAsync(command, false, source); }
         Task ICommandProducer.DispatchAsyncAwait(ICommand command, string source) { return SendAsync(command, true, source); }
-        Task<TResult> ICommandProducer.DispatchAsyncAwait<TResult>(ICommand<TResult> command, string source) where TResult : default { return SendAsync(command, true, source); }
+        Task<TResult?> ICommandProducer.DispatchAsyncAwait<TResult>(ICommand<TResult> command, string source) where TResult : default { return SendAsync(command, source); }
         Task IEventProducer.DispatchAsync(IEvent @event, string source) { return SendAsync(@event, source); }
 
         private async Task SendAsync(ICommand command, bool requireAcknowledgement, string source)
@@ -159,6 +159,98 @@ namespace Zerra.CQRS.Kafka
                     var producerResult = await producer.ProduceAsync(topic, new Message<string, byte[]> { Key = key, Value = body });
                     if (producerResult.Status != PersistenceStatus.Persisted)
                         throw new Exception($"{nameof(KafkaProducer)} failed: {producerResult.Status}");
+                }
+            }
+            finally
+            {
+                throttle.Release();
+            }
+        }
+
+        private async Task<TResult?> SendAsync<TResult>(ICommand<TResult> command, string source)
+        {
+            var commandType = command.GetType();
+            if (!topicsByCommandType.TryGetValue(commandType, out var topic))
+                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(KafkaProducer)}");
+            if (!throttleByTopic.TryGetValue(topic, out var throttle))
+                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(KafkaProducer)}");
+
+            await throttle.WaitAsync();
+
+            try
+            {
+                if (!String.IsNullOrWhiteSpace(environment))
+                    topic = StringExtensions.Join(KafkaCommon.TopicMaxLength, "_", environment, topic);
+                else
+                    topic = topic.Truncate(KafkaCommon.TopicMaxLength);
+
+                if (!listenerStarted)
+                {
+                    await listenerStartedLock.WaitAsync();
+                    try
+                    {
+                        if (!listenerStarted)
+                        {
+                            await KafkaCommon.EnsureTopic(host, ackTopic);
+                            _ = AckListeningThread();
+                            listenerStarted = true;
+                        }
+                    }
+                    finally
+                    {
+                        _ = listenerStartedLock.Release();
+                    }
+                }
+
+                string[][]? claims = null;
+                if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
+                    claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
+
+                var message = new KafkaMessage()
+                {
+                    MessageData = KafkaCommon.Serialize(command),
+                    MessageType = command.GetType(),
+                    HasResult = true,
+                    Claims = claims,
+                    Source = source
+                };
+
+                var body = KafkaCommon.Serialize(message);
+                if (symmetricConfig != null)
+                    body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
+
+                var ackKey = Guid.NewGuid().ToString("N");
+
+                var headers = new Headers();
+                headers.Add(new Header(KafkaCommon.AckTopicHeader, Encoding.UTF8.GetBytes(ackTopic)));
+                headers.Add(new Header(KafkaCommon.AckKeyHeader, Encoding.UTF8.GetBytes(ackKey)));
+                var key = KafkaCommon.MessageWithAckKey;
+
+                var waiter = new SemaphoreSlim(0, 1);
+
+                try
+                {
+                    Acknowledgement? acknowledgement = null;
+                    _ = ackCallbacks.TryAdd(ackKey, (ackFromCallback) =>
+                    {
+                        acknowledgement = ackFromCallback;
+                        _ = waiter.Release();
+                    });
+
+                    var producerResult = await producer.ProduceAsync(topic, new Message<string, byte[]> { Headers = headers, Key = key, Value = body });
+                    if (producerResult.Status != PersistenceStatus.Persisted)
+                        throw new Exception($"{nameof(KafkaProducer)} failed: {producerResult.Status}");
+
+                    await waiter.WaitAsync();
+
+                    var result = (TResult?)Acknowledgement.GetResultOrThrowIfFailed(acknowledgement);
+
+                    return result;
+                }
+                finally
+                {
+                    _ = ackCallbacks.TryRemove(ackKey, out _);
+                    waiter?.Dispose();
                 }
             }
             finally

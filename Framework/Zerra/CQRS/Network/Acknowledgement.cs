@@ -84,12 +84,23 @@ namespace Zerra.CQRS.Network
             throw new RemoteServiceException(ack.ErrorMessage, ex);
         }
 
-        public static object? GetResult(Acknowledgement? ack)
+        public static object? GetResultOrThrowIfFailed(Acknowledgement? ack)
         {
             if (ack == null)
                 throw new RemoteServiceException("Acknowledgement Failed");
             if (!ack.Success)
-                return null;
+            {
+                Exception? ex = null;
+                if (ack.DataType != null && ack.Data != null && ack.Data.Length > 0)
+                {
+                    try
+                    {
+                        ex = (Exception?)ByteSerializer.Deserialize(ack.DataType, ack.Data, byteSerializerOptions);
+                    }
+                    catch { }
+                }
+                throw new RemoteServiceException(ack.ErrorMessage, ex);
+            }
 
             object? result = null;
             if (ack.DataType != null && ack.Data != null && ack.Data.Length > 0)

@@ -27,6 +27,7 @@ namespace Zerra.CQRS.AzureServiceBus
         private bool isOpen;
         private HandleRemoteCommandDispatch? commandHandlerAsync = null;
         private HandleRemoteCommandDispatch? commandHandlerAwaitAsync = null;
+        private HandleRemoteCommandWithResultDispatch commandHandlerWithResultAwaitAsync;
         private HandleRemoteEventDispatch? eventHandlerAsync = null;
 
         private CommandCounter? commandCounter = null;
@@ -53,13 +54,14 @@ namespace Zerra.CQRS.AzureServiceBus
             this.client = new ServiceBusClient(host);
         }
 
-        void ICommandConsumer.Setup(CommandCounter commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
+        void ICommandConsumer.Setup(CommandCounter commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
         {
             if (isOpen)
                 throw new InvalidOperationException("Connection already open");
             this.commandCounter = commandCounter;
             this.commandHandlerAsync = handlerAsync;
             this.commandHandlerAwaitAsync = handlerAwaitAsync;
+            this.commandHandlerWithResultAwaitAsync = handlerWithResultAwaitAsync;
         }
         void IEventConsumer.Setup(HandleRemoteEventDispatch handlerAsync)
         {
@@ -135,7 +137,7 @@ namespace Zerra.CQRS.AzureServiceBus
 
         void ICommandConsumer.RegisterCommandType(int maxConcurrent, string topic, Type type)
         {
-            if (commandCounter == null || commandHandlerAsync == null || commandHandlerAwaitAsync == null)
+            if (commandCounter == null || commandHandlerAsync == null || commandHandlerAwaitAsync == null || commandHandlerWithResultAwaitAsync == null)
                 throw new Exception($"{nameof(AzureServiceBusConsumer)} is not setup");
 
             lock (commandExchanges)
@@ -145,7 +147,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 if (commandExchanges.ContainsKey(topic))
                     return;
                 commandTypes.Add(type);
-                commandExchanges.Add(topic, new CommandConsumer(maxConcurrent, commandCounter, topic, symmetricConfig, environment, commandHandlerAsync, commandHandlerAwaitAsync));
+                commandExchanges.Add(topic, new CommandConsumer(maxConcurrent, commandCounter, topic, symmetricConfig, environment, commandHandlerAsync, commandHandlerAwaitAsync, commandHandlerWithResultAwaitAsync));
                 OpenExchanges();
             }
         }

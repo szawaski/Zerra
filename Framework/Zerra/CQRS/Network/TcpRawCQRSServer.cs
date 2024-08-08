@@ -233,13 +233,13 @@ namespace Zerra.CQRS.Network
                             object? result = null;
 
                             inHandlerContext = true;
-                            if (data.MessageResult == true)
+                            if (data.MessageResult)
                             {
                                 if (handlerWithResultAwaitAsync == null) throw new InvalidOperationException($"{nameof(TcpRawCqrsServer)} is not setup");
                                 result = await handlerWithResultAwaitAsync(command, data.Source, false);
                                 hasResult = true;
                             }
-                            else if (data.MessageAwait == true)
+                            else if (data.MessageAwait)
                             {
                                 if (handlerAwaitAsync == null) throw new InvalidOperationException($"{nameof(TcpRawCqrsServer)} is not setup");
                                 await handlerAwaitAsync(command, data.Source, false);

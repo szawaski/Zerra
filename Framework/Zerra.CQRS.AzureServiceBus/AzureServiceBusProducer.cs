@@ -54,6 +54,7 @@ namespace Zerra.CQRS.AzureServiceBus
 
         Task ICommandProducer.DispatchAsync(ICommand command, string source) { return SendAsync(command, false, source); }
         Task ICommandProducer.DispatchAsyncAwait(ICommand command, string source) { return SendAsync(command, true, source); }
+        Task<TResult?> ICommandProducer.DispatchAsyncAwait<TResult>(ICommand<TResult> command, string source) where TResult : default { return SendAsync(command, source); }
         Task IEventProducer.DispatchAsync(IEvent @event, string source) { return SendAsync(@event, source); }
 
         private async Task SendAsync(ICommand command, bool requireAcknowledgement, string source)
@@ -103,6 +104,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 {
                     MessageData = AzureServiceBusCommon.Serialize(command),
                     MessageType = command.GetType(),
+                    HasResult = false,
                     Claims = claims,
                     Source = source
                 };
@@ -119,10 +121,10 @@ namespace Zerra.CQRS.AzureServiceBus
 
                     try
                     {
-                        Acknowledgement? ack = null;
+                        Acknowledgement? acknowledgement = null;
                         _ = ackCallbacks.TryAdd(ackKey, (ackFromCallback) =>
                         {
-                            ack = ackFromCallback;
+                            acknowledgement = ackFromCallback;
                             _ = waiter.Release();
                         });
 
@@ -136,7 +138,7 @@ namespace Zerra.CQRS.AzureServiceBus
 
                         await waiter.WaitAsync();
 
-                        Acknowledgement.ThrowIfFailed(ack);
+                        Acknowledgement.ThrowIfFailed(acknowledgement);
                     }
                     finally
                     {
@@ -151,6 +153,98 @@ namespace Zerra.CQRS.AzureServiceBus
                     {
                         await sender.SendMessageAsync(serviceBusMessage);
                     }
+                }
+            }
+            finally
+            {
+                throttle.Release();
+            }
+        }
+
+        private async Task<TResult?> SendAsync<TResult>(ICommand<TResult> command, string source)
+        {
+            var commandType = command.GetType();
+            if (!queueByCommandType.TryGetValue(commandType, out var queue))
+                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(AzureServiceBusProducer)}");
+            if (!throttleByQueueOrTopic.TryGetValue(queue, out var throttle))
+                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(AzureServiceBusProducer)}");
+
+            await throttle.WaitAsync();
+
+            try
+            {
+                if (!String.IsNullOrWhiteSpace(environment))
+                    queue = StringExtensions.Join(AzureServiceBusCommon.EntityNameMaxLength, "_", environment, queue);
+                else
+                    queue = queue.Truncate(AzureServiceBusCommon.EntityNameMaxLength);
+
+                if (!listenerStarted)
+                {
+                    await listenerStartedLock.WaitAsync();
+                    try
+                    {
+                        if (!listenerStarted)
+                        {
+                            await AzureServiceBusCommon.EnsureQueue(host, ackQueue, true);
+
+                            _ = AckListeningThread();
+                            listenerStarted = true;
+                        }
+                    }
+                    finally
+                    {
+                        _ = listenerStartedLock.Release();
+                    }
+                }
+
+                string[][]? claims = null;
+                if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
+                    claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
+
+                var message = new AzureServiceBusMessage()
+                {
+                    MessageData = AzureServiceBusCommon.Serialize(command),
+                    MessageType = command.GetType(),
+                    HasResult = true,
+                    Claims = claims,
+                    Source = source
+                };
+
+                var body = AzureServiceBusCommon.Serialize(message);
+                if (symmetricConfig != null)
+                    body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
+
+                var ackKey = Guid.NewGuid().ToString("N");
+
+                var waiter = new SemaphoreSlim(0, 1);
+
+                try
+                {
+                    Acknowledgement? acknowledgement = null;
+                    _ = ackCallbacks.TryAdd(ackKey, (ackFromCallback) =>
+                    {
+                        acknowledgement = ackFromCallback;
+                        _ = waiter.Release();
+                    });
+
+                    var serviceBusMessage = new ServiceBusMessage(body);
+                    serviceBusMessage.ReplyTo = ackQueue;
+                    serviceBusMessage.ReplyToSessionId = ackKey;
+                    await using (var sender = client.CreateSender(queue))
+                    {
+                        await sender.SendMessageAsync(serviceBusMessage);
+                    }
+
+                    await waiter.WaitAsync();
+
+                    var result = (TResult?)Acknowledgement.GetResultOrThrowIfFailed(acknowledgement);
+
+                    return result;
+                }
+                finally
+                {
+                    _ = ackCallbacks.TryRemove(ackKey, out _);
+                    waiter.Dispose();
                 }
             }
             finally
@@ -184,6 +278,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 {
                     MessageData = AzureServiceBusCommon.Serialize(@event),
                     MessageType = @event.GetType(),
+                    HasResult = false,
                     Claims = claims,
                     Source = source
                 };
@@ -222,29 +317,21 @@ namespace Zerra.CQRS.AzureServiceBus
                         if (!ackCallbacks.TryRemove(serviceBusMessage.SessionId, out var callback))
                             continue;
 
-                        Acknowledgement? ack = null;
+                        Acknowledgement? acknowledgement = null;
                         try
                         {
                             var response = serviceBusMessage.Body.ToStream();
                             if (symmetricConfig != null)
                                 response = SymmetricEncryptor.Decrypt(symmetricConfig, response, false);
-                            ack = await AzureServiceBusCommon.DeserializeAsync<Acknowledgement>(response);
-                            ack ??= new Acknowledgement()
-                            {
-                                Success = false,
-                                ErrorMessage = "Invalid Acknowledgement"
-                            };
+                            acknowledgement = await AzureServiceBusCommon.DeserializeAsync<Acknowledgement>(response);
+                            acknowledgement ??= new Acknowledgement("Invalid Acknowledgement");
                         }
                         catch (Exception ex)
                         {
-                            ack = new Acknowledgement()
-                            {
-                                Success = false,
-                                ErrorMessage = ex.Message
-                            };
+                            acknowledgement = new Acknowledgement(ex.Message);
                         }
 
-                        callback(ack);
+                        callback(acknowledgement);
 
                         if (canceller.IsCancellationRequested)
                             break;

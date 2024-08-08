@@ -25,6 +25,7 @@ namespace Zerra.CQRS.RabbitMQ
         private IConnection? connection = null;
         private HandleRemoteCommandDispatch? commandHandlerAsync = null;
         private HandleRemoteCommandDispatch? commandHandlerAwaitAsync = null;
+        private HandleRemoteCommandWithResultDispatch? commandHandlerWithResultAwaitAsync = null;
         private HandleRemoteEventDispatch? eventHandlerAsync = null;
 
         public string ServiceUrl => host;
@@ -44,13 +45,14 @@ namespace Zerra.CQRS.RabbitMQ
             this.eventTypes = new();
         }
 
-        void ICommandConsumer.Setup(CommandCounter commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
+        void ICommandConsumer.Setup(CommandCounter commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
         {
             if (this.connection != null)
                 throw new InvalidOperationException("Connection already open");
             this.commandCounter = commandCounter;
             this.commandHandlerAsync = handlerAsync;
             this.commandHandlerAwaitAsync = handlerAwaitAsync;
+            this.commandHandlerWithResultAwaitAsync = handlerWithResultAwaitAsync;
         }
         void IEventConsumer.Setup(HandleRemoteEventDispatch handlerAsync)
         {
@@ -141,7 +143,7 @@ namespace Zerra.CQRS.RabbitMQ
 
         void ICommandConsumer.RegisterCommandType(int maxConcurrent, string topic, Type type)
         {
-            if (commandCounter == null || commandHandlerAsync == null || commandHandlerAwaitAsync == null)
+            if (commandCounter == null || commandHandlerAsync == null || commandHandlerAwaitAsync == null || commandHandlerWithResultAwaitAsync == null)
                 throw new Exception($"{nameof(RabbitMQConsumer)} is not setup");
 
             lock (commandExchanges)
@@ -151,7 +153,7 @@ namespace Zerra.CQRS.RabbitMQ
                 if (commandExchanges.ContainsKey(topic))
                     return;
                 commandTypes.Add(type);
-                commandExchanges.Add(topic, new CommandConsumer(maxConcurrent, commandCounter, topic, symmetricConfig, environment, commandHandlerAsync, commandHandlerAwaitAsync));
+                commandExchanges.Add(topic, new CommandConsumer(maxConcurrent, commandCounter, topic, symmetricConfig, environment, commandHandlerAsync, commandHandlerAwaitAsync, commandHandlerWithResultAwaitAsync));
                 OpenExchanges();
             }
         }

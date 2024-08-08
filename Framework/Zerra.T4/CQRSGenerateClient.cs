@@ -206,7 +206,7 @@ namespace Zerra.T4
             var commands = new List<CSharpObject>();
             foreach (var csClass in solution.Classes)
             {
-                if (csClass.Implements.Any(x => x.Name == "ICommand"))
+                if (csClass.Implements.Any(x => x.Name == "ICommand" || x.Name == "ICommand`1"))
                 {
                     var apiExposed = false;
                     foreach (var attribute in csClass.Attributes)

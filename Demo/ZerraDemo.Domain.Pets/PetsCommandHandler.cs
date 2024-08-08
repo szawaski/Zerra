@@ -34,7 +34,7 @@ namespace ZerraDemo.Domain.Pets
             await Repo.PersistAsync(new Create<PetDataModel>(item));
         }
 
-        public async Task Handle(FeedPetCommand command)
+        public async Task<int> Handle(FeedPetCommand command)
         {
             Access.CheckRole("Admin");
 
@@ -53,13 +53,15 @@ namespace ZerraDemo.Domain.Pets
             if (item.AmountEaten < 0)
                 item.AmountEaten = 0;
 
-            item.AmountEaten += command.Amount;
+            item.AmountEaten = (item.AmountEaten ?? 0) + command.Amount;
             item.LastEaten = DateTime.UtcNow;
 
             await Repo.PersistAsync(new Update<PetDataModel>(item, new Graph<PetDataModel>(
                 x => x.AmountEaten,
                 x => x.LastEaten
             )));
+
+            return item.AmountEaten.Value;
         }
 
         public async Task Handle(LetPetOutToPoopCommand command)

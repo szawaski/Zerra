@@ -179,6 +179,7 @@ namespace Zerra.CQRS.AzureEventHub
 
         private async Task HandleEvent(SemaphoreSlim throttle, string typeName, bool isCommand, bool isEvent, PartitionEvent partitionEvent)
         {
+            object? result = null;
             Exception? error = null;
             string? ackKey = null;
             var awaitResponse = false;
@@ -216,7 +217,9 @@ namespace Zerra.CQRS.AzureEventHub
                 inHandlerContext = true;
                 if (isCommand)
                 {
-                    if (awaitResponse)
+                    if (message.HasResult)
+                        result = await handlerWithResultAwaitAsync((ICommand)commandOrEvent, message.Source, false);
+                    else if (awaitResponse)
                         await handlerAwaitAsync!((ICommand)commandOrEvent, message.Source, false);
                     else
                         await handlerAsync!((ICommand)commandOrEvent, message.Source, false);
@@ -246,8 +249,8 @@ namespace Zerra.CQRS.AzureEventHub
 
             try
             {
-                var ack = new Acknowledgement(error);
-                var ackBody = AzureEventHubCommon.Serialize(ack);
+                var acknowledgement = new Acknowledgement(result, error);
+                var ackBody = AzureEventHubCommon.Serialize(acknowledgement);
                 if (symmetricConfig != null)
                     ackBody = SymmetricEncryptor.Encrypt(symmetricConfig, ackBody);
 

@@ -249,7 +249,6 @@ namespace Zerra.CQRS.RabbitMQ
                     channel.BasicPublish(topic, String.Empty, properties, body);
 
                     Acknowledgement? acknowledgement = null;
-                    TResult? result = default;
                     using var waiter = new SemaphoreSlim(0, 1);
 
                     consumer!.Received += (sender, e) =>
@@ -267,10 +266,6 @@ namespace Zerra.CQRS.RabbitMQ
 
                             acknowledgement = RabbitMQCommon.Deserialize<Acknowledgement>(acknowledgementBody);
                             acknowledgement ??= new Acknowledgement("Invalid Acknowledgement");
-                            if (acknowledgement.Success)
-                            {
-                                result = (TResult?)Acknowledgement.GetResult(acknowledgement);
-                            }
                         }
                         catch (Exception ex)
                         {
@@ -284,7 +279,7 @@ namespace Zerra.CQRS.RabbitMQ
 
                     await waiter.WaitAsync();
 
-                    Acknowledgement.ThrowIfFailed(acknowledgement);
+                    var result = (TResult?)Acknowledgement.GetResultOrThrowIfFailed(acknowledgement);
 
                     channel.Close();
 

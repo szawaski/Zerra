@@ -56,6 +56,7 @@ namespace Zerra.CQRS.AzureEventHub
 
         Task ICommandProducer.DispatchAsync(ICommand command, string source) { return SendAsync(command, false, source); }
         Task ICommandProducer.DispatchAsyncAwait(ICommand command, string source) { return SendAsync(command, true, source); }
+        Task<TResult?> ICommandProducer.DispatchAsyncAwait<TResult>(ICommand<TResult> command, string source) where TResult : default { return SendAsync(command, source); }
         Task IEventProducer.DispatchAsync(IEvent @event, string source) { return SendAsync(@event, source); }
 
         private async Task SendAsync(ICommand command, bool requireAcknowledgement, string source)
@@ -96,6 +97,7 @@ namespace Zerra.CQRS.AzureEventHub
                 {
                     MessageData = AzureEventHubCommon.Serialize(command),
                     MessageType = command.GetType(),
+                    HasResult = false,
                     Claims = claims,
                     Source = source
                 };
@@ -122,10 +124,10 @@ namespace Zerra.CQRS.AzureEventHub
 
                         try
                         {
-                            Acknowledgement? ack = null;
+                            Acknowledgement? acknowledgement = null;
                             _ = ackCallbacks.TryAdd(ackKey!, (ackFromCallback) =>
                             {
-                                ack = ackFromCallback;
+                                acknowledgement = ackFromCallback;
                                 _ = waiter.Release();
                             });
 
@@ -133,7 +135,7 @@ namespace Zerra.CQRS.AzureEventHub
 
                             await waiter.WaitAsync();
 
-                            Acknowledgement.ThrowIfFailed(ack);
+                            Acknowledgement.ThrowIfFailed(acknowledgement);
                         }
                         finally
                         {
@@ -143,6 +145,91 @@ namespace Zerra.CQRS.AzureEventHub
                     else
                     {
                         await producer.SendAsync(new EventData[] { eventData });
+                    }
+                }
+            }
+            finally
+            {
+                throttle.Release();
+            }
+        }
+
+        private async Task<TResult?> SendAsync<TResult>(ICommand<TResult> command, string source)
+        {
+            var commandType = command.GetType();
+            if (!topicsByCommandType.TryGetValue(commandType, out var topic))
+                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(AzureEventHubProducer)}");
+            if (!throttleByTopic.TryGetValue(topic, out var throttle))
+                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(AzureEventHubProducer)}");
+
+            await throttle.WaitAsync();
+
+            try
+            {
+                if (!listenerStarted)
+                {
+                    lock (locker)
+                    {
+                        if (!listenerStarted)
+                        {
+                            _ = AckListeningThread();
+                            listenerStarted = true;
+                        }
+                    }
+                }
+
+                string? ackKey = null;
+                var type = command.GetType().GetNiceName();
+
+                string[][]? claims = null;
+                if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
+                    claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
+
+                var message = new AzureEventHubMessage()
+                {
+                    MessageData = AzureEventHubCommon.Serialize(command),
+                    MessageType = command.GetType(),
+                    HasResult = true,
+                    Claims = claims,
+                    Source = source
+                };
+
+                var body = AzureEventHubCommon.Serialize(message);
+                if (symmetricConfig != null)
+                    body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
+
+                await using (var producer = new EventHubProducerClient(host, eventHubName))
+                {
+                    ackKey = Guid.NewGuid().ToString("N");
+
+                    var eventData = new EventData(body);
+                    eventData.Properties[AzureEventHubCommon.TypeProperty] = type;
+                    if (!String.IsNullOrWhiteSpace(environment))
+                        eventData.Properties[AzureEventHubCommon.EnvironmentProperty] = environment;
+                    eventData.Properties[AzureEventHubCommon.AckProperty] = ackKey;
+
+                    var waiter = new SemaphoreSlim(0, 1);
+
+                    try
+                    {
+                        Acknowledgement? acknowledgement = null;
+                        _ = ackCallbacks.TryAdd(ackKey!, (ackFromCallback) =>
+                        {
+                            acknowledgement = ackFromCallback;
+                            _ = waiter.Release();
+                        });
+
+                        await producer.SendAsync(new EventData[] { eventData });
+
+                        await waiter.WaitAsync();
+
+                        var result = (TResult?)Acknowledgement.GetResultOrThrowIfFailed(acknowledgement);
+
+                        return result;
+                    }
+                    finally
+                    {
+                        waiter.Dispose();
                     }
                 }
             }
@@ -172,6 +259,7 @@ namespace Zerra.CQRS.AzureEventHub
                 {
                     MessageData = AzureEventHubCommon.Serialize(@event),
                     MessageType = @event.GetType(),
+                    HasResult = false,
                     Claims = claims,
                     Source = source
                 };
@@ -227,29 +315,21 @@ namespace Zerra.CQRS.AzureEventHub
                         if (!ackCallbacks.TryRemove(ackKey, out var callback))
                             continue;
 
-                        Acknowledgement? ack = null;
+                        Acknowledgement? acknowledgement = null;
                         try
                         {
                             var response = partitionEvent.Data.EventBody.ToArray();
                             if (symmetricConfig != null)
                                 response = SymmetricEncryptor.Decrypt(symmetricConfig, response);
-                            ack = AzureEventHubCommon.Deserialize<Acknowledgement>(response);
-                            ack ??= new Acknowledgement()
-                            {
-                                Success = false,
-                                ErrorMessage = "Invalid Acknowledgement"
-                            };
+                            acknowledgement = AzureEventHubCommon.Deserialize<Acknowledgement>(response);
+                            acknowledgement ??= new Acknowledgement("Invalid Acknowledgement");
                         }
                         catch (Exception ex)
                         {
-                            ack = new Acknowledgement()
-                            {
-                                Success = false,
-                                ErrorMessage = ex.Message
-                            };
+                            acknowledgement = new Acknowledgement(ex.Message);
                         }
 
-                        callback(ack);
+                        callback(acknowledgement);
 
                         if (canceller.IsCancellationRequested)
                             break;
