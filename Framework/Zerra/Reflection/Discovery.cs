@@ -157,6 +157,7 @@ namespace Zerra.Reflection
             }
 
             var interfaceTypes = typeInAssembly.GetInterfaces();
+            var test = typeInAssembly.Name;
             if (interfaceTypes.Length > 0)
             {
                 var interfaceByTypeList = interfaceByType.GetOrAdd(typeInAssembly, (key) => { return new(); });

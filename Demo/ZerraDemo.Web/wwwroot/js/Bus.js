@@ -61,6 +61,16 @@ const Bus = {
         if (data === null || modelType === null)
             return null;
 
+        if (modelType === "Date") {
+            if (data !== null) {
+                data = new Date(data);
+            }
+            return;
+        }
+        else if (modelType === "number" || modelType === "string" || modelType === "boolean") {
+            return;
+        }
+
         if (hasMany) {
             for (const index in data) {
                 Bus._deserializeJson(data[index], modelType, false);
@@ -90,6 +100,16 @@ const Bus = {
     _deserializeJsonNameless: function (data, modelType, hasMany) {
         if (data === null || modelType === null)
             return null;
+
+        if (modelType === "Date") {
+            if (data !== null) {
+                data = new Date(data);
+            }
+            return data;
+        }
+        else if (modelType === "number" || modelType === "string" || modelType === "boolean") {
+            return data;
+        }
 
         if (hasMany) {
             const deserializedItems = [];
@@ -221,10 +241,12 @@ const Bus = {
                 const responseJsonNameless = responseContentType.includes("application/jsonnameless");
 
                 let deserialized = data;
-                if (responseJsonNameless) {
-                    deserialized = Bus._deserializeJsonNameless(data, modelType, hasMany);
-                } else {
-                    Bus._deserializeJson(deserialized, modelType, hasMany);
+                if (modelType !== null && modelType !== undefined) {
+                    if (responseJsonNameless) {
+                        deserialized = Bus._deserializeJsonNameless(data, modelType, hasMany);
+                    } else {
+                        Bus._deserializeJson(deserialized, modelType, hasMany);
+                    }
                 }
 
                 if (!(onComplete && typeof onComplete === "function"))
@@ -243,6 +265,7 @@ const Bus = {
 
     Dispatch: function (command, onComplete, onFail) {
         const type = command.CommandType;
+        const hasResult = command.CommandWithResult;
         const route = Bus._getRoute(type);
         const isCors = Bus._isCors(route);
 
@@ -252,8 +275,12 @@ const Bus = {
             MessageType: type,
             MessageData: Bus._serializeJson(command),
             MessageAwait: false,
+            MessageResult: hasResult,
             Source: "JavaScript"
         };
+
+        const jsonNameless = resultType !== null && resultType !== undefined;
+        const accept = jsonNameless ? "application/jsonnameless; charset=utf-8" : "application/json; charset=utf-8";
 
         const headers = {};
         headers["Provider-Type"] = type;
@@ -272,6 +299,10 @@ const Bus = {
             type: "POST",
             data: JSON.stringify(postData),
             contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            accepts: {
+                json: accept
+            },
             headers: headers,
             crossDomain: isCors
         })
@@ -286,6 +317,9 @@ const Bus = {
 
     DispatchAwait: function (command, onComplete, onFail) {
         const type = command.CommandType;
+        const hasResult = command.CommandWithResult;
+        const resultType = command.ResultType;
+        const hasMany = command.ResultTypeHasMany;
         const route = Bus._getRoute(type);
         const isCors = Bus._isCors(route);
 
@@ -295,8 +329,12 @@ const Bus = {
             MessageType: type,
             MessageData: Bus._serializeJson(command),
             MessageAwait: true,
+            MessageResult: hasResult,
             Source: "JavaScript"
         };
+
+        const jsonNameless = resultType !== null && resultType !== undefined;
+        const accept = jsonNameless ? "application/jsonnameless; charset=utf-8" : "application/json; charset=utf-8";
 
         const headers = {};
         headers["Provider-Type"] = type;
@@ -315,12 +353,28 @@ const Bus = {
             type: "POST",
             data: JSON.stringify(postData),
             contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            accepts: {
+                json: accept
+            },
             headers: headers,
             crossDomain: isCors
         })
-            .done(function () {
+            .done(function (data, textStatus, jqXHR) {
+                const responseContentType = jqXHR.getResponseHeader("content-type");
+                const responseJsonNameless = responseContentType.includes("application/jsonnameless");
+
+                let deserialized = data;
+                if (resultType !== null && resultType !== undefined) {
+                    if (responseJsonNameless) {
+                        deserialized = Bus._deserializeJsonNameless(data, resultType, hasMany);
+                    } else {
+                        Bus._deserializeJson(deserialized, resultType, hasMany);
+                    }
+                }
+
                 if (onComplete && typeof onComplete === "function")
-                    onComplete();
+                    onComplete(deserialized);
             })
             .fail(function (jqXHR) {
                 Bus._onFail(jqXHR, route, onFail);

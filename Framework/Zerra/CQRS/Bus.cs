@@ -33,9 +33,10 @@ namespace Zerra.CQRS
         private const SymmetricAlgorithmType encryptionAlgoritm = SymmetricAlgorithmType.AESwithShift;
 
         private static readonly Type iCommandType = typeof(ICommand);
+        private static readonly Type iCommandWithResultType = typeof(ICommand<>);
         private static readonly Type iEventType = typeof(IEvent);
         private static readonly Type iCommandHandlerType = typeof(ICommandHandler<>);
-        private static readonly Type iCommandWithResultHandlerType = typeof(ICommandHandler<,>);
+        private static readonly Type iCommandHandlerWithResultType = typeof(ICommandHandler<,>);
         private static readonly Type iEventHandlerType = typeof(IEventHandler<>);
         private static readonly Type iBusCacheType = typeof(IBusCache);
         private static readonly Type streamType = typeof(Stream);
@@ -105,8 +106,9 @@ namespace Zerra.CQRS
         {
             var networkType = isApi ? NetworkType.Api : NetworkType.Internal;
             var commandType = command.GetType().GetTypeDetail();
+            var commandInterfaceType = commandType.Interfaces.First(x => x.Name == iCommandWithResultType.Name).GetTypeDetail();
 
-            var dispatchCommandWithResultInternalAsyncMethodGeneric = dispatchCommandWithResultInternalAsyncMethod.GetGenericMethodDetail([commandType.InnerType]);
+            var dispatchCommandWithResultInternalAsyncMethodGeneric = dispatchCommandWithResultInternalAsyncMethod.GetGenericMethodDetail([commandInterfaceType.InnerType]);
             var model = await dispatchCommandWithResultInternalAsyncMethodGeneric.CallerAsync(null, [command, networkType, source]);
 
             return model;
@@ -231,7 +233,7 @@ namespace Zerra.CQRS
 
             var cacheProviderDispatchAsync = (Func<ICommand<TResult>, Task<TResult>>?)commandWithResultCacheProviders.GetOrAdd(commandType, (commandType) =>
             {
-                var handlerTypeDetail = TypeAnalyzer.GetGenericTypeDetail(iCommandWithResultHandlerType, commandType, typeof(TResult));
+                var handlerTypeDetail = TypeAnalyzer.GetGenericTypeDetail(iCommandHandlerWithResultType, commandType, typeof(TResult));
 
                 var busCacheType = Discovery.GetClassByInterface(handlerTypeDetail.Type, iBusCacheType, false);
                 if (busCacheType == null)
@@ -527,10 +529,10 @@ namespace Zerra.CQRS
         }
         private static Task<TResult> HandleCommandWithResultAsync<TResult>(ICommand<TResult> command, Type commandType, string source)
         {
-            var interfaceType = TypeAnalyzer.GetGenericType(iCommandWithResultHandlerType, commandType, typeof(TResult));
+            var interfaceType = TypeAnalyzer.GetGenericType(iCommandHandlerWithResultType, commandType, typeof(TResult));
 
             var providerType = ProviderResolver.GetTypeFirst(interfaceType);
-            var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(ICommandHandler<ICommand<TResult>, TResult>.Handle), [commandType, typeof(TResult)]);
+            var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(ICommandHandler<ICommand<TResult>, TResult>.Handle), [commandType]);
 
             var provider = Instantiator.GetSingle(providerType);
 
@@ -564,10 +566,10 @@ namespace Zerra.CQRS
         }
         private static async Task<TResult> HandleCommandWithResultLoggedAsync<TResult>(ICommand<TResult> command, Type commandType, string source)
         {
-            var interfaceType = TypeAnalyzer.GetGenericType(iCommandWithResultHandlerType, commandType, typeof(TResult));
+            var interfaceType = TypeAnalyzer.GetGenericType(iCommandHandlerWithResultType, commandType, typeof(TResult));
 
             var providerType = ProviderResolver.GetTypeFirst(interfaceType);
-            var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(ICommandHandler<ICommand<TResult>, TResult>.Handle), [commandType, typeof(TResult)]);
+            var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(ICommandHandler<ICommand<TResult>, TResult>.Handle), [commandType]);
 
             var provider = Instantiator.GetSingle(providerType);
 
@@ -956,7 +958,7 @@ namespace Zerra.CQRS
         {
             var messageTypes = new HashSet<Type>();
             var typeDetail = TypeAnalyzer.GetTypeDetail(interfaceType);
-            foreach (var item in typeDetail.Interfaces.Where(x => x.Name == iCommandHandlerType.Name))
+            foreach (var item in typeDetail.Interfaces.Where(x => x.Name == iCommandHandlerType.Name || x.Name == iCommandHandlerWithResultType.Name))
             {
                 var itemDetail = TypeAnalyzer.GetTypeDetail(item);
                 var messageType = itemDetail.InnerTypes[0];

@@ -21,6 +21,7 @@ namespace Zerra.CQRS.RabbitMQ
         {
             public bool IsOpen { get; private set; }
 
+
             private readonly int maxConcurrent;
             private readonly CommandCounter commandCounter;
             private readonly string topic;
@@ -29,6 +30,7 @@ namespace Zerra.CQRS.RabbitMQ
             private readonly HandleRemoteCommandDispatch handlerAwaitAsync;
             private readonly HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync;
             private readonly CancellationTokenSource canceller;
+            private readonly object isOpenLock = new object();
 
             private IModel? channel = null;
             private SemaphoreSlim? throttle = null;
@@ -53,9 +55,12 @@ namespace Zerra.CQRS.RabbitMQ
 
             public void Open(IConnection connection)
             {
-                if (IsOpen)
-                    return;
-                IsOpen = true;
+                lock (isOpenLock)
+                {
+                    if (IsOpen)
+                        return;
+                    IsOpen = true;
+                }
                 _ = ListeningThread(connection);
             }
 

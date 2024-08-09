@@ -29,11 +29,15 @@ namespace Zerra.CQRS.Network
                 this.DataType = ex.GetType();
                 this.Data = ByteSerializer.Serialize(ex, this.DataType, byteSerializerOptions);
             }
+            else if (result is not null)
+            {
+                this.Success = true;
+                this.DataType = result.GetType();
+                this.Data = ByteSerializer.Serialize(result, byteSerializerOptions);
+            }
             else
             {
                 this.Success = true;
-
-                this.Data = ByteSerializer.Serialize(result, byteSerializerOptions);
             }
         }
 

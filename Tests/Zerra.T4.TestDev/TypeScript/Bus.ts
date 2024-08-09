@@ -40,6 +40,16 @@ export class Bus {
         if (data === null || modelType === null)
             return null;
 
+        if (modelType === "Date") {
+            if (data !== null) {
+                data = new Date(data);
+            }
+            return data;
+        }
+        else if (modelType === "number" || modelType === "string" || modelType === "boolean") {
+            return data;
+        }
+
         if (hasMany) {
             for (const index in data) {
                 Bus._deserializeJson(data[index], modelType, false);
@@ -69,6 +79,16 @@ export class Bus {
     private static _deserializeJsonNameless(data: any, modelType: any, hasMany: boolean): any {
         if (data === null || modelType === null)
             return null;
+
+        if (modelType === "Date") {
+            if (data !== null) {
+                data = new Date(data);
+            }
+            return data;
+        }
+        else if (modelType === "number" || modelType === "string" || modelType === "boolean") {
+            return data;
+        }
 
         if (hasMany) {
             const deserializedItems = [];
@@ -202,10 +222,12 @@ export class Bus {
 
                                 let deserialized = JSON.parse(data);
 
-                                if (responseJsonNameless)
-                                    deserialized = Bus._deserializeJsonNameless(deserialized, modelType, hasMany);
-                                else
-                                    Bus._deserializeJson(deserialized, modelType, hasMany);
+                                if (modelType !== null) {
+                                    if (responseJsonNameless)
+                                        deserialized = Bus._deserializeJsonNameless(deserialized, modelType, hasMany);
+                                    else
+                                        Bus._deserializeJson(deserialized, modelType, hasMany);
+                                }
 
                                 resolve(deserialized);
                             }
@@ -240,6 +262,7 @@ export class Bus {
         return new Promise<void>(function (resolve, reject) {
             const commmandAny: any = command;
             const type: string = commmandAny["CommandType"];
+            const hasResult: boolean = commmandAny["CommandWithResult"];
             const route = Bus._getRoute(type);
 
             console.log("Dispatch: " + type);
@@ -251,6 +274,7 @@ export class Bus {
                 MessageType: type,
                 MessageData: Bus._serializeJson(command),
                 MessageAwait: false,
+                MessageResult: hasResult,
                 Source: "TypeScript"
             };
 
@@ -305,6 +329,9 @@ export class Bus {
         return new Promise<void>(function (resolve, reject) {
             const commmandAny: any = command;
             const type: string = commmandAny["CommandType"];
+            const hasResult: boolean = commmandAny["CommandWithResult"];
+            const resultType: string = commmandAny["ResultType"];
+            const hasMany: boolean = commmandAny["ResultTypeHasMany"];
             const route = Bus._getRoute(type);
 
             console.log("DispatchAwait: " + type);
@@ -313,12 +340,17 @@ export class Bus {
                 MessageType: type,
                 MessageData: Bus._serializeJson(command),
                 MessageAwait: true,
+                MessageResult: hasResult,
                 Source: "TypeScript"
             };
+
+            const hasJsonNameless = resultType !== null;
+            const accept = hasJsonNameless ? "application/jsonnameless; charset=utf-8" : "application/json; charset=utf-8";
 
             const headers: HeadersInit = {};
             headers["Provider-Type"] = type;
             headers["Content-Type"] = "application/json; charset=utf-8";
+            headers["Accept"] = accept;
             for (const property in Bus._customHeaders) {
                 const value = Bus._customHeaders[property];
                 if (value !== null) {
@@ -337,9 +369,28 @@ export class Bus {
                     headers: headers
                 }).then(res => {
 
+                    const responseContentType = res.headers.get("content-type");
+                    const responseJson = responseContentType?.includes("application/json");
+                    const responseJsonNameless = responseContentType?.includes("application/jsonnameless");
+
                     res.text().then((data) => {
-                        if (res.status == 200) {
-                            resolve();
+                        if (responseJson || res.status == 200) {
+
+                            if (data == null || data == "") {
+                                resolve(null);
+                                return;
+                            }
+
+                            let deserialized = JSON.parse(data);
+
+                            if (resultType !== null) {
+                                if (responseJsonNameless)
+                                    deserialized = Bus._deserializeJsonNameless(deserialized, resultType, hasMany);
+                                else
+                                    Bus._deserializeJson(deserialized, resultType, hasMany);
+                            }
+
+                            resolve(deserialized);
                         }
                         else {
                             const retrier = function () { retry(retry, retryCount + 1); }
