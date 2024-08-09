@@ -39,10 +39,10 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
 
             if (canWriteAsProperties)
             {
-                readKeyConverter = JsonConverterFactory<IDictionaryAccessor<TKey, TValue>>.Get(keyDetail, nameof(JsonConverterIDictionaryTOfT<TParent, TDictionary, TKey, TValue>), null, KeySetter);
-                readValueConverter = JsonConverterFactory<IDictionaryAccessor<TKey, TValue>>.Get(valueDetail, nameof(JsonConverterIDictionaryTOfT<TParent, TDictionary, TKey, TValue>), null, ValueSetter);
-                //writeKeyConverter = JsonConverterFactory<IEnumerator<KeyValuePair<TKey, TValue>>>.Get(valueDetail, nameof(JsonConverterIDictionaryTOfT<TParent, TDictionary, TKey, TValue>), KeyGetter, null);
-                writeValueConverter = JsonConverterFactory<IEnumerator<KeyValuePair<TKey, TValue>>>.Get(valueDetail, nameof(JsonConverterIDictionaryTOfT<TParent, TDictionary, TKey, TValue>), ValueGetter, null);
+                readKeyConverter = JsonConverterFactory<IDictionaryAccessor<TKey, TValue>>.Get(keyDetail, $"{nameof(JsonConverterIDictionaryTOfT<TParent, TDictionary, TKey, TValue>)}_Key", null, KeySetter);
+                readValueConverter = JsonConverterFactory<IDictionaryAccessor<TKey, TValue>>.Get(valueDetail, $"{nameof(JsonConverterIDictionaryTOfT<TParent, TDictionary, TKey, TValue>)}_Value", null, ValueSetter);
+                //writeKeyConverter = JsonConverterFactory<IEnumerator<KeyValuePair<TKey, TValue>>>.Get(valueDetail, $"{nameof(JsonConverterIDictionaryTOfT<TParent, TDictionary, TKey, TValue>)}_Key", KeyGetter, null);
+                writeValueConverter = JsonConverterFactory<IEnumerator<KeyValuePair<TKey, TValue>>>.Get(valueDetail, $"{nameof(JsonConverterIDictionaryTOfT<TParent, TDictionary, TKey, TValue>)}_Value", ValueGetter, null);
             }
             else
             {
