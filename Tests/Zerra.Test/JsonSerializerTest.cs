@@ -695,9 +695,9 @@ namespace Zerra.Test
 
             var json = JsonSerializer.Serialize(baseModel);
 
-            Assert.IsTrue(json.Contains("\"_1_Property\""));
+            Assert.IsTrue(json.Contains("\"1property\""));
             Assert.IsTrue(json.Contains("\"property2\""));
-            Assert.IsTrue(json.Contains("\"_3_Property\""));
+            Assert.IsTrue(json.Contains("\"3property\""));
 
             json.Replace("\"property2\"", "\"PROPERTY2\"");
 
@@ -1610,9 +1610,9 @@ namespace Zerra.Test
             using var sr = new StreamReader(stream, Encoding.UTF8);
             var json = await sr.ReadToEndAsync();
 
-            Assert.IsTrue(json.Contains("\"_1_Property\""));
+            Assert.IsTrue(json.Contains("\"1property\""));
             Assert.IsTrue(json.Contains("\"property2\""));
-            Assert.IsTrue(json.Contains("\"_3_Property\""));
+            Assert.IsTrue(json.Contains("\"3property\""));
 
             json.Replace("\"property2\"", "\"PROPERTY2\"");
 

@@ -7,11 +7,11 @@ using System;
 namespace Zerra.Serialization.Json
 {
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = false)]
-    public sealed class JsonPropertyNameOldAttribute : Attribute
+    public sealed class JsonPropertyNameAttribute : Attribute
     {
         public string Name { get; }
 
-        public JsonPropertyNameOldAttribute(string name)
+        public JsonPropertyNameAttribute(string name)
         {
             Name = name;
         }
