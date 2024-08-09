@@ -188,26 +188,24 @@ namespace Zerra.Serialization.Json
 
             try
             {
-                var position = 0;
                 var length = 0;
                 var read = -1;
-                while (position < buffer.Length)
+                while (length < buffer.Length)
                 {
 #if NETSTANDARD2_0
-                    read = stream.Read(buffer, position, buffer.Length - position);
+                    read = stream.Read(buffer, length, buffer.Length - length);
 #else
-                    read = stream.Read(buffer.AsSpan(position));
+                    read = stream.Read(buffer.AsSpan(length));
 #endif
                     if (read == 0)
                     {
                         isFinalBlock = true;
                         break;
                     }
-                    position += read;
-                    length = position;
+                    length += read;
                 }
 
-                if (position == 0)
+                if (length == 0)
                 {
                     if (typeof(T) == typeof(string))
                         return (T)(object)String.Empty;
@@ -229,26 +227,30 @@ namespace Zerra.Serialization.Json
 
                 for (; ; )
                 {
-                    var bytesUsed = Read(converter, buffer.AsSpan().Slice(0, read), ref state, out result);
+                    var bytesUsed = Read(converter, buffer.AsSpan().Slice(0, length), ref state, out result);
 
                     if (state.CharsNeeded == 0)
+                    {
+                        if (!state.IsFinalBlock)
+                            throw new EndOfStreamException();
                         break;
+                    }
 
                     if (state.IsFinalBlock)
                         throw new EndOfStreamException();
 
                     Buffer.BlockCopy(buffer, bytesUsed, buffer, 0, length - bytesUsed);
-                    position = length - position;
+                    length -= bytesUsed;
 
-                    if (position + state.CharsNeeded > buffer.Length)
-                        BufferArrayPool<byte>.Grow(ref buffer, position + state.CharsNeeded);
+                    if (length + state.CharsNeeded > buffer.Length)
+                        BufferArrayPool<byte>.Grow(ref buffer, length + state.CharsNeeded);
 
-                    while (position < buffer.Length)
+                    while (length < buffer.Length)
                     {
 #if NETSTANDARD2_0
-                        read = stream.Read(buffer, position, buffer.Length - position);
+                        read = stream.Read(buffer, length, buffer.Length - length);
 #else
-                        read = stream.Read(buffer.AsSpan(position));
+                        read = stream.Read(buffer.AsSpan(length));
 #endif
 
                         if (read == 0)
@@ -256,11 +258,10 @@ namespace Zerra.Serialization.Json
                             state.IsFinalBlock = true;
                             break;
                         }
-                        position += read;
-                        length = position;
+                        length += read;
                     }
 
-                    if (position < state.CharsNeeded)
+                    if (length < state.CharsNeeded)
                         throw new EndOfStreamException();
 
                     state.CharsNeeded = 0;
@@ -291,26 +292,24 @@ namespace Zerra.Serialization.Json
 
             try
             {
-                var position = 0;
                 var length = 0;
                 var read = -1;
-                while (position < buffer.Length)
+                while (length < buffer.Length)
                 {
 #if NETSTANDARD2_0
-                    read = stream.Read(buffer, position, buffer.Length - position);
+                    read = stream.Read(buffer, length, buffer.Length - length);
 #else
-                    read = stream.Read(buffer.AsSpan(position));
+                    read = stream.Read(buffer.AsSpan(length));
 #endif
                     if (read == 0)
                     {
                         isFinalBlock = true;
                         break;
                     }
-                    position += read;
-                    length = position;
+                    length += read;
                 }
 
-                if (position == 0)
+                if (length == 0)
                 {
                     if (type == typeof(string))
                         return String.Empty;
@@ -332,26 +331,33 @@ namespace Zerra.Serialization.Json
 
                 for (; ; )
                 {
-                    var bytesUsed = ReadBoxed(converter, buffer.AsSpan().Slice(0, read), ref state, out result);
+                    var bytesUsed = ReadBoxed(converter, buffer.AsSpan().Slice(0, length), ref state, out result);
 
                     if (state.CharsNeeded == 0)
+                    {
+                        if (!state.IsFinalBlock)
+                            throw new EndOfStreamException();
                         break;
+                    }
+
+                    if (state.IsFinalBlock)
+                        throw new EndOfStreamException();
 
                     if (state.IsFinalBlock)
                         throw new EndOfStreamException();
 
                     Buffer.BlockCopy(buffer, bytesUsed, buffer, 0, length - bytesUsed);
-                    position = length - position;
+                    length -= bytesUsed;
 
-                    if (position + state.CharsNeeded > buffer.Length)
-                        BufferArrayPool<byte>.Grow(ref buffer, position + state.CharsNeeded);
+                    if (length + state.CharsNeeded > buffer.Length)
+                        BufferArrayPool<byte>.Grow(ref buffer, length + state.CharsNeeded);
 
-                    while (position < buffer.Length)
+                    while (length < buffer.Length)
                     {
 #if NETSTANDARD2_0
-                        read = stream.Read(buffer, position, buffer.Length - position);
+                        read = stream.Read(buffer, length, buffer.Length - length);
 #else
-                        read = stream.Read(buffer.AsSpan(position));
+                        read = stream.Read(buffer.AsSpan(length));
 #endif
 
                         if (read == 0)
@@ -359,11 +365,10 @@ namespace Zerra.Serialization.Json
                             state.IsFinalBlock = true;
                             break;
                         }
-                        position += read;
-                        length = position;
+                        length += read;
                     }
 
-                    if (position < state.CharsNeeded)
+                    if (length < state.CharsNeeded)
                         throw new EndOfStreamException();
 
                     state.CharsNeeded = 0;
@@ -393,26 +398,24 @@ namespace Zerra.Serialization.Json
 
             try
             {
-                var position = 0;
                 var length = 0;
                 var read = -1;
-                while (position < buffer.Length)
+                while (length < buffer.Length)
                 {
 #if NETSTANDARD2_0
-                    read = await stream.ReadAsync(buffer, position, buffer.Length - position);
+                    read = await stream.ReadAsync(buffer, length, buffer.Length - length);
 #else
-                    read = await stream.ReadAsync(buffer.AsMemory(position));
+                    read = await stream.ReadAsync(buffer.AsMemory(length));
 #endif
                     if (read == 0)
                     {
                         isFinalBlock = true;
                         break;
                     }
-                    position += read;
-                    length = position;
+                    length += read;
                 }
 
-                if (position == 0)
+                if (length == 0)
                 {
                     if (typeof(T) == typeof(string))
                         return (T)(object)String.Empty;
@@ -437,23 +440,30 @@ namespace Zerra.Serialization.Json
                     var usedBytes = Read(converter, buffer.AsSpan().Slice(0, length), ref state, out result);
 
                     if (state.CharsNeeded == 0)
+                    {
+                        if (!state.IsFinalBlock)
+                            throw new EndOfStreamException();
                         break;
+                    }
+
+                    if (state.IsFinalBlock)
+                        throw new EndOfStreamException();
 
                     if (state.IsFinalBlock)
                         throw new EndOfStreamException();
 
                     Buffer.BlockCopy(buffer, usedBytes, buffer, 0, length - usedBytes);
-                    position = length - usedBytes;
+                    length -= usedBytes;
 
-                    if (position + state.CharsNeeded > buffer.Length)
-                        BufferArrayPool<byte>.Grow(ref buffer, position + state.CharsNeeded);
+                    if (length + state.CharsNeeded > buffer.Length)
+                        BufferArrayPool<byte>.Grow(ref buffer, length + state.CharsNeeded);
 
-                    while (position < buffer.Length)
+                    while (length < buffer.Length)
                     {
 #if NETSTANDARD2_0
-                        read = await stream.ReadAsync(buffer, position, buffer.Length - position);
+                        read = await stream.ReadAsync(buffer, length, buffer.Length - length);
 #else
-                        read = await stream.ReadAsync(buffer.AsMemory(position));
+                        read = await stream.ReadAsync(buffer.AsMemory(length));
 #endif
 
                         if (read == 0)
@@ -461,11 +471,10 @@ namespace Zerra.Serialization.Json
                             state.IsFinalBlock = true;
                             break;
                         }
-                        position += read;
-                        length = position;
+                        length += read;
                     }
 
-                    if (position < state.CharsNeeded)
+                    if (length < state.CharsNeeded)
                         throw new EndOfStreamException();
 
                     state.CharsNeeded = 0;
@@ -496,26 +505,24 @@ namespace Zerra.Serialization.Json
 
             try
             {
-                var position = 0;
                 var length = 0;
                 var read = -1;
-                while (position < buffer.Length)
+                while (length < buffer.Length)
                 {
 #if NETSTANDARD2_0
-                    read = await stream.ReadAsync(buffer, position, buffer.Length - position);
+                    read = await stream.ReadAsync(buffer, length, buffer.Length - length);
 #else
-                    read = await stream.ReadAsync(buffer.AsMemory(position));
+                    read = await stream.ReadAsync(buffer.AsMemory(length));
 #endif
                     if (read == 0)
                     {
                         isFinalBlock = true;
                         break;
                     }
-                    position += read;
-                    length = position;
+                    length += read;
                 }
 
-                if (position == 0)
+                if (length == 0)
                 {
                     if (type == typeof(string))
                         return String.Empty;
@@ -537,26 +544,33 @@ namespace Zerra.Serialization.Json
 
                 for (; ; )
                 {
-                    var bytesUsed = ReadBoxed(converter, buffer.AsSpan().Slice(0, read), ref state, out result);
+                    var bytesUsed = ReadBoxed(converter, buffer.AsSpan().Slice(0, length), ref state, out result);
 
                     if (state.CharsNeeded == 0)
+                    {
+                        if (!state.IsFinalBlock)
+                            throw new EndOfStreamException();
                         break;
+                    }
+
+                    if (state.IsFinalBlock)
+                        throw new EndOfStreamException();
 
                     if (state.IsFinalBlock)
                         throw new EndOfStreamException();
 
                     Buffer.BlockCopy(buffer, bytesUsed, buffer, 0, length - bytesUsed);
-                    position = length - position;
+                    length -= bytesUsed;
 
-                    if (position + state.CharsNeeded > buffer.Length)
-                        BufferArrayPool<byte>.Grow(ref buffer, position + state.CharsNeeded);
+                    if (length + state.CharsNeeded > buffer.Length)
+                        BufferArrayPool<byte>.Grow(ref buffer, length + state.CharsNeeded);
 
-                    while (position < buffer.Length)
+                    while (length < buffer.Length)
                     {
 #if NETSTANDARD2_0
-                        read = await stream.ReadAsync(buffer, position, buffer.Length - position);
+                        read = await stream.ReadAsync(buffer, length, buffer.Length - length);
 #else
-                        read = await stream.ReadAsync(buffer.AsMemory(position));
+                        read = await stream.ReadAsync(buffer.AsMemory(length));
 #endif
 
                         if (read == 0)
@@ -564,11 +578,10 @@ namespace Zerra.Serialization.Json
                             state.IsFinalBlock = true;
                             break;
                         }
-                        position += read;
-                        length = position;
+                        length += read;
                     }
 
-                    if (position < state.CharsNeeded)
+                    if (length < state.CharsNeeded)
                         throw new EndOfStreamException();
 
                     state.CharsNeeded = 0;
