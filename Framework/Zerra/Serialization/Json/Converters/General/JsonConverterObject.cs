@@ -40,7 +40,26 @@ namespace Zerra.Serialization.Json.Converters.General
             foreach (var member in typeDetail.SerializableMemberDetails)
             {
                 var detail = JsonConverterObjectMember.New(typeDetail, member);
-                membersByName.Add(member.Name, detail);
+                var found = false;
+                foreach (var attribute in member.Attributes)
+                {
+                    if (attribute is JsonPropertyNameAttribute jsonPropertyName)
+                    {
+                        membersByName.Add(jsonPropertyName.Name, detail);
+                        found = true;
+                        break;
+                    }
+                    else if (attribute is System.Text.Json.Serialization.JsonPropertyNameAttribute jsonPropertyName2)
+                    {
+                        membersByName.Add(jsonPropertyName2.Name, detail);
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
+                {
+                    membersByName.Add(member.Name, detail);
+                }
             }
 
             if (typeDetail.Type.IsValueType || !typeDetail.HasCreator)

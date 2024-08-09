@@ -375,7 +375,7 @@ namespace Zerra.Serialization.Json
             {
                 foreach (var attribute in memberDetail.Attributes)
                 {
-                    if (attribute is JsonPropertyNameAttribute jsonPropertyName)
+                    if (attribute is JsonPropertyNameOldAttribute jsonPropertyName)
                     {
                         return jsonPropertyName.Name;
                     }
@@ -397,7 +397,7 @@ namespace Zerra.Serialization.Json
                     var found = false;
                     foreach (var attribute in memberDetail.Attributes)
                     {
-                        if (attribute is JsonPropertyNameAttribute jsonPropertyName)
+                        if (attribute is JsonPropertyNameOldAttribute jsonPropertyName)
                         {
                             membersByName.Add(jsonPropertyName.Name, memberDetail);
                             found = true;
