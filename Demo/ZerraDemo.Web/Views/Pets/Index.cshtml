@@ -78,7 +78,7 @@
                             Amount: 1
                         });
                        Bus.DispatchAwait(command, function (result) {
-                            alert("Pet Food Sent to " + model.Name + ", Amount Eaten: " + result);
+                            alert("Pet Food Sent to " + model.Name + ", Amount Eaten: " + result.AmountEaten);
                             loadData();
                         });
                     },

@@ -5,7 +5,7 @@ namespace ZerraDemo.Domain.Pets
 {
     public interface IPetsCommandHandler :
         ICommandHandler<AdoptPetCommand>,
-        ICommandHandler<FeedPetCommand, int>,
+        ICommandHandler<FeedPetCommand, FeedPetCommandResult>,
         ICommandHandler<LetPetOutToPoopCommand>
     {
     }

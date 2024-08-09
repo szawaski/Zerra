@@ -69,6 +69,11 @@ const WeatherCachedModelType =
     WeatherType: "string",
 }
 
+const FeedPetCommandResultType =
+{
+    AmountEaten: "number",
+}
+
 const ModelTypeDictionary =
 {
     Balance1Model: Balance1ModelType,
@@ -80,6 +85,7 @@ const ModelTypeDictionary =
     PetModel: PetModelType,
     WeatherModel: WeatherModelType,
     WeatherCachedModel: WeatherCachedModelType,
+    FeedPetCommandResult: FeedPetCommandResultType,
 }
 
 const ILedger1QueryProvider = {
@@ -222,7 +228,7 @@ const FeedPetCommand = function(properties) {
     this.Amount = (properties === undefined || properties.Amount === undefined) ? null : properties.Amount;
     this.CommandType = "FeedPetCommand";
     this.CommandWithResult = true;
-    this.ResultType = "number";
+    this.ResultType = FeedPetCommandResultType;
     this.ResultTypeHasMany = false;
 }
 

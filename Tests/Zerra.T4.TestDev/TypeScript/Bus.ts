@@ -325,8 +325,8 @@ export class Bus {
         });
     }
 
-    public static DispatchAwaitAsync(command: ICommand): Promise<void> {
-        return new Promise<void>(function (resolve, reject) {
+    public static DispatchAwaitAsync(command: ICommand): Promise<any> {
+        return new Promise<any>(function (resolve, reject) {
             const commmandAny: any = command;
             const type: string = commmandAny["CommandType"];
             const hasResult: boolean = commmandAny["CommandWithResult"];

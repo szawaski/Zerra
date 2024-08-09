@@ -92,7 +92,7 @@ namespace Zerra.T4
                 if (commandWithResultType != null)
                 {
                     var (isJavaScriptType, type, hasMany, nullable) = GetJavaScriptPropertyType(commandWithResultType.Resolved.GenericArguments[0], models);
-                    _ = sb.Append(spacing).Append(spacing).Append("self[\"ResultType\"] = \"").Append(type).Append("\";").Append(Environment.NewLine);
+                    _ = sb.Append(spacing).Append(spacing).Append("self[\"ResultType\"] = ").Append(type).Append("Type;").Append(Environment.NewLine);
                     _ = sb.Append(spacing).Append(spacing).Append("self[\"ResultTypeHasMany\"] = ").Append(hasMany ? "true" : "false").Append(";").Append(Environment.NewLine);
                 }
                 else
@@ -183,7 +183,7 @@ namespace Zerra.T4
                 if (commandWithResultType != null)
                 {
                     var (isJavaScriptType, type, hasMany, nullable) = GetJavaScriptPropertyType(commandWithResultType.Resolved.GenericArguments[0], models);
-                    _ = sb.Append(spacing).Append("this.ResultType = \"").Append(type).Append("\";").Append(Environment.NewLine);
+                    _ = sb.Append(spacing).Append("this.ResultType = ").Append(type).Append("Type;").Append(Environment.NewLine);
                     _ = sb.Append(spacing).Append("this.ResultTypeHasMany = ").Append(hasMany ? "true" : "false").Append(";").Append(Environment.NewLine);
                 }
                 else
@@ -288,6 +288,11 @@ namespace Zerra.T4
             foreach (var command in commands)
             {
                 AddModels(command, models);
+                var commandWithResultType = command.Implements.FirstOrDefault(x => x.Name.StartsWith("ICommand<"));
+                if (commandWithResultType != null)
+                {
+                    AddModels(commandWithResultType.Resolved.GenericArguments[0], models);
+                }
             }
 
             return (queryInterfaces, commands, models);
