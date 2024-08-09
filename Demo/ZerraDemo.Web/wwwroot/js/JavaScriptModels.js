@@ -150,6 +150,7 @@ const Deposit1Command = function(properties) {
     this.Amount = (properties === undefined || properties.Amount === undefined) ? null : properties.Amount;
     this.Description = (properties === undefined || properties.Description === undefined) ? null : properties.Description;
     this.CommandType = "Deposit1Command";
+    this.CommandWithResult = false
 }
 
 const Transfer1Command = function(properties) {
@@ -158,6 +159,7 @@ const Transfer1Command = function(properties) {
     this.Amount = (properties === undefined || properties.Amount === undefined) ? null : properties.Amount;
     this.Description = (properties === undefined || properties.Description === undefined) ? null : properties.Description;
     this.CommandType = "Transfer1Command";
+    this.CommandWithResult = false
 }
 
 const Withdraw1Command = function(properties) {
@@ -165,6 +167,7 @@ const Withdraw1Command = function(properties) {
     this.Amount = (properties === undefined || properties.Amount === undefined) ? null : properties.Amount;
     this.Description = (properties === undefined || properties.Description === undefined) ? null : properties.Description;
     this.CommandType = "Withdraw1Command";
+    this.CommandWithResult = false
 }
 
 const Deposit2Command = function(properties) {
@@ -172,6 +175,7 @@ const Deposit2Command = function(properties) {
     this.Amount = (properties === undefined || properties.Amount === undefined) ? null : properties.Amount;
     this.Description = (properties === undefined || properties.Description === undefined) ? null : properties.Description;
     this.CommandType = "Deposit2Command";
+    this.CommandWithResult = false
 }
 
 const Transfer2Command = function(properties) {
@@ -180,6 +184,7 @@ const Transfer2Command = function(properties) {
     this.Amount = (properties === undefined || properties.Amount === undefined) ? null : properties.Amount;
     this.Description = (properties === undefined || properties.Description === undefined) ? null : properties.Description;
     this.CommandType = "Transfer2Command";
+    this.CommandWithResult = false
 }
 
 const Withdraw2Command = function(properties) {
@@ -187,6 +192,7 @@ const Withdraw2Command = function(properties) {
     this.Amount = (properties === undefined || properties.Amount === undefined) ? null : properties.Amount;
     this.Description = (properties === undefined || properties.Description === undefined) ? null : properties.Description;
     this.CommandType = "Withdraw2Command";
+    this.CommandWithResult = false
 }
 
 const AdoptPetCommand = function(properties) {
@@ -194,26 +200,31 @@ const AdoptPetCommand = function(properties) {
     this.BreedID = (properties === undefined || properties.BreedID === undefined) ? null : properties.BreedID;
     this.Name = (properties === undefined || properties.Name === undefined) ? null : properties.Name;
     this.CommandType = "AdoptPetCommand";
+    this.CommandWithResult = false
 }
 
 const FeedPetCommand = function(properties) {
     this.PetID = (properties === undefined || properties.PetID === undefined) ? null : properties.PetID;
     this.Amount = (properties === undefined || properties.Amount === undefined) ? null : properties.Amount;
     this.CommandType = "FeedPetCommand";
+    this.CommandWithResult = true
 }
 
 const LetPetOutToPoopCommand = function(properties) {
     this.PetID = (properties === undefined || properties.PetID === undefined) ? null : properties.PetID;
     this.CommandType = "LetPetOutToPoopCommand";
+    this.CommandWithResult = false
 }
 
 const SetWeatherCommand = function(properties) {
     this.WeatherType = (properties === undefined || properties.WeatherType === undefined) ? null : properties.WeatherType;
     this.CommandType = "SetWeatherCommand";
+    this.CommandWithResult = false
 }
 
 const SetWeatherCachedCommand = function(properties) {
     this.WeatherType = (properties === undefined || properties.WeatherType === undefined) ? null : properties.WeatherType;
     this.CommandType = "SetWeatherCachedCommand";
+    this.CommandWithResult = false
 }
 

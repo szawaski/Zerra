@@ -87,6 +87,7 @@ namespace Zerra.T4
                 _ = sb.Append(spacing).Append(spacing).Append("const props: any = properties;").Append(Environment.NewLine);
                 _ = sb.Append(spacing).Append(spacing).Append("Object.keys(props).forEach(key => self[key] = props[key]);").Append(Environment.NewLine);
                 _ = sb.Append(spacing).Append(spacing).Append("self[\"CommandType\"] = \"").Append(command.Name).Append("\";").Append(Environment.NewLine);
+                _ = sb.Append(spacing).Append(spacing).Append("self[\"CommandWithResult\"] = ").Append(command.Implements.Any(x => x.Name.StartsWith("ICommand<")) ? "true" : "false").Append(Environment.NewLine);
                 _ = sb.Append(spacing).Append("}").Append(Environment.NewLine);
                 foreach (var property in command.Properties)
                 {
@@ -165,6 +166,7 @@ namespace Zerra.T4
                     _ = sb.Append(spacing).Append("this.").Append(property.Name).Append(" = (properties === undefined || properties.").Append(property.Name).Append(" === undefined) ? null : properties.").Append(property.Name).Append(";").Append(Environment.NewLine);
                 }
                 _ = sb.Append(spacing).Append("this.CommandType = \"").Append(command.Name).Append("\";").Append(Environment.NewLine);
+                _ = sb.Append(spacing).Append("this.CommandWithResult = ").Append(command.Implements.Any(x => x.Name.StartsWith("ICommand<")) ? "true" : "false").Append(Environment.NewLine);
                 _ = sb.Append("}").Append(Environment.NewLine).Append(Environment.NewLine);
             }
 
