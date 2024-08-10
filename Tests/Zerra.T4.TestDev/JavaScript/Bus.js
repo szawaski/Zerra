@@ -279,9 +279,6 @@ const Bus = {
             Source: "JavaScript"
         };
 
-        const jsonNameless = resultType !== null && resultType !== undefined;
-        const accept = jsonNameless ? "application/jsonnameless; charset=utf-8" : "application/json; charset=utf-8";
-
         const headers = {};
         headers["Provider-Type"] = type;
         for (const property in Bus._customHeaders) {
@@ -299,10 +296,6 @@ const Bus = {
             type: "POST",
             data: JSON.stringify(postData),
             contentType: "application/json; charset=utf-8",
-            dataType: "json",
-            accepts: {
-                json: accept
-            },
             headers: headers,
             crossDomain: isCors
         })
@@ -353,9 +346,9 @@ const Bus = {
             type: "POST",
             data: JSON.stringify(postData),
             contentType: "application/json; charset=utf-8",
-            dataType: "json",
+            dataType: hasResult ? "json" : null,
             accepts: {
-                json: accept
+                json: hasResult ? accept : null
             },
             headers: headers,
             crossDomain: isCors

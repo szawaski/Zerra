@@ -350,7 +350,8 @@ export class Bus {
             const headers: HeadersInit = {};
             headers["Provider-Type"] = type;
             headers["Content-Type"] = "application/json; charset=utf-8";
-            headers["Accept"] = accept;
+            if (hasResult)
+                headers["Accept"] = accept;
             for (const property in Bus._customHeaders) {
                 const value = Bus._customHeaders[property];
                 if (value !== null) {
@@ -369,34 +370,53 @@ export class Bus {
                     headers: headers
                 }).then(res => {
 
-                    const responseContentType = res.headers.get("content-type");
-                    const responseJson = responseContentType?.includes("application/json");
-                    const responseJsonNameless = responseContentType?.includes("application/jsonnameless");
+                    if (hasResult) {
+                        const responseContentType = res.headers.get("content-type");
+                        const responseJson = responseContentType?.includes("application/json");
+                        const responseJsonNameless = responseContentType?.includes("application/jsonnameless");
 
-                    res.text().then((data) => {
-                        if (responseJson || res.status == 200) {
+                        res.text().then((data) => {
+                            if (responseJson || res.status == 200) {
 
-                            if (data == null || data == "") {
-                                resolve(null);
-                                return;
+                                if (data == null || data == "") {
+                                    resolve(null);
+                                    return;
+                                }
+
+                                let deserialized = JSON.parse(data);
+
+                                if (resultType !== null) {
+                                    if (responseJsonNameless)
+                                        deserialized = Bus._deserializeJsonNameless(deserialized, resultType, hasMany);
+                                    else
+                                        Bus._deserializeJson(deserialized, resultType, hasMany);
+                                }
+
+                                resolve(deserialized);
                             }
-
-                            let deserialized = JSON.parse(data);
-
-                            if (resultType !== null) {
-                                if (responseJsonNameless)
-                                    deserialized = Bus._deserializeJsonNameless(deserialized, resultType, hasMany);
-                                else
-                                    Bus._deserializeJson(deserialized, resultType, hasMany);
+                            else {
+                                const retrier = function () { retry(retry, retryCount + 1); }
+                                Bus._onReject(retrier, retryCount, data, route, reject);
                             }
+                        });
+                    }
+                    else {
+                        res.text().then((data) => {
+                            if (res.status == 200) {
 
-                            resolve(deserialized);
-                        }
-                        else {
-                            const retrier = function () { retry(retry, retryCount + 1); }
-                            Bus._onReject(retrier, retryCount, data, route, reject);
-                        }
-                    });
+                                if (data == null || data == "") {
+                                    resolve(null);
+                                    return;
+                                }
+
+                                resolve(undefined);
+                            }
+                            else {
+                                const retrier = function () { retry(retry, retryCount + 1); }
+                                Bus._onReject(retrier, retryCount, data, route, reject);
+                            }
+                        });
+                    }
 
                 }).catch(err => {
                     const retrier = function () { retry(retry, retryCount + 1); }
