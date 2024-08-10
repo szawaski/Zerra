@@ -10,8 +10,19 @@ namespace Zerra.Reflection
 {
     public static class TypeAnalyzer<T>
     {
-        private static readonly Lazy<TypeDetail<T>> typeDetails = new(() => new TypeDetail<T>(typeof(T)), false);
-        public static TypeDetail<T> GetTypeDetail() => typeDetails.Value;
+        private static readonly object typeDetailLock = new object();
+        private static TypeDetail<T>? typeDetail = null;
+        public static TypeDetail<T> GetTypeDetail()
+        {
+            if (typeDetail is null)
+            {
+                lock (typeDetailLock)
+                {
+                    typeDetail ??= new TypeDetail<T>(typeof(T));
+                }
+            }
+            return typeDetail;
+        }
 
         private static readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail<T>?> methodDetailsByType = new();
         public static MethodDetail<T> GetMethodDetail(string name, Type[]? parameterTypes = null)

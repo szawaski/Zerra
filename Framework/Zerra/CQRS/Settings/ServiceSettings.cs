@@ -2,8 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Linq;
 using Zerra.Linq;
 
 namespace Zerra.CQRS.Settings
@@ -12,33 +10,19 @@ namespace Zerra.CQRS.Settings
     {
         public string? ThisServiceName { get; internal set; }
 
-        public string? MessageHost { get; internal set; }
-        public string? RelayUrl { get; internal set; }
-        public string? RelayKey { get; internal set; }
-        public ServiceSetting[]? Services { get; internal set; }
+        public ServiceQuerySetting[]? Queries { get; internal set; }
 
-        public void SetMessageHost(string messageHost)
-        {
-            this.MessageHost = messageHost;
-        }
-
-        public void SetRelayKey(string relayKey)
-        {
-            this.RelayKey = relayKey;
-        }
-
-        public void SetServiceEncryptionKey(string serviceName, string encryptionKey)
-        {
-            var service = this.Services?.FirstOrDefault(x => x.Name == serviceName);
-            if (service == null)
-                throw new Exception($"Service {serviceName} not found");
-            service.EncryptionKey = encryptionKey;
-        }
-
+        public ServiceMessageSetting[]? Messages { get; internal set; }
 
         public void SetAllEncryptionKeys(string encryptionKey)
         {
-            this.Services?.ForEach(x => x.EncryptionKey = encryptionKey);
+            this.Queries?.ForEach(x => x.SetEncryptionKey(encryptionKey));
+            this.Messages?.ForEach(x => x.SetEncryptionKey(encryptionKey));
+        }
+
+        public void SetAllMessageHosts(string messageHost)
+        {
+            this.Messages?.ForEach(x => x.SetMessageHost(messageHost));
         }
     }
 }

@@ -1347,12 +1347,6 @@ namespace Zerra.CQRS
 
                 _ = Log.InfoAsync($"Starting {serviceSettings.ThisServiceName}");
 
-                var thisServerSetting = serviceSettings.Services?.FirstOrDefault(x => x.Name == serviceSettings.ThisServiceName);
-                if (thisServerSetting == null)
-                    throw new Exception($"Service {serviceSettings.ThisServiceName} not found in CQRS settings file");
-
-                var serviceUrl = thisServerSetting.BindingUrl;
-
                 ICommandConsumer? commandConsumer = null;
                 IEventConsumer? eventConsumer = null;
                 IQueryServer? queryServer = null;
@@ -1361,202 +1355,336 @@ namespace Zerra.CQRS
                 Type? queryServerType = null;
 
                 var serverTypes = new HashSet<Type>();
-                foreach (var clientSetting in serviceSettings.Services!)
+                if (serviceSettings.Queries != null)
                 {
-                    if (clientSetting.Types == null || clientSetting.Types.Length == 0)
-                        continue;
-                    if (clientSetting != thisServerSetting)
-                        continue;
-                    foreach (var typeName in clientSetting.Types)
+                    foreach (var clientQuerySetting in serviceSettings.Queries)
                     {
-                        var type = Discovery.GetTypeFromName(typeName);
-                        if (!type.IsInterface)
-                            throw new Exception($"{type.GetNiceName()} is not an interface");
+                        if (clientQuerySetting.Name != serviceSettings.ThisServiceName)
+                            continue;
+                        if (clientQuerySetting.Types is null)
+                            continue;
+                        foreach (var serviceType in clientQuerySetting.Types)
+                        {
+                            if (String.IsNullOrEmpty(serviceType))
+                                throw new Exception($"{serviceType ?? "null"} is not an interface");
+                            var type = Discovery.GetTypeFromName(serviceType);
+                            if (!type.IsInterface)
+                                throw new Exception($"{type.GetNiceName()} is not an interface");
 
-                        var commandTypes = GetCommandTypesFromInterface(type);
-                        foreach (var commandType in commandTypes)
-                            _ = serverTypes.Add(commandType);
+                            var typeDetail = TypeAnalyzer.GetTypeDetail(type);
+                            if (typeDetail.Attributes.Any(x => x is ServiceExposedAttribute))
+                                _ = serverTypes.Add(type);
+                        }
+                    }
+                }
+                if (serviceSettings.Messages != null)
+                {
+                    foreach (var clientMessageSetting in serviceSettings.Messages)
+                    {
+                        if (clientMessageSetting.Name != serviceSettings.ThisServiceName)
+                            continue;
+                        if (clientMessageSetting.Types is null)
+                            continue;
+                        foreach (var serviceType in clientMessageSetting.Types)
+                        {
+                            if (String.IsNullOrEmpty(serviceType))
+                                throw new Exception($"{serviceType ?? "null"} is not an interface");
+                            var type = Discovery.GetTypeFromName(serviceType);
+                            if (!type.IsInterface)
+                                throw new Exception($"{type.GetNiceName()} is not an interface");
 
-                        var eventTypes = GetEventTypesFromInterface(type);
-                        foreach (var eventType in eventTypes)
-                            _ = serverTypes.Add(eventType);
+                            var commandTypes = GetCommandTypesFromInterface(type);
+                            foreach (var commandType in commandTypes)
+                                _ = serverTypes.Add(commandType);
 
-                        var typeDetail = TypeAnalyzer.GetTypeDetail(type);
-                        if (typeDetail.Attributes.Any(x => x is ServiceExposedAttribute))
-                            _ = serverTypes.Add(type);
+                            var eventTypes = GetEventTypesFromInterface(type);
+                            foreach (var eventType in eventTypes)
+                                _ = serverTypes.Add(eventType);
+                        }
                     }
                 }
 
-                foreach (var serviceSetting in serviceSettings.Services)
+                if (serviceSettings.Queries != null)
                 {
-                    if (serviceSetting.Types == null || serviceSetting.Types.Length == 0)
-                        continue;
-
-                    ICommandProducer? commandProducer = null;
-                    IEventProducer? eventProducer = null;
-                    IQueryClient? queryClient = null;
-                    Type? commandProducerType = null;
-                    Type? eventProducerType = null;
-                    Type? queryClientType = null;
-
-                    foreach (var typeName in serviceSetting.Types)
+                    foreach (var serviceQuerySetting in serviceSettings.Queries)
                     {
-                        var externalUrl = relayRegister?.RelayUrl ?? serviceSetting.ExternalUrl;
-
-                        var interfaceType = Discovery.GetTypeFromName(typeName);
-                        if (!interfaceType.IsInterface)
-                        {
-                            _ = Log.ErrorAsync($"{interfaceType.GetNiceName()} is not an interface");
+                        if (serviceQuerySetting.Types is null)
                             continue;
-                        }
 
-                        var commandTypes = GetCommandTypesFromInterface(interfaceType);
-                        if (commandTypes.Count > 0)
+                        IQueryClient? queryClient = null;
+                        Type? queryClientType = null;
+
+                        foreach (var serviceType in serviceQuerySetting.Types)
                         {
-                            if (serviceSetting == thisServerSetting)
+                            var externalUrl = relayRegister?.RelayUrl ?? serviceQuerySetting.ExternalUrl;
+
+                            if (String.IsNullOrEmpty(serviceType))
+                                throw new Exception($"{serviceType ?? "null"} is not an interface");
+                            var interfaceType = Discovery.GetTypeFromName(serviceType);
+                            if (!interfaceType.IsInterface)
                             {
-                                try
+                                _ = Log.ErrorAsync($"{interfaceType.GetNiceName()} is not an interface");
+                                continue;
+                            }
+
+                            var interfaceTypeDetail = TypeAnalyzer.GetTypeDetail(interfaceType);
+                            if (interfaceTypeDetail.Attributes.Any(x => x is ServiceExposedAttribute))
+                            {
+                                if (serviceQuerySetting.Name == serviceSettings.ThisServiceName)
                                 {
-                                    if (commandConsumer == null)
+                                    if (queryClients.ContainsKey(interfaceType))
                                     {
-                                        var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
-                                        var symmetricConfig = encryptionKey == null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
-                                        commandConsumer = serviceCreator.CreateCommandConsumer(serviceUrl, symmetricConfig);
-                                        if (commandConsumer != null)
-                                        {
-                                            commandConsumerType = commandConsumer.GetType();
-                                            commandConsumer.Setup(commandCounter, HandleRemoteCommandDispatchAsync, HandleRemoteCommandDispatchAwaitAsync, HandleRemoteCommandWithResultDispatchAwaitAsync);
-                                            _ = commandConsumers.Add(commandConsumer);
-                                            //_ = Log.InfoAsync($"Command Consumer: {commandConsumerType.GetNiceName()}");
-                                        }
+                                        _ = Log.ErrorAsync($"Cannot add Query Server: type already registered {interfaceType.GetNiceName()}");
                                     }
-                                    if (commandConsumer != null && commandConsumerType != null)
+                                    else if (handledQueryTypes.Contains(interfaceType))
                                     {
-                                        foreach (var commandType in commandTypes)
+                                        _ = Log.ErrorAsync($"Cannot add Query Server: type already registered {interfaceType.GetNiceName()}");
+                                    }
+                                    else
+                                    {
+                                        try
                                         {
-                                            if (!commandType.GetTypeDetail().Attributes.Any(x => x is ServiceExposedAttribute))
-                                                continue;
-                                            if (commandProducers.ContainsKey(commandType))
+                                            if (queryServer == null)
                                             {
-                                                _ = Log.ErrorAsync($"Cannot add Command Consumer: type already registered {commandType.GetNiceName()}");
-                                                continue;
+                                                var encryptionKey = String.IsNullOrWhiteSpace(serviceQuerySetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceQuerySetting.EncryptionKey);
+                                                var symmetricConfig = encryptionKey == null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
+                                                queryServer = serviceCreator.CreateQueryServer(serviceQuerySetting.BindingUrl, symmetricConfig);
+                                                if (queryServer != null)
+                                                {
+                                                    queryServerType = queryServer.GetType();
+                                                    queryServer.Setup(commandCounter, HandleRemoteQueryCallAsync);
+                                                    _ = queryServers.Add(queryServer);
+                                                    //_ = Log.InfoAsync($"Query Server: {queryServer.GetType().GetNiceName()}");
+                                                }
                                             }
-                                            if (handledCommandTypes.Contains(commandType))
+                                            if (queryServer != null && queryServerType != null)
                                             {
-                                                _ = Log.ErrorAsync($"Cannot add Command Consumer: type already registered {commandType.GetNiceName()}");
-                                                continue;
+                                                _ = handledQueryTypes.Add(interfaceType);
+                                                queryServer.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
+                                                _ = Log.InfoAsync($"Hosting - {queryServerType.GetNiceName()}: {interfaceType.GetNiceName()}");
                                             }
-                                            var topic = GetCommandTopic(commandType);
-                                            commandConsumer.RegisterCommandType(maxConcurrentCommandsPerTopic, topic, commandType);
-                                            _ = handledCommandTypes.Add(commandType);
-                                            _ = Log.InfoAsync($"Hosting - {commandConsumerType.GetNiceName()}: {commandType.GetNiceName()}");
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            _ = Log.ErrorAsync($"Failed to create Query Server for {serviceQuerySetting.Name}", ex);
                                         }
                                     }
                                 }
-                                catch (Exception ex)
+                                else if (!String.IsNullOrWhiteSpace(externalUrl))
                                 {
-                                    _ = Log.ErrorAsync($"Failed to create Command Consumer for {serviceSetting.Name}", ex);
+                                    if (!serverTypes.Contains(interfaceType))
+                                    {
+                                        if (handledQueryTypes.Contains(interfaceType))
+                                        {
+                                            _ = Log.ErrorAsync($"Cannot add Query Client: type already registered {interfaceType.GetNiceName()}");
+                                        }
+                                        else if (commandProducers.ContainsKey(interfaceType))
+                                        {
+                                            _ = Log.ErrorAsync($"Cannot add Query Client: type already registered {interfaceType.GetNiceName()}");
+                                        }
+                                        else
+                                        {
+                                            try
+                                            {
+                                                if (queryClient == null)
+                                                {
+                                                    var encryptionKey = String.IsNullOrWhiteSpace(serviceQuerySetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceQuerySetting.EncryptionKey);
+                                                    var symmetricConfig = encryptionKey == null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
+                                                    queryClient = serviceCreator.CreateQueryClient(externalUrl, symmetricConfig);
+                                                    if (queryClient != null)
+                                                    {
+                                                        queryClientType = queryClient.GetType();
+                                                        //_ = Log.InfoAsync($"Query Client: {queryClient.GetType().GetNiceName()}");
+                                                    }
+                                                }
+                                                if (queryClient != null && queryClientType != null)
+                                                {
+                                                    queryClient.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
+                                                    _ = queryClients.TryAdd(interfaceType, queryClient);
+                                                    _ = Log.InfoAsync($"{serviceQuerySetting.Name} - {queryClientType.GetNiceName()}: {interfaceType.GetNiceName()}");
+                                                }
+                                            }
+                                            catch (Exception ex)
+                                            {
+                                                _ = Log.ErrorAsync($"Failed to create Query Client for {serviceQuerySetting.Name}", ex);
+                                            }
+                                        }
+                                    }
                                 }
                             }
-                            else if (!String.IsNullOrWhiteSpace(externalUrl) || !String.IsNullOrWhiteSpace(serviceSettings.MessageHost))
+                        }
+                    }
+                }
+                if (serviceSettings.Messages != null)
+                {
+                    foreach (var serviceMessageSetting in serviceSettings.Messages)
+                    {
+                        if (serviceMessageSetting.Types is null)
+                            continue;
+                        if (String.IsNullOrEmpty(serviceMessageSetting.MessageHost))
+                            continue;
+
+                        ICommandProducer? commandProducer = null;
+                        IEventProducer? eventProducer = null;
+                        Type? commandProducerType = null;
+                        Type? eventProducerType = null;
+
+                        foreach (var serviceType in serviceMessageSetting.Types)
+                        {
+                            if (String.IsNullOrEmpty(serviceType))
+                                throw new Exception($"{serviceType ?? "null"} is not an interface");
+                            var interfaceType = Discovery.GetTypeFromName(serviceType);
+                            if (!interfaceType.IsInterface)
                             {
-                                try
+                                _ = Log.ErrorAsync($"{interfaceType.GetNiceName()} is not an interface");
+                                continue;
+                            }
+
+                            var commandTypes = GetCommandTypesFromInterface(interfaceType);
+                            if (commandTypes.Count > 0)
+                            {
+                                if (serviceMessageSetting.Name == serviceSettings.ThisServiceName)
                                 {
-                                    var clientCommandTypes = commandTypes.Where(x => !serverTypes.Contains(x)).ToArray();
-                                    if (clientCommandTypes.Length > 0)
+                                    try
                                     {
-                                        if (commandProducer == null)
+                                        if (commandConsumer == null)
                                         {
-                                            var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
+                                            var encryptionKey = String.IsNullOrWhiteSpace(serviceMessageSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceMessageSetting.EncryptionKey);
                                             var symmetricConfig = encryptionKey == null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
-                                            commandProducer = serviceCreator.CreateCommandProducer(externalUrl, symmetricConfig);
-                                            if (commandProducer != null)
+                                            commandConsumer = serviceCreator.CreateCommandConsumer(serviceMessageSetting.MessageHost, symmetricConfig);
+                                            if (commandConsumer != null)
                                             {
-                                                commandProducerType = commandProducer.GetType();
-                                                //_ = Log.InfoAsync($"{serviceSetting.Name} - Command Producer: {commandProducer.GetType().GetNiceName()}");
+                                                commandConsumerType = commandConsumer.GetType();
+                                                commandConsumer.Setup(commandCounter, HandleRemoteCommandDispatchAsync, HandleRemoteCommandDispatchAwaitAsync, HandleRemoteCommandWithResultDispatchAwaitAsync);
+                                                _ = commandConsumers.Add(commandConsumer);
+                                                //_ = Log.InfoAsync($"Command Consumer: {commandConsumerType.GetNiceName()}");
                                             }
                                         }
-                                        if (commandProducer != null && commandProducerType != null)
+                                        if (commandConsumer != null && commandConsumerType != null)
                                         {
-                                            foreach (var commandType in clientCommandTypes)
+                                            foreach (var commandType in commandTypes)
                                             {
-                                                if (handledCommandTypes.Contains(commandType))
-                                                {
-                                                    _ = Log.ErrorAsync($"Cannot add Command Producer: type already registered {commandType.GetNiceName()}");
+                                                if (!commandType.GetTypeDetail().Attributes.Any(x => x is ServiceExposedAttribute))
                                                     continue;
-                                                }
                                                 if (commandProducers.ContainsKey(commandType))
                                                 {
-                                                    _ = Log.ErrorAsync($"Cannot add Command Producer: type already registered {commandType.GetNiceName()}");
+                                                    _ = Log.ErrorAsync($"Cannot add Command Consumer: type already registered {commandType.GetNiceName()}");
+                                                    continue;
+                                                }
+                                                if (handledCommandTypes.Contains(commandType))
+                                                {
+                                                    _ = Log.ErrorAsync($"Cannot add Command Consumer: type already registered {commandType.GetNiceName()}");
                                                     continue;
                                                 }
                                                 var topic = GetCommandTopic(commandType);
-                                                commandProducer.RegisterCommandType(maxConcurrentCommandsPerTopic, topic, commandType);
-                                                _ = commandProducers.TryAdd(commandType, commandProducer);
-                                                _ = Log.InfoAsync($"{serviceSetting.Name} - {commandProducerType.GetNiceName()}: {commandType.GetNiceName()}");
+                                                commandConsumer.RegisterCommandType(maxConcurrentCommandsPerTopic, topic, commandType);
+                                                _ = handledCommandTypes.Add(commandType);
+                                                _ = Log.InfoAsync($"Hosting - {commandConsumerType.GetNiceName()}: {commandType.GetNiceName()}");
                                             }
                                         }
                                     }
-                                }
-                                catch (Exception ex)
-                                {
-                                    _ = Log.ErrorAsync($"Failed to create Command Producer for {serviceSetting.Name}", ex);
-                                }
-                            }
-                        }
-
-                        var eventTypes = GetEventTypesFromInterface(interfaceType);
-                        if (eventTypes.Count > 0)
-                        {
-                            //events fan out so can have producer and consumer on same service
-                            if (serviceSetting == thisServerSetting)
-                            {
-                                try
-                                {
-                                    if (eventConsumer == null)
+                                    catch (Exception ex)
                                     {
-                                        var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
-                                        var symmetricConfig = encryptionKey == null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
-                                        eventConsumer = serviceCreator.CreateEventConsumer(serviceUrl, symmetricConfig);
-                                        if (eventConsumer != null)
-                                        {
-                                            eventConsumerType = eventConsumer.GetType();
-                                            eventConsumer.Setup(HandleRemoteEventDispatchAsync);
-                                            _ = eventConsumers.Add(eventConsumer);
-                                            //_ = Log.InfoAsync($"Event Consumer: {eventConsumer.GetType().GetNiceName()}");
-                                        }
+                                        _ = Log.ErrorAsync($"Failed to create Command Consumer for {serviceMessageSetting.Name}", ex);
                                     }
-                                    if (eventConsumer != null && eventConsumerType != null)
+                                }
+                                else
+                                {
+                                    try
                                     {
-                                        foreach (var eventType in eventTypes)
+                                        var clientCommandTypes = commandTypes.Where(x => !serverTypes.Contains(x)).ToArray();
+                                        if (clientCommandTypes.Length > 0)
                                         {
-                                            if (handledEventTypes.Contains(eventType))
+                                            if (commandProducer == null)
                                             {
-                                                _ = Log.ErrorAsync($"Cannot add Event Consumer: type already registered {eventType.GetNiceName()}");
-                                                continue;
+                                                var encryptionKey = String.IsNullOrWhiteSpace(serviceMessageSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceMessageSetting.EncryptionKey);
+                                                var symmetricConfig = encryptionKey == null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
+                                                commandProducer = serviceCreator.CreateCommandProducer(serviceMessageSetting.MessageHost, symmetricConfig);
+                                                if (commandProducer != null)
+                                                {
+                                                    commandProducerType = commandProducer.GetType();
+                                                    //_ = Log.InfoAsync($"{serviceSetting.Name} - Command Producer: {commandProducer.GetType().GetNiceName()}");
+                                                }
                                             }
-                                            var topic = GetEventTopic(eventType);
-                                            eventConsumer.RegisterEventType(maxConcurrentEventsPerTopic, topic, eventType);
-                                            _ = handledEventTypes.Add(eventType);
-                                            _ = Log.InfoAsync($"Hosting - {eventConsumerType.GetNiceName()}: {eventType.GetNiceName()}");
+                                            if (commandProducer != null && commandProducerType != null)
+                                            {
+                                                foreach (var commandType in clientCommandTypes)
+                                                {
+                                                    if (handledCommandTypes.Contains(commandType))
+                                                    {
+                                                        _ = Log.ErrorAsync($"Cannot add Command Producer: type already registered {commandType.GetNiceName()}");
+                                                        continue;
+                                                    }
+                                                    if (commandProducers.ContainsKey(commandType))
+                                                    {
+                                                        _ = Log.ErrorAsync($"Cannot add Command Producer: type already registered {commandType.GetNiceName()}");
+                                                        continue;
+                                                    }
+                                                    var topic = GetCommandTopic(commandType);
+                                                    commandProducer.RegisterCommandType(maxConcurrentCommandsPerTopic, topic, commandType);
+                                                    _ = commandProducers.TryAdd(commandType, commandProducer);
+                                                    _ = Log.InfoAsync($"{serviceMessageSetting.Name} - {commandProducerType.GetNiceName()}: {commandType.GetNiceName()}");
+                                                }
+                                            }
                                         }
                                     }
-                                }
-                                catch (Exception ex)
-                                {
-                                    _ = Log.ErrorAsync($"Failed to create Event Consumer for {serviceSetting.Name}", ex);
+                                    catch (Exception ex)
+                                    {
+                                        _ = Log.ErrorAsync($"Failed to create Command Producer for {serviceMessageSetting.Name}", ex);
+                                    }
                                 }
                             }
 
-                            if (!String.IsNullOrWhiteSpace(externalUrl) || !String.IsNullOrWhiteSpace(serviceSettings.MessageHost))
+                            var eventTypes = GetEventTypesFromInterface(interfaceType);
+                            if (eventTypes.Count > 0)
                             {
+                                //events fan out so can have producer and consumer on same service
+                                if (serviceMessageSetting.Name == serviceSettings.ThisServiceName)
+                                {
+                                    try
+                                    {
+                                        if (eventConsumer == null)
+                                        {
+                                            var encryptionKey = String.IsNullOrWhiteSpace(serviceMessageSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceMessageSetting.EncryptionKey);
+                                            var symmetricConfig = encryptionKey == null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
+                                            eventConsumer = serviceCreator.CreateEventConsumer(serviceMessageSetting.MessageHost, symmetricConfig);
+                                            if (eventConsumer != null)
+                                            {
+                                                eventConsumerType = eventConsumer.GetType();
+                                                eventConsumer.Setup(HandleRemoteEventDispatchAsync);
+                                                _ = eventConsumers.Add(eventConsumer);
+                                                //_ = Log.InfoAsync($"Event Consumer: {eventConsumer.GetType().GetNiceName()}");
+                                            }
+                                        }
+                                        if (eventConsumer != null && eventConsumerType != null)
+                                        {
+                                            foreach (var eventType in eventTypes)
+                                            {
+                                                if (handledEventTypes.Contains(eventType))
+                                                {
+                                                    _ = Log.ErrorAsync($"Cannot add Event Consumer: type already registered {eventType.GetNiceName()}");
+                                                    continue;
+                                                }
+                                                var topic = GetEventTopic(eventType);
+                                                eventConsumer.RegisterEventType(maxConcurrentEventsPerTopic, topic, eventType);
+                                                _ = handledEventTypes.Add(eventType);
+                                                _ = Log.InfoAsync($"Hosting - {eventConsumerType.GetNiceName()}: {eventType.GetNiceName()}");
+                                            }
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        _ = Log.ErrorAsync($"Failed to create Event Consumer for {serviceMessageSetting.Name}", ex);
+                                    }
+                                }
+
                                 try
                                 {
                                     if (eventProducer == null)
                                     {
-                                        var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
+                                        var encryptionKey = String.IsNullOrWhiteSpace(serviceMessageSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceMessageSetting.EncryptionKey);
                                         var symmetricConfig = encryptionKey == null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
-                                        eventProducer = serviceCreator.CreateEventProducer(externalUrl, symmetricConfig);
+                                        eventProducer = serviceCreator.CreateEventProducer(serviceMessageSetting.MessageHost, symmetricConfig);
                                         if (eventProducer != null)
                                         {
                                             eventProducerType = eventProducer.GetType();
@@ -1575,99 +1703,13 @@ namespace Zerra.CQRS
                                             var topic = GetEventTopic(eventType);
                                             eventProducer.RegisterEventType(maxConcurrentEventsPerTopic, topic, eventType);
                                             _ = eventProducers.TryAdd(eventType, eventProducer);
-                                            _ = Log.InfoAsync($"{serviceSetting.Name} - {eventProducerType.GetNiceName()}: {eventType.GetNiceName()}");
+                                            _ = Log.InfoAsync($"{serviceMessageSetting.Name} - {eventProducerType.GetNiceName()}: {eventType.GetNiceName()}");
                                         }
                                     }
                                 }
                                 catch (Exception ex)
                                 {
-                                    _ = Log.ErrorAsync($"Failed to create Event Producer for {serviceSetting.Name}", ex);
-                                }
-                            }
-                        }
-
-                        var interfaceTypeDetail = TypeAnalyzer.GetTypeDetail(interfaceType);
-                        if (interfaceTypeDetail.Attributes.Any(x => x is ServiceExposedAttribute))
-                        {
-                            if (serviceSetting == thisServerSetting)
-                            {
-                                if (queryClients.ContainsKey(interfaceType))
-                                {
-                                    _ = Log.ErrorAsync($"Cannot add Query Server: type already registered {interfaceType.GetNiceName()}");
-                                }
-                                else if (handledQueryTypes.Contains(interfaceType))
-                                {
-                                    _ = Log.ErrorAsync($"Cannot add Query Server: type already registered {interfaceType.GetNiceName()}");
-                                }
-                                else
-                                {
-                                    try
-                                    {
-                                        if (queryServer == null)
-                                        {
-                                            var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
-                                            var symmetricConfig = encryptionKey == null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
-                                            queryServer = serviceCreator.CreateQueryServer(serviceUrl, symmetricConfig);
-                                            if (queryServer != null)
-                                            {
-                                                queryServerType = queryServer.GetType();
-                                                queryServer.Setup(commandCounter, HandleRemoteQueryCallAsync);
-                                                _ = queryServers.Add(queryServer);
-                                                //_ = Log.InfoAsync($"Query Server: {queryServer.GetType().GetNiceName()}");
-                                            }
-                                        }
-                                        if (queryServer != null && queryServerType != null)
-                                        {
-                                            _ = handledQueryTypes.Add(interfaceType);
-                                            queryServer.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
-                                            _ = Log.InfoAsync($"Hosting - {queryServerType.GetNiceName()}: {interfaceType.GetNiceName()}");
-                                        }
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        _ = Log.ErrorAsync($"Failed to create Query Server for {serviceSetting.Name}", ex);
-                                    }
-                                }
-                            }
-                            else if (!String.IsNullOrWhiteSpace(externalUrl))
-                            {
-                                if (!serverTypes.Contains(interfaceType))
-                                {
-                                    if (handledQueryTypes.Contains(interfaceType))
-                                    {
-                                        _ = Log.ErrorAsync($"Cannot add Query Client: type already registered {interfaceType.GetNiceName()}");
-                                    }
-                                    else if (commandProducers.ContainsKey(interfaceType))
-                                    {
-                                        _ = Log.ErrorAsync($"Cannot add Query Client: type already registered {interfaceType.GetNiceName()}");
-                                    }
-                                    else
-                                    {
-                                        try
-                                        {
-                                            if (queryClient == null)
-                                            {
-                                                var encryptionKey = String.IsNullOrWhiteSpace(serviceSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceSetting.EncryptionKey);
-                                                var symmetricConfig = encryptionKey == null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
-                                                queryClient = serviceCreator.CreateQueryClient(externalUrl, symmetricConfig);
-                                                if (queryClient != null)
-                                                {
-                                                    queryClientType = queryClient.GetType();
-                                                    //_ = Log.InfoAsync($"Query Client: {queryClient.GetType().GetNiceName()}");
-                                                }
-                                            }
-                                            if (queryClient != null && queryClientType != null)
-                                            {
-                                                queryClient.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
-                                                _ = queryClients.TryAdd(interfaceType, queryClient);
-                                                _ = Log.InfoAsync($"{serviceSetting.Name} - {queryClientType.GetNiceName()}: {interfaceType.GetNiceName()}");
-                                            }
-                                        }
-                                        catch (Exception ex)
-                                        {
-                                            _ = Log.ErrorAsync($"Failed to create Query Client for {serviceSetting.Name}", ex);
-                                        }
-                                    }
+                                    _ = Log.ErrorAsync($"Failed to create Event Producer for {serviceMessageSetting.Name}", ex);
                                 }
                             }
                         }

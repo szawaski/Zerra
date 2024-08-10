@@ -1,8 +1,5 @@
 {
-    "MessageHost": "localhost",
-    "RelayUrl": "",
-    "RelayKey": "",
-    "Services": [
+    "Queries": [
         {
             "Name": "ZerraDemo.Web"
         },
@@ -12,8 +9,7 @@
             "ExternalUrl": "localhost:9001",
             "EncryptionKey": "SecretTransportKey",
             "Types": [
-                "IPetsQueryProvider",
-                "IPetsCommandHandler"
+                "IPetsQueryProvider"
             ]
         },
         {
@@ -22,9 +18,7 @@
             "ExternalUrl": "localhost:9002",
             "EncryptionKey": "SecretTransportKey",
             "Types": [
-                "IWeatherQueryProvider",
-                "IWeatherCommandHandler",
-                "IWeatherEventHandler"
+                "IWeatherQueryProvider"
             ]
         },
         {
@@ -32,10 +26,10 @@
             "BindingUrl": "localhost:9005",
             "ExternalUrl": "localhost:9005",
             "EncryptionKey": "SecretTransportKey",
+            "RelayUrl": "",
+            "RelayKey": "",
             "Types": [
-                "IWeatherCachedQueryProvider",
-                "IWeatherCachedCommandHandler",
-                "IWeatherEventHandler"
+                "IWeatherCachedQueryProvider"
             ]
         },
         {
@@ -44,8 +38,7 @@
             "ExternalUrl": "localhost:9003",
             "EncryptionKey": "SecretTransportKey",
             "Types": [
-                "ILedger1QueryProvider",
-                "ILedger1CommandHandler"
+                "ILedger1QueryProvider"
             ]
         },
         {
@@ -54,7 +47,53 @@
             "ExternalUrl": "localhost:9004",
             "EncryptionKey": "SecretTransportKey",
             "Types": [
-                "ILedger2QueryProvider",
+                "ILedger2QueryProvider"
+            ]
+        }
+    ],
+    "Messages": [
+        {
+            "Name": "ZerraDemo.Web"
+        },
+        {
+            "Name": "ZerraDemo.Service.Pets",
+            "MessageHost": "localhost",
+            "EncryptionKey": "SecretTransportKey",
+            "Types": [
+                "IPetsCommandHandler"
+            ]
+        },
+        {
+            "Name": "ZerraDemo.Service.Weather",
+            "MessageHost": "localhost",
+            "EncryptionKey": "SecretTransportKey",
+            "Types": [
+                "IWeatherCommandHandler",
+                "IWeatherEventHandler"
+            ]
+        },
+        {
+            "Name": "ZerraDemo.Service.WeatherCached",
+            "MessageHost": "localhost",
+            "EncryptionKey": "SecretTransportKey",
+            "Types": [
+                "IWeatherCachedCommandHandler",
+                "IWeatherEventHandler"
+            ]
+        },
+        {
+            "Name": "ZerraDemo.Service.Ledger1",
+            "MessageHost": "localhost",
+            "EncryptionKey": "SecretTransportKey",
+            "Types": [
+                "ILedger1CommandHandler"
+            ]
+        },
+        {
+            "Name": "ZerraDemo.Service.Ledger2",
+            "MessageHost": "localhost",
+            "EncryptionKey": "SecretTransportKey",
+            "Types": [
                 "ILedger2CommandHandler"
             ]
         }

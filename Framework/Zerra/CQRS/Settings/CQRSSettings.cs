@@ -15,7 +15,7 @@ namespace Zerra.CQRS.Settings
         private const string settingsFileName = "cqrssettings.json";
         private const string genericSettingsFileName = "cqrssettings.{0}.json";
 
-        private const string bindingUrl0 = nameof(ServiceSetting.BindingUrl);
+        private const string bindingUrl0 = nameof(ServiceQuerySetting.BindingUrl);
         private const string bindingUrl1 = "urls";
         private const string bindingUrl2 = "ASPNETCORE_URLS";
         private const string bindingUrl3 = "ASPNETCORE_SERVER.URLS";
@@ -70,9 +70,9 @@ namespace Zerra.CQRS.Settings
 
             _ = Log.InfoAsync($"Config {serviceName} Loaded {fileName}");
 
-            if (settings.Services != null)
+            if (settings.Queries != null)
             {
-                foreach (var service in settings.Services)
+                foreach (var service in settings.Queries)
                 {
                     if (service.Name == serviceName)
                     {

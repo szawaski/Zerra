@@ -4,12 +4,20 @@
 
 namespace Zerra.CQRS.Settings
 {
-    public sealed class ServiceSetting
+    public sealed class ServiceQuerySetting
     {
         public string? Name { get; internal set; }
+
         public string? BindingUrl { get; internal set; }
         public string? ExternalUrl { get; internal set; }
+
         public string? EncryptionKey { get; internal set; }
+
         public string[]? Types { get; internal set; }
+
+        public void SetEncryptionKey(string encryptionKey)
+        {
+            this.EncryptionKey = encryptionKey;
+        }
     }
 }

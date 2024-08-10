@@ -8,12 +8,12 @@ namespace Zerra.CQRS.Settings
 {
     public interface IServiceCreator
     {
-        public ICommandConsumer? CreateCommandConsumer(string? serviceUrl, SymmetricConfig? symmetricConfig);
-        public IEventConsumer? CreateEventConsumer(string? serviceUrl, SymmetricConfig? symmetricConfig);
-        public IQueryServer? CreateQueryServer(string? serviceUrl, SymmetricConfig? symmetricConfig);
+        public ICommandConsumer? CreateCommandConsumer(string messageHost, SymmetricConfig? symmetricConfig);
+        public IEventConsumer? CreateEventConsumer(string messageHost, SymmetricConfig? symmetricConfig);
+        public IQueryServer? CreateQueryServer(string serviceUrl, SymmetricConfig? symmetricConfig);
 
-        public ICommandProducer? CreateCommandProducer(string? serviceUrl, SymmetricConfig? symmetricConfig);
-        public IEventProducer? CreateEventProducer(string? serviceUrl, SymmetricConfig? symmetricConfig);
-        public IQueryClient? CreateQueryClient(string? serviceUrl, SymmetricConfig? symmetricConfig);
+        public ICommandProducer? CreateCommandProducer(string messageHost, SymmetricConfig? symmetricConfig);
+        public IEventProducer? CreateEventProducer(string messageHost, SymmetricConfig? symmetricConfig);
+        public IQueryClient? CreateQueryClient(string serviceUrl, SymmetricConfig? symmetricConfig);
     }
 }

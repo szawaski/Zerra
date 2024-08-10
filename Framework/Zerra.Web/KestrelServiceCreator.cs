@@ -23,14 +23,14 @@ namespace Zerra.Web
             this.middlewareAdded = false;
         }
 
-        public ICommandProducer? CreateCommandProducer(string? serviceUrl, SymmetricConfig? symmetricConfig)
+        public ICommandProducer? CreateCommandProducer(string messageHost, SymmetricConfig? symmetricConfig)
         {
-            if (String.IsNullOrWhiteSpace(serviceUrl))
-                throw new Exception($"{nameof(KestrelServiceCreator)}.{nameof(CreateCommandProducer)} requires {nameof(serviceUrl)}");
-            return new KestrelCQRSClient(settings.ContentType, serviceUrl, symmetricConfig, settings.Authorizer);
+            if (String.IsNullOrWhiteSpace(messageHost))
+                throw new Exception($"{nameof(KestrelServiceCreator)}.{nameof(CreateCommandProducer)} requires {nameof(messageHost)}");
+            return new KestrelCQRSClient(settings.ContentType, messageHost, symmetricConfig, settings.Authorizer);
         }
 
-        public ICommandConsumer? CreateCommandConsumer(string? serviceUrl, SymmetricConfig? symmetricConfig)
+        public ICommandConsumer? CreateCommandConsumer(string messageHost, SymmetricConfig? symmetricConfig)
         {
             if (applicationBuilder == null)
                 throw new NotSupportedException($"{nameof(KestrelServiceCreator)} needs {nameof(IApplicationBuilder)} for {nameof(CreateCommandConsumer)}");
@@ -43,24 +43,24 @@ namespace Zerra.Web
             return new KestrelCQRSServerCommandConsumer(settings);
         }
 
-        public IEventProducer? CreateEventProducer(string? serviceUrl, SymmetricConfig? symmetricConfig)
+        public IEventProducer? CreateEventProducer(string messageHost, SymmetricConfig? symmetricConfig)
         {
             throw new NotSupportedException($"{nameof(KestrelServiceCreator)} does not support {nameof(CreateEventProducer)}");
         }
 
-        public IEventConsumer? CreateEventConsumer(string? serviceUrl, SymmetricConfig? symmetricConfig)
+        public IEventConsumer? CreateEventConsumer(string messageHost, SymmetricConfig? symmetricConfig)
         {
             throw new NotSupportedException($"{nameof(KestrelServiceCreator)} does not support {nameof(CreateEventConsumer)}");
         }
 
-        public IQueryClient? CreateQueryClient(string? serviceUrl, SymmetricConfig? symmetricConfig)
+        public IQueryClient? CreateQueryClient(string serviceUrl, SymmetricConfig? symmetricConfig)
         {
             if (String.IsNullOrWhiteSpace(serviceUrl))
                 throw new Exception($"{nameof(KestrelServiceCreator)}.{nameof(CreateQueryClient)} requires {nameof(serviceUrl)}");
             return new KestrelCQRSClient(settings.ContentType, serviceUrl, symmetricConfig, settings.Authorizer);
         }
 
-        public IQueryServer? CreateQueryServer(string? serviceUrl, SymmetricConfig? symmetricConfig)
+        public IQueryServer? CreateQueryServer(string serviceUrl, SymmetricConfig? symmetricConfig)
         {
             if (applicationBuilder == null)
                 throw new NotSupportedException($"{nameof(KestrelServiceCreator)} needs {nameof(IApplicationBuilder)} for {nameof(CreateQueryServer)}");

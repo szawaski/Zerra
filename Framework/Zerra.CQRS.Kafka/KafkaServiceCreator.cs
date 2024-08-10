@@ -13,42 +13,40 @@ namespace Zerra.CQRS.Kafka
         private static readonly ConcurrentFactoryDictionary<string, KafkaConsumer> kafkaServers = new();
         private static readonly ConcurrentFactoryDictionary<string, KafkaProducer> kakfaClients = new();
 
-        private readonly string host;
         private readonly IServiceCreator serviceCreatorForQueries;
         private readonly string? environment;
-        public KafkaServiceCreator(string host, IServiceCreator serviceCreatorForQueries, string? environment)
+        public KafkaServiceCreator(IServiceCreator serviceCreatorForQueries, string? environment)
         {
-            this.host = host;
             this.serviceCreatorForQueries = serviceCreatorForQueries;
             this.environment = environment;
         }
 
-        public ICommandProducer? CreateCommandProducer(string? serviceUrl, SymmetricConfig? symmetricConfig)
+        public ICommandProducer? CreateCommandProducer(string messageHost, SymmetricConfig? symmetricConfig)
         {
-            return kakfaClients.GetOrAdd(host, (host) => new KafkaProducer(host, symmetricConfig, environment));
+            return kakfaClients.GetOrAdd(messageHost, (host) => new KafkaProducer(host, symmetricConfig, environment));
         }
 
-        public ICommandConsumer? CreateCommandConsumer(string? serviceUrl, SymmetricConfig? symmetricConfig)
+        public ICommandConsumer? CreateCommandConsumer(string messageHost, SymmetricConfig? symmetricConfig)
         {
-            return kafkaServers.GetOrAdd(host, (host) => new KafkaConsumer(host, symmetricConfig, environment));
+            return kafkaServers.GetOrAdd(messageHost, (host) => new KafkaConsumer(host, symmetricConfig, environment));
         }
 
-        public IEventProducer? CreateEventProducer(string? serviceUrl, SymmetricConfig? symmetricConfig)
+        public IEventProducer? CreateEventProducer(string messageHost, SymmetricConfig? symmetricConfig)
         {
-            return kakfaClients.GetOrAdd(host, (host) => new KafkaProducer(host, symmetricConfig, environment));
+            return kakfaClients.GetOrAdd(messageHost, (host) => new KafkaProducer(host, symmetricConfig, environment));
         }
 
-        public IEventConsumer? CreateEventConsumer(string? serviceUrl, SymmetricConfig? symmetricConfig)
+        public IEventConsumer? CreateEventConsumer(string messageHost, SymmetricConfig? symmetricConfig)
         {
-            return kafkaServers.GetOrAdd(host, (host) => new KafkaConsumer(host, symmetricConfig, environment));
+            return kafkaServers.GetOrAdd(messageHost, (host) => new KafkaConsumer(host, symmetricConfig, environment));
         }
 
-        public IQueryClient? CreateQueryClient(string? serviceUrl, SymmetricConfig? symmetricConfig)
+        public IQueryClient? CreateQueryClient(string serviceUrl, SymmetricConfig? symmetricConfig)
         {
             return serviceCreatorForQueries.CreateQueryClient(serviceUrl, symmetricConfig);
         }
 
-        public IQueryServer? CreateQueryServer(string? serviceUrl, SymmetricConfig? symmetricConfig)
+        public IQueryServer? CreateQueryServer(string serviceUrl, SymmetricConfig? symmetricConfig)
         {
             return serviceCreatorForQueries.CreateQueryServer(serviceUrl, symmetricConfig);
         }

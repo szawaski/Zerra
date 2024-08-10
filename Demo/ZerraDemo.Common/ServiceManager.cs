@@ -23,8 +23,6 @@ namespace ZerraDemo.Common
             //this is helpful if running AspNetCore in addition to a TcpService Server which will fight for the port
             //in Kubernetes the BindingUrl needs to be 0.0.0.0 which can be replaced with "+" such as "+:80"
             var serviceSettings = CQRSSettings.Get(false);
-            if (String.IsNullOrWhiteSpace(serviceSettings.MessageHost))
-                throw new Exception("Missing MessageHost");
 
             IServiceCreator serviceCreator;
 
@@ -45,16 +43,16 @@ namespace ZerraDemo.Common
             //----------------------------------------------------------
 
             //Option2A: Enable this using RabbitMQ for commands/events
-            serviceCreator = new RabbitMQServiceCreator(serviceSettings.MessageHost, serviceCreator, Config.EnvironmentName);
+            serviceCreator = new RabbitMQServiceCreator(serviceCreator, Config.EnvironmentName);
 
             //Option2B: Enable this using Kafka for commands/events
-            //serviceCreator = new KafkaServiceCreator(serviceSettings.MessageHost, serviceCreator, Config.EnvironmentName);
+            //serviceCreator = new KafkaServiceCreator(serviceCreator, Config.EnvironmentName);
 
             //Option2C: Enable this using Azure Event Hub for commands/events
-            //serviceCreator = new AzureEventHubServiceCreator(serviceSettings.MessageHost, serviceCreator, Config.EnvironmentName);
+            //serviceCreator = new AzureEventHubServiceCreator(serviceCreator, Config.EnvironmentName);
 
             //Option2D: Enable this using Azure Service Bus for commands/events
-            //serviceCreator = new AzureServiceBusServiceCreator(serviceSettings.MessageHost, serviceCreator, Config.EnvironmentName);
+            //serviceCreator = new AzureServiceBusServiceCreator(serviceCreator, Config.EnvironmentName);
 
             //Option3: Enable one of the following routing options
             //----------------------------------------------------------
