@@ -21,24 +21,24 @@ namespace Zerra.CQRS.RabbitMQ
             this.environment = environment;
         }
 
-        public ICommandProducer? CreateCommandProducer(string serviceUrl, SymmetricConfig? symmetricConfig)
+        public ICommandProducer? CreateCommandProducer(string messageHost, SymmetricConfig? symmetricConfig)
         {
-            return rabbitClients.GetOrAdd(serviceUrl, (host) => new RabbitMQProducer(host, symmetricConfig, environment));
+            return rabbitClients.GetOrAdd(messageHost, (host) => new RabbitMQProducer(host, symmetricConfig, environment));
         }
 
-        public ICommandConsumer? CreateCommandConsumer(string serviceUrl, SymmetricConfig? symmetricConfig)
+        public ICommandConsumer? CreateCommandConsumer(string messageHost, SymmetricConfig? symmetricConfig)
         {
-            return rabbitServers.GetOrAdd(serviceUrl, (host) => new RabbitMQConsumer(host, symmetricConfig, environment));
+            return rabbitServers.GetOrAdd(messageHost, (host) => new RabbitMQConsumer(host, symmetricConfig, environment));
         }
 
-        public IEventProducer? CreateEventProducer(string serviceUrl, SymmetricConfig? symmetricConfig)
+        public IEventProducer? CreateEventProducer(string messageHost, SymmetricConfig? symmetricConfig)
         {
-            return rabbitClients.GetOrAdd(serviceUrl, (host) => new RabbitMQProducer(host, symmetricConfig, environment));
+            return rabbitClients.GetOrAdd(messageHost, (host) => new RabbitMQProducer(host, symmetricConfig, environment));
         }
 
-        public IEventConsumer? CreateEventConsumer(string serviceUrl, SymmetricConfig? symmetricConfig)
+        public IEventConsumer? CreateEventConsumer(string messageHost, SymmetricConfig? symmetricConfig)
         {
-            return rabbitServers.GetOrAdd(serviceUrl, (host) => new RabbitMQConsumer(host, symmetricConfig, environment));
+            return rabbitServers.GetOrAdd(messageHost, (host) => new RabbitMQConsumer(host, symmetricConfig, environment));
         }
 
         public IQueryClient? CreateQueryClient(string serviceUrl, SymmetricConfig? symmetricConfig)

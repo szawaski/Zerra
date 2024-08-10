@@ -1359,7 +1359,7 @@ namespace Zerra.CQRS
                 {
                     foreach (var clientQuerySetting in serviceSettings.Queries)
                     {
-                        if (clientQuerySetting.Name != serviceSettings.ThisServiceName)
+                        if (clientQuerySetting.Service != serviceSettings.ThisServiceName)
                             continue;
                         if (clientQuerySetting.Types is null)
                             continue;
@@ -1381,7 +1381,7 @@ namespace Zerra.CQRS
                 {
                     foreach (var clientMessageSetting in serviceSettings.Messages)
                     {
-                        if (clientMessageSetting.Name != serviceSettings.ThisServiceName)
+                        if (clientMessageSetting.Service != serviceSettings.ThisServiceName)
                             continue;
                         if (clientMessageSetting.Types is null)
                             continue;
@@ -1430,7 +1430,7 @@ namespace Zerra.CQRS
                             var interfaceTypeDetail = TypeAnalyzer.GetTypeDetail(interfaceType);
                             if (interfaceTypeDetail.Attributes.Any(x => x is ServiceExposedAttribute))
                             {
-                                if (serviceQuerySetting.Name == serviceSettings.ThisServiceName)
+                                if (serviceQuerySetting.Service == serviceSettings.ThisServiceName)
                                 {
                                     if (queryClients.ContainsKey(interfaceType))
                                     {
@@ -1466,7 +1466,7 @@ namespace Zerra.CQRS
                                         }
                                         catch (Exception ex)
                                         {
-                                            _ = Log.ErrorAsync($"Failed to create Query Server for {serviceQuerySetting.Name}", ex);
+                                            _ = Log.ErrorAsync($"Failed to create Query Server for {serviceQuerySetting.Service}", ex);
                                         }
                                     }
                                 }
@@ -1501,12 +1501,12 @@ namespace Zerra.CQRS
                                                 {
                                                     queryClient.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
                                                     _ = queryClients.TryAdd(interfaceType, queryClient);
-                                                    _ = Log.InfoAsync($"{serviceQuerySetting.Name} - {queryClientType.GetNiceName()}: {interfaceType.GetNiceName()}");
+                                                    _ = Log.InfoAsync($"{serviceQuerySetting.Service} - {queryClientType.GetNiceName()}: {interfaceType.GetNiceName()}");
                                                 }
                                             }
                                             catch (Exception ex)
                                             {
-                                                _ = Log.ErrorAsync($"Failed to create Query Client for {serviceQuerySetting.Name}", ex);
+                                                _ = Log.ErrorAsync($"Failed to create Query Client for {serviceQuerySetting.Service}", ex);
                                             }
                                         }
                                     }
@@ -1543,7 +1543,7 @@ namespace Zerra.CQRS
                             var commandTypes = GetCommandTypesFromInterface(interfaceType);
                             if (commandTypes.Count > 0)
                             {
-                                if (serviceMessageSetting.Name == serviceSettings.ThisServiceName)
+                                if (serviceMessageSetting.Service == serviceSettings.ThisServiceName)
                                 {
                                     try
                                     {
@@ -1585,7 +1585,7 @@ namespace Zerra.CQRS
                                     }
                                     catch (Exception ex)
                                     {
-                                        _ = Log.ErrorAsync($"Failed to create Command Consumer for {serviceMessageSetting.Name}", ex);
+                                        _ = Log.ErrorAsync($"Failed to create Command Consumer for {serviceMessageSetting.Service}", ex);
                                     }
                                 }
                                 else
@@ -1623,14 +1623,14 @@ namespace Zerra.CQRS
                                                     var topic = GetCommandTopic(commandType);
                                                     commandProducer.RegisterCommandType(maxConcurrentCommandsPerTopic, topic, commandType);
                                                     _ = commandProducers.TryAdd(commandType, commandProducer);
-                                                    _ = Log.InfoAsync($"{serviceMessageSetting.Name} - {commandProducerType.GetNiceName()}: {commandType.GetNiceName()}");
+                                                    _ = Log.InfoAsync($"{serviceMessageSetting.Service} - {commandProducerType.GetNiceName()}: {commandType.GetNiceName()}");
                                                 }
                                             }
                                         }
                                     }
                                     catch (Exception ex)
                                     {
-                                        _ = Log.ErrorAsync($"Failed to create Command Producer for {serviceMessageSetting.Name}", ex);
+                                        _ = Log.ErrorAsync($"Failed to create Command Producer for {serviceMessageSetting.Service}", ex);
                                     }
                                 }
                             }
@@ -1639,7 +1639,7 @@ namespace Zerra.CQRS
                             if (eventTypes.Count > 0)
                             {
                                 //events fan out so can have producer and consumer on same service
-                                if (serviceMessageSetting.Name == serviceSettings.ThisServiceName)
+                                if (serviceMessageSetting.Service == serviceSettings.ThisServiceName)
                                 {
                                     try
                                     {
@@ -1674,7 +1674,7 @@ namespace Zerra.CQRS
                                     }
                                     catch (Exception ex)
                                     {
-                                        _ = Log.ErrorAsync($"Failed to create Event Consumer for {serviceMessageSetting.Name}", ex);
+                                        _ = Log.ErrorAsync($"Failed to create Event Consumer for {serviceMessageSetting.Service}", ex);
                                     }
                                 }
 
@@ -1703,13 +1703,13 @@ namespace Zerra.CQRS
                                             var topic = GetEventTopic(eventType);
                                             eventProducer.RegisterEventType(maxConcurrentEventsPerTopic, topic, eventType);
                                             _ = eventProducers.TryAdd(eventType, eventProducer);
-                                            _ = Log.InfoAsync($"{serviceMessageSetting.Name} - {eventProducerType.GetNiceName()}: {eventType.GetNiceName()}");
+                                            _ = Log.InfoAsync($"{serviceMessageSetting.Service} - {eventProducerType.GetNiceName()}: {eventType.GetNiceName()}");
                                         }
                                     }
                                 }
                                 catch (Exception ex)
                                 {
-                                    _ = Log.ErrorAsync($"Failed to create Event Producer for {serviceMessageSetting.Name}", ex);
+                                    _ = Log.ErrorAsync($"Failed to create Event Producer for {serviceMessageSetting.Service}", ex);
                                 }
                             }
                         }

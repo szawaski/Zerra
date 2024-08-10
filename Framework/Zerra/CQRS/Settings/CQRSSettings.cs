@@ -74,7 +74,7 @@ namespace Zerra.CQRS.Settings
             {
                 foreach (var service in settings.Queries)
                 {
-                    if (service.Name == serviceName)
+                    if (service.Service == serviceName)
                     {
                         if (GetBindingUrl(service.BindingUrl, bindingUrlFromStandardVariables, out var newUrl, out var urlSource))
                         {
@@ -94,20 +94,20 @@ namespace Zerra.CQRS.Settings
                     }
                     else
                     {
-                        if (GetExternalUrl(service.Name, service.ExternalUrl, out var newUrl, out var urlSource))
+                        if (GetExternalUrl(service.Service, service.ExternalUrl, out var newUrl, out var urlSource))
                         {
                             service.ExternalUrl = newUrl;
                             if (!String.IsNullOrWhiteSpace(service.ExternalUrl))
-                                _ = Log.InfoAsync($"Config {service.Name} - {service.ExternalUrl} (from {urlSource})");
+                                _ = Log.InfoAsync($"Config {service.Service} - {service.ExternalUrl} (from {urlSource})");
                             else
-                                _ = Log.InfoAsync($"Config {service.Name} - No {nameof(service.ExternalUrl)}");
+                                _ = Log.InfoAsync($"Config {service.Service} - No {nameof(service.ExternalUrl)}");
                         }
                         else
                         {
                             if (!String.IsNullOrWhiteSpace(service.ExternalUrl))
-                                _ = Log.InfoAsync($"Config {service.Name} - {service.ExternalUrl} (from {fileName})");
+                                _ = Log.InfoAsync($"Config {service.Service} - {service.ExternalUrl} (from {fileName})");
                             else
-                                _ = Log.InfoAsync($"Config {service.Name} - No {nameof(service.ExternalUrl)}");
+                                _ = Log.InfoAsync($"Config {service.Service} - No {nameof(service.ExternalUrl)}");
                         }
                     }
                 }

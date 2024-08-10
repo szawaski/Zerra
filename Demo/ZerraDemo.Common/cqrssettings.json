@@ -1,10 +1,10 @@
 {
     "Queries": [
         {
-            "Name": "ZerraDemo.Web"
+            "Service": "ZerraDemo.Web"
         },
         {
-            "Name": "ZerraDemo.Service.Pets",
+            "Service": "ZerraDemo.Service.Pets",
             "BindingUrl": "localhost:9001",
             "ExternalUrl": "localhost:9001",
             "EncryptionKey": "SecretTransportKey",
@@ -13,7 +13,7 @@
             ]
         },
         {
-            "Name": "ZerraDemo.Service.Weather",
+            "Service": "ZerraDemo.Service.Weather",
             "BindingUrl": "localhost:9002",
             "ExternalUrl": "localhost:9002",
             "EncryptionKey": "SecretTransportKey",
@@ -22,7 +22,7 @@
             ]
         },
         {
-            "Name": "ZerraDemo.Service.WeatherCached",
+            "Service": "ZerraDemo.Service.WeatherCached",
             "BindingUrl": "localhost:9005",
             "ExternalUrl": "localhost:9005",
             "EncryptionKey": "SecretTransportKey",
@@ -33,7 +33,7 @@
             ]
         },
         {
-            "Name": "ZerraDemo.Service.Ledger1",
+            "Service": "ZerraDemo.Service.Ledger1",
             "BindingUrl": "localhost:9003",
             "ExternalUrl": "localhost:9003",
             "EncryptionKey": "SecretTransportKey",
@@ -42,7 +42,7 @@
             ]
         },
         {
-            "Name": "ZerraDemo.Service.Ledger2",
+            "Service": "ZerraDemo.Service.Ledger2",
             "BindingUrl": "localhost:9004",
             "ExternalUrl": "localhost:9004",
             "EncryptionKey": "SecretTransportKey",
@@ -53,10 +53,10 @@
     ],
     "Messages": [
         {
-            "Name": "ZerraDemo.Web"
+            "Service": "ZerraDemo.Web"
         },
         {
-            "Name": "ZerraDemo.Service.Pets",
+            "Service": "ZerraDemo.Service.Pets",
             "MessageHost": "localhost",
             "EncryptionKey": "SecretTransportKey",
             "Types": [
@@ -64,7 +64,7 @@
             ]
         },
         {
-            "Name": "ZerraDemo.Service.Weather",
+            "Service": "ZerraDemo.Service.Weather",
             "MessageHost": "localhost",
             "EncryptionKey": "SecretTransportKey",
             "Types": [
@@ -73,7 +73,7 @@
             ]
         },
         {
-            "Name": "ZerraDemo.Service.WeatherCached",
+            "Service": "ZerraDemo.Service.WeatherCached",
             "MessageHost": "localhost",
             "EncryptionKey": "SecretTransportKey",
             "Types": [
@@ -82,7 +82,7 @@
             ]
         },
         {
-            "Name": "ZerraDemo.Service.Ledger1",
+            "Service": "ZerraDemo.Service.Ledger1",
             "MessageHost": "localhost",
             "EncryptionKey": "SecretTransportKey",
             "Types": [
@@ -90,7 +90,7 @@
             ]
         },
         {
-            "Name": "ZerraDemo.Service.Ledger2",
+            "Service": "ZerraDemo.Service.Ledger2",
             "MessageHost": "localhost",
             "EncryptionKey": "SecretTransportKey",
             "Types": [

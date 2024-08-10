@@ -6,7 +6,7 @@ namespace Zerra.CQRS.Settings
 {
     public sealed class ServiceMessageSetting
     {
-        public string? Name { get; internal set; }
+        public string? Service { get; internal set; }
 
         public string? MessageHost { get; internal set; }
         public string? EncryptionKey { get; internal set; }

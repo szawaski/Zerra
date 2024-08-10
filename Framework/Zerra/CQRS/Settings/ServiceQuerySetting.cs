@@ -6,7 +6,7 @@ namespace Zerra.CQRS.Settings
 {
     public sealed class ServiceQuerySetting
     {
-        public string? Name { get; internal set; }
+        public string? Service { get; internal set; }
 
         public string? BindingUrl { get; internal set; }
         public string? ExternalUrl { get; internal set; }
