@@ -279,9 +279,6 @@ const Bus = {
             Source: "JavaScript"
         };
 
-        const jsonNameless = resultType !== null && resultType !== undefined;
-        const accept = jsonNameless ? "application/jsonnameless; charset=utf-8" : "application/json; charset=utf-8";
-
         const headers = {};
         headers["Provider-Type"] = type;
         for (const property in Bus._customHeaders) {
@@ -299,10 +296,6 @@ const Bus = {
             type: "POST",
             data: JSON.stringify(postData),
             contentType: "application/json; charset=utf-8",
-            dataType: "json",
-            accepts: {
-                json: accept
-            },
             headers: headers,
             crossDomain: isCors
         })
@@ -353,28 +346,35 @@ const Bus = {
             type: "POST",
             data: JSON.stringify(postData),
             contentType: "application/json; charset=utf-8",
-            dataType: "json",
+            dataType: hasResult ? "json" : null,
             accepts: {
-                json: accept
+                json: hasResult ? accept : null
             },
             headers: headers,
             crossDomain: isCors
         })
             .done(function (data, textStatus, jqXHR) {
-                const responseContentType = jqXHR.getResponseHeader("content-type");
-                const responseJsonNameless = responseContentType.includes("application/jsonnameless");
+                if (hasResult) {
+                    const responseContentType = jqXHR.getResponseHeader("content-type");
+                    const responseJsonNameless = responseContentType.includes("application/jsonnameless");
 
-                let deserialized = data;
-                if (resultType !== null && resultType !== undefined) {
-                    if (responseJsonNameless) {
-                        deserialized = Bus._deserializeJsonNameless(data, resultType, hasMany);
-                    } else {
-                        Bus._deserializeJson(deserialized, resultType, hasMany);
+                    let deserialized = data;
+                    if (resultType !== null && resultType !== undefined) {
+                        if (responseJsonNameless) {
+                            deserialized = Bus._deserializeJsonNameless(data, resultType, hasMany);
+                        } else {
+                            Bus._deserializeJson(deserialized, resultType, hasMany);
+                        }
                     }
+
+                    if (onComplete && typeof onComplete === "function")
+                        onComplete(deserialized);
+                }
+                else {
+                    if (onComplete && typeof onComplete === "function")
+                        onComplete();
                 }
 
-                if (onComplete && typeof onComplete === "function")
-                    onComplete(deserialized);
             })
             .fail(function (jqXHR) {
                 Bus._onFail(jqXHR, route, onFail);
