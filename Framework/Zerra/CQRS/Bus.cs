@@ -32,9 +32,9 @@ namespace Zerra.CQRS
     {
         private const SymmetricAlgorithmType encryptionAlgoritm = SymmetricAlgorithmType.AESwithShift;
 
-        private static readonly Type iCommandType = typeof(ICommand);
+        //private static readonly Type iCommandType = typeof(ICommand);
         private static readonly Type iCommandWithResultType = typeof(ICommand<>);
-        private static readonly Type iEventType = typeof(IEvent);
+        //private static readonly Type iEventType = typeof(IEvent);
         private static readonly Type iCommandHandlerType = typeof(ICommandHandler<>);
         private static readonly Type iCommandHandlerWithResultType = typeof(ICommandHandler<,>);
         private static readonly Type iEventHandlerType = typeof(IEventHandler<>);
@@ -52,18 +52,18 @@ namespace Zerra.CQRS
         private static int maxConcurrentEventsPerTopic = Environment.ProcessorCount * 16;
         private static CommandCounter commandCounter = new();
 
-        public static async Task<RemoteQueryCallResponse> HandleRemoteQueryCallAsync(Type interfaceType, string methodName, string[] arguments, string source, bool isApi)
+        public static async Task<RemoteQueryCallResponse> HandleRemoteQueryCallAsync(Type interfaceType, string methodName, string?[] arguments, string source, bool isApi)
         {
             var networkType = isApi ? NetworkType.Api : NetworkType.Internal;
             var callerProvider = CallInternal(interfaceType, networkType, source);
 
             var methodDetail = TypeAnalyzer.GetMethodDetail(interfaceType, methodName);
 
-            if (methodDetail.ParametersInfo.Count != (arguments != null ? arguments.Length : 0))
+            if (methodDetail.ParametersInfo.Count != (arguments is not null ? arguments.Length : 0))
                 throw new ArgumentException($"{interfaceType.GetNiceName()}.{methodName} invalid number of arguments");
 
-            var args = new object?[arguments != null ? arguments.Length : 0];
-            if (arguments != null && arguments.Length > 0)
+            var args = new object?[arguments is not null ? arguments.Length : 0];
+            if (arguments is not null && arguments.Length > 0)
             {
                 var i = 0;
                 foreach (var argument in arguments)
@@ -122,7 +122,7 @@ namespace Zerra.CQRS
         public static Task DispatchAsync(ICommand command) => DispatchCommandInternalAsync(command, false, NetworkType.Local, Config.ApplicationIdentifier);
         public static Task DispatchAwaitAsync(ICommand command) => DispatchCommandInternalAsync(command, true, NetworkType.Local, Config.ApplicationIdentifier);
         public static Task DispatchAsync(IEvent @event) => DispatchEventInternalAsync(@event, NetworkType.Local, Config.ApplicationIdentifier);
-        public static Task<TResult> DispatchAwaitAsync<TResult>(ICommand<TResult> command) => DispatchCommandWithResultInternalAsync(command, NetworkType.Local, Config.ApplicationIdentifier);
+        public static Task<TResult?> DispatchAwaitAsync<TResult>(ICommand<TResult> command) => DispatchCommandWithResultInternalAsync(command, NetworkType.Local, Config.ApplicationIdentifier);
 
         private static readonly ConcurrentFactoryDictionary<Type, MessageMetadata> commandMetadata = new();
         private static readonly ConcurrentFactoryDictionary<Type, Func<ICommand, Task>?> commandCacheProviders = new();
@@ -166,7 +166,7 @@ namespace Zerra.CQRS
                 var handlerTypeDetail = TypeAnalyzer.GetGenericTypeDetail(iCommandHandlerType, commandType);
 
                 var busCacheType = Discovery.GetClassByInterface(handlerTypeDetail.Type, iBusCacheType, false);
-                if (busCacheType == null)
+                if (busCacheType is null)
                     return null;
 
                 var busCacheTypeDetail = busCacheType.GetTypeDetail();
@@ -192,12 +192,12 @@ namespace Zerra.CQRS
                 return caller;
             });
 
-            if (cacheProviderDispatchAsync != null)
+            if (cacheProviderDispatchAsync is not null)
                 return cacheProviderDispatchAsync(command);
 
             return _DispatchCommandInternalAsync(command, commandType, requireAffirmation, networkType, source, metadata.BusLogging);
         }
-        private static Task<TResult> DispatchCommandWithResultInternalAsync<TResult>(ICommand<TResult> command, NetworkType networkType, string source)
+        private static Task<TResult?> DispatchCommandWithResultInternalAsync<TResult>(ICommand<TResult> command, NetworkType networkType, string source)
         {
             var commandType = command.GetType();
 
@@ -231,12 +231,12 @@ namespace Zerra.CQRS
             if (metadata.Authenticate)
                 Authenticate(Thread.CurrentPrincipal, metadata.Roles, () => $"Access Denied for Command {commandType.GetNiceName()}");
 
-            var cacheProviderDispatchAsync = (Func<ICommand<TResult>, Task<TResult>>?)commandWithResultCacheProviders.GetOrAdd(commandType, (commandType) =>
+            var cacheProviderDispatchAsync = (Func<ICommand<TResult>, Task<TResult?>>?)commandWithResultCacheProviders.GetOrAdd(commandType, (commandType) =>
             {
                 var handlerTypeDetail = TypeAnalyzer.GetGenericTypeDetail(iCommandHandlerWithResultType, commandType, typeof(TResult));
 
                 var busCacheType = Discovery.GetClassByInterface(handlerTypeDetail.Type, iBusCacheType, false);
-                if (busCacheType == null)
+                if (busCacheType is null)
                     return null;
 
                 var busCacheTypeDetail = busCacheType.GetTypeDetail();
@@ -253,17 +253,17 @@ namespace Zerra.CQRS
                 _ = methodSetNextProvider.Caller(cacheInstance, [messageHandlerToDispatchProvider]);
 
                 var method = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(ICommandHandler<ICommand<TResult>, TResult>.Handle), [commandType, typeof(TResult)]);
-                Task<TResult> caller(ICommand<TResult> arg)
+                Task<TResult?> caller(ICommand<TResult> arg)
                 {
-                    var task = (Task<TResult>)method.Caller(cacheInstance, [arg])!;
+                    var task = (Task<TResult?>)method.Caller(cacheInstance, [arg])!;
                     return task;
                 }
 
                 return caller;
             });
 
-            if (cacheProviderDispatchAsync != null)
-                return (Task<TResult>)cacheProviderDispatchAsync(command);
+            if (cacheProviderDispatchAsync is not null)
+                return (Task<TResult?>)cacheProviderDispatchAsync(command);
 
             return _DispatchCommandWithResultInternalAsync(command, commandType, networkType, source, metadata.BusLogging);
         }
@@ -309,7 +309,7 @@ namespace Zerra.CQRS
                 var handlerTypeDetail = TypeAnalyzer.GetGenericTypeDetail(iEventHandlerType, eventType);
 
                 var busCacheType = Discovery.GetClassByInterface(handlerTypeDetail.Type, iBusCacheType, false);
-                if (busCacheType == null)
+                if (busCacheType is null)
                     return null;
 
                 var busCacheTypeDetail = busCacheType.GetTypeDetail();
@@ -335,7 +335,7 @@ namespace Zerra.CQRS
                 return caller;
             });
 
-            if (cacheProviderDispatchAsync != null)
+            if (cacheProviderDispatchAsync is not null)
                 return cacheProviderDispatchAsync(@event);
 
             return _DispatchEventInternalAsync(@event, eventType, networkType, source, metadata.BusLogging);
@@ -347,11 +347,11 @@ namespace Zerra.CQRS
             {
                 ICommandProducer? producer = null;
                 var messageBaseType = commandType;
-                while (producer == null && messageBaseType != null)
+                while (producer is null && messageBaseType is not null)
                 {
                     if (commandProducers.TryGetValue(messageBaseType, out producer))
                     {
-                        if (busLogger == null || busLogging == BusLogging.None || (busLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
+                        if (busLogger is null || busLogging == BusLogging.None || (busLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
                         {
                             if (requireAffirmation)
                                 return producer.DispatchAsyncAwait(command, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source);
@@ -369,31 +369,31 @@ namespace Zerra.CQRS
 
             if (requireAffirmation || networkType != NetworkType.Local)
             {
-                if (busLogger == null || busLogging == BusLogging.None || (busLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
+                if (busLogger is null || busLogging == BusLogging.None || (busLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
                     return HandleCommandAsync((ICommand)command, commandType, source);
                 else
                     return HandleCommandLoggedAsync((ICommand)command, commandType, source);
             }
             else
             {
-                if (busLogger == null || busLogging == BusLogging.None || (busLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
+                if (busLogger is null || busLogging == BusLogging.None || (busLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
                     _ = HandleCommandAsync((ICommand)command, commandType, source);
                 else
                     _ = HandleCommandLoggedAsync((ICommand)command, commandType, source);
                 return Task.CompletedTask;
             }
         }
-        public static Task<TResult> _DispatchCommandWithResultInternalAsync<TResult>(ICommand<TResult> command, Type commandType, NetworkType networkType, string source, BusLogging busLogging)
+        public static Task<TResult?> _DispatchCommandWithResultInternalAsync<TResult>(ICommand<TResult> command, Type commandType, NetworkType networkType, string source, BusLogging busLogging)
         {
             if (networkType == NetworkType.Local || !handledCommandTypes.Contains(commandType))
             {
                 ICommandProducer? producer = null;
                 var messageBaseType = commandType;
-                while (producer == null && messageBaseType != null)
+                while (producer is null && messageBaseType is not null)
                 {
                     if (commandProducers.TryGetValue(messageBaseType, out producer))
                     {
-                        if (busLogger == null || busLogging == BusLogging.None || (busLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
+                        if (busLogger is null || busLogging == BusLogging.None || (busLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
                         {
                             return producer.DispatchAsyncAwait(command, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source);
                         }
@@ -406,7 +406,7 @@ namespace Zerra.CQRS
                 }
             }
 
-            if (busLogger == null || busLogging == BusLogging.None || (busLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
+            if (busLogger is null || busLogging == BusLogging.None || (busLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
                 return HandleCommandWithResultAsync((ICommand<TResult>)command, commandType, source);
             else
                 return HandleCommandWithResultLoggedAsync((ICommand<TResult>)command, commandType, source);
@@ -417,11 +417,11 @@ namespace Zerra.CQRS
             {
                 IEventProducer? producer = null;
                 var messageBaseType = eventType;
-                while (producer == null && messageBaseType != null)
+                while (producer is null && messageBaseType is not null)
                 {
                     if (eventProducers.TryGetValue(messageBaseType, out producer))
                     {
-                        if (busLogger == null || busLogging == BusLogging.None || (busLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
+                        if (busLogger is null || busLogging == BusLogging.None || (busLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
                             return producer.DispatchAsync(@event, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source);
                         else
                             return SendEventLoggedAsync(@event, eventType, networkType, source, producer);
@@ -433,14 +433,14 @@ namespace Zerra.CQRS
 
             if (networkType != NetworkType.Local)
             {
-                if (busLogger == null || busLogging == BusLogging.None || (busLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
+                if (busLogger is null || busLogging == BusLogging.None || (busLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
                     return HandleEventAsync((IEvent)@event, eventType, source);
                 else
                     return HandleEventLoggedAsync((IEvent)@event, eventType, source);
             }
             else
             {
-                if (busLogger == null || busLogging == BusLogging.None || (busLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
+                if (busLogger is null || busLogging == BusLogging.None || (busLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
                     _ = HandleEventAsync((IEvent)@event, eventType, source);
                 else
                     _ = HandleEventLoggedAsync((IEvent)@event, eventType, source);
@@ -474,12 +474,12 @@ namespace Zerra.CQRS
             timer.Stop();
             busLogger?.EndCommand(commandType, command, source, false, timer.ElapsedMilliseconds, null);
         }
-        private static async Task<TResult> SendCommandWithResultLoggedAsync<TResult>(ICommand<TResult> command, Type commandType, NetworkType networkType, string source, ICommandProducer producer)
+        private static async Task<TResult?> SendCommandWithResultLoggedAsync<TResult>(ICommand<TResult> command, Type commandType, NetworkType networkType, string source, ICommandProducer producer)
         {
             busLogger?.BeginCommand(commandType, command, source, false);
 
             var timer = Stopwatch.StartNew();
-            TResult result;
+            TResult? result;
             try
             {
                 result = await producer.DispatchAsyncAwait(command, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source);
@@ -527,7 +527,7 @@ namespace Zerra.CQRS
 
             return (Task)method.Caller(provider, [command])!;
         }
-        private static Task<TResult> HandleCommandWithResultAsync<TResult>(ICommand<TResult> command, Type commandType, string source)
+        private static Task<TResult?> HandleCommandWithResultAsync<TResult>(ICommand<TResult> command, Type commandType, string source)
         {
             var interfaceType = TypeAnalyzer.GetGenericType(iCommandHandlerWithResultType, commandType, typeof(TResult));
 
@@ -536,7 +536,7 @@ namespace Zerra.CQRS
 
             var provider = Instantiator.GetSingle(providerType);
 
-            return (Task<TResult>)method.Caller(provider, [command])!;
+            return (Task<TResult?>)method.Caller(provider, [command])!;
         }
         private static async Task HandleCommandLoggedAsync(ICommand command, Type commandType, string source)
         {
@@ -564,7 +564,7 @@ namespace Zerra.CQRS
             timer.Stop();
             busLogger?.EndCommand(commandType, command, source, true, timer.ElapsedMilliseconds, null);
         }
-        private static async Task<TResult> HandleCommandWithResultLoggedAsync<TResult>(ICommand<TResult> command, Type commandType, string source)
+        private static async Task<TResult?> HandleCommandWithResultLoggedAsync<TResult>(ICommand<TResult> command, Type commandType, string source)
         {
             var interfaceType = TypeAnalyzer.GetGenericType(iCommandHandlerWithResultType, commandType, typeof(TResult));
 
@@ -609,7 +609,7 @@ namespace Zerra.CQRS
             var interfaceType = TypeAnalyzer.GetGenericType(iEventHandlerType, eventType);
 
             var providerType = ProviderResolver.GetTypeFirst(interfaceType);
-            if (providerType == null)
+            if (providerType is null)
                 return;
             var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(IEventHandler<IEvent>.Handle), [eventType]);
 
@@ -675,11 +675,11 @@ namespace Zerra.CQRS
             var cacheCallProvider = callCacheProviders.GetOrAdd(interfaceType, (t) =>
             {
                 var busCacheType = Discovery.GetClassByInterface(interfaceType, iBusCacheType, false);
-                if (busCacheType == null)
+                if (busCacheType is null)
                     return null;
 
                 var methodSetNextProvider = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(LayerProvider<object>.SetNextProvider)).MethodInfo;
-                if (methodSetNextProvider == null)
+                if (methodSetNextProvider is null)
                     return null;
 
                 var cacheInstance = Instantiator.Create(busCacheType);
@@ -688,7 +688,7 @@ namespace Zerra.CQRS
                 return cacheInstance;
             });
 
-            if (cacheCallProvider != null)
+            if (cacheCallProvider is not null)
                 return cacheCallProvider;
 
             return callerProvider;
@@ -768,7 +768,7 @@ namespace Zerra.CQRS
 
             if (!queryClients.IsEmpty && queryClients.TryGetValue(interfaceType, out var methodCaller))
             {
-                if (busLogger == null || methodMetadata.BusLogging == BusLogging.None || (methodMetadata.BusLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
+                if (busLogger is null || methodMetadata.BusLogging == BusLogging.None || (methodMetadata.BusLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
                 {
                     result = methodCaller.Call<TReturn>(interfaceType, methodName, arguments, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source);
                 }
@@ -808,7 +808,7 @@ namespace Zerra.CQRS
             }
             else
             {
-                if (busLogger == null || methodMetadata.BusLogging == BusLogging.None || (methodMetadata.BusLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
+                if (busLogger is null || methodMetadata.BusLogging == BusLogging.None || (methodMetadata.BusLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
                 {
                     var provider = ProviderResolver.GetFirst(interfaceType);
 
@@ -1230,7 +1230,7 @@ namespace Zerra.CQRS
             setupLock.Wait();
             try
             {
-                if (Bus.busLogger != null)
+                if (Bus.busLogger is not null)
                     throw new InvalidOperationException("Bus already has a logger");
                 Bus.busLogger = busLogger;
             }
@@ -1242,9 +1242,9 @@ namespace Zerra.CQRS
 
         private static void Authenticate(IPrincipal? principal, IReadOnlyCollection<string>? roles, Func<string> message)
         {
-            if (principal == null || principal.Identity == null || !principal.Identity.IsAuthenticated)
+            if (principal is null || principal.Identity is null || !principal.Identity.IsAuthenticated)
                 throw new SecurityException(message());
-            if (roles != null && roles.Count > 0)
+            if (roles is not null && roles.Count > 0)
             {
                 foreach (var role in roles)
                 {
@@ -1347,15 +1347,12 @@ namespace Zerra.CQRS
 
                 _ = Log.InfoAsync($"Starting {serviceSettings.ThisServiceName}");
 
-                ICommandConsumer? commandConsumer = null;
-                IEventConsumer? eventConsumer = null;
-                IQueryServer? queryServer = null;
-                Type? commandConsumerType = null;
-                Type? eventConsumerType = null;
-                Type? queryServerType = null;
+                List<ICommandConsumer>? newCommandConsumers = null;
+                List<IEventConsumer>? newEventConsumers = null;
+                List<IQueryServer>? newQueryServers = null;
 
                 var serverTypes = new HashSet<Type>();
-                if (serviceSettings.Queries != null)
+                if (serviceSettings.Queries is not null)
                 {
                     foreach (var clientQuerySetting in serviceSettings.Queries)
                     {
@@ -1377,7 +1374,7 @@ namespace Zerra.CQRS
                         }
                     }
                 }
-                if (serviceSettings.Messages != null)
+                if (serviceSettings.Messages is not null)
                 {
                     foreach (var clientMessageSetting in serviceSettings.Messages)
                     {
@@ -1404,15 +1401,17 @@ namespace Zerra.CQRS
                     }
                 }
 
-                if (serviceSettings.Queries != null)
+                if (serviceSettings.Queries is not null)
                 {
                     foreach (var serviceQuerySetting in serviceSettings.Queries)
                     {
-                        if (serviceQuerySetting.Types is null)
+                        if (serviceQuerySetting.Types is null || serviceQuerySetting.Types.Length == 0)
                             continue;
 
                         IQueryClient? queryClient = null;
                         Type? queryClientType = null;
+                        IQueryServer? queryServer = null;
+                        Type? queryServerType = null;
 
                         foreach (var serviceType in serviceQuerySetting.Types)
                         {
@@ -1432,82 +1431,88 @@ namespace Zerra.CQRS
                             {
                                 if (serviceQuerySetting.Service == serviceSettings.ThisServiceName)
                                 {
+                                    if (String.IsNullOrEmpty(serviceQuerySetting.BindingUrl))
+                                        continue;
+
                                     if (queryClients.ContainsKey(interfaceType))
                                     {
                                         _ = Log.ErrorAsync($"Cannot add Query Server: type already registered {interfaceType.GetNiceName()}");
+                                        continue;
                                     }
-                                    else if (handledQueryTypes.Contains(interfaceType))
+                                    if (handledQueryTypes.Contains(interfaceType))
                                     {
                                         _ = Log.ErrorAsync($"Cannot add Query Server: type already registered {interfaceType.GetNiceName()}");
+                                           continue;
                                     }
-                                    else
+
+                                    try
                                     {
-                                        try
+                                        if (queryServer is null)
                                         {
-                                            if (queryServer == null)
+                                            var encryptionKey = String.IsNullOrWhiteSpace(serviceQuerySetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceQuerySetting.EncryptionKey);
+                                            var symmetricConfig = encryptionKey is null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
+                                            queryServer = serviceCreator.CreateQueryServer(serviceQuerySetting.BindingUrl, symmetricConfig);
+                                            if (queryServer is not null)
                                             {
-                                                var encryptionKey = String.IsNullOrWhiteSpace(serviceQuerySetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceQuerySetting.EncryptionKey);
-                                                var symmetricConfig = encryptionKey == null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
-                                                queryServer = serviceCreator.CreateQueryServer(serviceQuerySetting.BindingUrl, symmetricConfig);
-                                                if (queryServer != null)
-                                                {
-                                                    queryServerType = queryServer.GetType();
-                                                    queryServer.Setup(commandCounter, HandleRemoteQueryCallAsync);
-                                                    _ = queryServers.Add(queryServer);
-                                                    //_ = Log.InfoAsync($"Query Server: {queryServer.GetType().GetNiceName()}");
-                                                }
-                                            }
-                                            if (queryServer != null && queryServerType != null)
-                                            {
-                                                _ = handledQueryTypes.Add(interfaceType);
-                                                queryServer.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
-                                                _ = Log.InfoAsync($"Hosting - {queryServerType.GetNiceName()}: {interfaceType.GetNiceName()}");
+                                                queryServerType = queryServer.GetType();
+                                                queryServer.Setup(commandCounter, HandleRemoteQueryCallAsync);
+                                                _ = queryServers.Add(queryServer);
+                                                newQueryServers ??= new();
+                                                newQueryServers.Add(queryServer);
                                             }
                                         }
-                                        catch (Exception ex)
+                                        if (queryServer is not null && queryServerType is not null)
                                         {
-                                            _ = Log.ErrorAsync($"Failed to create Query Server for {serviceQuerySetting.Service}", ex);
+                                            _ = handledQueryTypes.Add(interfaceType);
+                                            queryServer.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
+                                            _ = Log.InfoAsync($"Hosting - {queryServerType.GetNiceName()}: {interfaceType.GetNiceName()}");
                                         }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        _ = Log.ErrorAsync($"Failed to create Query Server for {serviceQuerySetting.Service}", ex);
                                     }
                                 }
-                                else if (!String.IsNullOrWhiteSpace(externalUrl))
+                                else
                                 {
+                                    if (String.IsNullOrWhiteSpace(externalUrl))
+                                        continue;
+
                                     if (!serverTypes.Contains(interfaceType))
                                     {
                                         if (handledQueryTypes.Contains(interfaceType))
                                         {
                                             _ = Log.ErrorAsync($"Cannot add Query Client: type already registered {interfaceType.GetNiceName()}");
+                                            continue;
                                         }
-                                        else if (commandProducers.ContainsKey(interfaceType))
+                                        if (commandProducers.ContainsKey(interfaceType))
                                         {
                                             _ = Log.ErrorAsync($"Cannot add Query Client: type already registered {interfaceType.GetNiceName()}");
+                                            continue;
                                         }
-                                        else
+
+                                        try
                                         {
-                                            try
+                                            if (queryClient is null)
                                             {
-                                                if (queryClient == null)
+                                                var encryptionKey = String.IsNullOrWhiteSpace(serviceQuerySetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceQuerySetting.EncryptionKey);
+                                                var symmetricConfig = encryptionKey is null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
+                                                queryClient = serviceCreator.CreateQueryClient(externalUrl, symmetricConfig);
+                                                if (queryClient is not null)
                                                 {
-                                                    var encryptionKey = String.IsNullOrWhiteSpace(serviceQuerySetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceQuerySetting.EncryptionKey);
-                                                    var symmetricConfig = encryptionKey == null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
-                                                    queryClient = serviceCreator.CreateQueryClient(externalUrl, symmetricConfig);
-                                                    if (queryClient != null)
-                                                    {
-                                                        queryClientType = queryClient.GetType();
-                                                        //_ = Log.InfoAsync($"Query Client: {queryClient.GetType().GetNiceName()}");
-                                                    }
-                                                }
-                                                if (queryClient != null && queryClientType != null)
-                                                {
-                                                    queryClient.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
-                                                    _ = queryClients.TryAdd(interfaceType, queryClient);
-                                                    _ = Log.InfoAsync($"{serviceQuerySetting.Service} - {queryClientType.GetNiceName()}: {interfaceType.GetNiceName()}");
+                                                    queryClientType = queryClient.GetType();
                                                 }
                                             }
-                                            catch (Exception ex)
+                                            if (queryClient is not null && queryClientType is not null)
                                             {
-                                                _ = Log.ErrorAsync($"Failed to create Query Client for {serviceQuerySetting.Service}", ex);
+                                                queryClient.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
+                                                _ = queryClients.TryAdd(interfaceType, queryClient);
+                                                _ = Log.InfoAsync($"{serviceQuerySetting.Service} - {queryClientType.GetNiceName()}: {interfaceType.GetNiceName()}");
                                             }
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            _ = Log.ErrorAsync($"Failed to create Query Client for {serviceQuerySetting.Service}", ex);
                                         }
                                     }
                                 }
@@ -1515,7 +1520,7 @@ namespace Zerra.CQRS
                         }
                     }
                 }
-                if (serviceSettings.Messages != null)
+                if (serviceSettings.Messages is not null)
                 {
                     foreach (var serviceMessageSetting in serviceSettings.Messages)
                     {
@@ -1528,6 +1533,10 @@ namespace Zerra.CQRS
                         IEventProducer? eventProducer = null;
                         Type? commandProducerType = null;
                         Type? eventProducerType = null;
+                        ICommandConsumer? commandConsumer = null;
+                        Type? commandConsumerType = null;
+                        IEventConsumer? eventConsumer = null;
+                        Type? eventConsumerType = null;
 
                         foreach (var serviceType in serviceMessageSetting.Types)
                         {
@@ -1547,20 +1556,21 @@ namespace Zerra.CQRS
                                 {
                                     try
                                     {
-                                        if (commandConsumer == null)
+                                        if (commandConsumer is null)
                                         {
                                             var encryptionKey = String.IsNullOrWhiteSpace(serviceMessageSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceMessageSetting.EncryptionKey);
-                                            var symmetricConfig = encryptionKey == null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
+                                            var symmetricConfig = encryptionKey is null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
                                             commandConsumer = serviceCreator.CreateCommandConsumer(serviceMessageSetting.MessageHost, symmetricConfig);
-                                            if (commandConsumer != null)
+                                            if (commandConsumer is not null)
                                             {
                                                 commandConsumerType = commandConsumer.GetType();
                                                 commandConsumer.Setup(commandCounter, HandleRemoteCommandDispatchAsync, HandleRemoteCommandDispatchAwaitAsync, HandleRemoteCommandWithResultDispatchAwaitAsync);
                                                 _ = commandConsumers.Add(commandConsumer);
-                                                //_ = Log.InfoAsync($"Command Consumer: {commandConsumerType.GetNiceName()}");
+                                                newCommandConsumers ??= new();
+                                                newCommandConsumers.Add(commandConsumer);
                                             }
                                         }
-                                        if (commandConsumer != null && commandConsumerType != null)
+                                        if (commandConsumer is not null && commandConsumerType is not null)
                                         {
                                             foreach (var commandType in commandTypes)
                                             {
@@ -1595,18 +1605,17 @@ namespace Zerra.CQRS
                                         var clientCommandTypes = commandTypes.Where(x => !serverTypes.Contains(x)).ToArray();
                                         if (clientCommandTypes.Length > 0)
                                         {
-                                            if (commandProducer == null)
+                                            if (commandProducer is null)
                                             {
                                                 var encryptionKey = String.IsNullOrWhiteSpace(serviceMessageSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceMessageSetting.EncryptionKey);
-                                                var symmetricConfig = encryptionKey == null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
+                                                var symmetricConfig = encryptionKey is null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
                                                 commandProducer = serviceCreator.CreateCommandProducer(serviceMessageSetting.MessageHost, symmetricConfig);
-                                                if (commandProducer != null)
+                                                if (commandProducer is not null)
                                                 {
                                                     commandProducerType = commandProducer.GetType();
-                                                    //_ = Log.InfoAsync($"{serviceSetting.Name} - Command Producer: {commandProducer.GetType().GetNiceName()}");
                                                 }
                                             }
-                                            if (commandProducer != null && commandProducerType != null)
+                                            if (commandProducer is not null && commandProducerType is not null)
                                             {
                                                 foreach (var commandType in clientCommandTypes)
                                                 {
@@ -1643,20 +1652,21 @@ namespace Zerra.CQRS
                                 {
                                     try
                                     {
-                                        if (eventConsumer == null)
+                                        if (eventConsumer is null)
                                         {
                                             var encryptionKey = String.IsNullOrWhiteSpace(serviceMessageSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceMessageSetting.EncryptionKey);
-                                            var symmetricConfig = encryptionKey == null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
+                                            var symmetricConfig = encryptionKey is null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
                                             eventConsumer = serviceCreator.CreateEventConsumer(serviceMessageSetting.MessageHost, symmetricConfig);
-                                            if (eventConsumer != null)
+                                            if (eventConsumer is not null)
                                             {
                                                 eventConsumerType = eventConsumer.GetType();
                                                 eventConsumer.Setup(HandleRemoteEventDispatchAsync);
                                                 _ = eventConsumers.Add(eventConsumer);
-                                                //_ = Log.InfoAsync($"Event Consumer: {eventConsumer.GetType().GetNiceName()}");
+                                                newEventConsumers ??= new();
+                                                newEventConsumers.Add(eventConsumer);
                                             }
                                         }
-                                        if (eventConsumer != null && eventConsumerType != null)
+                                        if (eventConsumer is not null && eventConsumerType is not null)
                                         {
                                             foreach (var eventType in eventTypes)
                                             {
@@ -1680,26 +1690,23 @@ namespace Zerra.CQRS
 
                                 try
                                 {
-                                    if (eventProducer == null)
+                                    if (eventProducer is null)
                                     {
                                         var encryptionKey = String.IsNullOrWhiteSpace(serviceMessageSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceMessageSetting.EncryptionKey);
-                                        var symmetricConfig = encryptionKey == null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
+                                        var symmetricConfig = encryptionKey is null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
                                         eventProducer = serviceCreator.CreateEventProducer(serviceMessageSetting.MessageHost, symmetricConfig);
-                                        if (eventProducer != null)
+                                        if (eventProducer is not null)
                                         {
                                             eventProducerType = eventProducer.GetType();
-                                            //_ = Log.InfoAsync($"{serviceSetting.Name} - Event Producer: {eventProducer.GetType().GetNiceName()}");
                                         }
                                     }
 
-                                    if (eventProducer != null && eventProducerType != null)
+                                    if (eventProducer is not null && eventProducerType is not null)
                                     {
                                         foreach (var eventType in eventTypes)
                                         {
                                             if (!eventType.GetTypeDetail().Attributes.Any(x => x is ServiceExposedAttribute))
                                                 continue;
-                                            //multiple services handle events
-                                            //TODO do we need different encryption keys for events, commands, and queries??
                                             var topic = GetEventTopic(eventType);
                                             eventProducer.RegisterEventType(maxConcurrentEventsPerTopic, topic, eventType);
                                             _ = eventProducers.TryAdd(eventType, eventProducer);
@@ -1717,79 +1724,88 @@ namespace Zerra.CQRS
                 }
 
                 Dictionary<string, HashSet<string>>? relayRegisterTypes = null;
-                if (relayRegister != null)
+                if (relayRegister is not null)
                 {
                     relayRegisterTypes = new Dictionary<string, HashSet<string>>();
                 }
 
-                if (commandConsumer != null)
+                if (newCommandConsumers is not null)
                 {
-                    try
+                    foreach (var newCommandConsumer in newCommandConsumers)
                     {
-                        commandConsumer.Open();
-                        if (relayRegister != null && relayRegisterTypes != null)
+                        try
                         {
-                            var commandTypes = commandConsumer.GetCommandTypes().Select(x => x.GetNiceName()).ToArray();
-                            if (!relayRegisterTypes.TryGetValue(commandConsumer.ServiceUrl, out var relayTypes))
+                            newCommandConsumer.Open();
+                            if (relayRegister is not null && relayRegisterTypes is not null)
                             {
-                                relayTypes = new HashSet<string>();
-                                relayRegisterTypes.Add(commandConsumer.ServiceUrl, relayTypes);
+                                var commandTypes = newCommandConsumer.GetCommandTypes().Select(x => x.GetNiceName()).ToArray();
+                                if (!relayRegisterTypes.TryGetValue(newCommandConsumer.ServiceUrl, out var relayTypes))
+                                {
+                                    relayTypes = new HashSet<string>();
+                                    relayRegisterTypes.Add(newCommandConsumer.ServiceUrl, relayTypes);
+                                }
+                                foreach (var type in commandTypes)
+                                    _ = relayTypes.Add(type);
                             }
-                            foreach (var type in commandTypes)
-                                _ = relayTypes.Add(type);
                         }
-                    }
-                    catch (Exception ex)
-                    {
-                        _ = Log.ErrorAsync($"Failed to open Command Consumer", ex);
+                        catch (Exception ex)
+                        {
+                            _ = Log.ErrorAsync($"Failed to open Command Consumer", ex);
+                        }
                     }
                 }
-                if (eventConsumer != null)
+                if (newEventConsumers is not null)
                 {
-                    try
+                    foreach (var newEventConsumer in newEventConsumers)
                     {
-                        eventConsumer.Open();
-                        if (relayRegister != null && relayRegisterTypes != null)
+                        try
                         {
-                            var eventTypes = eventConsumer.GetEventTypes().Select(x => x.GetNiceName()).ToArray();
-                            if (!relayRegisterTypes.TryGetValue(eventConsumer.ServiceUrl, out var relayTypes))
+                            newEventConsumer.Open();
+                            if (relayRegister is not null && relayRegisterTypes is not null)
                             {
-                                relayTypes = new HashSet<string>();
-                                relayRegisterTypes.Add(eventConsumer.ServiceUrl, relayTypes);
+                                var eventTypes = newEventConsumer.GetEventTypes().Select(x => x.GetNiceName()).ToArray();
+                                if (!relayRegisterTypes.TryGetValue(newEventConsumer.ServiceUrl, out var relayTypes))
+                                {
+                                    relayTypes = new HashSet<string>();
+                                    relayRegisterTypes.Add(newEventConsumer.ServiceUrl, relayTypes);
+                                }
+                                foreach (var type in eventTypes)
+                                    _ = relayTypes.Add(type);
                             }
-                            foreach (var type in eventTypes)
-                                _ = relayTypes.Add(type);
                         }
-                    }
-                    catch (Exception ex)
-                    {
-                        _ = Log.ErrorAsync($"Failed to open Event Consumer", ex);
+                        catch (Exception ex)
+                        {
+                            _ = Log.ErrorAsync($"Failed to open Event Consumer", ex);
+                        }
                     }
                 }
-                if (queryServer != null)
+                if (newQueryServers is not null)
                 {
-                    try
+                    foreach (var newQueryServer in newQueryServers)
                     {
-                        queryServer.Open();
-                        if (relayRegister != null && relayRegisterTypes != null)
+                        try
                         {
-                            var queryTypes = queryServer.GetInterfaceTypes().Select(x => x.GetNiceName()).ToArray();
-                            if (!relayRegisterTypes.TryGetValue(queryServer.ServiceUrl, out var relayTypes))
+                            newQueryServer.Open();
+                            if (relayRegister is not null && relayRegisterTypes is not null)
                             {
-                                relayTypes = new HashSet<string>();
-                                relayRegisterTypes.Add(queryServer.ServiceUrl, relayTypes);
+                                var queryTypes = newQueryServer.GetInterfaceTypes().Select(x => x.GetNiceName()).ToArray();
+                                if (!relayRegisterTypes.TryGetValue(newQueryServer.ServiceUrl, out var relayTypes))
+                                {
+                                    relayTypes = new HashSet<string>();
+                                    relayRegisterTypes.Add(newQueryServer.ServiceUrl, relayTypes);
+                                }
+                                foreach (var type in queryTypes)
+                                    _ = relayTypes.Add(type);
                             }
-                            foreach (var type in queryTypes)
-                                _ = relayTypes.Add(type);
                         }
-                    }
-                    catch (Exception ex)
-                    {
-                        _ = Log.ErrorAsync($"Failed to open Query Server", ex);
+                        catch (Exception ex)
+                        {
+                            _ = Log.ErrorAsync($"Failed to open Query Server", ex);
+                        }
                     }
                 }
 
-                if (relayRegister != null && relayRegisterTypes != null)
+                if (relayRegister is not null && relayRegisterTypes is not null)
                 {
                     foreach (var group in relayRegisterTypes)
                         _ = relayRegister.Register(group.Key, group.Value.ToArray());
@@ -1809,7 +1825,7 @@ namespace Zerra.CQRS
         {
             _ = Log.InfoAsync($"{nameof(Bus)} Shutting Down");
 
-            if (processWaiter != null)
+            if (processWaiter is not null)
                 processWaiter.Dispose();
 
             await setupLock.WaitAsync();
@@ -1881,7 +1897,7 @@ namespace Zerra.CQRS
                 }
                 commandConsumers.Clear();
 
-                if (busLogger != null)
+                if (busLogger is not null)
                 {
                     if (busLogger is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
                     {
@@ -1940,7 +1956,7 @@ namespace Zerra.CQRS
             lock (exitLock)
             {
                 exited = true;
-                if (processWaiter != null)
+                if (processWaiter is not null)
                 {
                     AppDomain.CurrentDomain.ProcessExit -= HandleProcessExit;
                     _ = processWaiter.Release();
