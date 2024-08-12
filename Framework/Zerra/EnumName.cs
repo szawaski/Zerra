@@ -15,7 +15,7 @@ using Zerra.Reflection;
 public sealed class EnumName : Attribute
 {
     public string Text { get; set; }
-    public EnumName(string text) { this.Text = text; }
+    public EnumName(string text) => this.Text = text;
 
     private const char seperator = '|';
 
@@ -56,6 +56,7 @@ public sealed class EnumName : Attribute
                 {
                     unchecked
                     {
+#pragma warning disable CS0675 // Bitwise-or operator used on a sign-extended operand
                         switch (underlyingType)
                         {
                             case CoreType.Byte: maxValue |= (byte)enumValue; break;
@@ -68,6 +69,7 @@ public sealed class EnumName : Attribute
                             case CoreType.UInt64: maxValue |= (long)(ulong)enumValue; break;
                             default: throw new NotImplementedException();
                         }
+#pragma warning restore CS0675 // Bitwise-or operator used on a sign-extended operand
                     }
                 }
 
@@ -76,49 +78,52 @@ public sealed class EnumName : Attribute
                 {
                     foreach (var enumValue in values)
                     {
-                        switch (underlyingType)
+                        unchecked
                         {
-                            case CoreType.Byte:
-                                var byteValue = (byte)enumValue;
-                                if ((byteValue > 0 || value == 0) && (value & byteValue) == byteValue)
-                                    break;
-                                continue;
-                            case CoreType.SByte:
-                                var sbyteValue = (sbyte)enumValue;
-                                if ((sbyteValue > 0 || value == 0) && (value & sbyteValue) == sbyteValue)
-                                    break;
-                                continue;
-                            case CoreType.Int16:
-                                var shortValue = (short)enumValue;
-                                if ((shortValue > 0 || value == 0) && (value & shortValue) == shortValue)
-                                    break;
-                                continue;
-                            case CoreType.UInt16:
-                                var ushortValue = (ushort)enumValue;
-                                if ((ushortValue > 0 || value == 0) && (value & ushortValue) == ushortValue)
-                                    break;
-                                continue;
-                            case CoreType.Int32:
-                                var intValue = (int)enumValue;
-                                if ((intValue > 0 || value == 0) && (value & intValue) == intValue)
-                                    break;
-                                continue;
-                            case CoreType.UInt32:
-                                var uintValue = (uint)enumValue;
-                                if ((uintValue > 0 || value == 0) && (value & uintValue) == uintValue)
-                                    break;
-                                continue;
-                            case CoreType.Int64:
-                                var longValue = (long)enumValue;
-                                if ((longValue > 0 || value == 0) && (value & longValue) == longValue)
-                                    break;
-                                continue;
-                            case CoreType.UInt64:
-                                var ulongValue = (long)(ulong)enumValue;
-                                if ((ulongValue > 0 || value == 0) && (value & ulongValue) == ulongValue)
-                                    break;
-                                continue;
-                            default: throw new NotImplementedException();
+                            switch (underlyingType)
+                            {
+                                case CoreType.Byte:
+                                    var byteValue = (byte)enumValue;
+                                    if ((byteValue > 0 || value == 0) && (value & byteValue) == byteValue)
+                                        break;
+                                    continue;
+                                case CoreType.SByte:
+                                    var sbyteValue = (sbyte)enumValue;
+                                    if ((sbyteValue > 0 || value == 0) && (value & sbyteValue) == sbyteValue)
+                                        break;
+                                    continue;
+                                case CoreType.Int16:
+                                    var shortValue = (short)enumValue;
+                                    if ((shortValue > 0 || value == 0) && (value & shortValue) == shortValue)
+                                        break;
+                                    continue;
+                                case CoreType.UInt16:
+                                    var ushortValue = (ushort)enumValue;
+                                    if ((ushortValue > 0 || value == 0) && (value & ushortValue) == ushortValue)
+                                        break;
+                                    continue;
+                                case CoreType.Int32:
+                                    var intValue = (int)enumValue;
+                                    if ((intValue > 0 || value == 0) && (value & intValue) == intValue)
+                                        break;
+                                    continue;
+                                case CoreType.UInt32:
+                                    var uintValue = (uint)enumValue;
+                                    if ((uintValue > 0 || value == 0) && (value & uintValue) == uintValue)
+                                        break;
+                                    continue;
+                                case CoreType.Int64:
+                                    var longValue = (long)enumValue;
+                                    if ((longValue > 0 || value == 0) && (value & longValue) == longValue)
+                                        break;
+                                    continue;
+                                case CoreType.UInt64:
+                                    var ulongValue = (long)(ulong)enumValue;
+                                    if ((ulongValue > 0 || value == 0) && (value & ulongValue) == ulongValue)
+                                        break;
+                                    continue;
+                                default: throw new NotImplementedException();
+                            }
                         }
 
                         var name = enumValue.ToString();
@@ -139,7 +144,6 @@ public sealed class EnumName : Attribute
                     items.Add(value, valueString);
                     sb.Clear();
                 }
-
             }
             else
             {
@@ -433,14 +437,16 @@ public sealed class EnumName : Attribute
         {
             return underlyingType switch
             {
-                CoreType.Byte => (T)(object)((byte)value1 | (byte)value2),
-                CoreType.SByte => (T)(object)((sbyte)value1 | (sbyte)value2),
-                CoreType.Int16 => (T)(object)((short)value1 | (short)value2),
-                CoreType.UInt16 => (T)(object)((ushort)value1 | (ushort)value2),
+                CoreType.Byte => (T)(object)(byte)((byte)value1 | (byte)value2),
+                CoreType.SByte => (T)(object)(sbyte)((sbyte)value1 | (sbyte)value2),
+                CoreType.Int16 => (T)(object)(short)((short)value1 | (short)value2),
+                CoreType.UInt16 => (T)(object)(ushort)((ushort)value1 | (ushort)value2),
+
                 CoreType.Int32 => (T)(object)((int)value1 | (int)value2),
-                CoreType.UInt32 => (T)(object)((uint)value1 | (uint)value2),
+                CoreType.UInt32 => (T)(object)(uint)((uint)value1 | (uint)value2),
                 CoreType.Int64 => (T)(object)((long)value1 | (long)value2),
                 CoreType.UInt64 => (T)(object)((ulong)value1 | (ulong)value2),
+
                 _ => throw new NotImplementedException(),
             };
         }

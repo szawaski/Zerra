@@ -282,7 +282,6 @@ namespace Zerra.CQRS.Network
                                 {
                                     await ContentTypeSerializer.SerializeAsync(requestHeader.ContentType.Value, responseBodyStream, result);
                                 }
-
                             }
                             else
                             {

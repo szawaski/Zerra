@@ -42,7 +42,7 @@ namespace Zerra.Serialization.Bytes.Converters
             return converter;
         }
 
-        internal static ByteConverter<TParent> GetTypeRequired()
+        internal static ByteConverter<TParent> GetDrainBytes()
         {
             if (cacheByteConverterTypeInfo == null)
             {
@@ -51,7 +51,7 @@ namespace Zerra.Serialization.Bytes.Converters
                     if (cacheByteConverterTypeInfo == null)
                     {
                         var newConverter = new ByteConverterTypeRequired<TParent>();
-                        newConverter.Setup(objectTypeDetail, null, null, null);
+                        newConverter.Setup(objectTypeDetail, "Drain", null, null);
                         cacheByteConverterTypeInfo = newConverter;
                     }
                 }

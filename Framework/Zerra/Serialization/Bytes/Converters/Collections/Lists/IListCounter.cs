@@ -17,7 +17,9 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
             return count++;
         }
 
+#pragma warning disable CS8767 // Nullability of reference types in type of parameter doesn't match implicitly implemented member (possibly because of nullability attributes).
         public object this[int index] { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+#pragma warning restore CS8767 // Nullability of reference types in type of parameter doesn't match implicitly implemented member (possibly because of nullability attributes).
         public bool IsFixedSize => throw new NotImplementedException();
         public bool IsReadOnly => throw new NotImplementedException();
         public bool IsSynchronized => throw new NotImplementedException();

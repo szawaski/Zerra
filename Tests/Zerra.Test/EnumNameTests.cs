@@ -48,7 +48,7 @@ namespace Zerra.Test
         }
 
         [Flags]
-        private enum TestFlagsEnum : ulong
+        private enum TestFlagsEnum : int
         {
             None = 0,
             Thing1 = 1,

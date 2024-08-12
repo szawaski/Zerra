@@ -36,7 +36,6 @@ namespace Zerra
         private static readonly Assembly? entryAssembly;
         private static readonly string? entryAssemblyName;
         private static readonly string? entryNameSpace;
-        private static readonly string? frameworkNameSpace;
         private static readonly string? executingAssemblyPath;
         static Config()
         {
@@ -50,9 +49,9 @@ namespace Zerra
             executingAssemblyPath = Path.GetDirectoryName(executingAssembly.Location);
 
             if (!String.IsNullOrWhiteSpace(entryNameSpace))
-                DiscoveryAssemblyNameStartsWiths = new string[] { "Zerra,", "Zerra.", entryNameSpace };
+                DiscoveryAssemblyNameStartsWiths = ["Zerra,", "Zerra.", entryNameSpace];
             else
-                DiscoveryAssemblyNameStartsWiths = new string[] { "Zerra,", "Zerra." };
+                DiscoveryAssemblyNameStartsWiths = ["Zerra,", "Zerra."];
 
             discoveryStarted = false;
         }
@@ -264,19 +263,11 @@ namespace Zerra
 
                 var newNamespaces = assemblyNameStartsWiths.Select(x => x + '.').ToArray();
 
-                if (!String.IsNullOrWhiteSpace(frameworkNameSpace))
-                {
-                    var newNamespacesToLoad = new string[newNamespaces.Length + 1];
-                    newNamespacesToLoad[0] = frameworkNameSpace;
-                    newNamespaces.CopyTo(newNamespacesToLoad, 1);
-                    DiscoveryAssemblyNameStartsWiths = newNamespacesToLoad;
-                }
-                else
-                {
-                    var newNamespacesToLoad = new string[newNamespaces.Length];
-                    newNamespaces.CopyTo(newNamespaces, 0);
-                    DiscoveryAssemblyNameStartsWiths = newNamespaces;
-                }
+                var newNamespacesToLoad = new string[newNamespaces.Length + 2];
+                newNamespacesToLoad[0] = "Zerra,";
+                newNamespacesToLoad[1] = "Zerra.";
+                newNamespaces.CopyTo(newNamespacesToLoad, 2);
+                DiscoveryAssemblyNameStartsWiths = newNamespacesToLoad;
             }
         }
         public static void SetDiscoveryAssemblies(params Assembly[] assemblies)
@@ -291,19 +282,11 @@ namespace Zerra
 
                 string[] newNamespaces = assemblies.Select(x => x.GetName().Name).Where(x => x != null).ToArray()!;
 
-                if (!String.IsNullOrWhiteSpace(frameworkNameSpace))
-                {
-                    var newNamespacesToLoad = new string[newNamespaces.Length + 1];
-                    newNamespacesToLoad[0] = frameworkNameSpace;
-                    newNamespaces.CopyTo(newNamespacesToLoad, 1);
-                    DiscoveryAssemblyNameStartsWiths = newNamespacesToLoad;
-                }
-                else
-                {
-                    var newNamespacesToLoad = new string[newNamespaces.Length];
-                    newNamespaces.CopyTo(newNamespaces, 0);
-                    DiscoveryAssemblyNameStartsWiths = newNamespaces;
-                }
+                var newNamespacesToLoad = new string[newNamespaces.Length + 2];
+                newNamespacesToLoad[0] = "Zerra,";
+                newNamespacesToLoad[1] = "Zerra.";
+                newNamespaces.CopyTo(newNamespacesToLoad, 2);
+                DiscoveryAssemblyNameStartsWiths = newNamespacesToLoad;
             }
         }
 

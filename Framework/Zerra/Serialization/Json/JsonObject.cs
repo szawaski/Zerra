@@ -354,6 +354,20 @@ namespace Zerra.Serialization.Json
                 throw new InvalidCastException();
             return TimeSpan.Parse(obj.valueString!);
         }
+#if NET6_0_OR_GREATER
+        public static explicit operator DateOnly(JsonObject obj)
+        {
+            if (obj.jsonType != JsonObjectType.String)
+                throw new InvalidCastException();
+            return DateOnly.Parse(obj.valueString!);
+        }
+        public static explicit operator TimeOnly(JsonObject obj)
+        {
+            if (obj.jsonType != JsonObjectType.String)
+                throw new InvalidCastException();
+            return TimeOnly.Parse(obj.valueString!);
+        }
+#endif
         public static explicit operator Guid(JsonObject obj)
         {
             if (obj.jsonType != JsonObjectType.String)

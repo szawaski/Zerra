@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -41,7 +42,7 @@ namespace Zerra.CQRS.Relay
             };
 
             var json = JsonSerializer.Serialize(info);
-            var bytes = Encoding.UTF8.GetBytes(json);
+            var bytes = json is null ? Array.Empty<byte>() : Encoding.UTF8.GetBytes(json);
 
             using var request = new HttpRequestMessage(HttpMethod.Post, relayUrl);
 

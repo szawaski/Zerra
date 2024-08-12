@@ -15,6 +15,6 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.Values
             => reader.TryRead(out value, out state.BytesNeeded);
 
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in double? value)
-            => writer.TryWrite(value.Value, out state.BytesNeeded);
+            => writer.TryWrite(value!.Value, out state.BytesNeeded);
     }
 }

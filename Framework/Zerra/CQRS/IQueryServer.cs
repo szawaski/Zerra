@@ -18,5 +18,5 @@ namespace Zerra.CQRS
         void Close();
     }
 
-    public delegate Task<RemoteQueryCallResponse> QueryHandlerDelegate(Type interfaceName, string methodName, string[] arguments, string source, bool isApi);
+    public delegate Task<RemoteQueryCallResponse> QueryHandlerDelegate(Type interfaceName, string methodName, string?[] arguments, string source, bool isApi);
 }

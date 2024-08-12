@@ -170,7 +170,7 @@ namespace Zerra.Reflection
                 throw new MissingMethodException($"{Type.Name} constructor not found for the given parameters {String.Join(",", parameterTypes.Select(x => x.GetNiceName()))}");
             return constructor;
         }
-        public new bool TryGetConstructor(
+        public bool TryGetConstructor(
 #if !NETSTANDARD2_0
             [MaybeNullWhen(false)] 
 #endif
@@ -179,7 +179,7 @@ namespace Zerra.Reflection
             constructor = GetConstructorInternal(null);
             return constructor != null;
         }
-        public new bool TryGetConstructor(Type[] parameterTypes,
+        public bool TryGetConstructor(Type[] parameterTypes,
 #if !NETSTANDARD2_0
             [MaybeNullWhen(false)]
 #endif

@@ -143,7 +143,7 @@ namespace Zerra.CQRS.AzureEventHub
 
                         if (isCommand)
                         {
-                            if (commandCounter == null || handlerAsync == null || handlerAwaitAsync == null)
+                            if (commandCounter == null || handlerAsync == null || handlerAwaitAsync == null || handlerWithResultAwaitAsync == null)
                                 throw new Exception($"{nameof(AzureEventHubConsumer)} is not setup");
 
                             if (!commandCounter.BeginReceive())
@@ -218,7 +218,7 @@ namespace Zerra.CQRS.AzureEventHub
                 if (isCommand)
                 {
                     if (message.HasResult)
-                        result = await handlerWithResultAwaitAsync((ICommand)commandOrEvent, message.Source, false);
+                        result = await handlerWithResultAwaitAsync!((ICommand)commandOrEvent, message.Source, false);
                     else if (awaitResponse)
                         await handlerAwaitAsync!((ICommand)commandOrEvent, message.Source, false);
                     else

@@ -301,7 +301,7 @@ namespace Zerra.Serialization.Json.Converters
                 if (typeFromValue.Type != typeDetail.Type)
                 {
                     var newConverter = JsonConverterFactory<TParent>.Get(typeFromValue, memberKey, getter, setter);
-                    if (!newConverter.TryWriteValueBoxed(ref writer, ref state, value))
+                    if (!newConverter.TryWriteValueBoxed(ref writer, ref state, value!))
                     {
                         if (StackRequired)
                             state.StashFrame();

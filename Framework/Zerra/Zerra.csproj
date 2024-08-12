@@ -106,4 +106,8 @@ Zerra.Reflection.TypeAnalyzer
         </None>
     </ItemGroup>
 
+    <PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+        <NoWarn>CS8600;CS8601;CS8602;CS8603;CS8604;CS8625</NoWarn>
+    </PropertyGroup>
+
 </Project>

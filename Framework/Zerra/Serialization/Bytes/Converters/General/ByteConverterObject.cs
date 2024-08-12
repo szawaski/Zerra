@@ -237,7 +237,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         throw new Exception($"Cannot deserialize with property undefined and no types.");
 
                     //consume bytes but object does not have property
-                    var converter = ByteConverterFactory<TValue>.GetTypeRequired();
+                    var converter = ByteConverterFactory<TValue>.GetDrainBytes();
                     if (!converter.TryReadFromParent(ref reader, ref state, default, false, true))
                     {
                         state.Current.HasReadProperty = true;

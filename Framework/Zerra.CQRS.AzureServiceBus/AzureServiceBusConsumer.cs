@@ -27,7 +27,7 @@ namespace Zerra.CQRS.AzureServiceBus
         private bool isOpen;
         private HandleRemoteCommandDispatch? commandHandlerAsync = null;
         private HandleRemoteCommandDispatch? commandHandlerAwaitAsync = null;
-        private HandleRemoteCommandWithResultDispatch commandHandlerWithResultAwaitAsync;
+        private HandleRemoteCommandWithResultDispatch? commandHandlerWithResultAwaitAsync;
         private HandleRemoteEventDispatch? eventHandlerAsync = null;
 
         private CommandCounter? commandCounter = null;

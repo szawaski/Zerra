@@ -11,7 +11,7 @@ namespace Zerra.CQRS.Network
     {
         public string? ProviderType { get; set; }
         public string? ProviderMethod { get; set; }
-        public string[]? ProviderArguments { get; set; }
+        public string?[]? ProviderArguments { get; set; }
 
         public string? MessageType { get; set; }
         public byte[]? MessageData { get; set; }
