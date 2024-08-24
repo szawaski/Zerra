@@ -91,7 +91,7 @@ namespace Zerra
             }
         }
 
-        public void AddProperties(params Expression<Func<T, object?>>[] properties) { AddProperties((IEnumerable<Expression<Func<T, object?>>>)properties); }
+        public void AddProperties(params Expression<Func<T, object?>>[] properties) => AddProperties((IEnumerable<Expression<Func<T, object?>>>)properties);
         public void AddProperties(IEnumerable<Expression<Func<T, object?>>> properties)
         {
             if (properties == null)
@@ -106,7 +106,7 @@ namespace Zerra
             }
             this.signature = null;
         }
-        public void RemoveProperties(params Expression<Func<T, object?>>[] properties) { RemoveProperties((IEnumerable<Expression<Func<T, object?>>>)properties); }
+        public void RemoveProperties(params Expression<Func<T, object?>>[] properties) => RemoveProperties((IEnumerable<Expression<Func<T, object?>>>)properties);
         public void RemoveProperties(IEnumerable<Expression<Func<T, object?>>> properties)
         {
             if (properties == null)
@@ -122,6 +122,33 @@ namespace Zerra
             this.signature = null;
         }
 
+        public void AddProperty(Expression<Func<T, object?>> property)
+        {
+            if (property == null)
+                throw new ArgumentNullException(nameof(property));
+
+            var members = new Stack<MemberInfo>();
+
+            ReadPropertyExpression(property, members);
+            AddMembers(members);
+            members.Clear();
+
+            this.signature = null;
+        }
+        public void RemoveProperties(Expression<Func<T, object?>> property)
+        {
+            if (property == null)
+                throw new ArgumentNullException(nameof(property));
+
+            var members = new Stack<MemberInfo>();
+
+            ReadPropertyExpression(property, members);
+            RemoveMembers(members);
+            members.Clear();
+
+            this.signature = null;
+        }
+
         public new Graph<T> Copy()
         {
             return new Graph<T>(this);
@@ -132,14 +159,6 @@ namespace Zerra
             return typeof(T);
         }
 
-        public Expression<Func<TSource, T>> GenerateSelect<TSource>() { return GenerateSelect<TSource, T>(); }
+        //public Expression<Func<TSource, T>> GenerateSelect<TSource>() { return GenerateSelect<TSource, T>(); }
     }
-
-    //public static class GraphExtensions
-    //{
-    //    public static T Graph<T>(this IEnumerable<T> it)
-    //    {
-    //        throw new InvalidOperationException($"{nameof(GraphExtensions)}.{nameof(Graph)} is an indicator and cannot be executed");
-    //    }
-    //}
 }

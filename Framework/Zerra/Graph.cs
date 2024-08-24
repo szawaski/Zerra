@@ -164,7 +164,7 @@ namespace Zerra
             }
         }
 
-        public void AddProperties(params string[] properties) { AddProperties((IEnumerable<string>)properties); }
+        public void AddProperties(params string[] properties) => AddProperties((IEnumerable<string>)properties);
         public void AddProperties(IEnumerable<string> properties)
         {
             if (properties == null)
@@ -174,7 +174,7 @@ namespace Zerra
                 AddProperty(property);
         }
 
-        public void RemoveProperties(params string[] properties) { RemoveProperties((IEnumerable<string>)properties); }
+        public void RemoveProperties(params string[] properties) => RemoveProperties((IEnumerable<string>)properties);
         public void RemoveProperties(IEnumerable<string> properties)
         {
             if (properties == null)
@@ -201,7 +201,7 @@ namespace Zerra
             }
         }
 
-        public void AddChildGraphs(params Graph[] graphs) { AddChildGraphs((IEnumerable<Graph>)graphs); }
+        public void AddChildGraphs(params Graph[] graphs) => AddChildGraphs((IEnumerable<Graph>)graphs);
         public void AddChildGraphs(IEnumerable<Graph> graphs)
         {
             if (graphs == null)
@@ -211,7 +211,7 @@ namespace Zerra
                 AddChildGraph(graph);
             this.signature = null;
         }
-        public void RemoveChildGraphs(params Graph[] graphs) { RemoveChildGraphs((IEnumerable<Graph>)graphs); }
+        public void RemoveChildGraphs(params Graph[] graphs) => RemoveChildGraphs((IEnumerable<Graph>)graphs);
         public void RemoveChildGraphs(IEnumerable<Graph> graphs)
         {
             if (graphs == null)
@@ -221,36 +221,23 @@ namespace Zerra
                 RemoveChildGraph(graph);
             this.signature = null;
         }
-
-        public void ReplaceChildGraphs(params Graph?[]? graphs)
+        public void ReplaceChildGraphs(params Graph[] graphs) => ReplaceChildGraphs((IEnumerable<Graph>)graphs);
+        public void ReplaceChildGraphs(IEnumerable<Graph> graphs)
         {
-            if (graphs == null || graphs.Length == 0)
-                return;
+            if (graphs == null)
+                throw new ArgumentNullException(nameof(graphs));
 
             foreach (var graph in graphs)
             {
-                if (graph == null)
+                if (graph is null)
                     continue;
-
-                if (String.IsNullOrWhiteSpace(graph.name))
-                    throw new InvalidOperationException("Cannot add a graph without a property name.");
-
-                if (childGraphs.ContainsKey(graph.name))
-                    _ = childGraphs.Remove(graph.name);
-
-                childGraphs.Add(graph.name, graph);
+                ReplaceChildGraph(graph);
             }
+
             this.signature = null;
         }
-        public void Clear()
-        {
-            localProperties.Clear();
-            removedProperties.Clear();
-            childGraphs.Clear();
-            signature = null;
-        }
 
-        private void AddProperty(string property)
+        public void AddProperty(string property)
         {
             if (childGraphs.TryGetValue(property, out var childGraph))
             {
@@ -261,15 +248,31 @@ namespace Zerra
                 _ = this.localProperties.Add(property);
                 _ = this.removedProperties.Remove(property);
             }
+            this.signature = null;
+
         }
-        private void RemoveProperty(string property)
+        public void RemoveProperty(string property)
         {
             _ = this.localProperties.Remove(property);
             _ = removedProperties.Add(property);
             if (childGraphs.ContainsKey(property))
                 _ = childGraphs.Remove(property);
+
+            this.signature = null;
         }
-        private void AddChildGraph(Graph graph)
+        public void ReplaceChildGraph(Graph graph)
+        {
+            if (String.IsNullOrWhiteSpace(graph.name))
+                throw new InvalidOperationException("Cannot add a graph without a property name.");
+
+            if (childGraphs.ContainsKey(graph.name))
+                _ = childGraphs.Remove(graph.name);
+
+            childGraphs.Add(graph.name, graph);
+
+            this.signature = null;
+        }
+        public void AddChildGraph(Graph graph)
         {
             if (String.IsNullOrWhiteSpace(graph.name))
                 throw new InvalidOperationException("Cannot add a child graph without a name.");
@@ -290,8 +293,10 @@ namespace Zerra
                 graph.SetModelTypeToChildGraphs(this);
                 childGraphs.Add(graph.name, graph);
             }
+
+            this.signature = null;
         }
-        private void RemoveChildGraph(Graph graph)
+        public void RemoveChildGraph(Graph graph)
         {
             if (String.IsNullOrWhiteSpace(graph.name))
                 throw new InvalidOperationException("Cannot remove a child graph without a name.");
@@ -300,7 +305,10 @@ namespace Zerra
             _ = removedProperties.Add(graph.name);
             if (childGraphs.ContainsKey(graph.name))
                 _ = childGraphs.Remove(graph.name);
+
+            this.signature = null;
         }
+
         protected void AddMembers(Stack<MemberInfo> members)
         {
             if (members.Count == 0)
@@ -407,11 +415,6 @@ namespace Zerra
             return genericGraph;
         }
 
-        public static Graph Empty()
-        {
-            return new Graph();
-        }
-
         public Graph Copy()
         {
             return new Graph(this);
@@ -494,171 +497,206 @@ namespace Zerra
             }
         }
 
-        public void MergePropertiesForIdenticalModelTypes()
-        {
-            var modelTypesWithGraphs = new Dictionary<string, List<Graph>>();
-            ListModelTypesWithGraphs(modelTypesWithGraphs);
+        //public void MergePropertiesForIdenticalModelTypes()
+        //{
+        //    var modelTypesWithGraphs = new Dictionary<string, List<Graph>>();
+        //    ListModelTypesWithGraphs(modelTypesWithGraphs);
 
-            foreach (var graphs in modelTypesWithGraphs)
-            {
-                foreach (var g in graphs.Value)
-                {
-                    g.MergePropertiesForIdenticalModelTypesRecursionCheck(graphs.Key);
-                }
-            }
+        //    foreach (var graphs in modelTypesWithGraphs)
+        //    {
+        //        foreach (var g in graphs.Value)
+        //        {
+        //            g.MergePropertiesForIdenticalModelTypesRecursionCheck(graphs.Key);
+        //        }
+        //    }
 
-            foreach (var graphs in modelTypesWithGraphs)
-            {
-                var allProperties = graphs.Value.SelectMany(x => x.localProperties).ToArray();
-                var allChildGraphs = graphs.Value.SelectMany(x => x.childGraphs.Values).ToArray();
-                graphs.Value.ForEach(x => x.AddProperties(allProperties));
-                graphs.Value.ForEach(x => x.AddChildGraphs(allChildGraphs));
-            }
-        }
-        private void MergePropertiesForIdenticalModelTypesRecursionCheck(string modelTypeName)
-        {
-            foreach (var childGraph in childGraphs.Values)
-            {
-                if (childGraph.type == modelTypeName)
-                {
-                    throw new Exception($"Graph has a recursive model type for {modelTypeName}. Cannot merge properties.");
-                }
-                childGraph.MergePropertiesForIdenticalModelTypesRecursionCheck(modelTypeName);
-            }
-        }
-        private void ListModelTypesWithGraphs(Dictionary<string, List<Graph>> results)
-        {
-            if (!String.IsNullOrWhiteSpace(type))
-            {
-                if (!results.ContainsKey(type))
-                    results.Add(type, new List<Graph>());
-                results[type].Add(this);
-            }
+        //    foreach (var graphs in modelTypesWithGraphs)
+        //    {
+        //        var allProperties = graphs.Value.SelectMany(x => x.localProperties).ToArray();
+        //        var allChildGraphs = graphs.Value.SelectMany(x => x.childGraphs.Values).ToArray();
+        //        graphs.Value.ForEach(x => x.AddProperties(allProperties));
+        //        graphs.Value.ForEach(x => x.AddChildGraphs(allChildGraphs));
+        //    }
+        //}
+        //private void MergePropertiesForIdenticalModelTypesRecursionCheck(string modelTypeName)
+        //{
+        //    foreach (var childGraph in childGraphs.Values)
+        //    {
+        //        if (childGraph.type == modelTypeName)
+        //        {
+        //            throw new Exception($"Graph has a recursive model type for {modelTypeName}. Cannot merge properties.");
+        //        }
+        //        childGraph.MergePropertiesForIdenticalModelTypesRecursionCheck(modelTypeName);
+        //    }
+        //}
+        //private void ListModelTypesWithGraphs(Dictionary<string, List<Graph>> results)
+        //{
+        //    if (!String.IsNullOrWhiteSpace(type))
+        //    {
+        //        if (!results.ContainsKey(type))
+        //            results.Add(type, new List<Graph>());
+        //        results[type].Add(this);
+        //    }
 
-            foreach (var childGraph in childGraphs.Values.Where(x => !String.IsNullOrWhiteSpace(x.type)))
-            {
-                childGraph.ListModelTypesWithGraphs(results);
-            }
-        }
+        //    foreach (var childGraph in childGraphs.Values.Where(x => !String.IsNullOrWhiteSpace(x.type)))
+        //    {
+        //        childGraph.ListModelTypesWithGraphs(results);
+        //    }
+        //}
 
-        private static readonly byte maxSelectRecursive = 2;
-        private static readonly MethodInfo selectMethod = typeof(Enumerable).GetMethods().Where(m => m.Name == "Select" && m.GetParameters().Length == 2).First();
-        private static readonly MethodInfo listMethod = typeof(Enumerable).GetMethods().Where(m => m.Name == "ToList").First();
-        private static readonly ConcurrentFactoryDictionary<TypeKey, Expression> selectExpressions = new();
-        public Expression<Func<TSource, TTarget>> GenerateSelect<TSource, TTarget>()
-        {
-            var key = new TypeKey(this.Signature, typeof(TSource), typeof(TTarget));
+        //private static readonly byte maxSelectRecursive = 2;
+        //private static readonly MethodInfo selectMethod = typeof(Enumerable).GetMethods().Where(m => m.Name == "Select" && m.GetParameters().Length == 2).First();
+        //private static readonly MethodInfo listMethod = typeof(Enumerable).GetMethods().Where(m => m.Name == "ToList" && m.GetParameters().Length == 1).First();
+        //private static readonly MethodInfo arrayMethod = typeof(Enumerable).GetMethods().Where(m => m.Name == "ToArray" && m.GetParameters().Length == 1).First();
+        //private static readonly MethodInfo hashSetMethod = typeof(Enumerable).GetMethods().Where(m => m.Name == "ToHashSet" && m.GetParameters().Length == 1).First();
+        //private static readonly ConcurrentFactoryDictionary<TypeKey, Expression> selectExpressions = new();
+        //public Expression<Func<TSource, TTarget>> GenerateSelect<TSource, TTarget>()
+        //{
+        //    var key = new TypeKey(this.Signature, typeof(TSource), typeof(TTarget));
 
-            var expression = (Expression<Func<TSource, TTarget>>)selectExpressions.GetOrAdd(key, (_) =>
-            {
-                return GenerateSelectorExpression<TSource, TTarget>(this);
-            });
+        //    var expression = (Expression<Func<TSource, TTarget>>)selectExpressions.GetOrAdd(key, (_) =>
+        //    {
+        //        return GenerateSelectorExpression<TSource, TTarget>(this);
+        //    });
 
-            return expression;
-        }
-        public static Expression<Func<TSource, TTarget>> GenerateSelect<TSource, TTarget>(Graph? graph)
-        {
-            var key = new TypeKey(graph?.Signature, typeof(TSource), typeof(TTarget));
+        //    return expression;
+        //}
+        //public static Expression<Func<TSource, TTarget>> GenerateSelect<TSource, TTarget>(Graph? graph)
+        //{
+        //    var key = new TypeKey(graph?.Signature, typeof(TSource), typeof(TTarget));
 
-            var expression = (Expression<Func<TSource, TTarget>>)selectExpressions.GetOrAdd(key, (_) =>
-            {
-                return GenerateSelectorExpression<TSource, TTarget>(graph);
-            });
+        //    var expression = (Expression<Func<TSource, TTarget>>)selectExpressions.GetOrAdd(key, (_) =>
+        //    {
+        //        return GenerateSelectorExpression<TSource, TTarget>(graph);
+        //    });
 
-            return expression;
-        }
-        private static Expression<Func<TSource, TTarget>> GenerateSelectorExpression<TSource, TTarget>(Graph? graph)
-        {
-            var typeSource = typeof(TSource);
-            var typeTarget = typeof(TTarget);
+        //    return expression;
+        //}
+        //private static Expression<Func<TSource, TTarget>> GenerateSelectorExpression<TSource, TTarget>(Graph? graph)
+        //{
+        //    var typeSource = typeof(TSource).GetTypeDetail();
+        //    var typeTarget = typeof(TTarget).GetTypeDetail();
 
-            var sourceParameterExpression = Expression.Parameter(typeSource, "x");
+        //    var sourceParameterExpression = Expression.Parameter(typeSource.Type, "x");
 
-            var selectorExpression = GenerateSelectorExpression(typeSource, typeTarget, sourceParameterExpression, graph, new Stack<Type>());
+        //    var selectorExpression = GenerateSelectorExpression(typeSource, typeTarget, sourceParameterExpression, graph, new Stack<Type>());
 
-            var lambda = Expression.Lambda<Func<TSource, TTarget>>(selectorExpression, sourceParameterExpression);
-            return lambda;
-        }
-        private static Expression GenerateSelectorExpression(Type typeSource, Type typeTarget, Expression sourceExpression, Graph? graph, Stack<Type> stack)
-        {
-            var sourceProperties = typeSource.GetProperties();
-            var targetProperites = typeTarget.GetProperties();
+        //    var lambda = Expression.Lambda<Func<TSource, TTarget>>(selectorExpression, sourceParameterExpression);
+        //    return lambda;
+        //}
+        //private static Expression GenerateSelectorExpression(TypeDetail typeSource, TypeDetail typeTarget, Expression sourceExpression, Graph? graph, Stack<Type> stack)
+        //{
+        //    stack.Push(typeSource.Type);
 
-            stack.Push(typeSource);
+        //    var bindings = new List<MemberBinding>();
 
-            var bindings = new List<MemberBinding>();
+        //    foreach (var targetProperty in typeTarget.MemberDetails)
+        //    {
+        //        if (typeSource.TryGetMember(targetProperty.Name, out var sourceProperty))
+        //        {
+        //            if (targetProperty.Type == sourceProperty.Type)
+        //            {
+        //                //Basic Property
+        //                if (graph == null || graph.HasLocalProperty(targetProperty.Name))
+        //                {
+        //                    Expression sourcePropertyExpression;
+        //                    if (sourceProperty.MemberInfo is PropertyInfo propertyInfo)
+        //                        sourcePropertyExpression = Expression.Property(sourceExpression, propertyInfo);
+        //                    else if (sourceProperty.MemberInfo is FieldInfo fieldInfo)
+        //                        sourcePropertyExpression = Expression.Field(sourceExpression, fieldInfo);
+        //                    else
+        //                        throw new InvalidOperationException();
 
-            foreach (var targetProperty in targetProperites.Where(x => x.CanWrite))
-            {
-                var sourceProperty = sourceProperties.FirstOrDefault(x => x.CanRead && x.Name == targetProperty.Name);
+        //                    MemberBinding binding = Expression.Bind(targetProperty.Type, sourcePropertyExpression);
+        //                    bindings.Add(binding);
+        //                }
+        //            }
+        //            else if (sourceProperty.TypeDetail.IsIEnumerableGeneric)
+        //            {
+        //                //Related Enumerable
+        //                var childGraph = graph?.GetChildGraph(targetProperty.Name);
+        //                if (childGraph != null)
+        //                {
+        //                    if (targetProperty.TypeDetail.IsIEnumerableGeneric)
+        //                    {
+        //                        var sourcePropertyGenericType = sourceProperty.TypeDetail.InnerTypeDetail;
+        //                        if (stack.Where(x => x == sourcePropertyGenericType.Type).Count() < maxSelectRecursive)
+        //                        {
+        //                            var targetPropertyGenericType = targetProperty.TypeDetail.InnerTypeDetail;
+        //                            Expression sourcePropertyExpression;
+        //                            if (sourceProperty.MemberInfo is PropertyInfo propertyInfo)
+        //                                sourcePropertyExpression = Expression.Property(sourceExpression, propertyInfo);
+        //                            else if (sourceProperty.MemberInfo is FieldInfo fieldInfo)
+        //                                sourcePropertyExpression = Expression.Field(sourceExpression, fieldInfo);
+        //                            else
+        //                                throw new InvalidOperationException();
 
-                if (sourceProperty != null)
-                {
-                    if (targetProperty.PropertyType == sourceProperty.PropertyType)
-                    {
-                        //Basic Property
-                        if (graph == null || graph.HasLocalProperty(targetProperty.Name))
-                        {
-                            Expression sourcePropertyExpression = Expression.Property(sourceExpression, sourceProperty);
+        //                            var sourcePropertyParameterExpression = Expression.Parameter(sourcePropertyGenericType.Type, "y");
+        //                            var mapperExpression = GenerateSelectorExpression(sourcePropertyGenericType, targetPropertyGenericType, sourcePropertyParameterExpression, childGraph, stack);
+        //                            Expression sourcePropertyLambda = Expression.Lambda(mapperExpression, new ParameterExpression[] { sourcePropertyParameterExpression });
 
-                            MemberBinding binding = Expression.Bind(targetProperty, sourcePropertyExpression);
-                            bindings.Add(binding);
-                        }
-                    }
-                    else if (sourceProperty.PropertyType.GetInterface(typeof(IEnumerable<>).MakeGenericType(targetProperty.PropertyType).Name) != null)
-                    {
-                        //Related Enumerable
-                        var childGraph = graph?.GetChildGraph(targetProperty.Name);
-                        if (childGraph != null)
-                        {
-                            if (targetProperty.PropertyType.IsGenericType)
-                            {
-                                var sourcePropertyGenericType = sourceProperty.PropertyType.GetGenericArguments()[0];
-                                if (stack.Where(x => x == sourcePropertyGenericType).Count() < maxSelectRecursive)
-                                {
-                                    var targetPropertyGenericType = targetProperty.PropertyType.GetGenericArguments()[0];
-                                    Expression sourcePropertyExpression = Expression.Property(sourceExpression, sourceProperty);
+        //                            var selectMethodGeneric = selectMethod.MakeGenericMethod(sourcePropertyGenericType.Type, targetPropertyGenericType.Type);
+        //                            var callSelect = Expression.Call(selectMethodGeneric, sourcePropertyExpression, sourcePropertyLambda);
 
-                                    var sourcePropertyParameterExpression = Expression.Parameter(sourcePropertyGenericType, "y");
-                                    var mapperExpression = GenerateSelectorExpression(sourcePropertyGenericType, targetPropertyGenericType, sourcePropertyParameterExpression, childGraph, stack);
-                                    Expression sourcePropertyLambda = Expression.Lambda(mapperExpression, new ParameterExpression[] { sourcePropertyParameterExpression });
+        //                            Expression toExpression;
+        //                            if (targetProperty.Type.IsArray)
+        //                            {
+        //                                toExpression = Expression.Call(arrayMethod.MakeGenericMethod(targetPropertyGenericType.Type), callSelect);
+        //                            }
+        //                            else if (targetProperty.TypeDetail.IsIListGeneric || targetProperty.Type.Name == "List`1")
+        //                            {
+        //                                toExpression = Expression.Call(arrayMethod.MakeGenericMethod(targetPropertyGenericType.Type), callSelect);
+        //                            }
+        //                            else if (targetProperty.TypeDetail.IsISetGeneric || targetProperty.Type.Name == "HashSet`1")
+        //                            {
+        //                                toExpression = Expression.Call(hashSetMethod.MakeGenericMethod(targetPropertyGenericType.Type), callSelect);
+        //                            }
+        //                            else if (targetProperty.TypeDetail.IsICollectionGeneric)
+        //                            {
+        //                                toExpression = Expression.Call(arrayMethod.MakeGenericMethod(targetPropertyGenericType.Type), callSelect);
+        //                            }
+        //                            else
+        //                            {
+        //                                throw new NotSupportedException($"Graph {nameof(GenerateSelect)} does not support type {targetProperty.Type.GetNiceName()}");
+        //                            }
 
-                                    var selectMethodGeneric = selectMethod.MakeGenericMethod(sourcePropertyGenericType, targetPropertyGenericType);
-                                    var callSelect = Expression.Call(selectMethodGeneric, sourcePropertyExpression, sourcePropertyLambda);
+        //                            MemberBinding binding = Expression.Bind(targetProperty.Type, toExpression);
+        //                            bindings.Add(binding);
+        //                        }
+        //                    }
+        //                }
+        //            }
+        //            else
+        //            {
+        //                //Related Single
+        //                var childGraph = graph?.GetChildGraph(targetProperty.Name);
+        //                if (childGraph != null)
+        //                {
+        //                    if (stack.Where(x => x == sourceProperty.Type).Count() < maxSelectRecursive)
+        //                    {
+        //                        Expression sourcePropertyExpression;
+        //                        if (sourceProperty.MemberInfo is PropertyInfo propertyInfo)
+        //                            sourcePropertyExpression = Expression.Property(sourceExpression, propertyInfo);
+        //                        else if (sourceProperty.MemberInfo is FieldInfo fieldInfo)
+        //                            sourcePropertyExpression = Expression.Field(sourceExpression, fieldInfo);
+        //                        else
+        //                            throw new InvalidOperationException();
 
-                                    var listMethodGeneric = listMethod.MakeGenericMethod(targetPropertyGenericType);
-                                    var listSelect = Expression.Call(listMethodGeneric, callSelect);
+        //                        Expression sourceNullIf = Expression.Equal(sourcePropertyExpression, Expression.Constant(null));
+        //                        var mapperExpression = GenerateSelectorExpression(sourceProperty.TypeDetail, targetProperty.TypeDetail, sourcePropertyExpression, childGraph, stack);
+        //                        Expression sourcePropertyConditionalExpression = Expression.Condition(sourceNullIf, Expression.Convert(Expression.Constant(null), targetProperty.PropertyType), mapperExpression, targetProperty.PropertyType);
+        //                        MemberBinding binding = Expression.Bind(targetProperty.MemberInfo, sourcePropertyConditionalExpression);
+        //                        bindings.Add(binding);
+        //                    }
+        //                }
+        //            }
+        //        }
+        //    }
 
-                                    MemberBinding binding = Expression.Bind(targetProperty, listSelect);
-                                    bindings.Add(binding);
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        //Related Single
-                        var childGraph = graph?.GetChildGraph(targetProperty.Name);
-                        if (childGraph != null)
-                        {
-                            if (stack.Where(x => x == sourceProperty.PropertyType).Count() < maxSelectRecursive)
-                            {
-                                Expression sourcePropertyExpression = Expression.Property(sourceExpression, sourceProperty);
-                                Expression sourceNullIf = Expression.Equal(sourcePropertyExpression, Expression.Constant(null));
-                                var mapperExpression = GenerateSelectorExpression(sourceProperty.PropertyType, targetProperty.PropertyType, sourcePropertyExpression, childGraph, stack);
-                                Expression sourcePropertyConditionalExpression = Expression.Condition(sourceNullIf, Expression.Convert(Expression.Constant(null), targetProperty.PropertyType), mapperExpression, targetProperty.PropertyType);
-                                MemberBinding binding = Expression.Bind(targetProperty, sourcePropertyConditionalExpression);
-                                bindings.Add(binding);
-                            }
-                        }
-                    }
-                }
-            }
+        //    _ = stack.Pop();
 
-            _ = stack.Pop();
-
-            var initializer = Expression.MemberInit(Expression.New(typeTarget), bindings);
-            return initializer;
-        }
+        //    var initializer = Expression.MemberInit(Expression.New(typeTarget.Type), bindings);
+        //    return initializer;
+        //}
     }
 }

@@ -211,7 +211,7 @@ namespace Zerra.Map
             }
             else
             {
-                var map = compiledGraphMaps.GetOrAdd(graph ?? Graph.Empty(), (graph) => { return CompileMap(graph); });
+                var map = compiledGraphMaps.GetOrAdd(graph, (graph) => { return CompileMap(graph); });
                 return map(source, target, new Dictionary<MapRecursionKey, object>());
             }
         }
@@ -241,7 +241,7 @@ namespace Zerra.Map
             }
             else
             {
-                var map = compiledGraphMaps.GetOrAdd(graph ?? Graph.Empty(), (graph) => { return CompileMap(graph); });
+                var map = compiledGraphMaps.GetOrAdd(graph, (graph) => { return CompileMap(graph); });
                 return map(source, target, recursionDictionary);
             }
         }

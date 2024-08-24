@@ -170,7 +170,8 @@ namespace Zerra.Repository
                         if (relatedProvider is IProviderRelation relatedProviderGeneric)
                         {
                             relatedProviderGeneric.OnQueryIncludingBase(relatedGraph);
-                            graph.ReplaceChildGraphs(relatedGraph);
+                            if (relatedGraph is not null)
+                                graph.ReplaceChildGraph(relatedGraph);
                         }
                     }
                 }
