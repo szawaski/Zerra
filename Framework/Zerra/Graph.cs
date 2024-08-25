@@ -456,24 +456,26 @@ namespace Zerra
         {
             foreach (var property in this.LocalProperties)
             {
-                for (var i = 0; i < depth * 3; i++)
-                    _ = sb.Append(' ');
+                if (sb.Length > 0)
+                    _ = sb.Append(Environment.NewLine);
+                for (var i = 0; i < depth; i++)
+                    _ = sb.Append("  ");
 
                 _ = sb.Append(property);
-                _ = sb.Append(Environment.NewLine);
             }
             if (this.childGraphs is not null)
             {
                 foreach (var childGraph in this.childGraphs.Values)
                 {
+                    if (sb.Length > 0)
+                        _ = sb.Append(Environment.NewLine);
                     if (String.IsNullOrEmpty(childGraph.name))
                         continue;
 
-                    for (var i = 0; i < depth * 3; i++)
-                        _ = sb.Append(' ');
+                    for (var i = 0; i < depth; i++)
+                        _ = sb.Append("  ");
 
                     _ = sb.Append(childGraph.name);
-                    _ = sb.Append(Environment.NewLine);
                     childGraph.ToString(sb, depth + 1);
                 }
             }

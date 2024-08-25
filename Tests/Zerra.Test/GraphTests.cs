@@ -136,7 +136,21 @@ namespace Zerra.Test
             Assert.IsTrue(graph1 == graph2);
             Assert.IsFalse(graph1 == graph3);
             Assert.IsTrue(graph1 != graph3);
+        }
 
+        [TestMethod]
+        public void ToStringer()
+        {
+            var graph = new Graph<TypesAllModel>(
+                x => x.BooleanThing,
+                x => x.ClassArray.Select(x => x.Value1)
+            );
+
+            var str = graph.ToString();
+            const string strCheck = @"BooleanThing
+ClassArray
+  Value1";
+            Assert.AreEqual(strCheck, str);
         }
 
         private void TestBasic(Graph graph)
