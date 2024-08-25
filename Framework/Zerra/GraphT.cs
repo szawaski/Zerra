@@ -9,26 +9,22 @@ using System.Reflection;
 
 namespace Zerra
 {
-    public class Graph<T> : Graph
+    public sealed class Graph<T> : Graph
     {
-        public Graph(Graph graph)
+        public Graph(Graph? graph)
             : base(graph)
         {
         }
 
-        public Graph() : this(null, false, (string[]?)null) { }
-        public Graph(bool includeProperties) : this(null, includeProperties, (string[]?)null) { }
-        public Graph(string? name, bool includeProperties) : this(name, includeProperties, (string[]?)null) { }
-        public Graph(params string[] properties) : this(null, false, properties) { }
-        public Graph(bool includeAllProperties, params string[]? properties) : this(null, includeAllProperties, properties) { }
-        public Graph(string? name, bool includeAllProperties, params string[]? properties)
-            : base(name, includeAllProperties, null)
+        public Graph() : this(null, false, (IEnumerable<Expression<Func<T, object?>>>?)null)
         {
-            this.type = GetModelType().FullName;
-
-            if (properties != null)
-                AddProperties(properties);
+            this.signature = "";
         }
+        public Graph(bool includeProperties) : this(null, includeProperties, (IEnumerable<Expression<Func<T, object?>>>?)null)
+        {
+            this.signature = "A";
+        }
+        public Graph(string? name, bool includeProperties) : this(name, includeProperties, (IEnumerable<Expression<Func<T, object?>>>?)null) { }
 
         public Graph(params Expression<Func<T, object?>>[]? properties) : this(null, false, (ICollection<Expression<Func<T, object?>>>?)properties) { }
         public Graph(string? name, params Expression<Func<T, object?>>[]? properties) : this(name, false, (ICollection<Expression<Func<T, object?>>>?)properties) { }
@@ -39,7 +35,7 @@ namespace Zerra
         public Graph(string? name, IEnumerable<Expression<Func<T, object?>>>? properties) : this(name, false, properties) { }
         public Graph(bool includeAllProperties, IEnumerable<Expression<Func<T, object?>>>? properties) : this(null, includeAllProperties, properties) { }
         public Graph(string? name, bool includeAllProperties, IEnumerable<Expression<Func<T, object?>>>? properties)
-            : base(name, includeAllProperties, (IReadOnlyCollection<string>?)null, null)
+            : base(name, includeAllProperties, (IEnumerable<string>?)null, null)
         {
             this.type = GetModelType().FullName;
 

@@ -990,7 +990,7 @@ namespace Zerra.Map
                 if (depth >= maxBuildDepthBeforeCall)
                 {
                     var sourceMapExpression = Expression.Call(sourceMapType.GetMethod(nameof(GetMap)).MethodInfo);
-                    var graphExpression = Expression.Constant(graph == null ? null : new Graph(graph), graphType);
+                    var graphExpression = Expression.Constant(graph, graphType);
                     sourceBlockMap = Expression.Call(sourceMapExpression, sourceMapType.GetMethod(nameof(CopyInternal)).MethodInfo, source, newTarget, logger, graphExpression, recursionDictionary);
                 }
                 else
