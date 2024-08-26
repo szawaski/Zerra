@@ -29,9 +29,15 @@ namespace Zerra.Test
 
             foreach (var member in TypeAnalyzer<TypesAllModel>.GetTypeDetail().MemberDetails)
             {
+                Assert.IsTrue(graph.HasLocalProperty(member.Name));
                 Assert.IsTrue(graph.HasProperty(member.Name));
                 Assert.IsTrue(graph.LocalProperties.Contains(member.Name));
             }
+
+            graph.AddChildGraph(new Graph<SimpleModel>(nameof(TypesAllModel.ClassArray), x => x.Value1));
+            Assert.IsFalse(graph.HasLocalProperty(nameof(TypesAllModel.ClassArray)));
+            Assert.IsTrue(graph.HasProperty(nameof(TypesAllModel.ClassArray)));
+            Assert.IsFalse(graph.LocalProperties.Contains(nameof(TypesAllModel.ClassArray)));
         }
 
         [TestMethod]
