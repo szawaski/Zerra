@@ -734,6 +734,29 @@ namespace Zerra.Test
         }
 
         [TestMethod]
+        public void StringInstanceGraph()
+        {
+            var graph = new Graph<TypesAllModel>(true);
+
+            var model1 = TypesAllModel.Create();
+            graph.AddInstanceGraph(model1, new Graph<TypesAllModel>(
+                x => x.Int32Thing,
+                x => x.ClassThing.Value2
+            ));
+
+            var json = JsonSerializer.Serialize(model1, null, graph);
+            var model2 = JsonSerializer.Deserialize<TypesAllModel>(json);
+            AssertHelper.AreEqual(model1.Int32Thing, model2.Int32Thing);
+            AssertHelper.AreNotEqual(model1.Int64Thing, model2.Int64Thing);
+            Assert.IsNotNull(model2.ClassThing);
+            AssertHelper.AreEqual(model1.ClassThing.Value2, model2.ClassThing.Value2);
+
+            var json2 = JsonSerializer.Serialize(model1);
+            var model3 = JsonSerializer.Deserialize<TypesAllModel>(json2, null, graph);
+            AssertHelper.AreEqual(model1, model3);
+        }
+
+        [TestMethod]
         public void StringJsonObject()
         {
             var baseModel = TypesAllModel.Create();
@@ -1651,6 +1674,33 @@ namespace Zerra.Test
             AssertHelper.AreNotEqual(model1.Int64Thing, model3.Int64Thing);
             Assert.IsNotNull(model3.ClassThing);
             AssertHelper.AreEqual(model1.ClassThing.Value2, model3.ClassThing.Value2);
+        }
+
+        [TestMethod]
+        public async Task StreamInstanceGraph()
+        {
+            var graph = new Graph<TypesAllModel>(true);
+
+            var model1 = TypesAllModel.Create();
+            graph.AddInstanceGraph(model1, new Graph<TypesAllModel>(
+                x => x.Int32Thing,
+                x => x.ClassThing.Value2
+            ));
+
+            using var stream1 = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream1, model1, null, graph);
+            stream1.Position = 0;
+            var model2 = await JsonSerializer.DeserializeAsync<TypesAllModel>(stream1);
+            AssertHelper.AreEqual(model1.Int32Thing, model2.Int32Thing);
+            AssertHelper.AreNotEqual(model1.Int64Thing, model2.Int64Thing);
+            Assert.IsNotNull(model2.ClassThing);
+            AssertHelper.AreEqual(model1.ClassThing.Value2, model2.ClassThing.Value2);
+
+            using var stream2 = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream2, model1);
+            stream2.Position = 0;
+            var model3 = await JsonSerializer.DeserializeAsync<TypesAllModel>(stream2, null, graph);
+            AssertHelper.AreEqual(model1, model3);
         }
 
         [TestMethod]

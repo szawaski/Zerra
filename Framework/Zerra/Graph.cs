@@ -22,6 +22,7 @@ namespace Zerra
         protected HashSet<string>? localProperties;
         protected HashSet<string>? removedProperties;
         protected Dictionary<string, Graph>? childGraphs;
+        protected Dictionary<object, Graph>? instanceGraphs;
 
         public bool IncludeAllProperties => includeAllProperties;
         public IEnumerable<string> LocalProperties
@@ -109,7 +110,10 @@ namespace Zerra
                 AddProperties(properties);
 
             if (childGraphs != null)
-                AddChildGraphs(childGraphs);
+            {
+                foreach (var graph in childGraphs)
+                    AddChildGraph(graph);
+            }
         }
 
         public bool IsEmpty => !includeAllProperties && (localProperties?.Count ?? 0) == 0 && (childGraphs?.Count ?? 0) == 0;
@@ -130,7 +134,7 @@ namespace Zerra
                 return graph2 is null;
             if (graph2 is null)
                 return false;
-            return graph1.Equals(graph2);
+            return graph1.Signature == graph2.Signature;
         }
         public static bool operator !=(Graph? graph1, Graph? graph2)
         {
@@ -138,7 +142,7 @@ namespace Zerra
                 return graph2 is not null;
             if (graph2 is null)
                 return true;
-            return !graph1.Equals(graph2);
+            return graph1.Signature != graph2.Signature;
         }
 
         protected void GenerateSignature()
@@ -149,6 +153,9 @@ namespace Zerra
         }
         private void GenerateSignatureBuilder(StringBuilder sb)
         {
+            if (this.instanceGraphs is not null)
+                throw new InvalidOperationException("Graphs with instances cannot be compared so cannot be used here");
+
             if (!String.IsNullOrEmpty(this.name))
             {
                 _ = sb.Append("N:");
@@ -156,7 +163,7 @@ namespace Zerra
             }
 
             if (this.includeAllProperties)
-                _ = sb.Append("A");
+                _ = sb.Append("A:");
 
             if (this.localProperties is not null)
             {
@@ -180,8 +187,7 @@ namespace Zerra
             {
                 foreach (var graph in this.childGraphs.Values.OrderBy(x => x.name))
                 {
-                    _ = sb.Append("G:");
-                    _ = sb.Append("(");
+                    _ = sb.Append("G:(");
                     graph.GenerateSignatureBuilder(sb);
                     _ = sb.Append(")");
                 }
@@ -222,38 +228,6 @@ namespace Zerra
             {
                 includeAllProperties = false;
                 this.signature = null;
-            }
-        }
-
-        public void AddChildGraphs(params Graph[] graphs) => AddChildGraphs((IEnumerable<Graph>)graphs);
-        public void AddChildGraphs(IEnumerable<Graph> graphs)
-        {
-            if (graphs == null)
-                throw new ArgumentNullException(nameof(graphs));
-
-            foreach (var graph in graphs)
-                AddChildGraph(graph);
-        }
-        public void RemoveChildGraphs(params Graph[] graphs) => RemoveChildGraphs((IEnumerable<Graph>)graphs);
-        public void RemoveChildGraphs(IEnumerable<Graph> graphs)
-        {
-            if (graphs == null)
-                throw new ArgumentNullException(nameof(graphs));
-
-            foreach (var graph in graphs)
-                RemoveChildGraph(graph);
-        }
-        public void ReplaceChildGraphs(params Graph[] graphs) => ReplaceChildGraphs((IEnumerable<Graph>)graphs);
-        public void ReplaceChildGraphs(IEnumerable<Graph> graphs)
-        {
-            if (graphs == null)
-                throw new ArgumentNullException(nameof(graphs));
-
-            foreach (var graph in graphs)
-            {
-                if (graph is null)
-                    continue;
-                ReplaceChildGraph(graph);
             }
         }
 
@@ -331,6 +305,19 @@ namespace Zerra
             _ = removedProperties?.Add(graph.name);
             _ = childGraphs?.Remove(graph.name);
 
+            this.signature = null;
+        }
+        public void AddInstanceGraph(object instance, Graph graph)
+        {
+            instanceGraphs ??= new();
+            instanceGraphs[instance] = graph;
+            this.signature = null;
+        }
+        public void RemoveInstanceGraph(object instance)
+        {
+            if (instanceGraphs is null)
+                return;
+            _ = instanceGraphs.Remove(instance);
             this.signature = null;
         }
 
@@ -423,6 +410,8 @@ namespace Zerra
                 return null;
             if (!childGraphs.TryGetValue(name, out var nonGenericGraph))
                 return null;
+            if (nonGenericGraph.GetModelType() == type)
+                return nonGenericGraph;
             return Convert(nonGenericGraph, type);
         }
         public Graph<T>? GetChildGraph<T>(string name)
@@ -431,6 +420,56 @@ namespace Zerra
                 return null;
             if (!childGraphs.TryGetValue(name, out var nonGenericGraph))
                 return null;
+            if (nonGenericGraph.GetModelType() == typeof(T))
+                return (Graph<T>)nonGenericGraph;
+            return new Graph<T>(nonGenericGraph);
+        }
+
+        public Graph GetInstanceGraph(object instance)
+        {
+            if (instanceGraphs is not null && instanceGraphs.TryGetValue(instance, out var instanceGraph))
+                return instanceGraph;
+            return this;
+        }
+        public Graph? GetChildInstanceGraph(string name, object instance)
+        {
+            if (childGraphs is null || childGraphs.Count == 0)
+                return null;
+            if (!childGraphs.TryGetValue(name, out var childGraph))
+                return null;
+
+            if (childGraph.instanceGraphs is not null && childGraph.instanceGraphs.TryGetValue(instance, out var instanceGraph))
+                return instanceGraph;
+            return childGraph;
+        }
+        public Graph? GetChildInstanceGraph(string name, Type type, object instance)
+        {
+            if (childGraphs is null || childGraphs.Count == 0)
+                return null;
+            if (!childGraphs.TryGetValue(name, out var nonGenericGraph))
+                return null;
+            if (nonGenericGraph.GetModelType() == type)
+                return nonGenericGraph;
+
+            if (nonGenericGraph.instanceGraphs is not null && nonGenericGraph.instanceGraphs.TryGetValue(instance, out var instanceGraph))
+                return Convert(instanceGraph, type);
+            return Convert(nonGenericGraph, type);
+        }
+        public Graph<T>? GetChildInstanceGraph<T>(string name, object instance)
+        {
+            if (childGraphs is null || childGraphs.Count == 0)
+                return null;
+            if (!childGraphs.TryGetValue(name, out var nonGenericGraph))
+                return null;
+
+            if (nonGenericGraph.instanceGraphs is not null && nonGenericGraph.instanceGraphs.TryGetValue(instance, out var instanceGraph))
+            {
+                if (instanceGraph.GetModelType() == typeof(T))
+                    return (Graph<T>)instanceGraph;
+                return new Graph<T>(instanceGraph);
+            }
+            if (nonGenericGraph.GetModelType() == typeof(T))
+                return (Graph<T>)nonGenericGraph;
             return new Graph<T>(nonGenericGraph);
         }
 

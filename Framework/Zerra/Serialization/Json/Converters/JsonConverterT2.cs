@@ -485,7 +485,7 @@ namespace Zerra.Serialization.Json.Converters
                     throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
                 if (propertyName is not null)
                 {
-                    var childGraph = state.Current.Graph?.GetChildGraph(propertyName);
+                    var childGraph = value is null ? state.Current.Graph?.GetChildGraph(propertyName) : state.Current.Graph?.GetChildInstanceGraph(propertyName, value);
                     state.PushFrame(childGraph);
                 }
                 else

@@ -85,6 +85,37 @@ namespace Zerra.Test
         }
 
         [TestMethod]
+        public void AddInstanceGraph()
+        {
+            var graph = new Graph<TypesAllModel>(new Graph<TypesAllModel>(
+                x => x.BooleanThing,
+                x => x.ClassArray.Select(x => x.Value1)
+            ));
+
+            var instance = TypesAllModel.Create();
+            graph.AddInstanceGraph(instance, new Graph<TypesAllModel>(
+                x => x.ClassArray.Select(x => x.Value1)
+            ));
+            var instanceGraph = graph.GetInstanceGraph(instance);
+
+            TestBasic(graph);
+            Assert.IsFalse(instanceGraph.HasProperty(nameof(TypesAllModel.BooleanThing)));
+            Assert.IsTrue(instanceGraph.HasProperty(nameof(TypesAllModel.ClassArray)));
+
+            var instance2 = TypesAllModel.Create();
+            var instanceGraph2 = graph.GetInstanceGraph(instance2);
+            TestBasic(instanceGraph2);
+
+            var childGraph = graph.GetChildGraph(nameof(TypesAllModel.ClassArray));
+            var childInstance = new SimpleModel() { Value1 = 1, Value2 = "2" };
+            childGraph.AddInstanceGraph(childInstance, new Graph<SimpleModel>(x => x.Value2));
+
+            var childInstanceGraph = graph.GetChildInstanceGraph(nameof(TypesAllModel.ClassArray), childInstance);
+            Assert.IsFalse(childInstanceGraph.HasProperty(nameof(SimpleModel.Value1)));
+            Assert.IsTrue(childInstanceGraph.HasProperty(nameof(SimpleModel.Value2)));
+        }
+
+        [TestMethod]
         public void Copy()
         {
             var graph = new Graph<TypesAllModel>(

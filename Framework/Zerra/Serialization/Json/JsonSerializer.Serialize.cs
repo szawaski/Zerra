@@ -34,7 +34,7 @@ namespace Zerra.Serialization.Json
                 Nameless = options.Nameless,
                 DoNotWriteNullProperties = options.DoNotWriteNullProperties,
                 EnumAsNumber = options.EnumAsNumber,
-                Graph = graph
+                Graph = graph?.GetInstanceGraph(obj)
             };
 
             var result = Write(converter, defaultBufferSize, ref state, obj);
@@ -59,7 +59,7 @@ namespace Zerra.Serialization.Json
                 Nameless = options.Nameless,
                 DoNotWriteNullProperties = options.DoNotWriteNullProperties,
                 EnumAsNumber = options.EnumAsNumber,
-                Graph = graph
+                Graph = graph?.GetInstanceGraph(obj)
             };
 
             var result = WriteBoxed(converter, defaultBufferSize, ref state, obj);
@@ -87,7 +87,7 @@ namespace Zerra.Serialization.Json
                 Nameless = options.Nameless,
                 DoNotWriteNullProperties = options.DoNotWriteNullProperties,
                 EnumAsNumber = options.EnumAsNumber,
-                Graph = graph
+                Graph = graph?.GetInstanceGraph(obj)
             };
 
             var result = WriteBoxed(converter, defaultBufferSize, ref state, obj);
@@ -113,7 +113,7 @@ namespace Zerra.Serialization.Json
                 Nameless = options.Nameless,
                 DoNotWriteNullProperties = options.DoNotWriteNullProperties,
                 EnumAsNumber = options.EnumAsNumber,
-                Graph = graph
+                Graph = graph?.GetInstanceGraph(obj)
             };
 
             var result = WriteBytes(converter, defaultBufferSize, ref state, obj);
@@ -138,7 +138,7 @@ namespace Zerra.Serialization.Json
                 Nameless = options.Nameless,
                 DoNotWriteNullProperties = options.DoNotWriteNullProperties,
                 EnumAsNumber = options.EnumAsNumber,
-                Graph = graph
+                Graph = graph?.GetInstanceGraph(obj)
             };
 
             var result = WriteBoxedBytes(converter, defaultBufferSize, ref state, obj);
@@ -166,7 +166,7 @@ namespace Zerra.Serialization.Json
                 Nameless = options.Nameless,
                 DoNotWriteNullProperties = options.DoNotWriteNullProperties,
                 EnumAsNumber = options.EnumAsNumber,
-                Graph = graph
+                Graph = graph?.GetInstanceGraph(obj)
             };
 
             var result = WriteBoxedBytes(converter, defaultBufferSize, ref state, obj);
@@ -198,7 +198,7 @@ namespace Zerra.Serialization.Json
                     Nameless = options.Nameless,
                     DoNotWriteNullProperties = options.DoNotWriteNullProperties,
                     EnumAsNumber = options.EnumAsNumber,
-                    Graph = graph
+                    Graph = graph?.GetInstanceGraph(obj)
                 };
 
                 for (; ; )
@@ -247,7 +247,7 @@ namespace Zerra.Serialization.Json
                     Nameless = options.Nameless,
                     DoNotWriteNullProperties = options.DoNotWriteNullProperties,
                     EnumAsNumber = options.EnumAsNumber,
-                    Graph = graph
+                    Graph = graph?.GetInstanceGraph(obj)
                 };
 
                 for (; ; )
@@ -298,7 +298,7 @@ namespace Zerra.Serialization.Json
                     Nameless = options.Nameless,
                     DoNotWriteNullProperties = options.DoNotWriteNullProperties,
                     EnumAsNumber = options.EnumAsNumber,
-                    Graph = graph
+                    Graph = graph?.GetInstanceGraph(obj)
                 };
 
                 for (; ; )
@@ -355,7 +355,7 @@ namespace Zerra.Serialization.Json
                     Nameless = options.Nameless,
                     DoNotWriteNullProperties = options.DoNotWriteNullProperties,
                     EnumAsNumber = options.EnumAsNumber,
-                    Graph = graph
+                    Graph = graph?.GetInstanceGraph(obj)
                 };
 
                 for (; ; )
@@ -411,7 +411,7 @@ namespace Zerra.Serialization.Json
                     Nameless = options.Nameless,
                     DoNotWriteNullProperties = options.DoNotWriteNullProperties,
                     EnumAsNumber = options.EnumAsNumber,
-                    Graph = graph
+                    Graph = graph?.GetInstanceGraph(obj)
                 };
 
                 for (; ; )
@@ -469,7 +469,7 @@ namespace Zerra.Serialization.Json
                     Nameless = options.Nameless,
                     DoNotWriteNullProperties = options.DoNotWriteNullProperties,
                     EnumAsNumber = options.EnumAsNumber,
-                    Graph = graph
+                    Graph = graph?.GetInstanceGraph(obj)
                 };
 
                 for (; ; )
