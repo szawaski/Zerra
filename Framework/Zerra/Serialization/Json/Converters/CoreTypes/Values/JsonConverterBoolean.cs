@@ -36,7 +36,7 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                         throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
                     return true;
                 case JsonValueType.Number:
-                    if (!ReadNumberAsDouble(ref reader, ref state, valueType, out var number))
+                    if (!ReadNumberAsDouble(ref reader, ref state, out var number))
                     {
                         value = default;
                         return false;

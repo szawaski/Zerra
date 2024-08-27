@@ -44,6 +44,10 @@ namespace Zerra.Serialization.Json.IO
             if (useBytes)
             {
                 var charPostion = Math.Max(position - 1, 0);
+
+                if (bufferBytes.Length - charPostion < 4)
+                    return new FormatException($"JSON Error: {message}");
+              
 #if NETSTANDARD2_0
                 var character = encoding.GetString(bufferBytes.Slice(charPostion, 4).ToArray())[0];
 #else

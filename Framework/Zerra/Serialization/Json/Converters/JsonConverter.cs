@@ -452,7 +452,7 @@ namespace Zerra.Serialization.Json.Converters
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static bool ReadNumberAsInt64(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out long value)
+        protected static bool ReadNumberAsInt64(ref JsonReader reader, ref ReadState state, out long value)
         {
             double workingNumber;
             char c;
@@ -462,13 +462,8 @@ namespace Zerra.Serialization.Json.Converters
                 state.NumberWorkingDouble = 0;
                 state.NumberIsNegative = false;
                 state.NumberWorkingIsNegative = false;
-                state.NumberParseFailed = false;
                 value = 0;
                 workingNumber = 0;
-                if (valueType == JsonValueType.String)
-                    state.NumberStage = ReadNumberStage.ValueContinue;
-                else if (valueType != JsonValueType.Number)
-                    reader.CreateException("Bad JsonSerializer state");
             }
             else
             {
@@ -495,13 +490,9 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (state.IsFinalBlock && reader.Position == reader.Length)
                 {
-                    if (valueType == JsonValueType.String)
-                        throw reader.CreateException("Unexpected character");
                     if (state.NumberIsNegative)
                         value *= -1;
                     state.NumberStage = ReadNumberStage.Setup;
-                    if (state.NumberParseFailed)
-                        value = default;
                     return true;
                 }
                 state.CharsNeeded = 1;
@@ -526,18 +517,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.NumberIsNegative = true;
                     break;
                 default:
-                    if (valueType == JsonValueType.String)
-                    {
-                        if (state.ErrorOnTypeMismatch)
-                            throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
-                        else
-                            state.NumberParseFailed = true;
-                    }
-                    else
-                    {
-                        throw reader.CreateException("Unexpected character");
-                    }
-                    break;
+                    throw reader.CreateException("Unexpected character");
             }
 
         startValueContinue:
@@ -547,13 +527,9 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock && reader.Position == reader.Length)
                     {
-                        if (valueType == JsonValueType.String)
-                            throw reader.CreateException("Unexpected character");
                         if (state.NumberIsNegative)
                             value *= -1;
                         state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
                         return true;
                     }
                     state.CharsNeeded = 1;
@@ -583,13 +559,9 @@ namespace Zerra.Serialization.Json.Converters
                     case '\r':
                     case '\n':
                     case '\t':
-                        if (valueType == JsonValueType.String)
-                            throw reader.CreateException("Unexpected character");
                         if (state.NumberIsNegative)
                             value *= -1;
                         state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
                         return true;
                     case ',':
                     case '}':
@@ -598,31 +570,9 @@ namespace Zerra.Serialization.Json.Converters
                         if (state.NumberIsNegative)
                             value *= -1;
                         state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
-                        return true;
-                    case '"':
-                        if (valueType != JsonValueType.String)
-                            throw reader.CreateException("Unexpected character");
-                        if (state.NumberIsNegative)
-                            value *= -1;
-                        state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
                         return true;
                     default:
-                        if (valueType == JsonValueType.String)
-                        {
-                            if (state.ErrorOnTypeMismatch)
-                                throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
-                            else
-                                state.NumberParseFailed = true;
-                        }
-                        else
-                        {
-                            throw reader.CreateException("Unexpected character");
-                        }
-                        break;
+                        throw reader.CreateException("Unexpected character");
                 }
             }
 
@@ -633,13 +583,9 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock && reader.Position == reader.Length)
                     {
-                        if (valueType == JsonValueType.String)
-                            throw reader.CreateException("Unexpected character");
                         if (state.NumberIsNegative)
                             value *= -1;
                         state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
                         return true;
                     }
                     state.CharsNeeded = 1;
@@ -666,42 +612,16 @@ namespace Zerra.Serialization.Json.Converters
                     case '\r':
                     case '\n':
                     case '\t':
-                        if (valueType == JsonValueType.String)
-                            throw reader.CreateException("Unexpected character");
                         state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
                         return true;
                     case ',':
                     case '}':
                     case ']':
                         reader.BackOne();
                         state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
-                        return true;
-                    case '"':
-                        if (valueType != JsonValueType.String)
-                            throw reader.CreateException("Unexpected character");
-                        if (state.NumberIsNegative)
-                            value *= -1;
-                        state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
                         return true;
                     default:
-                        if (valueType == JsonValueType.String)
-                        {
-                            if (state.ErrorOnTypeMismatch)
-                                throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
-                            else
-                                state.NumberParseFailed = true;
-                        }
-                        else
-                        {
-                            throw reader.CreateException("Unexpected character");
-                        }
-                        break;
+                        throw reader.CreateException("Unexpected character");
                 }
             }
 
@@ -710,13 +630,9 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (state.IsFinalBlock && reader.Position == reader.Length)
                 {
-                    if (valueType == JsonValueType.String)
-                        throw reader.CreateException("Unexpected character");
                     if (state.NumberIsNegative)
                         value *= -1;
                     state.NumberStage = ReadNumberStage.Setup;
-                    if (state.NumberParseFailed)
-                        value = default;
                     return true;
                 }
                 state.CharsNeeded = 1;
@@ -742,18 +658,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.NumberWorkingIsNegative = true;
                     break;
                 default:
-                    if (valueType == JsonValueType.String)
-                    {
-                        if (state.ErrorOnTypeMismatch)
-                            throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
-                        else
-                            state.NumberParseFailed = true;
-                    }
-                    else
-                    {
-                        throw reader.CreateException("Unexpected character");
-                    }
-                    break;
+                    throw reader.CreateException("Unexpected character");
             }
 
         startExponentContinue:
@@ -763,16 +668,12 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock && reader.Position == reader.Length)
                     {
-                        if (valueType == JsonValueType.String)
-                            throw reader.CreateException("Unexpected character");
                         if (state.NumberWorkingIsNegative)
                             workingNumber *= -1;
                         value *= (long)Math.Pow(10, workingNumber);
                         if (state.NumberIsNegative)
                             value *= -1;
                         state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
                         return true;
                     }
                     state.CharsNeeded = 1;
@@ -798,16 +699,12 @@ namespace Zerra.Serialization.Json.Converters
                     case '\r':
                     case '\n':
                     case '\t':
-                        if (valueType == JsonValueType.String)
-                            throw reader.CreateException("Unexpected character");
                         if (state.NumberWorkingIsNegative)
                             workingNumber *= -1;
                         value *= (long)Math.Pow(10, workingNumber);
                         if (state.NumberIsNegative)
                             value *= -1;
                         state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
                         return true;
                     case ',':
                     case '}':
@@ -819,36 +716,14 @@ namespace Zerra.Serialization.Json.Converters
                         if (state.NumberIsNegative)
                             value *= -1;
                         state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
-                        return true;
-                    case '"':
-                        if (valueType != JsonValueType.String)
-                            throw reader.CreateException("Unexpected character");
-                        if (state.NumberIsNegative)
-                            value *= -1;
-                        state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
                         return true;
                     default:
-                        if (valueType == JsonValueType.String)
-                        {
-                            if (state.ErrorOnTypeMismatch)
-                                throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
-                            else
-                                state.NumberParseFailed = true;
-                        }
-                        else
-                        {
-                            throw reader.CreateException("Unexpected character");
-                        }
-                        break;
+                        throw reader.CreateException("Unexpected character");
                 }
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static bool ReadNumberAsUInt64(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out ulong value)
+        protected static bool ReadNumberAsUInt64(ref JsonReader reader, ref ReadState state, out ulong value)
         {
             double workingNumber;
             char c;
@@ -858,13 +733,8 @@ namespace Zerra.Serialization.Json.Converters
                 state.NumberWorkingDouble = 0;
                 state.NumberIsNegative = false;
                 state.NumberWorkingIsNegative = false;
-                state.NumberParseFailed = false;
                 value = 0;
                 workingNumber = 0;
-                if (valueType == JsonValueType.String)
-                    state.NumberStage = ReadNumberStage.ValueContinue;
-                else if (valueType != JsonValueType.Number)
-                    reader.CreateException("Bad JsonSerializer state");
             }
             else
             {
@@ -891,11 +761,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (state.IsFinalBlock && reader.Position == reader.Length)
                 {
-                    if (valueType == JsonValueType.String)
-                        throw reader.CreateException("Unexpected character");
                     state.NumberStage = ReadNumberStage.Setup;
-                    if (state.NumberParseFailed)
-                        value = default;
                     return true;
                 }
                 state.CharsNeeded = 1;
@@ -919,18 +785,7 @@ namespace Zerra.Serialization.Json.Converters
                     value = 0;
                     break;
                 default:
-                    if (valueType == JsonValueType.String)
-                    {
-                        if (state.ErrorOnTypeMismatch)
-                            throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
-                        else
-                            state.NumberParseFailed = true;
-                    }
-                    else
-                    {
-                        throw reader.CreateException("Unexpected character");
-                    }
-                    break;
+                    throw reader.CreateException("Unexpected character");
             }
 
         startValueContinue:
@@ -940,11 +795,7 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock && reader.Position == reader.Length)
                     {
-                        if (valueType == JsonValueType.String)
-                            throw reader.CreateException("Unexpected character");
                         state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
                         return true;
                     }
                     state.CharsNeeded = 1;
@@ -974,40 +825,16 @@ namespace Zerra.Serialization.Json.Converters
                     case '\r':
                     case '\n':
                     case '\t':
-                        if (valueType == JsonValueType.String)
-                            throw reader.CreateException("Unexpected character");
                         state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
                         return true;
                     case ',':
                     case '}':
                     case ']':
                         reader.BackOne();
                         state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
-                        return true;
-                    case '"':
-                        if (valueType != JsonValueType.String)
-                            throw reader.CreateException("Unexpected character");
-                        state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
                         return true;
                     default:
-                        if (valueType == JsonValueType.String)
-                        {
-                            if (state.ErrorOnTypeMismatch)
-                                throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
-                            else
-                                state.NumberParseFailed = true;
-                        }
-                        else
-                        {
-                            throw reader.CreateException("Unexpected character");
-                        }
-                        break;
+                        throw reader.CreateException("Unexpected character");
                 }
             }
 
@@ -1018,11 +845,7 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock && reader.Position == reader.Length)
                     {
-                        if (valueType == JsonValueType.String)
-                            throw reader.CreateException("Unexpected character");
                         state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
                         return true;
                     }
                     state.CharsNeeded = 1;
@@ -1049,40 +872,16 @@ namespace Zerra.Serialization.Json.Converters
                     case '\r':
                     case '\n':
                     case '\t':
-                        if (valueType == JsonValueType.String)
-                            throw reader.CreateException("Unexpected character");
                         state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
                         return true;
                     case ',':
                     case '}':
                     case ']':
                         reader.BackOne();
                         state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
-                        return true;
-                    case '"':
-                        if (valueType != JsonValueType.String)
-                            throw reader.CreateException("Unexpected character");
-                        state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
                         return true;
                     default:
-                        if (valueType == JsonValueType.String)
-                        {
-                            if (state.ErrorOnTypeMismatch)
-                                throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
-                            else
-                                state.NumberParseFailed = true;
-                        }
-                        else
-                        {
-                            throw reader.CreateException("Unexpected character");
-                        }
-                        break;
+                        throw reader.CreateException("Unexpected character");
                 }
             }
 
@@ -1091,11 +890,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (state.IsFinalBlock && reader.Position == reader.Length)
                 {
-                    if (valueType == JsonValueType.String)
-                        throw reader.CreateException("Unexpected character");
                     state.NumberStage = ReadNumberStage.Setup;
-                    if (state.NumberParseFailed)
-                        value = default;
                     return true;
                 }
                 state.CharsNeeded = 1;
@@ -1121,18 +916,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.NumberWorkingIsNegative = true;
                     break;
                 default:
-                    if (valueType == JsonValueType.String)
-                    {
-                        if (state.ErrorOnTypeMismatch)
-                            throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
-                        else
-                            state.NumberParseFailed = true;
-                    }
-                    else
-                    {
-                        throw reader.CreateException("Unexpected character");
-                    }
-                    break;
+                    throw reader.CreateException("Unexpected character");
             }
 
         startExponentContinue:
@@ -1142,14 +926,10 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock && reader.Position == reader.Length)
                     {
-                        if (valueType == JsonValueType.String)
-                            throw reader.CreateException("Unexpected character");
                         if (state.NumberWorkingIsNegative)
                             workingNumber *= -1;
                         value *= (ulong)Math.Pow(10, workingNumber);
                         state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
                         return true;
                     }
                     state.CharsNeeded = 1;
@@ -1175,14 +955,10 @@ namespace Zerra.Serialization.Json.Converters
                     case '\r':
                     case '\n':
                     case '\t':
-                        if (valueType == JsonValueType.String)
-                            throw reader.CreateException("Unexpected character");
                         if (state.NumberWorkingIsNegative)
                             workingNumber *= -1;
                         value *= (ulong)Math.Pow(10, workingNumber);
                         state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
                         return true;
                     case ',':
                     case '}':
@@ -1192,34 +968,14 @@ namespace Zerra.Serialization.Json.Converters
                             workingNumber *= -1;
                         value *= (ulong)Math.Pow(10, workingNumber);
                         state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
-                        return true;
-                    case '"':
-                        if (valueType != JsonValueType.String)
-                            throw reader.CreateException("Unexpected character");
-                        state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
                         return true;
                     default:
-                        if (valueType == JsonValueType.String)
-                        {
-                            if (state.ErrorOnTypeMismatch)
-                                throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
-                            else
-                                state.NumberParseFailed = true;
-                        }
-                        else
-                        {
-                            throw reader.CreateException("Unexpected character");
-                        }
-                        break;
+                        throw reader.CreateException("Unexpected character");
                 }
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static bool ReadNumberAsDouble(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out double value)
+        protected static bool ReadNumberAsDouble(ref JsonReader reader, ref ReadState state, out double value)
         {
             double workingNumber;
             char c;
@@ -1229,13 +985,8 @@ namespace Zerra.Serialization.Json.Converters
                 state.NumberWorkingDouble = 0;
                 state.NumberIsNegative = false;
                 state.NumberWorkingIsNegative = false;
-                state.NumberParseFailed = false;
                 value = 0;
                 workingNumber = 0;
-                if (valueType == JsonValueType.String)
-                    state.NumberStage = ReadNumberStage.ValueContinue;
-                else if (valueType != JsonValueType.Number)
-                    reader.CreateException("Bad JsonSerializer state");
             }
             else
             {
@@ -1262,13 +1013,9 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (state.IsFinalBlock && reader.Position == reader.Length)
                 {
-                    if (valueType == JsonValueType.String)
-                        throw reader.CreateException("Unexpected character");
                     if (state.NumberIsNegative)
                         value *= -1;
                     state.NumberStage = ReadNumberStage.Setup;
-                    if (state.NumberParseFailed)
-                        value = default;
                     return true;
                 }
                 state.CharsNeeded = 1;
@@ -1293,18 +1040,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.NumberIsNegative = true;
                     break;
                 default:
-                    if (valueType == JsonValueType.String)
-                    {
-                        if (state.ErrorOnTypeMismatch)
-                            throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
-                        else
-                            state.NumberParseFailed = true;
-                    }
-                    else
-                    {
-                        throw reader.CreateException("Unexpected character");
-                    }
-                    break;
+                    throw reader.CreateException("Unexpected character");
             }
 
         startValueContinue:
@@ -1314,13 +1050,9 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock && reader.Position == reader.Length)
                     {
-                        if (valueType == JsonValueType.String)
-                            throw reader.CreateException("Unexpected character");
                         if (state.NumberIsNegative)
                             value *= -1;
                         state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
                         return true;
                     }
                     state.CharsNeeded = 1;
@@ -1350,13 +1082,9 @@ namespace Zerra.Serialization.Json.Converters
                     case '\r':
                     case '\n':
                     case '\t':
-                        if (valueType == JsonValueType.String)
-                            throw reader.CreateException("Unexpected character");
                         if (state.NumberIsNegative)
                             value *= -1;
                         state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
                         return true;
                     case ',':
                     case '}':
@@ -1365,31 +1093,9 @@ namespace Zerra.Serialization.Json.Converters
                         if (state.NumberIsNegative)
                             value *= -1;
                         state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
-                        return true;
-                    case '"':
-                        if (valueType != JsonValueType.String)
-                            throw reader.CreateException("Unexpected character");
-                        if (state.NumberIsNegative)
-                            value *= -1;
-                        state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
                         return true;
                     default:
-                        if (valueType == JsonValueType.String)
-                        {
-                            if (state.ErrorOnTypeMismatch)
-                                throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
-                            else
-                                state.NumberParseFailed = true;
-                        }
-                        else
-                        {
-                            throw reader.CreateException("Unexpected character");
-                        }
-                        break;
+                        throw reader.CreateException("Unexpected character");
                 }
             }
 
@@ -1400,13 +1106,9 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock && reader.Position == reader.Length)
                     {
-                        if (valueType == JsonValueType.String)
-                            throw reader.CreateException("Unexpected character");
                         if (state.NumberIsNegative)
                             value *= -1;
                         state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
                         return true;
                     }
                     state.CharsNeeded = 1;
@@ -1434,13 +1136,9 @@ namespace Zerra.Serialization.Json.Converters
                     case '\r':
                     case '\n':
                     case '\t':
-                        if (valueType == JsonValueType.String)
-                            throw reader.CreateException("Unexpected character");
                         if (state.NumberIsNegative)
                             value *= -1;
                         state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
                         return true;
                     case ',':
                     case '}':
@@ -1449,31 +1147,9 @@ namespace Zerra.Serialization.Json.Converters
                         if (state.NumberIsNegative)
                             value *= -1;
                         state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
-                        return true;
-                    case '"':
-                        if (valueType != JsonValueType.String)
-                            throw reader.CreateException("Unexpected character");
-                        if (state.NumberIsNegative)
-                            value *= -1;
-                        state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
                         return true;
                     default:
-                        if (valueType == JsonValueType.String)
-                        {
-                            if (state.ErrorOnTypeMismatch)
-                                throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
-                            else
-                                state.NumberParseFailed = true;
-                        }
-                        else
-                        {
-                            throw reader.CreateException("Unexpected character");
-                        }
-                        break;
+                        throw reader.CreateException("Unexpected character");
                 }
                 workingNumber *= 10;
             }
@@ -1486,8 +1162,6 @@ namespace Zerra.Serialization.Json.Converters
                     if (state.NumberIsNegative)
                         value *= -1;
                     state.NumberStage = ReadNumberStage.Setup;
-                    if (state.NumberParseFailed)
-                        value = default;
                     return true;
                 }
                 state.CharsNeeded = 1;
@@ -1513,18 +1187,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.NumberWorkingIsNegative = true;
                     break;
                 default:
-                    if (valueType == JsonValueType.String)
-                    {
-                        if (state.ErrorOnTypeMismatch)
-                            throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
-                        else
-                            state.NumberParseFailed = true;
-                    }
-                    else
-                    {
-                        throw reader.CreateException("Unexpected character");
-                    }
-                    break;
+                    throw reader.CreateException("Unexpected character");
             }
 
         startExponentContinue:
@@ -1534,16 +1197,12 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock && reader.Position == reader.Length)
                     {
-                        if (valueType == JsonValueType.String)
-                            throw reader.CreateException("Unexpected character");
                         if (state.NumberWorkingIsNegative)
                             workingNumber *= -1;
                         value *= (double)Math.Pow(10, workingNumber);
                         if (state.NumberIsNegative)
                             value *= -1;
                         state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
                         return true;
                     }
                     state.CharsNeeded = 1;
@@ -1569,16 +1228,12 @@ namespace Zerra.Serialization.Json.Converters
                     case '\r':
                     case '\n':
                     case '\t':
-                        if (valueType == JsonValueType.String)
-                            throw reader.CreateException("Unexpected character");
                         if (state.NumberWorkingIsNegative)
                             workingNumber *= -1;
                         value *= (double)Math.Pow(10, workingNumber);
                         if (state.NumberIsNegative)
                             value *= -1;
                         state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
                         return true;
                     case ',':
                     case '}':
@@ -1590,36 +1245,14 @@ namespace Zerra.Serialization.Json.Converters
                         if (state.NumberIsNegative)
                             value *= -1;
                         state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
-                        return true;
-                    case '"':
-                        if (valueType != JsonValueType.String)
-                            throw reader.CreateException("Unexpected character");
-                        if (state.NumberIsNegative)
-                            value *= -1;
-                        state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
                         return true;
                     default:
-                        if (valueType == JsonValueType.String)
-                        {
-                            if (state.ErrorOnTypeMismatch)
-                                throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
-                            else
-                                state.NumberParseFailed = true;
-                        }
-                        else
-                        {
-                            throw reader.CreateException("Unexpected character");
-                        }
-                        break;
+                        throw reader.CreateException("Unexpected character");
                 }
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static bool ReadNumberAsDecimal(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out decimal value)
+        protected static bool ReadNumberAsDecimal(ref JsonReader reader, ref ReadState state, out decimal value)
         {
             decimal workingNumber;
             char c;
@@ -1628,14 +1261,9 @@ namespace Zerra.Serialization.Json.Converters
                 state.NumberDecimal = 0;
                 state.NumberWorkingDecimal = 0;
                 state.NumberIsNegative = false;
-                state.NumberParseFailed = false;
                 state.NumberWorkingIsNegative = false;
                 value = 0;
                 workingNumber = 0m;
-                if (valueType == JsonValueType.String)
-                    state.NumberStage = ReadNumberStage.ValueContinue;
-                else if (valueType != JsonValueType.Number)
-                    reader.CreateException("Bad JsonSerializer state");
             }
             else
             {
@@ -1662,13 +1290,9 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (state.IsFinalBlock && reader.Position == reader.Length)
                 {
-                    if (valueType == JsonValueType.String)
-                        throw reader.CreateException("Unexpected character");
                     if (state.NumberIsNegative)
                         value *= -1;
                     state.NumberStage = ReadNumberStage.Setup;
-                    if (state.NumberParseFailed)
-                        value = default;
                     return true;
                 }
                 state.CharsNeeded = 1;
@@ -1693,18 +1317,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.NumberIsNegative = true;
                     break;
                 default:
-                    if (valueType == JsonValueType.String)
-                    {
-                        if (state.ErrorOnTypeMismatch)
-                            throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
-                        else
-                            state.NumberParseFailed = true;
-                    }
-                    else
-                    {
-                        throw reader.CreateException("Unexpected character");
-                    }
-                    break;
+                    throw reader.CreateException("Unexpected character");
             }
 
         startValueContinue:
@@ -1714,13 +1327,9 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock && reader.Position == reader.Length)
                     {
-                        if (valueType == JsonValueType.String)
-                            throw reader.CreateException("Unexpected character");
                         if (state.NumberIsNegative)
                             value *= -1;
                         state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
                         return true;
                     }
                     state.CharsNeeded = 1;
@@ -1750,13 +1359,9 @@ namespace Zerra.Serialization.Json.Converters
                     case '\r':
                     case '\n':
                     case '\t':
-                        if (valueType == JsonValueType.String)
-                            throw reader.CreateException("Unexpected character");
                         if (state.NumberIsNegative)
                             value *= -1;
                         state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
                         return true;
                     case ',':
                     case '}':
@@ -1765,31 +1370,9 @@ namespace Zerra.Serialization.Json.Converters
                         if (state.NumberIsNegative)
                             value *= -1;
                         state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
-                        return true;
-                    case '"':
-                        if (valueType != JsonValueType.String)
-                            throw reader.CreateException("Unexpected character");
-                        if (state.NumberIsNegative)
-                            value *= -1;
-                        state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
                         return true;
                     default:
-                        if (valueType == JsonValueType.String)
-                        {
-                            if (state.ErrorOnTypeMismatch)
-                                throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
-                            else
-                                state.NumberParseFailed = true;
-                        }
-                        else
-                        {
-                            throw reader.CreateException("Unexpected character");
-                        }
-                        break;
+                        throw reader.CreateException("Unexpected character");
                 }
             }
 
@@ -1800,13 +1383,9 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock && reader.Position == reader.Length)
                     {
-                        if (valueType == JsonValueType.String)
-                            throw reader.CreateException("Unexpected character");
                         if (state.NumberIsNegative)
                             value *= -1;
                         state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
                         return true;
                     }
                     state.CharsNeeded = 1;
@@ -1834,13 +1413,9 @@ namespace Zerra.Serialization.Json.Converters
                     case '\r':
                     case '\n':
                     case '\t':
-                        if (valueType == JsonValueType.String)
-                            throw reader.CreateException("Unexpected character");
                         if (state.NumberIsNegative)
                             value *= -1;
                         state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
                         return true;
                     case ',':
                     case '}':
@@ -1849,31 +1424,9 @@ namespace Zerra.Serialization.Json.Converters
                         if (state.NumberIsNegative)
                             value *= -1;
                         state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
-                        return true;
-                    case '"':
-                        if (valueType != JsonValueType.String)
-                            throw reader.CreateException("Unexpected character");
-                        if (state.NumberIsNegative)
-                            value *= -1;
-                        state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
                         return true;
                     default:
-                        if (valueType == JsonValueType.String)
-                        {
-                            if (state.ErrorOnTypeMismatch)
-                                throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
-                            else
-                                state.NumberParseFailed = true;
-                        }
-                        else
-                        {
-                            throw reader.CreateException("Unexpected character");
-                        }
-                        break;
+                        throw reader.CreateException("Unexpected character");
                 }
                 workingNumber *= 10;
             }
@@ -1883,13 +1436,9 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (state.IsFinalBlock && reader.Position == reader.Length)
                 {
-                    if (valueType == JsonValueType.String)
-                        throw reader.CreateException("Unexpected character");
                     if (state.NumberIsNegative)
                         value *= -1;
                     state.NumberStage = ReadNumberStage.Setup;
-                    if (state.NumberParseFailed)
-                        value = default;
                     return true;
                 }
                 state.CharsNeeded = 1;
@@ -1915,18 +1464,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.NumberWorkingIsNegative = true;
                     break;
                 default:
-                    if (valueType == JsonValueType.String)
-                    {
-                        if (state.ErrorOnTypeMismatch)
-                            throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
-                        else
-                            state.NumberParseFailed = true;
-                    }
-                    else
-                    {
-                        throw reader.CreateException("Unexpected character");
-                    }
-                    break;
+                    throw reader.CreateException("Unexpected character");
             }
 
         startExponentContinue:
@@ -1936,16 +1474,12 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock && reader.Position == reader.Length)
                     {
-                        if (valueType == JsonValueType.String)
-                            throw reader.CreateException("Unexpected character");
                         if (state.NumberWorkingIsNegative)
                             workingNumber *= -1;
                         value *= (decimal)Math.Pow(10, (double)workingNumber);
                         if (state.NumberIsNegative)
                             value *= -1;
                         state.NumberStage = ReadNumberStage.Setup;
-                        if (state.NumberParseFailed)
-                            value = default;
                         return true;
                     }
                     state.CharsNeeded = 1;
@@ -1971,17 +1505,1115 @@ namespace Zerra.Serialization.Json.Converters
                     case '\r':
                     case '\n':
                     case '\t':
-                        if (valueType == JsonValueType.String)
-                            throw reader.CreateException("Unexpected character");
                         if (state.NumberWorkingIsNegative)
                             workingNumber *= -1;
                         value *= (decimal)Math.Pow(10, (double)workingNumber);
                         if (state.NumberIsNegative)
                             value *= -1;
                         state.NumberStage = ReadNumberStage.Setup;
+                        return true;
+                    case ',':
+                    case '}':
+                    case ']':
+                        reader.BackOne();
+                        if (state.NumberWorkingIsNegative)
+                            workingNumber *= -1;
+                        value *= (decimal)Math.Pow(10, (double)workingNumber);
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        return true;
+                    default:
+                        throw reader.CreateException("Unexpected character");
+                }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static bool ReadStringAsInt64(ref JsonReader reader, ref ReadState state, out long? value)
+        {
+            double workingNumber;
+            char c;
+            if (state.NumberStage == ReadNumberStage.Setup)
+            {
+                state.NumberInt64 = 0;
+                state.NumberWorkingDouble = 0;
+                state.NumberIsNegative = false;
+                state.NumberWorkingIsNegative = false;
+                state.NumberParseFailed = false;
+                value = 0;
+                workingNumber = 0;
+            }
+            else
+            {
+                value = state.NumberInt64;
+                workingNumber = state.NumberWorkingDouble;
+
+                switch (state.NumberStage)
+                {
+                    case ReadNumberStage.Value:
+                        goto startValue;
+                    case ReadNumberStage.ValueContinue:
+                        goto startValueContinue;
+                    case ReadNumberStage.Decimal:
+                        goto startDecimal;
+                    case ReadNumberStage.Exponent:
+                        goto startExponent;
+                    case ReadNumberStage.ExponentContinue:
+                        goto startExponentContinue;
+                }
+            }
+
+        startValue:
+            if (!reader.TryReadNext(out c))
+            {
+                if (state.IsFinalBlock && reader.Position == reader.Length)
+                    throw reader.CreateException("Unexpected character");
+                state.CharsNeeded = 1;
+                state.NumberInt64 = value.Value;
+                state.NumberStage = ReadNumberStage.Value;
+                return false;
+            }
+            switch (c)
+            {
+                case '0': value = 0; break;
+                case '1': value = 1; break;
+                case '2': value = 2; break;
+                case '3': value = 3; break;
+                case '4': value = 4; break;
+                case '5': value = 5; break;
+                case '6': value = 6; break;
+                case '7': value = 7; break;
+                case '8': value = 8; break;
+                case '9': value = 9; break;
+                case '-':
+                    value = 0;
+                    state.NumberIsNegative = true;
+                    break;
+                case '"':
+                    value = null;
+                    return true;
+                default:
+                    if (state.ErrorOnTypeMismatch)
+                        throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                    state.NumberParseFailed = true;
+                    break;
+            }
+
+        startValueContinue:
+            for (; ; )
+            {
+                if (!reader.TryReadNext(out c))
+                {
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
+                        throw reader.CreateException("Unexpected character");
+                    state.CharsNeeded = 1;
+                    state.NumberInt64 = value.Value;
+                    state.NumberStage = ReadNumberStage.ValueContinue;
+                    return false;
+                }
+                switch (c)
+                {
+                    case '0': value *= 10; break;
+                    case '1': value = value * 10 + 1; break;
+                    case '2': value = value * 10 + 2; break;
+                    case '3': value = value * 10 + 3; break;
+                    case '4': value = value * 10 + 4; break;
+                    case '5': value = value * 10 + 5; break;
+                    case '6': value = value * 10 + 6; break;
+                    case '7': value = value * 10 + 7; break;
+                    case '8': value = value * 10 + 8; break;
+                    case '9': value = value * 10 + 9; break;
+                    case '.':
+                        workingNumber = 10;
+                        goto startDecimal;
+                    case 'e':
+                    case 'E':
+                        goto startExponent;
+                    case ' ':
+                    case '\r':
+                    case '\n':
+                    case '\t':
+                        throw reader.CreateException("Unexpected character");
+                    case ',':
+                    case '}':
+                    case ']':
+                        reader.BackOne();
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
                         if (state.NumberParseFailed)
                             value = default;
                         return true;
+                    case '"':
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    default:
+                        if (state.ErrorOnTypeMismatch)
+                            throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                        state.NumberParseFailed = true;
+                        break;
+                }
+            }
+
+        startDecimal:
+            for (; ; )
+            {
+                if (!reader.TryReadNext(out c))
+                {
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
+                        throw reader.CreateException("Unexpected character");
+                    state.CharsNeeded = 1;
+                    state.NumberInt64 = value.Value;
+                    state.NumberStage = ReadNumberStage.Decimal;
+                    return false;
+                }
+                switch (c)
+                {
+                    case '0': break;
+                    case '1': break;
+                    case '2': break;
+                    case '3': break;
+                    case '4': break;
+                    case '5': break;
+                    case '6': break;
+                    case '7': break;
+                    case '8': break;
+                    case '9': break;
+                    case 'e':
+                    case 'E':
+                        goto startExponent;
+                    case ' ':
+                    case '\r':
+                    case '\n':
+                    case '\t':
+                        throw reader.CreateException("Unexpected character");
+                    case ',':
+                    case '}':
+                    case ']':
+                        reader.BackOne();
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    case '"':
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    default:
+                        if (state.ErrorOnTypeMismatch)
+                            throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                        state.NumberParseFailed = true;
+                        break;
+                }
+            }
+
+        startExponent:
+            if (!reader.TryReadNext(out c))
+            {
+                if (state.IsFinalBlock && reader.Position == reader.Length)
+                    throw reader.CreateException("Unexpected character");
+                state.CharsNeeded = 1;
+                state.NumberInt64 = value.Value;
+                state.NumberStage = ReadNumberStage.Exponent;
+                return false;
+            }
+            switch (c)
+            {
+                case '0': workingNumber = 0; break;
+                case '1': workingNumber = 1; break;
+                case '2': workingNumber = 2; break;
+                case '3': workingNumber = 3; break;
+                case '4': workingNumber = 4; break;
+                case '5': workingNumber = 5; break;
+                case '6': workingNumber = 6; break;
+                case '7': workingNumber = 7; break;
+                case '8': workingNumber = 8; break;
+                case '9': workingNumber = 9; break;
+                case '+': workingNumber = 0; break;
+                case '-':
+                    workingNumber = 0;
+                    state.NumberWorkingIsNegative = true;
+                    break;
+                default:
+                    if (state.ErrorOnTypeMismatch)
+                        throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                    state.NumberParseFailed = true;
+                    break;
+            }
+
+        startExponentContinue:
+            for (; ; )
+            {
+                if (!reader.TryReadNext(out c))
+                {
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
+                        throw reader.CreateException("Unexpected character");
+                    state.CharsNeeded = 1;
+                    state.NumberInt64 = value.Value;
+                    state.NumberDouble = workingNumber;
+                    state.NumberStage = ReadNumberStage.ExponentContinue;
+                    return false;
+                }
+
+                switch (c)
+                {
+                    case '0': workingNumber *= 10; break;
+                    case '1': workingNumber = workingNumber * 10 + 1; break;
+                    case '2': workingNumber = workingNumber * 10 + 2; break;
+                    case '3': workingNumber = workingNumber * 10 + 3; break;
+                    case '4': workingNumber = workingNumber * 10 + 4; break;
+                    case '5': workingNumber = workingNumber * 10 + 5; break;
+                    case '6': workingNumber = workingNumber * 10 + 6; break;
+                    case '7': workingNumber = workingNumber * 10 + 7; break;
+                    case '8': workingNumber = workingNumber * 10 + 8; break;
+                    case '9': workingNumber = workingNumber * 10 + 9; break;
+                    case ' ':
+                    case '\r':
+                    case '\n':
+                    case '\t':
+                        throw reader.CreateException("Unexpected character");
+                    case ',':
+                    case '}':
+                    case ']':
+                        reader.BackOne();
+                        if (state.NumberWorkingIsNegative)
+                            workingNumber *= -1;
+                        value *= (long)Math.Pow(10, workingNumber);
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    case '"':
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    default:
+                        if (state.ErrorOnTypeMismatch)
+                            throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                        state.NumberParseFailed = true;
+                        break;
+                }
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static bool ReadStringAsUInt64(ref JsonReader reader, ref ReadState state, out ulong? value)
+        {
+            double workingNumber;
+            char c;
+            if (state.NumberStage == ReadNumberStage.Setup)
+            {
+                state.NumberUInt64 = 0;
+                state.NumberWorkingDouble = 0;
+                state.NumberIsNegative = false;
+                state.NumberWorkingIsNegative = false;
+                state.NumberParseFailed = false;
+                value = 0;
+                workingNumber = 0;
+            }
+            else
+            {
+                value = state.NumberUInt64;
+                workingNumber = state.NumberWorkingDouble;
+
+                switch (state.NumberStage)
+                {
+                    case ReadNumberStage.Value:
+                        goto startValue;
+                    case ReadNumberStage.ValueContinue:
+                        goto startValueContinue;
+                    case ReadNumberStage.Decimal:
+                        goto startDecimal;
+                    case ReadNumberStage.Exponent:
+                        goto startExponent;
+                    case ReadNumberStage.ExponentContinue:
+                        goto startExponentContinue;
+                }
+            }
+
+        startValue:
+            if (!reader.TryReadNext(out c))
+            {
+                if (state.IsFinalBlock && reader.Position == reader.Length)
+                    throw reader.CreateException("Unexpected character");
+                state.CharsNeeded = 1;
+                state.NumberUInt64 = value.Value;
+                state.NumberStage = ReadNumberStage.Value;
+                return false;
+            }
+            switch (c)
+            {
+                case '0': value = 0; break;
+                case '1': value = 1; break;
+                case '2': value = 2; break;
+                case '3': value = 3; break;
+                case '4': value = 4; break;
+                case '5': value = 5; break;
+                case '6': value = 6; break;
+                case '7': value = 7; break;
+                case '8': value = 8; break;
+                case '9': value = 9; break;
+                case '-':
+                    value = 0;
+                    break;
+                case '"':
+                    value = null;
+                    return true;
+                default:
+                    if (state.ErrorOnTypeMismatch)
+                        throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                    state.NumberParseFailed = true;
+                    break;
+            }
+
+        startValueContinue:
+            for (; ; )
+            {
+                if (!reader.TryReadNext(out c))
+                {
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
+                        throw reader.CreateException("Unexpected character");
+                    state.CharsNeeded = 1;
+                    state.NumberUInt64 = value.Value;
+                    state.NumberStage = ReadNumberStage.ValueContinue;
+                    return false;
+                }
+                switch (c)
+                {
+                    case '0': value *= 10; break;
+                    case '1': value = value * 10 + 1; break;
+                    case '2': value = value * 10 + 2; break;
+                    case '3': value = value * 10 + 3; break;
+                    case '4': value = value * 10 + 4; break;
+                    case '5': value = value * 10 + 5; break;
+                    case '6': value = value * 10 + 6; break;
+                    case '7': value = value * 10 + 7; break;
+                    case '8': value = value * 10 + 8; break;
+                    case '9': value = value * 10 + 9; break;
+                    case '.':
+                        workingNumber = 10;
+                        goto startDecimal;
+                    case 'e':
+                    case 'E':
+                        goto startExponent;
+                    case ' ':
+                    case '\r':
+                    case '\n':
+                    case '\t':
+                        throw reader.CreateException("Unexpected character");
+                    case ',':
+                    case '}':
+                    case ']':
+                        reader.BackOne();
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    case '"':
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    default:
+                        if (state.ErrorOnTypeMismatch)
+                            throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                        state.NumberParseFailed = true;
+                        break;
+                }
+            }
+
+        startDecimal:
+            for (; ; )
+            {
+                if (!reader.TryReadNext(out c))
+                {
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
+                        throw reader.CreateException("Unexpected character");
+                    state.CharsNeeded = 1;
+                    state.NumberUInt64 = value.Value;
+                    state.NumberStage = ReadNumberStage.Decimal;
+                    return false;
+                }
+                switch (c)
+                {
+                    case '0': break;
+                    case '1': break;
+                    case '2': break;
+                    case '3': break;
+                    case '4': break;
+                    case '5': break;
+                    case '6': break;
+                    case '7': break;
+                    case '8': break;
+                    case '9': break;
+                    case 'e':
+                    case 'E':
+                        goto startExponent;
+                    case ' ':
+                    case '\r':
+                    case '\n':
+                    case '\t':
+                        throw reader.CreateException("Unexpected character");
+                    case ',':
+                    case '}':
+                    case ']':
+                        reader.BackOne();
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    case '"':
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    default:
+                        if (state.ErrorOnTypeMismatch)
+                            throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                        state.NumberParseFailed = true;
+                        break;
+                }
+            }
+
+        startExponent:
+            if (!reader.TryReadNext(out c))
+            {
+                if (state.IsFinalBlock && reader.Position == reader.Length)
+                    throw reader.CreateException("Unexpected character");
+                state.CharsNeeded = 1;
+                state.NumberUInt64 = value.Value;
+                state.NumberStage = ReadNumberStage.Exponent;
+                return false;
+            }
+            switch (c)
+            {
+                case '0': workingNumber = 0; break;
+                case '1': workingNumber = 1; break;
+                case '2': workingNumber = 2; break;
+                case '3': workingNumber = 3; break;
+                case '4': workingNumber = 4; break;
+                case '5': workingNumber = 5; break;
+                case '6': workingNumber = 6; break;
+                case '7': workingNumber = 7; break;
+                case '8': workingNumber = 8; break;
+                case '9': workingNumber = 9; break;
+                case '+': workingNumber = 0; break;
+                case '-':
+                    workingNumber = 0;
+                    state.NumberWorkingIsNegative = true;
+                    break;
+                default:
+                    if (state.ErrorOnTypeMismatch)
+                        throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                    state.NumberParseFailed = true;
+                    break;
+            }
+
+        startExponentContinue:
+            for (; ; )
+            {
+                if (!reader.TryReadNext(out c))
+                {
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
+                        throw reader.CreateException("Unexpected character");
+                    state.CharsNeeded = 1;
+                    state.NumberUInt64 = value.Value;
+                    state.NumberDouble = workingNumber;
+                    state.NumberStage = ReadNumberStage.ExponentContinue;
+                    return false;
+                }
+
+                switch (c)
+                {
+                    case '0': workingNumber *= 10; break;
+                    case '1': workingNumber = workingNumber * 10 + 1; break;
+                    case '2': workingNumber = workingNumber * 10 + 2; break;
+                    case '3': workingNumber = workingNumber * 10 + 3; break;
+                    case '4': workingNumber = workingNumber * 10 + 4; break;
+                    case '5': workingNumber = workingNumber * 10 + 5; break;
+                    case '6': workingNumber = workingNumber * 10 + 6; break;
+                    case '7': workingNumber = workingNumber * 10 + 7; break;
+                    case '8': workingNumber = workingNumber * 10 + 8; break;
+                    case '9': workingNumber = workingNumber * 10 + 9; break;
+                    case ' ':
+                    case '\r':
+                    case '\n':
+                    case '\t':
+                        throw reader.CreateException("Unexpected character");
+                    case ',':
+                    case '}':
+                    case ']':
+                        reader.BackOne();
+                        if (state.NumberWorkingIsNegative)
+                            workingNumber *= -1;
+                        value *= (ulong)Math.Pow(10, workingNumber);
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    case '"':
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    default:
+                        if (state.ErrorOnTypeMismatch)
+                            throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                        state.NumberParseFailed = true;
+                        break;
+                }
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static bool ReadStringAsDouble(ref JsonReader reader, ref ReadState state, out double? value)
+        {
+            double workingNumber;
+            char c;
+            if (state.NumberStage == ReadNumberStage.Setup)
+            {
+                state.NumberDouble = 0;
+                state.NumberWorkingDouble = 0;
+                state.NumberIsNegative = false;
+                state.NumberWorkingIsNegative = false;
+                state.NumberParseFailed = false;
+                value = 0;
+                workingNumber = 0;
+            }
+            else
+            {
+                value = state.NumberDouble;
+                workingNumber = state.NumberWorkingDouble;
+
+                switch (state.NumberStage)
+                {
+                    case ReadNumberStage.Value:
+                        goto startValue;
+                    case ReadNumberStage.ValueContinue:
+                        goto startValueContinue;
+                    case ReadNumberStage.Decimal:
+                        goto startDecimal;
+                    case ReadNumberStage.Exponent:
+                        goto startExponent;
+                    case ReadNumberStage.ExponentContinue:
+                        goto startExponentContinue;
+                }
+            }
+
+        startValue:
+            if (!reader.TryReadNext(out c))
+            {
+                if (state.IsFinalBlock && reader.Position == reader.Length)
+                    throw reader.CreateException("Unexpected character");
+                state.CharsNeeded = 1;
+                state.NumberDouble = value.Value;
+                state.NumberStage = ReadNumberStage.Value;
+                return false;
+            }
+            switch (c)
+            {
+                case '0': value = 0; break;
+                case '1': value = 1; break;
+                case '2': value = 2; break;
+                case '3': value = 3; break;
+                case '4': value = 4; break;
+                case '5': value = 5; break;
+                case '6': value = 6; break;
+                case '7': value = 7; break;
+                case '8': value = 8; break;
+                case '9': value = 9; break;
+                case '-':
+                    value = 0;
+                    state.NumberIsNegative = true;
+                    break;
+                case '"':
+                    value = null;
+                    return true;
+                default:
+                    if (state.ErrorOnTypeMismatch)
+                        throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                    state.NumberParseFailed = true;
+                    break;
+            }
+
+        startValueContinue:
+            for (; ; )
+            {
+                if (!reader.TryReadNext(out c))
+                {
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
+                        throw reader.CreateException("Unexpected character");
+                    state.CharsNeeded = 1;
+                    state.NumberDouble = value.Value;
+                    state.NumberStage = ReadNumberStage.ValueContinue;
+                    return false;
+                }
+                switch (c)
+                {
+                    case '0': value *= 10; break;
+                    case '1': value = value * 10 + 1; break;
+                    case '2': value = value * 10 + 2; break;
+                    case '3': value = value * 10 + 3; break;
+                    case '4': value = value * 10 + 4; break;
+                    case '5': value = value * 10 + 5; break;
+                    case '6': value = value * 10 + 6; break;
+                    case '7': value = value * 10 + 7; break;
+                    case '8': value = value * 10 + 8; break;
+                    case '9': value = value * 10 + 9; break;
+                    case '.':
+                        workingNumber = 10;
+                        goto startDecimal;
+                    case 'e':
+                    case 'E':
+                        goto startExponent;
+                    case ' ':
+                    case '\r':
+                    case '\n':
+                    case '\t':
+                        throw reader.CreateException("Unexpected character");
+                    case ',':
+                    case '}':
+                    case ']':
+                        reader.BackOne();
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    case '"':
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    default:
+                        if (state.ErrorOnTypeMismatch)
+                            throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                        state.NumberParseFailed = true;
+                        break;
+                }
+            }
+
+        startDecimal:
+            for (; ; )
+            {
+                if (!reader.TryReadNext(out c))
+                {
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
+                        throw reader.CreateException("Unexpected character");
+                    state.CharsNeeded = 1;
+                    state.NumberDouble = value.Value;
+                    state.NumberWorkingDouble = workingNumber;
+                    state.NumberStage = ReadNumberStage.Decimal;
+                    return false;
+                }
+                switch (c)
+                {
+                    case '0': break;
+                    case '1': value += 1 / workingNumber; break;
+                    case '2': value += 2 / workingNumber; break;
+                    case '3': value += 3 / workingNumber; break;
+                    case '4': value += 4 / workingNumber; break;
+                    case '5': value += 5 / workingNumber; break;
+                    case '6': value += 6 / workingNumber; break;
+                    case '7': value += 7 / workingNumber; break;
+                    case '8': value += 8 / workingNumber; break;
+                    case '9': value += 9 / workingNumber; break;
+                    case 'e':
+                    case 'E':
+                        goto startExponent;
+                    case ' ':
+                    case '\r':
+                    case '\n':
+                    case '\t':
+                        throw reader.CreateException("Unexpected character");
+                    case ',':
+                    case '}':
+                    case ']':
+                        reader.BackOne();
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    case '"':
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    default:
+                        if (state.ErrorOnTypeMismatch)
+                            throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                        state.NumberParseFailed = true;
+                        break;
+                }
+                workingNumber *= 10;
+            }
+
+        startExponent:
+            if (!reader.TryReadNext(out c))
+            {
+                if (state.IsFinalBlock && reader.Position == reader.Length)
+                    throw reader.CreateException("Unexpected character");
+                state.CharsNeeded = 1;
+                state.NumberDouble = value.Value;
+                state.NumberStage = ReadNumberStage.Exponent;
+                return false;
+            }
+            switch (c)
+            {
+                case '0': workingNumber = 0; break;
+                case '1': workingNumber = 1; break;
+                case '2': workingNumber = 2; break;
+                case '3': workingNumber = 3; break;
+                case '4': workingNumber = 4; break;
+                case '5': workingNumber = 5; break;
+                case '6': workingNumber = 6; break;
+                case '7': workingNumber = 7; break;
+                case '8': workingNumber = 8; break;
+                case '9': workingNumber = 9; break;
+                case '+': workingNumber = 0; break;
+                case '-':
+                    workingNumber = 0;
+                    state.NumberWorkingIsNegative = true;
+                    break;
+                default:
+                    if (state.ErrorOnTypeMismatch)
+                        throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                    state.NumberParseFailed = true;
+                    break;
+            }
+
+        startExponentContinue:
+            for (; ; )
+            {
+                if (!reader.TryReadNext(out c))
+                {
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
+                        throw reader.CreateException("Unexpected character");
+                    state.CharsNeeded = 1;
+                    state.NumberDouble = value.Value;
+                    state.NumberWorkingDouble = workingNumber;
+                    state.NumberStage = ReadNumberStage.ExponentContinue;
+                    return false;
+                }
+
+                switch (c)
+                {
+                    case '0': workingNumber *= 10; break;
+                    case '1': workingNumber = workingNumber * 10 + 1; break;
+                    case '2': workingNumber = workingNumber * 10 + 2; break;
+                    case '3': workingNumber = workingNumber * 10 + 3; break;
+                    case '4': workingNumber = workingNumber * 10 + 4; break;
+                    case '5': workingNumber = workingNumber * 10 + 5; break;
+                    case '6': workingNumber = workingNumber * 10 + 6; break;
+                    case '7': workingNumber = workingNumber * 10 + 7; break;
+                    case '8': workingNumber = workingNumber * 10 + 8; break;
+                    case '9': workingNumber = workingNumber * 10 + 9; break;
+                    case ' ':
+                    case '\r':
+                    case '\n':
+                    case '\t':
+                        throw reader.CreateException("Unexpected character");
+                    case ',':
+                    case '}':
+                    case ']':
+                        reader.BackOne();
+                        if (state.NumberWorkingIsNegative)
+                            workingNumber *= -1;
+                        value *= (double)Math.Pow(10, workingNumber);
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    case '"':
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    default:
+                        if (state.ErrorOnTypeMismatch)
+                            throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                        state.NumberParseFailed = true;
+                        break;
+                }
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected static bool ReadStringAsDecimal(ref JsonReader reader, ref ReadState state, out decimal? value)
+        {
+            decimal workingNumber;
+            char c;
+            if (state.NumberStage == ReadNumberStage.Setup)
+            {
+                state.NumberDecimal = 0;
+                state.NumberWorkingDecimal = 0;
+                state.NumberIsNegative = false;
+                state.NumberParseFailed = false;
+                state.NumberWorkingIsNegative = false;
+                value = 0;
+                workingNumber = 0m;
+            }
+            else
+            {
+                value = state.NumberDecimal;
+                workingNumber = state.NumberWorkingDecimal;
+
+                switch (state.NumberStage)
+                {
+                    case ReadNumberStage.Value:
+                        goto startValue;
+                    case ReadNumberStage.ValueContinue:
+                        goto startValueContinue;
+                    case ReadNumberStage.Decimal:
+                        goto startDecimal;
+                    case ReadNumberStage.Exponent:
+                        goto startExponent;
+                    case ReadNumberStage.ExponentContinue:
+                        goto startExponentContinue;
+                }
+            }
+
+        startValue:
+            if (!reader.TryReadNext(out c))
+            {
+                if (state.IsFinalBlock && reader.Position == reader.Length)
+                    throw reader.CreateException("Unexpected character");
+                state.CharsNeeded = 1;
+                state.NumberDecimal = value.Value;
+                state.NumberStage = ReadNumberStage.Value;
+                return false;
+            }
+            switch (c)
+            {
+                case '0': value = 0; break;
+                case '1': value = 1; break;
+                case '2': value = 2; break;
+                case '3': value = 3; break;
+                case '4': value = 4; break;
+                case '5': value = 5; break;
+                case '6': value = 6; break;
+                case '7': value = 7; break;
+                case '8': value = 8; break;
+                case '9': value = 9; break;
+                case '-':
+                    value = 0;
+                    state.NumberIsNegative = true;
+                    break;
+                case '"':
+                    value = null;
+                    return true;
+                default:
+                    if (state.ErrorOnTypeMismatch)
+                        throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                    state.NumberParseFailed = true;
+                    break;
+            }
+
+        startValueContinue:
+            for (; ; )
+            {
+                if (!reader.TryReadNext(out c))
+                {
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
+                        throw reader.CreateException("Unexpected character");
+                    state.CharsNeeded = 1;
+                    state.NumberDecimal = value.Value;
+                    state.NumberStage = ReadNumberStage.ValueContinue;
+                    return false;
+                }
+                switch (c)
+                {
+                    case '0': value *= 10; break;
+                    case '1': value = value * 10 + 1; break;
+                    case '2': value = value * 10 + 2; break;
+                    case '3': value = value * 10 + 3; break;
+                    case '4': value = value * 10 + 4; break;
+                    case '5': value = value * 10 + 5; break;
+                    case '6': value = value * 10 + 6; break;
+                    case '7': value = value * 10 + 7; break;
+                    case '8': value = value * 10 + 8; break;
+                    case '9': value = value * 10 + 9; break;
+                    case '.':
+                        workingNumber = 10;
+                        goto startDecimal;
+                    case 'e':
+                    case 'E':
+                        goto startExponent;
+                    case ' ':
+                    case '\r':
+                    case '\n':
+                    case '\t':
+                        throw reader.CreateException("Unexpected character");
+                    case ',':
+                    case '}':
+                    case ']':
+                        reader.BackOne();
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    case '"':
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    default:
+                        if (state.ErrorOnTypeMismatch)
+                            throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                        state.NumberParseFailed = true;
+                        break;
+                }
+            }
+
+        startDecimal:
+            for (; ; )
+            {
+                if (!reader.TryReadNext(out c))
+                {
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
+                        throw reader.CreateException("Unexpected character");
+                    state.CharsNeeded = 1;
+                    state.NumberDecimal = value.Value;
+                    state.NumberWorkingDecimal = workingNumber;
+                    state.NumberStage = ReadNumberStage.Decimal;
+                    return false;
+                }
+                switch (c)
+                {
+                    case '0': break;
+                    case '1': value += 1 / workingNumber; break;
+                    case '2': value += 2 / workingNumber; break;
+                    case '3': value += 3 / workingNumber; break;
+                    case '4': value += 4 / workingNumber; break;
+                    case '5': value += 5 / workingNumber; break;
+                    case '6': value += 6 / workingNumber; break;
+                    case '7': value += 7 / workingNumber; break;
+                    case '8': value += 8 / workingNumber; break;
+                    case '9': value += 9 / workingNumber; break;
+                    case 'e':
+                    case 'E':
+                        goto startExponent;
+                    case ' ':
+                    case '\r':
+                    case '\n':
+                    case '\t':
+                        throw reader.CreateException("Unexpected character");
+                    case ',':
+                    case '}':
+                    case ']':
+                        reader.BackOne();
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    case '"':
+                        if (state.NumberIsNegative)
+                            value *= -1;
+                        state.NumberStage = ReadNumberStage.Setup;
+                        if (state.NumberParseFailed)
+                            value = default;
+                        return true;
+                    default:
+                        if (state.ErrorOnTypeMismatch)
+                            throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                        state.NumberParseFailed = true;
+                        break;
+                }
+                workingNumber *= 10;
+            }
+
+        startExponent:
+            if (!reader.TryReadNext(out c))
+            {
+                if (state.IsFinalBlock && reader.Position == reader.Length)
+                    throw reader.CreateException("Unexpected character");
+                state.CharsNeeded = 1;
+                state.NumberDecimal = value.Value;
+                state.NumberStage = ReadNumberStage.Exponent;
+                return false;
+            }
+            switch (c)
+            {
+                case '0': workingNumber = 0; break;
+                case '1': workingNumber = 1; break;
+                case '2': workingNumber = 2; break;
+                case '3': workingNumber = 3; break;
+                case '4': workingNumber = 4; break;
+                case '5': workingNumber = 5; break;
+                case '6': workingNumber = 6; break;
+                case '7': workingNumber = 7; break;
+                case '8': workingNumber = 8; break;
+                case '9': workingNumber = 9; break;
+                case '+': workingNumber = 0; break;
+                case '-':
+                    workingNumber = 0;
+                    state.NumberWorkingIsNegative = true;
+                    break;
+                default:
+                    if (state.ErrorOnTypeMismatch)
+                        throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                    state.NumberParseFailed = true;
+                    break;
+            }
+
+        startExponentContinue:
+            for (; ; )
+            {
+                if (!reader.TryReadNext(out c))
+                {
+                    if (state.IsFinalBlock && reader.Position == reader.Length)
+                        throw reader.CreateException("Unexpected character");
+                    state.CharsNeeded = 1;
+                    state.NumberDecimal = value.Value;
+                    state.NumberWorkingDecimal = workingNumber;
+                    state.NumberStage = ReadNumberStage.ExponentContinue;
+                    return false;
+                }
+
+                switch (c)
+                {
+                    case '0': workingNumber *= 10; break;
+                    case '1': workingNumber = workingNumber * 10 + 1; break;
+                    case '2': workingNumber = workingNumber * 10 + 2; break;
+                    case '3': workingNumber = workingNumber * 10 + 3; break;
+                    case '4': workingNumber = workingNumber * 10 + 4; break;
+                    case '5': workingNumber = workingNumber * 10 + 5; break;
+                    case '6': workingNumber = workingNumber * 10 + 6; break;
+                    case '7': workingNumber = workingNumber * 10 + 7; break;
+                    case '8': workingNumber = workingNumber * 10 + 8; break;
+                    case '9': workingNumber = workingNumber * 10 + 9; break;
+                    case ' ':
+                    case '\r':
+                    case '\n':
+                    case '\t':
+                        throw reader.CreateException("Unexpected character");
                     case ',':
                     case '}':
                     case ']':
@@ -1996,8 +2628,6 @@ namespace Zerra.Serialization.Json.Converters
                             value = default;
                         return true;
                     case '"':
-                        if (valueType != JsonValueType.String)
-                            throw reader.CreateException("Unexpected character");
                         if (state.NumberIsNegative)
                             value *= -1;
                         state.NumberStage = ReadNumberStage.Setup;
@@ -2005,17 +2635,9 @@ namespace Zerra.Serialization.Json.Converters
                             value = default;
                         return true;
                     default:
-                        if (valueType == JsonValueType.String)
-                        {
-                            if (state.ErrorOnTypeMismatch)
-                                throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
-                            else
-                                state.NumberParseFailed = true;
-                        }
-                        else
-                        {
-                            throw reader.CreateException("Unexpected character");
-                        }
+                        if (state.ErrorOnTypeMismatch)
+                            throw reader.CreateException($"Cannot convert to number (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                        state.NumberParseFailed = true;
                         break;
                 }
             }
@@ -2900,7 +3522,7 @@ namespace Zerra.Serialization.Json.Converters
                     value = new JsonObject(true);
                     return true;
                 case JsonValueType.Number:
-                    if (!ReadNumberAsDecimal(ref reader, ref state, state.EntryValueType, out var number))
+                    if (!ReadNumberAsDecimal(ref reader, ref state, out var number))
                     {
                         value = default!;
                         return false;
@@ -2969,7 +3591,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.Current.ChildValueType = JsonValueType.NotDetermined;
                     return true;
                 case JsonValueType.Number:
-                    if (!ReadNumberAsDecimal(ref reader, ref state, state.Current.ChildValueType, out var number))
+                    if (!ReadNumberAsDecimal(ref reader, ref state, out var number))
                     {
                         value = default!;
                         return false;
@@ -3038,7 +3660,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.Current.ChildValueType = JsonValueType.NotDetermined;
                     return true;
                 case JsonValueType.Number:
-                    if (!ReadNumberAsDecimal(ref reader, ref state, state.Current.ChildValueType, out var number))
+                    if (!ReadNumberAsDecimal(ref reader, ref state, out var number))
                     {
                         value = default!;
                         return false;
@@ -3077,7 +3699,7 @@ namespace Zerra.Serialization.Json.Converters
                     value = new JsonObject(true);
                     return true;
                 case JsonValueType.Number:
-                    if (!ReadNumberAsDecimal(ref reader, ref state, valueType, out var number))
+                    if (!ReadNumberAsDecimal(ref reader, ref state, out var number))
                     {
                         value = default!;
                         return false;

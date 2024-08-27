@@ -46,7 +46,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     }
                     return true;
                 case JsonValueType.Number:
-                    if (!ReadNumberAsUInt64(ref reader, ref state, valueType, out var number))
+                    if (!ReadNumberAsUInt64(ref reader, ref state, out var number))
                     {
                         value = default;
                         return false;

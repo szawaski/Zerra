@@ -543,6 +543,21 @@ namespace Zerra.Test
 
             var model8 = JsonSerializer.Deserialize<object>("{}");
             Assert.IsNotNull(model8);
+
+            var model9 = JsonSerializer.Deserialize<int>("");
+            Assert.AreEqual(0, model9);
+
+            var model10 = JsonSerializer.Deserialize<int?>("");
+            Assert.AreEqual(null, model10);
+
+            var model11 = JsonSerializer.Deserialize<uint?>("");
+            Assert.AreEqual(null, model11);
+
+            var model12 = JsonSerializer.Deserialize<double?>("");
+            Assert.AreEqual(null, model12);
+
+            var model13 = JsonSerializer.Deserialize<decimal?>("");
+            Assert.AreEqual(null, model13);
         }
 
         [TestMethod]
@@ -1452,6 +1467,21 @@ namespace Zerra.Test
 
             var model8 = await JsonSerializer.DeserializeAsync<object>(new MemoryStream(Encoding.UTF8.GetBytes("{}")));
             Assert.IsNotNull(model8);
+
+            var model9 = await JsonSerializer.DeserializeAsync<int>(new MemoryStream(Encoding.UTF8.GetBytes("\"\"")));
+            Assert.AreEqual(0, model9);
+
+            var model10 = await JsonSerializer.DeserializeAsync<int?>(new MemoryStream(Encoding.UTF8.GetBytes("\"\"")));
+            Assert.AreEqual(null, model10);
+
+            var model11 = await JsonSerializer.DeserializeAsync<uint?>(new MemoryStream(Encoding.UTF8.GetBytes("\"\"")));
+            Assert.AreEqual(null, model11);
+
+            var model12 = await JsonSerializer.DeserializeAsync<double?>(new MemoryStream(Encoding.UTF8.GetBytes("\"\"")));
+            Assert.AreEqual(null, model12);
+
+            var model13 = await JsonSerializer.DeserializeAsync<decimal?>(new MemoryStream(Encoding.UTF8.GetBytes("\"\"")));
+            Assert.AreEqual(null, model13);
         }
 
         [TestMethod]
@@ -1717,7 +1747,7 @@ namespace Zerra.Test
             stream1b.Position = 0;
             var model2b = await JsonSerializer.DeserializeAsync<TypesAllModel>(stream1b);
             AssertHelper.AreNotEqual(model1b.Int32Thing, model2b.Int32Thing);
-            AssertHelper.AreNotEqual(model1b.Int64Thing, model2b.Int64Thing);
+            AssertHelper.AreEqual(model1b.Int64Thing, model2b.Int64Thing);
             Assert.IsNull(model2b.ClassThing);
 
             using var stream2 = new MemoryStream();

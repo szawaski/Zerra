@@ -27,13 +27,20 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                     value = default;
                     return DrainArray(ref reader, ref state);
                 case JsonValueType.String:
-                case JsonValueType.Number:
-                    if (!ReadNumberAsDouble(ref reader, ref state, valueType, out var number))
+                    if (!ReadStringAsDouble(ref reader, ref state, out var numberFromString))
                     {
                         value = default;
                         return false;
                     }
-                    value = (double)number;
+                    value = numberFromString;
+                    return true;
+                case JsonValueType.Number:
+                    if (!ReadNumberAsDouble(ref reader, ref state, out var number))
+                    {
+                        value = default;
+                        return false;
+                    }
+                    value = number;
                     return true;
                 case JsonValueType.Null_Completed:
                     value = null;

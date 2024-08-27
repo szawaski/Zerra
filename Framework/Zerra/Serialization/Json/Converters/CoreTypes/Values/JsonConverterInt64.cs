@@ -27,8 +27,24 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                     value = default;
                     return DrainArray(ref reader, ref state);
                 case JsonValueType.String:
+                    if (!ReadStringAsInt64(ref reader, ref state, out var numberFromString))
+                    {
+                        value = default;
+                        return false;
+                    }
+                    if (!numberFromString.HasValue)
+                    {
+                        if (state.ErrorOnTypeMismatch)
+                            throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                        value = default;
+                    }
+                    else
+                    {
+                        value = numberFromString.Value;
+                    }
+                    return true;
                 case JsonValueType.Number:
-                    if (!ReadNumberAsInt64(ref reader, ref state, valueType, out var number))
+                    if (!ReadNumberAsInt64(ref reader, ref state, out var number))
                     {
                         value = default;
                         return false;
