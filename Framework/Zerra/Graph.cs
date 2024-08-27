@@ -534,7 +534,7 @@ namespace Zerra
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
 
-            type = type.FullName;
+            this.type = type.FullName;
             if (childGraphs is not null)
             {
                 foreach (var childGraph in childGraphs.Values)

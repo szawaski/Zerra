@@ -14,10 +14,8 @@ using Zerra.IO;
 using Zerra.CQRS.Network;
 using System.IO;
 using System.Linq;
-using Zerra.Serialization;
-using System.Threading.Tasks;
-using System.Net;
 using Zerra.Serialization.Json;
+using System.Threading.Tasks;
 
 namespace Zerra.CQRS.Relay
 {
