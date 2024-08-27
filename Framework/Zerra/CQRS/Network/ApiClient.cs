@@ -4,7 +4,6 @@
 
 using System;
 using System.Collections;
-using System.Data;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -21,11 +20,18 @@ namespace Zerra.CQRS.Network
     public sealed class ApiClient : CqrsClientBase
     {
         private readonly ContentType requestContentType;
-        private CookieCollection? cookies = null;
+        private readonly HttpClientHandler handler;
+        private readonly HttpClient client;
 
         public ApiClient(string endpoint, ContentType contentType) : base(endpoint)
         {
             this.requestContentType = contentType;
+
+            this.handler = new HttpClientHandler()
+            {
+                CookieContainer = new CookieContainer()
+            };
+            this.client = new HttpClient(this.handler);
         }
 
         protected override TReturn? CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source) where TReturn : default
@@ -107,17 +113,9 @@ namespace Zerra.CQRS.Network
         {
             throttle.Wait();
 
-            HttpClient? client = null;
             Stream? responseStream = null;
             try
             {
-                var cookieContainer = new CookieContainer();
-                if (cookies != null)
-                    cookieContainer.Add(cookies);
-
-                using var handler = new HttpClientHandler() { CookieContainer = cookieContainer };
-                client = new HttpClient(handler);
-
                 using var request = new HttpRequestMessage(HttpMethod.Post, address);
 
                 request.Content = new WriteStreamContent((postStream) =>
@@ -153,8 +151,6 @@ namespace Zerra.CQRS.Network
                     var responseException = ContentTypeSerializer.DeserializeException(contentType, responseStream);
                     throw responseException;
                 }
-
-                this.cookies = GetCookiesFromContainer(cookieContainer);
 
                 if (!getResponseData)
                 {
@@ -197,17 +193,9 @@ namespace Zerra.CQRS.Network
         {
             await throttle.WaitAsync();
 
-            HttpClient? client = null;
             Stream? responseStream = null;
             try
             {
-                var cookieContainer = new CookieContainer();
-                if (cookies != null)
-                    cookieContainer.Add(cookies);
-
-                using var handler = new HttpClientHandler() { CookieContainer = cookieContainer };
-                client = new HttpClient(handler);
-
                 using var request = new HttpRequestMessage(HttpMethod.Post, address);
 
                 request.Content = new WriteStreamContent(async (postStream) =>
@@ -239,8 +227,6 @@ namespace Zerra.CQRS.Network
                     var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseStream);
                     throw responseException;
                 }
-
-                this.cookies = GetCookiesFromContainer(cookieContainer);
 
                 if (!getResponseData)
                 {
@@ -290,25 +276,73 @@ namespace Zerra.CQRS.Network
 
         public CookieCollection? GetCookieCredentials()
         {
-            return this.cookies;
+            return GetCookiesFromContainer(this.handler.CookieContainer);
         }
         public void SetCookieCredentials(CookieCollection cookies)
         {
-            this.cookies = cookies;
+            var newCookieContainer = new CookieContainer();
+            newCookieContainer.Add(cookies);
+            this.handler.CookieContainer = newCookieContainer;
         }
         public void RemoveCookieCredentials()
         {
-            this.cookies = null;
+            this.handler.CookieContainer = new CookieContainer();
         }
-        //public Task RequestCookieCredentials(string address, string json)
-        //{
-        //    var bytes = Encoding.UTF8.GetBytes(json);
-        //    return RequestAsync<object>(null, false, address, null, ContentType.Json, bytes, false);
-        //}
+        public async Task RequestCookieCredentials(string address, string json)
+        {
+            HttpClient? client = null;
+            Stream? responseStream = null;
+            try
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Post, address);
+
+                request.Content = new WriteStreamContent(async (postStream) =>
+                {
+                    var data = System.Text.Encoding.UTF8.GetBytes(json);
+                    await ContentTypeSerializer.SerializeAsync(ContentType.Json, postStream, data);
+                });
+                request.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJson);
+
+                request.Headers.TransferEncodingChunked = true;
+                request.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, "*");
+                request.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
+                request.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
+
+                using var response = await client.SendAsync(request);
+
+                responseStream = await response.Content.ReadAsStreamAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(ContentType.Json, responseStream);
+                    throw responseException;
+                }
+
+                responseStream.Dispose();
+                client.Dispose();
+
+            }
+            catch
+            {
+                if (responseStream != null)
+                {
+                    try
+                    {
+#if NETSTANDARD2_0
+                        responseStream.Dispose();
+#else
+                        await responseStream.DisposeAsync();
+#endif
+                    }
+                    catch { }
+                    client?.Dispose();
+                }
+                throw;
+            }
+        }
 
         private static readonly Func<object, object?> cookieContainerGetter = TypeAnalyzer.GetTypeDetail(typeof(CookieContainer)).GetMember("m_domainTable").GetterBoxed;
         private static readonly Func<object, object?> pathListGetter = TypeAnalyzer.GetTypeDetail(Discovery.GetTypeFromName("System.Net.PathList, System.Net.Primitives, Version=4.1.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a")).GetMember("m_list").GetterBoxed;
-
         private static CookieCollection GetCookiesFromContainer(CookieContainer cookieJar)
         {
             var cookieCollection = new CookieCollection();
@@ -329,6 +363,13 @@ namespace Zerra.CQRS.Network
             }
 
             return cookieCollection;
+        }
+
+        public new void Dispose()
+        {
+            base.Dispose();
+            client.Dispose();
+            handler.Dispose();
         }
     }
 }
