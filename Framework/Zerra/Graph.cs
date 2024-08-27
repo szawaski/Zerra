@@ -149,43 +149,43 @@ namespace Zerra
         {
             var sb = new StringBuilder();
             GenerateSignatureBuilder(sb);
-            this.signature = sb.ToString();
+            signature = sb.ToString();
         }
         private void GenerateSignatureBuilder(StringBuilder sb)
         {
-            if (this.instanceGraphs is not null)
+            if (instanceGraphs is not null)
                 throw new InvalidOperationException("Graphs with instances cannot be compared so cannot be used here");
 
-            if (!String.IsNullOrEmpty(this.name))
+            if (!String.IsNullOrEmpty(name))
             {
                 _ = sb.Append("N:");
-                _ = sb.Append(this.name);
+                _ = sb.Append(name);
             }
 
-            if (this.includeAllProperties)
+            if (includeAllProperties)
                 _ = sb.Append("A:");
 
-            if (this.localProperties is not null)
+            if (localProperties is not null)
             {
-                foreach (var property in this.localProperties.OrderBy(x => x))
+                foreach (var property in localProperties.OrderBy(x => x))
                 {
                     _ = sb.Append("P:");
                     _ = sb.Append(property);
                 }
             }
 
-            if (includeAllProperties && this.removedProperties is not null)
+            if (includeAllProperties && removedProperties is not null)
             {
-                foreach (var property in this.removedProperties.OrderBy(x => x))
+                foreach (var property in removedProperties.OrderBy(x => x))
                 {
                     _ = sb.Append("R:");
                     _ = sb.Append(property);
                 }
             }
 
-            if (this.childGraphs is not null)
+            if (childGraphs is not null)
             {
-                foreach (var graph in this.childGraphs.Values.OrderBy(x => x.name))
+                foreach (var graph in childGraphs.Values.OrderBy(x => x.name))
                 {
                     _ = sb.Append("G:(");
                     graph.GenerateSignatureBuilder(sb);
@@ -219,7 +219,7 @@ namespace Zerra
             if (!includeAllProperties)
             {
                 includeAllProperties = true;
-                this.signature = null;
+                signature = null;
             }
         }
         public void RemoveAllProperties()
@@ -227,7 +227,7 @@ namespace Zerra
             if (includeAllProperties)
             {
                 includeAllProperties = false;
-                this.signature = null;
+                signature = null;
             }
         }
 
@@ -242,11 +242,11 @@ namespace Zerra
             }
             else
             {
-                this.localProperties ??= new();
-                _ = this.localProperties.Add(property);
-                _ = this.removedProperties?.Remove(property);
+                localProperties ??= new();
+                _ = localProperties.Add(property);
+                _ = removedProperties?.Remove(property);
             }
-            this.signature = null;
+            signature = null;
 
         }
         public void RemoveProperty(string property)
@@ -254,11 +254,11 @@ namespace Zerra
             if (String.IsNullOrWhiteSpace(property))
                 throw new ArgumentNullException(nameof(property));
 
-            _ = this.localProperties?.Remove(property);
+            _ = localProperties?.Remove(property);
             _ = removedProperties?.Add(property);
             _ = childGraphs?.Remove(property);
 
-            this.signature = null;
+            signature = null;
         }
         public void ReplaceChildGraph(Graph graph)
         {
@@ -268,24 +268,24 @@ namespace Zerra
             _ = childGraphs?.Remove(graph.name);
             childGraphs?.Add(graph.name, graph);
 
-            this.signature = null;
+            signature = null;
         }
         public void AddChildGraph(Graph graph)
         {
             if (String.IsNullOrWhiteSpace(graph.name))
                 throw new InvalidOperationException("Cannot add a child graph without a name.");
 
-            this.childGraphs ??= new();
+            childGraphs ??= new();
             if (childGraphs.TryGetValue(graph.name, out var childGraph) && childGraph.name != null)
             {
                 childGraph.includeAllProperties |= graph.includeAllProperties;
                 if (graph.localProperties is not null)
                     childGraph.AddProperties(graph.localProperties);
 
-                if (this.localProperties is not null && this.localProperties.Contains(childGraph.name))
+                if (localProperties is not null && localProperties.Contains(childGraph.name))
                 {
                     childGraph.includeAllProperties = true;
-                    _ = this.localProperties.Remove(childGraph.name);
+                    _ = localProperties.Remove(childGraph.name);
                 }
             }
             else
@@ -294,31 +294,31 @@ namespace Zerra
                 childGraphs.Add(graph.name, graph);
             }
 
-            this.signature = null;
+            signature = null;
         }
         public void RemoveChildGraph(Graph graph)
         {
             if (String.IsNullOrWhiteSpace(graph.name))
                 throw new InvalidOperationException("Cannot remove a child graph without a name.");
 
-            _ = this.localProperties?.Remove(graph.name);
+            _ = localProperties?.Remove(graph.name);
             _ = removedProperties?.Add(graph.name);
             _ = childGraphs?.Remove(graph.name);
 
-            this.signature = null;
+            signature = null;
         }
         public void AddInstanceGraph(object instance, Graph graph)
         {
             instanceGraphs ??= new();
             instanceGraphs[instance] = graph;
-            this.signature = null;
+            signature = null;
         }
         public void RemoveInstanceGraph(object instance)
         {
             if (instanceGraphs is null)
                 return;
             _ = instanceGraphs.Remove(instance);
-            this.signature = null;
+            signature = null;
         }
 
         protected void AddMembers(Stack<MemberInfo> members)
@@ -344,10 +344,10 @@ namespace Zerra
                         childGraph.type = ((FieldInfo)member).FieldType.FullName;
                     childGraphs.Add(member.Name, childGraph);
                 }
-                if (childGraph.name != null && this.localProperties is not null && this.localProperties.Contains(childGraph.name))
+                if (childGraph.name != null && localProperties is not null && localProperties.Contains(childGraph.name))
                 {
                     childGraph.includeAllProperties = true;
-                    _ = this.localProperties.Remove(childGraph.name);
+                    _ = localProperties.Remove(childGraph.name);
                 }
                 childGraph.AddMembers(members);
             }
@@ -385,15 +385,15 @@ namespace Zerra
 
         public bool HasLocalProperty(string name)
         {
-            return (this.includeAllProperties && (this.removedProperties is null || !this.removedProperties.Contains(name)) && (childGraphs is null || !childGraphs.ContainsKey(name))) || (this.localProperties is not null && this.localProperties.Contains(name));
+            return (includeAllProperties && (removedProperties is null || !removedProperties.Contains(name)) && (childGraphs is null || !childGraphs.ContainsKey(name))) || (localProperties is not null && localProperties.Contains(name));
         }
         public bool HasProperty(string name)
         {
-            return (this.includeAllProperties && (this.removedProperties is null || !this.removedProperties.Contains(name))) || (this.localProperties is not null && this.localProperties.Contains(name)) || (childGraphs is not null && childGraphs.ContainsKey(name));
+            return (includeAllProperties && (removedProperties is null || !removedProperties.Contains(name))) || (localProperties is not null && localProperties.Contains(name)) || (childGraphs is not null && childGraphs.ContainsKey(name));
         }
         public bool HasChild(string name)
         {
-            return (this.localProperties is not null && this.localProperties.Contains(name)) || (childGraphs is not null && childGraphs.ContainsKey(name));
+            return (localProperties is not null && localProperties.Contains(name)) || (childGraphs is not null && childGraphs.ContainsKey(name));
         }
 
         public Graph? GetChildGraph(string name)
@@ -493,7 +493,7 @@ namespace Zerra
         }
         private void ToString(StringBuilder sb, int depth)
         {
-            foreach (var property in this.LocalProperties)
+            foreach (var property in LocalProperties)
             {
                 if (sb.Length > 0)
                     _ = sb.Append(Environment.NewLine);
@@ -502,9 +502,9 @@ namespace Zerra
 
                 _ = sb.Append(property);
             }
-            if (this.childGraphs is not null)
+            if (childGraphs is not null)
             {
-                foreach (var childGraph in this.childGraphs.Values)
+                foreach (var childGraph in childGraphs.Values)
                 {
                     if (sb.Length > 0)
                         _ = sb.Append(Environment.NewLine);
@@ -534,7 +534,7 @@ namespace Zerra
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
 
-            this.type = type.FullName;
+            type = type.FullName;
             if (childGraphs is not null)
             {
                 foreach (var childGraph in childGraphs.Values)
@@ -628,7 +628,7 @@ namespace Zerra
         //private static readonly ConcurrentFactoryDictionary<TypeKey, Expression> selectExpressions = new();
         //public Expression<Func<TSource, TTarget>> GenerateSelect<TSource, TTarget>()
         //{
-        //    var key = new TypeKey(this.Signature, typeof(TSource), typeof(TTarget));
+        //    var key = new TypeKey(Signature, typeof(TSource), typeof(TTarget));
 
         //    var expression = (Expression<Func<TSource, TTarget>>)selectExpressions.GetOrAdd(key, (_) =>
         //    {

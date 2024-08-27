@@ -149,7 +149,6 @@ namespace Zerra.Test
             TestBasic(converted);
         }
 
-
         [TestMethod]
         public void Compare()
         {

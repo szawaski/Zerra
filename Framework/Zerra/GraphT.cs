@@ -100,7 +100,7 @@ namespace Zerra
                 AddMembers(members);
                 members.Clear();
             }
-            this.signature = null;
+            signature = null;
         }
         public void RemoveProperties(params Expression<Func<T, object?>>[] properties) => RemoveProperties((IEnumerable<Expression<Func<T, object?>>>)properties);
         public void RemoveProperties(IEnumerable<Expression<Func<T, object?>>> properties)
@@ -115,7 +115,7 @@ namespace Zerra
                 RemoveMembers(members);
                 members.Clear();
             }
-            this.signature = null;
+            signature = null;
         }
 
         public void AddProperty(Expression<Func<T, object?>> property)
@@ -129,7 +129,7 @@ namespace Zerra
             AddMembers(members);
             members.Clear();
 
-            this.signature = null;
+            signature = null;
         }
         public void RemoveProperties(Expression<Func<T, object?>> property)
         {
@@ -142,7 +142,7 @@ namespace Zerra
             RemoveMembers(members);
             members.Clear();
 
-            this.signature = null;
+            signature = null;
         }
 
         public new Graph<T> Copy()
