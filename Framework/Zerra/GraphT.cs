@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
+using Zerra.Reflection;
 
 namespace Zerra
 {
@@ -37,8 +38,6 @@ namespace Zerra
         public Graph(string? name, bool includeAllProperties, IEnumerable<Expression<Func<T, object?>>>? properties)
             : base(name, includeAllProperties, (IEnumerable<string>?)null, null)
         {
-            this.type = GetModelType().FullName;
-
             if (properties != null)
                 AddProperties(properties);
         }
@@ -150,7 +149,7 @@ namespace Zerra
             return new Graph<T>(this);
         }
 
-        public override Type GetModelType()
+        protected override Type GetModelType()
         {
             return typeof(T);
         }

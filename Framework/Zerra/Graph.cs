@@ -5,10 +5,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
-using Zerra.Collections;
 using Zerra.Reflection;
 
 namespace Zerra
@@ -16,7 +14,6 @@ namespace Zerra
     public class Graph
     {
         protected string? name;
-        protected string? type;
 
         protected bool includeAllProperties;
         protected HashSet<string>? localProperties;
@@ -47,6 +44,8 @@ namespace Zerra
 
         public IReadOnlyCollection<Graph> ChildGraphs => childGraphs is null ? Array.Empty<Graph>() : childGraphs.Values;
 
+        private static readonly TypeDetail graphTType = typeof(Graph<>).GetTypeDetail();
+
         [NonSerialized]
         protected string? signature = null;
         public string Signature
@@ -73,7 +72,7 @@ namespace Zerra
                     this.removedProperties = new(graph.removedProperties);
                 if (graph.childGraphs is not null)
                     this.childGraphs = new(graph.childGraphs);
-                this.type = graph.type;
+                //this.type = graph.type;
                 this.signature = graph.signature;
             }
             else
@@ -290,7 +289,7 @@ namespace Zerra
             }
             else
             {
-                graph.SetModelTypeToChildGraphs(this);
+                //graph.SetModelTypeToChildGraphs(this);
                 childGraphs.Add(graph.name, graph);
             }
 
@@ -336,12 +335,18 @@ namespace Zerra
                 childGraphs ??= new();
                 if (!childGraphs.TryGetValue(member.Name, out var childGraph))
                 {
-                    childGraph = new Graph();
-                    childGraph.name = member.Name;
                     if (member.MemberType == MemberTypes.Property)
-                        childGraph.type = ((PropertyInfo)member).PropertyType.FullName;
+                    {
+                        var graphTTypeGeneric = graphTType.GetGenericTypeDetail(((PropertyInfo)member).PropertyType);
+                        childGraph = (Graph)graphTTypeGeneric.CreatorBoxed();
+                    }
                     else
-                        childGraph.type = ((FieldInfo)member).FieldType.FullName;
+                    {
+                        var graphTTypeGeneric = graphTType.GetGenericTypeDetail(((FieldInfo)member).FieldType);
+                        childGraph = (Graph)graphTTypeGeneric.CreatorBoxed();
+                    }
+
+                    childGraph.name = member.Name;
                     childGraphs.Add(member.Name, childGraph);
                 }
                 if (childGraph.name != null && localProperties is not null && localProperties.Contains(childGraph.name))
@@ -411,7 +416,7 @@ namespace Zerra
             if (!childGraphs.TryGetValue(name, out var nonGenericGraph))
                 return null;
             if (nonGenericGraph.GetModelType() == type)
-                return nonGenericGraph;
+                return (Graph)System.Convert.ChangeType(nonGenericGraph, graphTType.GetGenericTypeDetail(type).Type);
             return Convert(nonGenericGraph, type);
         }
         public Graph<T>? GetChildGraph<T>(string name)
@@ -520,58 +525,7 @@ namespace Zerra
             }
         }
 
-        public virtual Type? GetModelType()
-        {
-            if (!String.IsNullOrWhiteSpace(type))
-            {
-                return Discovery.GetTypeFromName(type);
-            }
-            return null;
-        }
-
-        public void SetModelType(Type type)
-        {
-            if (type == null)
-                throw new ArgumentNullException(nameof(type));
-
-            this.type = type.FullName;
-            if (childGraphs is not null)
-            {
-                foreach (var childGraph in childGraphs.Values)
-                {
-                    childGraph.SetModelTypeToChildGraphs(this);
-                }
-            }
-        }
-        private void SetModelTypeToChildGraphs(Graph parent)
-        {
-            if (String.IsNullOrWhiteSpace(name))
-                throw new InvalidOperationException("Cannot update child graphs without a name.");
-
-            type = null;
-            var modelType = parent.GetModelType();
-            if (modelType != null)
-            {
-                var modelInfo = TypeAnalyzer.GetTypeDetail(modelType);
-                if (modelInfo.TryGetMember(name, out var property))
-                {
-                    var subModelType = property.Type;
-                    var subModelTypeDetails = TypeAnalyzer.GetTypeDetail(subModelType);
-                    if (subModelTypeDetails.HasIEnumerableGeneric)
-                    {
-                        subModelType = subModelTypeDetails.IEnumerableGenericInnerType;
-                    }
-                    type = subModelType.AssemblyQualifiedName;
-                    if (childGraphs is not null)
-                    {
-                        foreach (var childGraph in childGraphs.Values)
-                        {
-                            childGraph.SetModelTypeToChildGraphs(this);
-                        }
-                    }
-                }
-            }
-        }
+        protected virtual Type? GetModelType() => null;
 
         //public void MergePropertiesForIdenticalModelTypes()
         //{
