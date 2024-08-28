@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Zerra.Collections;
@@ -19,64 +20,48 @@ namespace Zerra.Threading
             public int Checkouts = 0;
         }
 
-        private static readonly ConcurrentFactoryDictionary<string, ConcurrentDictionary<T, ItemLocker>> lockerPools = new();
+        private static readonly ConcurrentFactoryDictionary<string, Dictionary<T, ItemLocker>> lockerPools = new();
 
-        private readonly ConcurrentDictionary<T, ItemLocker> itemLockers;
+        private readonly Dictionary<T, ItemLocker> itemLockers;
+        private readonly ItemLocker itemLocker;
         private readonly T key;
 
-        private ItemLocker? itemLocker;
+        private bool disposed = false;
 
         private Locker(string purpose, T key)
         {
-            this.itemLockers = lockerPools.GetOrAdd(purpose, (_) => { return new ConcurrentDictionary<T, ItemLocker>(); });
+            this.itemLockers = lockerPools.GetOrAdd(purpose, (_) => { return new Dictionary<T, ItemLocker>(); });
+            lock (itemLockers)
+            {
+                if (!itemLockers.TryGetValue(key, out var itemLocker))
+                {
+                    itemLocker = new ItemLocker();
+                    itemLockers.Add(key, itemLocker);
+                }
+                this.itemLocker = itemLocker;
+                itemLocker.Checkouts++;
+            }
             this.key = key;
-        }
-
-        private Task LockAsync()
-        {
-            lock (itemLockers)
-            {
-                itemLocker = itemLockers.GetOrAdd(key, (_) => { return new ItemLocker(); });
-                lock (itemLocker)
-                {
-                    itemLocker.Checkouts++;
-                }
-            }
-            return itemLocker.Semaphore.WaitAsync();
-        }
-
-        private void Lock()
-        {
-            lock (itemLockers)
-            {
-                itemLocker = itemLockers.GetOrAdd(key, (k) => { return new ItemLocker(); });
-                lock (itemLocker)
-                {
-                    itemLocker.Checkouts++;
-                }
-            }
-            itemLocker.Semaphore.Wait();
         }
 
         public void Dispose()
         {
-            if (itemLocker != null)
-            {
-                _ = itemLocker.Semaphore.Release();
+            if (disposed)
+                return;
+            disposed = true;
 
-                lock (itemLocker)
+            _ = itemLocker.Semaphore.Release();
+
+            lock (itemLockers)
+            {
+                itemLocker.Checkouts--;
+                if (itemLocker.Checkouts == 0)
                 {
-                    itemLocker.Checkouts--;
-                    lock (itemLockers)
-                    {
-                        if (itemLocker.Checkouts == 0)
-                        {
-                            _ = itemLockers.TryRemove(key, out _);
-                            itemLocker.Semaphore.Dispose();
-                        }
-                    }
+                    _ = itemLockers.Remove(key);
+                    itemLocker.Semaphore.Dispose();
                 }
             }
+
             GC.SuppressFinalize(this);
         }
 
@@ -85,7 +70,7 @@ namespace Zerra.Threading
             if (purpose == null)
                 throw new ArgumentException();
             var locker = new Locker<T>(purpose, key);
-            locker.Lock();
+            locker.itemLocker.Semaphore.Wait();
             return locker;
         }
 
@@ -94,7 +79,7 @@ namespace Zerra.Threading
             if (purpose == null)
                 throw new ArgumentNullException(nameof(purpose));
             var locker = new Locker<T>(purpose, key);
-            await locker.LockAsync();
+            await locker.itemLocker.Semaphore.WaitAsync();
             return locker;
         }
     }
