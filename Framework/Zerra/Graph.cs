@@ -308,8 +308,14 @@ namespace Zerra
         }
         public void AddInstanceGraph(object instance, Graph graph)
         {
+            if (graph.instanceGraphs is not null)
+                throw new InvalidOperationException("Graph being added already has instances");
+
             instanceGraphs ??= new();
             instanceGraphs[instance] = graph;
+            graph.instanceGraphs = this.instanceGraphs;
+            graph.signature = null;
+            
             signature = null;
         }
         public void RemoveInstanceGraph(object instance)
