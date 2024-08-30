@@ -2561,7 +2561,7 @@ namespace Zerra.Serialization.Json
                         var member = state.CurrentFrame.MemberEnumerator.Current;
 
                         if (graph != null && !graph.HasProperty(member.Name))
-                            continue;
+                            goto nextprop;
 
                         if (state.CurrentFrame.EnumeratorPassedFirstProperty2)
                         {
