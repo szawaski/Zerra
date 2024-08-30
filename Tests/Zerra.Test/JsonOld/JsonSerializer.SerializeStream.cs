@@ -2559,19 +2559,9 @@ namespace Zerra.Serialization.Json
 
                         var graph = state.CurrentFrame.Graph;
                         var member = state.CurrentFrame.MemberEnumerator.Current;
-                        if (graph != null)
-                        {
-                            if (member.TypeDetail.IsGraphLocalProperty)
-                            {
-                                if (!graph.HasLocalProperty(member.Name))
-                                    goto nextprop;
-                            }
-                            else
-                            {
-                                if (!graph.HasChild(member.Name))
-                                    goto nextprop;
-                            }
-                        }
+
+                        if (graph != null && !graph.HasProperty(member.Name))
+                            continue;
 
                         if (state.CurrentFrame.EnumeratorPassedFirstProperty2)
                         {

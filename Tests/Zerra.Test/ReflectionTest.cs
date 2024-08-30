@@ -46,7 +46,6 @@ namespace Zerra.Test
 
             _ = typeDetail.InnerTypes;
             _ = typeDetail.EnumUnderlyingType;
-            _ = typeDetail.IsGraphLocalProperty;
             var baseTypes = typeDetail.BaseTypes;
             var interfaces = typeDetail.Interfaces;
             _ = typeDetail.HasIEnumerable;

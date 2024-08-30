@@ -166,25 +166,6 @@ namespace Zerra.Reflection
             }
         }
 
-        private bool? isGraphLocalProperty;
-        public bool IsGraphLocalProperty
-        {
-            get
-            {
-                if (!isGraphLocalProperty.HasValue)
-                {
-                    lock (locker)
-                    {
-                        if (!isGraphLocalProperty.HasValue)
-                        {
-                            isGraphLocalProperty = this.CoreType.HasValue || this.EnumUnderlyingType.HasValue || this.SpecialType.HasValue || this.Type.IsArray || (this.IsNullable && this.InnerTypes[0].IsArray);
-                        }
-                    }
-                }
-                return isGraphLocalProperty.Value;
-            }
-        }
-
         private Type[]? baseTypes = null;
         public IReadOnlyList<Type> BaseTypes
         {

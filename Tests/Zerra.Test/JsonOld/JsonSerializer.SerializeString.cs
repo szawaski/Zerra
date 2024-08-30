@@ -180,19 +180,8 @@ namespace Zerra.Serialization.Json
                 if (!member.HasGetterBoxed)
                     continue;
 
-                if (graph != null)
-                {
-                    if (member.TypeDetail.IsGraphLocalProperty)
-                    {
-                        if (!graph.HasLocalProperty(member.Name))
-                            continue;
-                    }
-                    else
-                    {
-                        if (!graph.HasChild(member.Name))
-                            continue;
-                    }
-                }
+                if (graph != null && !graph.HasProperty(member.Name))
+                    continue;
 
                 var propertyValue = member.GetterBoxed(value);
 
@@ -340,24 +329,13 @@ namespace Zerra.Serialization.Json
                             if (!member.HasGetterBoxed)
                                 continue;
 
+                            if (graph != null && !graph.HasProperty(member.Name))
+                                continue;
+
                             var propertyValue = member.GetterBoxed(value);
 
                             if (options.DoNotWriteNullProperties && propertyValue == null)
                                 continue;
-
-                            if (graph != null)
-                            {
-                                if (member.TypeDetail.IsGraphLocalProperty)
-                                {
-                                    if (!graph.HasLocalProperty(member.Name))
-                                        continue;
-                                }
-                                else
-                                {
-                                    if (!graph.HasChild(member.Name))
-                                        continue;
-                                }
-                            }
 
                             if (firstProperty)
                                 firstProperty = false;

@@ -214,23 +214,8 @@ namespace Zerra.Serialization.Json
                                     if (memberDetail.TypeDetail.IsNullable && memberDetail.TypeDetail.InnerTypeDetails[0].EnumUnderlyingType.HasValue)
                                         value = Enum.ToObject(memberDetail.TypeDetail.InnerTypeDetails[0].Type, value);
 
-                                    if (graph != null)
-                                    {
-                                        if (memberDetail.TypeDetail.IsGraphLocalProperty)
-                                        {
-                                            if (graph.HasLocalProperty(memberDetail.Name))
-                                                memberDetail.SetterBoxed(obj, value);
-                                        }
-                                        else
-                                        {
-                                            if (propertyGraph != null)
-                                                memberDetail.SetterBoxed(obj, value);
-                                        }
-                                    }
-                                    else
-                                    {
+                                    if (graph == null || graph.HasProperty(memberDetail.Name))
                                         memberDetail.SetterBoxed(obj, value);
-                                    }
                                 }
                             }
                             else
@@ -494,23 +479,8 @@ namespace Zerra.Serialization.Json
                                         if (memberDetail.TypeDetail.IsNullable && memberDetail.TypeDetail.InnerTypeDetails[0].EnumUnderlyingType.HasValue)
                                             value = Enum.ToObject(memberDetail.TypeDetail.InnerTypeDetails[0].Type, value);
 
-                                        if (graph != null)
-                                        {
-                                            if (memberDetail.TypeDetail.IsGraphLocalProperty)
-                                            {
-                                                if (graph.HasLocalProperty(memberDetail.Name))
-                                                    memberDetail.SetterBoxed(obj, value);
-                                            }
-                                            else
-                                            {
-                                                if (propertyGraph != null)
-                                                    memberDetail.SetterBoxed(obj, value);
-                                            }
-                                        }
-                                        else
-                                        {
+                                        if (graph == null || graph.HasProperty(memberDetail.Name))
                                             memberDetail.SetterBoxed(obj, value);
-                                        }
                                     }
                                 }
                             }

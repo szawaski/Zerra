@@ -647,23 +647,8 @@ namespace Zerra.Serialization.Json
                             if (state.CurrentFrame.ObjectProperty.TypeDetail.IsNullable && state.CurrentFrame.ObjectProperty.TypeDetail.InnerTypeDetails[0].EnumUnderlyingType.HasValue)
                                 state.LastFrameResultObject = Enum.ToObject(state.CurrentFrame.ObjectProperty.TypeDetail.InnerTypeDetails[0].Type, state.LastFrameResultObject);
 
-                            if (state.CurrentFrame.Graph != null)
-                            {
-                                if (state.CurrentFrame.ObjectProperty.TypeDetail.IsGraphLocalProperty)
-                                {
-                                    if (state.CurrentFrame.Graph.HasLocalProperty(state.CurrentFrame.ObjectProperty.Name))
-                                        state.CurrentFrame.ObjectProperty.SetterBoxed(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
-                                }
-                                else
-                                {
-                                    if (state.CurrentFrame.Graph.HasChild(state.CurrentFrame.ObjectProperty.Name))
-                                        state.CurrentFrame.ObjectProperty.SetterBoxed(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
-                                }
-                            }
-                            else
-                            {
+                            if (state.CurrentFrame.Graph == null || state.CurrentFrame.Graph.HasProperty(state.CurrentFrame.ObjectProperty.Name))
                                 state.CurrentFrame.ObjectProperty.SetterBoxed(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
-                            }
                         }
 
                         state.CurrentFrame.State = 4;
@@ -1005,23 +990,8 @@ namespace Zerra.Serialization.Json
                                     if (memberDetail.TypeDetail.IsNullable && memberDetail.TypeDetail.InnerTypeDetails[0].EnumUnderlyingType.HasValue)
                                         state.LastFrameResultObject = Enum.ToObject(memberDetail.TypeDetail.InnerTypeDetails[0].Type, state.LastFrameResultObject);
 
-                                    if (state.CurrentFrame.Graph != null)
-                                    {
-                                        if (memberDetail.TypeDetail.IsGraphLocalProperty)
-                                        {
-                                            if (state.CurrentFrame.Graph.HasLocalProperty(memberDetail.Name))
-                                                memberDetail.SetterBoxed(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
-                                        }
-                                        else
-                                        {
-                                            if (propertyGraph != null)
-                                                memberDetail.SetterBoxed(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
-                                        }
-                                    }
-                                    else
-                                    {
+                                    if (state.CurrentFrame.Graph == null || state.CurrentFrame.Graph.HasProperty(memberDetail.Name))
                                         memberDetail.SetterBoxed(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
-                                    }
                                 }
                             }
                         }
