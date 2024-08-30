@@ -739,6 +739,9 @@ namespace Zerra
                 blockExpressions.Add(recursionDictionaryAdd);
                 foreach (var mapTo in memberMaps)
                 {
+                    if (graph != null && !graph.HasProperty(mapTo.Key))
+                        continue;
+
                     var sourceLambda = mapTo.Value.Item1;
                     var targetLambda = mapTo.Value.Item2;
 
@@ -753,22 +756,6 @@ namespace Zerra
 
                     if (targetMember.NodeType == ExpressionType.Convert)
                         targetMember = ((UnaryExpression)targetMember).Operand;
-
-                    if (graph != null)
-                    {
-                        var sourceMemberType = TypeAnalyzer.GetTypeDetail(sourceMember.Type);
-                        var targetMemberType = TypeAnalyzer.GetTypeDetail(sourceMember.Type);
-                        if (sourceMemberType.IsGraphLocalProperty && targetMemberType.IsGraphLocalProperty)
-                        {
-                            if (!graph.HasLocalProperty(mapTo.Key))
-                                continue;
-                        }
-                        else
-                        {
-                            if (!graph.HasChild(mapTo.Key))
-                                continue;
-                        }
-                    }
 
                     var childGraph = graph?.GetChildGraph(mapTo.Key);
 

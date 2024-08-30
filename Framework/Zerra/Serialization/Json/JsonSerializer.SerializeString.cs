@@ -181,19 +181,8 @@ namespace Zerra.Serialization
                 if (!member.HasGetter)
                     continue;
 
-                if (graph != null)
-                {
-                    if (member.TypeDetail.IsGraphLocalProperty)
-                    {
-                        if (!graph.HasLocalProperty(member.Name))
-                            continue;
-                    }
-                    else
-                    {
-                        if (!graph.HasChild(member.Name))
-                            continue;
-                    }
-                }
+                if (graph != null && !graph.HasProperty(member.Name))
+                    continue;
 
                 var propertyValue = member.Getter(value);
 
@@ -341,24 +330,13 @@ namespace Zerra.Serialization
                             if (!member.HasGetter)
                                 continue;
 
+                            if (graph != null && !graph.HasProperty(member.Name))
+                                continue;
+
                             var propertyValue = member.Getter(value);
 
                             if (options.DoNotWriteNullProperties && propertyValue == null)
                                 continue;
-
-                            if (graph != null)
-                            {
-                                if (member.TypeDetail.IsGraphLocalProperty)
-                                {
-                                    if (!graph.HasLocalProperty(member.Name))
-                                        continue;
-                                }
-                                else
-                                {
-                                    if (!graph.HasChild(member.Name))
-                                        continue;
-                                }
-                            }
 
                             if (firstProperty)
                                 firstProperty = false;
