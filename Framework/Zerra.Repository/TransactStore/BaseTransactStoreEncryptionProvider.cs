@@ -53,7 +53,7 @@ namespace Zerra.Repository
 
             foreach (var property in properties)
             {
-                if (graph == null || graph.HasLocalProperty(property.Name))
+                if (graph == null || graph.HasProperty(property.Name))
                 {
                     if (property.TypeDetail.CoreType == CoreType.String)
                     {
@@ -108,7 +108,7 @@ namespace Zerra.Repository
             {
                 foreach (var property in properties)
                 {
-                    if (graph == null || graph.HasLocalProperty(property.Name))
+                    if (graph == null || graph.HasProperty(property.Name))
                     {
                         if (property.TypeDetail.CoreType == CoreType.String)
                         {
@@ -382,7 +382,7 @@ namespace Zerra.Repository
             {
                 foreach (var property in properties)
                 {
-                    if (graph == null || graph.HasLocalProperty(property.Name))
+                    if (graph == null || graph.HasProperty(property.Name))
                     {
                         if (property.TypeDetail.CoreType == CoreType.String)
                         {
@@ -476,7 +476,7 @@ namespace Zerra.Repository
                 var propertyDetails = typeDetails.MemberDetails.Where(x => x.Type == typeof(string) || x.Type == typeof(byte[])).ToArray();
                 if (graph != null)
                 {
-                    propertyDetails = propertyDetails.Where(x => graph.HasLocalProperty(x.Name)).ToArray();
+                    propertyDetails = propertyDetails.Where(x => graph.HasProperty(x.Name)).ToArray();
                 }
                 return propertyDetails;
             });

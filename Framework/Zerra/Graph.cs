@@ -22,25 +22,6 @@ namespace Zerra
         protected Dictionary<object, Graph>? instanceGraphs;
 
         public bool IncludeAllProperties => includeAllProperties;
-        public IEnumerable<string> LocalProperties
-        {
-            get
-            {
-                if (includeAllProperties)
-                {
-                    var type = GetModelType();
-                    if (type == null)
-                        throw new Exception($"{nameof(Graph)} has no type information so cannot enumerate {nameof(LocalProperties)} with {nameof(IncludeAllProperties)}");
-                    return type.GetTypeDetail().MemberDetails.Where(x => (removedProperties is null || !removedProperties.Contains(x.Name)) && (childGraphs is null || !childGraphs.ContainsKey(x.Name))).Select(x => x.Name);
-                }
-                else
-                {
-                    if (localProperties is null)
-                        return Array.Empty<string>();
-                    return localProperties;
-                }
-            }
-        }
 
         public IReadOnlyCollection<Graph> ChildGraphs => childGraphs is null ? Array.Empty<Graph>() : childGraphs.Values;
 
@@ -394,17 +375,9 @@ namespace Zerra
             return Convert(this, type);
         }
 
-        public bool HasLocalProperty(string name)
-        {
-            return (includeAllProperties && (removedProperties is null || !removedProperties.Contains(name)) && (childGraphs is null || !childGraphs.ContainsKey(name))) || (localProperties is not null && localProperties.Contains(name));
-        }
         public bool HasProperty(string name)
         {
             return (includeAllProperties && (removedProperties is null || !removedProperties.Contains(name))) || (localProperties is not null && localProperties.Contains(name)) || (childGraphs is not null && childGraphs.ContainsKey(name));
-        }
-        public bool HasChild(string name)
-        {
-            return (localProperties is not null && localProperties.Contains(name)) || (childGraphs is not null && childGraphs.ContainsKey(name));
         }
 
         public Graph? GetChildGraph(string name)
@@ -504,14 +477,29 @@ namespace Zerra
         }
         private void ToString(StringBuilder sb, int depth)
         {
-            foreach (var property in LocalProperties)
+            if (includeAllProperties)
             {
                 if (sb.Length > 0)
                     _ = sb.Append(Environment.NewLine);
                 for (var i = 0; i < depth; i++)
                     _ = sb.Append("  ");
 
-                _ = sb.Append(property);
+                _ = sb.Append("[ALL]");
+            }
+            if (localProperties is not null)
+            {
+                foreach (var property in localProperties)
+                {
+                    if (removedProperties is not null && removedProperties.Contains(property))
+                        continue;
+
+                    if (sb.Length > 0)
+                        _ = sb.Append(Environment.NewLine);
+                    for (var i = 0; i < depth; i++)
+                        _ = sb.Append("  ");
+
+                    _ = sb.Append(property);
+                }
             }
             if (childGraphs is not null)
             {

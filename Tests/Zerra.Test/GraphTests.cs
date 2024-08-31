@@ -29,15 +29,11 @@ namespace Zerra.Test
 
             foreach (var member in TypeAnalyzer<TypesAllModel>.GetTypeDetail().MemberDetails)
             {
-                Assert.IsTrue(graph.HasLocalProperty(member.Name));
                 Assert.IsTrue(graph.HasProperty(member.Name));
-                Assert.IsTrue(graph.LocalProperties.Contains(member.Name));
             }
 
             graph.AddChildGraph(new Graph<SimpleModel>(nameof(TypesAllModel.ClassArray), x => x.Value1));
-            Assert.IsFalse(graph.HasLocalProperty(nameof(TypesAllModel.ClassArray)));
             Assert.IsTrue(graph.HasProperty(nameof(TypesAllModel.ClassArray)));
-            Assert.IsFalse(graph.LocalProperties.Contains(nameof(TypesAllModel.ClassArray)));
         }
 
         [TestMethod]
@@ -196,26 +192,20 @@ ClassArray
             //x => x.ClassArray.Select(x => x.Value1)
 
             Assert.IsTrue(graph.HasProperty(nameof(TypesAllModel.BooleanThing)));
-            Assert.IsTrue(graph.HasLocalProperty(nameof(TypesAllModel.BooleanThing)));
             Assert.IsFalse(graph.HasProperty(nameof(TypesAllModel.ByteThing)));
-            Assert.IsFalse(graph.HasLocalProperty(nameof(TypesAllModel.ByteThing)));
 
             Assert.IsTrue(graph.HasProperty(nameof(TypesAllModel.ClassArray)));
-            Assert.IsFalse(graph.HasLocalProperty(nameof(TypesAllModel.ClassArray)));
             Assert.IsFalse(graph.HasProperty(nameof(TypesAllModel.ClassList)));
-            Assert.IsFalse(graph.HasLocalProperty(nameof(TypesAllModel.ClassList)));
 
-            Assert.IsTrue(graph.HasChild(nameof(TypesAllModel.ClassArray)));
-            Assert.IsFalse(graph.HasChild(nameof(TypesAllModel.ClassList)));
+            var childGraph1 = graph.GetChildGraph<SimpleModel>(nameof(TypesAllModel.ClassArray));
+            Assert.IsNotNull(childGraph1);
 
-            var childGraph = graph.GetChildGraph<SimpleModel>(nameof(TypesAllModel.ClassArray));
-            Assert.IsNotNull(childGraph);
+            Assert.IsTrue(childGraph1.HasProperty(nameof(SimpleModel.Value1)));
+            Assert.IsFalse(childGraph1.HasProperty(nameof(SimpleModel.Value2)));
 
-            Assert.IsTrue(childGraph.HasProperty(nameof(SimpleModel.Value1)));
-            Assert.IsFalse(childGraph.HasProperty(nameof(SimpleModel.Value2)));
+            var childGraph2 = graph.GetChildGraph<SimpleModel>(nameof(TypesAllModel.ClassList));
+            Assert.IsNull(childGraph2);
 
-            Assert.IsTrue(graph.LocalProperties.Count() == 1);
-            Assert.IsTrue(graph.LocalProperties.First() == nameof(TypesAllModel.BooleanThing));
         }
     }
 }

@@ -899,21 +899,21 @@ namespace Zerra.Repository.PostgreSql
             else
             {
                 var passedfirst = false;
-                foreach (var property in graph.LocalProperties)
+                foreach (var property in modelDetail.Properties)
                 {
-                    if (modelDetail.TryGetProperty(property, out var modelProperty))
+                    if (graph != null && !graph.HasProperty(property.Name))
+                        continue;
+
+                    if (property.PropertySourceName != null && property.ForeignIdentity == null)
                     {
-                        if (modelProperty.PropertySourceName != null && modelProperty.ForeignIdentity == null)
-                        {
-                            if (passedfirst)
-                                sb.Write(',');
-                            else
-                                passedfirst = true;
-                            sb.Write(modelDetail.DataSourceEntityName.ToLower());
-                            sb.Write('.');
-                            sb.Write(property.ToLower());
-                            AppendLineBreak(ref sb);
-                        }
+                        if (passedfirst)
+                            sb.Write(',');
+                        else
+                            passedfirst = true;
+                        sb.Write(modelDetail.DataSourceEntityName.ToLower());
+                        sb.Write('.');
+                        sb.Write(property.Name.ToLower());
+                        AppendLineBreak(ref sb);
                     }
                 }
                 if (!passedfirst)

@@ -902,23 +902,23 @@ namespace Zerra.Repository.MsSql
             else
             {
                 var passedfirst = false;
-                foreach (var property in graph.LocalProperties)
+                foreach (var property in modelDetail.Properties)
                 {
-                    if (modelDetail.TryGetProperty(property, out var modelProperty))
+                    if (graph != null && !graph.HasProperty(property.Name))
+                        continue;
+
+                    if (property.PropertySourceName != null && property.ForeignIdentity == null)
                     {
-                        if (modelProperty.PropertySourceName != null && modelProperty.ForeignIdentity == null)
-                        {
-                            if (passedfirst)
-                                sb.Write(',');
-                            else
-                                passedfirst = true;
-                            sb.Write('[');
-                            sb.Write(modelDetail.DataSourceEntityName);
-                            sb.Write("].[");
-                            sb.Write(property);
-                            sb.Write(']');
-                            AppendLineBreak(ref sb);
-                        }
+                        if (passedfirst)
+                            sb.Write(',');
+                        else
+                            passedfirst = true;
+                        sb.Write('[');
+                        sb.Write(modelDetail.DataSourceEntityName);
+                        sb.Write("].[");
+                        sb.Write(property.Name);
+                        sb.Write(']');
+                        AppendLineBreak(ref sb);
                     }
                 }
                 if (!passedfirst)

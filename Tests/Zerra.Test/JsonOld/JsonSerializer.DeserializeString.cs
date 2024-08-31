@@ -631,19 +631,19 @@ namespace Zerra.Serialization.Json
                             switch (value.JsonType)
                             {
                                 case JsonObjectOld.JsonObjectType.Literal:
-                                    if (graph.HasLocalProperty(propertyName))
+                                    if (graph.HasProperty(propertyName))
                                         properties.Add(propertyName, value);
                                     break;
                                 case JsonObjectOld.JsonObjectType.String:
-                                    if (graph.HasLocalProperty(propertyName))
+                                    if (graph.HasProperty(propertyName))
                                         properties.Add(propertyName, value);
                                     break;
                                 case JsonObjectOld.JsonObjectType.Array:
-                                    if (graph.HasLocalProperty(propertyName))
+                                    if (graph.HasProperty(propertyName))
                                         properties.Add(propertyName, value);
                                     break;
                                 case JsonObjectOld.JsonObjectType.Object:
-                                    if (graph.HasChild(propertyName))
+                                    if (graph.HasProperty(propertyName))
                                         properties.Add(propertyName, value);
                                     break;
                             }
