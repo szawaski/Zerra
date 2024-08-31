@@ -17,26 +17,21 @@ namespace Zerra
         {
         }
 
-        public Graph() : this(null, false, (IEnumerable<Expression<Func<T, object?>>>?)null)
+        public Graph() : this(false, (IEnumerable<Expression<Func<T, object?>>>?)null)
         {
             this.signature = "";
         }
-        public Graph(bool includeProperties) : this(null, includeProperties, (IEnumerable<Expression<Func<T, object?>>>?)null)
+        public Graph(bool includeProperties) : this(includeProperties, (IEnumerable<Expression<Func<T, object?>>>?)null)
         {
             this.signature = "A";
         }
-        public Graph(string? name, bool includeProperties) : this(name, includeProperties, (IEnumerable<Expression<Func<T, object?>>>?)null) { }
 
-        public Graph(params Expression<Func<T, object?>>[]? properties) : this(null, false, (ICollection<Expression<Func<T, object?>>>?)properties) { }
-        public Graph(string? name, params Expression<Func<T, object?>>[]? properties) : this(name, false, (ICollection<Expression<Func<T, object?>>>?)properties) { }
-        public Graph(bool includeAllProperties, params Expression<Func<T, object?>>[]? properties) : this(null, includeAllProperties, (ICollection<Expression<Func<T, object?>>>?)properties) { }
-        public Graph(string? name, bool includeAllProperties, params Expression<Func<T, object?>>[]? properties) : this(name, includeAllProperties, (ICollection<Expression<Func<T, object?>>>?)properties) { }
+        public Graph(params Expression<Func<T, object?>>[]? properties) : this(false, (ICollection<Expression<Func<T, object?>>>?)properties) { }
+        public Graph(bool includeAllProperties, params Expression<Func<T, object?>>[]? properties) : this(includeAllProperties, (IEnumerable<Expression<Func<T, object?>>>?)properties) { }
 
-        public Graph(IEnumerable<Expression<Func<T, object?>>>? properties) : this(null, false, properties) { }
-        public Graph(string? name, IEnumerable<Expression<Func<T, object?>>>? properties) : this(name, false, properties) { }
-        public Graph(bool includeAllProperties, IEnumerable<Expression<Func<T, object?>>>? properties) : this(null, includeAllProperties, properties) { }
-        public Graph(string? name, bool includeAllProperties, IEnumerable<Expression<Func<T, object?>>>? properties)
-            : base(name, includeAllProperties, (IEnumerable<string>?)null, null)
+        public Graph(IEnumerable<Expression<Func<T, object?>>>? properties) : this(false, properties) { }
+        public Graph(bool includeAllProperties, IEnumerable<Expression<Func<T, object?>>>? properties)
+            : base(includeAllProperties, (IEnumerable<string>?)null)
         {
             if (properties != null)
                 AddProperties(properties);

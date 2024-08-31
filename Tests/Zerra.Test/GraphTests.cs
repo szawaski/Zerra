@@ -32,7 +32,7 @@ namespace Zerra.Test
                 Assert.IsTrue(graph.HasProperty(member.Name));
             }
 
-            graph.AddChildGraph(new Graph<SimpleModel>(nameof(TypesAllModel.ClassArray), x => x.Value1));
+            graph.AddChildGraph(nameof(TypesAllModel.ClassArray), new Graph<SimpleModel>(x => x.Value1));
             Assert.IsTrue(graph.HasProperty(nameof(TypesAllModel.ClassArray)));
         }
 
@@ -73,14 +73,13 @@ namespace Zerra.Test
             var graph = new Graph<TypesAllModel>(
                 x => x.BooleanThing
             );
-            var childGraph = new Graph<SimpleModel>(nameof(TypesAllModel.ClassArray), x => x.Value1);
-
-            graph.AddChildGraph(childGraph);
+            var childGraph = new Graph<SimpleModel>(x => x.Value1);
+            graph.AddChildGraph(nameof(TypesAllModel.ClassArray), childGraph);
 
             TestBasic(graph);
 
-            var childGraph2 = new Graph<SimpleModel>(nameof(TypesAllModel.ClassArray), x => x.Value2);
-            graph.AddChildGraph(childGraph2);
+            var childGraph2 = new Graph<SimpleModel>(x => x.Value2);
+            graph.AddChildGraph(nameof(TypesAllModel.ClassArray), childGraph2);
 
             Assert.IsTrue(childGraph.HasProperty(nameof(SimpleModel.Value1)));
             Assert.IsTrue(childGraph.HasProperty(nameof(SimpleModel.Value2)));
@@ -133,10 +132,8 @@ namespace Zerra.Test
         [TestMethod]
         public void Convert()
         {
-            var graph = new Graph(
-                [nameof(TypesAllModel.BooleanThing)],
-                [new Graph(nameof(TypesAllModel.ClassArray), false, nameof(SimpleModel.Value1))]
-            );
+            var graph = new Graph(nameof(TypesAllModel.BooleanThing));
+            graph.AddChildGraph(nameof(TypesAllModel.ClassArray), new Graph(false, nameof(SimpleModel.Value1)));
 
             TestBasic(graph);
 
