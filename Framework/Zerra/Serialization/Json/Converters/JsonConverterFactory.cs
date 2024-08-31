@@ -33,7 +33,7 @@ namespace Zerra.Serialization.Json.Converters
             var converter = cache2.GetOrAdd(memberKey, x =>
             {
                 var newConverter = Create(typeDetail);
-                Debug.WriteLine($"{typeDetail.Type.GetNiceName()} - {newConverter.GetType().GetNiceName()}");
+                //Debug.WriteLine($"{typeDetail.Type.GetNiceName()} - {newConverter.GetType().GetNiceName()}");
                 newConverter.Setup(typeDetail, memberKey, getter, setter);
                 return newConverter;
             });
