@@ -154,6 +154,6 @@ namespace Zerra
             return typeof(T);
         }
 
-        //public Expression<Func<TSource, T>> GenerateSelect<TSource>() { return GenerateSelect<TSource, T>(); }
+        public Expression<Func<TSource, T>> GenerateSelect<TSource>() { return GenerateSelect<TSource, T>(); }
     }
 }

@@ -171,6 +171,32 @@ namespace Zerra.Test
         }
 
         [TestMethod]
+        public void Select()
+        {
+            var graph = new Graph<TypesAllModel>(
+                x => x.BooleanThing,
+                x => x.ClassThing.Value1,
+                x => x.ClassArray.Select(x => x.Value2)
+            );
+
+            var select = graph.GenerateSelect<TypesAllModel>();
+            var model = TypesAllModel.Create();
+            var result = select.Compile().Invoke(model);
+
+            Assert.AreEqual(model.BooleanThing, result.BooleanThing);
+            Assert.AreNotEqual(model.ByteThing, result.ByteThing);
+
+            Assert.IsNotNull(result.ClassThing);
+            Assert.AreEqual(model.ClassThing.Value1, result.ClassThing.Value1);
+            Assert.AreNotEqual(model.ClassThing.Value2, result.ClassThing.Value2);
+
+            Assert.IsNotNull(result.ClassArray);
+            Assert.AreEqual(model.ClassArray.Length, result.ClassArray.Length);
+            Assert.AreNotEqual(model.ClassArray[0].Value1, result.ClassArray[0].Value1);
+            Assert.AreEqual(model.ClassArray[0].Value2, result.ClassArray[0].Value2);
+        }
+
+        [TestMethod]
         public void ToStringer()
         {
             var graph = new Graph<TypesAllModel>(
