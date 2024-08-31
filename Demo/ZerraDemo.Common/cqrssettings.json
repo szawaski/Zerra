@@ -68,7 +68,14 @@
             "MessageHost": "localhost",
             "EncryptionKey": "SecretTransportKey7",
             "Types": [
-                "IWeatherCommandHandler",
+                "IWeatherCommandHandler"
+            ]
+        },
+        {
+            "Service": "ZerraDemo.Service.Weather",
+            "MessageHost": "localhost",
+            "EncryptionKey": "SecretTransportKeyEvents",
+            "Types": [
                 "IWeatherEventHandler"
             ]
         },
@@ -77,7 +84,14 @@
             "MessageHost": "localhost",
             "EncryptionKey": "SecretTransportKey8",
             "Types": [
-                "IWeatherCachedCommandHandler",
+                "IWeatherCachedCommandHandler"
+            ]
+        },
+        {
+            "Service": "ZerraDemo.Service.WeatherCached",
+            "MessageHost": "localhost",
+            "EncryptionKey": "SecretTransportKeyEvents",
+            "Types": [
                 "IWeatherEventHandler"
             ]
         },

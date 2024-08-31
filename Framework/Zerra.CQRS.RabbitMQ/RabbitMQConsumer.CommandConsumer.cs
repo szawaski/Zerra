@@ -21,7 +21,6 @@ namespace Zerra.CQRS.RabbitMQ
         {
             public bool IsOpen { get; private set; }
 
-
             private readonly int maxConcurrent;
             private readonly CommandCounter commandCounter;
             private readonly string topic;

@@ -10,9 +10,6 @@ namespace Zerra.CQRS.RabbitMQ
 {
     public class RabbitMQServiceCreator : IServiceCreator
     {
-        private static readonly ConcurrentFactoryDictionary<string, RabbitMQConsumer> rabbitServers = new();
-        private static readonly ConcurrentFactoryDictionary<string, RabbitMQProducer> rabbitClients = new();
-
         private readonly IServiceCreator serviceCreatorForQueries;
         private readonly string? environment;
         public RabbitMQServiceCreator(IServiceCreator serviceCreatorForQueries, string? environment)
@@ -23,22 +20,22 @@ namespace Zerra.CQRS.RabbitMQ
 
         public ICommandProducer? CreateCommandProducer(string messageHost, SymmetricConfig? symmetricConfig)
         {
-            return rabbitClients.GetOrAdd(messageHost, (host) => new RabbitMQProducer(host, symmetricConfig, environment));
+            return new RabbitMQProducer(messageHost, symmetricConfig, environment);
         }
 
         public ICommandConsumer? CreateCommandConsumer(string messageHost, SymmetricConfig? symmetricConfig)
         {
-            return rabbitServers.GetOrAdd(messageHost, (host) => new RabbitMQConsumer(host, symmetricConfig, environment));
+            return new RabbitMQConsumer(messageHost, symmetricConfig, environment);
         }
 
         public IEventProducer? CreateEventProducer(string messageHost, SymmetricConfig? symmetricConfig)
         {
-            return rabbitClients.GetOrAdd(messageHost, (host) => new RabbitMQProducer(host, symmetricConfig, environment));
+            return new RabbitMQProducer(messageHost, symmetricConfig, environment);
         }
 
         public IEventConsumer? CreateEventConsumer(string messageHost, SymmetricConfig? symmetricConfig)
         {
-            return rabbitServers.GetOrAdd(messageHost, (host) => new RabbitMQConsumer(host, symmetricConfig, environment));
+            return new RabbitMQConsumer(messageHost, symmetricConfig, environment);
         }
 
         public IQueryClient? CreateQueryClient(string serviceUrl, SymmetricConfig? symmetricConfig)

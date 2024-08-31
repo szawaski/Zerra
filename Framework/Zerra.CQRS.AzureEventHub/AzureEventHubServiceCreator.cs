@@ -10,9 +10,6 @@ namespace Zerra.CQRS.AzureEventHub
 {
     public sealed class AzureEventHubServiceCreator : IServiceCreator
     {
-        private static readonly ConcurrentFactoryDictionary<string, AzureEventHubConsumer> azureEventHubServers = new();
-        private static readonly ConcurrentFactoryDictionary<string, AzureEventHubProducer> azureEventHubClients = new();
-
         private readonly string eventHubName;
         private readonly IServiceCreator serviceCreatorForQueries;
         private readonly string? environment;
@@ -25,22 +22,22 @@ namespace Zerra.CQRS.AzureEventHub
 
         public ICommandProducer? CreateCommandProducer(string messageHost, SymmetricConfig? symmetricConfig)
         {
-            return azureEventHubClients.GetOrAdd(messageHost, (host) => new AzureEventHubProducer(host, eventHubName, symmetricConfig, environment));
+            return new AzureEventHubProducer(messageHost, eventHubName, symmetricConfig, environment);
         }
 
         public ICommandConsumer? CreateCommandConsumer(string messageHost, SymmetricConfig? symmetricConfig)
         {
-            return azureEventHubServers.GetOrAdd(messageHost, (host) => new AzureEventHubConsumer(host, eventHubName, symmetricConfig, environment));
+            return new AzureEventHubConsumer(messageHost, eventHubName, symmetricConfig, environment);
         }
 
         public IEventProducer? CreateEventProducer(string messageHost, SymmetricConfig? symmetricConfig)
         {
-            return azureEventHubClients.GetOrAdd(messageHost, (host) => new AzureEventHubProducer(host, eventHubName, symmetricConfig, environment));
+            return new AzureEventHubProducer(messageHost, eventHubName, symmetricConfig, environment);
         }
 
         public IEventConsumer? CreateEventConsumer(string messageHost, SymmetricConfig? symmetricConfig)
         {
-            return azureEventHubServers.GetOrAdd(messageHost, (host) => new AzureEventHubConsumer(host, eventHubName, symmetricConfig, environment));
+            return new AzureEventHubConsumer(messageHost, eventHubName, symmetricConfig, environment);
         }
 
         public IQueryClient? CreateQueryClient(string serviceUrl, SymmetricConfig? symmetricConfig)
