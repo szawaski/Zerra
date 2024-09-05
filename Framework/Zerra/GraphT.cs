@@ -12,6 +12,8 @@ namespace Zerra
 {
     public sealed class Graph<T> : Graph
     {
+        private Stack<MemberInfo>? memberInfoBuilder;
+
         public Graph(Graph? graph)
             : base(graph)
         {
@@ -37,13 +39,13 @@ namespace Zerra
                 AddMembers(members);
         }
 
-        private static void ReadPropertyExpression(Expression expression, Stack<MemberInfo> memberInfos)
+        private static void ReadMemberExpression(Expression expression, Stack<MemberInfo> memberInfos)
         {
             if (expression.NodeType != ExpressionType.Lambda || expression is not LambdaExpression lambda)
                 throw new ArgumentException("Invalid member expression");
-            ReadPropertyExpressionMember(lambda.Body, memberInfos);
+            ReadMemberExpressionMember(lambda.Body, memberInfos);
         }
-        private static void ReadPropertyExpressionMember(Expression expression, Stack<MemberInfo> memberInfos)
+        private static void ReadMemberExpressionMember(Expression expression, Stack<MemberInfo> memberInfos)
         {
             if (expression.NodeType == ExpressionType.Parameter)
             {
@@ -60,10 +62,10 @@ namespace Zerra
                 if (member.Expression == null)
                     throw new ArgumentException("Invalid member expression");
 
-                ReadPropertyExpressionMember(lambda.Body, memberInfos);
+                ReadMemberExpressionMember(lambda.Body, memberInfos);
 
                 memberInfos.Push(member.Member);
-                ReadPropertyExpressionMember(member.Expression, memberInfos);
+                ReadMemberExpressionMember(member.Expression, memberInfos);
             }
             else
             {
@@ -77,7 +79,7 @@ namespace Zerra
                     throw new ArgumentException("Invalid member expression");
 
                 memberInfos.Push(member.Member);
-                ReadPropertyExpressionMember(member.Expression, memberInfos);
+                ReadMemberExpressionMember(member.Expression, memberInfos);
             }
         }
 
@@ -87,11 +89,11 @@ namespace Zerra
             if (members == null)
                 throw new ArgumentNullException(nameof(members));
 
-            var memberInfos = new Stack<MemberInfo>();
+            memberInfoBuilder ??= new();
             foreach (var member in members)
             {
-                ReadPropertyExpression(member, memberInfos);
-                AddMemberInfos(memberInfos);
+                ReadMemberExpression(member, memberInfoBuilder);
+                AddMemberInfos(memberInfoBuilder);
                 //stack will be empty at this point, no need to clear for reuse
             }
             signature = null;
@@ -102,12 +104,12 @@ namespace Zerra
             if (members == null)
                 throw new ArgumentNullException(nameof(members));
 
-            var memberInfos = new Stack<MemberInfo>();
+            memberInfoBuilder ??= new();
             foreach (var member in members)
             {
-                ReadPropertyExpression(member, memberInfos);
-                RemoveMemberInfos(memberInfos);
-                memberInfos.Clear();
+                ReadMemberExpression(member, memberInfoBuilder);
+                RemoveMemberInfos(memberInfoBuilder);
+                //stack will be empty at this point, no need to clear for reuse
             }
             signature = null;
         }
@@ -117,11 +119,11 @@ namespace Zerra
             if (member == null)
                 throw new ArgumentNullException(nameof(member));
 
-            var members = new Stack<MemberInfo>();
+            memberInfoBuilder ??= new();
 
-            ReadPropertyExpression(member, members);
-            AddMemberInfos(members);
-            members.Clear();
+            ReadMemberExpression(member, memberInfoBuilder);
+            AddMemberInfos(memberInfoBuilder);
+            //stack will be empty at this point, no need to clear for reuse
 
             signature = null;
         }
@@ -130,11 +132,11 @@ namespace Zerra
             if (member == null)
                 throw new ArgumentNullException(nameof(member));
 
-            var members = new Stack<MemberInfo>();
+            memberInfoBuilder ??= new();
 
-            ReadPropertyExpression(member, members);
-            RemoveMemberInfos(members);
-            members.Clear();
+            ReadMemberExpression(member, memberInfoBuilder);
+            RemoveMemberInfos(memberInfoBuilder);
+            //stack will be empty at this point, no need to clear for reuse
 
             signature = null;
         }
