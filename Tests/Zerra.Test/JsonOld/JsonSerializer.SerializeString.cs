@@ -180,7 +180,7 @@ namespace Zerra.Serialization.Json
                 if (!member.HasGetterBoxed)
                     continue;
 
-                if (graph != null && !graph.HasProperty(member.Name))
+                if (graph != null && !graph.HasMember(member.Name))
                     continue;
 
                 var propertyValue = member.GetterBoxed(value);
@@ -329,7 +329,7 @@ namespace Zerra.Serialization.Json
                             if (!member.HasGetterBoxed)
                                 continue;
 
-                            if (graph != null && !graph.HasProperty(member.Name))
+                            if (graph != null && !graph.HasMember(member.Name))
                                 continue;
 
                             var propertyValue = member.GetterBoxed(value);

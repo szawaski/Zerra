@@ -892,7 +892,7 @@ namespace Zerra.Repository.MsSql
         protected override void GenerateSelectProperties(Graph? graph, ModelDetail modelDetail, ref CharWriter sb)
         {
             AppendLineBreak(ref sb);
-            if (graph == null || graph.IncludeAllProperties)
+            if (graph == null || graph.IncludeAllMembers)
             {
                 sb.Write('[');
                 sb.Write(modelDetail.DataSourceEntityName);
@@ -904,7 +904,7 @@ namespace Zerra.Repository.MsSql
                 var passedfirst = false;
                 foreach (var property in modelDetail.Properties)
                 {
-                    if (graph != null && !graph.HasProperty(property.Name))
+                    if (graph != null && !graph.HasMember(property.Name))
                         continue;
 
                     if (property.PropertySourceName != null && property.ForeignIdentity == null)

@@ -736,7 +736,7 @@ namespace Zerra.Map
                 blockExpressions.Add(recursionDictionaryAdd);
                 foreach (var mapTo in memberMaps)
                 {
-                    if (graph != null && !graph.HasProperty(mapTo.Key))
+                    if (graph != null && !graph.HasMember(mapTo.Key))
                         continue;
 
                     var sourceLambda = mapTo.Value.Item1;

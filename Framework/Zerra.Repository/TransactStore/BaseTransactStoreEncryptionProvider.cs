@@ -53,7 +53,7 @@ namespace Zerra.Repository
 
             foreach (var property in properties)
             {
-                if (graph == null || graph.HasProperty(property.Name))
+                if (graph == null || graph.HasMember(property.Name))
                 {
                     if (property.TypeDetail.CoreType == CoreType.String)
                     {
@@ -108,7 +108,7 @@ namespace Zerra.Repository
             {
                 foreach (var property in properties)
                 {
-                    if (graph == null || graph.HasProperty(property.Name))
+                    if (graph == null || graph.HasMember(property.Name))
                     {
                         if (property.TypeDetail.CoreType == CoreType.String)
                         {
@@ -372,7 +372,7 @@ namespace Zerra.Repository
                 graph = new Graph<TModel>(graph);
 
                 //add identites for copying
-                graph.AddProperties(ModelAnalyzer.GetIdentityPropertyNames(typeof(TModel)));
+                graph.AddMembers(ModelAnalyzer.GetIdentityPropertyNames(typeof(TModel)));
             }
 
             if (newCopy)
@@ -382,7 +382,7 @@ namespace Zerra.Repository
             {
                 foreach (var property in properties)
                 {
-                    if (graph == null || graph.HasProperty(property.Name))
+                    if (graph == null || graph.HasMember(property.Name))
                     {
                         if (property.TypeDetail.CoreType == CoreType.String)
                         {
@@ -476,7 +476,7 @@ namespace Zerra.Repository
                 var propertyDetails = typeDetails.MemberDetails.Where(x => x.Type == typeof(string) || x.Type == typeof(byte[])).ToArray();
                 if (graph != null)
                 {
-                    propertyDetails = propertyDetails.Where(x => graph.HasProperty(x.Name)).ToArray();
+                    propertyDetails = propertyDetails.Where(x => graph.HasMember(x.Name)).ToArray();
                 }
                 return propertyDetails;
             });

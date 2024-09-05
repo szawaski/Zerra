@@ -301,7 +301,7 @@ namespace Zerra.Serialization.Json.Converters.General
 
                 for (; ; )
                 {
-                    JsonConverterObjectMember? property;
+                    JsonConverterObjectMember? member;
                     if (!state.Current.HasReadProperty)
                     {
                         if (!ReadString(ref reader, ref state, false, out var name))
@@ -316,18 +316,18 @@ namespace Zerra.Serialization.Json.Converters.General
                         if (String.IsNullOrWhiteSpace(name))
                             throw reader.CreateException("Unexpected character");
 
-                        property = null;
-                        if (membersByName!.TryGetValue(name!, out property) == true)
+                        member = null;
+                        if (membersByName!.TryGetValue(name!, out member) == true)
                         {
-                            if (state.Current.Graph is not null && !state.Current.Graph.HasProperty(name))
+                            if (state.Current.Graph is not null && !state.Current.Graph.HasMember(name))
                             {
-                                property = null;
+                                member = null;
                             }
                         }
                     }
                     else
                     {
-                        property = (JsonConverterObjectMember?)state.Current.Property;
+                        member = (JsonConverterObjectMember?)state.Current.Property;
                     }
 
                     if (!state.Current.HasReadSeperator)
@@ -336,7 +336,7 @@ namespace Zerra.Serialization.Json.Converters.General
                         {
                             state.CharsNeeded = 1;
                             state.Current.HasReadProperty = true;
-                            state.Current.Property = property;
+                            state.Current.Property = member;
                             if (collectValues)
                                 state.Current.Object = collectedValues;
                             else
@@ -349,12 +349,12 @@ namespace Zerra.Serialization.Json.Converters.General
 
                     if (!state.Current.HasReadValue)
                     {
-                        if (property is null)
+                        if (member is null)
                         {
                             if (!DrainFromParent(ref reader, ref state))
                             {
                                 state.Current.HasReadProperty = true;
-                                state.Current.Property = property;
+                                state.Current.Property = member;
                                 state.Current.HasReadSeperator = true;
                                 if (collectValues)
                                     state.Current.Object = collectedValues;
@@ -367,11 +367,11 @@ namespace Zerra.Serialization.Json.Converters.General
                         {
                             if (collectValues)
                             {
-                                if (!property.ConverterSetCollectedValues.TryReadFromParent(ref reader, ref state, collectedValues, property.Member.Name))
+                                if (!member.ConverterSetCollectedValues.TryReadFromParent(ref reader, ref state, collectedValues, member.Member.Name))
                                 {
                                     state.Current.HasReadProperty = true;
                                     state.Current.HasReadSeperator = true;
-                                    state.Current.Property = property;
+                                    state.Current.Property = member;
                                     if (collectValues)
                                         state.Current.Object = collectedValues;
                                     else
@@ -381,11 +381,11 @@ namespace Zerra.Serialization.Json.Converters.General
                             }
                             else
                             {
-                                if (!property.Converter.TryReadFromParent(ref reader, ref state, value, property.Member.Name))
+                                if (!member.Converter.TryReadFromParent(ref reader, ref state, value, member.Member.Name))
                                 {
                                     state.Current.HasReadProperty = true;
                                     state.Current.HasReadSeperator = true;
-                                    state.Current.Property = property;
+                                    state.Current.Property = member;
                                     if (collectValues)
                                         state.Current.Object = collectedValues;
                                     else
@@ -489,7 +489,7 @@ namespace Zerra.Serialization.Json.Converters.General
 
                 while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
                 {
-                    if (state.Current.Graph is not null && !state.Current.Graph.HasProperty(enumerator.Current.Key))
+                    if (state.Current.Graph is not null && !state.Current.Graph.HasMember(enumerator.Current.Key))
                     {
                         continue;
                     }
@@ -557,7 +557,7 @@ namespace Zerra.Serialization.Json.Converters.General
 
                 while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
                 {
-                    if (state.Current.Graph is not null && !state.Current.Graph.HasProperty(enumerator.Current.Key))
+                    if (state.Current.Graph is not null && !state.Current.Graph.HasMember(enumerator.Current.Key))
                     {
                         continue;
                     }

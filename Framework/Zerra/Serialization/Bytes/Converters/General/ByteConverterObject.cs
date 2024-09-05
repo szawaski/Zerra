@@ -165,7 +165,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
 
             for (; ; )
             {
-                ByteConverterObjectMember? property;
+                ByteConverterObjectMember? member;
                 if (!state.Current.HasReadProperty)
                 {
                     if (state.UsePropertyNames)
@@ -184,8 +184,8 @@ namespace Zerra.Serialization.Bytes.Converters.General
                             break;
                         }
 
-                        property = null;
-                        _ = membersByName!.TryGetValue(name!, out property);
+                        member = null;
+                        _ = membersByName!.TryGetValue(name!, out member);
                     }
                     else
                     {
@@ -219,19 +219,19 @@ namespace Zerra.Serialization.Bytes.Converters.General
                             break;
                         }
 
-                        property = null;
+                        member = null;
                         if (state.IgnoreIndexAttribute)
-                            _ = membersByIndexIngoreAttributes?.TryGetValue(propertyIndex, out property);
+                            _ = membersByIndexIngoreAttributes?.TryGetValue(propertyIndex, out member);
                         else
-                            _ = membersByIndex?.TryGetValue(propertyIndex, out property);
+                            _ = membersByIndex?.TryGetValue(propertyIndex, out member);
                     }
                 }
                 else
                 {
-                    property = (ByteConverterObjectMember?)state.Current.Property;
+                    member = (ByteConverterObjectMember?)state.Current.Property;
                 }
 
-                if (property is null)
+                if (member is null)
                 {
                     if (!state.UsePropertyNames && !state.UseTypes)
                         throw new Exception($"Cannot deserialize with property undefined and no types.");
@@ -241,7 +241,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     if (!converter.TryReadFromParent(ref reader, ref state, default, false, true))
                     {
                         state.Current.HasReadProperty = true;
-                        state.Current.Property = property;
+                        state.Current.Property = member;
                         if (collectValues)
                             state.Current.Object = collectedValues;
                         else
@@ -253,10 +253,10 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 {
                     if (collectValues)
                     {
-                        if (!property.ConverterSetCollectedValues.TryReadFromParent(ref reader, ref state, collectedValues, false))
+                        if (!member.ConverterSetCollectedValues.TryReadFromParent(ref reader, ref state, collectedValues, false))
                         {
                             state.Current.HasReadProperty = true;
-                            state.Current.Property = property;
+                            state.Current.Property = member;
                             if (collectValues)
                                 state.Current.Object = collectedValues;
                             else
@@ -266,10 +266,10 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                     else
                     {
-                        if (!property.Converter.TryReadFromParent(ref reader, ref state, value, false))
+                        if (!member.Converter.TryReadFromParent(ref reader, ref state, value, false))
                         {
                             state.Current.HasReadProperty = true;
-                            state.Current.Property = property;
+                            state.Current.Property = member;
                             if (collectValues)
                                 state.Current.Object = collectedValues;
                             else

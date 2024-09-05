@@ -214,7 +214,7 @@ namespace Zerra.Serialization.Json
                                     if (memberDetail.TypeDetail.IsNullable && memberDetail.TypeDetail.InnerTypeDetails[0].EnumUnderlyingType.HasValue)
                                         value = Enum.ToObject(memberDetail.TypeDetail.InnerTypeDetails[0].Type, value);
 
-                                    if (graph == null || graph.HasProperty(memberDetail.Name))
+                                    if (graph == null || graph.HasMember(memberDetail.Name))
                                         memberDetail.SetterBoxed(obj, value);
                                 }
                             }
@@ -479,7 +479,7 @@ namespace Zerra.Serialization.Json
                                         if (memberDetail.TypeDetail.IsNullable && memberDetail.TypeDetail.InnerTypeDetails[0].EnumUnderlyingType.HasValue)
                                             value = Enum.ToObject(memberDetail.TypeDetail.InnerTypeDetails[0].Type, value);
 
-                                        if (graph == null || graph.HasProperty(memberDetail.Name))
+                                        if (graph == null || graph.HasMember(memberDetail.Name))
                                             memberDetail.SetterBoxed(obj, value);
                                     }
                                 }
@@ -631,19 +631,19 @@ namespace Zerra.Serialization.Json
                             switch (value.JsonType)
                             {
                                 case JsonObjectOld.JsonObjectType.Literal:
-                                    if (graph.HasProperty(propertyName))
+                                    if (graph.HasMember(propertyName))
                                         properties.Add(propertyName, value);
                                     break;
                                 case JsonObjectOld.JsonObjectType.String:
-                                    if (graph.HasProperty(propertyName))
+                                    if (graph.HasMember(propertyName))
                                         properties.Add(propertyName, value);
                                     break;
                                 case JsonObjectOld.JsonObjectType.Array:
-                                    if (graph.HasProperty(propertyName))
+                                    if (graph.HasMember(propertyName))
                                         properties.Add(propertyName, value);
                                     break;
                                 case JsonObjectOld.JsonObjectType.Object:
-                                    if (graph.HasProperty(propertyName))
+                                    if (graph.HasMember(propertyName))
                                         properties.Add(propertyName, value);
                                     break;
                             }

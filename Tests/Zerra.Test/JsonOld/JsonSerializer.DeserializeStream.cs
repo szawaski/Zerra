@@ -647,7 +647,7 @@ namespace Zerra.Serialization.Json
                             if (state.CurrentFrame.ObjectProperty.TypeDetail.IsNullable && state.CurrentFrame.ObjectProperty.TypeDetail.InnerTypeDetails[0].EnumUnderlyingType.HasValue)
                                 state.LastFrameResultObject = Enum.ToObject(state.CurrentFrame.ObjectProperty.TypeDetail.InnerTypeDetails[0].Type, state.LastFrameResultObject);
 
-                            if (state.CurrentFrame.Graph == null || state.CurrentFrame.Graph.HasProperty(state.CurrentFrame.ObjectProperty.Name))
+                            if (state.CurrentFrame.Graph == null || state.CurrentFrame.Graph.HasMember(state.CurrentFrame.ObjectProperty.Name))
                                 state.CurrentFrame.ObjectProperty.SetterBoxed(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
                         }
 
@@ -990,7 +990,7 @@ namespace Zerra.Serialization.Json
                                     if (memberDetail.TypeDetail.IsNullable && memberDetail.TypeDetail.InnerTypeDetails[0].EnumUnderlyingType.HasValue)
                                         state.LastFrameResultObject = Enum.ToObject(memberDetail.TypeDetail.InnerTypeDetails[0].Type, state.LastFrameResultObject);
 
-                                    if (state.CurrentFrame.Graph == null || state.CurrentFrame.Graph.HasProperty(memberDetail.Name))
+                                    if (state.CurrentFrame.Graph == null || state.CurrentFrame.Graph.HasMember(memberDetail.Name))
                                         memberDetail.SetterBoxed(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
                                 }
                             }

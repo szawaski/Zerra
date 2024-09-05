@@ -44,14 +44,14 @@ namespace Zerra.Repository
             if (properties.Length == 0)
                 return model;
 
-            graph = graph == null ? null : graph.Copy();
+            graph = graph == null ? null : new Graph<TModel>(graph);
 
             if (newCopy)
                 model = Mapper.Map<TModel, TModel>(model, graph);
 
             foreach (var property in properties)
             {
-                if (graph == null || graph.HasProperty(property.Name))
+                if (graph == null || graph.HasMember(property.Name))
                 {
                     if (property.TypeDetail.CoreType == CoreType.String)
                     {
@@ -93,7 +93,7 @@ namespace Zerra.Repository
             if (properties.Length == 0)
                 return models;
 
-            graph = graph == null ? null : graph.Copy();
+            graph = graph == null ? null : new Graph<TModel>(graph);
 
             if (newCopy)
                 models = Mapper.Map<ICollection<TModel>, TModel[]>(models, graph);
@@ -102,7 +102,7 @@ namespace Zerra.Repository
             {
                 foreach (var property in properties)
                 {
-                    if (graph == null || graph.HasProperty(property.Name))
+                    if (graph == null || graph.HasMember(property.Name))
                     {
                         if (property.TypeDetail.CoreType == CoreType.String)
                         {
@@ -365,7 +365,7 @@ namespace Zerra.Repository
                 graph = new Graph<TModel>(graph);
 
                 //add identites for copying
-                graph.AddProperties(ModelAnalyzer.GetIdentityPropertyNames(typeof(TModel)));
+                graph.AddMembers(ModelAnalyzer.GetIdentityPropertyNames(typeof(TModel)));
             }
 
             if (newCopy)
@@ -375,7 +375,7 @@ namespace Zerra.Repository
             {
                 foreach (var property in properties)
                 {
-                    if (graph == null || graph.HasProperty(property.Name))
+                    if (graph == null || graph.HasMember(property.Name))
                     {
                         if (property.TypeDetail.CoreType == CoreType.String)
                         {
