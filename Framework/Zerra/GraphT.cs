@@ -13,6 +13,7 @@ namespace Zerra
     public sealed class Graph<T> : Graph
     {
         private Stack<MemberInfo>? memberInfoBuilder;
+        private const int memberInfoBuilderDefaultCapacity = 4;
 
         public Graph(Graph? graph)
             : base(graph)
@@ -89,7 +90,8 @@ namespace Zerra
             if (members == null)
                 throw new ArgumentNullException(nameof(members));
 
-            memberInfoBuilder ??= new();
+            memberInfoBuilder ??= new(memberInfoBuilderDefaultCapacity);
+
             foreach (var member in members)
             {
                 ReadMemberExpression(member, memberInfoBuilder);
@@ -104,7 +106,8 @@ namespace Zerra
             if (members == null)
                 throw new ArgumentNullException(nameof(members));
 
-            memberInfoBuilder ??= new();
+            memberInfoBuilder ??= new(memberInfoBuilderDefaultCapacity);
+
             foreach (var member in members)
             {
                 ReadMemberExpression(member, memberInfoBuilder);
@@ -119,7 +122,7 @@ namespace Zerra
             if (member == null)
                 throw new ArgumentNullException(nameof(member));
 
-            memberInfoBuilder ??= new();
+            memberInfoBuilder ??= new(memberInfoBuilderDefaultCapacity);
 
             ReadMemberExpression(member, memberInfoBuilder);
             AddMemberInfos(memberInfoBuilder);
@@ -132,7 +135,7 @@ namespace Zerra
             if (member == null)
                 throw new ArgumentNullException(nameof(member));
 
-            memberInfoBuilder ??= new();
+            memberInfoBuilder ??= new(memberInfoBuilderDefaultCapacity);
 
             ReadMemberExpression(member, memberInfoBuilder);
             RemoveMemberInfos(memberInfoBuilder);
