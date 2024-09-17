@@ -15,7 +15,7 @@ using Zerra.Logging;
 using System.Data;
 using System.Runtime.CompilerServices;
 using System.Collections;
-using Zerra.IO;
+using Zerra.Repository.IO;
 
 namespace Zerra.Repository.MsSql
 {
@@ -534,31 +534,31 @@ namespace Zerra.Repository.MsSql
                     case CoreType.DateTime:
                     case CoreType.DateTimeNullable:
                         writer.Write('\'');
-                        writer.Write((DateTime)value, DateTimeFormat.MsSql);
+                        writer.Write((DateTime)value, CharWriter.DateTimeFormat.MsSql);
                         writer.Write('\'');
                         return;
                     case CoreType.DateTimeOffset:
                     case CoreType.DateTimeOffsetNullable:
                         writer.Write('\'');
-                        writer.Write((DateTimeOffset)value, DateTimeFormat.MsSql);
+                        writer.Write((DateTimeOffset)value, CharWriter.DateTimeFormat.MsSql);
                         writer.Write('\'');
                         return;
                     case CoreType.TimeSpan:
                     case CoreType.TimeSpanNullable:
                         writer.Write('\'');
-                        writer.Write((TimeSpan)value, TimeFormat.MsSql);
+                        writer.Write((TimeSpan)value, CharWriter.TimeFormat.MsSql);
                         writer.Write('\'');
                         return;
                     case CoreType.DateOnly:
                     case CoreType.DateOnlyNullable:
                         writer.Write('\'');
-                        writer.Write((DateOnly)value, DateTimeFormat.MsSql);
+                        writer.Write((DateOnly)value, CharWriter.DateTimeFormat.MsSql);
                         writer.Write('\'');
                         return;
                     case CoreType.TimeOnly:
                     case CoreType.TimeOnlyNullable:
                         writer.Write('\'');
-                        writer.Write((TimeOnly)value, TimeFormat.MsSql);
+                        writer.Write((TimeOnly)value, CharWriter.TimeFormat.MsSql);
                         writer.Write('\'');
                         return;
                     case CoreType.Guid:
@@ -578,7 +578,7 @@ namespace Zerra.Repository.MsSql
                 if (assigningValue || comparingValue)
                     writer.Write('=');
                 writer.Write("0x");
-                writer.Write((byte[])value, ByteFormat.Hex);
+                writer.Write((byte[])value, CharWriter.ByteFormat.Hex);
                 return;
             }
 

@@ -7,7 +7,7 @@ using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
-using Zerra.IO;
+using Zerra.Repository.IO;
 
 namespace Zerra.TestDev
 {

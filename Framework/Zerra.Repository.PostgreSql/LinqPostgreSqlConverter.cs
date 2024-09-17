@@ -6,7 +6,7 @@ using System;
 using System.Collections;
 using System.Linq;
 using System.Linq.Expressions;
-using Zerra.IO;
+using Zerra.Repository.IO;
 using Zerra.Reflection;
 using Zerra.Repository.Reflection;
 
@@ -477,7 +477,7 @@ namespace Zerra.Repository.PostgreSql
                 if (arrayType == typeof(byte))
                 {
                     sb.Write("decode('");
-                    sb.Write((byte[])value, ByteFormat.Hex);
+                    sb.Write((byte[])value, CharWriter.ByteFormat.Hex);
                     sb.Write("','hex')");
                     return false;
                 }
@@ -613,7 +613,7 @@ namespace Zerra.Repository.PostgreSql
                             }
                         }
                         sb.Write('\'');
-                        sb.Write((DateTime)value, DateTimeFormat.PostgreSql);
+                        sb.Write((DateTime)value, CharWriter.DateTimeFormat.PostgreSql);
                         sb.Write('\'');
                         return false;
                     case CoreType.DateTimeOffset:
@@ -669,7 +669,7 @@ namespace Zerra.Repository.PostgreSql
                             }
                         }
                         sb.Write('\'');
-                        sb.Write((DateTimeOffset)value, DateTimeFormat.PostgreSql);
+                        sb.Write((DateTimeOffset)value, CharWriter.DateTimeFormat.PostgreSql);
                         sb.Write('\'');
                         return false;
                     case CoreType.TimeSpan:
@@ -720,7 +720,7 @@ namespace Zerra.Repository.PostgreSql
                             }
                         }
                         sb.Write('\'');
-                        sb.Write((TimeSpan)value, TimeFormat.PostgreSql);
+                        sb.Write((TimeSpan)value, CharWriter.TimeFormat.PostgreSql);
                         sb.Write('\'');
                         return false;
                     case CoreType.DateOnly:
@@ -756,7 +756,7 @@ namespace Zerra.Repository.PostgreSql
                             }
                         }
                         sb.Write('\'');
-                        sb.Write((DateOnly)value, DateTimeFormat.PostgreSql);
+                        sb.Write((DateOnly)value, CharWriter.DateTimeFormat.PostgreSql);
                         sb.Write('\'');
                         return false;
                     case CoreType.TimeOnly:
@@ -787,7 +787,7 @@ namespace Zerra.Repository.PostgreSql
                             }
                         }
                         sb.Write('\'');
-                        sb.Write((TimeOnly)value, TimeFormat.PostgreSql);
+                        sb.Write((TimeOnly)value, CharWriter.TimeFormat.PostgreSql);
                         sb.Write('\'');
                         return false;
                     case CoreType.Guid:

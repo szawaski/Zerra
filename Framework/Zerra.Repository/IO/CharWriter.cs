@@ -4,8 +4,9 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using Zerra.IO;
 
-namespace Zerra.IO
+namespace Zerra.Repository.IO
 {
     public ref partial struct CharWriter
     {
@@ -30,22 +31,6 @@ namespace Zerra.IO
             this.bufferOwner = BufferArrayPool<char>.Rent(initialSize);
             this.buffer = bufferOwner;
             this.position = 0;
-            this.length = buffer.Length;
-        }
-
-        public CharWriter(Span<char> buffer)
-        {
-            this.bufferOwner = null;
-            this.buffer = buffer;
-            this.position = 0;
-            this.length = buffer.Length;
-        }
-
-        public CharWriter(char[] buffer, bool fromPool, int position = 0)
-        {
-            this.bufferOwner = fromPool ? buffer : null;
-            this.buffer = buffer;
-            this.position = position;
             this.length = buffer.Length;
         }
 

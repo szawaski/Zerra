@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Net;
 using System.Runtime.CompilerServices;
+using System.Text;
 using Zerra.IO;
 using Zerra.Reflection;
 
@@ -115,115 +116,109 @@ namespace Zerra.Serialization.QueryString
         {
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
 
-            var writer = new CharWriter(256);
-            try
+            var sb = new StringBuilder(256);
+
+            foreach (var member in typeDetail.MemberDetails)
             {
-                foreach (var member in typeDetail.MemberDetails)
+                var value = member.GetterBoxed(model!);
+                if (value is null)
+                    continue;
+
+                if (sb.Length > 0)
+                    _ = sb.Append('&');
+                _ = sb.Append(WebUtility.UrlEncode(member.Name));
+                _ = sb.Append('=');
+                if (!member.TypeDetail.CoreType.HasValue)
+                    throw new Exception($"{nameof(QueryStringSerializer)} does not support serializing type {member.Type.Name}");
+
+                switch (member.TypeDetail.CoreType.Value)
                 {
-                    var value = member.GetterBoxed(model!);
-                    if (value is null)
-                        continue;
-
-                    if (writer.Length > 0)
-                        writer.Write('&');
-                    writer.Write(WebUtility.UrlEncode(member.Name));
-                    writer.Write('=');
-                    if (!member.TypeDetail.CoreType.HasValue)
-                        throw new Exception($"{nameof(QueryStringSerializer)} does not support serializing type {member.Type.Name}");
-
-                    switch (member.TypeDetail.CoreType.Value)
-                    {
-                        case CoreType.String:
-                            writer.Write(WebUtility.UrlEncode((string)value));
-                            break;
-                        case CoreType.Boolean:
-                        case CoreType.BooleanNullable:
-                            writer.Write((bool)value == false ? "false" : "true");
-                            break;
-                        case CoreType.Byte:
-                        case CoreType.ByteNullable:
-                            writer.Write((byte)value);
-                            break;
-                        case CoreType.SByte:
-                        case CoreType.SByteNullable:
-                            writer.Write((sbyte)value);
-                            break;
-                        case CoreType.Int16:
-                        case CoreType.Int16Nullable:
-                            writer.Write((short)value);
-                            break;
-                        case CoreType.UInt16:
-                        case CoreType.UInt16Nullable:
-                            writer.Write((ushort)value);
-                            break;
-                        case CoreType.Int32:
-                        case CoreType.Int32Nullable:
-                            writer.Write((int)value);
-                            break;
-                        case CoreType.UInt32:
-                        case CoreType.UInt32Nullable:
-                            writer.Write((uint)value);
-                            break;
-                        case CoreType.Int64:
-                        case CoreType.Int64Nullable:
-                            writer.Write((long)value);
-                            break;
-                        case CoreType.UInt64:
-                        case CoreType.UInt64Nullable:
-                            writer.Write((ulong)value);
-                            break;
-                        case CoreType.Single:
-                        case CoreType.SingleNullable:
-                            writer.Write((float)value);
-                            break;
-                        case CoreType.Double:
-                        case CoreType.DoubleNullable:
-                            writer.Write((double)value);
-                            break;
-                        case CoreType.Decimal:
-                        case CoreType.DecimalNullable:
-                            writer.Write((decimal)value);
-                            break;
-                        case CoreType.Char:
-                        case CoreType.CharNullable:
-                            writer.Write((char)value);
-                            break;
-                        case CoreType.DateTime:
-                        case CoreType.DateTimeNullable:
-                            writer.Write(WebUtility.UrlEncode(((DateTime)value).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ")));
-                            break;
-                        case CoreType.DateTimeOffset:
-                        case CoreType.DateTimeOffsetNullable:
-                            writer.Write(WebUtility.UrlEncode(((DateTimeOffset)value).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ")));
-                            break;
-                        case CoreType.TimeSpan:
-                        case CoreType.TimeSpanNullable:
-                            writer.Write((TimeSpan)value, TimeFormat.ISO8601);
-                            break;
+                    case CoreType.String:
+                        _ = sb.Append(WebUtility.UrlEncode((string)value));
+                        break;
+                    case CoreType.Boolean:
+                    case CoreType.BooleanNullable:
+                        _ = sb.Append((bool)value == false ? "false" : "true");
+                        break;
+                    case CoreType.Byte:
+                    case CoreType.ByteNullable:
+                        _ = sb.Append((byte)value);
+                        break;
+                    case CoreType.SByte:
+                    case CoreType.SByteNullable:
+                        _ = sb.Append((sbyte)value);
+                        break;
+                    case CoreType.Int16:
+                    case CoreType.Int16Nullable:
+                        _ = sb.Append((short)value);
+                        break;
+                    case CoreType.UInt16:
+                    case CoreType.UInt16Nullable:
+                        _ = sb.Append((ushort)value);
+                        break;
+                    case CoreType.Int32:
+                    case CoreType.Int32Nullable:
+                        _ = sb.Append((int)value);
+                        break;
+                    case CoreType.UInt32:
+                    case CoreType.UInt32Nullable:
+                        _ = sb.Append((uint)value);
+                        break;
+                    case CoreType.Int64:
+                    case CoreType.Int64Nullable:
+                        _ = sb.Append((long)value);
+                        break;
+                    case CoreType.UInt64:
+                    case CoreType.UInt64Nullable:
+                        _ = sb.Append((ulong)value);
+                        break;
+                    case CoreType.Single:
+                    case CoreType.SingleNullable:
+                        _ = sb.Append((float)value);
+                        break;
+                    case CoreType.Double:
+                    case CoreType.DoubleNullable:
+                        _ = sb.Append((double)value);
+                        break;
+                    case CoreType.Decimal:
+                    case CoreType.DecimalNullable:
+                        _ = sb.Append((decimal)value);
+                        break;
+                    case CoreType.Char:
+                    case CoreType.CharNullable:
+                        _ = sb.Append((char)value);
+                        break;
+                    case CoreType.DateTime:
+                    case CoreType.DateTimeNullable:
+                        _ = sb.Append(WebUtility.UrlEncode(((DateTime)value).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ")));
+                        break;
+                    case CoreType.DateTimeOffset:
+                    case CoreType.DateTimeOffsetNullable:
+                        _ = sb.Append(WebUtility.UrlEncode(((DateTimeOffset)value).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ")));
+                        break;
+                    case CoreType.TimeSpan:
+                    case CoreType.TimeSpanNullable:
+                        _ = sb.Append(WebUtility.UrlEncode(((TimeSpan)value).ToString("c")));
+                        break;
 #if NET6_0_OR_GREATER
-                        case CoreType.DateOnly:
-                        case CoreType.DateOnlyNullable:
-                            writer.Write((DateOnly)value, DateTimeFormat.ISO8601);
-                            break;
-                        case CoreType.TimeOnly:
-                        case CoreType.TimeOnlyNullable:
-                            writer.Write((TimeOnly)value, TimeFormat.ISO8601);
-                            break;
+                    case CoreType.DateOnly:
+                    case CoreType.DateOnlyNullable:
+                        _ = sb.Append(WebUtility.UrlEncode(((DateOnly)value).ToDateTime(TimeOnly.MinValue).ToString("yyyy-MM-dd")));
+                        break;
+                    case CoreType.TimeOnly:
+                    case CoreType.TimeOnlyNullable:
+                        _ = sb.Append(WebUtility.UrlEncode(((TimeOnly)value).ToTimeSpan().ToString("c")));
+                        break;
 #endif
-                        case CoreType.Guid:
-                        case CoreType.GuidNullable:
-                            writer.Write((Guid)value);
-                            break;
-                        default:
-                            throw new Exception($"{nameof(QueryStringSerializer)} does not support serializing type {member.Type.Name}");
-                    }
+                    case CoreType.Guid:
+                    case CoreType.GuidNullable:
+                        _ = sb.Append((Guid)value);
+                        break;
+                    default:
+                        throw new Exception($"{nameof(QueryStringSerializer)} does not support serializing type {member.Type.Name}");
                 }
-                return writer.ToString();
             }
-            finally
-            {
-                writer.Dispose();
-            }
+            return sb.ToString();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

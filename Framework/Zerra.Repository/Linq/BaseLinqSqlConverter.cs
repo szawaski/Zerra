@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using Zerra.IO;
+using Zerra.Repository.IO;
 using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository

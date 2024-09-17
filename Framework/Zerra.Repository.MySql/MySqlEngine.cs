@@ -13,7 +13,7 @@ using System.Linq;
 using Zerra.Logging;
 using System.Data;
 using System.Runtime.CompilerServices;
-using Zerra.IO;
+using Zerra.Repository.IO;
 using System.Collections;
 using MySql.Data.MySqlClient;
 using System.Data.Common;
@@ -534,31 +534,31 @@ namespace Zerra.Repository.MySql
                     case CoreType.DateTime:
                     case CoreType.DateTimeNullable:
                         writer.Write('\'');
-                        writer.Write(((DateTime)value).ToUniversalTime(), DateTimeFormat.MySql);
+                        writer.Write(((DateTime)value).ToUniversalTime(), CharWriter.DateTimeFormat.MySql);
                         writer.Write('\'');
                         return;
                     case CoreType.DateTimeOffset:
                     case CoreType.DateTimeOffsetNullable:
                         writer.Write('\'');
-                        writer.Write(((DateTimeOffset)value).ToUniversalTime(), DateTimeFormat.MySql);
+                        writer.Write(((DateTimeOffset)value).ToUniversalTime(), CharWriter.DateTimeFormat.MySql);
                         writer.Write('\'');
                         return;
                     case CoreType.TimeSpan:
                     case CoreType.TimeSpanNullable:
                         writer.Write('\'');
-                        writer.Write((TimeSpan)value, TimeFormat.MySql);
+                        writer.Write((TimeSpan)value, CharWriter.TimeFormat.MySql);
                         writer.Write('\'');
                         return;
                     case CoreType.DateOnly:
                     case CoreType.DateOnlyNullable:
                         writer.Write('\'');
-                        writer.Write((DateOnly)value, DateTimeFormat.MySql);
+                        writer.Write((DateOnly)value, CharWriter.DateTimeFormat.MySql);
                         writer.Write('\'');
                         return;
                     case CoreType.TimeOnly:
                     case CoreType.TimeOnlyNullable:
                         writer.Write('\'');
-                        writer.Write((TimeOnly)value, TimeFormat.MySql);
+                        writer.Write((TimeOnly)value, CharWriter.TimeFormat.MySql);
                         writer.Write('\'');
                         return;
                     case CoreType.Guid:
@@ -578,7 +578,7 @@ namespace Zerra.Repository.MySql
                 if (assigningValue || comparingValue)
                     writer.Write('=');
                 writer.Write("0x");
-                writer.Write((byte[])value, ByteFormat.Hex);
+                writer.Write((byte[])value, CharWriter.ByteFormat.Hex);
                 return;
             }
 

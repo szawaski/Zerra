@@ -14,7 +14,7 @@ using Zerra.Logging;
 using System.Data;
 using System.Runtime.CompilerServices;
 using Npgsql;
-using Zerra.IO;
+using Zerra.Repository.IO;
 using System.Collections;
 
 namespace Zerra.Repository.PostgreSql
@@ -551,31 +551,31 @@ namespace Zerra.Repository.PostgreSql
                     case CoreType.DateTime:
                     case CoreType.DateTimeNullable:
                         writer.Write('\'');
-                        writer.Write(((DateTime)value).ToUniversalTime(), DateTimeFormat.PostgreSql);
+                        writer.Write(((DateTime)value).ToUniversalTime(), CharWriter.DateTimeFormat.PostgreSql);
                         writer.Write('\'');
                         return;
                     case CoreType.DateTimeOffset:
                     case CoreType.DateTimeOffsetNullable:
                         writer.Write('\'');
-                        writer.Write((DateTimeOffset)value, DateTimeFormat.PostgreSql);
+                        writer.Write((DateTimeOffset)value, CharWriter.DateTimeFormat.PostgreSql);
                         writer.Write('\'');
                         return;
                     case CoreType.TimeSpan:
                     case CoreType.TimeSpanNullable:
                         writer.Write('\'');
-                        writer.Write((TimeSpan)value, TimeFormat.PostgreSql);
+                        writer.Write((TimeSpan)value, CharWriter.TimeFormat.PostgreSql);
                         writer.Write('\'');
                         return;
                     case CoreType.DateOnly:
                     case CoreType.DateOnlyNullable:
                         writer.Write('\'');
-                        writer.Write((DateOnly)value, DateTimeFormat.PostgreSql);
+                        writer.Write((DateOnly)value, CharWriter.DateTimeFormat.PostgreSql);
                         writer.Write('\'');
                         return;
                     case CoreType.TimeOnly:
                     case CoreType.TimeOnlyNullable:
                         writer.Write('\'');
-                        writer.Write((TimeOnly)value, TimeFormat.PostgreSql);
+                        writer.Write((TimeOnly)value, CharWriter.TimeFormat.PostgreSql);
                         writer.Write('\'');
                         return;
                     case CoreType.Guid:
@@ -595,7 +595,7 @@ namespace Zerra.Repository.PostgreSql
                 if (assigningValue || comparingValue)
                     writer.Write('=');
                 writer.Write("decode('");
-                writer.Write((byte[])value, ByteFormat.Hex);
+                writer.Write((byte[])value, CharWriter.ByteFormat.Hex);
                 writer.Write("','hex')");
                 return;
             }

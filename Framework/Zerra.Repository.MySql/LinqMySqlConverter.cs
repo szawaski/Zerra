@@ -6,7 +6,7 @@ using System;
 using System.Collections;
 using System.Linq;
 using System.Linq.Expressions;
-using Zerra.IO;
+using Zerra.Repository.IO;
 using Zerra.Reflection;
 using Zerra.Repository.Reflection;
 
@@ -481,7 +481,7 @@ namespace Zerra.Repository.MySql
                 if (arrayType == typeof(byte))
                 {
                     sb.Write("0x");
-                    sb.Write((byte[])value, ByteFormat.Hex);
+                    sb.Write((byte[])value, CharWriter.ByteFormat.Hex);
                     return false;
                 }
                 else
@@ -616,7 +616,7 @@ namespace Zerra.Repository.MySql
                             }
                         }
                         sb.Write('\'');
-                        sb.Write((DateTime)value, DateTimeFormat.MySql);
+                        sb.Write((DateTime)value, CharWriter.DateTimeFormat.MySql);
                         sb.Write('\'');
                         return false;
                     case CoreType.DateTimeOffset:
@@ -672,7 +672,7 @@ namespace Zerra.Repository.MySql
                             }
                         }
                         sb.Write('\'');
-                        sb.Write((DateTimeOffset)value, DateTimeFormat.MySql);
+                        sb.Write((DateTimeOffset)value, CharWriter.DateTimeFormat.MySql);
                         sb.Write('\'');
                         return false;
                     case CoreType.TimeSpan:
@@ -723,7 +723,7 @@ namespace Zerra.Repository.MySql
                             }
                         }
                         sb.Write('\'');
-                        sb.Write((TimeSpan)value, TimeFormat.MySql);
+                        sb.Write((TimeSpan)value, CharWriter.TimeFormat.MySql);
                         sb.Write('\'');
                         return false;
                     case CoreType.DateOnly:
@@ -759,7 +759,7 @@ namespace Zerra.Repository.MySql
                             }
                         }
                         sb.Write('\'');
-                        sb.Write((DateOnly)value, DateTimeFormat.MySql);
+                        sb.Write((DateOnly)value, CharWriter.DateTimeFormat.MySql);
                         sb.Write('\'');
                         return false;
                     case CoreType.TimeOnly:
@@ -790,7 +790,7 @@ namespace Zerra.Repository.MySql
                             }
                         }
                         sb.Write('\'');
-                        sb.Write((TimeOnly)value, TimeFormat.MySql);
+                        sb.Write((TimeOnly)value, CharWriter.TimeFormat.MySql);
                         sb.Write('\'');
                         return false;
                     case CoreType.Guid:

@@ -5,7 +5,7 @@
 using System;
 using System.Runtime.CompilerServices;
 
-namespace Zerra.IO
+namespace Zerra.Repository.IO
 {
     public ref partial struct CharWriter
     {

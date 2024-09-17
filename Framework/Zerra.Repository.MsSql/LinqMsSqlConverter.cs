@@ -6,8 +6,8 @@ using System;
 using System.Collections;
 using System.Linq;
 using System.Linq.Expressions;
-using Zerra.IO;
 using Zerra.Reflection;
+using Zerra.Repository.IO;
 using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository.MsSql
@@ -480,7 +480,7 @@ namespace Zerra.Repository.MsSql
                 if (arrayType == typeof(byte))
                 {
                     sb.Write("0x");
-                    sb.Write((byte[])value, ByteFormat.Hex);
+                    sb.Write((byte[])value, CharWriter.ByteFormat.Hex);
                     return false;
                 }
                 else
@@ -615,7 +615,7 @@ namespace Zerra.Repository.MsSql
                             }
                         }
                         sb.Write('\'');
-                        sb.Write((DateTime)value, DateTimeFormat.MsSql);
+                        sb.Write((DateTime)value, CharWriter.DateTimeFormat.MsSql);
                         sb.Write('\'');
                         return false;
                     case CoreType.DateTimeOffset:
@@ -671,7 +671,7 @@ namespace Zerra.Repository.MsSql
                             }
                         }
                         sb.Write('\'');
-                        sb.Write((DateTimeOffset)value, DateTimeFormat.MsSql);
+                        sb.Write((DateTimeOffset)value, CharWriter.DateTimeFormat.MsSql);
                         sb.Write('\'');
                         return false;
                     case CoreType.TimeSpan:
@@ -722,7 +722,7 @@ namespace Zerra.Repository.MsSql
                             }
                         }
                         sb.Write('\'');
-                        sb.Write((TimeSpan)value, TimeFormat.MsSql);
+                        sb.Write((TimeSpan)value, CharWriter.TimeFormat.MsSql);
                         sb.Write('\'');
                         return false;
                     case CoreType.DateOnly:
@@ -758,7 +758,7 @@ namespace Zerra.Repository.MsSql
                             }
                         }
                         sb.Write('\'');
-                        sb.Write((DateOnly)value, DateTimeFormat.MsSql);
+                        sb.Write((DateOnly)value, CharWriter.DateTimeFormat.MsSql);
                         sb.Write('\'');
                         return false;
                     case CoreType.TimeOnly:
@@ -789,7 +789,7 @@ namespace Zerra.Repository.MsSql
                             }
                         }
                         sb.Write('\'');
-                        sb.Write((TimeSpan)value, TimeFormat.MsSql);
+                        sb.Write((TimeSpan)value, CharWriter.TimeFormat.MsSql);
                         sb.Write('\'');
                         return false;
                     case CoreType.Guid:
