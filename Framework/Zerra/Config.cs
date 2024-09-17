@@ -14,10 +14,10 @@ namespace Zerra
 {
     /// <summary>
     /// Application Configuration setup using Microsoft's IConfiguration without dependency injection.
-    /// At the start of an application call <see cref="LoadConfiguration()" />.
+    /// At the start of an application call <see cref="LoadConfiguration(string[], string, Action{ConfigurationBuilder})" />.
     /// It will attempt to find the environment name and then use that to find and load configuration files.
-    /// There are overloads to add custom components to the configuration builder such <see cref="LoadConfiguration(Action{ConfigurationBuilder}?)()" />.
-    /// This can be completely custom using <see cref="SetConfiguration(IConfiguration)" />.
+    /// There are overloads to add custom components to the configuration builder.
+    /// This can be completely custom using <see cref="SetConfiguration(string, IConfiguration)" />.
     /// This class is also responsible for setting up which assemblies to load and search for the discovery service using <see cref="AddDiscoveryAssemblies(Assembly[])" /> and related methods.
     /// </summary>
     public static class Config
@@ -68,23 +68,6 @@ namespace Zerra
         private static string? environmentName = null;
         private static string? applicationIdentifier = null;
 
-        /// <summary>
-        /// Loads the application configuration starting with the environmental variable the then configuration files.
-        /// </summary>
-        /// <param name="environmentName">The environment name, otherwise it will be searched for in environmental variables.</param>
-        /// /// <param name="build">A function to add customizations to the configuration before it is built.</param>
-        public static void LoadConfiguration(string environmentName, Action<ConfigurationBuilder>? build = null) { LoadConfiguration(null, environmentName, build); }
-        /// <summary>
-        /// Loads the application configuration starting with the environmental variable the then configuration files.
-        /// </summary>
-        /// <param name="args">The program level arguments from the application Main method.</param>
-        /// <param name="build">A function to add customizations to the configuration before it is built.</param>
-        public static void LoadConfiguration(string[] args, Action<ConfigurationBuilder>? build = null) { LoadConfiguration(args, null, build); }
-        /// <summary>
-        /// Loads the application configuration starting with the environmental variable the then configuration files.
-        /// </summary>
-        /// <param name="build">A function to add customizations to the configuration before it is built.</param>
-        public static void LoadConfiguration(Action<ConfigurationBuilder> build) { LoadConfiguration(null, null, build); }
         /// <summary>
         /// Loads the application configuration starting with the environmental variable the then configuration files.
         /// </summary>
