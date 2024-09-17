@@ -4,7 +4,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using Zerra.IO;
+using Zerra.Buffers;
 
 namespace Zerra.Serialization.Json
 {
@@ -20,7 +20,7 @@ namespace Zerra.Serialization.Json
 
         public CharWriterOld()
         {
-            this.bufferOwner = BufferArrayPool<char>.Rent(defaultBufferSize);
+            this.bufferOwner = ArrayPoolHelper<char>.Rent(defaultBufferSize);
             this.buffer = bufferOwner;
             this.position = 0;
             this.length = buffer.Length;
@@ -28,7 +28,7 @@ namespace Zerra.Serialization.Json
 
         public CharWriterOld(int initialSize)
         {
-            this.bufferOwner = BufferArrayPool<char>.Rent(initialSize);
+            this.bufferOwner = ArrayPoolHelper<char>.Rent(initialSize);
             this.buffer = bufferOwner;
             this.position = 0;
             this.length = buffer.Length;
@@ -64,7 +64,7 @@ namespace Zerra.Serialization.Json
                 throw new InvalidOperationException($"{nameof(CharWriterOld)} has reached it's buffer limit");
 
             var minSize = position + additionalSize;
-            BufferArrayPool<char>.Grow(ref bufferOwner, minSize);
+            ArrayPoolHelper<char>.Grow(ref bufferOwner, minSize);
             buffer = bufferOwner;
         }
 
@@ -91,7 +91,7 @@ namespace Zerra.Serialization.Json
             if (bufferOwner != null)
             {
                 buffer.Clear();
-                BufferArrayPool<char>.Return(bufferOwner);
+                ArrayPoolHelper<char>.Return(bufferOwner);
                 bufferOwner = null;
                 buffer = null;
             }

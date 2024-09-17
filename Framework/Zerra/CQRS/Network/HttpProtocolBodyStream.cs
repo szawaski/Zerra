@@ -8,6 +8,7 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Zerra.Buffers;
 using Zerra.Extensions;
 using Zerra.IO;
 
@@ -44,7 +45,7 @@ namespace Zerra.CQRS.Network
             this.ended = false;
             if (!contentLength.HasValue)
             {
-                this.segmentLengthBufferSource = BufferArrayPool<byte>.Rent(segmentLengthBufferMaxLength);
+                this.segmentLengthBufferSource = ArrayPoolHelper<byte>.Rent(segmentLengthBufferMaxLength);
                 this.segmentLengthBuffer = segmentLengthBufferSource;
             }
             else
@@ -58,7 +59,7 @@ namespace Zerra.CQRS.Network
         {
             if (segmentLengthBufferSource != null)
             {
-                BufferArrayPool<byte>.Return(segmentLengthBufferSource);
+                ArrayPoolHelper<byte>.Return(segmentLengthBufferSource);
                 segmentLengthBufferSource = null;
                 segmentLengthBuffer = null;
             }
@@ -69,7 +70,7 @@ namespace Zerra.CQRS.Network
         {
             if (segmentLengthBufferSource != null)
             {
-                BufferArrayPool<byte>.Return(segmentLengthBufferSource);
+                ArrayPoolHelper<byte>.Return(segmentLengthBufferSource);
                 segmentLengthBufferSource = null;
                 segmentLengthBuffer = null;
             }

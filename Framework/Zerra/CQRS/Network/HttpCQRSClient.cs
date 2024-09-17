@@ -8,12 +8,12 @@ using System.Net.Sockets;
 using System.Threading.Tasks;
 using Zerra.Encryption;
 using Zerra.Logging;
-using Zerra.IO;
 using System.Collections.Generic;
 using Zerra.Serialization.Json;
 using System.Security.Claims;
 using System.Threading;
 using System.Linq;
+using Zerra.Buffers;
 
 namespace Zerra.CQRS.Network
 {
@@ -43,7 +43,7 @@ namespace Zerra.CQRS.Network
             Stream? requestBodyStream = null;
             CryptoFlushStream? requestBodyCryptoStream = null;
             Stream? responseBodyStream = null;
-            var bufferOwner = BufferArrayPool<byte>.Rent(HttpCommon.BufferLength);
+            var bufferOwner = ArrayPoolHelper<byte>.Rent(HttpCommon.BufferLength);
             var isThrowingRemote = false;
             try
             {
@@ -188,7 +188,7 @@ namespace Zerra.CQRS.Network
             }
             finally
             {
-                BufferArrayPool<byte>.Return(bufferOwner);
+                ArrayPoolHelper<byte>.Return(bufferOwner);
                 throttle.Release();
             }
         }
@@ -201,7 +201,7 @@ namespace Zerra.CQRS.Network
             Stream? requestBodyStream = null;
             CryptoFlushStream? requestBodyCryptoStream = null;
             Stream? responseBodyStream = null;
-            var bufferOwner = BufferArrayPool<byte>.Rent(HttpCommon.BufferLength);
+            var bufferOwner = ArrayPoolHelper<byte>.Rent(HttpCommon.BufferLength);
             var isThrowingRemote = false;
             try
             {
@@ -380,7 +380,7 @@ namespace Zerra.CQRS.Network
             }
             finally
             {
-                BufferArrayPool<byte>.Return(bufferOwner);
+                ArrayPoolHelper<byte>.Return(bufferOwner);
                 throttle.Release();
             }
         }
@@ -393,7 +393,7 @@ namespace Zerra.CQRS.Network
             Stream? requestBodyStream = null;
             CryptoFlushStream? requestBodyCryptoStream = null;
             Stream? responseBodyStream = null;
-            var bufferOwner = BufferArrayPool<byte>.Rent(HttpCommon.BufferLength);
+            var bufferOwner = ArrayPoolHelper<byte>.Rent(HttpCommon.BufferLength);
             var isThrowingRemote = false;
             try
             {
@@ -569,7 +569,7 @@ namespace Zerra.CQRS.Network
             }
             finally
             {
-                BufferArrayPool<byte>.Return(bufferOwner);
+                ArrayPoolHelper<byte>.Return(bufferOwner);
                 throttle.Release();
             }
         }
@@ -582,7 +582,7 @@ namespace Zerra.CQRS.Network
             Stream? requestBodyStream = null;
             CryptoFlushStream? requestBodyCryptoStream = null;
             Stream? responseBodyStream = null;
-            var bufferOwner = BufferArrayPool<byte>.Rent(HttpCommon.BufferLength);
+            var bufferOwner = ArrayPoolHelper<byte>.Rent(HttpCommon.BufferLength);
             var isThrowingRemote = false;
             try
             {
@@ -767,7 +767,7 @@ namespace Zerra.CQRS.Network
             }
             finally
             {
-                BufferArrayPool<byte>.Return(bufferOwner);
+                ArrayPoolHelper<byte>.Return(bufferOwner);
                 throttle.Release();
             }
         }

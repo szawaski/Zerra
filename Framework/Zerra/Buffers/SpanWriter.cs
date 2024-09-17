@@ -5,7 +5,7 @@
 using System;
 using System.Runtime.CompilerServices;
 
-namespace Zerra.IO
+namespace Zerra.Buffers
 {
     public ref struct SpanWriter
     {
@@ -17,7 +17,7 @@ namespace Zerra.IO
         public SpanWriter(Span<byte> buffer)
         {
             this.buffer = buffer;
-            this.position = 0;
+            position = 0;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

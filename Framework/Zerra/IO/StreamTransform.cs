@@ -6,6 +6,7 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using Zerra.Buffers;
 
 namespace Zerra.IO
 {
@@ -63,7 +64,7 @@ namespace Zerra.IO
 #if NETSTANDARD2_0
         public override sealed async Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
         {
-            var bufferOwner = BufferArrayPool<byte>.Rent(bufferSize);
+            var bufferOwner = ArrayPoolHelper<byte>.Rent(bufferSize);
             var maxSize = 0;
             try
             {
@@ -78,13 +79,13 @@ namespace Zerra.IO
             finally
             {
                 Array.Clear(bufferOwner, 0, maxSize);
-                BufferArrayPool<byte>.Return(bufferOwner);
+                ArrayPoolHelper<byte>.Return(bufferOwner);
             }
         }
 #else
         public override sealed async Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
         {
-            var bufferOwner = BufferArrayPool<byte>.Rent(bufferSize);
+            var bufferOwner = ArrayPoolHelper<byte>.Rent(bufferSize);
             var buffer = bufferOwner.AsMemory();
             var maxSize = 0;
             try
@@ -100,7 +101,7 @@ namespace Zerra.IO
             finally
             {
                 buffer.Span.Slice(0, maxSize).Clear();
-                BufferArrayPool<byte>.Return(bufferOwner);
+                ArrayPoolHelper<byte>.Return(bufferOwner);
             }
         }
 #endif
@@ -129,7 +130,7 @@ namespace Zerra.IO
 
         public override sealed void CopyTo(Stream destination, int bufferSize)
         {
-            var bufferOwner = BufferArrayPool<byte>.Rent(bufferSize);
+            var bufferOwner = ArrayPoolHelper<byte>.Rent(bufferSize);
             var buffer = bufferOwner.AsSpan();
             var maxSize = 0;
             try
@@ -145,7 +146,7 @@ namespace Zerra.IO
             finally
             {
                 buffer.Slice(0, maxSize).Clear();
-                BufferArrayPool<byte>.Return(bufferOwner);
+                ArrayPoolHelper<byte>.Return(bufferOwner);
             }
         }
 

@@ -5,7 +5,7 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Text;
-using Zerra.IO;
+using Zerra.Buffers;
 
 namespace Zerra.Serialization.Bytes.IO
 {
@@ -43,7 +43,7 @@ namespace Zerra.Serialization.Bytes.IO
 
         public ByteWriter(int initialSize, Encoding encoding)
         {
-            this.bufferOwner = BufferArrayPool<byte>.Rent(initialSize);
+            this.bufferOwner = ArrayPoolHelper<byte>.Rent(initialSize);
             this.buffer = bufferOwner;
             this.encoding = encoding;
             this.position = 0;
@@ -59,7 +59,7 @@ namespace Zerra.Serialization.Bytes.IO
             if (bufferOwner is null)
                 return false;
 
-            BufferArrayPool<byte>.Grow(ref bufferOwner, Math.Max(bufferOwner.Length * 2, bufferOwner.Length + sizeNeeded));
+            ArrayPoolHelper<byte>.Grow(ref bufferOwner, Math.Max(bufferOwner.Length * 2, bufferOwner.Length + sizeNeeded));
             buffer = bufferOwner;
             length = buffer.Length;
 
@@ -80,7 +80,7 @@ namespace Zerra.Serialization.Bytes.IO
             if (bufferOwner != null)
             {
                 Array.Clear(bufferOwner, 0, position);
-                BufferArrayPool<byte>.Return(bufferOwner);
+                ArrayPoolHelper<byte>.Return(bufferOwner);
                 bufferOwner = null;
                 buffer = null;
             }

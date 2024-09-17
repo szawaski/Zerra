@@ -7,7 +7,7 @@ using System.Collections;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using Zerra.IO;
+using Zerra.Buffers;
 using Zerra.Reflection;
 
 namespace Zerra.Serialization.Json
@@ -53,7 +53,7 @@ namespace Zerra.Serialization.Json
 
             var typeDetail = TypeAnalyzer.GetTypeDetail(type);
 #if DEBUG
-            var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
+            var buffer = ArrayPoolHelper<byte>.Rent(Testing ? 1 : defaultBufferSize);
 #else
             var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
 #endif
@@ -86,7 +86,7 @@ namespace Zerra.Serialization.Json
                         throw new EndOfStreamException("Invalid JSON");
 
                     if (state.CharsNeeded > buffer.Length)
-                        BufferArrayPool<byte>.Grow(ref buffer, state.CharsNeeded);
+                        ArrayPoolHelper<byte>.Grow(ref buffer, state.CharsNeeded);
 
                     state.CharsNeeded = 0;
                 }
@@ -94,7 +94,7 @@ namespace Zerra.Serialization.Json
             finally
             {
                 Array.Clear(buffer, 0, buffer.Length);
-                BufferArrayPool<byte>.Return(buffer);
+                ArrayPoolHelper<byte>.Return(buffer);
             }
         }
 
@@ -141,7 +141,7 @@ namespace Zerra.Serialization.Json
 
             var typeDetail = TypeAnalyzer.GetTypeDetail(type);
 #if DEBUG
-            var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
+            var buffer = ArrayPoolHelper<byte>.Rent(Testing ? 1 : defaultBufferSize);
 #else
             var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
 #endif
@@ -173,7 +173,7 @@ namespace Zerra.Serialization.Json
                         throw new EndOfStreamException("Invalid JSON");
 
                     if (state.CharsNeeded > buffer.Length)
-                        BufferArrayPool<byte>.Grow(ref buffer, state.CharsNeeded);
+                        ArrayPoolHelper<byte>.Grow(ref buffer, state.CharsNeeded);
 
                     state.CharsNeeded = 0;
                 }
@@ -181,14 +181,14 @@ namespace Zerra.Serialization.Json
             finally
             {
                 Array.Clear(buffer, 0, buffer.Length);
-                BufferArrayPool<byte>.Return(buffer);
+                ArrayPoolHelper<byte>.Return(buffer);
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int WriteConvertBytes(Span<byte> buffer, ref WriteState state)
         {
-            var bufferCharOwner = BufferArrayPool<char>.Rent(buffer.Length);
+            var bufferCharOwner = ArrayPoolHelper<char>.Rent(buffer.Length);
 
             try
             {
@@ -205,7 +205,7 @@ namespace Zerra.Serialization.Json
             finally
             {
                 Array.Clear(bufferCharOwner, 0, bufferCharOwner.Length);
-                BufferArrayPool<char>.Return(bufferCharOwner);
+                ArrayPoolHelper<char>.Return(bufferCharOwner);
             }
         }
 

@@ -53,7 +53,7 @@ namespace Zerra.Encryption
             return (int)Math.Round(((rand / (double)UInt32.MaxValue) * diff) + minValue);
         }
 #else
-        public static unsafe int GetRandomNumber(RandomNumberGenerator rng, int minValue, int maxValue)
+        public static int GetRandomNumber(RandomNumberGenerator rng, int minValue, int maxValue)
         {
             if (minValue > maxValue)
                 throw new ArgumentOutOfRangeException(nameof(minValue));

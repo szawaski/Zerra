@@ -4,7 +4,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using Zerra.IO;
+using Zerra.Buffers;
 
 namespace Zerra.Repository.IO
 {
@@ -20,7 +20,7 @@ namespace Zerra.Repository.IO
 
         public CharWriter()
         {
-            this.bufferOwner = BufferArrayPool<char>.Rent(defaultBufferSize);
+            this.bufferOwner = ArrayPoolHelper<char>.Rent(defaultBufferSize);
             this.buffer = bufferOwner;
             this.position = 0;
             this.length = buffer.Length;
@@ -28,7 +28,7 @@ namespace Zerra.Repository.IO
 
         public CharWriter(int initialSize)
         {
-            this.bufferOwner = BufferArrayPool<char>.Rent(initialSize);
+            this.bufferOwner = ArrayPoolHelper<char>.Rent(initialSize);
             this.buffer = bufferOwner;
             this.position = 0;
             this.length = buffer.Length;
@@ -48,7 +48,7 @@ namespace Zerra.Repository.IO
                 throw new InvalidOperationException($"{nameof(CharWriter)} has reached it's buffer limit");
 
             var minSize = position + additionalSize;
-            BufferArrayPool<char>.Grow(ref bufferOwner, minSize);
+            ArrayPoolHelper<char>.Grow(ref bufferOwner, minSize);
             buffer = bufferOwner;
         }
 
@@ -75,7 +75,7 @@ namespace Zerra.Repository.IO
             if (bufferOwner != null)
             {
                 buffer.Clear();
-                BufferArrayPool<char>.Return(bufferOwner);
+                ArrayPoolHelper<char>.Return(bufferOwner);
                 bufferOwner = null;
                 buffer = null;
             }

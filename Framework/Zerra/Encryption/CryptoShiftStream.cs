@@ -8,6 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
+using Zerra.Buffers;
 using Zerra.IO;
 
 namespace Zerra.Encryption
@@ -43,16 +44,16 @@ namespace Zerra.Encryption
             this.mode = mode;
             this.deshift = deshift;
 
-            this.keyBufferOwner = BufferArrayPool<byte>.Rent(this.keySizeBytes);
+            this.keyBufferOwner = ArrayPoolHelper<byte>.Rent(this.keySizeBytes);
             this.keyBuffer = this.keyBufferOwner.AsMemory().Slice(0, this.keySizeBytes);
 #if NETSTANDARD2_0
 
-            this.workingBufferOwner = BufferArrayPool<byte>.Rent(bufferSize);
+            this.workingBufferOwner = ArrayPoolHelper<byte>.Rent(bufferSize);
             this.workingBuffer = this.workingBufferOwner.AsMemory();
 #else
             if (mode == CryptoStreamMode.Write)
             {
-                this.workingBufferOwner = BufferArrayPool<byte>.Rent(bufferSize);
+                this.workingBufferOwner = ArrayPoolHelper<byte>.Rent(bufferSize);
                 this.workingBuffer = this.workingBufferOwner.AsMemory();
             }
             else
@@ -83,14 +84,14 @@ namespace Zerra.Encryption
             if (keyBufferOwner != null)
             {
                 Array.Clear(keyBufferOwner, 0, keyBufferOwner.Length);
-                BufferArrayPool<byte>.Return(keyBufferOwner);
+                ArrayPoolHelper<byte>.Return(keyBufferOwner);
                 keyBufferOwner = null;
                 keyBuffer = null;
             }
             if (workingBufferOwner != null)
             {
                 Array.Clear(workingBufferOwner, 0, workingBufferOwner.Length);
-                BufferArrayPool<byte>.Return(workingBufferOwner);
+                ArrayPoolHelper<byte>.Return(workingBufferOwner);
                 workingBufferOwner = null;
                 workingBuffer = null;
             }
@@ -102,14 +103,14 @@ namespace Zerra.Encryption
             if (keyBufferOwner != null)
             {
                 Array.Clear(keyBufferOwner, 0, keyBufferOwner.Length);
-                BufferArrayPool<byte>.Return(keyBufferOwner);
+                ArrayPoolHelper<byte>.Return(keyBufferOwner);
                 keyBufferOwner = null;
                 keyBuffer = null;
             }
             if (workingBufferOwner != null)
             {
                 Array.Clear(workingBufferOwner, 0, workingBufferOwner.Length);
-                BufferArrayPool<byte>.Return(workingBufferOwner);
+                ArrayPoolHelper<byte>.Return(workingBufferOwner);
                 workingBufferOwner = null;
                 workingBuffer = null;
             }

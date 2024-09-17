@@ -5,7 +5,7 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Text;
-using Zerra.IO;
+using Zerra.Buffers;
 
 namespace Zerra.Serialization.Json.IO
 {
@@ -37,12 +37,12 @@ namespace Zerra.Serialization.Json.IO
         {
             if (useBytes)
             {
-                this.bufferBytesOwner = BufferArrayPool<byte>.Rent(initialSize);
+                this.bufferBytesOwner = ArrayPoolHelper<byte>.Rent(initialSize);
                 this.bufferBytes = bufferBytesOwner;
             }
             else
             {
-                this.bufferCharsOwner = BufferArrayPool<char>.Rent(initialSize);
+                this.bufferCharsOwner = ArrayPoolHelper<char>.Rent(initialSize);
                 this.bufferChars = bufferCharsOwner;
             }
             this.position = 0;
@@ -69,7 +69,7 @@ namespace Zerra.Serialization.Json.IO
                 if (bufferBytesOwner == null)
                     return false;
 
-                BufferArrayPool<byte>.Grow(ref bufferBytesOwner, Math.Max(bufferBytesOwner.Length * 2, bufferBytesOwner.Length + sizeNeeded));
+                ArrayPoolHelper<byte>.Grow(ref bufferBytesOwner, Math.Max(bufferBytesOwner.Length * 2, bufferBytesOwner.Length + sizeNeeded));
                 bufferBytes = bufferBytesOwner;
                 length = bufferBytesOwner.Length;
             }
@@ -78,7 +78,7 @@ namespace Zerra.Serialization.Json.IO
                 if (bufferCharsOwner == null)
                     return false;
 
-                BufferArrayPool<char>.Grow(ref bufferCharsOwner, Math.Max(bufferCharsOwner.Length * 2, bufferCharsOwner.Length + sizeNeeded));
+                ArrayPoolHelper<char>.Grow(ref bufferCharsOwner, Math.Max(bufferCharsOwner.Length * 2, bufferCharsOwner.Length + sizeNeeded));
                 bufferChars = bufferCharsOwner;
                 length = bufferCharsOwner.Length;
             }
@@ -114,14 +114,14 @@ namespace Zerra.Serialization.Json.IO
             if (bufferCharsOwner != null)
             {
                 Array.Clear(bufferCharsOwner, 0, position);
-                BufferArrayPool<char>.Return(bufferCharsOwner);
+                ArrayPoolHelper<char>.Return(bufferCharsOwner);
                 bufferCharsOwner = null;
                 bufferChars = null;
             }
             if (bufferBytesOwner != null)
             {
                 Array.Clear(bufferBytesOwner, 0, position);
-                BufferArrayPool<byte>.Return(bufferBytesOwner);
+                ArrayPoolHelper<byte>.Return(bufferBytesOwner);
                 bufferBytesOwner = null;
                 bufferBytes = null;
             }

@@ -7,7 +7,7 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using Zerra.IO;
+using Zerra.Buffers;
 
 namespace Zerra.Extensions
 {
@@ -16,7 +16,7 @@ namespace Zerra.Extensions
 #if NETSTANDARD2_0
         public static byte[] ToArray(this Stream stream)
         {
-            var buffer = BufferArrayPool<byte>.Rent(1024 * 16);
+            var buffer = ArrayPoolHelper<byte>.Rent(1024 * 16);
             var totalRead = 0;
             int read;
             try
@@ -25,7 +25,7 @@ namespace Zerra.Extensions
                 {
                     totalRead += read;
                     if (totalRead == buffer.Length)
-                        BufferArrayPool<byte>.Grow(ref buffer, buffer.Length * 2);
+                        ArrayPoolHelper<byte>.Grow(ref buffer, buffer.Length * 2);
                 }
 
                 var bytes = new byte[totalRead];
@@ -35,13 +35,13 @@ namespace Zerra.Extensions
             finally
             {
                 Array.Clear(buffer, 0, totalRead);
-                BufferArrayPool<byte>.Return(buffer);
+                ArrayPoolHelper<byte>.Return(buffer);
             }
         }
 
         public static async Task<byte[]> ToArrayAsync(this Stream stream, CancellationToken cancellationToken = default)
         {
-            var buffer = BufferArrayPool<byte>.Rent(1024 * 16);
+            var buffer = ArrayPoolHelper<byte>.Rent(1024 * 16);
             var totalRead = 0;
             int read;
             try
@@ -50,7 +50,7 @@ namespace Zerra.Extensions
                 {
                     totalRead += read;
                     if (totalRead == buffer.Length)
-                        BufferArrayPool<byte>.Grow(ref buffer, buffer.Length * 2);
+                        ArrayPoolHelper<byte>.Grow(ref buffer, buffer.Length * 2);
                 }
 
                 var bytes = new byte[totalRead];
@@ -60,13 +60,13 @@ namespace Zerra.Extensions
             finally
             {
                 Array.Clear(buffer, 0, totalRead);
-                BufferArrayPool<byte>.Return(buffer);
+                ArrayPoolHelper<byte>.Return(buffer);
             }
         }
 #else
         public static byte[] ToArray(this Stream stream)
         {
-            var bufferOwner = BufferArrayPool<byte>.Rent(1024 * 16);
+            var bufferOwner = ArrayPoolHelper<byte>.Rent(1024 * 16);
             var buffer = bufferOwner.AsSpan();
             var totalRead = 0;
             int read;
@@ -77,7 +77,7 @@ namespace Zerra.Extensions
                     totalRead += read;
                     if (totalRead == buffer.Length)
                     {
-                        BufferArrayPool<byte>.Grow(ref bufferOwner, bufferOwner.Length * 2);
+                        ArrayPoolHelper<byte>.Grow(ref bufferOwner, bufferOwner.Length * 2);
                         buffer = bufferOwner.AsSpan();
                     }
                 }
@@ -89,13 +89,13 @@ namespace Zerra.Extensions
             finally
             {
                 buffer.Slice(0, totalRead).Clear();
-                BufferArrayPool<byte>.Return(bufferOwner);
+                ArrayPoolHelper<byte>.Return(bufferOwner);
             }
         }
 
         public static async Task<byte[]> ToArrayAsync(this Stream stream, CancellationToken cancellationToken = default)
         {
-            var bufferOwner = BufferArrayPool<byte>.Rent(1024 * 16);
+            var bufferOwner = ArrayPoolHelper<byte>.Rent(1024 * 16);
             var buffer = bufferOwner.AsMemory();
             var totalRead = 0;
             int read;
@@ -106,7 +106,7 @@ namespace Zerra.Extensions
                     totalRead += read;
                     if (totalRead == buffer.Length)
                     {
-                        BufferArrayPool<byte>.Grow(ref bufferOwner, buffer.Length * 2);
+                        ArrayPoolHelper<byte>.Grow(ref bufferOwner, buffer.Length * 2);
                         buffer = bufferOwner.AsMemory();
                     }
                 }
@@ -118,7 +118,7 @@ namespace Zerra.Extensions
             finally
             {
                 buffer.Span.Slice(0, totalRead).Clear();
-                BufferArrayPool<byte>.Return(bufferOwner);
+                ArrayPoolHelper<byte>.Return(bufferOwner);
             }
         }
 #endif
@@ -126,7 +126,7 @@ namespace Zerra.Extensions
 #if NETSTANDARD2_0
         public static int ReadToSpan(this Stream stream, Span<byte> span)
         {
-            var buffer = BufferArrayPool<byte>.Rent(span.Length);
+            var buffer = ArrayPoolHelper<byte>.Rent(span.Length);
             var totalRead = 0;
             try
             {
@@ -136,14 +136,14 @@ namespace Zerra.Extensions
             finally
             {
                 Array.Clear(buffer, 0, totalRead);
-                BufferArrayPool<byte>.Return(buffer);
+                ArrayPoolHelper<byte>.Return(buffer);
             }
             return totalRead;
         }
 
         public static async Task<int> ReadToMemoryAsync(this Stream stream, Memory<byte> memory, CancellationToken cancellationToken = default)
         {
-            var buffer = BufferArrayPool<byte>.Rent(memory.Length);
+            var buffer = ArrayPoolHelper<byte>.Rent(memory.Length);
             var totalRead = 0;
             try
             {
@@ -153,7 +153,7 @@ namespace Zerra.Extensions
             finally
             {
                 Array.Clear(buffer, 0, totalRead);
-                BufferArrayPool<byte>.Return(buffer);
+                ArrayPoolHelper<byte>.Return(buffer);
             }
             return totalRead;
         }
@@ -172,7 +172,7 @@ namespace Zerra.Extensions
 
         public static int ReadToSpan(this StreamReader stream, Span<char> span)
         {
-            var buffer = BufferArrayPool<char>.Rent(span.Length);
+            var buffer = ArrayPoolHelper<char>.Rent(span.Length);
             var totalRead = 0;
             try
             {
@@ -182,14 +182,14 @@ namespace Zerra.Extensions
             finally
             {
                 Array.Clear(buffer, 0, totalRead);
-                BufferArrayPool<char>.Return(buffer);
+                ArrayPoolHelper<char>.Return(buffer);
             }
             return totalRead;
         }
 
         public static async Task<int> ReadToMemoryAsync(this StreamReader stream, Memory<char> memory)
         {
-            var buffer = BufferArrayPool<char>.Rent(memory.Length);
+            var buffer = ArrayPoolHelper<char>.Rent(memory.Length);
             var totalRead = 0;
             try
             {
@@ -199,7 +199,7 @@ namespace Zerra.Extensions
             finally
             {
                 Array.Clear(buffer, 0, totalRead);
-                BufferArrayPool<char>.Return(buffer);
+                ArrayPoolHelper<char>.Return(buffer);
             }
             return totalRead;
         }

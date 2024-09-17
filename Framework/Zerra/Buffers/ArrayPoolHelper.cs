@@ -11,16 +11,16 @@ using System.Linq;
 using System.Text.RegularExpressions;
 #endif
 
-namespace Zerra.IO
+namespace Zerra.Buffers
 {
-    public static class BufferArrayPool<T>
+    public static class ArrayPoolHelper<T>
         where T : unmanaged
     {
         private static readonly bool isBytes;
         private static readonly int elementSize;
         private static readonly ArrayPool<T> pool;
 
-        unsafe static BufferArrayPool()
+        unsafe static ArrayPoolHelper()
         {
             isBytes = typeof(T) == typeof(byte);
             elementSize = sizeof(T);

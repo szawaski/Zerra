@@ -6,11 +6,11 @@ using System;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using Zerra.IO;
 using Zerra.Serialization.Json.Converters;
 using Zerra.Serialization.Json.State;
 using Zerra.Serialization.Json.IO;
 using Zerra.Reflection;
+using Zerra.Buffers;
 
 namespace Zerra.Serialization.Json
 {
@@ -184,7 +184,7 @@ namespace Zerra.Serialization.Json
             var converter = (JsonConverter<object, T>)JsonConverterFactory<object>.GetRoot(typeDetail);
 
             var isFinalBlock = false;
-            var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
+            var buffer = ArrayPoolHelper<byte>.Rent(defaultBufferSize);
 
             try
             {
@@ -243,7 +243,7 @@ namespace Zerra.Serialization.Json
                     length -= bytesUsed;
 
                     if (length + state.CharsNeeded > buffer.Length)
-                        BufferArrayPool<byte>.Grow(ref buffer, length + state.CharsNeeded);
+                        ArrayPoolHelper<byte>.Grow(ref buffer, length + state.CharsNeeded);
 
                     while (length < buffer.Length)
                     {
@@ -272,7 +272,7 @@ namespace Zerra.Serialization.Json
             finally
             {
                 Array.Clear(buffer, 0, buffer.Length);
-                BufferArrayPool<byte>.Return(buffer);
+                ArrayPoolHelper<byte>.Return(buffer);
             }
         }
         public static object? Deserialize(Type type, Stream stream, JsonSerializerOptions? options = null, Graph? graph = null)
@@ -288,7 +288,7 @@ namespace Zerra.Serialization.Json
             var converter = JsonConverterFactory<object>.GetRoot(typeDetail);
 
             var isFinalBlock = false;
-            var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
+            var buffer = ArrayPoolHelper<byte>.Rent(defaultBufferSize);
 
             try
             {
@@ -350,7 +350,7 @@ namespace Zerra.Serialization.Json
                     length -= bytesUsed;
 
                     if (length + state.CharsNeeded > buffer.Length)
-                        BufferArrayPool<byte>.Grow(ref buffer, length + state.CharsNeeded);
+                        ArrayPoolHelper<byte>.Grow(ref buffer, length + state.CharsNeeded);
 
                     while (length < buffer.Length)
                     {
@@ -379,7 +379,7 @@ namespace Zerra.Serialization.Json
             finally
             {
                 Array.Clear(buffer, 0, buffer.Length);
-                BufferArrayPool<byte>.Return(buffer);
+                ArrayPoolHelper<byte>.Return(buffer);
             }
         }
 
@@ -394,7 +394,7 @@ namespace Zerra.Serialization.Json
             var converter = (JsonConverter<object, T>)JsonConverterFactory<object>.GetRoot(typeDetail);
 
             var isFinalBlock = false;
-            var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
+            var buffer = ArrayPoolHelper<byte>.Rent(defaultBufferSize);
 
             try
             {
@@ -456,7 +456,7 @@ namespace Zerra.Serialization.Json
                     length -= usedBytes;
 
                     if (length + state.CharsNeeded > buffer.Length)
-                        BufferArrayPool<byte>.Grow(ref buffer, length + state.CharsNeeded);
+                        ArrayPoolHelper<byte>.Grow(ref buffer, length + state.CharsNeeded);
 
                     while (length < buffer.Length)
                     {
@@ -485,7 +485,7 @@ namespace Zerra.Serialization.Json
             finally
             {
                 Array.Clear(buffer, 0, buffer.Length);
-                BufferArrayPool<byte>.Return(buffer);
+                ArrayPoolHelper<byte>.Return(buffer);
             }
         }
         public static async Task<object?> DeserializeAsync(Type type, Stream stream, JsonSerializerOptions? options = null, Graph? graph = null)
@@ -501,7 +501,7 @@ namespace Zerra.Serialization.Json
             var converter = JsonConverterFactory<object>.GetRoot(typeDetail);
 
             var isFinalBlock = false;
-            var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
+            var buffer = ArrayPoolHelper<byte>.Rent(defaultBufferSize);
 
             try
             {
@@ -563,7 +563,7 @@ namespace Zerra.Serialization.Json
                     length -= bytesUsed;
 
                     if (length + state.CharsNeeded > buffer.Length)
-                        BufferArrayPool<byte>.Grow(ref buffer, length + state.CharsNeeded);
+                        ArrayPoolHelper<byte>.Grow(ref buffer, length + state.CharsNeeded);
 
                     while (length < buffer.Length)
                     {
@@ -592,7 +592,7 @@ namespace Zerra.Serialization.Json
             finally
             {
                 Array.Clear(buffer, 0, buffer.Length);
-                BufferArrayPool<byte>.Return(buffer);
+                ArrayPoolHelper<byte>.Return(buffer);
             }
         }
 

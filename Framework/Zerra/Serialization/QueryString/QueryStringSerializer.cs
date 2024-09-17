@@ -5,7 +5,7 @@ using System.Globalization;
 using System.Net;
 using System.Runtime.CompilerServices;
 using System.Text;
-using Zerra.IO;
+using Zerra.Buffers;
 using Zerra.Reflection;
 
 namespace Zerra.Serialization.QueryString
@@ -44,7 +44,7 @@ namespace Zerra.Serialization.QueryString
             var model = Instantiator.Create<T>();
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
 
-            var bufferOwner = BufferArrayPool<char>.Rent(256);
+            var bufferOwner = ArrayPoolHelper<char>.Rent(256);
             var buffer = bufferOwner.AsSpan();
             var bufferLength = 0;
             try
@@ -83,7 +83,7 @@ namespace Zerra.Serialization.QueryString
                             default:
                                 if (bufferLength == buffer.Length)
                                 {
-                                    BufferArrayPool<char>.Grow(ref bufferOwner, bufferOwner.Length * 2);
+                                    ArrayPoolHelper<char>.Grow(ref bufferOwner, bufferOwner.Length * 2);
                                     buffer = bufferOwner.AsSpan();
                                 }
                                 buffer[bufferLength++] = c;
@@ -106,7 +106,7 @@ namespace Zerra.Serialization.QueryString
             }
             finally
             {
-                BufferArrayPool<char>.Return(bufferOwner);
+                ArrayPoolHelper<char>.Return(bufferOwner);
             }
 
             return model;

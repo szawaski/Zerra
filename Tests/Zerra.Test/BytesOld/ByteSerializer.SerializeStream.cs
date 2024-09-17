@@ -9,7 +9,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
-using Zerra.IO;
+using Zerra.Buffers;
 using Zerra.Reflection;
 using Zerra.Serialization.Bytes.IO;
 
@@ -37,7 +37,7 @@ namespace Zerra.Serialization.Bytes
 
             var typeDetail = GetTypeInformation(type, options.IndexSize, options.IgnoreIndexAttribute);
 #if DEBUG
-            var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
+            var buffer = ArrayPoolHelper<byte>.Rent(Testing ? 1 : defaultBufferSize);
 #else
             var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
 #endif
@@ -66,7 +66,7 @@ namespace Zerra.Serialization.Bytes
                     if (state.BytesNeeded > 0)
                     {
                         if (state.BytesNeeded > buffer.Length - position)
-                            BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded + position);
+                            ArrayPoolHelper<byte>.Grow(ref buffer, state.BytesNeeded + position);
 
                         state.BytesNeeded = 0;
                     }
@@ -74,7 +74,7 @@ namespace Zerra.Serialization.Bytes
             }
             finally
             {
-                BufferArrayPool<byte>.Return(buffer);
+                ArrayPoolHelper<byte>.Return(buffer);
             }
 
             var result = new byte[position];
@@ -107,7 +107,7 @@ namespace Zerra.Serialization.Bytes
 
             var typeDetail = GetTypeInformation(type, options.IndexSize, options.IgnoreIndexAttribute);
 #if DEBUG
-            var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
+            var buffer = ArrayPoolHelper<byte>.Rent(Testing ? 1 : defaultBufferSize);
 #else
             var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
 #endif
@@ -139,7 +139,7 @@ namespace Zerra.Serialization.Bytes
                     if (state.BytesNeeded > 0)
                     {
                         if (state.BytesNeeded > buffer.Length)
-                            BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded);
+                            ArrayPoolHelper<byte>.Grow(ref buffer, state.BytesNeeded);
 
                         state.BytesNeeded = 0;
                     }
@@ -148,7 +148,7 @@ namespace Zerra.Serialization.Bytes
             finally
             {
                 Array.Clear(buffer, 0, buffer.Length);
-                BufferArrayPool<byte>.Return(buffer);
+                ArrayPoolHelper<byte>.Return(buffer);
             }
         }
 
@@ -187,7 +187,7 @@ namespace Zerra.Serialization.Bytes
 
             var typeDetail = GetTypeInformation(type, options.IndexSize, options.IgnoreIndexAttribute);
 #if DEBUG
-            var buffer = BufferArrayPool<byte>.Rent(Testing ? 1 : defaultBufferSize);
+            var buffer = ArrayPoolHelper<byte>.Rent(Testing ? 1 : defaultBufferSize);
 #else
             var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
 #endif
@@ -219,7 +219,7 @@ namespace Zerra.Serialization.Bytes
                     if (state.BytesNeeded > 0)
                     {
                         if (state.BytesNeeded > buffer.Length)
-                            BufferArrayPool<byte>.Grow(ref buffer, state.BytesNeeded);
+                            ArrayPoolHelper<byte>.Grow(ref buffer, state.BytesNeeded);
 
                         state.BytesNeeded = 0;
                     }
@@ -228,7 +228,7 @@ namespace Zerra.Serialization.Bytes
             finally
             {
                 Array.Clear(buffer, 0, buffer.Length);
-                BufferArrayPool<byte>.Return(buffer);
+                ArrayPoolHelper<byte>.Return(buffer);
             }
         }
 

@@ -11,10 +11,10 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
+using Zerra.Buffers;
 using Zerra.CQRS;
 using Zerra.CQRS.Network;
 using Zerra.Encryption;
-using Zerra.IO;
 using Zerra.Logging;
 using Zerra.Reflection;
 using Zerra.Serialization.Json;
@@ -202,7 +202,7 @@ namespace Zerra.Web
                     int bytesRead;
                     if (result.Stream != null)
                     {
-                        var bufferOwner = BufferArrayPool<byte>.Rent(HttpCommon.BufferLength);
+                        var bufferOwner = ArrayPoolHelper<byte>.Rent(HttpCommon.BufferLength);
                         var buffer = bufferOwner.AsMemory();
 
                         try
@@ -235,7 +235,7 @@ namespace Zerra.Web
                         }
                         finally
                         {
-                            BufferArrayPool<byte>.Return(bufferOwner);
+                            ArrayPoolHelper<byte>.Return(bufferOwner);
                         }
                         await context.Response.Body.FlushAsync();
 

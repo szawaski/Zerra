@@ -10,10 +10,10 @@ using System.Linq;
 using Zerra.Reflection;
 using Zerra.Logging;
 using Zerra.Encryption;
-using Zerra.IO;
 using System.IO;
 using Zerra.Serialization.Json;
 using System.Threading.Tasks;
+using Zerra.Buffers;
 
 namespace Zerra.CQRS.Network
 {
@@ -43,7 +43,7 @@ namespace Zerra.CQRS.Network
                     TcpRequestHeader? requestHeader = null;
                     var responseStarted = false;
 
-                    var bufferOwner = BufferArrayPool<byte>.Rent(TcpRawCommon.BufferLength);
+                    var bufferOwner = ArrayPoolHelper<byte>.Rent(TcpRawCommon.BufferLength);
                     var buffer = bufferOwner.AsMemory();
                     var stream = new NetworkStream(socket, false);
 
@@ -373,7 +373,7 @@ namespace Zerra.CQRS.Network
                             await stream.DisposeAsync();
 #endif
                         }
-                        BufferArrayPool<byte>.Return(bufferOwner);
+                        ArrayPoolHelper<byte>.Return(bufferOwner);
                         if (isCommand)
                             commandCounter.CompleteReceive(throttle);
                         else

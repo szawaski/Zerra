@@ -3,7 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
-using Zerra.IO;
+using Zerra.Buffers;
 
 namespace Zerra.Encryption
 {
@@ -22,7 +22,7 @@ namespace Zerra.Encryption
                     filteredLength--;
             }
 
-            var filtered = BufferArrayPool<char>.Rent(filteredLength);
+            var filtered = ArrayPoolHelper<char>.Rent(filteredLength);
             for (var i = 0; i < filteredLength; i++)
             {
                 var c = chars[i];
@@ -35,7 +35,7 @@ namespace Zerra.Encryption
             }
             var filteredString = new string(filtered, 0, filteredLength);
             Array.Clear(filtered, 0, filteredLength);
-            BufferArrayPool<char>.Return(filtered);
+            ArrayPoolHelper<char>.Return(filtered);
             return filteredString;
         }
 
@@ -49,7 +49,7 @@ namespace Zerra.Encryption
                 3 => chars.Length + 1,
                 _ => throw new FormatException("Invalid string"),
             };
-            var filtered = BufferArrayPool<char>.Rent(filteredLength);
+            var filtered = ArrayPoolHelper<char>.Rent(filteredLength);
             for (var i = 0; i < chars.Length; i++)
             {
                 var c = chars[i];
@@ -74,7 +74,7 @@ namespace Zerra.Encryption
 
             var filteredString = new string(filtered, 0, filteredLength);
             Array.Clear(filtered, 0, filteredLength);
-            BufferArrayPool<char>.Return(filtered);
+            ArrayPoolHelper<char>.Return(filtered);
             return Convert.FromBase64String(filteredString);
         }
     }

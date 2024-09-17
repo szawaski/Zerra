@@ -16,6 +16,7 @@ using System.IO;
 using System.Linq;
 using Zerra.Serialization.Json;
 using System.Threading.Tasks;
+using Zerra.Buffers;
 
 namespace Zerra.CQRS.Relay
 {
@@ -60,7 +61,7 @@ namespace Zerra.CQRS.Relay
             Stopwatch? stopwatch = null;
             var responseStarted = false;
 
-            var bufferOwner = BufferArrayPool<byte>.Rent(bufferLength);
+            var bufferOwner = ArrayPoolHelper<byte>.Rent(bufferLength);
             var buffer = bufferOwner.AsMemory();
 
             Stream? incommingStream = null;
@@ -365,7 +366,7 @@ namespace Zerra.CQRS.Relay
             }
             finally
             {
-                BufferArrayPool<byte>.Return(bufferOwner);
+                ArrayPoolHelper<byte>.Return(bufferOwner);
 
                 if (service != null && stopwatch != null)
                 {

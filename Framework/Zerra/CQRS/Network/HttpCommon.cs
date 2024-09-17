@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Zerra.Buffers;
 using Zerra.IO;
 
 namespace Zerra.CQRS.Network
@@ -192,7 +193,7 @@ namespace Zerra.CQRS.Network
             var chars = encoding.GetChars(buffer.Span.Slice(0, position).ToArray());
             var charsLength = chars.Length;
 #else
-            var chars = BufferArrayPool<char>.Rent(encoding.GetMaxCharCount(position));
+            var chars = ArrayPoolHelper<char>.Rent(encoding.GetMaxCharCount(position));
             try
             {
                 var charsLength = encoding.GetChars(buffer.Span.Slice(0, position), chars.AsSpan());
@@ -261,7 +262,7 @@ namespace Zerra.CQRS.Network
             }
             finally
             {
-                BufferArrayPool<char>.Return(chars);
+                ArrayPoolHelper<char>.Return(chars);
             }
 #endif
         }
