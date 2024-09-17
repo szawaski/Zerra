@@ -32,7 +32,7 @@ namespace Zerra.Test
                 Assert.IsTrue(graph.HasMember(member.Name));
             }
 
-            graph.AddOrMergeChildGraph(nameof(TypesAllModel.ClassArray), new Graph<SimpleModel>(x => x.Value1));
+            graph.AddChildGraph(nameof(TypesAllModel.ClassArray), new Graph<SimpleModel>(x => x.Value1));
             Assert.IsTrue(graph.HasMember(nameof(TypesAllModel.ClassArray)));
         }
 
@@ -80,12 +80,12 @@ namespace Zerra.Test
                 x => x.BooleanThing
             );
             var childGraph = new Graph<SimpleModel>(x => x.Value1);
-            graph.AddOrMergeChildGraph(nameof(TypesAllModel.ClassArray), childGraph);
+            graph.AddChildGraph(nameof(TypesAllModel.ClassArray), childGraph);
 
             TestBasic(graph);
 
             var childGraph2 = new Graph<SimpleModel>(x => x.Value2);
-            graph.AddOrMergeChildGraph(nameof(TypesAllModel.ClassArray), childGraph2);
+            graph.AddChildGraph(nameof(TypesAllModel.ClassArray), childGraph2);
 
             Assert.IsTrue(childGraph.HasMember(nameof(SimpleModel.Value1)));
             Assert.IsTrue(childGraph.HasMember(nameof(SimpleModel.Value2)));
@@ -139,7 +139,7 @@ namespace Zerra.Test
         public void Convert()
         {
             var graph = new Graph(nameof(TypesAllModel.BooleanThing));
-            graph.AddOrMergeChildGraph(nameof(TypesAllModel.ClassArray), new Graph(false, nameof(SimpleModel.Value1)));
+            graph.AddChildGraph(nameof(TypesAllModel.ClassArray), new Graph(nameof(SimpleModel.Value1)));
 
             TestBasic(graph);
 

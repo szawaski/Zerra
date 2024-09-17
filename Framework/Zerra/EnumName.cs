@@ -11,10 +11,22 @@ using System.Text;
 using Zerra.Collections;
 using Zerra.Reflection;
 
+/// <summary>
+/// An attribute for Enum values for a string represention.  Provides methods to convert Enums to strings and back.
+/// Excluding the attribute means the string representation will be exact name of the value.
+/// </summary>
 [AttributeUsage(AttributeTargets.Field)]
 public sealed class EnumName : Attribute
 {
+    /// <summary>
+    /// The string representation of the Enum value.
+    /// </summary>
     public string Text { get; set; }
+
+    /// <summary>
+    /// Creats a new EnumName attribute for an Enum value with a string reprsentation.
+    /// </summary>
+    /// <param name="text">The string representation of the Enum value.</param>
     public EnumName(string text) => this.Text = text;
 
     private const char seperator = '|';
@@ -197,6 +209,14 @@ public sealed class EnumName : Attribute
         return nameLookup;
     }
 
+    /// <summary>
+    /// Get the string representation of an Enum using EnumName Attributes.
+    /// </summary>
+    /// <param name="type">The Enum type.</param>
+    /// <param name="value">The Enum value.</param>
+    /// <returns>The Enum as a string.</returns>
+    /// <exception cref="ArgumentException">Throws if type is not an Enum.</exception>
+    /// <exception cref="InvalidOperationException">Throws if the value is not a member of the Enum.</exception>
     public static string GetName(Type type, object value)
     {
         if (!type.IsEnum)
@@ -246,6 +266,13 @@ public sealed class EnumName : Attribute
             };
         }
     }
+    /// <summary>
+    /// Get the string representation of an Enum using EnumName Attributes.
+    /// </summary>
+    /// <typeparam name="T">The Enum type.</typeparam>
+    /// <param name="value">The Enum value.</param>
+    /// <returns>The Enum as a string.</returns>
+    /// <exception cref="InvalidOperationException">Throws if the value is not a member of the Enum.</exception>
     public static string GetName<T>(T value)
         where T : Enum
     {
@@ -255,6 +282,12 @@ public sealed class EnumName : Attribute
         return GetName(type, value);
     }
 
+    /// <summary>
+    /// Gets all the string representations of an Enum using EnumName Attributes.
+    /// </summary>
+    /// <param name="type">The Enum type.</param>
+    /// <returns>All the Enum values as a string.</returns>
+    /// <exception cref="ArgumentException">Throws if type is not an Enum.</exception>
     public static string[] GetNames(Type type)
     {
         if (!type.IsEnum)
@@ -262,6 +295,12 @@ public sealed class EnumName : Attribute
         var namesLookup = GetNamesForType(type);
         return namesLookup.Values.ToArray();
     }
+    /// <summary>
+    /// Gets all the string representations of an Enum using EnumName Attributes.
+    /// </summary>
+    /// <typeparam name="T">The Enum type.</typeparam>
+    /// <returns>All the Enum values as a string.</returns>
+    /// <exception cref="ArgumentException">Throws if type is not an Enum.</exception>
     public static string[] GetNames<T>()
         where T : Enum
     {
@@ -338,18 +377,39 @@ public sealed class EnumName : Attribute
         return valueLookup;
     }
 
+    /// <summary>
+    /// Parses a string into an Enum while using EnumName Attributes.
+    /// </summary>
+    /// <typeparam name="T">The Enum type.</typeparam>
+    /// <param name="enumString">The string to parse to an Enum.</param>
+    /// <returns>The resulting Enum value.</returns>
+    /// <exception cref="InvalidOperationException">Throw if the Enum could not be parsed</exception>
     public static T Parse<T>(string enumString)
     {
         return (T)Parse(enumString, typeof(T));
     }
+    /// <summary>
+    /// Parses a string into an Enum while using EnumName Attributes.
+    /// </summary>
+    /// <param name="enumString">The string to parse to an Enum.</param>
+    /// <param name="type">The Enum type.</param>
+    /// <returns>The resulting Enum value.</returns>
+    /// <exception cref="InvalidOperationException">Throw if the Enum could not be parsed</exception>
     public static object Parse(string enumString, Type type)
     {
         if (TryParse(enumString, type, out var value))
             return value;
 
-        throw new Exception($"Could not parse \"{enumString}\" into enum type {type.GetNiceName()}");
+        throw new InvalidOperationException($"Could not parse \"{enumString}\" into enum type {type.GetNiceName()}");
     }
 
+    /// <summary>
+    /// Attempts to parse a string into an Enum while using EnumName Attributes.
+    /// </summary>
+    /// <typeparam name="T">The Enum type.</typeparam>
+    /// <param name="enumString">The string to parse to an Enum.</param>
+    /// <param name="value">The resulting Enum value if succesfully parsed.</param>
+    /// <returns>True if the value was parsed; otherwise, False</returns>
     public static bool TryParse<T>(string enumString,
 #if !NETSTANDARD2_0
         [NotNullWhen(true)]
@@ -368,6 +428,13 @@ public sealed class EnumName : Attribute
             return false;
         }
     }
+    /// <summary>
+    /// Attempts to parse a string into an Enum while using EnumName Attributes.
+    /// </summary>
+    /// <param name="enumString">The string to parse to an Enum.</param>
+    /// <param name="type">The Enum type.</param>
+    /// <param name="value">The resulting Enum value if succesfully parsed.</param>
+    /// <returns>True if the value was parsed; otherwise, False</returns>
     public static bool TryParse(string enumString, Type type,
 #if !NETSTANDARD2_0
         [NotNullWhen(true)]

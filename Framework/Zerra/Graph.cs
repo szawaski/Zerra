@@ -13,6 +13,11 @@ using Zerra.Reflection;
 
 namespace Zerra
 {
+    /// <summary>
+    /// A mapping of members and child members of an object to be used in a process.
+    /// Members indiciated are strings and not enforced to match the object.  Use the generic <c>Graph<T></ref> to help enforce correct naming.
+    /// Specific graphs for different object instances can be also be mapped within a graph.
+    /// </summary>
     public class Graph
     {
         protected bool includeAllMembers;
@@ -21,6 +26,9 @@ namespace Zerra
         protected Dictionary<string, Graph>? childGraphs;
         protected Dictionary<object, Graph>? instanceGraphs;
 
+        /// <summary>
+        /// All members are included unless explicity removed.
+        /// </summary>
         public bool IncludeAllMembers
         {
             get => includeAllMembers;
@@ -37,6 +45,9 @@ namespace Zerra
 
         [NonSerialized]
         protected string? signature = null;
+        /// <summary>
+        /// The unique signature of the graph used for comparing graphs.
+        /// </summary>
         public string Signature
         {
             get
@@ -49,6 +60,10 @@ namespace Zerra
             }
         }
 
+        /// <summary>
+        /// Creates a Graph copy from another graph.
+        /// </summary>
+        /// <param name="graph">The graph to copy.</param>
         public Graph(Graph? graph)
         {
             if (graph is not null)
@@ -68,20 +83,33 @@ namespace Zerra
             }
         }
 
+        /// <summary>
+        /// Creates an empty graph with no members included.
+        /// </summary>
         public Graph()
         {
             this.signature = "";
         }
+        /// <summary>
+        /// Creates an empty graph with the to option to include all memebers.
+        /// </summary>
+        /// <param name="includeAllMembers">Indiciates if all members should be included.</param>
         public Graph(bool includeAllMembers)
         {
             this.includeAllMembers = true;
             this.signature = "A";
         }
+        /// <summary>
+        /// Creates a graph with the specified members included.
+        /// </summary>
+        /// <param name="members">The members to include</param>
         public Graph(params string[] members) : this(false, members) { }
-        public Graph(bool includeAllMembers, params string[]? members) : this(includeAllMembers, (IEnumerable<string>?)members) { }
-
+        /// <summary>
+        /// Creates a graph with the specified members included.
+        /// </summary>
+        /// <param name="members">The members to include</param>
         public Graph(IEnumerable<string>? members) : this(false, members) { }
-        public Graph(bool includeAllMembers, IEnumerable<string>? members)
+        protected Graph(bool includeAllMembers, IEnumerable<string>? members)
         {
             this.includeAllMembers = includeAllMembers;
 
@@ -89,18 +117,36 @@ namespace Zerra
                 AddMembers(members);
         }
 
+        /// <summary>
+        /// Indicates that the graph has no members included.
+        /// </summary>
         public bool IsEmpty => !includeAllMembers && (addedMembers?.Count ?? 0) == 0 && (childGraphs?.Count ?? 0) == 0;
 
+        /// <summary>
+        /// Determines if two graphs are equal. Graphs with instances cannot be compared.
+        /// </summary>
+        /// <param name="obj">The object to compare.</param>
+        /// <returns>True if the graphs are equal; otherwise false.</returns>
         public override bool Equals(object? obj)
         {
             if (obj is not Graph objCasted)
                 return false;
             return this.Signature == objCasted.Signature;
         }
+        /// <summary>
+        /// Gets the Hash Code for a graph.  Graphs with instances cannot use Hash Codes.
+        /// </summary>
+        /// <returns>The Hash Code of the graph.</returns>
         public override int GetHashCode()
         {
             return this.Signature.GetHashCode();
         }
+        /// <summary>
+        /// Determines if two graphs are equal. Graphs with instances cannot be compared.
+        /// </summary>
+        /// <param name="graph1">The first graph to compare.</param>
+        /// <param name="graph2">The second graph to compare.</param>
+        /// <returns>True if the graphs are equal; otherwise false.</returns>
         public static bool operator ==(Graph? graph1, Graph? graph2)
         {
             if (graph1 is null)
@@ -109,6 +155,12 @@ namespace Zerra
                 return false;
             return graph1.Signature == graph2.Signature;
         }
+        /// <summary>
+        /// Determines if two graphs are not equal. Graphs with instances cannot be compared.
+        /// </summary>
+        /// <param name="graph1">The first graph to compare.</param>
+        /// <param name="graph2">The second graph to compare.</param>
+        /// <returns>True if the graphs are not equal; otherwise false.</returns>
         public static bool operator !=(Graph? graph1, Graph? graph2)
         {
             if (graph1 is null)
@@ -161,7 +213,15 @@ namespace Zerra
             }
         }
 
+        /// <summary>
+        /// Adds members to include in the graph.
+        /// </summary>
+        /// <param name="members">The members to include.</param>
         public void AddMembers(params string[] members) => AddMembers((IEnumerable<string>)members);
+        /// <summary>
+        /// Adds members to include in the graph.
+        /// </summary>
+        /// <param name="members">The members to include.</param>
         public void AddMembers(IEnumerable<string> members)
         {
             if (members == null)
@@ -171,7 +231,15 @@ namespace Zerra
                 AddMember(member);
         }
 
+        /// <summary>
+        /// Removes members from the graph. This overrides IncludeAllMembers.
+        /// </summary>
+        /// <param name="members">The members to remove.</param>
         public void RemoveMembers(params string[] members) => RemoveMembers((IEnumerable<string>)members);
+        /// <summary>
+        /// Removes members from the graph. This overrides IncludeAllMembers.
+        /// </summary>
+        /// <param name="members">The members to remove.</param>
         public void RemoveMembers(IEnumerable<string> members)
         {
             if (members == null)
@@ -181,6 +249,10 @@ namespace Zerra
                 RemoveMember(member);
         }
 
+        /// <summary>
+        /// Adds a members to include in the graph.
+        /// </summary>
+        /// <param name="members">The member to include.</param>
         public void AddMember(string member)
         {
             if (String.IsNullOrWhiteSpace(member))
@@ -199,6 +271,10 @@ namespace Zerra
             signature = null;
 
         }
+        /// <summary>
+        /// Removes a member from the graph. This overrides IncludeAllMembers.
+        /// </summary>
+        /// <param name="members">The member to remove.</param>
         public void RemoveMember(string member)
         {
             if (String.IsNullOrWhiteSpace(member))
@@ -211,7 +287,12 @@ namespace Zerra
 
             signature = null;
         }
-        public void AddOrMergeChildGraph(string member, Graph graph)
+        /// <summary>
+        /// Adds a child graph. If there is an existing child graph the members of the child will be merged.
+        /// </summary>
+        /// <param name="members">The member of the child graph.</param>
+        /// <param name="graph">The child graph for the member.</param>
+        public void AddChildGraph(string member, Graph graph)
         {
             if (String.IsNullOrWhiteSpace(member))
                 throw new InvalidOperationException("Cannot add a child graph without a name.");
@@ -230,7 +311,7 @@ namespace Zerra
                 if (graph.childGraphs is not null)
                 {
                     foreach (var childGraphs in graph.childGraphs)
-                        existingGraph.AddOrMergeChildGraph(childGraphs.Key, childGraphs.Value);
+                        existingGraph.AddChildGraph(childGraphs.Key, childGraphs.Value);
                 }
                 if (graph.instanceGraphs is not null)
                 {
@@ -247,6 +328,11 @@ namespace Zerra
 
             signature = null;
         }
+        /// <summary>
+        /// Adds a child graph. If there is an existing child graph it will be replaced.
+        /// </summary>
+        /// <param name="members">The member of the child graph.</param>
+        /// <param name="graph">The child graph for the member.</param>
         public void AddOrReplaceChildGraph(string member, Graph graph)
         {
             if (String.IsNullOrWhiteSpace(member))
@@ -263,6 +349,11 @@ namespace Zerra
             signature = null;
         }
 
+        /// <summary>
+        /// Adds a child graph that is specific for an instance. This graph no longer able to be compared with other graphs.
+        /// </summary>
+        /// <param name="instance">The instance for the graph.</param>
+        /// <param name="graph">The graph for the specific instance.</param>
         public void AddInstanceGraph(object instance, Graph graph)
         {
             if (graph.instanceGraphs is not null)
@@ -275,6 +366,10 @@ namespace Zerra
 
             signature = null;
         }
+        /// <summary>
+        /// Removes a child graph that is specific for an instance.
+        /// </summary>
+        /// <param name="instance">The instance for whoms graph should be removed.</param>
         public void RemoveInstanceGraph(object instance)
         {
             if (instanceGraphs is null)
@@ -337,62 +432,102 @@ namespace Zerra
             }
         }
 
-        public bool HasMember(string name)
+        /// <summary>
+        /// Indicates if the graph includes a member
+        /// </summary>
+        /// <param name="member">The member to see if it is included.</param>
+        /// <returns>True if the graph has the member; otherwise, False.</returns>
+        public bool HasMember(string member)
         {
-            return (includeAllMembers && (removedMembers is null || !removedMembers.Contains(name))) || (addedMembers is not null && addedMembers.Contains(name)) || (childGraphs is not null && childGraphs.ContainsKey(name));
+            return (includeAllMembers && (removedMembers is null || !removedMembers.Contains(member))) || (addedMembers is not null && addedMembers.Contains(member)) || (childGraphs is not null && childGraphs.ContainsKey(member));
         }
 
-        public Graph? GetChildGraph(string name)
+        /// <summary>
+        /// Returns the child graph of a member if the child graph exists.
+        /// </summary>
+        /// <param name="member">The member for the child graph.</param>
+        /// <returns>The child graph of the member if it exists; otherwise, null.</returns>
+        public Graph? GetChildGraph(string member)
         {
             if (childGraphs is null || childGraphs.Count == 0)
                 return null;
-            if (!childGraphs.TryGetValue(name, out var childGraph))
+            if (!childGraphs.TryGetValue(member, out var childGraph))
                 return null;
             return childGraph;
         }
-        public Graph? GetChildGraph(string name, Type type)
+        /// <summary>
+        /// Returns the generic child graph of a member if the child graph exists.
+        /// </summary>
+        /// <param name="member">The member for the child graph.</param>
+        /// <param name="type">The generic type of the child graph.</param>
+        /// <returns>The child graph of the member if it exists; otherwise, null.</returns>
+        public Graph? GetChildGraph(string member, Type type)
         {
             if (childGraphs is null || childGraphs.Count == 0)
                 return null;
-            if (!childGraphs.TryGetValue(name, out var nonGenericGraph))
+            if (!childGraphs.TryGetValue(member, out var nonGenericGraph))
                 return null;
             if (nonGenericGraph.GetModelType() == type)
                 return (Graph)System.Convert.ChangeType(nonGenericGraph, graphTType.GetGenericTypeDetail(type).Type);
             return Convert(nonGenericGraph, type);
         }
-        public Graph<T>? GetChildGraph<T>(string name)
+        /// <summary>
+        /// Returns the generic child graph of a member if the child graph exists.
+        /// </summary>
+        /// <typeparam name="T">The generic type of the child graph.</typeparam>
+        /// <param name="member">The member for the child graph.</param>
+        /// <returns>The child graph of the member if it exists; otherwise, null.</returns>
+        public Graph<T>? GetChildGraph<T>(string member)
         {
             if (childGraphs is null || childGraphs.Count == 0)
                 return null;
-            if (!childGraphs.TryGetValue(name, out var nonGenericGraph))
+            if (!childGraphs.TryGetValue(member, out var nonGenericGraph))
                 return null;
             if (nonGenericGraph.GetModelType() == typeof(T))
                 return (Graph<T>)nonGenericGraph;
             return new Graph<T>(nonGenericGraph);
         }
 
+        /// <summary>
+        /// Returns the graph specific for an instance. If there is none, this graph itself will be returned.
+        /// </summary>
+        /// <param name="instance">The instance for whoms graph should be returned.</param>
+        /// <returns>The graph for the instance.</returns>
         public Graph GetInstanceGraph(object instance)
         {
             if (instanceGraphs is not null && instanceGraphs.TryGetValue(instance, out var instanceGraph))
                 return instanceGraph;
             return this;
         }
-        public Graph? GetChildInstanceGraph(string name, object instance)
+        /// <summary>
+        /// Returns the child graph specific for an instance. If there is none, the containing child graph will be returned.
+        /// </summary>
+        /// <param name="member">The member for the child graph.</param>
+        /// <param name="instance">The instance for whoms graph should be returned.</param>
+        /// <returns>The child graph for the instance.</returns>
+        public Graph? GetChildInstanceGraph(string member, object instance)
         {
             if (childGraphs is null || childGraphs.Count == 0)
                 return null;
-            if (!childGraphs.TryGetValue(name, out var childGraph))
+            if (!childGraphs.TryGetValue(member, out var childGraph))
                 return null;
 
             if (childGraph.instanceGraphs is not null && childGraph.instanceGraphs.TryGetValue(instance, out var instanceGraph))
                 return instanceGraph;
             return childGraph;
         }
-        public Graph? GetChildInstanceGraph(string name, Type type, object instance)
+        /// <summary>
+        /// Returns the generic child graph specific for an instance. If there is none, the containing child graph will be returned.
+        /// </summary>
+        /// <param name="member">The member for the child graph.</param>
+        /// <param name="type">The generic type of the child graph.</param>
+        /// <param name="instance">The instance for whoms graph should be returned.</param>
+        /// <returns>The generic child graph for the instance.</returns>
+        public Graph? GetChildInstanceGraph(string member, Type type, object instance)
         {
             if (childGraphs is null || childGraphs.Count == 0)
                 return null;
-            if (!childGraphs.TryGetValue(name, out var nonGenericGraph))
+            if (!childGraphs.TryGetValue(member, out var nonGenericGraph))
                 return null;
             if (nonGenericGraph.GetModelType() == type)
                 return nonGenericGraph;
@@ -401,11 +536,18 @@ namespace Zerra
                 return Convert(instanceGraph, type);
             return Convert(nonGenericGraph, type);
         }
-        public Graph<T>? GetChildInstanceGraph<T>(string name, object instance)
+        /// <summary>
+        /// Returns the generic child graph specific for an instance. If there is none, the containing child graph will be returned.
+        /// </summary>
+        /// <typeparam name="T">The generic type of the child graph.</typeparam>
+        /// <param name="member">The member for the child graph.</param>
+        /// <param name="instance">The instance for whoms graph should be returned.</param>
+        /// <returns>The generic child graph for the instance.</returns>
+        public Graph<T>? GetChildInstanceGraph<T>(string member, object instance)
         {
             if (childGraphs is null || childGraphs.Count == 0)
                 return null;
-            if (!childGraphs.TryGetValue(name, out var nonGenericGraph))
+            if (!childGraphs.TryGetValue(member, out var nonGenericGraph))
                 return null;
 
             if (nonGenericGraph.instanceGraphs is not null && nonGenericGraph.instanceGraphs.TryGetValue(instance, out var instanceGraph))
@@ -426,6 +568,10 @@ namespace Zerra
             return genericGraph;
         }
 
+        /// <summary>
+        /// Generates a string representation of the members of this graph.
+        /// </summary>
+        /// <returns>A string representation of the graph.</returns>
         public override string ToString()
         {
             if (instanceGraphs is not null)
@@ -481,155 +627,150 @@ namespace Zerra
 
         protected virtual Type? GetModelType() => null;
 
-        private static readonly byte maxRecursiveDepth = 2;
-        private static readonly MethodInfo selectMethod = typeof(Enumerable).GetMethods().Where(m => m.Name == "Select" && m.GetParameters().Length == 2).First();
-        private static readonly MethodInfo listMethod = typeof(Enumerable).GetMethods().Where(m => m.Name == "ToList" && m.GetParameters().Length == 1).First();
-        private static readonly MethodInfo arrayMethod = typeof(Enumerable).GetMethods().Where(m => m.Name == "ToArray" && m.GetParameters().Length == 1).First();
-        private static readonly MethodInfo hashSetMethod = typeof(Enumerable).GetMethods().Where(m => m.Name == "ToHashSet" && m.GetParameters().Length == 1).First();
-        private static readonly ConcurrentFactoryDictionary<TypeKey, Expression> selectExpressions = new();
-        public Expression<Func<TSource, TTarget>> GenerateSelect<TSource, TTarget>()
-        {
-            var key = new TypeKey(Signature, typeof(TSource), typeof(TTarget));
+        //private static readonly byte maxRecursiveDepth = 2;
+        //private static readonly MethodInfo selectMethod = typeof(Enumerable).GetMethods().Where(m => m.Name == "Select" && m.GetParameters().Length == 2).First();
+        //private static readonly MethodInfo listMethod = typeof(Enumerable).GetMethods().Where(m => m.Name == "ToList" && m.GetParameters().Length == 1).First();
+        //private static readonly MethodInfo arrayMethod = typeof(Enumerable).GetMethods().Where(m => m.Name == "ToArray" && m.GetParameters().Length == 1).First();
+        //private static readonly MethodInfo hashSetMethod = typeof(Enumerable).GetMethods().Where(m => m.Name == "ToHashSet" && m.GetParameters().Length == 1).First();
+        //private static readonly ConcurrentFactoryDictionary<TypeKey, Expression> selectExpressions = new();
+        ///// <summary>
+        ///// Generates a lambda expression that will create a new object of a different type based on the graph.
+        ///// </summary>
+        ///// <typeparam name="TSource">The original type of the object.</typeparam>
+        ///// <typeparam name="TTarget">The new type of the object.</typeparam>
+        ///// <returns>The lamba expression to create a new object.</returns>
+        //public Expression<Func<TSource, TTarget>> GenerateSelect<TSource, TTarget>()
+        //{
+        //    var key = new TypeKey(Signature, typeof(TSource), typeof(TTarget));
 
-            var expression = (Expression<Func<TSource, TTarget>>)selectExpressions.GetOrAdd(key, (_) =>
-            {
-                return GenerateSelectorExpression<TSource, TTarget>(this);
-            });
+        //    var expression = (Expression<Func<TSource, TTarget>>)selectExpressions.GetOrAdd(key, (_) =>
+        //    {
+        //        return GenerateSelectorExpression<TSource, TTarget>(this);
+        //    });
 
-            return expression;
-        }
-        public static Expression<Func<TSource, TTarget>> GenerateSelect<TSource, TTarget>(Graph? graph)
-        {
-            var key = new TypeKey(graph?.Signature, typeof(TSource), typeof(TTarget));
+        //    return expression;
+        //}
+        //private static Expression<Func<TSource, TTarget>> GenerateSelectorExpression<TSource, TTarget>(Graph? graph)
+        //{
+        //    var typeSource = typeof(TSource).GetTypeDetail();
+        //    var typeTarget = typeof(TTarget).GetTypeDetail();
 
-            var expression = (Expression<Func<TSource, TTarget>>)selectExpressions.GetOrAdd(key, (_) =>
-            {
-                return GenerateSelectorExpression<TSource, TTarget>(graph);
-            });
+        //    var sourceParameterExpression = Expression.Parameter(typeSource.Type, "x");
 
-            return expression;
-        }
-        private static Expression<Func<TSource, TTarget>> GenerateSelectorExpression<TSource, TTarget>(Graph? graph)
-        {
-            var typeSource = typeof(TSource).GetTypeDetail();
-            var typeTarget = typeof(TTarget).GetTypeDetail();
+        //    var selectorExpression = GenerateSelectorExpression(typeSource, typeTarget, sourceParameterExpression, graph, new Stack<Type>());
 
-            var sourceParameterExpression = Expression.Parameter(typeSource.Type, "x");
+        //    var lambda = Expression.Lambda<Func<TSource, TTarget>>(selectorExpression, sourceParameterExpression);
+        //    return lambda;
+        //}
+        //private static Expression GenerateSelectorExpression(TypeDetail typeSource, TypeDetail typeTarget, Expression sourceExpression, Graph? graph, Stack<Type> stack)
+        //{
+        //    stack.Push(typeSource.Type);
 
-            var selectorExpression = GenerateSelectorExpression(typeSource, typeTarget, sourceParameterExpression, graph, new Stack<Type>());
+        //    var bindings = new List<MemberBinding>();
 
-            var lambda = Expression.Lambda<Func<TSource, TTarget>>(selectorExpression, sourceParameterExpression);
-            return lambda;
-        }
-        private static Expression GenerateSelectorExpression(TypeDetail typeSource, TypeDetail typeTarget, Expression sourceExpression, Graph? graph, Stack<Type> stack)
-        {
-            stack.Push(typeSource.Type);
+        //    foreach (var targetProperty in typeTarget.MemberDetails)
+        //    {
+        //        if (typeSource.TryGetMember(targetProperty.Name, out var sourceProperty))
+        //        {
+        //            if (graph is not null && !graph.HasMember(targetProperty.Name))
+        //                continue;
 
-            var bindings = new List<MemberBinding>();
+        //            if (sourceProperty.TypeDetail.CoreType.HasValue)
+        //            {
+        //                //Basic Property
 
-            foreach (var targetProperty in typeTarget.MemberDetails)
-            {
-                if (typeSource.TryGetMember(targetProperty.Name, out var sourceProperty))
-                {
-                    if (graph is not null && !graph.HasMember(targetProperty.Name))
-                        continue;
+        //                Expression sourcePropertyExpression;
+        //                if (sourceProperty.MemberInfo is PropertyInfo propertyInfo)
+        //                    sourcePropertyExpression = Expression.Property(sourceExpression, propertyInfo);
+        //                else if (sourceProperty.MemberInfo is FieldInfo fieldInfo)
+        //                    sourcePropertyExpression = Expression.Field(sourceExpression, fieldInfo);
+        //                else
+        //                    throw new InvalidOperationException();
 
-                    if (sourceProperty.TypeDetail.CoreType.HasValue)
-                    {
-                        //Basic Property
+        //                MemberBinding binding = Expression.Bind(targetProperty.MemberInfo, sourcePropertyExpression);
+        //                bindings.Add(binding);
+        //            }
+        //            else if (sourceProperty.Type.IsArray || sourceProperty.TypeDetail.IsIEnumerableGeneric)
+        //            {
+        //                //Related Enumerable
+        //                if (!targetProperty.Type.IsArray && !targetProperty.TypeDetail.IsIEnumerableGeneric)
+        //                    continue;
+        //                var childGraph = graph?.GetChildGraph(targetProperty.Name);
 
-                        Expression sourcePropertyExpression;
-                        if (sourceProperty.MemberInfo is PropertyInfo propertyInfo)
-                            sourcePropertyExpression = Expression.Property(sourceExpression, propertyInfo);
-                        else if (sourceProperty.MemberInfo is FieldInfo fieldInfo)
-                            sourcePropertyExpression = Expression.Field(sourceExpression, fieldInfo);
-                        else
-                            throw new InvalidOperationException();
+        //                var sourcePropertyGenericType = sourceProperty.TypeDetail.InnerTypeDetail;
+        //                if (stack.Where(x => x == sourcePropertyGenericType.Type).Count() >= maxRecursiveDepth)
+        //                    continue;
 
-                        MemberBinding binding = Expression.Bind(targetProperty.MemberInfo, sourcePropertyExpression);
-                        bindings.Add(binding);
-                    }
-                    else if (sourceProperty.Type.IsArray || sourceProperty.TypeDetail.IsIEnumerableGeneric)
-                    {
-                        //Related Enumerable
-                        if (!targetProperty.Type.IsArray && !targetProperty.TypeDetail.IsIEnumerableGeneric)
-                            continue;
-                        var childGraph = graph?.GetChildGraph(targetProperty.Name);
+        //                var targetPropertyGenericType = targetProperty.TypeDetail.InnerTypeDetail;
+        //                Expression sourcePropertyExpression;
+        //                if (sourceProperty.MemberInfo is PropertyInfo propertyInfo)
+        //                    sourcePropertyExpression = Expression.Property(sourceExpression, propertyInfo);
+        //                else if (sourceProperty.MemberInfo is FieldInfo fieldInfo)
+        //                    sourcePropertyExpression = Expression.Field(sourceExpression, fieldInfo);
+        //                else
+        //                    throw new InvalidOperationException();
 
-                        var sourcePropertyGenericType = sourceProperty.TypeDetail.InnerTypeDetail;
-                        if (stack.Where(x => x == sourcePropertyGenericType.Type).Count() >= maxRecursiveDepth)
-                            continue;
+        //                var sourcePropertyParameterExpression = Expression.Parameter(sourcePropertyGenericType.Type, "y");
+        //                var mapperExpression = GenerateSelectorExpression(sourcePropertyGenericType, targetPropertyGenericType, sourcePropertyParameterExpression, childGraph, stack);
+        //                Expression sourcePropertyLambda = Expression.Lambda(mapperExpression, [sourcePropertyParameterExpression]);
 
-                        var targetPropertyGenericType = targetProperty.TypeDetail.InnerTypeDetail;
-                        Expression sourcePropertyExpression;
-                        if (sourceProperty.MemberInfo is PropertyInfo propertyInfo)
-                            sourcePropertyExpression = Expression.Property(sourceExpression, propertyInfo);
-                        else if (sourceProperty.MemberInfo is FieldInfo fieldInfo)
-                            sourcePropertyExpression = Expression.Field(sourceExpression, fieldInfo);
-                        else
-                            throw new InvalidOperationException();
+        //                var selectMethodGeneric = selectMethod.MakeGenericMethod(sourcePropertyGenericType.Type, targetPropertyGenericType.Type);
+        //                var callSelect = Expression.Call(selectMethodGeneric, sourcePropertyExpression, sourcePropertyLambda);
 
-                        var sourcePropertyParameterExpression = Expression.Parameter(sourcePropertyGenericType.Type, "y");
-                        var mapperExpression = GenerateSelectorExpression(sourcePropertyGenericType, targetPropertyGenericType, sourcePropertyParameterExpression, childGraph, stack);
-                        Expression sourcePropertyLambda = Expression.Lambda(mapperExpression, [sourcePropertyParameterExpression]);
+        //                Expression toExpression;
+        //                if (targetProperty.Type.IsArray)
+        //                {
+        //                    toExpression = Expression.Call(arrayMethod.MakeGenericMethod(targetPropertyGenericType.Type), callSelect);
+        //                }
+        //                else if (targetProperty.TypeDetail.IsIListGeneric || targetProperty.Type.Name == "List`1")
+        //                {
+        //                    toExpression = Expression.Call(arrayMethod.MakeGenericMethod(targetPropertyGenericType.Type), callSelect);
+        //                }
+        //                else if (targetProperty.TypeDetail.IsISetGeneric || targetProperty.Type.Name == "HashSet`1")
+        //                {
+        //                    toExpression = Expression.Call(hashSetMethod.MakeGenericMethod(targetPropertyGenericType.Type), callSelect);
+        //                }
+        //                else if (targetProperty.TypeDetail.IsICollectionGeneric)
+        //                {
+        //                    toExpression = Expression.Call(arrayMethod.MakeGenericMethod(targetPropertyGenericType.Type), callSelect);
+        //                }
+        //                else
+        //                {
+        //                    throw new NotSupportedException($"Graph {nameof(GenerateSelect)} does not support type {targetProperty.Type.GetNiceName()}");
+        //                }
 
-                        var selectMethodGeneric = selectMethod.MakeGenericMethod(sourcePropertyGenericType.Type, targetPropertyGenericType.Type);
-                        var callSelect = Expression.Call(selectMethodGeneric, sourcePropertyExpression, sourcePropertyLambda);
+        //                MemberBinding binding = Expression.Bind(targetProperty.MemberInfo, toExpression);
+        //                bindings.Add(binding);
+        //            }
+        //            else
+        //            {
+        //                //Related Single
+        //                var childGraph = graph?.GetChildGraph(targetProperty.Name);
 
-                        Expression toExpression;
-                        if (targetProperty.Type.IsArray)
-                        {
-                            toExpression = Expression.Call(arrayMethod.MakeGenericMethod(targetPropertyGenericType.Type), callSelect);
-                        }
-                        else if (targetProperty.TypeDetail.IsIListGeneric || targetProperty.Type.Name == "List`1")
-                        {
-                            toExpression = Expression.Call(arrayMethod.MakeGenericMethod(targetPropertyGenericType.Type), callSelect);
-                        }
-                        else if (targetProperty.TypeDetail.IsISetGeneric || targetProperty.Type.Name == "HashSet`1")
-                        {
-                            toExpression = Expression.Call(hashSetMethod.MakeGenericMethod(targetPropertyGenericType.Type), callSelect);
-                        }
-                        else if (targetProperty.TypeDetail.IsICollectionGeneric)
-                        {
-                            toExpression = Expression.Call(arrayMethod.MakeGenericMethod(targetPropertyGenericType.Type), callSelect);
-                        }
-                        else
-                        {
-                            throw new NotSupportedException($"Graph {nameof(GenerateSelect)} does not support type {targetProperty.Type.GetNiceName()}");
-                        }
+        //                if (stack.Where(x => x == sourceProperty.Type).Count() >= maxRecursiveDepth)
+        //                    continue;
 
-                        MemberBinding binding = Expression.Bind(targetProperty.MemberInfo, toExpression);
-                        bindings.Add(binding);
-                    }
-                    else
-                    {
-                        //Related Single
-                        var childGraph = graph?.GetChildGraph(targetProperty.Name);
+        //                Expression sourcePropertyExpression;
+        //                if (sourceProperty.MemberInfo is PropertyInfo propertyInfo)
+        //                    sourcePropertyExpression = Expression.Property(sourceExpression, propertyInfo);
+        //                else if (sourceProperty.MemberInfo is FieldInfo fieldInfo)
+        //                    sourcePropertyExpression = Expression.Field(sourceExpression, fieldInfo);
+        //                else
+        //                    throw new InvalidOperationException();
 
-                        if (stack.Where(x => x == sourceProperty.Type).Count() >= maxRecursiveDepth)
-                            continue;
+        //                Expression sourceNullIf = Expression.Equal(sourcePropertyExpression, Expression.Constant(null));
+        //                var mapperExpression = GenerateSelectorExpression(sourceProperty.TypeDetail, targetProperty.TypeDetail, sourcePropertyExpression, childGraph, stack);
+        //                Expression sourcePropertyConditionalExpression = Expression.Condition(sourceNullIf, Expression.Convert(Expression.Constant(null), targetProperty.Type), mapperExpression, targetProperty.Type);
+        //                MemberBinding binding = Expression.Bind(targetProperty.MemberInfo, sourcePropertyConditionalExpression);
+        //                bindings.Add(binding);
+        //            }
+        //        }
+        //    }
 
-                        Expression sourcePropertyExpression;
-                        if (sourceProperty.MemberInfo is PropertyInfo propertyInfo)
-                            sourcePropertyExpression = Expression.Property(sourceExpression, propertyInfo);
-                        else if (sourceProperty.MemberInfo is FieldInfo fieldInfo)
-                            sourcePropertyExpression = Expression.Field(sourceExpression, fieldInfo);
-                        else
-                            throw new InvalidOperationException();
+        //    _ = stack.Pop();
 
-                        Expression sourceNullIf = Expression.Equal(sourcePropertyExpression, Expression.Constant(null));
-                        var mapperExpression = GenerateSelectorExpression(sourceProperty.TypeDetail, targetProperty.TypeDetail, sourcePropertyExpression, childGraph, stack);
-                        Expression sourcePropertyConditionalExpression = Expression.Condition(sourceNullIf, Expression.Convert(Expression.Constant(null), targetProperty.Type), mapperExpression, targetProperty.Type);
-                        MemberBinding binding = Expression.Bind(targetProperty.MemberInfo, sourcePropertyConditionalExpression);
-                        bindings.Add(binding);
-                    }
-                }
-            }
-
-            _ = stack.Pop();
-
-            var initializer = Expression.MemberInit(Expression.New(typeTarget.Type), bindings);
-            return initializer;
-        }
+        //    var initializer = Expression.MemberInit(Expression.New(typeTarget.Type), bindings);
+        //    return initializer;
+        //}
     }
 }

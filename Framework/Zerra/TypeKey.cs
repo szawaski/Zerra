@@ -8,6 +8,10 @@ using System.Text;
 namespace Zerra
 {
     //This appeard to slow things down as a struct
+
+    /// <summary>
+    /// A class to use a combination of a string and/or multiple types as a hash key.
+    /// </summary>
     public class TypeKey
     {
         private readonly string? str;
@@ -15,6 +19,11 @@ namespace Zerra
         private readonly Type? type2;
         private readonly Type[]? typeArray;
 
+        /// <summary>
+        /// Creates a new TypeKey.
+        /// </summary>
+        /// <param name="type1">A type for the hash.</param>
+        /// <param name="type2">A type for the hash.</param>
         public TypeKey(Type? type1, Type type2)
         {
             this.str = null;
@@ -22,6 +31,10 @@ namespace Zerra
             this.type2 = type2;
             this.typeArray = null;
         }
+        /// <summary>
+        /// Creates a new TypeKey.
+        /// </summary>
+        /// <param name="typeArray">Types for the hash.</param>
         public TypeKey(Type[]? typeArray)
         {
             this.str = null;
@@ -29,6 +42,11 @@ namespace Zerra
             this.type2 = null;
             this.typeArray = typeArray;
         }
+        /// <summary>
+        /// Creates a new TypeKey.
+        /// </summary>
+        /// <param name="type1">A type for the hash.</param>
+        /// <param name="typeArray">Types for the hash.</param>
         public TypeKey(Type type1, Type[]? typeArray)
         {
             this.str = null;
@@ -36,6 +54,12 @@ namespace Zerra
             this.type2 = null;
             this.typeArray = typeArray;
         }
+        /// <summary>
+        /// Creates a new TypeKey.
+        /// </summary>
+        /// <param name="type1">A type for the hash.</param>
+        /// <param name="type2">A type for the hash.</param>
+        /// <param name="typeArray">Types for the hash.</param>
         public TypeKey(Type? type1, Type? type2, Type[]? typeArray)
         {
             this.str = null;
@@ -43,6 +67,11 @@ namespace Zerra
             this.type2 = type2;
             this.typeArray = typeArray;
         }
+        /// <summary>
+        /// Creates a new TypeKey.
+        /// </summary>
+        /// <param name="str">A string for the hash.</param>
+        /// <param name="type1">A type for the hash.</param>
         public TypeKey(string? str, Type? type1)
         {
             this.str = str;
@@ -50,6 +79,12 @@ namespace Zerra
             this.type2 = null;
             this.typeArray = null;
         }
+        /// <summary>
+        /// Creates a new TypeKey.
+        /// </summary>
+        /// <param name="str">A string for the hash.</param>
+        /// <param name="type1">A type for the hash.</param>
+        /// <param name="type2">A type for the hash.</param>
         public TypeKey(string? str, Type? type1, Type? type2)
         {
             this.str = str;
@@ -57,6 +92,11 @@ namespace Zerra
             this.type2 = type2;
             this.typeArray = null;
         }
+        /// <summary>
+        /// Creates a new TypeKey.
+        /// </summary>
+        /// <param name="str">A string for the hash.</param>
+        /// <param name="typeArray">Types for the hash.</param>
         public TypeKey(string? str, Type[]? typeArray)
         {
             this.str = str;
@@ -64,6 +104,12 @@ namespace Zerra
             this.type2 = null;
             this.typeArray = typeArray;
         }
+        /// <summary>
+        /// Creates a new TypeKey.
+        /// </summary>
+        /// <param name="str">A string for the hash.</param>
+        /// <param name="type1">A type for the hash.</param>
+        /// <param name="typeArray">Types for the hash.</param>
         public TypeKey(string? str, Type? type1, Type[]? typeArray)
         {
             this.str = str;
@@ -71,6 +117,13 @@ namespace Zerra
             this.type2 = null;
             this.typeArray = typeArray;
         }
+        /// <summary>
+        /// Creates a new TypeKey.
+        /// </summary>
+        /// <param name="str">A string for the hash.</param>
+        /// <param name="type1">A type for the hash.</param>
+        /// <param name="type2">A type for the hash.</param>
+        /// <param name="typeArray">Types for the hash.</param>
         public TypeKey(string str, Type type1, Type type2, Type[] typeArray)
         {
             this.str = str;
@@ -79,6 +132,11 @@ namespace Zerra
             this.typeArray = typeArray;
         }
 
+        /// <summary>
+        /// Determines if the TypeKeys are equal
+        /// </summary>
+        /// <param name="obj">The object to compare.</param>
+        /// <returns>True if they are equal; otherwise, False.</returns>
         public override bool Equals(object? obj)
         {
             if (obj is not TypeKey objCasted)
@@ -98,6 +156,10 @@ namespace Zerra
             return true;
         }
 
+        /// <summary>
+        /// Gets a hash code unquie for the string and types of the TypeKey
+        /// </summary>
+        /// <returns>The hash code.</returns>
         public override int GetHashCode()
         {
 #if !NETSTANDARD2_0
@@ -162,6 +224,10 @@ namespace Zerra
 #endif
         }
 
+        /// <summary>
+        /// Generates a string represenation of the TypeKey
+        /// </summary>
+        /// <returns>The string representation of the TypeKey.</returns>
         public override string ToString()
         {
             var sb = new StringBuilder();
