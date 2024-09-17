@@ -15,13 +15,15 @@ namespace Zerra.Encryption
         private readonly CryptoStream? cryptoStream;
         private readonly ICryptoTransform transform;
         private readonly CryptoShiftStream? cryptoShiftStream;
-        public CryptoFlushStream(CryptoStream stream, ICryptoTransform transform, bool leaveOpen) : base(stream, leaveOpen)
+        public CryptoFlushStream(CryptoStream stream, ICryptoTransform transform, bool leaveOpen) 
+            : base(stream, leaveOpen)
         {
             this.cryptoStream = stream;
             this.transform = transform;
             this.cryptoShiftStream = null;
         }
-        public CryptoFlushStream(CryptoShiftStream stream, ICryptoTransform transform, bool leaveOpen) : base(stream, leaveOpen)
+        public CryptoFlushStream(CryptoShiftStream stream, ICryptoTransform transform, bool leaveOpen) 
+            : base(stream, leaveOpen)
         {
             this.cryptoStream = null;
             this.transform = transform;

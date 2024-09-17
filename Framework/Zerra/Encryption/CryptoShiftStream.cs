@@ -33,7 +33,8 @@ namespace Zerra.Encryption
         private int keyPosition;
         private int position;
 
-        public CryptoShiftStream(Stream stream, int cryptoBlockSize, CryptoStreamMode mode, bool deshift, bool leaveOpen) : base(stream, leaveOpen)
+        public CryptoShiftStream(Stream stream, int cryptoBlockSize, CryptoStreamMode mode, bool deshift, bool leaveOpen) 
+            : base(stream, leaveOpen)
         {
             if (cryptoBlockSize < 16 || cryptoBlockSize % 8 != 0)
                 throw new ArgumentException($"must be minimum of 16 and a multiple of 8.", nameof(cryptoBlockSize));

@@ -12,8 +12,10 @@ namespace Zerra.Encryption
     public static class SymmetricEncryptor
     {
         private static readonly byte[] defaultSalt = Encoding.UTF8.GetBytes("ενγρυπτιον"); //20 bytes
+        private const int defaultDeriveBytesIterations = 1000;
         private const SymmetricKeySize defaultKeySize = SymmetricKeySize.Bits_256;
         private const SymmetricBlockSize defaultBlockSize = SymmetricBlockSize.Bits_128;
+
         private static byte[] SaltFromPassword(string password, string? salt = null)
         {
             var passwordBytes = Encoding.UTF8.GetBytes(password);
@@ -22,14 +24,14 @@ namespace Zerra.Encryption
             return hashBytes;
         }
 
-        public static SymmetricKey GetKey(string password, string? salt = null, SymmetricKeySize keySize = defaultKeySize, SymmetricBlockSize blockSize = defaultBlockSize)
+        public static SymmetricKey GetKey(string password, string? salt = null, SymmetricKeySize keySize = defaultKeySize, SymmetricBlockSize blockSize = defaultBlockSize, int iterations = defaultDeriveBytesIterations)
         {
             var saltBytes = SaltFromPassword(password, salt);
 
 #if NETSTANDARD2_0
             using (var deriveBytes = new Rfc2898DeriveBytes(password, saltBytes))
 #else
-            using (var deriveBytes = new Rfc2898DeriveBytes(password, saltBytes, 1000, HashAlgorithmName.SHA1))
+            using (var deriveBytes = new Rfc2898DeriveBytes(password, saltBytes, iterations, HashAlgorithmName.SHA1))
 #endif
             {
                 var keySizeValue = (int)keySize;
@@ -77,7 +79,6 @@ namespace Zerra.Encryption
 
                 _ => throw new NotImplementedException(),
             };
-            ;
         }
 
         public static string? Encrypt(SymmetricConfig symmetricConfig, string? plainData) => Encrypt(symmetricConfig.Algorithm, symmetricConfig.Key, plainData);
