@@ -12,6 +12,14 @@ using System.Reflection;
 
 namespace Zerra
 {
+    /// <summary>
+    /// Application Configuration setup using Microsoft's IConfiguration without dependency injection.
+    /// At the start of an application call <see cref="LoadConfiguration()" />.
+    /// It will attempt to find the environment name and then use that to find and load configuration files.
+    /// There are overloads to add custom components to the configuration builder such <see cref="LoadConfiguration(Action{ConfigurationBuilder}?)()" />.
+    /// This can be completely custom using <see cref="SetConfiguration(IConfiguration)" />.
+    /// This class is also responsible for setting up which assemblies to load and search for the discovery service using <see cref="AddDiscoveryAssemblies(Assembly[])" /> and related methods.
+    /// </summary>
     public static class Config
     {
         private const string settingsFileName = "appsettings.json";
@@ -59,13 +67,31 @@ namespace Zerra
         private static IConfiguration? configuration = null;
         private static string? environmentName = null;
         private static string? applicationIdentifier = null;
-        public static void LoadConfiguration() { LoadConfiguration(null, null, null); }
-        public static void LoadConfiguration(string? environmentName) { LoadConfiguration(null, environmentName, null); }
-        public static void LoadConfiguration(string[]? args) { LoadConfiguration(args, null, null); }
-        public static void LoadConfiguration(string[]? args, string? environmentName) { LoadConfiguration(args, environmentName, null); }
-        public static void LoadConfiguration(string[]? args, Action<ConfigurationBuilder>? build) { LoadConfiguration(args, null, build); }
-        public static void LoadConfiguration(Action<ConfigurationBuilder>? build) { LoadConfiguration(null, null, build); }
-        public static void LoadConfiguration(string[]? args, string? environmentName, Action<ConfigurationBuilder>? build)
+
+        /// <summary>
+        /// Loads the application configuration starting with the environmental variable the then configuration files.
+        /// </summary>
+        /// <param name="environmentName">The environment name, otherwise it will be searched for in environmental variables.</param>
+        /// /// <param name="build">A function to add customizations to the configuration before it is built.</param>
+        public static void LoadConfiguration(string environmentName, Action<ConfigurationBuilder>? build = null) { LoadConfiguration(null, environmentName, build); }
+        /// <summary>
+        /// Loads the application configuration starting with the environmental variable the then configuration files.
+        /// </summary>
+        /// <param name="args">The program level arguments from the application Main method.</param>
+        /// <param name="build">A function to add customizations to the configuration before it is built.</param>
+        public static void LoadConfiguration(string[] args, Action<ConfigurationBuilder>? build = null) { LoadConfiguration(args, null, build); }
+        /// <summary>
+        /// Loads the application configuration starting with the environmental variable the then configuration files.
+        /// </summary>
+        /// <param name="build">A function to add customizations to the configuration before it is built.</param>
+        public static void LoadConfiguration(Action<ConfigurationBuilder> build) { LoadConfiguration(null, null, build); }
+        /// <summary>
+        /// Loads the application configuration starting with the environmental variable the then configuration files.
+        /// </summary>
+        /// <param name="args">The program level arguments from the application Main method.</param>
+        /// <param name="environmentName">The environment name, otherwise it will be searched for in environmental variables.</param>
+        /// <param name="build">A function to add customizations to the configuration before it is built.</param>
+        public static void LoadConfiguration(string[]? args = null, string? environmentName = null, Action<ConfigurationBuilder>? build = null)
         {
             var builder = new ConfigurationBuilder();
 
@@ -103,8 +129,22 @@ namespace Zerra
 
             configuration = builder.Build();
         }
-        public static void SetConfiguration(IConfiguration configuration)
+
+        /// <summary>
+        /// Sets the configuration manually from a prebuilt one.
+        /// </summary>
+        /// <param name="environmentName">The environment name, otherwise it will be searched for in environmental variables.</param>
+        /// <param name="configuration">The prebuild configuration</param>
+        /// <exception cref="ArgumentNullException">Throws if the configuration is null</exception>
+        public static void SetConfiguration(string environmentName, IConfiguration configuration)
         {
+            Console.WriteLine($"Assembly: {entryAssemblyName}");
+            Console.WriteLine($"Environment: {environmentName}");
+            Console.WriteLine($"Machine: {Environment.MachineName}");
+
+            Config.environmentName = environmentName;
+            Config.applicationIdentifier = $"{entryAssemblyName}:{environmentName}:{Environment.MachineName}";
+
             Config.configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         }
 
@@ -114,25 +154,37 @@ namespace Zerra
             Console.WriteLine($"{nameof(Config)} Loaded {Path.GetFileName(fileName)}");
         }
 
-        public static string? GetSetting(string name, params string[] sections)
+        /// <summary>
+        /// Gets a setting using IConfiguration syntax which uses a colon to seperate child settings.
+        /// </summary>
+        /// <param name="name">The setting name.</param>
+        /// <returns>The value of the setting.</returns>
+        /// <exception cref="InvalidOperationException">Throw if the configuration was not loaded</exception>
+        public static string? GetSetting(string name)
         {
             if (configuration == null)
-                throw new Exception("Config not loaded");
+                throw new InvalidOperationException("Config not loaded");
 
             var value = configuration[name];
             return value;
         }
 
-
+        /// <summary>
+        /// Accessor for the IConfiguration being used.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Throw if the configuration was not loaded</exception>
         public static IConfiguration Configuration
         {
             get
             {
                 if (configuration == null)
-                    throw new Exception("Config not loaded");
+                    throw new InvalidOperationException("Config not loaded");
                 return configuration;
             }
         }
+        /// <summary>
+        /// The application environment.
+        /// </summary>
         public static string? EnvironmentName
         {
             get
@@ -140,6 +192,11 @@ namespace Zerra
                 return environmentName;
             }
         }
+        /// <summary>
+        /// An identifier that should be unique that is useful for services.
+        /// This is a combination of Assembly Name, Environment Name, and Machine Name
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Throw if the configuration was not loaded</exception>
         public static string ApplicationIdentifier
         {
             get
@@ -150,10 +207,19 @@ namespace Zerra
             }
         }
 
+        /// <summary>
+        /// Attempts to bind the configuration instance to a new instance of type T.
+        /// If this configuration section has a value, that will be used.
+        /// Otherwise binding by matching property names against configuration keys recursively.
+        /// </summary>
+        /// <typeparam name="T">The type of the new instance to bind.</typeparam>
+        /// <param name="section">Optional. A subsection of the configuration to bind.</param>
+        /// <returns>The new instance of T if successful, default(T) otherwise.</returns>
+        /// <exception cref="InvalidOperationException">Throw if the configuration was not loaded</exception>
         public static T? Bind<T>(string? section = null)
         {
             if (configuration == null)
-                throw new Exception("Config not loaded");
+                throw new InvalidOperationException("Config not loaded");
 
             var config = configuration;
             if (!String.IsNullOrWhiteSpace(section))
@@ -162,6 +228,11 @@ namespace Zerra
             return value;
         }
 
+        /// <summary>
+        /// Gets the path to an environmental file.
+        /// </summary>
+        /// <param name="fileName">The name of the file.</param>
+        /// <returns>The path to the file if it exists; otherwise, null.</returns>
         public static string? GetEnvironmentFilePath(string fileName)
         {
             var filePath = $"{executingAssemblyPath}{Path.DirectorySeparatorChar}{fileName}";
@@ -174,6 +245,11 @@ namespace Zerra
 
             return null;
         }
+        /// <summary>
+        /// Gets the paths to environmental files using a suffix search.
+        /// </summary>
+        /// <param name="fileSuffix">The suffix of the file name.</param>
+        /// <returns>The paths to the files</returns>
         public static IEnumerable<string> GetEnvironmentFilesBySuffix(string fileSuffix)
         {
             var searchPattern = $"*{fileSuffix}";
@@ -202,6 +278,11 @@ namespace Zerra
             }
         }
 
+        /// <summary>
+        /// Gets the path to an environmental directory
+        /// </summary>
+        /// <param name="directoryName">The name of the directory.</param>
+        /// <returns>The directory path if it exsists; otherwise, null.</returns>
         public static string? GetEnvironmentDirectory(string directoryName)
         {
             var directoryPath = $"{executingAssemblyPath}{Path.DirectorySeparatorChar}{directoryName}";
@@ -214,6 +295,13 @@ namespace Zerra
             return null;
         }
 
+        /// <summary>
+        /// The discovery service loads and searches assemblies for the application.
+        /// This adds a search for assembly names that start with indicated strings.
+        /// </summary>
+        /// <param name="assemblyNameStartsWiths">The strings that assembly names must start with.</param>
+        /// <exception cref="ArgumentNullException">Throws if argument is null.</exception>
+        /// <exception cref="InvalidOperationException">Throws if discovery has already started.</exception>
         public static void AddDiscoveryAssemblyNameStartsWiths(params string[] assemblyNameStartsWiths)
         {
             if (assemblyNameStartsWiths == null)
@@ -232,6 +320,13 @@ namespace Zerra
                 DiscoveryAssemblyNameStartsWiths = newNamespacesToLoad;
             }
         }
+        /// <summary>
+        /// The discovery service loads and searches assemblies for the application.
+        /// This adds assemblies to the search.
+        /// </summary>
+        /// <param name="assemblies">The assemblies to add to the search.</param>
+        /// <exception cref="ArgumentNullException">Throws if argument is null.</exception>
+        /// <exception cref="InvalidOperationException">Throws if discovery has already started.</exception>
         public static void AddDiscoveryAssemblies(params Assembly[] assemblies)
         {
             if (assemblies == null)
@@ -251,6 +346,13 @@ namespace Zerra
             }
         }
 
+        /// <summary>
+        /// The discovery service loads and searches assemblies for the application.
+        /// This sets a search for assembly names that start with indicated strings. Any existing searches are replaced.
+        /// </summary>
+        /// <param name="assemblyNameStartsWiths">The strings that assembly names must start with.</param>
+        /// <exception cref="ArgumentNullException">Throws if argument is null.</exception>
+        /// <exception cref="InvalidOperationException">Throws if discovery has already started.</exception>
         public static void SetDiscoveryAssemblyNameStartsWiths(params string[] assemblyNameStartsWiths)
         {
             if (assemblyNameStartsWiths == null)
@@ -270,6 +372,13 @@ namespace Zerra
                 DiscoveryAssemblyNameStartsWiths = newNamespacesToLoad;
             }
         }
+        /// <summary>
+        /// The discovery service loads and searches assemblies for the application.
+        /// This sets the assemblies to the search. Any existing searches are replaced.
+        /// </summary>
+        /// <param name="assemblies">The assemblies to add to the search.</param>
+        /// <exception cref="ArgumentNullException">Throws if argument is null.</exception>
+        /// <exception cref="InvalidOperationException">Throws if discovery has already started.</exception>
         public static void SetDiscoveryAssemblies(params Assembly[] assemblies)
         {
             if (assemblies == null)
@@ -290,6 +399,11 @@ namespace Zerra
             }
         }
 
+        /// <summary>
+        /// The discovery service loads and searches assemblies for the application.
+        /// This indicates to search all assemblies discovery can find. This can cause slow startups and load unintentend assemblies.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Throws if discovery has already started.</exception>
         public static void SetDiscoveryAllAssemblies()
         {
             lock (discoveryLock)
@@ -301,10 +415,19 @@ namespace Zerra
             }
         }
 
+        /// <summary>
+        /// The name of the entry assembly.
+        /// </summary>
         public static string? EntryAssemblyName { get { return entryAssemblyName; } }
+        /// <summary>
+        /// The entry assembly.
+        /// </summary>
         public static Assembly? EntryAssembly { get { return entryAssembly; } }
 
         private static readonly Lazy<bool> isDebugEntryAssembly = new(() => entryAssembly != null && entryAssembly.GetCustomAttributes(false).OfType<DebuggableAttribute>().Any(x => x.IsJITTrackingEnabled));
+        /// <summary>
+        /// Indicates if the build is a debug by checking the DebuggableAttribute and if JIT Tracking is enabled.
+        /// </summary>
         public static bool IsDebugBuild { get { return isDebugEntryAssembly.Value; } }
     }
 }

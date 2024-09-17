@@ -15,7 +15,7 @@ namespace Zerra
 {
     /// <summary>
     /// A mapping of members and child members of an object to be used in a process.
-    /// Members indiciated are strings and not enforced to match the object.  Use the generic <c>Graph<T></ref> to help enforce correct naming.
+    /// Members indiciated are strings and not enforced to match the object.  Use the generic <see cref="Graph{T}" /> to help enforce correct naming.
     /// Specific graphs for different object instances can be also be mapped within a graph.
     /// </summary>
     public class Graph
