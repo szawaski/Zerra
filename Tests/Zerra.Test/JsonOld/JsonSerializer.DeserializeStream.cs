@@ -106,7 +106,7 @@ namespace Zerra.Serialization.Json
 #if DEBUG
             var buffer = ArrayPoolHelper<byte>.Rent(Testing ? 1 : defaultBufferSize);
 #else
-            var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
+            var buffer = ArrayPoolHelper<byte>.Rent(defaultBufferSize);
 #endif
             var decodeBuffer = ArrayPoolHelper<char>.Rent(defaultDecodeBufferSize);
             var decodeBufferPosition = 0;
@@ -213,7 +213,7 @@ namespace Zerra.Serialization.Json
 #if DEBUG
             var buffer = ArrayPoolHelper<byte>.Rent(Testing ? 1 : defaultBufferSize);
 #else
-            var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
+            var buffer = ArrayPoolHelper<byte>.Rent(defaultBufferSize);
 #endif
             var decodeBuffer = ArrayPoolHelper<char>.Rent(defaultDecodeBufferSize);
             var decodeBufferPosition = 0;
@@ -319,7 +319,7 @@ namespace Zerra.Serialization.Json
 #if DEBUG
             var buffer = ArrayPoolHelper<byte>.Rent(Testing ? 1 : defaultBufferSize);
 #else
-            var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
+            var buffer = ArrayPoolHelper<byte>.Rent(defaultBufferSize);
 #endif
             var decodeBuffer = ArrayPoolHelper<char>.Rent(defaultDecodeBufferSize);
             var decodeBufferPosition = 0;

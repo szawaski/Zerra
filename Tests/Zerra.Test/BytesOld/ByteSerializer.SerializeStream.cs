@@ -39,7 +39,7 @@ namespace Zerra.Serialization.Bytes
 #if DEBUG
             var buffer = ArrayPoolHelper<byte>.Rent(Testing ? 1 : defaultBufferSize);
 #else
-            var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
+            var buffer = ArrayPoolHelper<byte>.Rent(defaultBufferSize);
 #endif
             var position = 0;
 
@@ -109,7 +109,7 @@ namespace Zerra.Serialization.Bytes
 #if DEBUG
             var buffer = ArrayPoolHelper<byte>.Rent(Testing ? 1 : defaultBufferSize);
 #else
-            var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
+            var buffer = ArrayPoolHelper<byte>.Rent(defaultBufferSize);
 #endif
 
             try
@@ -189,7 +189,7 @@ namespace Zerra.Serialization.Bytes
 #if DEBUG
             var buffer = ArrayPoolHelper<byte>.Rent(Testing ? 1 : defaultBufferSize);
 #else
-            var buffer = BufferArrayPool<byte>.Rent(defaultBufferSize);
+            var buffer = ArrayPoolHelper<byte>.Rent(defaultBufferSize);
 #endif
 
             try
