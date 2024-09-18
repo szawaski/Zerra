@@ -25,7 +25,7 @@ namespace Zerra.Buffers
         {
             if (bytes.Length == 0)
                 return;
-            if (position + bytes.Length <= buffer.Length)
+            if (position + bytes.Length > buffer.Length)
                 throw new InvalidOperationException($"{nameof(SpanWriter)} cannot excede the length of the Span");
             fixed (byte* pBuffer = &buffer[position], pBytes = &bytes[0])
             {
