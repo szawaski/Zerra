@@ -349,8 +349,9 @@ namespace Zerra.Map
 
                 if (Mapper.DebugMode)
                 {
-                    var tryCatch = Expression.TryCatch(ifExpression, Expression.Catch(exceptionType, Expression.Throw(Expression.Constant(new MapException($"Failed mapping {source} of {sourceType.Type} to {target} of {target.Type}")), assigner.Type)));
-                    return Expression.Block(new[] { sourceValue }, readSourceValue, tryCatch);
+                    var ex = Expression.Parameter(typeof(Exception), "ex");
+                    var tryCatch = Expression.TryCatch(ifExpression, Expression.Catch(ex, Expression.Throw(Expression.New(newException, Expression.Constant($"Failed mapping {source} of {sourceType.Type} to {target} of {targetType.Type}"), ex), assigner.Type)));
+                    return Expression.Block(new[] { sourceValue, ex }, readSourceValue, tryCatch);
                 }
                 else
                 {
@@ -391,8 +392,9 @@ namespace Zerra.Map
 
                 if (Mapper.DebugMode)
                 {
-                    var tryCatch = Expression.TryCatch(ifExpression, Expression.Catch(exceptionType, Expression.Throw(Expression.Constant(new MapException($"Failed mapping {source} of {sourceType.Type} to {target} of {target.Type}")), assigner.Type)));
-                    return Expression.Block(new[] { sourceValue }, readSourceValue, tryCatch);
+                    var ex = Expression.Parameter(typeof(Exception), "ex");
+                    var tryCatch = Expression.TryCatch(ifExpression, Expression.Catch(ex, Expression.Throw(Expression.New(newException, Expression.Constant($"Failed mapping {source} of {sourceType.Type} to {target} of {targetType.Type}"), ex), assigner.Type)));
+                    return Expression.Block(new[] { sourceValue, ex }, readSourceValue, tryCatch);
                 }
                 else
                 {
@@ -431,8 +433,11 @@ namespace Zerra.Map
 
                     if (Mapper.DebugMode)
                     {
-                        var tryCatch = Expression.TryCatch(conditionalNewArrayBlock, Expression.Catch(exceptionType, Expression.Throw(Expression.Constant(new MapException($"Failed mapping {source} of {sourceType.Type} to {target} of {targetType.Type}")), conditionalNewArrayBlock.Type)));
+                        var ex = Expression.Parameter(typeof(Exception), "ex");
+                        var tryCatch = Expression.TryCatch(conditionalNewArrayBlock, Expression.Catch(ex, Expression.Throw(Expression.New(newException, Expression.Constant($"Failed mapping {source} of {sourceType.Type} to {target} of {targetType.Type}"), ex), conditionalNewArrayBlock.Type)));
+
                         blockExpressions.Add(tryCatch);
+                        blockParameters.Add(ex);
                     }
                     else
                     {
@@ -482,8 +487,11 @@ namespace Zerra.Map
 
                     if (Mapper.DebugMode)
                     {
-                        var tryCatch = Expression.TryCatch(conditionalNewArrayBlock, Expression.Catch(exceptionType, Expression.Throw(Expression.Constant(new MapException($"Failed mapping {source} of {sourceType.Type} to {target} of {targetType.Type}")), conditionalNewArrayBlock.Type)));
+                        var ex = Expression.Parameter(typeof(Exception), "ex");
+                        var tryCatch = Expression.TryCatch(conditionalNewArrayBlock, Expression.Catch(ex, Expression.Throw(Expression.New(newException, Expression.Constant($"Failed mapping {source} of {sourceType.Type} to {target} of {targetType.Type}"), ex), conditionalNewArrayBlock.Type)));
+
                         blockExpressions.Add(tryCatch);
+                        blockParameters.Add(ex);
                     }
                     else
                     {
@@ -522,8 +530,11 @@ namespace Zerra.Map
 
                     if (Mapper.DebugMode)
                     {
-                        var tryCatch = Expression.TryCatch(conditionalNewArrayBlock, Expression.Catch(exceptionType, Expression.Throw(Expression.Constant(new MapException($"Failed mapping {source} of {sourceType.Type} to {target} of {targetType.Type}")), conditionalNewArrayBlock.Type)));
+                        var ex = Expression.Parameter(typeof(Exception), "ex");
+                        var tryCatch = Expression.TryCatch(conditionalNewArrayBlock, Expression.Catch(ex, Expression.Throw(Expression.New(newException, Expression.Constant($"Failed mapping {source} of {sourceType.Type} to {target} of {targetType.Type}"), ex), conditionalNewArrayBlock.Type)));
+
                         blockExpressions.Add(tryCatch);
+                        blockParameters.Add(ex);
                     }
                     else
                     {
@@ -571,8 +582,11 @@ namespace Zerra.Map
 
                     if (Mapper.DebugMode)
                     {
-                        var tryCatch = Expression.TryCatch(conditionalNewArrayBlock, Expression.Catch(exceptionType, Expression.Throw(Expression.Constant(new MapException($"Failed mapping {source} of {sourceType.Type} to {target} of {targetType.Type}")), conditionalNewArrayBlock.Type)));
+                        var ex = Expression.Parameter(typeof(Exception), "ex");
+                        var tryCatch = Expression.TryCatch(conditionalNewArrayBlock, Expression.Catch(ex, Expression.Throw(Expression.New(newException, Expression.Constant($"Failed mapping {source} of {sourceType.Type} to {target} of {targetType.Type}"), ex), conditionalNewArrayBlock.Type)));
+
                         blockExpressions.Add(tryCatch);
+                        blockParameters.Add(ex);
                     }
                     else
                     {
@@ -728,8 +742,11 @@ namespace Zerra.Map
 
                     if (Mapper.DebugMode)
                     {
-                        var tryCatch = Expression.TryCatch(conditionalNewArrayBlock, Expression.Catch(exceptionType, Expression.Throw(Expression.Constant(new MapException($"Failed mapping {source} of {sourceType.Type} to {target} of {targetType.Type}")), conditionalNewArrayBlock.Type)));
+                        var ex = Expression.Parameter(typeof(Exception), "ex");
+                        var tryCatch = Expression.TryCatch(conditionalNewArrayBlock, Expression.Catch(ex, Expression.Throw(Expression.New(newException, Expression.Constant($"Failed mapping {source} of {sourceType.Type} to {target} of {targetType.Type}"), ex), conditionalNewArrayBlock.Type)));
+
                         blockExpressions.Add(tryCatch);
+                        blockParameters.Add(ex);
                     }
                     else
                     {
