@@ -10,18 +10,25 @@ using System.Threading.Tasks;
 namespace Zerra.Collections
 {
     /// <summary>
-    /// Thread safe queue with DequeueAsync
+    /// An async queue that is thread safe.
     /// </summary>
     public class AsyncConcurrentQueue<T> : IAsyncEnumerable<T>
     {
         private readonly Queue<T> queue;
         private readonly Queue<TaskCompletionSource<T>> waiters;
+
+        /// <summary>
+        /// Creates a new empty queue.
+        /// </summary>
         public AsyncConcurrentQueue()
         {
             this.queue = new Queue<T>();
             this.waiters = new Queue<TaskCompletionSource<T>>();
         }
 
+        /// <summary>
+        /// The current number of items in the queue.
+        /// </summary>
         public int Count
         {
             get
@@ -33,6 +40,11 @@ namespace Zerra.Collections
             }
         }
 
+        /// <summary>
+        /// Waits for the next available item to dequeue. If there are no items it will wait until one is enqueued.
+        /// </summary>
+        /// <param name="cancellationToken">The token to cancel waiting.</param>
+        /// <returns>A task that awaits the next item from the queue.</returns>
         public Task<T> DequeueAsync(CancellationToken cancellationToken = default)
         {
             if (cancellationToken.IsCancellationRequested)
@@ -49,6 +61,10 @@ namespace Zerra.Collections
             }
         }
 
+        /// <summary>
+        /// Adds an item to the queue. If there is a process awaiting a dequeue it may be removed quickly.
+        /// </summary>
+        /// <param name="item">The item to add.</param>
         public void Enqueue(T item)
         {
             lock (queue)
@@ -65,6 +81,11 @@ namespace Zerra.Collections
             }
         }
 
+        /// <summary>
+        /// Gets an async enumerator that will dequeue items until stopped by the cancellation token.
+        /// </summary>
+        /// <param name="cancellationToken">The token to stop the enumerator.</param>
+        /// <returns>The async enumerator.</returns>
         public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
         {
             return new AsyncQueueEnumerator(this, cancellationToken);
