@@ -13,6 +13,11 @@ using System.Text.RegularExpressions;
 
 namespace Zerra.Buffers
 {
+    /// <summary>
+    /// This wraps <see cref="ArrayPool{T}"/> to prevent memory leaks in framework development
+    /// and provides a <see cref="Grow(ref T[], int)"/> function to expand array sizes sourced from the pool.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public static class ArrayPoolHelper<T>
         where T : unmanaged
     {
@@ -29,6 +34,9 @@ namespace Zerra.Buffers
 
         private const int nonByteArrayMaxSize = 2146435071; //0X7FEFFFFF
         private const int byteArrayMaxSize = 2147483591; //0X7FFFFFC7
+        /// <summary>
+        /// The maximum allowed size of the array.
+        /// </summary>
         public static int MaxArraySize
         {
             get
@@ -39,6 +47,9 @@ namespace Zerra.Buffers
                     return nonByteArrayMaxSize;
             }
         }
+        /// <summary>
+        /// The byte size of the array element.
+        /// </summary>
         public static int ElementSize
         {
             get
@@ -47,6 +58,13 @@ namespace Zerra.Buffers
             }
         }
 
+        /// <summary>
+        /// Increase the size of an array that was sourced from <see cref="ArrayPool{T}"/>.
+        /// </summary>
+        /// <param name="buffer">The array to resize.</param>
+        /// <param name="minSize">The minimum size required for the array.</param>
+        /// <exception cref="ArgumentNullException">Throws if the array is null.</exception>
+        /// <exception cref="OverflowException">Throws when the array tries to exceede the maximum length.</exception>
         public static void Grow(ref T[] buffer, int minSize)
         {
             if (buffer == null)
@@ -83,6 +101,11 @@ namespace Zerra.Buffers
 #if DEBUG && false
         private static readonly Dictionary<T[], string> rented = new();
 #endif
+        /// <summary>
+        /// Rents an array from <see cref="ArrayPool{T}"/>. The array should be returned when no longer used.
+        /// </summary>
+        /// <param name="minimunLength">The minimum length of the array.</param>
+        /// <returns>The rented array.</returns>
         public static T[] Rent(int minimunLength)
         {
 #if DEBUG && false
@@ -99,6 +122,10 @@ namespace Zerra.Buffers
             return pool.Rent(minimunLength);
 #endif
         }
+        /// <summary>
+        /// Returns an array to the <see cref="ArrayPool{T}"/>. The array must not be used afterwards.
+        /// </summary>
+        /// <param name="buffer">The rented array to return.</param>
         public static void Return(T[] buffer)
         {
 #if DEBUG && false

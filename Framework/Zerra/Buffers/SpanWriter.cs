@@ -7,35 +7,37 @@ using System.Runtime.CompilerServices;
 
 namespace Zerra.Buffers
 {
-    public ref struct SpanWriter
+    /// <summary>
+    /// Does sequential writing to a <see cref="Span{byte}"/>.
+    /// The position is tracked from the end of the last write for the next.
+    /// </summary>
+    public ref struct SpanWriter<T>
     {
-        private readonly Span<byte> buffer;
+        private readonly Span<T> span;
 
         private int position;
         public readonly int Position => position;
 
-        public SpanWriter(Span<byte> buffer)
+        /// <summary>
+        /// Creates an instance with the span
+        /// </summary>
+        /// <param name="span">The span to which shall be written.</param>
+        public SpanWriter(Span<T> span)
         {
-            this.buffer = buffer;
+            this.span = span;
             position = 0;
         }
 
+        /// <summary>
+        /// Writes a set of values to the span.
+        /// </summary>
+        /// <param name="values">The values to be written.</param>
+        /// <exception cref="InvalidOperationException">Throws if the values excede the remaining length of the span.</exception>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void Write(byte[] bytes)
+        public void Write(ReadOnlySpan<T> values)
         {
-            if (bytes.Length == 0)
-                return;
-            if (position + bytes.Length > buffer.Length)
-                throw new InvalidOperationException($"{nameof(SpanWriter)} cannot excede the length of the Span");
-            fixed (byte* pBuffer = &buffer[position], pBytes = &bytes[0])
-            {
-                //Buffer.MemoryCopy(pBytes, pBuffer, buffer.Length - position, bytes.Length);
-                for (var i = 0; i < bytes.Length; i++)
-                {
-                    pBuffer[i] = pBytes[i];
-                }
-            }
-            position += bytes.Length;
+            values.CopyTo(span.Slice(position));
+            position += values.Length;
         }
     }
 }

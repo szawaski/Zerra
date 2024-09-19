@@ -130,7 +130,7 @@ namespace Zerra.CQRS.Network
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int BufferHeader(Memory<byte> buffer, string providerType, ContentType contentType)
         {
-            var headerBuffer = new SpanWriter(buffer.Span);
+            var headerBuffer = new SpanWriter<byte>(buffer.Span);
             headerBuffer.Write(protocolRawPrefixBytes);
             if (!String.IsNullOrWhiteSpace(providerType))
             {
@@ -152,7 +152,7 @@ namespace Zerra.CQRS.Network
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int BufferErrorHeader(Memory<byte> buffer, string? providerType, ContentType contentType)
         {
-            var headerBuffer = new SpanWriter(buffer.Span);
+            var headerBuffer = new SpanWriter<byte>(buffer.Span);
 
             headerBuffer.Write(protocolErrorPrefixBytes);
             if (!String.IsNullOrWhiteSpace(providerType))
