@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Zerra.TestDev
@@ -20,9 +21,9 @@ namespace Zerra.TestDev
 
             //UtfTest();
 
-            //TestMe();
+            TestMe();
             //JsonSerializerTest.TempTestSpeed();
-            ByteSerializerTest.TempTestSpeed();
+            //ByteSerializerTest.TempTestSpeed();
 
             //var tester = new EncryptionTest();
             //tester.RandomShiftStreamRead();
@@ -117,34 +118,92 @@ namespace Zerra.TestDev
         private static void TestMe()
         {
             Stopwatch timer;
-            var iterations = 20000000;
+            var iterations = 50000000;
             var loops = 10;
             var totals = new Dictionary<string, long>();
 
-            totals["Scenario1"] = 0;
-            totals["Scenario2"] = 0;
+            totals["Baseline"] = 0;
+            totals["Plain Prop"] = 0;
+            totals["Plain Meth"] = 0;
+            totals["Instance Prop"] = 0;
+            totals["Instance Meth"] = 0;
+            totals["Base1 Prop"] = 0;
+            totals["Base2 Prop"] = 0;
+            totals["Base2 Meth"] = 0;
 
-            Holder holder = default;
+            var plain = new Plain();
+            var asdfInstance = new AsdfInstance();
+            var asdfBase1 = (AsdfBase1)asdfInstance;
+            var asdfBase2 = (AsdfBase2)asdfInstance;
 
             for (var j = 0; j < loops; j++)
             {
                 Console.Write('.');
 
+                var baselineValue = 0;
                 timer = Stopwatch.StartNew();
                 for (var i = 0; i < iterations; i++)
                 {
-                    Scenario1(ref holder);
+                    var value = baselineValue++;
                 }
                 timer.Stop();
-                totals["Scenario1"] += timer.ElapsedMilliseconds;
+                totals["Baseline"] += timer.ElapsedMilliseconds;
 
                 timer = Stopwatch.StartNew();
                 for (var i = 0; i < iterations; i++)
                 {
-                    Scenario2(ref holder);
+                    var value = plain.Prop;
                 }
                 timer.Stop();
-                totals["Scenario2"] += timer.ElapsedMilliseconds;
+                totals["Plain Prop"] += timer.ElapsedMilliseconds;
+
+                timer = Stopwatch.StartNew();
+                for (var i = 0; i < iterations; i++)
+                {
+                    var value = plain.Meth();
+                }
+                timer.Stop();
+                totals["Plain Meth"] += timer.ElapsedMilliseconds;
+
+                timer = Stopwatch.StartNew();
+                for (var i = 0; i < iterations; i++)
+                {
+                    var value = asdfInstance.Prop;
+                }
+                timer.Stop();
+                totals["Instance Prop"] += timer.ElapsedMilliseconds;
+
+                timer = Stopwatch.StartNew();
+                for (var i = 0; i < iterations; i++)
+                {
+                    var value = asdfInstance.Meth();
+                }
+                timer.Stop();
+                totals["Instance Meth"] += timer.ElapsedMilliseconds;
+
+                timer = Stopwatch.StartNew();
+                for (var i = 0; i < iterations; i++)
+                {
+                    var value = asdfBase1.Prop;
+                }
+                timer.Stop();
+                totals["Base1 Prop"] += timer.ElapsedMilliseconds;
+
+                timer = Stopwatch.StartNew();
+                for (var i = 0; i < iterations; i++)
+                {
+                    var value = asdfBase2.Prop;
+                }
+                timer.Stop();
+                totals["Base2 Prop"] += timer.ElapsedMilliseconds;
+
+                timer = Stopwatch.StartNew();
+                for (var i = 0; i < iterations; i++)
+                {
+                    var value = asdfBase2.Meth();
+                }
+                timer.Stop();
+                totals["Base2 Meth"] += timer.ElapsedMilliseconds;
             }
 
             Console.WriteLine();
@@ -152,33 +211,28 @@ namespace Zerra.TestDev
                 Console.WriteLine($"{total.Key} {total.Value / loops}ms");
         }
 
-        private static void Scenario1(ref Holder holder)
+        private abstract class AsdfBase1
         {
-            DoThing1(out holder.Value);
+            public abstract long Prop { get; }
         }
 
-        private static void Scenario2(ref Holder holder)
+        private abstract class AsdfBase2 : AsdfBase1
         {
-            DoThing2(ref holder.Value);
+            public abstract long Meth();
         }
 
-        private struct Holder
+        private sealed class AsdfInstance : AsdfBase2
         {
-            public int Value;
+            private long value = 0;
+            public override sealed long Prop => value++;
+            public override sealed long Meth() => value++;
         }
-        private static void DoThing1(out int value)
+
+        private sealed class Plain
         {
-            if (true)
-            {
-                value = 5;
-            }
-        }
-        private static void DoThing2(ref int value)
-        {
-            if (false)
-            {
-                value = 5;
-            }
+            private long value = 0;
+            public long Prop => value++;
+            public long Meth() => value++;
         }
     }
 }
