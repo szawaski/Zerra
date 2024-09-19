@@ -51,8 +51,8 @@ namespace Zerra.Repository.Reflection
             this.CoreType = memberDetail.TypeDetail.CoreType;
             this.IsNullable = memberDetail.TypeDetail.IsNullable;
             this.IsEnumerable = memberDetail.TypeDetail.HasIEnumerable;
-            this.InnerType = memberDetail.TypeDetail.InnerTypes?.Count > 0 ? memberDetail.TypeDetail.InnerTypes[0] : memberDetail.TypeDetail.Type;
-            this.InnerCoreType = memberDetail.TypeDetail.InnerTypes?.Count > 0 ? memberDetail.TypeDetail.InnerTypeDetails[0].CoreType : memberDetail.TypeDetail.CoreType;
+            this.InnerType = memberDetail.TypeDetail.InnerTypes?.Count > 0 ? memberDetail.TypeDetail.InnerType : memberDetail.TypeDetail.Type;
+            this.InnerCoreType = memberDetail.TypeDetail.InnerTypes?.Count > 0 ? memberDetail.TypeDetail.InnerTypeDetail.CoreType : memberDetail.TypeDetail.CoreType;
 
             var sourcePropertyAttribute = memberDetail.Attributes.Select(x => x as StoreNameAttribute).Where(x => x != null).FirstOrDefault();
             var storeName = sourcePropertyAttribute?.StoreName;

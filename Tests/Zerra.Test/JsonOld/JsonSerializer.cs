@@ -229,14 +229,14 @@ namespace Zerra.Serialization.Json
                 return null;
             }
 
-            if (typeDetail.IsNullable && typeDetail.InnerTypeDetails[0].Type.IsEnum)
+            if (typeDetail.IsNullable && typeDetail.InnerTypeDetail.Type.IsEnum)
             {
-                if (EnumName.TryParse(s, typeDetail.InnerTypeDetails[0].Type, out var value))
+                if (EnumName.TryParse(s, typeDetail.InnerTypeDetail.Type, out var value))
                     return value;
                 return null;
             }
 
-            if (typeDetail.Type.IsArray && typeDetail.InnerTypeDetails[0].CoreType == CoreType.Byte)
+            if (typeDetail.Type.IsArray && typeDetail.InnerTypeDetail.CoreType == CoreType.Byte)
             {
                 //special case
                 return Convert.FromBase64String(s);

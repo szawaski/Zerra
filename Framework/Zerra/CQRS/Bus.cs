@@ -77,7 +77,7 @@ namespace Zerra.CQRS
             object? model;
             if (methodDetail.ReturnType.IsTask)
             {
-                isStream = methodDetail.ReturnType.Type.IsGenericType && methodDetail.ReturnType.InnerTypeDetails[0].BaseTypes.Contains(streamType);
+                isStream = methodDetail.ReturnType.Type.IsGenericType && methodDetail.ReturnType.InnerTypeDetail.BaseTypes.Contains(streamType);
                 model = await methodDetail.CallerAsync(callerProvider, args)!;
             }
             else
@@ -776,7 +776,7 @@ namespace Zerra.CQRS
                 {
                     if (methodDetail.ReturnType.Type.IsGenericType)
                     {
-                        var method = sendMethodLoggedGenericAsyncMethod.GetGenericMethodDetail(methodDetail.ReturnType.InnerTypes[0]);
+                        var method = sendMethodLoggedGenericAsyncMethod.GetGenericMethodDetail(methodDetail.ReturnType.InnerType);
                         result = method.Caller(null, [interfaceType, methodName, arguments, networkType, source, methodDetail, methodCaller]);
                     }
                     else
@@ -818,7 +818,7 @@ namespace Zerra.CQRS
                 {
                     if (methodDetail.ReturnType.Type.IsGenericType)
                     {
-                        var method = callInternalLoggedGenericAsyncMethod.GetGenericMethodDetail(methodDetail.ReturnType.InnerTypes[0]);
+                        var method = callInternalLoggedGenericAsyncMethod.GetGenericMethodDetail(methodDetail.ReturnType.InnerType);
                         result = method.Caller(null, [interfaceType, methodName, arguments, source, methodDetail]);
                     }
                     else
@@ -961,7 +961,7 @@ namespace Zerra.CQRS
             foreach (var item in typeDetail.Interfaces.Where(x => x.Name == iCommandHandlerType.Name || x.Name == iCommandHandlerWithResultType.Name))
             {
                 var itemDetail = TypeAnalyzer.GetTypeDetail(item);
-                var messageType = itemDetail.InnerTypes[0];
+                var messageType = itemDetail.InnerType;
                 _ = messageTypes.Add(messageType);
             }
             return messageTypes;
@@ -973,7 +973,7 @@ namespace Zerra.CQRS
             foreach (var item in typeDetail.Interfaces.Where(x => x.Name == iEventHandlerType.Name))
             {
                 var itemDetail = TypeAnalyzer.GetTypeDetail(item);
-                var messageType = itemDetail.InnerTypes[0];
+                var messageType = itemDetail.InnerType;
                 _ = messageTypes.Add(messageType);
             }
             return messageTypes;

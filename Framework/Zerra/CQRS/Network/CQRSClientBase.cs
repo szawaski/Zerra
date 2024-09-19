@@ -80,7 +80,7 @@ namespace Zerra.CQRS.Network
 
                 if (returnTypeDetails.IsTask)
                 {
-                    var isStream = returnTypeDetails.InnerTypeDetails[0].BaseTypes.Contains(streamType);
+                    var isStream = returnTypeDetails.InnerTypeDetail.BaseTypes.Contains(streamType);
                     var callRequestMethodGeneric = TypeAnalyzer.GetGenericMethodDetail(callRequestAsyncMethod, returnTypeDetails.InnerTypes.ToArray());
                     return (TReturn?)callRequestMethodGeneric.Caller(this, [throttle, isStream, interfaceType, methodName, arguments, source])!;
                 }

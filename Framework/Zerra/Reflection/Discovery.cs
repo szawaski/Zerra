@@ -1304,7 +1304,7 @@ namespace Zerra.Reflection
             {
                 var sb = new StringBuilder();
                 var rank = type.GetArrayRank();
-                var elementType = typeDetails.InnerTypes[0];
+                var elementType = typeDetails.InnerType;
                 if (elementType.IsGenericParameter)
                 {
                     _ = sb.Append('T');

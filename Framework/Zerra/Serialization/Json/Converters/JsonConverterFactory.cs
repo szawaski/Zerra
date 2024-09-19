@@ -123,12 +123,12 @@ namespace Zerra.Serialization.Json.Converters
             //Array
             if (typeDetail.Type.IsArray)
             {
-                var converter = typeof(JsonConverterArrayT<,>).GetGenericTypeDetail(parentType, typeDetail.InnerTypes[0]).CreatorBoxed();
+                var converter = typeof(JsonConverterArrayT<,>).GetGenericTypeDetail(parentType, typeDetail.InnerType).CreatorBoxed();
                 return (JsonConverter<TParent>)converter;
             }
 
             //Enum
-            if (typeDetail.Type.IsEnum || typeDetail.IsNullable && typeDetail.InnerTypes[0].IsEnum)
+            if (typeDetail.Type.IsEnum || typeDetail.IsNullable && typeDetail.InnerType.IsEnum)
             {
                 var converter = typeof(JsonConverterEnum<,>).GetGenericTypeDetail(parentType, typeDetail.Type).CreatorBoxed();
                 return (JsonConverter<TParent>)converter;
@@ -137,7 +137,7 @@ namespace Zerra.Serialization.Json.Converters
             //IList<T> of type - specific types that inherit this
             if (typeDetail.HasIListGeneric)
             {
-                var converter = typeof(JsonConverterIListTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0]).CreatorBoxed();
+                var converter = typeof(JsonConverterIListTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerType).CreatorBoxed();
                 return (JsonConverter<TParent>)converter;
             }
 
@@ -151,7 +151,7 @@ namespace Zerra.Serialization.Json.Converters
             //ISet<T> of type - specific types that inherit this
             if (typeDetail.HasISetGeneric)
             {
-                var converter = typeof(JsonConverterISetTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0]).CreatorBoxed();
+                var converter = typeof(JsonConverterISetTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerType).CreatorBoxed();
                 return (JsonConverter<TParent>)converter;
             }
 
@@ -172,7 +172,7 @@ namespace Zerra.Serialization.Json.Converters
             //ICollection<T> of type - specific types that inherit this
             if (typeDetail.HasICollectionGeneric)
             {
-                var converter = typeof(JsonConverterICollectionTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0]).CreatorBoxed();
+                var converter = typeof(JsonConverterICollectionTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerType).CreatorBoxed();
                 return (JsonConverter<TParent>)converter;
             }
 

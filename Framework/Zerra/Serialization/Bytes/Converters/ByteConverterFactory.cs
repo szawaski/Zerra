@@ -142,12 +142,12 @@ namespace Zerra.Serialization.Bytes.Converters
             //Array
             if (typeDetail.Type.IsArray)
             {
-                var converter = typeof(ByteConverterArrayT<,>).GetGenericTypeDetail(parentType, typeDetail.InnerTypes[0]).CreatorBoxed();
+                var converter = typeof(ByteConverterArrayT<,>).GetGenericTypeDetail(parentType, typeDetail.InnerType).CreatorBoxed();
                 return (ByteConverter<TParent>)converter;
             }
 
             //Enum
-            if (typeDetail.Type.IsEnum || typeDetail.IsNullable && typeDetail.InnerTypes[0].IsEnum)
+            if (typeDetail.Type.IsEnum || typeDetail.IsNullable && typeDetail.InnerType.IsEnum)
             {
                 var converter = typeof(ByteConverterEnum<,>).GetGenericTypeDetail(parentType, typeDetail.Type).CreatorBoxed();
                 return (ByteConverter<TParent>)converter;
@@ -156,7 +156,7 @@ namespace Zerra.Serialization.Bytes.Converters
             //IList<T> of type - specific types that inherit this
             if (typeDetail.HasIListGeneric)
             {
-                var converter = typeof(ByteConverterIListTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0]).CreatorBoxed();
+                var converter = typeof(ByteConverterIListTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerType).CreatorBoxed();
                 return (ByteConverter<TParent>)converter;
             }
 
@@ -170,7 +170,7 @@ namespace Zerra.Serialization.Bytes.Converters
             //ISet<T> of type - specific types that inherit this
             if (typeDetail.HasISetGeneric)
             {
-                var converter = typeof(ByteConverterISetTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0]).CreatorBoxed();
+                var converter = typeof(ByteConverterISetTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerType).CreatorBoxed();
                 return (ByteConverter<TParent>)converter;
             }
 
@@ -191,7 +191,7 @@ namespace Zerra.Serialization.Bytes.Converters
             //ICollection<T> of type - specific types that inherit this
             if (typeDetail.HasICollectionGeneric)
             {
-                var converter = typeof(ByteConverterICollectionTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0]).CreatorBoxed();
+                var converter = typeof(ByteConverterICollectionTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerType).CreatorBoxed();
                 return (ByteConverter<TParent>)converter;
             }
 

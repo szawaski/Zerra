@@ -211,8 +211,8 @@ namespace Zerra.Serialization.Json
                                 if (value != null && memberDetail.HasSetterBoxed)
                                 {
                                     //special case nullable enum
-                                    if (memberDetail.TypeDetail.IsNullable && memberDetail.TypeDetail.InnerTypeDetails[0].EnumUnderlyingType.HasValue)
-                                        value = Enum.ToObject(memberDetail.TypeDetail.InnerTypeDetails[0].Type, value);
+                                    if (memberDetail.TypeDetail.IsNullable && memberDetail.TypeDetail.InnerTypeDetail.EnumUnderlyingType.HasValue)
+                                        value = Enum.ToObject(memberDetail.TypeDetail.InnerTypeDetail.Type, value);
 
                                     if (graph == null || graph.HasMember(memberDetail.Name))
                                         memberDetail.SetterBoxed(obj, value);
@@ -414,7 +414,7 @@ namespace Zerra.Serialization.Json
                         if (collection != null)
                         {
                             //special case nullable enum
-                            if (arrayElementType!.IsNullable && arrayElementType.InnerTypeDetails[0].EnumUnderlyingType.HasValue && value != null)
+                            if (arrayElementType!.IsNullable && arrayElementType.InnerTypeDetail.EnumUnderlyingType.HasValue && value != null)
                                 value = Enum.ToObject(arrayElementType.InnerTypeDetails[0].Type, value);
 
                             addMethodArgs![0] = value;
@@ -476,8 +476,8 @@ namespace Zerra.Serialization.Json
                                     if (value != null)
                                     {
                                         //special case nullable enum
-                                        if (memberDetail.TypeDetail.IsNullable && memberDetail.TypeDetail.InnerTypeDetails[0].EnumUnderlyingType.HasValue)
-                                            value = Enum.ToObject(memberDetail.TypeDetail.InnerTypeDetails[0].Type, value);
+                                        if (memberDetail.TypeDetail.IsNullable && memberDetail.TypeDetail.InnerTypeDetail.EnumUnderlyingType.HasValue)
+                                            value = Enum.ToObject(memberDetail.TypeDetail.InnerTypeDetail.Type, value);
 
                                         if (graph == null || graph.HasMember(memberDetail.Name))
                                             memberDetail.SetterBoxed(obj, value);

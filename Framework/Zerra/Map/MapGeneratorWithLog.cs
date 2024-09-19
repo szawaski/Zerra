@@ -83,7 +83,7 @@ namespace Zerra.Map
 
                 if (sourceType.CoreType.HasValue || targetType.CoreType.HasValue)
                     throw new MapException("Cannot add specific mappings to core types");
-                if (sourceType.Type.IsEnum || sourceType.IsNullable && sourceType.InnerTypeDetails[0].Type.IsEnum || sourceType.Type.IsEnum || sourceType.IsNullable && targetType.InnerTypeDetails[0].Type.IsEnum)
+                if (sourceType.Type.IsEnum || sourceType.IsNullable && sourceType.InnerTypeDetail.Type.IsEnum || sourceType.Type.IsEnum || sourceType.IsNullable && targetType.InnerTypeDetail.Type.IsEnum)
                     throw new MapException("Cannot add specific mappings to enum types");
                 if (sourceType.HasIEnumerable || targetType.HasIEnumerable)
                     throw new MapException("Cannot add specific mappings to enumerable types");
@@ -112,7 +112,7 @@ namespace Zerra.Map
 
                 if (sourceType.CoreType.HasValue || targetType.CoreType.HasValue)
                     throw new MapException("Cannot add specific mappings to core types");
-                if (sourceType.Type.IsEnum || sourceType.IsNullable && sourceType.InnerTypeDetails[0].Type.IsEnum || sourceType.Type.IsEnum || sourceType.IsNullable && targetType.InnerTypeDetails[0].Type.IsEnum)
+                if (sourceType.Type.IsEnum || sourceType.IsNullable && sourceType.InnerTypeDetail.Type.IsEnum || sourceType.Type.IsEnum || sourceType.IsNullable && targetType.InnerTypeDetail.Type.IsEnum)
                     throw new MapException("Cannot add specific mappings to enum types");
                 if (sourceType.HasIEnumerable || targetType.HasIEnumerable)
                     throw new MapException("Cannot add specific mappings to enumerable types");
@@ -160,11 +160,11 @@ namespace Zerra.Map
                         foreach (var item in (IEnumerable)source)
                             length++;
                     }
-                    target = (TTarget)(object)Array.CreateInstance(targetType.InnerTypes[0], length);
+                    target = (TTarget)(object)Array.CreateInstance(targetType.InnerType, length);
                 }
                 else if (targetType.IsIListGeneric)
                 {
-                    var listType = TypeAnalyzer.GetGenericTypeDetail(genericListType, targetType.InnerTypes[0]);
+                    var listType = TypeAnalyzer.GetGenericTypeDetail(genericListType, targetType.InnerType);
                     target = (TTarget)listType.CreatorBoxed();
                 }
                 else if (targetType.HasIListGeneric)
@@ -173,7 +173,7 @@ namespace Zerra.Map
                 }
                 else if (targetType.IsISetGeneric)
                 {
-                    var setType = TypeAnalyzer.GetGenericTypeDetail(genericHashSetType, targetType.InnerTypes[0]);
+                    var setType = TypeAnalyzer.GetGenericTypeDetail(genericHashSetType, targetType.InnerType);
                     target = (TTarget)setType.CreatorBoxed();
                 }
                 else if (targetType.HasISetGeneric)
@@ -183,16 +183,16 @@ namespace Zerra.Map
                 else if (sourceType.HasICollection)
                 {
                     var length = ((ICollection)source).Count;
-                    target = (TTarget)(object)Array.CreateInstance(targetType.InnerTypes[0], length);
+                    target = (TTarget)(object)Array.CreateInstance(targetType.InnerType, length);
                 }
                 else if (sourceType.HasICollectionGeneric)
                 {
                     var length = (int)sourceType.GetMember("Count").GetterBoxed(source)!;
-                    target = (TTarget)(object)Array.CreateInstance(targetType.InnerTypes[0], length);
+                    target = (TTarget)(object)Array.CreateInstance(targetType.InnerType, length);
                 }
                 else
                 {
-                    var listType = TypeAnalyzer.GetGenericTypeDetail(genericListType, targetType.InnerTypes[0]);
+                    var listType = TypeAnalyzer.GetGenericTypeDetail(genericListType, targetType.InnerType);
                     target = (TTarget)listType.CreatorBoxed();
                 }
             }
@@ -255,7 +255,7 @@ namespace Zerra.Map
             if (sourceType.CoreType.HasValue || targetType.CoreType.HasValue)
                 return;
 
-            if (sourceType.Type.IsEnum || sourceType.IsNullable && sourceType.InnerTypeDetails[0].Type.IsEnum || sourceType.Type.IsEnum || sourceType.IsNullable && targetType.InnerTypeDetails[0].Type.IsEnum)
+            if (sourceType.Type.IsEnum || sourceType.IsNullable && sourceType.InnerTypeDetail.Type.IsEnum || sourceType.Type.IsEnum || sourceType.IsNullable && targetType.InnerTypeDetail.Type.IsEnum)
                 return;
 
             if (sourceType.HasIEnumerable || targetType.HasIEnumerable)
@@ -358,7 +358,7 @@ namespace Zerra.Map
                     return Expression.Block(new[] { sourceValue }, readSourceValue, ifExpression);
                 }
             }
-            else if (sourceType.Type.IsEnum || sourceType.IsNullable && sourceType.InnerTypeDetails[0].Type.IsEnum || sourceType.Type.IsEnum || sourceType.IsNullable && targetType.InnerTypeDetails[0].Type.IsEnum)
+            else if (sourceType.Type.IsEnum || sourceType.IsNullable && sourceType.InnerTypeDetail.Type.IsEnum || sourceType.Type.IsEnum || sourceType.IsNullable && targetType.InnerTypeDetail.Type.IsEnum)
             {
                 var sourceValue = Expression.Variable(targetType.Type, "sourceValue");
                 Expression readSourceValue;
@@ -512,7 +512,7 @@ namespace Zerra.Map
                     var enumerator = Expression.Variable(enumeratorGeneric.Type, "enumerator");
                     var assignEnumeratorVariable = Expression.Assign(enumerator, Expression.Call(enumerable, getEnumeratorMethod.MethodInfo));
 
-                    var listItem = Expression.Variable(targetType.InnerTypes[0], "listitem");
+                    var listItem = Expression.Variable(targetType.InnerType, "listitem");
                     var clearListItemForLog = Expression.Assign(listItem, Expression.Default(listItem.Type));
 
                     var loopBreakTarget = Expression.Label();
@@ -596,7 +596,7 @@ namespace Zerra.Map
                 else if (sourceType.HasICollection)
                 {
                     //source enumerable, target array but needs casted
-                    var arrayType = Discovery.GetTypeFromName(targetType.InnerTypes[0] + "[]");
+                    var arrayType = Discovery.GetTypeFromName(targetType.InnerType + "[]");
                     var enumerableGeneric = TypeAnalyzer.GetGenericTypeDetail(genericEnumerableType, sourceType.IEnumerableGenericInnerType);
                     var enumeratorGeneric = TypeAnalyzer.GetGenericTypeDetail(genericEnumeratorType, sourceType.IEnumerableGenericInnerType);
                     var getEnumeratorMethod = enumerableGeneric.GetMethod("GetEnumerator");
@@ -652,7 +652,7 @@ namespace Zerra.Map
                 else if (sourceType.HasICollectionGeneric || sourceType.HasIReadOnlyCollectionGeneric)
                 {
                     //source enumerable, target array but needs casted
-                    var arrayType = Discovery.GetTypeFromName(targetType.InnerTypes[0] + "[]");
+                    var arrayType = Discovery.GetTypeFromName(targetType.InnerType + "[]");
                     var enumerableGeneric = TypeAnalyzer.GetGenericTypeDetail(genericEnumerableType, sourceType.IEnumerableGenericInnerType);
                     var enumeratorGeneric = TypeAnalyzer.GetGenericTypeDetail(genericEnumeratorType, sourceType.IEnumerableGenericInnerType);
                     var getEnumeratorMethod = enumerableGeneric.GetMethod("GetEnumerator");
@@ -708,7 +708,7 @@ namespace Zerra.Map
                 else
                 {
                     //source enumerable, target list but needs casted
-                    var listType = TypeAnalyzer.GetGenericTypeDetail(genericListType, targetType.InnerTypes[0]);
+                    var listType = TypeAnalyzer.GetGenericTypeDetail(genericListType, targetType.InnerType);
                     var enumerableGeneric = TypeAnalyzer.GetGenericTypeDetail(genericEnumerableType, sourceType.IEnumerableGenericInnerType);
                     var enumeratorGeneric = TypeAnalyzer.GetGenericTypeDetail(genericEnumeratorType, sourceType.IEnumerableGenericInnerType);
                     var getEnumeratorMethod = enumerableGeneric.GetMethod("GetEnumerator");
@@ -724,7 +724,7 @@ namespace Zerra.Map
                     var enumerator = Expression.Variable(enumeratorGeneric.Type, "enumerator");
                     var assignEnumeratorVariable = Expression.Assign(enumerator, Expression.Call(enumerable, getEnumeratorMethod.MethodInfo));
 
-                    var listItem = Expression.Variable(targetType.InnerTypes[0], "listitem");
+                    var listItem = Expression.Variable(targetType.InnerType, "listitem");
                     var clearListItemForLog = Expression.Assign(listItem, Expression.Default(listItem.Type));
 
                     var loopBreakTarget = Expression.Label();
@@ -853,27 +853,27 @@ namespace Zerra.Map
                     if (sourceType.Type.IsArray && targetType.Type.IsArray)
                     {
                         //source array, target array
-                        var arrayType = Discovery.GetTypeFromName(targetType.InnerTypes[0] + "[]");
+                        var arrayType = Discovery.GetTypeFromName(targetType.InnerType + "[]");
                         newTarget = Expression.Variable(arrayType, "newTarget");
-                        assignNewTarget = Expression.Assign(newTarget, Expression.NewArrayBounds(targetType.InnerTypes[0], Expression.ArrayLength(source)));
+                        assignNewTarget = Expression.Assign(newTarget, Expression.NewArrayBounds(targetType.InnerType, Expression.ArrayLength(source)));
                     }
                     else if (targetType.Type.IsArray)
                     {
                         //source enumerable, target array
                         if (sourceType.HasICollection)
                         {
-                            var arrayType = Discovery.GetTypeFromName(targetType.InnerTypes[0] + "[]");
+                            var arrayType = Discovery.GetTypeFromName(targetType.InnerType + "[]");
                             newTarget = Expression.Variable(arrayType, "newTarget");
 
                             var countMember = TypeAnalyzer.GetTypeDetail(collectionType).GetMember("Count");
                             var collection = Expression.Convert(source, collectionType);
                             var collectionCount = Expression.MakeMemberAccess(collection, countMember.MemberInfo);
 
-                            assignNewTarget = Expression.Assign(newTarget, Expression.NewArrayBounds(targetType.InnerTypes[0], collectionCount));
+                            assignNewTarget = Expression.Assign(newTarget, Expression.NewArrayBounds(targetType.InnerType, collectionCount));
                         }
                         else if (sourceType.HasICollectionGeneric)
                         {
-                            var arrayType = Discovery.GetTypeFromName(targetType.InnerTypes[0] + "[]");
+                            var arrayType = Discovery.GetTypeFromName(targetType.InnerType + "[]");
                             newTarget = Expression.Variable(arrayType, "newTarget");
 
                             var collectionGenericTypeDetails = TypeAnalyzer.GetGenericTypeDetail(collectionGenericType, sourceType.IEnumerableGenericInnerType);
@@ -881,11 +881,11 @@ namespace Zerra.Map
                             var collection = Expression.Convert(source, collectionGenericTypeDetails.Type);
                             var collectionCount = Expression.MakeMemberAccess(collection, countMember.MemberInfo);
 
-                            assignNewTarget = Expression.Assign(newTarget, Expression.NewArrayBounds(targetType.InnerTypes[0], collectionCount));
+                            assignNewTarget = Expression.Assign(newTarget, Expression.NewArrayBounds(targetType.InnerType, collectionCount));
                         }
                         else if (sourceType.HasIReadOnlyCollectionGeneric)
                         {
-                            var arrayType = Discovery.GetTypeFromName(targetType.InnerTypes[0] + "[]");
+                            var arrayType = Discovery.GetTypeFromName(targetType.InnerType + "[]");
                             newTarget = Expression.Variable(arrayType, "newTarget");
 
                             var readOnlyCollectionGenericTypeDetails = TypeAnalyzer.GetGenericTypeDetail(readOnlyCollectionGenericType, sourceType.IEnumerableGenericInnerType);
@@ -893,11 +893,11 @@ namespace Zerra.Map
                             var collection = Expression.Convert(source, readOnlyCollectionGenericTypeDetails.Type);
                             var collectionCount = Expression.MakeMemberAccess(collection, countMember.MemberInfo);
 
-                            assignNewTarget = Expression.Assign(newTarget, Expression.NewArrayBounds(targetType.InnerTypes[0], collectionCount));
+                            assignNewTarget = Expression.Assign(newTarget, Expression.NewArrayBounds(targetType.InnerType, collectionCount));
                         }
                         else //must enumerate to get count
                         {
-                            var arrayType = Discovery.GetTypeFromName(targetType.InnerTypes[0] + "[]");
+                            var arrayType = Discovery.GetTypeFromName(targetType.InnerType + "[]");
                             newTarget = Expression.Variable(arrayType, "newTarget");
 
                             var enumerableGeneric = TypeAnalyzer.GetGenericTypeDetail(genericEnumerableType, sourceType.IEnumerableGenericInnerType);
@@ -917,7 +917,7 @@ namespace Zerra.Map
                             var loopCounterBreak = Expression.Break(loopCounterBreakTarget);
                             var loopCounter = Expression.Loop(Expression.IfThenElse(Expression.Call(enumerator, moveNextMethod.MethodInfo), incrementLoopCounter, loopCounterBreak), loopCounterBreakTarget);
 
-                            var assignNewTargetFromLoopCount = Expression.Assign(newTarget, Expression.NewArrayBounds(targetType.InnerTypes[0], loopCount));
+                            var assignNewTargetFromLoopCount = Expression.Assign(newTarget, Expression.NewArrayBounds(targetType.InnerType, loopCount));
 
                             assignNewTarget = Expression.Block(new[] { enumerator, loopCount }, assignEnumeratorVariable, assignLoopCountVariable, loopCounter, assignNewTargetFromLoopCount);
                         }
@@ -931,7 +931,7 @@ namespace Zerra.Map
                     else if (targetType.IsIListGeneric || targetType.IsIReadOnlyListGeneric)
                     {
                         //source enumerable, target list interface
-                        var listType = TypeAnalyzer.GetGenericType(genericListType, targetType.InnerTypes[0]);
+                        var listType = TypeAnalyzer.GetGenericType(genericListType, targetType.InnerType);
                         newTarget = Expression.Variable(listType, "newTarget");
                         assignNewTarget = Expression.Assign(newTarget, Expression.New(listType));
                     }
@@ -944,7 +944,7 @@ namespace Zerra.Map
                     else if (targetType.IsISetGeneric || targetType.IsIReadOnlySetGeneric)
                     {
                         //source enumerable, target set interface
-                        var hashSetType = TypeAnalyzer.GetGenericType(genericHashSetType, targetType.InnerTypes[0]);
+                        var hashSetType = TypeAnalyzer.GetGenericType(genericHashSetType, targetType.InnerType);
                         newTarget = Expression.Variable(hashSetType, "newTarget");
                         assignNewTarget = Expression.Assign(newTarget, Expression.New(hashSetType));
                     }
@@ -964,14 +964,14 @@ namespace Zerra.Map
                     else if (targetType.IsICollectionGeneric || targetType.IsIReadOnlyCollectionGeneric)
                     {
                         //source enumerable, target list interface
-                        var listType = TypeAnalyzer.GetGenericType(genericListType, targetType.InnerTypes[0]);
+                        var listType = TypeAnalyzer.GetGenericType(genericListType, targetType.InnerType);
                         newTarget = Expression.Variable(listType, "newTarget");
                         assignNewTarget = Expression.Assign(newTarget, Expression.New(listType));
                     }
                     else if (targetType.IsIEnumerableGeneric)
                     {
                         //source enumerable, target list interface
-                        var listType = TypeAnalyzer.GetGenericType(genericListType, targetType.InnerTypes[0]);
+                        var listType = TypeAnalyzer.GetGenericType(genericListType, targetType.InnerType);
                         newTarget = Expression.Variable(listType, "newTarget");
                         assignNewTarget = Expression.Assign(newTarget, Expression.New(listType));
                     }

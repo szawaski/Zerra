@@ -69,8 +69,8 @@ namespace Zerra.Repository.Reflection
             this.Type = typeDetails.Type;
             while (typeDetails.InnerTypes.Count == 1)
             {
-                this.Type = typeDetails.InnerTypes[0];
-                typeDetails = typeDetails.InnerTypeDetails[0];
+                this.Type = typeDetails.InnerType;
+                typeDetails = typeDetails.InnerTypeDetail;
             }
 
             var sourceEntityAttribute = typeDetails.Attributes.Select(x => x as EntityAttribute).Where(x => x != null).FirstOrDefault();

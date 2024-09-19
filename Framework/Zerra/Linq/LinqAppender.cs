@@ -82,13 +82,13 @@ namespace Zerra.Linq
                 Type? elementType = null;
                 if (type.IsArray)
                 {
-                    elementType = typeDetails.InnerTypes[0];
+                    elementType = typeDetails.InnerType;
                 }
                 else
                 {
                     if (typeDetails.InnerTypes.Count == 1)
                     {
-                        elementType = typeDetails.InnerTypes[0];
+                        elementType = typeDetails.InnerType;
                     }
                 }
 

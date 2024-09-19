@@ -962,7 +962,7 @@ namespace Zerra.Serialization.Json
                 {
                     if (jsonType != JsonObjectType.Array)
                         throw new InvalidCastException();
-                    var innerType = typeDetail.InnerTypeDetails[0].Type;
+                    var innerType = typeDetail.InnerTypeDetail.Type;
                     if (!typeDetail.Type.IsArray && typeDetail.HasIListGeneric)
                     {
                         var listType = TypeAnalyzer.GetGenericTypeDetail(plainListType, innerType);
@@ -1044,11 +1044,11 @@ namespace Zerra.Serialization.Json
             {
                 return Enum.Parse(type, valueString!);
             }
-            if (typeDetail.IsNullable && typeDetail.InnerTypeDetails[0].Type.IsEnum)
+            if (typeDetail.IsNullable && typeDetail.InnerTypeDetail.Type.IsEnum)
             {
                 if (valueString == null)
                     return null;
-                return Enum.Parse(typeDetail.InnerTypeDetails[0].Type, valueString);
+                return Enum.Parse(typeDetail.InnerTypeDetail.Type, valueString);
             }
 
             if (jsonType != JsonObjectType.Object)

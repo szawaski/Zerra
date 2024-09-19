@@ -127,22 +127,22 @@ namespace Zerra.Serialization.Json
                 }
                 return;
             }
-            if (typeDetail.IsNullable && typeDetail.InnerTypes[0].IsEnum)
+            if (typeDetail.IsNullable && typeDetail.InnerType.IsEnum)
             {
                 if (options.EnumAsNumber)
                 {
-                    ToStringJsonCoreType(value, typeDetail.InnerTypeDetails[0].EnumUnderlyingType!.Value, ref writer);
+                    ToStringJsonCoreType(value, typeDetail.InnerTypeDetail.EnumUnderlyingType!.Value, ref writer);
                 }
                 else
                 {
                     writer.Write('\"');
-                    writer.Write(EnumName.GetName(typeDetail.InnerTypes[0], value));
+                    writer.Write(EnumName.GetName(typeDetail.InnerType, value));
                     writer.Write('\"');
                 }
                 return;
             }
 
-            if (typeDetail.SpecialType.HasValue || typeDetail.IsNullable && typeDetail.InnerTypeDetails[0].SpecialType.HasValue)
+            if (typeDetail.SpecialType.HasValue || typeDetail.IsNullable && typeDetail.InnerTypeDetail.SpecialType.HasValue)
             {
                 ToStringJsonSpecialType(value, typeDetail, ref writer, ref options);
                 return;
@@ -248,7 +248,7 @@ namespace Zerra.Serialization.Json
                 }
                 return;
             }
-            if (typeDetail.IsNullable && typeDetail.InnerTypes[0].IsEnum)
+            if (typeDetail.IsNullable && typeDetail.InnerType.IsEnum)
             {
                 var first = true;
                 foreach (var value in values)
@@ -261,12 +261,12 @@ namespace Zerra.Serialization.Json
                     {
                         if (options.EnumAsNumber)
                         {
-                            ToStringJsonCoreType(value, typeDetail.InnerTypeDetails[0].EnumUnderlyingType!.Value, ref writer);
+                            ToStringJsonCoreType(value, typeDetail.InnerTypeDetail.EnumUnderlyingType!.Value, ref writer);
                         }
                         else
                         {
                             writer.Write('\"');
-                            writer.Write(EnumName.GetName(typeDetail.InnerTypes[0], (Enum)value));
+                            writer.Write(EnumName.GetName(typeDetail.InnerType, (Enum)value));
                             writer.Write('\"');
                         }
                     }
@@ -278,7 +278,7 @@ namespace Zerra.Serialization.Json
                 return;
             }
 
-            if (typeDetail.SpecialType.HasValue || typeDetail.IsNullable && typeDetail.InnerTypeDetails[0].SpecialType.HasValue)
+            if (typeDetail.SpecialType.HasValue || typeDetail.IsNullable && typeDetail.InnerTypeDetail.SpecialType.HasValue)
             {
                 ToStringJsonSpecialTypeEnumerable(values, typeDetail, ref writer, ref options);
                 return;
@@ -1148,7 +1148,7 @@ namespace Zerra.Serialization.Json
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ToStringJsonSpecialType(object value, TypeDetail typeDetail, ref CharWriterOld writer, ref OptionsStruct options)
         {
-            var specialType = typeDetail.IsNullable ? typeDetail.InnerTypeDetails[0].SpecialType!.Value : typeDetail.SpecialType!.Value;
+            var specialType = typeDetail.IsNullable ? typeDetail.InnerTypeDetail.SpecialType!.Value : typeDetail.SpecialType!.Value;
             switch (specialType)
             {
                 case SpecialType.Type:
@@ -1217,7 +1217,7 @@ namespace Zerra.Serialization.Json
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ToStringJsonSpecialTypeEnumerable(IEnumerable values, TypeDetail typeDetail, ref CharWriterOld writer, ref OptionsStruct options)
         {
-            var specialType = typeDetail.IsNullable ? typeDetail.InnerTypeDetails[0].SpecialType!.Value : typeDetail.SpecialType!.Value;
+            var specialType = typeDetail.IsNullable ? typeDetail.InnerTypeDetail.SpecialType!.Value : typeDetail.SpecialType!.Value;
             switch (specialType)
             {
                 case SpecialType.Type:
@@ -1248,7 +1248,7 @@ namespace Zerra.Serialization.Json
                                 writer.Write(',');
                             if (value != null)
                             {
-                                var innerTypeDetail = typeDetail.InnerTypeDetails[0];
+                                var innerTypeDetail = typeDetail.InnerTypeDetail;
 
                                 var keyGetter = innerTypeDetail.GetMemberFieldBacked("key").GetterBoxed;
                                 var valueGetter = innerTypeDetail.GetMemberFieldBacked("value").GetterBoxed;

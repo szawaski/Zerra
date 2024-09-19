@@ -629,13 +629,13 @@ namespace Zerra.Serialization.Json
                     throw new InvalidOperationException();
                 return Enum.Parse(type, valueString!);
             }
-            if (typeDetail.IsNullable && typeDetail.InnerTypeDetails[0].Type.IsEnum)
+            if (typeDetail.IsNullable && typeDetail.InnerTypeDetail.Type.IsEnum)
             {
                 if (jsonType != JsonObjectType.String)
                     throw new InvalidOperationException();
                 if (valueString == String.Empty)
                     return null;
-                return Enum.Parse(typeDetail.InnerTypeDetails[0].Type, valueString!);
+                return Enum.Parse(typeDetail.InnerTypeDetail.Type, valueString!);
             }
 
             if (typeDetail.HasIDictionaryGeneric || typeDetail.HasIReadOnlyDictionaryGeneric)
@@ -675,7 +675,7 @@ namespace Zerra.Serialization.Json
                 {
                     if (jsonType != JsonObjectType.Array)
                         throw new InvalidCastException();
-                    var innerType = typeDetail.InnerTypeDetails[0].Type;
+                    var innerType = typeDetail.InnerTypeDetail.Type;
                     if (!typeDetail.Type.IsArray && typeDetail.HasIListGeneric)
                     {
                         IList list;

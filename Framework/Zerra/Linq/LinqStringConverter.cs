@@ -659,8 +659,8 @@ namespace Zerra.Linq
 
             if (typeDetails.IsNullable)
             {
-                type = typeDetails.InnerTypes[0];
-                typeDetails = typeDetails.InnerTypeDetails[0];
+                type = typeDetails.InnerType;
+                typeDetails = typeDetails.InnerTypeDetail;
             }
 
             if (type.IsEnum)
@@ -671,7 +671,7 @@ namespace Zerra.Linq
 
             if (type.IsArray)
             {
-                var arrayType = typeDetails.InnerTypes[0];
+                var arrayType = typeDetails.InnerType;
                 _ = context.Builder.Append('[');
                 var first = true;
                 foreach (var item in (IEnumerable)value)

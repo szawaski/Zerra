@@ -260,12 +260,12 @@ namespace Zerra.Serialization.Json
                 return new WriteFrame() { FrameType = WriteFrameType.CoreType, TypeDetail = typeDetail, Object = obj, Graph = graph };
             }
 
-            if (typeDetail.Type.IsEnum || typeDetail.IsNullable && typeDetail.InnerTypes[0].IsEnum)
+            if (typeDetail.Type.IsEnum || typeDetail.IsNullable && typeDetail.InnerType.IsEnum)
             {
                 return new WriteFrame() { FrameType = WriteFrameType.EnumType, TypeDetail = typeDetail, Object = obj, Graph = graph };
             }
 
-            if (typeDetail.SpecialType.HasValue || typeDetail.IsNullable && typeDetail.InnerTypeDetails[0].SpecialType.HasValue)
+            if (typeDetail.SpecialType.HasValue || typeDetail.IsNullable && typeDetail.InnerTypeDetail.SpecialType.HasValue)
             {
                 return new WriteFrame() { FrameType = WriteFrameType.SpecialType, TypeDetail = typeDetail, Object = obj, Graph = graph };
             }
@@ -278,16 +278,16 @@ namespace Zerra.Serialization.Json
                 }
                 else
                 {
-                    var elementTypeDetail = typeDetail.InnerTypeDetails[0];
+                    var elementTypeDetail = typeDetail.InnerTypeDetail;
                     if (elementTypeDetail.CoreType.HasValue)
                     {
                         return new WriteFrame() { FrameType = WriteFrameType.CoreTypeEnumerable, TypeDetail = typeDetail, Object = obj, Graph = graph };
                     }
-                    if (elementTypeDetail.Type.IsEnum || elementTypeDetail.IsNullable && elementTypeDetail.InnerTypes[0].IsEnum)
+                    if (elementTypeDetail.Type.IsEnum || elementTypeDetail.IsNullable && elementTypeDetail.InnerType.IsEnum)
                     {
                         return new WriteFrame() { FrameType = WriteFrameType.EnumEnumerable, TypeDetail = typeDetail, Object = obj, Graph = graph };
                     }
-                    if (elementTypeDetail.SpecialType.HasValue || elementTypeDetail.IsNullable && elementTypeDetail.InnerTypeDetails[0].SpecialType.HasValue)
+                    if (elementTypeDetail.SpecialType.HasValue || elementTypeDetail.IsNullable && elementTypeDetail.InnerTypeDetail.SpecialType.HasValue)
                     {
                         return new WriteFrame() { FrameType = WriteFrameType.SpecialTypeEnumerable, TypeDetail = typeDetail, Object = obj, Graph = graph };
                     }
@@ -711,7 +711,7 @@ namespace Zerra.Serialization.Json
                 if (state.CurrentFrame.State == 0)
                 {
                     if (typeDetail.IsNullable)
-                        str = EnumName.GetName(typeDetail.InnerTypes[0], state.CurrentFrame.Object!);
+                        str = EnumName.GetName(typeDetail.InnerType, state.CurrentFrame.Object!);
                     else
                         str = EnumName.GetName(typeDetail.Type, state.CurrentFrame.Object!);
 
@@ -752,7 +752,7 @@ namespace Zerra.Serialization.Json
         private static void WriteJsonSpecialType(ref CharWriterOld writer, ref WriteState state)
         {
             var typeDetail = state.CurrentFrame.TypeDetail!;
-            var specialType = typeDetail.IsNullable ? typeDetail.InnerTypeDetails[0].SpecialType!.Value : typeDetail.SpecialType!.Value;
+            var specialType = typeDetail.IsNullable ? typeDetail.InnerTypeDetail.SpecialType!.Value : typeDetail.SpecialType!.Value;
 
             int sizeNeeded;
             switch (specialType)
@@ -1111,7 +1111,7 @@ namespace Zerra.Serialization.Json
         private static void WriteJsonCoreTypeEnumerable(ref CharWriterOld writer, ref WriteState state)
         {
             int sizeNeeded;
-            var typeDetail = state.CurrentFrame.TypeDetail!.InnerTypeDetails[0];
+            var typeDetail = state.CurrentFrame.TypeDetail!.InnerTypeDetail;
 
             if (state.CurrentFrame.State == 0)
             {
@@ -1992,7 +1992,7 @@ namespace Zerra.Serialization.Json
         private static void WriteJsonEnumEnumerable(ref CharWriterOld writer, ref WriteState state)
         {
             int sizeNeeded;
-            var typeDetail = state.CurrentFrame.TypeDetail!.InnerTypeDetails[0];
+            var typeDetail = state.CurrentFrame.TypeDetail!.InnerTypeDetail;
 
             if (state.CurrentFrame.State == 0)
             {
@@ -2306,7 +2306,7 @@ namespace Zerra.Serialization.Json
                             }
                             else
                             {
-                                str = EnumName.GetName(typeDetail.InnerTypes[0], state.CurrentFrame.Enumerator.Current);
+                                str = EnumName.GetName(typeDetail.InnerType, state.CurrentFrame.Enumerator.Current);
                                 state.CurrentFrame.Object = str;
                                 state.CurrentFrame.State = 4;
                             }
@@ -2363,7 +2363,7 @@ namespace Zerra.Serialization.Json
         private static void WriteJsonEnumerable(ref CharWriterOld writer, ref WriteState state)
         {
             int sizeNeeded;
-            var typeDetail = state.CurrentFrame.TypeDetail!.InnerTypeDetails[0];
+            var typeDetail = state.CurrentFrame.TypeDetail!.InnerTypeDetail;
 
             if (state.CurrentFrame.State == 0)
             {
@@ -2428,7 +2428,7 @@ namespace Zerra.Serialization.Json
         private static void WriteJsonObjectEnumerable(ref CharWriterOld writer, ref WriteState state)
         {
             int sizeNeeded;
-            var typeDetail = state.CurrentFrame.TypeDetail!.InnerTypeDetails[0];
+            var typeDetail = state.CurrentFrame.TypeDetail!.InnerTypeDetail;
 
             if (state.CurrentFrame.State == 0)
             {

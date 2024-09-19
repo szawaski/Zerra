@@ -501,7 +501,7 @@ namespace Zerra.Serialization.Bytes
                     {
                         var typeDetailCheck = typeDetail.TypeDetail;
                         if (typeDetailCheck.IsNullable)
-                            typeDetailCheck = typeDetailCheck.InnerTypeDetails[0];
+                            typeDetailCheck = typeDetailCheck.InnerTypeDetail;
                         var newTypeDetailCheck = newTypeDetail.TypeDetail;
 
                         if (newTypeDetailCheck.Type != typeDetailCheck.Type && !newTypeDetailCheck.Interfaces.Contains(typeDetailCheck.Type) && !newTypeDetail.TypeDetail.BaseTypes.Contains(typeDetailCheck.Type))
@@ -1137,7 +1137,7 @@ namespace Zerra.Serialization.Bytes
                 if (!typeDetail.TypeDetail.IsNullable)
                     enumValue = Enum.ToObject(typeDetail.Type, numValue);
                 else
-                    enumValue = Enum.ToObject(typeDetail.TypeDetail.InnerTypes[0], numValue);
+                    enumValue = Enum.ToObject(typeDetail.TypeDetail.InnerType, numValue);
             }
             else
             {
@@ -2986,7 +2986,7 @@ namespace Zerra.Serialization.Bytes
                     if (!typeDetail.TypeDetail.IsNullable)
                         enumValue = Enum.ToObject(typeDetail.Type, numValue);
                     else
-                        enumValue = Enum.ToObject(typeDetail.TypeDetail.InnerTypes[0], numValue);
+                        enumValue = Enum.ToObject(typeDetail.TypeDetail.InnerType, numValue);
                 }
                 else
                 {

@@ -462,8 +462,8 @@ namespace Zerra.Repository.MsSql
 
             if (typeDetails.IsNullable)
             {
-                type = typeDetails.InnerTypes[0];
-                typeDetails = typeDetails.InnerTypeDetails[0];
+                type = typeDetails.InnerType;
+                typeDetails = typeDetails.InnerTypeDetail;
             }
 
             if (type.IsEnum)
@@ -476,7 +476,7 @@ namespace Zerra.Repository.MsSql
 
             if (type.IsArray)
             {
-                var arrayType = typeDetails.InnerTypes[0];
+                var arrayType = typeDetails.InnerType;
                 if (arrayType == typeof(byte))
                 {
                     sb.Write("0x");

@@ -64,7 +64,7 @@ namespace Zerra.Repository
             var enumerable = false;
             if (propertyTypeDetails.Interfaces.Select(x => x.Name).Contains(TypeAnalyzer.GetGenericType(collectionType, propertyType).Name))
             {
-                propertyType = propertyTypeDetails.InnerTypes[0];
+                propertyType = propertyTypeDetails.InnerType;
                 enumerable = true;
             }
 
@@ -136,7 +136,7 @@ namespace Zerra.Repository
             var propertyTypeDetails = TypeAnalyzer.GetTypeDetail(propertyType);
             if (propertyTypeDetails.Interfaces.Select(x => x.Name).Contains(TypeAnalyzer.GetGenericType(collectionType, propertyType).Name))
             {
-                propertyType = propertyTypeDetails.InnerTypes[0];
+                propertyType = propertyTypeDetails.InnerType;
             }
 
             if (!propertyType.IsClass)
@@ -201,7 +201,7 @@ namespace Zerra.Repository
             var collection = false;
             if (propertyTypeDetails.Interfaces.Select(x => x.Name).Contains(TypeAnalyzer.GetGenericType(collectionType, propertyType).Name))
             {
-                propertyType = propertyTypeDetails.InnerTypes[0];
+                propertyType = propertyTypeDetails.InnerType;
                 collection = true;
             }
 

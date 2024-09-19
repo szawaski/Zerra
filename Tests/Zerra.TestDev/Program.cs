@@ -21,8 +21,8 @@ namespace Zerra.TestDev
             //UtfTest();
 
             //TestMe();
-            JsonSerializerTest.TempTestSpeed();
-            //ByteSerializerTest.TempTestSpeed();
+            //JsonSerializerTest.TempTestSpeed();
+            ByteSerializerTest.TempTestSpeed();
 
             //var tester = new EncryptionTest();
             //tester.RandomShiftStreamRead();
