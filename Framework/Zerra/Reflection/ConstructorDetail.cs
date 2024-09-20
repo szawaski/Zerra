@@ -48,8 +48,8 @@ namespace Zerra.Reflection
         }
 
         private bool creatorBoxedLoaded = false;
-        private Func<object?[]?, object>? creatorBoxed = null;
-        public Func<object?[]?, object> CreatorBoxed
+        private Func<object>? creatorBoxed = null;
+        public Func<object> CreatorBoxed
         {
             get
             {
@@ -76,14 +76,51 @@ namespace Zerra.Reflection
                 {
                     if (ConstructorInfo.DeclaringType != null && !ConstructorInfo.DeclaringType.IsAbstract && !ConstructorInfo.DeclaringType.IsGenericTypeDefinition)
                     {
-                        this.creatorBoxed = AccessorGenerator.GenerateCreator(ConstructorInfo);
+                        this.creatorBoxed = AccessorGenerator.GenerateCreatorNoArgs(ConstructorInfo);
                     }
                     creatorBoxedLoaded = true;
                 }
             }
         }
 
+        private bool creatorWithArgsBoxedLoaded = false;
+        private Func<object?[]?, object>? creatorWithArgsBoxed = null;
+        public Func<object?[]?, object> CreatorWithArgsBoxed
+        {
+            get
+            {
+                if (!creatorWithArgsBoxedLoaded)
+                    LoadCreatorWithArgsBoxed();
+                return this.creatorWithArgsBoxed ?? throw new NotSupportedException($"{nameof(ConstructorDetail)} {Name} does not have a {nameof(CreatorWithArgsBoxed)}"); ;
+            }
+        }
+        public bool HasCreatorWithArgsBoxed
+        {
+            get
+            {
+                if (!creatorWithArgsBoxedLoaded)
+                    LoadCreatorWithArgsBoxed();
+                return this.creatorWithArgsBoxed != null;
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void LoadCreatorWithArgsBoxed()
+        {
+            lock (locker)
+            {
+                if (!creatorWithArgsBoxedLoaded)
+                {
+                    if (ConstructorInfo.DeclaringType != null && !ConstructorInfo.DeclaringType.IsAbstract && !ConstructorInfo.DeclaringType.IsGenericTypeDefinition)
+                    {
+                        this.creatorWithArgsBoxed = AccessorGenerator.GenerateCreator(ConstructorInfo);
+                    }
+                    creatorWithArgsBoxedLoaded = true;
+                }
+            }
+        }
+
         public abstract Delegate? CreatorTyped { get; }
+        public abstract Delegate? CreatorWithArgsTyped { get; }
 
         public override string ToString()
         {

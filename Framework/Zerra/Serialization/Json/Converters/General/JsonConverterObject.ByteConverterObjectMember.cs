@@ -50,7 +50,7 @@ namespace Zerra.Serialization.Json.Converters.General
             public static JsonConverterObjectMember New(TypeDetail parentTypeDetail, MemberDetail member)
             {
                 var generic = byteConverterObjectMemberT.GetGenericTypeDetail(typeof(TParent), typeof(TValue), member.Type);
-                var obj = generic.ConstructorDetails[0].CreatorBoxed(new object?[] { parentTypeDetail, member });
+                var obj = generic.ConstructorDetails[0].CreatorWithArgsBoxed(new object?[] { parentTypeDetail, member });
                 return (JsonConverterObjectMember)obj;
             }
         }

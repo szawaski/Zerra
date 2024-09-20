@@ -11,8 +11,8 @@ namespace Zerra.Reflection
     public sealed class ConstructorDetail<T> : ConstructorDetail
     {
         private bool creatorLoaded = false;
-        private Func<object?[]?, T>? creator = null;
-        public Func<object?[]?, T> Creator
+        private Func<T>? creator = null;
+        public Func<T> Creator
         {
             get
             {
@@ -39,7 +39,7 @@ namespace Zerra.Reflection
                     {
                         if (ConstructorInfo.DeclaringType != null && !ConstructorInfo.DeclaringType.IsAbstract && !ConstructorInfo.DeclaringType.IsGenericTypeDefinition)
                         {
-                            this.creator = AccessorGenerator.GenerateCreator<T>(ConstructorInfo);
+                            this.creator = AccessorGenerator.GenerateCreatorNoArgs<T>(ConstructorInfo);
                         }
                         creatorLoaded = true;
                     }
@@ -48,6 +48,45 @@ namespace Zerra.Reflection
         }
 
         public override Delegate? CreatorTyped => Creator;
+
+        private bool creatorWithArgsLoaded = false;
+        private Func<object?[]?, T>? creatorWithArgs = null;
+        public Func<object?[]?, T> CreatorWithArgs
+        {
+            get
+            {
+                LoadCreatorWithArgs();
+                return this.creatorWithArgs ?? throw new NotSupportedException($"{nameof(ConstructorDetail)} {Name} does not have a {nameof(CreatorWithArgs)}"); ;
+            }
+        }
+        public bool HasCreatorWithArgs
+        {
+            get
+            {
+                LoadCreatorWithArgs();
+                return this.creatorWithArgs != null;
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void LoadCreatorWithArgs()
+        {
+            if (!creatorWithArgsLoaded)
+            {
+                lock (locker)
+                {
+                    if (!creatorWithArgsLoaded)
+                    {
+                        if (ConstructorInfo.DeclaringType != null && !ConstructorInfo.DeclaringType.IsAbstract && !ConstructorInfo.DeclaringType.IsGenericTypeDefinition)
+                        {
+                            this.creatorWithArgs = AccessorGenerator.GenerateCreator<T>(ConstructorInfo);
+                        }
+                        creatorWithArgsLoaded = true;
+                    }
+                }
+            }
+        }
+
+        public override Delegate? CreatorWithArgsTyped => CreatorWithArgs;
 
         internal ConstructorDetail(ConstructorInfo constructor, object locker) : base(constructor, locker) { }
     }

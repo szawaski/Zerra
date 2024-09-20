@@ -61,7 +61,7 @@ namespace Zerra.TestDev
             //var item3 = (int)typeDetails.GetMethod("DoThings").Caller(stuff, new object[] { 5 });
             //var item3a = (int)typeDetails.GetMethod("Other").Caller(null, new object[] { 5 });
 
-            var item4 = typeDetail.ConstructorDetails[0].CreatorBoxed(null);
+            var item4 = typeDetail.ConstructorDetails[0].CreatorWithArgsBoxed(null);
 
             var item5 = Instantiator.Create<Stuff>();
         }

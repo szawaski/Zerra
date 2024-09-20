@@ -84,7 +84,7 @@ namespace Zerra.Test
             foreach (var constructor in constructors)
             {
                 _ = constructor.Attributes;
-                _ = constructor.HasCreator;
+                _ = constructor.HasCreatorWithArgs;
 
                 foreach (var parameter in constructor.ParametersInfo)
                 {

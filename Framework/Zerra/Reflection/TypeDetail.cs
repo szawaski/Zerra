@@ -1096,9 +1096,9 @@ namespace Zerra.Reflection
                     if (!Type.IsAbstract && !Type.IsGenericTypeDefinition)
                     {
                         var emptyConstructor = this.ConstructorDetails.FirstOrDefault(x => x.ParametersInfo.Count == 0);
-                        if (emptyConstructor != null && emptyConstructor.CreatorBoxed != null)
+                        if (emptyConstructor != null && emptyConstructor.HasCreatorBoxed)
                         {
-                            creatorBoxed = () => { return emptyConstructor.CreatorBoxed(null); };
+                            creatorBoxed = emptyConstructor.CreatorBoxed;
                         }
                         else if (Type.IsValueType && Type.Name != "Void")
                         {
