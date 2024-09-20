@@ -211,7 +211,7 @@ namespace Zerra.Test
             return true;
         }
 
-        private static MethodDetail compareIDictionaryTMethod = typeof(AssertHelper).GetTypeDetail().GetMethod(nameof(CompareIDictionaryT));
+        private static MethodDetail compareIDictionaryTMethod = typeof(AssertHelper).GetTypeDetail().GetMethodBoxed(nameof(CompareIDictionaryT));
         private static bool CompareIDictionaryT<TKey1, TValue1, TKey2, TValue2>(IEnumerable<KeyValuePair<TKey1, TValue1>> model1, IEnumerable<KeyValuePair<TKey2, TValue2>> model2, StringBuilder sb)
             where TKey1 : notnull
             where TKey2 : notnull

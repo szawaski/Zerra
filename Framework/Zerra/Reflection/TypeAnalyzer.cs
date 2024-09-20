@@ -172,7 +172,7 @@ namespace Zerra.Reflection
             var method = methodDetailsByType.GetOrAdd(key, (_) =>
             {
                 var typeDetails = GetTypeDetail(type);
-                foreach (var methodDetail in typeDetails.MethodDetails.OrderBy(x => x.ParametersInfo.Count))
+                foreach (var methodDetail in typeDetails.MethodDetailsBoxed.OrderBy(x => x.ParametersInfo.Count))
                 {
                     if (methodDetail.Name == name && (parameterTypes == null || methodDetail.ParametersInfo.Count == parameterTypes.Length))
                     {
@@ -204,7 +204,7 @@ namespace Zerra.Reflection
             var constructor = constructorDetailsByType.GetOrAdd(key, (_) =>
             {
                 var typeDetails = GetTypeDetail(type);
-                foreach (var constructorDetail in typeDetails.ConstructorDetails)
+                foreach (var constructorDetail in typeDetails.ConstructorDetailsBoxed)
                 {
                     if (parameterTypes == null || constructorDetail.ParametersInfo.Count == parameterTypes.Length)
                     {

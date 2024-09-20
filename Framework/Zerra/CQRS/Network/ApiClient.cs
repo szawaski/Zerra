@@ -108,7 +108,7 @@ namespace Zerra.CQRS.Network
             return RequestAsync<TResult>(throttle, isStream, serviceUri.OriginalString, commendTypeName, requestContentType, data, true);
         }
 
-        private static readonly MethodInfo requestAsyncMethod = TypeAnalyzer.GetTypeDetail(typeof(ApiClient)).MethodDetails.First(x => x.MethodInfo.Name == nameof(ApiClient.RequestAsync)).MethodInfo;
+        private static readonly MethodInfo requestAsyncMethod = TypeAnalyzer.GetTypeDetail(typeof(ApiClient)).MethodDetailsBoxed.First(x => x.MethodInfo.Name == nameof(ApiClient.RequestAsync)).MethodInfo;
         private TReturn? Request<TReturn>(SemaphoreSlim throttle, bool isStream, string address, string? providerType, ContentType contentType, object data, bool getResponseData)
         {
             throttle.Wait();

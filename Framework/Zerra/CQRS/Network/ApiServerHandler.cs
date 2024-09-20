@@ -78,7 +78,7 @@ namespace Zerra.CQRS.Network
                 throw new Exception($"Interface {typeDetail.Type.GetNiceName()} is not exposed");
 
             MethodDetail? methodDetail = null;
-            foreach (var method in typeDetail.MethodDetails)
+            foreach (var method in typeDetail.MethodDetailsBoxed)
             {
                 if (method.MethodInfo.Name == data.ProviderMethod && method.ParametersInfo.Count == data.ProviderArguments.Length)
                 {

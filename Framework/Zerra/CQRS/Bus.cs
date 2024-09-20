@@ -171,12 +171,12 @@ namespace Zerra.CQRS
 
                 var busCacheTypeDetail = busCacheType.GetTypeDetail();
 
-                if (!busCacheTypeDetail.TryGetMethod(nameof(LayerProvider<object>.SetNextProvider), out var methodSetNextProvider))
+                if (!busCacheTypeDetail.TryGetMethodBoxed(nameof(LayerProvider<object>.SetNextProvider), out var methodSetNextProvider))
                     return null;
 
                 var cacheInstance = Instantiator.Create(busCacheType);
 
-                var methodGetProviderInterfaceType = busCacheTypeDetail.GetMethod(nameof(LayerProvider<object>.GetProviderInterfaceType));
+                var methodGetProviderInterfaceType = busCacheTypeDetail.GetMethodBoxed(nameof(LayerProvider<object>.GetProviderInterfaceType));
                 var interfaceType = (Type)methodGetProviderInterfaceType.Caller(cacheInstance, null)!;
 
                 var messageHandlerToDispatchProvider = BusRouters.GetCommandHandlerToDispatchInternalInstance(interfaceType, requireAffirmation, networkType, source, metadata.BusLogging);
@@ -241,12 +241,12 @@ namespace Zerra.CQRS
 
                 var busCacheTypeDetail = busCacheType.GetTypeDetail();
 
-                if (!busCacheTypeDetail.TryGetMethod(nameof(LayerProvider<object>.SetNextProvider), out var methodSetNextProvider))
+                if (!busCacheTypeDetail.TryGetMethodBoxed(nameof(LayerProvider<object>.SetNextProvider), out var methodSetNextProvider))
                     return null;
 
                 var cacheInstance = Instantiator.Create(busCacheType);
 
-                var methodGetProviderInterfaceType = busCacheTypeDetail.GetMethod(nameof(LayerProvider<object>.GetProviderInterfaceType));
+                var methodGetProviderInterfaceType = busCacheTypeDetail.GetMethodBoxed(nameof(LayerProvider<object>.GetProviderInterfaceType));
                 var interfaceType = (Type)methodGetProviderInterfaceType.Caller(cacheInstance, null)!;
 
                 var messageHandlerToDispatchProvider = BusRouters.GetCommandWithResultHandlerToDispatchInternalInstance(interfaceType, networkType, source, metadata.BusLogging);
@@ -314,12 +314,12 @@ namespace Zerra.CQRS
 
                 var busCacheTypeDetail = busCacheType.GetTypeDetail();
 
-                if (!busCacheTypeDetail.TryGetMethod(nameof(LayerProvider<object>.SetNextProvider), out var methodSetNextProvider))
+                if (!busCacheTypeDetail.TryGetMethodBoxed(nameof(LayerProvider<object>.SetNextProvider), out var methodSetNextProvider))
                     return null;
 
                 var cacheInstance = Instantiator.Create(busCacheType);
 
-                var methodGetProviderInterfaceType = busCacheTypeDetail.GetMethod(nameof(LayerProvider<object>.GetProviderInterfaceType));
+                var methodGetProviderInterfaceType = busCacheTypeDetail.GetMethodBoxed(nameof(LayerProvider<object>.GetProviderInterfaceType));
                 var interfaceType = (Type)methodGetProviderInterfaceType.Caller(cacheInstance, null)!;
 
                 var messageHandlerToDispatchProvider = BusRouters.GetEventHandlerToDispatchInternalInstance(interfaceType, networkType, source, metadata.BusLogging);

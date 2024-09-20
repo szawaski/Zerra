@@ -592,16 +592,16 @@ namespace Zerra.Reflection
             }
         }
 
-        private MethodDetail[]? methodDetails = null;
-        public IReadOnlyList<MethodDetail> MethodDetails
+        private MethodDetail[]? methodDetailsBoxed = null;
+        public IReadOnlyList<MethodDetail> MethodDetailsBoxed
         {
             get
             {
-                if (methodDetails == null)
+                if (methodDetailsBoxed == null)
                 {
                     lock (locker)
                     {
-                        if (methodDetails == null)
+                        if (methodDetailsBoxed == null)
                         {
                             var items = new List<MethodDetail>();
                             if (!Type.IsGenericTypeDefinition)
@@ -623,24 +623,24 @@ namespace Zerra.Reflection
                                     }
                                 }
                             }
-                            methodDetails = items.ToArray();
+                            methodDetailsBoxed = items.ToArray();
                         }
                     }
                 }
-                return methodDetails;
+                return methodDetailsBoxed;
             }
         }
 
-        private ConstructorDetail[]? constructorDetails = null;
-        public IReadOnlyList<ConstructorDetail> ConstructorDetails
+        private ConstructorDetail[]? constructorDetailsBoxed = null;
+        public IReadOnlyList<ConstructorDetail> ConstructorDetailsBoxed
         {
             get
             {
-                if (constructorDetails == null)
+                if (constructorDetailsBoxed == null)
                 {
                     lock (locker)
                     {
-                        if (constructorDetails == null)
+                        if (constructorDetailsBoxed == null)
                         {
                             if (!Type.IsGenericTypeDefinition)
                             {
@@ -648,16 +648,16 @@ namespace Zerra.Reflection
                                 var items = new ConstructorDetail[constructors.Length];
                                 for (var i = 0; i < items.Length; i++)
                                     items[i] = ConstructorDetail.New(Type, constructors[i], locker);
-                                constructorDetails = items;
+                                constructorDetailsBoxed = items;
                             }
                             else
                             {
-                                constructorDetails = Array.Empty<ConstructorDetail>();
+                                constructorDetailsBoxed = Array.Empty<ConstructorDetail>();
                             }
                         }
                     }
                 }
-                return constructorDetails;
+                return constructorDetailsBoxed;
             }
         }
 
@@ -707,14 +707,15 @@ namespace Zerra.Reflection
             return this.membersByName.TryGetValue(name, out member);
         }
 
-        private readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail?> methodLookups = new();
-        private MethodDetail? GetMethodInternal(string name, Type[]? parameterTypes = null)
+        private ConcurrentFactoryDictionary<TypeKey, MethodDetail?>? methodLookupsBoxed = null;
+        private MethodDetail? GetMethodBoxedInternal(string name, Type[]? parameterTypes = null)
         {
             var key = new TypeKey(name, parameterTypes);
             MethodDetail? found = null;
-            var method = methodLookups.GetOrAdd(key, (_) =>
+            methodLookupsBoxed ??= new();
+            var method = methodLookupsBoxed.GetOrAdd(key, (_) =>
             {
-                foreach (var methodDetail in MethodDetails)
+                foreach (var methodDetail in MethodDetailsBoxed)
                 {
                     if (SignatureCompare(name, parameterTypes, methodDetail))
                     {
@@ -727,40 +728,41 @@ namespace Zerra.Reflection
             });
             return method;
         }
-        public MethodDetail GetMethod(string name, Type[]? parameterTypes = null)
+        public MethodDetail GetMethodBoxed(string name, Type[]? parameterTypes = null)
         {
-            var method = GetMethodInternal(name, parameterTypes);
+            var method = GetMethodBoxedInternal(name, parameterTypes);
             if (method == null)
                 throw new MissingMethodException($"{Type.Name}.{name} method not found for the given parameters {(parameterTypes == null || parameterTypes.Length == 0 ? "(none)" : String.Join(",", parameterTypes.Select(x => x.GetNiceName())))}");
             return method;
         }
-        public bool TryGetMethod(string name,
+        public bool TryGetMethodBoxed(string name,
 #if !NETSTANDARD2_0
             [MaybeNullWhen(false)]
 #endif
         out MethodDetail method)
         {
-            method = GetMethodInternal(name, null);
+            method = GetMethodBoxedInternal(name, null);
             return method != null;
         }
-        public bool TryGetMethod(string name, Type[] parameterTypes,
+        public bool TryGetMethodBoxed(string name, Type[] parameterTypes,
 #if !NETSTANDARD2_0
             [MaybeNullWhen(false)]
 #endif
         out MethodDetail method)
         {
-            method = GetMethodInternal(name, parameterTypes);
+            method = GetMethodBoxedInternal(name, parameterTypes);
             return method != null;
         }
 
-        private readonly ConcurrentFactoryDictionary<TypeKey, ConstructorDetail?> constructorLookups = new();
-        private ConstructorDetail? GetConstructorInternal(Type[]? parameterTypes)
+        private ConcurrentFactoryDictionary<TypeKey, ConstructorDetail?>? constructorLookups = null;
+        private ConstructorDetail? GetConstructorBoxedInternal(Type[]? parameterTypes)
         {
             var key = new TypeKey(parameterTypes);
             ConstructorDetail? found = null;
+            constructorLookups ??= new();
             var constructor = constructorLookups.GetOrAdd(key, (_) =>
             {
-                foreach (var constructorDetail in ConstructorDetails)
+                foreach (var constructorDetail in ConstructorDetailsBoxed)
                 {
                     if (SignatureCompare(parameterTypes, constructorDetail))
                     {
@@ -773,29 +775,29 @@ namespace Zerra.Reflection
             });
             return constructor;
         }
-        public ConstructorDetail GetConstructor(params Type[] parameterTypes)
+        public ConstructorDetail GetConstructorBoxed(params Type[] parameterTypes)
         {
-            var constructor = GetConstructorInternal(parameterTypes);
+            var constructor = GetConstructorBoxedInternal(parameterTypes);
             if (constructor == null)
                 throw new MissingMethodException($"{Type.Name} constructor not found for the given parameters {String.Join(",", parameterTypes.Select(x => x.GetNiceName()))}");
             return constructor;
         }
-        public bool TryGetConstructor(
+        public bool TryGetConstructorBoxed(
 #if !NETSTANDARD2_0
             [MaybeNullWhen(false)] 
 #endif
         out ConstructorDetail constructor)
         {
-            constructor = GetConstructorInternal(null);
+            constructor = GetConstructorBoxedInternal(null);
             return constructor != null;
         }
-        public bool TryGetConstructor(Type[] parameterTypes,
+        public bool TryGetConstructorBoxed(Type[] parameterTypes,
 #if !NETSTANDARD2_0
             [MaybeNullWhen(false)]
 #endif
         out ConstructorDetail constructor)
         {
-            constructor = GetConstructorInternal(parameterTypes);
+            constructor = GetConstructorBoxedInternal(parameterTypes);
             return constructor != null;
         }
 
@@ -1095,7 +1097,7 @@ namespace Zerra.Reflection
                 {
                     if (!Type.IsAbstract && !Type.IsGenericTypeDefinition)
                     {
-                        var emptyConstructor = this.ConstructorDetails.FirstOrDefault(x => x.ParametersInfo.Count == 0);
+                        var emptyConstructor = this.ConstructorDetailsBoxed.FirstOrDefault(x => x.ParametersInfo.Count == 0);
                         if (emptyConstructor != null && emptyConstructor.HasCreatorBoxed)
                         {
                             creatorBoxed = emptyConstructor.CreatorBoxed;

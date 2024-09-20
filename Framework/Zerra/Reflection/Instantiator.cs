@@ -48,7 +48,7 @@ namespace Zerra.Reflection
             var creator = creatorsByType.GetOrAdd(key, (_) =>
             {
                 var typeDetail = TypeAnalyzer.GetTypeDetail(type);
-                foreach (var constructorDetail in typeDetail.ConstructorDetails)
+                foreach (var constructorDetail in typeDetail.ConstructorDetailsBoxed)
                 {
                     if (!constructorDetail.HasCreatorWithArgsBoxed)
                         continue;

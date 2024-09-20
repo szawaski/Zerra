@@ -133,7 +133,7 @@ namespace Zerra.Repository
                 var aggregateType = GetAggregateType();
                 var aggregateTypeDetail = TypeAnalyzer.GetTypeDetail(aggregateType);
                 MethodDetail? methodDetail = null;
-                foreach (var method in aggregateTypeDetail.MethodDetails)
+                foreach (var method in aggregateTypeDetail.MethodDetailsBoxed)
                 {
                     if (!method.MethodInfo.IsStatic && method.ParametersInfo.Count == 1 && method.ParametersInfo[0].ParameterType == eventType)
                     {

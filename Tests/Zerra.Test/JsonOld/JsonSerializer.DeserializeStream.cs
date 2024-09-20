@@ -688,8 +688,8 @@ namespace Zerra.Serialization.Json
                 }
 
                 state.CurrentFrame.ResultObject = typeDetail.CreatorBoxed();
-                if (!typeDetail.TryGetMethod("Add", out state.CurrentFrame.AddMethod))
-                    state.CurrentFrame.AddMethod = typeDetail.GetMethod("System.Collections.IDictionary.Add");
+                if (!typeDetail.TryGetMethodBoxed("Add", out state.CurrentFrame.AddMethod))
+                    state.CurrentFrame.AddMethod = typeDetail.GetMethodBoxed("System.Collections.IDictionary.Add");
                 state.CurrentFrame.AddMethodArgs = new object[2];
                 state.CurrentFrame.State = 1;
             }
@@ -776,60 +776,60 @@ namespace Zerra.Serialization.Json
                     {
                         var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializerOld.genericListType, state.CurrentFrame.ArrayElementType.Type));
                         state.CurrentFrame.ResultObject = genericListType.CreatorBoxed();
-                        state.CurrentFrame.AddMethod = genericListType.GetMethod("Add");
+                        state.CurrentFrame.AddMethod = genericListType.GetMethodBoxed("Add");
                         state.CurrentFrame.AddMethodArgs = new object[1];
                     }
                     else if (typeDetail.IsIListGeneric || typeDetail.IsIReadOnlyListGeneric)
                     {
                         var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializerOld.genericListType, state.CurrentFrame.ArrayElementType.Type));
                         state.CurrentFrame.ResultObject = genericListType.CreatorBoxed();
-                        state.CurrentFrame.AddMethod = genericListType.GetMethod("Add");
+                        state.CurrentFrame.AddMethod = genericListType.GetMethodBoxed("Add");
                         state.CurrentFrame.AddMethodArgs = new object[1];
                     }
                     else if (typeDetail.HasIListGeneric)
                     {
                         state.CurrentFrame.ResultObject = typeDetail.CreatorBoxed();
-                        state.CurrentFrame.AddMethod = typeDetail.GetMethod("Add");
+                        state.CurrentFrame.AddMethod = typeDetail.GetMethodBoxed("Add");
                         state.CurrentFrame.AddMethodArgs = new object[1];
                     }
                     else if (typeDetail.IsISetGeneric || typeDetail.IsIReadOnlySetGeneric)
                     {
                         var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializerOld.genericHashSetType, state.CurrentFrame.ArrayElementType.Type));
                         state.CurrentFrame.ResultObject = genericListType.CreatorBoxed();
-                        state.CurrentFrame.AddMethod = genericListType.GetMethod("Add");
+                        state.CurrentFrame.AddMethod = genericListType.GetMethodBoxed("Add");
                         state.CurrentFrame.AddMethodArgs = new object[1];
                     }
                     else if (typeDetail.HasISetGeneric)
                     {
                         state.CurrentFrame.ResultObject = typeDetail.CreatorBoxed();
-                        state.CurrentFrame.AddMethod = typeDetail.GetMethod("Add");
+                        state.CurrentFrame.AddMethod = typeDetail.GetMethodBoxed("Add");
                         state.CurrentFrame.AddMethodArgs = new object[1];
                     }
                     else if (typeDetail.HasIDictionaryGeneric || typeDetail.HasIReadOnlyDictionaryGeneric)
                     {
                         var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializerOld.genericListType, state.CurrentFrame.ArrayElementType.Type));
                         state.CurrentFrame.ResultObject = genericListType.CreatorBoxed();
-                        state.CurrentFrame.AddMethod = genericListType.GetMethod("Add");
+                        state.CurrentFrame.AddMethod = genericListType.GetMethodBoxed("Add");
                         state.CurrentFrame.AddMethodArgs = new object[1];
                     }
                     else if (typeDetail.IsICollectionGeneric || typeDetail.IsIReadOnlyCollectionGeneric)
                     {
                         var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializerOld.genericListType, state.CurrentFrame.ArrayElementType.Type));
                         state.CurrentFrame.ResultObject = genericListType.CreatorBoxed();
-                        state.CurrentFrame.AddMethod = genericListType.GetMethod("Add");
+                        state.CurrentFrame.AddMethod = genericListType.GetMethodBoxed("Add");
                         state.CurrentFrame.AddMethodArgs = new object[1];
                     }
                     else if (typeDetail.HasICollectionGeneric)
                     {
                         state.CurrentFrame.ResultObject = typeDetail.CreatorBoxed();
-                        state.CurrentFrame.AddMethod = typeDetail.GetMethod("Add");
+                        state.CurrentFrame.AddMethod = typeDetail.GetMethodBoxed("Add");
                         state.CurrentFrame.AddMethodArgs = new object[1];
                     }
                     else if (typeDetail.IsIEnumerableGeneric)
                     {
                         var genericListType = TypeAnalyzer.GetTypeDetail(TypeAnalyzer.GetGenericType(JsonSerializerOld.genericListType, state.CurrentFrame.ArrayElementType.Type));
                         state.CurrentFrame.ResultObject = genericListType.CreatorBoxed();
-                        state.CurrentFrame.AddMethod = genericListType.GetMethod("Add");
+                        state.CurrentFrame.AddMethod = genericListType.GetMethodBoxed("Add");
                         state.CurrentFrame.AddMethodArgs = new object[1];
                     }
                     else

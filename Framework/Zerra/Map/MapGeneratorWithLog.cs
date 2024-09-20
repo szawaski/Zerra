@@ -46,15 +46,15 @@ namespace Zerra.Map
         private static readonly Type recursionDictionaryType = typeof(Dictionary<MapRecursionKey, object>);
         private static readonly Type mapLoggerType = typeof(IMapLogger);
         private static readonly Type exceptionType = typeof(Exception);
-        private static readonly ConstructorInfo newException = TypeAnalyzer.GetTypeDetail(typeof(Exception)).GetConstructor(typeof(string), typeof(Exception)).ConstructorInfo;
-        private static readonly MethodInfo mapLoggerChangeMethod = TypeAnalyzer.GetTypeDetail(mapLoggerType).GetMethod(nameof(IMapLogger.LogPropertyChange)).MethodInfo;
-        private static readonly MethodInfo mapLoggerNoChangeMethod = TypeAnalyzer.GetTypeDetail(mapLoggerType).GetMethod(nameof(IMapLogger.LogPropertyNoChange)).MethodInfo;
-        private static readonly MethodInfo mapLoggerNewObjectMethod = TypeAnalyzer.GetTypeDetail(mapLoggerType).GetMethod(nameof(IMapLogger.LogNewObject)).MethodInfo;
-        private static readonly MethodInfo objectToStringMethod = TypeAnalyzer.GetTypeDetail(typeof(object)).GetMethod(nameof(ToString)).MethodInfo;
-        private static readonly MethodInfo dictionaryAddMethod = TypeAnalyzer.GetTypeDetail(recursionDictionaryType).GetMethod("Add").MethodInfo;
-        private static readonly MethodInfo dictionaryRemoveMethod = TypeAnalyzer.GetTypeDetail(recursionDictionaryType).GetMethod("Remove", [typeof(MapRecursionKey)]).MethodInfo;
-        private static readonly MethodInfo dictionaryTryGetMethod = TypeAnalyzer.GetTypeDetail(recursionDictionaryType).GetMethod("TryGetValue").MethodInfo;
-        private static readonly ConstructorInfo newRecursionKey = TypeAnalyzer.GetTypeDetail(typeof(MapRecursionKey)).GetConstructor(typeof(object), typeof(Type)).ConstructorInfo;
+        private static readonly ConstructorInfo newException = TypeAnalyzer.GetTypeDetail(typeof(Exception)).GetConstructorBoxed(typeof(string), typeof(Exception)).ConstructorInfo;
+        private static readonly MethodInfo mapLoggerChangeMethod = TypeAnalyzer.GetTypeDetail(mapLoggerType).GetMethodBoxed(nameof(IMapLogger.LogPropertyChange)).MethodInfo;
+        private static readonly MethodInfo mapLoggerNoChangeMethod = TypeAnalyzer.GetTypeDetail(mapLoggerType).GetMethodBoxed(nameof(IMapLogger.LogPropertyNoChange)).MethodInfo;
+        private static readonly MethodInfo mapLoggerNewObjectMethod = TypeAnalyzer.GetTypeDetail(mapLoggerType).GetMethodBoxed(nameof(IMapLogger.LogNewObject)).MethodInfo;
+        private static readonly MethodInfo objectToStringMethod = TypeAnalyzer.GetTypeDetail(typeof(object)).GetMethodBoxed(nameof(ToString)).MethodInfo;
+        private static readonly MethodInfo dictionaryAddMethod = TypeAnalyzer.GetTypeDetail(recursionDictionaryType).GetMethodBoxed("Add").MethodInfo;
+        private static readonly MethodInfo dictionaryRemoveMethod = TypeAnalyzer.GetTypeDetail(recursionDictionaryType).GetMethodBoxed("Remove", [typeof(MapRecursionKey)]).MethodInfo;
+        private static readonly MethodInfo dictionaryTryGetMethod = TypeAnalyzer.GetTypeDetail(recursionDictionaryType).GetMethodBoxed("TryGetValue").MethodInfo;
+        private static readonly ConstructorInfo newRecursionKey = TypeAnalyzer.GetTypeDetail(typeof(MapRecursionKey)).GetConstructorBoxed(typeof(object), typeof(Type)).ConstructorInfo;
 
         private static readonly ConcurrentFactoryDictionary<TypeKey, object> mapsStore = new();
         public static MapGeneratorWithLog<TSource, TTarget> GetMap()
@@ -449,9 +449,9 @@ namespace Zerra.Map
                     //source enumerable, target array
                     var enumerableGeneric = TypeAnalyzer.GetGenericTypeDetail(genericEnumerableType, sourceType.IEnumerableGenericInnerType);
                     var enumeratorGeneric = TypeAnalyzer.GetGenericTypeDetail(genericEnumeratorType, sourceType.IEnumerableGenericInnerType);
-                    var getEnumeratorMethod = enumerableGeneric.GetMethod("GetEnumerator");
-                    var moveNextMethod = enumeratorTypeDetail.GetMethod("MoveNext");
-                    var currentMethod = enumeratorGeneric.GetMethod("get_Current");
+                    var getEnumeratorMethod = enumerableGeneric.GetMethodBoxed("GetEnumerator");
+                    var moveNextMethod = enumeratorTypeDetail.GetMethodBoxed("MoveNext");
+                    var currentMethod = enumeratorGeneric.GetMethodBoxed("get_Current");
 
                     var enumerable = Expression.Convert(source, enumerableGeneric.Type);
                     var enumerator = Expression.Variable(enumeratorGeneric.Type, "enumerator");
@@ -503,10 +503,10 @@ namespace Zerra.Map
                     //source enumerable, target list or set (has Add method)
                     var enumerableGeneric = TypeAnalyzer.GetGenericTypeDetail(genericEnumerableType, sourceType.IEnumerableGenericInnerType);
                     var enumeratorGeneric = TypeAnalyzer.GetGenericTypeDetail(genericEnumeratorType, sourceType.IEnumerableGenericInnerType);
-                    var getEnumeratorMethod = enumerableGeneric.GetMethod("GetEnumerator");
-                    var moveNextMethod = enumeratorTypeDetail.GetMethod("MoveNext");
-                    var currentMethod = enumeratorGeneric.GetMethod("get_Current");
-                    var addMethod = targetType.GetMethod("Add");
+                    var getEnumeratorMethod = enumerableGeneric.GetMethodBoxed("GetEnumerator");
+                    var moveNextMethod = enumeratorTypeDetail.GetMethodBoxed("MoveNext");
+                    var currentMethod = enumeratorGeneric.GetMethodBoxed("get_Current");
+                    var addMethod = targetType.GetMethodBoxed("Add");
 
                     var enumerable = Expression.Convert(source, enumerableGeneric.Type);
                     var enumerator = Expression.Variable(enumeratorGeneric.Type, "enumerator");
@@ -546,10 +546,10 @@ namespace Zerra.Map
                     //source enumerable, target dictionary
                     var enumerableGeneric = TypeAnalyzer.GetGenericTypeDetail(genericEnumerableType, sourceType.IEnumerableGenericInnerType);
                     var enumeratorGeneric = TypeAnalyzer.GetGenericTypeDetail(genericEnumeratorType, sourceType.IEnumerableGenericInnerType);
-                    var getEnumeratorMethod = enumerableGeneric.GetMethod("GetEnumerator");
-                    var moveNextMethod = enumeratorTypeDetail.GetMethod("MoveNext");
-                    var currentMethod = enumeratorGeneric.GetMethod("get_Current");
-                    var addMethod = targetType.GetMethod("Add");
+                    var getEnumeratorMethod = enumerableGeneric.GetMethodBoxed("GetEnumerator");
+                    var moveNextMethod = enumeratorTypeDetail.GetMethodBoxed("MoveNext");
+                    var currentMethod = enumeratorGeneric.GetMethodBoxed("get_Current");
+                    var addMethod = targetType.GetMethodBoxed("Add");
 
                     var enumerable = Expression.Convert(source, enumerableGeneric.Type);
                     var enumerator = Expression.Variable(enumeratorGeneric.Type, "enumerator");
@@ -599,9 +599,9 @@ namespace Zerra.Map
                     var arrayType = Discovery.GetTypeFromName(targetType.InnerType + "[]");
                     var enumerableGeneric = TypeAnalyzer.GetGenericTypeDetail(genericEnumerableType, sourceType.IEnumerableGenericInnerType);
                     var enumeratorGeneric = TypeAnalyzer.GetGenericTypeDetail(genericEnumeratorType, sourceType.IEnumerableGenericInnerType);
-                    var getEnumeratorMethod = enumerableGeneric.GetMethod("GetEnumerator");
-                    var moveNextMethod = enumeratorTypeDetail.GetMethod("MoveNext");
-                    var currentMethod = enumeratorGeneric.GetMethod("get_Current");
+                    var getEnumeratorMethod = enumerableGeneric.GetMethodBoxed("GetEnumerator");
+                    var moveNextMethod = enumeratorTypeDetail.GetMethodBoxed("MoveNext");
+                    var currentMethod = enumeratorGeneric.GetMethodBoxed("get_Current");
 
                     var collectionTypeDetails = TypeAnalyzer.GetTypeDetail(collectionType);
                     var countMember = collectionTypeDetails.GetMember("Count");
@@ -655,9 +655,9 @@ namespace Zerra.Map
                     var arrayType = Discovery.GetTypeFromName(targetType.InnerType + "[]");
                     var enumerableGeneric = TypeAnalyzer.GetGenericTypeDetail(genericEnumerableType, sourceType.IEnumerableGenericInnerType);
                     var enumeratorGeneric = TypeAnalyzer.GetGenericTypeDetail(genericEnumeratorType, sourceType.IEnumerableGenericInnerType);
-                    var getEnumeratorMethod = enumerableGeneric.GetMethod("GetEnumerator");
-                    var moveNextMethod = enumeratorTypeDetail.GetMethod("MoveNext");
-                    var currentMethod = enumeratorGeneric.GetMethod("get_Current");
+                    var getEnumeratorMethod = enumerableGeneric.GetMethodBoxed("GetEnumerator");
+                    var moveNextMethod = enumeratorTypeDetail.GetMethodBoxed("MoveNext");
+                    var currentMethod = enumeratorGeneric.GetMethodBoxed("get_Current");
 
                     var collectionGenericTypeDetails = TypeAnalyzer.GetGenericTypeDetail(collectionGenericType, sourceType.IEnumerableGenericInnerType);
                     var countMember = collectionGenericTypeDetails.GetMember("Count");
@@ -711,10 +711,10 @@ namespace Zerra.Map
                     var listType = TypeAnalyzer.GetGenericTypeDetail(genericListType, targetType.InnerType);
                     var enumerableGeneric = TypeAnalyzer.GetGenericTypeDetail(genericEnumerableType, sourceType.IEnumerableGenericInnerType);
                     var enumeratorGeneric = TypeAnalyzer.GetGenericTypeDetail(genericEnumeratorType, sourceType.IEnumerableGenericInnerType);
-                    var getEnumeratorMethod = enumerableGeneric.GetMethod("GetEnumerator");
-                    var moveNextMethod = enumeratorTypeDetail.GetMethod("MoveNext");
-                    var currentMethod = enumeratorGeneric.GetMethod("get_Current");
-                    var addMethod = listType.GetMethod("Add");
+                    var getEnumeratorMethod = enumerableGeneric.GetMethodBoxed("GetEnumerator");
+                    var moveNextMethod = enumeratorTypeDetail.GetMethodBoxed("MoveNext");
+                    var currentMethod = enumeratorGeneric.GetMethodBoxed("get_Current");
+                    var addMethod = listType.GetMethodBoxed("Add");
 
                     var list = Expression.Convert(target, listType.Type);
                     var casted = Expression.Variable(listType.Type, "casted");
@@ -837,9 +837,9 @@ namespace Zerra.Map
             if (targetType.Type.IsValueType || targetType.CoreType.HasValue)
             {
                 var sourceMapType = TypeAnalyzer.GetGenericTypeDetail(genericMapType, source.Type, target.Type);
-                var sourceMap = sourceMapType.GetMethod("GetMap").MethodInfo.Invoke(null, null);
+                var sourceMap = sourceMapType.GetMethodBoxed("GetMap").MethodInfo.Invoke(null, null);
                 var generateMapArgs = new object?[] { graph, source, target, logger, recursionDictionary, depth };
-                var sourceBlockMap = (Expression)sourceMapType.GetMethod("GenerateMap").MethodInfo.Invoke(sourceMap, generateMapArgs)!;
+                var sourceBlockMap = (Expression)sourceMapType.GetMethodBoxed("GenerateMap").MethodInfo.Invoke(sourceMap, generateMapArgs)!;
                 depth = (int)generateMapArgs[generateMapArgs.Length - 1]!;
                 return sourceBlockMap;
             }
@@ -902,8 +902,8 @@ namespace Zerra.Map
 
                             var enumerableGeneric = TypeAnalyzer.GetGenericTypeDetail(genericEnumerableType, sourceType.IEnumerableGenericInnerType);
                             var enumeratorGeneric = TypeAnalyzer.GetGenericTypeDetail(genericEnumeratorType, sourceType.IEnumerableGenericInnerType);
-                            var getEnumeratorMethod = enumerableGeneric.GetMethod("GetEnumerator");
-                            var moveNextMethod = enumeratorTypeDetail.GetMethod("MoveNext");
+                            var getEnumeratorMethod = enumerableGeneric.GetMethodBoxed("GetEnumerator");
+                            var moveNextMethod = enumeratorTypeDetail.GetMethodBoxed("MoveNext");
 
                             var enumerable = Expression.Convert(source, enumerableGeneric.Type);
                             var enumerator = Expression.Variable(enumeratorGeneric.Type, "enumerator");
@@ -983,7 +983,7 @@ namespace Zerra.Map
                 else
                 {
                     //object
-                    if (!targetType.ConstructorDetails.Any(x => x.ParametersInfo.Count == 0))
+                    if (!targetType.ConstructorDetailsBoxed.Any(x => x.ParametersInfo.Count == 0))
                         return Expression.Constant(null, source.Type);
                     newTarget = Expression.Variable(target.Type, "newTarget");
                     assignNewTarget = Expression.Assign(newTarget, Expression.New(target.Type));
@@ -993,15 +993,15 @@ namespace Zerra.Map
                 var sourceMapType = TypeAnalyzer.GetGenericTypeDetail(genericMapType, source.Type, newTarget.Type);
                 if (depth >= maxBuildDepthBeforeCall)
                 {
-                    var sourceMapExpression = Expression.Call(sourceMapType.GetMethod(nameof(GetMap)).MethodInfo);
+                    var sourceMapExpression = Expression.Call(sourceMapType.GetMethodBoxed(nameof(GetMap)).MethodInfo);
                     var graphExpression = Expression.Constant(graph, graphType);
-                    sourceBlockMap = Expression.Call(sourceMapExpression, sourceMapType.GetMethod(nameof(CopyInternal)).MethodInfo, source, newTarget, logger, graphExpression, recursionDictionary);
+                    sourceBlockMap = Expression.Call(sourceMapExpression, sourceMapType.GetMethodBoxed(nameof(CopyInternal)).MethodInfo, source, newTarget, logger, graphExpression, recursionDictionary);
                 }
                 else
                 {
-                    var sourceMap = sourceMapType.GetMethod(nameof(GetMap)).MethodInfo.Invoke(null, null);
+                    var sourceMap = sourceMapType.GetMethodBoxed(nameof(GetMap)).MethodInfo.Invoke(null, null);
                     var generateMapArgs = new object?[] { graph, source, newTarget, logger, recursionDictionary, depth };
-                    sourceBlockMap = (Expression)sourceMapType.GetMethod(nameof(GenerateMap)).MethodInfo.Invoke(sourceMap, generateMapArgs)!;
+                    sourceBlockMap = (Expression)sourceMapType.GetMethodBoxed(nameof(GenerateMap)).MethodInfo.Invoke(sourceMap, generateMapArgs)!;
                     depth = (int)generateMapArgs[generateMapArgs.Length - 1]!;
                 }
 

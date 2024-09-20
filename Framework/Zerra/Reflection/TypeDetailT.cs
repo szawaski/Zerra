@@ -15,7 +15,7 @@ namespace Zerra.Reflection
     public sealed class TypeDetail<T> : TypeDetail
     {
         private MethodDetail<T>[]? methodDetails = null;
-        public new IReadOnlyList<MethodDetail<T>> MethodDetails
+        public IReadOnlyList<MethodDetail<T>> MethodDetails
         {
             get
             {
@@ -54,7 +54,7 @@ namespace Zerra.Reflection
         }
 
         private ConstructorDetail<T>[]? constructorDetails = null;
-        public new IReadOnlyList<ConstructorDetail<T>> ConstructorDetails
+        public IReadOnlyList<ConstructorDetail<T>> ConstructorDetails
         {
             get
             {
@@ -133,10 +133,58 @@ namespace Zerra.Reflection
 
         public override Delegate? CreatorTyped => Creator;
 
-        private readonly ConcurrentFactoryDictionary<TypeKey, ConstructorDetail<T>?> constructorLookups = new();
+        private ConcurrentFactoryDictionary<TypeKey, MethodDetail<T>?>? methodLookups = null;
+        private MethodDetail<T>? GetMethodInternal(string name, Type[]? parameterTypes = null)
+        {
+            var key = new TypeKey(name, parameterTypes);
+            MethodDetail<T>? found = null;
+            methodLookups ??= new();
+            var method = methodLookups.GetOrAdd(key, (_) =>
+            {
+                foreach (var methodDetail in MethodDetails)
+                {
+                    if (SignatureCompare(name, parameterTypes, methodDetail))
+                    {
+                        if (found != null)
+                            throw new InvalidOperationException($"More than one method found for {name}");
+                        found = methodDetail;
+                    }
+                }
+                return found;
+            });
+            return method;
+        }
+        public MethodDetail<T> GetMethod(string name, Type[]? parameterTypes = null)
+        {
+            var method = GetMethodInternal(name, parameterTypes);
+            if (method == null)
+                throw new MissingMethodException($"{Type.Name}.{name} method not found for the given parameters {(parameterTypes == null || parameterTypes.Length == 0 ? "(none)" : String.Join(",", parameterTypes.Select(x => x.GetNiceName())))}");
+            return method;
+        }
+        public bool TryGetMethod(string name,
+#if !NETSTANDARD2_0
+            [MaybeNullWhen(false)]
+#endif
+        out MethodDetail<T> method)
+        {
+            method = GetMethodInternal(name, null);
+            return method != null;
+        }
+        public bool TryGetMethod(string name, Type[] parameterTypes,
+#if !NETSTANDARD2_0
+            [MaybeNullWhen(false)]
+#endif
+        out MethodDetail<T> method)
+        {
+            method = GetMethodInternal(name, parameterTypes);
+            return method != null;
+        }
+
+        private ConcurrentFactoryDictionary<TypeKey, ConstructorDetail<T>?>? constructorLookups = null;
         private ConstructorDetail<T>? GetConstructorInternal(Type[]? parameterTypes)
         {
             var key = new TypeKey(parameterTypes);
+            constructorLookups ??= new();
             var constructor = constructorLookups.GetOrAdd(key, (_) =>
             {
                 foreach (var constructorDetail in ConstructorDetails)
@@ -163,7 +211,7 @@ namespace Zerra.Reflection
             });
             return constructor;
         }
-        public new ConstructorDetail<T> GetConstructor(params Type[] parameterTypes)
+        public ConstructorDetail<T> GetConstructor(params Type[] parameterTypes)
         {
             var constructor = GetConstructorInternal(parameterTypes);
             if (constructor == null)

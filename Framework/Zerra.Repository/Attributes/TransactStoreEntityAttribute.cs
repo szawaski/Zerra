@@ -65,7 +65,7 @@ namespace Zerra.Repository
             var properties = new HashSet<Tuple<PropertyInfo, bool>>();
             var transactProviderTypeDetails = TypeAnalyzer.GetTypeDetail(baseType);
 
-            var methods = transactProviderTypeDetails.MethodDetails.Select(x => x.MethodInfo).ToArray();
+            var methods = transactProviderTypeDetails.MethodDetailsBoxed.Select(x => x.MethodInfo).ToArray();
 
             if (eventLinking.HasValue)
             {

@@ -50,7 +50,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
             public static ByteConverterObjectMember New(TypeDetail parentTypeDetail, MemberDetail member)
             {
                 var generic = byteConverterObjectMemberT.GetGenericTypeDetail(typeof(TParent), typeof(TValue), member.Type);
-                var obj = generic.ConstructorDetails[0].CreatorWithArgsBoxed(new object?[] { parentTypeDetail, member });
+                var obj = generic.ConstructorDetailsBoxed[0].CreatorWithArgsBoxed(new object?[] { parentTypeDetail, member });
                 return (ByteConverterObjectMember)obj;
             }
         }

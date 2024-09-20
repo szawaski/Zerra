@@ -494,7 +494,7 @@ public sealed class EnumName : Attribute
         }
     }
 
-    private static readonly MethodDetail bitOrMethod = typeof(EnumName).GetTypeDetail().GetMethod(nameof(BitOr));
+    private static readonly MethodDetail bitOrMethod = typeof(EnumName).GetTypeDetail().GetMethodBoxed(nameof(BitOr));
     private static T BitOr<T>(Type type, object value1, object value2)
          where T : Enum
     {

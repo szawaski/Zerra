@@ -51,8 +51,8 @@ namespace Zerra.Map
             var copyFunc = copyFuncs.GetOrAdd(key, (key) =>
             {
                 var genericMapType = TypeAnalyzer.GetGenericTypeDetail(mapType, sourceType, targetType);
-                var map = genericMapType.GetMethod("GetMap").Caller(null, null);
-                return (s, l, g) => { return genericMapType.GetMethod("Copy").Caller(map, new object?[] { s, l, g })!; };
+                var map = genericMapType.GetMethodBoxed("GetMap").Caller(null, null);
+                return (s, l, g) => { return genericMapType.GetMethodBoxed("Copy").Caller(map, new object?[] { s, l, g })!; };
             });
 
             return (TTarget)copyFunc(source, logger, graph);
@@ -71,8 +71,8 @@ namespace Zerra.Map
             var copyFunc = copyFuncs.GetOrAdd(key, (key) =>
             {
                 var genericMapType = TypeAnalyzer.GetGenericTypeDetail(mapType, sourceType, targetType);
-                var map = genericMapType.GetMethod("GetMap").Caller(null, null);
-                return (s, l, g) => { return genericMapType.GetMethod("Copy").Caller(map, new object?[] { s, l, g })!; };
+                var map = genericMapType.GetMethodBoxed("GetMap").Caller(null, null);
+                return (s, l, g) => { return genericMapType.GetMethodBoxed("Copy").Caller(map, new object?[] { s, l, g })!; };
             });
 
             return (TTarget)copyFunc(source, logger, graph);
@@ -93,8 +93,8 @@ namespace Zerra.Map
             var copyToFunc = copyToFuncs.GetOrAdd(key, (key) =>
             {
                 var genericMapType = TypeAnalyzer.GetGenericTypeDetail(mapType, sourceType, targetType);
-                var map = genericMapType.GetMethod("GetMap").Caller(null, null);
-                return (s, t, l, g) => { return genericMapType.GetMethod("CopyTo").Caller(map, new object?[] { s, t, l, g })!; };
+                var map = genericMapType.GetMethodBoxed("GetMap").Caller(null, null);
+                return (s, t, l, g) => { return genericMapType.GetMethodBoxed("CopyTo").Caller(map, new object?[] { s, t, l, g })!; };
             });
 
             _ = copyToFunc(source, target, logger, graph);

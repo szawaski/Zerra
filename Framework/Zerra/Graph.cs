@@ -563,7 +563,7 @@ namespace Zerra
 
         private static Graph Convert(Graph graph, Type type)
         {
-            var constructor = TypeAnalyzer.GetGenericTypeDetail(typeof(Graph<>), type).GetConstructor([typeof(Graph)]);
+            var constructor = TypeAnalyzer.GetGenericTypeDetail(typeof(Graph<>), type).GetConstructorBoxed([typeof(Graph)]);
             var genericGraph = (Graph)constructor.CreatorWithArgsBoxed([graph]);
             return genericGraph;
         }
