@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace Zerra.Reflection
 {
-    public sealed class MethodDetailRuntime<T> : MethodDetail<T>
+    internal sealed class MethodDetailRuntime<T> : MethodDetail<T>
     {
         public override MethodInfo MethodInfo { get; }
         public override string Name => MethodInfo.Name;

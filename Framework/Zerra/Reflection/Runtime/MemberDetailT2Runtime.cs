@@ -10,7 +10,7 @@ using System.Runtime.CompilerServices;
 
 namespace Zerra.Reflection
 {
-    public sealed class MemberDetailRuntime<T, V> : MemberDetail<T, V>
+    internal sealed class MemberDetailRuntime<T, V> : MemberDetail<T, V>
     {
         public override MemberDetail? BackingFieldDetailBoxed { get; }
 

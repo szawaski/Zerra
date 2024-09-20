@@ -10,7 +10,7 @@ using System.Runtime.CompilerServices;
 
 namespace Zerra.Reflection
 {
-    public sealed class ConstructorDetailRuntime<T> : ConstructorDetail<T>
+    internal sealed class ConstructorDetailRuntime<T> : ConstructorDetail<T>
     {
         public override ConstructorInfo ConstructorInfo { get; }
         public override string Name => ConstructorInfo.Name;
