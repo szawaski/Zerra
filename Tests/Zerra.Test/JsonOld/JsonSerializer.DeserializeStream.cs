@@ -637,15 +637,15 @@ namespace Zerra.Serialization.Json
                         }
 
                         state.CurrentFrame.State = 3;
-                        state.PushFrame(new ReadFrame() { TypeDetail = state.CurrentFrame.ObjectProperty?.TypeDetail, FrameType = ReadFrameType.Value, Graph = propertyGraph });
+                        state.PushFrame(new ReadFrame() { TypeDetail = state.CurrentFrame.ObjectProperty?.TypeDetailBoxed, FrameType = ReadFrameType.Value, Graph = propertyGraph });
                         return;
 
                     case 3: //property value
                         if (state.CurrentFrame.ObjectProperty != null && state.CurrentFrame.ResultObject != null && state.LastFrameResultObject != null && state.CurrentFrame.ObjectProperty.HasSetterBoxed)
                         {
                             //special case nullable enum
-                            if (state.CurrentFrame.ObjectProperty.TypeDetail.IsNullable && state.CurrentFrame.ObjectProperty.TypeDetail.InnerTypeDetail.EnumUnderlyingType.HasValue)
-                                state.LastFrameResultObject = Enum.ToObject(state.CurrentFrame.ObjectProperty.TypeDetail.InnerTypeDetail.Type, state.LastFrameResultObject);
+                            if (state.CurrentFrame.ObjectProperty.TypeDetailBoxed.IsNullable && state.CurrentFrame.ObjectProperty.TypeDetailBoxed.InnerTypeDetail.EnumUnderlyingType.HasValue)
+                                state.LastFrameResultObject = Enum.ToObject(state.CurrentFrame.ObjectProperty.TypeDetailBoxed.InnerTypeDetail.Type, state.LastFrameResultObject);
 
                             if (state.CurrentFrame.Graph == null || state.CurrentFrame.Graph.HasMember(state.CurrentFrame.ObjectProperty.Name))
                                 state.CurrentFrame.ObjectProperty.SetterBoxed(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
@@ -735,7 +735,7 @@ namespace Zerra.Serialization.Json
                     case 3: //property value
                         state.CurrentFrame.AddMethodArgs![0] = state.CurrentFrame.DictionaryKey!;
                         state.CurrentFrame.AddMethodArgs![1] = state.LastFrameResultObject;
-                        _ = state.CurrentFrame.AddMethod!.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
+                        _ = state.CurrentFrame.AddMethod!.CallerBoxed(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
 
                         state.CurrentFrame.State = 4;
                         break;
@@ -882,7 +882,7 @@ namespace Zerra.Serialization.Json
                                 state.LastFrameResultObject = Enum.ToObject(state.CurrentFrame.ArrayElementType.InnerTypeDetail.Type, state.LastFrameResultObject);
 
                             state.CurrentFrame.AddMethodArgs![0] = state.LastFrameResultObject;
-                            _ = state.CurrentFrame.AddMethod!.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
+                            _ = state.CurrentFrame.AddMethod!.CallerBoxed(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
                         }
 
                         state.CurrentFrame.State = 3;
@@ -955,7 +955,7 @@ namespace Zerra.Serialization.Json
                           ? typeDetail.SerializableMemberDetails[state.CurrentFrame.PropertyIndexForNameless]
                           : null;
                         state.CurrentFrame.State = 2;
-                        state.PushFrame(new ReadFrame() { TypeDetail = memberDetail?.TypeDetail, FrameType = ReadFrameType.Value, Graph = graph });
+                        state.PushFrame(new ReadFrame() { TypeDetail = memberDetail?.TypeDetailBoxed, FrameType = ReadFrameType.Value, Graph = graph });
                         return;
 
                     case 2: //array value
@@ -968,18 +968,18 @@ namespace Zerra.Serialization.Json
                             if (memberDetail != null && memberDetail.HasSetterBoxed)
                             {
                                 var propertyGraph = state.CurrentFrame.Graph?.GetChildGraph(memberDetail.Name);
-                                if (memberDetail.TypeDetail.SpecialType.HasValue && memberDetail.TypeDetail.SpecialType == SpecialType.Dictionary)
+                                if (memberDetail.TypeDetailBoxed.SpecialType.HasValue && memberDetail.TypeDetailBoxed.SpecialType == SpecialType.Dictionary)
                                 {
-                                    var innerItemEnumerable = TypeAnalyzer.GetGenericType(enumerableType, memberDetail.TypeDetail.IEnumerableGenericInnerType);
+                                    var innerItemEnumerable = TypeAnalyzer.GetGenericType(enumerableType, memberDetail.TypeDetailBoxed.IEnumerableGenericInnerType);
                                     object dictionary;
-                                    if (memberDetail.TypeDetail.Type.IsInterface)
+                                    if (memberDetail.TypeDetailBoxed.Type.IsInterface)
                                     {
-                                        var dictionaryGenericType = TypeAnalyzer.GetGenericType(dictionaryType, (Type[])memberDetail.TypeDetail.IEnumerableGenericInnerTypeDetail.InnerTypes);
+                                        var dictionaryGenericType = TypeAnalyzer.GetGenericType(dictionaryType, (Type[])memberDetail.TypeDetailBoxed.IEnumerableGenericInnerTypeDetail.InnerTypes);
                                         dictionary = Instantiator.Create(dictionaryGenericType, new Type[] { innerItemEnumerable }, state.LastFrameResultObject);
                                     }
                                     else
                                     {
-                                        dictionary = Instantiator.Create(memberDetail.TypeDetail.Type, new Type[] { innerItemEnumerable }, state.LastFrameResultObject);
+                                        dictionary = Instantiator.Create(memberDetail.TypeDetailBoxed.Type, new Type[] { innerItemEnumerable }, state.LastFrameResultObject);
                                     }
 
                                     memberDetail.SetterBoxed(state.CurrentFrame.ResultObject, dictionary);
@@ -987,8 +987,8 @@ namespace Zerra.Serialization.Json
                                 else
                                 {
                                     //special case nullable enum
-                                    if (memberDetail.TypeDetail.IsNullable && memberDetail.TypeDetail.InnerTypeDetail.EnumUnderlyingType.HasValue)
-                                        state.LastFrameResultObject = Enum.ToObject(memberDetail.TypeDetail.InnerTypeDetail.Type, state.LastFrameResultObject);
+                                    if (memberDetail.TypeDetailBoxed.IsNullable && memberDetail.TypeDetailBoxed.InnerTypeDetail.EnumUnderlyingType.HasValue)
+                                        state.LastFrameResultObject = Enum.ToObject(memberDetail.TypeDetailBoxed.InnerTypeDetail.Type, state.LastFrameResultObject);
 
                                     if (state.CurrentFrame.Graph == null || state.CurrentFrame.Graph.HasMember(memberDetail.Name))
                                         memberDetail.SetterBoxed(state.CurrentFrame.ResultObject, state.LastFrameResultObject);

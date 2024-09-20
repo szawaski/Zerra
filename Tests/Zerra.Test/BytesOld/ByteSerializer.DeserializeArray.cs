@@ -250,7 +250,7 @@ namespace Zerra.Serialization.Bytes
                             item = null;
                         }
                         adderArgs[0] = item;
-                        adder.Caller(set, adderArgs);
+                        adder.CallerBoxed(set, adderArgs);
                     }
                     return set;
                 }
@@ -328,7 +328,7 @@ namespace Zerra.Serialization.Bytes
                     if (!hasObject)
                     {
                         adderArgs[0] = null;
-                        adder.Caller(set, adderArgs);
+                        adder.CallerBoxed(set, adderArgs);
                         count++;
                         if (count == length)
                             return set;
@@ -337,7 +337,7 @@ namespace Zerra.Serialization.Bytes
 
                     obj = FromBytes(ref reader, typeDetail, false, false, ref options);
                     adderArgs[0] = obj;
-                    adder.Caller(set, adderArgs);
+                    adder.CallerBoxed(set, adderArgs);
                     count++;
                     if (count == length)
                         return set;
@@ -866,12 +866,12 @@ namespace Zerra.Serialization.Bytes
                                         var innerValue = FromBytesEnumerable(ref reader, typeDetail.InnerTypeDetail, false, false, ref options);
                                         var item = Instantiator.Create(typeDetail.Type, new Type[] { innerItemEnumerable }, innerValue);
                                         adderArgs[0] = item;
-                                        adder.Caller(set, adderArgs);
+                                        adder.CallerBoxed(set, adderArgs);
                                     }
                                     else
                                     {
                                         adderArgs[0] = null;
-                                        adder.Caller(set, adderArgs);
+                                        adder.CallerBoxed(set, adderArgs);
                                     }
                                 }
                                 return set;

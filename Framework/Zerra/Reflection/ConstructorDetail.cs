@@ -4,142 +4,26 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 
 namespace Zerra.Reflection
 {
     public abstract class ConstructorDetail
     {
-        public ConstructorInfo ConstructorInfo { get; }
-        public string Name => ConstructorInfo.Name;
+        public abstract ConstructorInfo ConstructorInfo { get; }
+        public abstract string Name { get; }
 
-        private ParameterInfo[]? parameterInfos = null;
-        public IReadOnlyList<ParameterInfo> ParametersInfo
-        {
-            get
-            {
-                if (this.parameterInfos == null)
-                {
-                    lock (locker)
-                    {
-                        this.parameterInfos ??= ConstructorInfo.GetParameters();
-                    }
-                }
-                return this.parameterInfos;
-            }
-        }
+        public abstract IReadOnlyList<ParameterInfo> ParametersInfo { get; }
 
-        private Attribute[]? attributes = null;
-        public IReadOnlyList<Attribute> Attributes
-        {
-            get
-            {
-                if (this.attributes == null)
-                {
-                    lock (locker)
-                    {
-                        this.attributes ??= ConstructorInfo.GetCustomAttributes().ToArray();
-                    }
-                }
-                return this.attributes;
-            }
-        }
+        public abstract IReadOnlyList<Attribute> Attributes { get; }
 
-        private bool creatorBoxedLoaded = false;
-        private Func<object>? creatorBoxed = null;
-        public Func<object> CreatorBoxed
-        {
-            get
-            {
-                if (!creatorBoxedLoaded)
-                    LoadCreatorBoxed();
-                return this.creatorBoxed ?? throw new NotSupportedException($"{nameof(ConstructorDetail)} {Name} does not have a {nameof(CreatorBoxed)}"); ;
-            }
-        }
-        public bool HasCreatorBoxed
-        {
-            get
-            {
-                if (!creatorBoxedLoaded)
-                    LoadCreatorBoxed();
-                return this.creatorBoxed != null;
-            }
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void LoadCreatorBoxed()
-        {
-            lock (locker)
-            {
-                if (!creatorBoxedLoaded)
-                {
-                    if (ConstructorInfo.DeclaringType != null && !ConstructorInfo.DeclaringType.IsAbstract && !ConstructorInfo.DeclaringType.IsGenericTypeDefinition)
-                    {
-                        this.creatorBoxed = AccessorGenerator.GenerateCreatorNoArgs(ConstructorInfo);
-                    }
-                    creatorBoxedLoaded = true;
-                }
-            }
-        }
+        public abstract Func<object> CreatorBoxed { get; }
+        public abstract bool HasCreatorBoxed { get; }
 
-        private bool creatorWithArgsBoxedLoaded = false;
-        private Func<object?[]?, object>? creatorWithArgsBoxed = null;
-        public Func<object?[]?, object> CreatorWithArgsBoxed
-        {
-            get
-            {
-                if (!creatorWithArgsBoxedLoaded)
-                    LoadCreatorWithArgsBoxed();
-                return this.creatorWithArgsBoxed ?? throw new NotSupportedException($"{nameof(ConstructorDetail)} {Name} does not have a {nameof(CreatorWithArgsBoxed)}"); ;
-            }
-        }
-        public bool HasCreatorWithArgsBoxed
-        {
-            get
-            {
-                if (!creatorWithArgsBoxedLoaded)
-                    LoadCreatorWithArgsBoxed();
-                return this.creatorWithArgsBoxed != null;
-            }
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void LoadCreatorWithArgsBoxed()
-        {
-            lock (locker)
-            {
-                if (!creatorWithArgsBoxedLoaded)
-                {
-                    if (ConstructorInfo.DeclaringType != null && !ConstructorInfo.DeclaringType.IsAbstract && !ConstructorInfo.DeclaringType.IsGenericTypeDefinition)
-                    {
-                        this.creatorWithArgsBoxed = AccessorGenerator.GenerateCreator(ConstructorInfo);
-                    }
-                    creatorWithArgsBoxedLoaded = true;
-                }
-            }
-        }
+        public abstract Func<object?[]?, object> CreatorWithArgsBoxed { get; }
+        public abstract bool HasCreatorWithArgsBoxed { get; }
 
         public abstract Delegate? CreatorTyped { get; }
         public abstract Delegate? CreatorWithArgsTyped { get; }
-
-        public override string ToString()
-        {
-            return $"new({(String.Join(", ", ParametersInfo.Select(x => $"{x.ParameterType.Name} {x.Name}").ToArray()))})";
-        }
-
-        protected readonly object locker;
-        protected ConstructorDetail(ConstructorInfo constructor, object locker)
-        {
-            this.locker = locker;
-            this.ConstructorInfo = constructor;
-        }
-
-        private static readonly Type typeDetailT = typeof(ConstructorDetail<>);
-        internal static ConstructorDetail New(Type type, ConstructorInfo constructor, object locker)
-        {
-            var typeDetailGeneric = typeDetailT.MakeGenericType(type);
-            var obj = typeDetailGeneric.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)[0].Invoke(new object[] { constructor, locker });
-            return (ConstructorDetail)obj;
-        }
     }
 }

@@ -60,7 +60,7 @@ namespace Zerra.Reflection
         private static object GetSingleGeneric(Type type, bool throwException)
         {
             var genericMethodProviderManagerTryGetSingle = TypeAnalyzer.GetGenericMethodDetail(methodProviderManagerGetSingle, type);
-            var provider = genericMethodProviderManagerTryGetSingle.Caller(null, new object[] { throwException })!;
+            var provider = genericMethodProviderManagerTryGetSingle.CallerBoxed(null, new object[] { throwException })!;
             return provider;
         }
 
@@ -69,7 +69,7 @@ namespace Zerra.Reflection
         private static object GetNewGeneric(Type type, bool throwException)
         {
             var genericMethodProviderManagerTryGetNew = TypeAnalyzer.GetGenericMethodDetail(methodProviderManagerGetNew, type);
-            var provider = genericMethodProviderManagerTryGetNew.Caller(null, new object[] { throwException })!;
+            var provider = genericMethodProviderManagerTryGetNew.CallerBoxed(null, new object[] { throwException })!;
             return provider;
         }
 

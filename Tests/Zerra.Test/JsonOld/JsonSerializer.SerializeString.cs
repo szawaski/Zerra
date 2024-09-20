@@ -202,7 +202,7 @@ namespace Zerra.Serialization.Json
                 }
 
                 var childGraph = graph?.GetChildGraph(member.Name);
-                ToStringJson(propertyValue, member.TypeDetail, childGraph, ref writer, ref options);
+                ToStringJson(propertyValue, member.TypeDetailBoxed, childGraph, ref writer, ref options);
             }
 
             if (!options.Nameless)
@@ -352,7 +352,7 @@ namespace Zerra.Serialization.Json
 
 
                             var childGraph = graph?.GetChildGraph(member.Name);
-                            ToStringJson(propertyValue, member.TypeDetail, childGraph, ref writer, ref options);
+                            ToStringJson(propertyValue, member.TypeDetailBoxed, childGraph, ref writer, ref options);
                         }
 
                         if (!options.Nameless)
@@ -1170,7 +1170,7 @@ namespace Zerra.Serialization.Json
                             var valueGetter = innerTypeDetail.GetMemberFieldBacked("value").GetterBoxed;
                             var method = TypeAnalyzer.GetGenericMethodDetail(dictionaryToArrayMethod, typeDetail.DictionaryInnerType);
 
-                            var innerValue = (ICollection)method.Caller(null, new object[] { value })!;
+                            var innerValue = (ICollection)method.CallerBoxed(null, new object[] { value })!;
                             if (!options.Nameless)
                                 writer.Write('{');
                             else
@@ -1254,7 +1254,7 @@ namespace Zerra.Serialization.Json
                                 var valueGetter = innerTypeDetail.GetMemberFieldBacked("value").GetterBoxed;
                                 var method = TypeAnalyzer.GetGenericMethodDetail(dictionaryToArrayMethod, typeDetail.InnerTypes[0]);
 
-                                var innerValue = (ICollection)method.Caller(null, new object[] { value })!;
+                                var innerValue = (ICollection)method.CallerBoxed(null, new object[] { value })!;
                                 if (!options.Nameless)
                                     writer.Write('{');
                                 else

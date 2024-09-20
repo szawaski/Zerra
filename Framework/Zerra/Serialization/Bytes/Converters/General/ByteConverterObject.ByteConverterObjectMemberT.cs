@@ -25,7 +25,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     {
                         lock (this)
                         {
-                            converterSetValues ??= ByteConverterFactory<Dictionary<string, object?>>.Get(Member.TypeDetail, memberKey, null, SetterForConverterSetValues);
+                            converterSetValues ??= ByteConverterFactory<Dictionary<string, object?>>.Get(Member.TypeDetailBoxed, memberKey, null, SetterForConverterSetValues);
                         }
                     }
                     return converterSetValues;

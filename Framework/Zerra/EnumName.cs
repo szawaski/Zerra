@@ -467,7 +467,7 @@ public sealed class EnumName : Attribute
                 args[1] = value;
                 args[2] = valueSplitItem;
                 var method = bitOrMethod.GetGenericMethodDetail(type);
-                value = method.Caller(null, args);
+                value = method.CallerBoxed(null, args);
             }
             if (i > start)
             {
@@ -479,7 +479,7 @@ public sealed class EnumName : Attribute
                     args[1] = value;
                     args[2] = valueSplitItem;
                     var method = bitOrMethod.GetGenericMethodDetail(type);
-                    value = method.Caller(null, args);
+                    value = method.CallerBoxed(null, args);
                 }
             }
             return found;

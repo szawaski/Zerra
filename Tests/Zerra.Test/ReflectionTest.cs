@@ -68,7 +68,7 @@ namespace Zerra.Test
                 _ = member.HasSetterBoxed;
                 //_ = member.HasSetterTyped;
 
-                InspectTypeDetail(member.TypeDetail, stack);
+                InspectTypeDetail(member.TypeDetailBoxed, stack);
             }
             foreach (var method in methods)
             {

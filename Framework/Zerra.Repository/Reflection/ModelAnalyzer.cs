@@ -208,7 +208,7 @@ namespace Zerra.Repository.Reflection
         public static object GetIdentity(Type type, object model)
         {
             var genericGetIdentityMethod = TypeAnalyzer.GetGenericMethodDetail(getIdentityMethod, type);
-            return genericGetIdentityMethod.Caller(null, new object[] { model })!;
+            return genericGetIdentityMethod.CallerBoxed(null, new object[] { model })!;
         }
 
         private static readonly MethodInfo setIdentityMethod = typeof(ModelAnalyzer).GetMethods(BindingFlags.Public | BindingFlags.Static).First(x => x.Name == nameof(ModelAnalyzer.SetIdentity) && x.IsGenericMethod);
@@ -220,7 +220,7 @@ namespace Zerra.Repository.Reflection
         public static void SetIdentity(Type type, object model, object? identity)
         {
             var genericSetIdentityMethod = TypeAnalyzer.GetGenericMethodDetail(setIdentityMethod, type);
-            _ = genericSetIdentityMethod.Caller(null, new object?[] { model, identity });
+            _ = genericSetIdentityMethod.CallerBoxed(null, new object?[] { model, identity });
         }
 
         private static readonly MethodInfo getForeignIdentityMethod = typeof(ModelAnalyzer).GetMethods(BindingFlags.Public | BindingFlags.Static).First(x => x.Name == nameof(ModelAnalyzer.GetForeignIdentity) && x.IsGenericMethod);
@@ -235,7 +235,7 @@ namespace Zerra.Repository.Reflection
         public static object? GetForeignIdentity(Type type, string foreignIdentityNames, object model)
         {
             var genericGetForeignIdentityMethod = TypeAnalyzer.GetGenericMethodDetail(getForeignIdentityMethod, type);
-            return genericGetForeignIdentityMethod.Caller(null, new object[] { foreignIdentityNames, model })!;
+            return genericGetForeignIdentityMethod.CallerBoxed(null, new object[] { foreignIdentityNames, model })!;
         }
 
         private static readonly MethodInfo setForeignIdentityMethod = typeof(ModelAnalyzer).GetMethods(BindingFlags.Public | BindingFlags.Static).First(x => x.Name == nameof(ModelAnalyzer.SetForeignIdentity) && x.IsGenericMethod);
@@ -247,7 +247,7 @@ namespace Zerra.Repository.Reflection
         public static void SetForeignIdentity(Type type, string foreignIdentityNames, object model, object identity)
         {
             var genericSetForeignIdentityMethod = TypeAnalyzer.GetGenericMethodDetail(setForeignIdentityMethod, type);
-            _ = genericSetForeignIdentityMethod.Caller(null, new object[] { foreignIdentityNames, model, identity });
+            _ = genericSetForeignIdentityMethod.CallerBoxed(null, new object[] { foreignIdentityNames, model, identity });
         }
 
         public static bool CompareIdentities(object? identity1, object? identity2)

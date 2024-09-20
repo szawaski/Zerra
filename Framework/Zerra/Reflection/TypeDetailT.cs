@@ -30,7 +30,7 @@ namespace Zerra.Reflection
                             {
                                 var methods = Type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
                                 foreach (var method in methods)
-                                    items.Add(new MethodDetail<T>(method, locker));
+                                    items.Add(new MethodDetailRuntime<T>(method, locker));
                                 if (Type.IsInterface)
                                 {
                                     foreach (var i in Interfaces)
@@ -38,7 +38,7 @@ namespace Zerra.Reflection
                                         var iMethods = i.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
                                         foreach (var method in iMethods)
                                         {
-                                            var methodDetail = new MethodDetail<T>(method, locker);
+                                            var methodDetail = new MethodDetailRuntime<T>(method, locker);
                                             if (!items.Any(x => SignatureCompare(x, methodDetail)))
                                                 items.Add(methodDetail);
                                         }
@@ -67,9 +67,9 @@ namespace Zerra.Reflection
                             if (!Type.IsGenericTypeDefinition)
                             {
                                 var constructors = Type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                                var items = new ConstructorDetail<T>[constructors.Length];
+                                var items = new ConstructorDetailRuntime<T>[constructors.Length];
                                 for (var i = 0; i < items.Length; i++)
-                                    items[i] = new ConstructorDetail<T>(constructors[i], locker);
+                                    items[i] = new ConstructorDetailRuntime<T>(constructors[i], locker);
                                 constructorDetails = items;
                             }
                             else

@@ -4,165 +4,25 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace Zerra.Reflection
 {
     public abstract class MethodDetail
     {
-        public MethodInfo MethodInfo { get; }
-        public string Name => MethodInfo.Name;
+        public abstract MethodInfo MethodInfo { get; }
+        public abstract string Name { get; }
 
-        private ParameterInfo[]? parameterInfos = null;
-        public IReadOnlyList<ParameterInfo> ParametersInfo
-        {
-            get
-            {
-                if (this.parameterInfos == null)
-                {
-                    lock (locker)
-                    {
-                        this.parameterInfos ??= MethodInfo.GetParameters();
-                    }
-                }
-                return this.parameterInfos;
-            }
-        }
+        public abstract IReadOnlyList<ParameterInfo> ParametersInfo { get; }
 
-        private Attribute[]? attributes = null;
-        public IReadOnlyList<Attribute> Attributes
-        {
-            get
-            {
-                if (this.attributes == null)
-                {
-                    lock (locker)
-                    {
-                        this.attributes ??= MethodInfo.GetCustomAttributes().ToArray();
-                    }
-                }
-                return this.attributes;
-            }
-        }
+        public abstract IReadOnlyList<Attribute> Attributes { get; }
 
-        private bool callerLoaded = false;
-        private Func<object?, object?[]?, object?>? caller = null;
-        private Func<object?, object?[]?, Task<object?>>? callerAsync = null;
-        public Func<object?, object?[]?, object?> Caller
-        {
-            get
-            {
-                LoadCaller();
-                return this.caller ?? throw new NotSupportedException($"{nameof(MethodDetail)} {Name} does not have a {nameof(Caller)}");
-            }
-        }
-        public bool HasCaller
-        {
-            get
-            {
-                LoadCaller();
-                return this.caller != null;
-            }
-        }
-        public Func<object?, object?[]?, Task<object?>> CallerAsync
-        {
-            get
-            {
-                LoadCaller();
-                return this.callerAsync ?? throw new NotSupportedException($"{nameof(MethodDetail)} {Name} does not have a {nameof(CallerAsync)}");
-            }
-        }
-        public bool HasCallerAsync
-        {
-            get
-            {
-                LoadCaller();
-                return this.callerAsync != null;
-            }
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void LoadCaller()
-        {
-            if (!callerLoaded)
-            {
-                lock (locker)
-                {
-                    if (!callerLoaded)
-                    {
-#if NETSTANDARD2_0
-                        if (!MethodInfo.IsGenericMethodDefinition && !MethodInfo.ReturnType.IsByRef)
-#else
-                        if (!MethodInfo.IsGenericMethodDefinition && !MethodInfo.ReturnType.IsByRef && !MethodInfo.ReturnType.IsByRefLike)
-#endif
-                        {
-                            this.caller = AccessorGenerator.GenerateCaller(MethodInfo);
-                            this.callerAsync = async (source, arguments) =>
-                            {
-                                var caller = this.caller;
-                                if (caller == null)
-                                    return default;
-                                var returnTypeInfo = ReturnType;
+        public abstract Func<object?, object?[]?, object?> CallerBoxed { get; }
+        public abstract bool HasCallerBoxed { get; }
+        public abstract Func<object?, object?[]?, Task<object?>> CallerBoxedAsync { get; }
+        public abstract bool HasCallerBoxedAsync { get; }
 
-                                if (returnTypeInfo.IsTask)
-                                {
-                                    var result = caller(source, arguments)!;
-                                    var task = (Task)result;
-                                    await task;
-                                    if (returnTypeInfo.Type.IsGenericType)
-                                        return returnTypeInfo.TaskResultGetter(result);
-                                    else
-                                        return default;
-                                }
-                                else
-                                {
-                                    return caller(source, arguments);
-                                }
-                            };
-                        }
-
-                        callerLoaded = true;
-                    }
-                }
-            }
-        }
-
-        private TypeDetail? returnType = null;
-        public TypeDetail ReturnType
-        {
-            get
-            {
-                if (returnType == null)
-                {
-                    lock (locker)
-                    {
-                        returnType ??= TypeAnalyzer.GetTypeDetail(MethodInfo.ReturnType);
-                    }
-                }
-                return returnType;
-            }
-        }
-
-        public override string ToString()
-        {
-            return $"{Name}({(String.Join(", ", ParametersInfo.Select(x => $"{x.ParameterType.Name} {x.Name}").ToArray()))})";
-        }
-
-        protected readonly object locker;
-        protected MethodDetail(MethodInfo method, object locker)
-        {
-            this.locker = locker;
-            this.MethodInfo = method;
-        }
-
-        private static readonly Type typeDetailT = typeof(MethodDetail<>);
-        internal static MethodDetail New(Type type, MethodInfo method, object locker)
-        {
-            var typeDetailGeneric = typeDetailT.MakeGenericType(type);
-            var obj = typeDetailGeneric.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)[0].Invoke(new object[] { method, locker });
-            return (MethodDetail)obj;
-        }
+        public abstract TypeDetail ReturnType { get; }
     }
 }

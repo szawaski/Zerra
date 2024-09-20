@@ -44,7 +44,7 @@ namespace Zerra.Serialization.Bytes
 
                 this.Name = member.Name;
                 this.Type = member.Type;
-                this.CoreType = member.TypeDetail.CoreType;
+                this.CoreType = member.TypeDetailBoxed.CoreType;
 
                 this.Getter = member.GetterBoxed;
                 this.Setter = member.SetterBoxed;

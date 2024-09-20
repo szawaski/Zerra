@@ -128,10 +128,10 @@ namespace Zerra.Serialization.QueryString
                     _ = sb.Append('&');
                 _ = sb.Append(WebUtility.UrlEncode(member.Name));
                 _ = sb.Append('=');
-                if (!member.TypeDetail.CoreType.HasValue)
+                if (!member.TypeDetailBoxed.CoreType.HasValue)
                     throw new Exception($"{nameof(QueryStringSerializer)} does not support serializing type {member.Type.Name}");
 
-                switch (member.TypeDetail.CoreType.Value)
+                switch (member.TypeDetailBoxed.CoreType.Value)
                 {
                     case CoreType.String:
                         _ = sb.Append(WebUtility.UrlEncode((string)value));

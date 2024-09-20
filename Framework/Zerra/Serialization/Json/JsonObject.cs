@@ -713,7 +713,7 @@ namespace Zerra.Serialization.Json
                         {
                             var value = item.Bind(innerType);
                             addMethodArgs[0] = value;
-                            addMethod.Caller(set, addMethodArgs);
+                            addMethod.CallerBoxed(set, addMethodArgs);
                         }
                         return set;
                     }

@@ -207,12 +207,12 @@ namespace Zerra.Serialization.Json
                             if (TryGetMember(typeDetail!, propertyName, out var memberDetail))
                             {
                                 var propertyGraph = graph?.GetChildGraph(memberDetail.Name);
-                                var value = FromStringJson(c, ref reader, ref decodeBuffer, memberDetail.TypeDetail, propertyGraph, ref options);
+                                var value = FromStringJson(c, ref reader, ref decodeBuffer, memberDetail.TypeDetailBoxed, propertyGraph, ref options);
                                 if (value != null && memberDetail.HasSetterBoxed)
                                 {
                                     //special case nullable enum
-                                    if (memberDetail.TypeDetail.IsNullable && memberDetail.TypeDetail.InnerTypeDetail.EnumUnderlyingType.HasValue)
-                                        value = Enum.ToObject(memberDetail.TypeDetail.InnerTypeDetail.Type, value);
+                                    if (memberDetail.TypeDetailBoxed.IsNullable && memberDetail.TypeDetailBoxed.InnerTypeDetail.EnumUnderlyingType.HasValue)
+                                        value = Enum.ToObject(memberDetail.TypeDetailBoxed.InnerTypeDetail.Type, value);
 
                                     if (graph == null || graph.HasMember(memberDetail.Name))
                                         memberDetail.SetterBoxed(obj, value);
@@ -285,7 +285,7 @@ namespace Zerra.Serialization.Json
                             {
                                 addMethodArgs![0] = dictionaryKey;
                                 addMethodArgs[1] = value;
-                                _ = method!.Caller(obj, addMethodArgs);
+                                _ = method!.CallerBoxed(obj, addMethodArgs);
                             }
                         }
                         else
@@ -418,7 +418,7 @@ namespace Zerra.Serialization.Json
                                 value = Enum.ToObject(arrayElementType.InnerTypeDetails[0].Type, value);
 
                             addMethodArgs![0] = value;
-                            _ = addMethod!.Caller(collection, addMethodArgs);
+                            _ = addMethod!.CallerBoxed(collection, addMethodArgs);
                         }
                         canExpectComma = true;
                         break;
@@ -455,19 +455,19 @@ namespace Zerra.Serialization.Json
                             if (memberDetail != null && memberDetail.HasSetterBoxed)
                             {
                                 var propertyGraph = graph?.GetChildGraph(memberDetail.Name);
-                                var value = FromStringJson(c, ref reader, ref decodeBuffer, memberDetail?.TypeDetail, propertyGraph, ref options);
-                                if (memberDetail!.TypeDetail.SpecialType.HasValue && memberDetail.TypeDetail.SpecialType == SpecialType.Dictionary)
+                                var value = FromStringJson(c, ref reader, ref decodeBuffer, memberDetail?.TypeDetailBoxed, propertyGraph, ref options);
+                                if (memberDetail!.TypeDetailBoxed.SpecialType.HasValue && memberDetail.TypeDetailBoxed.SpecialType == SpecialType.Dictionary)
                                 {
-                                    var innerItemEnumerable = TypeAnalyzer.GetGenericType(enumerableType, memberDetail.TypeDetail.IEnumerableGenericInnerType);
+                                    var innerItemEnumerable = TypeAnalyzer.GetGenericType(enumerableType, memberDetail.TypeDetailBoxed.IEnumerableGenericInnerType);
                                     object dictionary;
-                                    if (memberDetail.TypeDetail.Type.IsInterface)
+                                    if (memberDetail.TypeDetailBoxed.Type.IsInterface)
                                     {
-                                        var dictionaryGenericType = TypeAnalyzer.GetGenericType(dictionaryType, (Type[])memberDetail.TypeDetail.IEnumerableGenericInnerTypeDetail.InnerTypes);
+                                        var dictionaryGenericType = TypeAnalyzer.GetGenericType(dictionaryType, (Type[])memberDetail.TypeDetailBoxed.IEnumerableGenericInnerTypeDetail.InnerTypes);
                                         dictionary = Instantiator.Create(dictionaryGenericType, new Type[] { innerItemEnumerable }, value);
                                     }
                                     else
                                     {
-                                        dictionary = Instantiator.Create(memberDetail.TypeDetail.Type, new Type[] { innerItemEnumerable }, value);
+                                        dictionary = Instantiator.Create(memberDetail.TypeDetailBoxed.Type, new Type[] { innerItemEnumerable }, value);
                                     }
                                     memberDetail.SetterBoxed(obj, dictionary);
                                 }
@@ -476,8 +476,8 @@ namespace Zerra.Serialization.Json
                                     if (value != null)
                                     {
                                         //special case nullable enum
-                                        if (memberDetail.TypeDetail.IsNullable && memberDetail.TypeDetail.InnerTypeDetail.EnumUnderlyingType.HasValue)
-                                            value = Enum.ToObject(memberDetail.TypeDetail.InnerTypeDetail.Type, value);
+                                        if (memberDetail.TypeDetailBoxed.IsNullable && memberDetail.TypeDetailBoxed.InnerTypeDetail.EnumUnderlyingType.HasValue)
+                                            value = Enum.ToObject(memberDetail.TypeDetailBoxed.InnerTypeDetail.Type, value);
 
                                         if (graph == null || graph.HasMember(memberDetail.Name))
                                             memberDetail.SetterBoxed(obj, value);

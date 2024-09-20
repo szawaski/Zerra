@@ -91,7 +91,7 @@ namespace Zerra.Test
                         return false;
 
                     var method = compareIDictionaryTMethod.GetGenericMethodDetail(type1.DictionaryInnerTypeDetail.InnerTypes[0], type1.DictionaryInnerTypeDetail.InnerTypes[1], type2.DictionaryInnerTypeDetail.InnerTypes[0], type2.DictionaryInnerTypeDetail.InnerTypes[1]);
-                    return (bool)method.Caller(null, [model1, model2, sb]);
+                    return (bool)method.CallerBoxed(null, [model1, model2, sb]);
                 }
                 else if (type1.HasIDictionary)
                 {

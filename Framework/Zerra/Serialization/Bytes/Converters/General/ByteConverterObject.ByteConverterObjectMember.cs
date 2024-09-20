@@ -31,7 +31,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     {
                         lock (this)
                         {
-                            converter ??= ByteConverterFactory<TValue>.Get(Member.TypeDetail, memberKey, Member.HasGetterBoxed ? Member.GetterTyped : null, Member.HasSetterBoxed ? Member.SetterTyped : null);
+                            converter ??= ByteConverterFactory<TValue>.Get(Member.TypeDetailBoxed, memberKey, Member.HasGetterBoxed ? Member.GetterTyped : null, Member.HasSetterBoxed ? Member.SetterTyped : null);
                         }
                     }
                     return converter;

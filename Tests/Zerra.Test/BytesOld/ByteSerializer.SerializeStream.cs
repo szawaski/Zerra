@@ -819,7 +819,7 @@ namespace Zerra.Serialization.Bytes
                                     }
                                 }
                                 var method = TypeAnalyzer.GetGenericMethodDetail(enumerableToArrayMethod, typeDetail.TypeDetail.IEnumerableGenericInnerType);
-                                var innerValue = (ICollection)method.Caller(null, new object[] { state.CurrentFrame.Object })!;
+                                var innerValue = (ICollection)method.CallerBoxed(null, new object[] { state.CurrentFrame.Object })!;
 
                                 state.CurrentFrame.ObjectInProgress = true;
                                 state.PushFrame(new WriteFrame()

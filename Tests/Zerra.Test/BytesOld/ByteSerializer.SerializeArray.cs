@@ -632,7 +632,7 @@ namespace Zerra.Serialization.Bytes
                             if (nullFlags)
                                 writer.WriteNotNull();
                             var method = TypeAnalyzer.GetGenericMethodDetail(enumerableToArrayMethod, typeDetail.TypeDetail.IEnumerableGenericInnerType);
-                            var innerValue = (ICollection)method.Caller(null, new object[] { value })!;
+                            var innerValue = (ICollection)method.CallerBoxed(null, new object[] { value })!;
                             var count = innerValue.Count;
                             ToBytesEnumerable(innerValue, count, typeDetail.InnerTypeDetail, ref writer, ref options);
                         }
@@ -668,7 +668,7 @@ namespace Zerra.Serialization.Bytes
                             {
                                 writer.WriteNotNull();
                                 var method = TypeAnalyzer.GetGenericMethodDetail(enumerableToArrayMethod, typeDetail.TypeDetail.IEnumerableGenericInnerType);
-                                var innerValue = (ICollection)method.Caller(null, new object[] { value })!;
+                                var innerValue = (ICollection)method.CallerBoxed(null, new object[] { value })!;
                                 var count = innerValue.Count;
                                 ToBytesEnumerable(innerValue, count, typeDetail.InnerTypeDetail, ref writer, ref options);
                             }

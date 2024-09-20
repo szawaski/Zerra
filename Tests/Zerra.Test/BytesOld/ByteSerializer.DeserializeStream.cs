@@ -1830,7 +1830,7 @@ namespace Zerra.Serialization.Bytes
                                     if (!stringLength.HasValue)
                                     {
                                         state.CurrentFrame.AddMethodArgs![0] = null;
-                                        state.CurrentFrame.AddMethod!.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
+                                        state.CurrentFrame.AddMethod!.CallerBoxed(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
 
                                         state.CurrentFrame.EnumerablePosition++;
                                         if (state.CurrentFrame.EnumerablePosition == length)
@@ -1853,7 +1853,7 @@ namespace Zerra.Serialization.Bytes
                                 state.CurrentFrame.StringLength = null;
 
                                 state.CurrentFrame.AddMethodArgs![0] = str;
-                                _ = state.CurrentFrame.AddMethod!.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
+                                _ = state.CurrentFrame.AddMethod!.CallerBoxed(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
 
                                 state.CurrentFrame.EnumerablePosition++;
                                 if (state.CurrentFrame.EnumerablePosition == length)
@@ -2280,7 +2280,7 @@ namespace Zerra.Serialization.Bytes
                                     if (!stringLength.HasValue)
                                     {
                                         state.CurrentFrame.AddMethodArgs![0] = null;
-                                        _ = state.CurrentFrame.AddMethod!.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
+                                        _ = state.CurrentFrame.AddMethod!.CallerBoxed(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
 
                                         state.CurrentFrame.EnumerablePosition++;
                                         if (state.CurrentFrame.EnumerablePosition == length)
@@ -2303,7 +2303,7 @@ namespace Zerra.Serialization.Bytes
                                 state.CurrentFrame.StringLength = null;
 
                                 state.CurrentFrame.AddMethodArgs![0] = str;
-                                _ = state.CurrentFrame.AddMethod!.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
+                                _ = state.CurrentFrame.AddMethod!.CallerBoxed(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
 
                                 state.CurrentFrame.EnumerablePosition++;
                                 if (state.CurrentFrame.EnumerablePosition == length)
@@ -2998,12 +2998,12 @@ namespace Zerra.Serialization.Bytes
                     if (asList)
                     {
                         state.CurrentFrame.AddMethodArgs![0] = enumValue;
-                        _ = state.CurrentFrame.AddMethod!.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
+                        _ = state.CurrentFrame.AddMethod!.CallerBoxed(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
                     }
                     else if (asSet)
                     {
                         state.CurrentFrame.AddMethodArgs![0] = enumValue;
-                        _ = state.CurrentFrame.AddMethod!.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
+                        _ = state.CurrentFrame.AddMethod!.CallerBoxed(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
                     }
                     else
                     {
@@ -3089,12 +3089,12 @@ namespace Zerra.Serialization.Bytes
                         if (asList)
                         {
                             state.CurrentFrame.AddMethodArgs![0] = null;
-                            _ = state.CurrentFrame.AddMethod!.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
+                            _ = state.CurrentFrame.AddMethod!.CallerBoxed(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
                         }
                         else if (asSet)
                         {
                             state.CurrentFrame.AddMethodArgs![0] = null;
-                            _ = state.CurrentFrame.AddMethod!.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
+                            _ = state.CurrentFrame.AddMethod!.CallerBoxed(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
                         }
                         state.CurrentFrame.EnumerablePosition++;
                         if (state.CurrentFrame.EnumerablePosition == length)
@@ -3120,12 +3120,12 @@ namespace Zerra.Serialization.Bytes
                     if (asList)
                     {
                         state.CurrentFrame.AddMethodArgs![0] = state.LastFrameResultObject;
-                        _ = state.CurrentFrame.AddMethod!.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
+                        _ = state.CurrentFrame.AddMethod!.CallerBoxed(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
                     }
                     else if (asSet)
                     {
                         state.CurrentFrame.AddMethodArgs![0] = state.LastFrameResultObject;
-                        _ = state.CurrentFrame.AddMethod!.Caller(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
+                        _ = state.CurrentFrame.AddMethod!.CallerBoxed(state.CurrentFrame.ResultObject, state.CurrentFrame.AddMethodArgs);
                     }
                     else
                     {

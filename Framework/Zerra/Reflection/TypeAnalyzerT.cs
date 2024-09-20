@@ -18,7 +18,7 @@ namespace Zerra.Reflection
             {
                 lock (typeDetailLock)
                 {
-                    typeDetail ??= new TypeDetail<T>(typeof(T));
+                    typeDetail ??= (TypeDetail<T>)TypeAnalyzer.GetTypeDetail(typeof(T));
                 }
             }
             return typeDetail;
@@ -94,7 +94,7 @@ namespace Zerra.Reflection
             var key = new TypeKey(methodDetail.MethodInfo.ToString(), types);
             var genericMethod = genericMethodDetails.GetOrAdd(key, (_) =>
             {
-                return new MethodDetail<T>(methodDetail.MethodInfo, types);
+                return new MethodDetailRuntime<T>(methodDetail.MethodInfo, types);
             });
             return genericMethod;
         }

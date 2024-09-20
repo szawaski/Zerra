@@ -55,7 +55,7 @@ namespace Zerra.Repository
             {
                 if (graph == null || graph.HasMember(property.Name))
                 {
-                    if (property.TypeDetail.CoreType == CoreType.String)
+                    if (property.TypeDetailBoxed.CoreType == CoreType.String)
                     {
                         var encrypted = (string?)property.GetterBoxed(model);
                         if (encrypted != null)
@@ -110,7 +110,7 @@ namespace Zerra.Repository
                 {
                     if (graph == null || graph.HasMember(property.Name))
                     {
-                        if (property.TypeDetail.CoreType == CoreType.String)
+                        if (property.TypeDetailBoxed.CoreType == CoreType.String)
                         {
                             var encrypted = (string?)property.GetterBoxed(model);
                             if (encrypted != null)
@@ -384,7 +384,7 @@ namespace Zerra.Repository
                 {
                     if (graph == null || graph.HasMember(property.Name))
                     {
-                        if (property.TypeDetail.CoreType == CoreType.String)
+                        if (property.TypeDetailBoxed.CoreType == CoreType.String)
                         {
                             var plain = (string?)property.GetterBoxed(model);
                             if (plain != null)

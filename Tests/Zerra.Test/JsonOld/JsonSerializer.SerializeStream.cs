@@ -788,7 +788,7 @@ namespace Zerra.Serialization.Json
                     {
                         var method = TypeAnalyzer.GetGenericMethodDetail(dictionaryToArrayMethod, typeDetail.DictionaryInnerType);
 
-                        state.CurrentFrame.Enumerator = ((ICollection)method.Caller(null, new object?[] { state.CurrentFrame.Object })!).GetEnumerator();
+                        state.CurrentFrame.Enumerator = ((ICollection)method.CallerBoxed(null, new object?[] { state.CurrentFrame.Object })!).GetEnumerator();
                         state.CurrentFrame.State = 1;
                     }
 
@@ -1082,7 +1082,7 @@ namespace Zerra.Serialization.Json
                         var childGraph = graph?.GetChildGraph(member.Name);
 
                         state.CurrentFrame.State = 1;
-                        state.PushFrame(CreateWriteFrame(ref state, member.TypeDetail, state.CurrentFrame.ObjectPropertyValue, childGraph));
+                        state.PushFrame(CreateWriteFrame(ref state, member.TypeDetailBoxed, state.CurrentFrame.ObjectPropertyValue, childGraph));
                         return;
 
                     case 7: //End Object
@@ -2635,7 +2635,7 @@ namespace Zerra.Serialization.Json
 
                     var childGraph = graph?.GetChildGraph(member.Name);
                     state.CurrentFrame.State = 6;
-                    state.PushFrame(CreateWriteFrame(ref state, member.TypeDetail, state.CurrentFrame.ObjectPropertyValue, childGraph));
+                    state.PushFrame(CreateWriteFrame(ref state, member.TypeDetailBoxed, state.CurrentFrame.ObjectPropertyValue, childGraph));
                     return;
                 }
 

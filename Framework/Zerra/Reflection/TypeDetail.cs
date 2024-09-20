@@ -574,13 +574,13 @@ namespace Zerra.Reflection
                                     var backingName = $"<{property.Name}>";
                                     var backingField = fields.FirstOrDefault(x => x.Name.StartsWith(backingName));
                                     if (backingField != null)
-                                        backingMember = MemberDetail.New(Type, property.PropertyType, backingField, null, locker);
+                                        backingMember = MemberDetailRuntime<object, object>.New(Type, property.PropertyType, backingField, null, locker);
 
-                                    items.Add(MemberDetail.New(Type, property.PropertyType, property, backingMember, locker));
+                                    items.Add(MemberDetailRuntime<object, object>.New(Type, property.PropertyType, property, backingMember, locker));
                                 }
-                                foreach (var field in fields.Where(x => !items.Any(y => y.BackingFieldDetail?.MemberInfo == x)))
+                                foreach (var field in fields.Where(x => !items.Any(y => y.BackingFieldDetailBoxed?.MemberInfo == x)))
                                 {
-                                    items.Add(MemberDetail.New(Type, field.FieldType, field, null, locker));
+                                    items.Add(MemberDetailRuntime<object, object>.New(Type, field.FieldType, field, null, locker));
                                 }
                             }
 
@@ -608,7 +608,7 @@ namespace Zerra.Reflection
                             {
                                 var methods = Type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
                                 foreach (var method in methods)
-                                    items.Add(MethodDetail.New(Type, method, locker));
+                                    items.Add(MethodDetailRuntime<object>.New(Type, method, locker));
                                 if (Type.IsInterface)
                                 {
                                     foreach (var i in Interfaces)
@@ -616,7 +616,7 @@ namespace Zerra.Reflection
                                         var iMethods = i.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
                                         foreach (var method in iMethods)
                                         {
-                                            var methodDetail = MethodDetail.New(Type, method, locker);
+                                            var methodDetail = MethodDetailRuntime<object>.New(Type, method, locker);
                                             if (!items.Any(x => SignatureCompare(x, methodDetail)))
                                                 items.Add(methodDetail);
                                         }
@@ -647,7 +647,7 @@ namespace Zerra.Reflection
                                 var constructors = Type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
                                 var items = new ConstructorDetail[constructors.Length];
                                 for (var i = 0; i < items.Length; i++)
-                                    items[i] = ConstructorDetail.New(Type, constructors[i], locker);
+                                    items[i] = ConstructorDetailRuntime<object>.New(Type, constructors[i], locker);
                                 constructorDetailsBoxed = items;
                             }
                             else
@@ -810,7 +810,7 @@ namespace Zerra.Reflection
                 {
                     lock (locker)
                     {
-                        serializableMemberDetails ??= MemberDetails.Where(x => x.IsBacked && IsSerializableType(x.TypeDetail)).ToArray();
+                        serializableMemberDetails ??= MemberDetails.Where(x => x.IsBacked && IsSerializableType(x.TypeDetailBoxed)).ToArray();
                     }
                 }
                 return serializableMemberDetails;
