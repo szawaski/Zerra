@@ -6,132 +6,18 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Reflection;
-using System.Runtime.CompilerServices;
 using Zerra.Collections;
 
 namespace Zerra.Reflection
 {
-    public sealed class TypeDetail<T> : TypeDetail
+    public abstract class TypeDetail<T> : TypeDetail
     {
-        private MethodDetail<T>[]? methodDetails = null;
-        public IReadOnlyList<MethodDetail<T>> MethodDetails
-        {
-            get
-            {
-                if (methodDetails == null)
-                {
-                    lock (locker)
-                    {
-                        if (methodDetails == null)
-                        {
-                            var items = new List<MethodDetail<T>>();
-                            if (!Type.IsGenericTypeDefinition)
-                            {
-                                var methods = Type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
-                                foreach (var method in methods)
-                                    items.Add(new MethodDetailRuntime<T>(method, locker));
-                                if (Type.IsInterface)
-                                {
-                                    foreach (var i in Interfaces)
-                                    {
-                                        var iMethods = i.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
-                                        foreach (var method in iMethods)
-                                        {
-                                            var methodDetail = new MethodDetailRuntime<T>(method, locker);
-                                            if (!items.Any(x => SignatureCompare(x, methodDetail)))
-                                                items.Add(methodDetail);
-                                        }
-                                    }
-                                }
-                            }
-                            methodDetails = items.ToArray();
-                        }
-                    }
-                }
-                return methodDetails;
-            }
-        }
+        public abstract IReadOnlyList<MethodDetail<T>> MethodDetails { get; }
 
-        private ConstructorDetail<T>[]? constructorDetails = null;
-        public IReadOnlyList<ConstructorDetail<T>> ConstructorDetails
-        {
-            get
-            {
-                if (constructorDetails == null)
-                {
-                    lock (locker)
-                    {
-                        if (constructorDetails == null)
-                        {
-                            if (!Type.IsGenericTypeDefinition)
-                            {
-                                var constructors = Type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                                var items = new ConstructorDetailRuntime<T>[constructors.Length];
-                                for (var i = 0; i < items.Length; i++)
-                                    items[i] = new ConstructorDetailRuntime<T>(constructors[i], locker);
-                                constructorDetails = items;
-                            }
-                            else
-                            {
-                                constructorDetails = Array.Empty<ConstructorDetail<T>>();
-                            }
-                        }
-                    }
-                }
-                return constructorDetails;
-            }
-        }
+        public abstract IReadOnlyList<ConstructorDetail<T>> ConstructorDetails { get; }
 
-        private bool creatorLoaded = false;
-        private Func<T>? creator = null;
-        public Func<T> Creator
-        {
-            get
-            {
-                if (!creatorLoaded)
-                    LoadCreator();
-                return creator ?? throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name} does not have a {nameof(Creator)}");
-            }
-        }
-        public bool HasCreator
-        {
-            get
-            {
-                if (!creatorLoaded)
-                    LoadCreator();
-                return creator != null;
-            }
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void LoadCreator()
-        {
-            lock (locker)
-            {
-                if (!creatorLoaded)
-                {
-                    if (!Type.IsAbstract && !Type.IsGenericTypeDefinition)
-                    {
-                        var emptyConstructor = this.ConstructorDetails.FirstOrDefault(x => x.ParametersInfo.Count == 0);
-                        if (emptyConstructor != null && emptyConstructor.HasCreator)
-                        {
-                            creator = emptyConstructor.Creator;
-                        }
-                        else if (Type.IsValueType && Type.Name != "Void")
-                        {
-                            creator = () => { return default!; };
-                        }
-                        else if (Type.Name == "String")
-                        {
-                            creator = () => { return (T)(object)String.Empty; };
-                        }
-                    }
-                    creatorLoaded = true;
-                }
-            }
-        }
-
-        public override Delegate? CreatorTyped => Creator;
+        public abstract Func<T> Creator { get; }
+        public abstract bool HasCreator { get; }
 
         private ConcurrentFactoryDictionary<TypeKey, MethodDetail<T>?>? methodLookups = null;
         private MethodDetail<T>? GetMethodInternal(string name, Type[]? parameterTypes = null)

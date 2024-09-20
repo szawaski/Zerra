@@ -156,14 +156,7 @@ namespace Zerra.Reflection
         }
 
         private static readonly ConcurrentFactoryDictionary<Type, TypeDetail> typeDetailsByType = new();
-        public static TypeDetail GetTypeDetail(Type type)
-        {
-            var typeInfo = typeDetailsByType.GetOrAdd(type, (type) =>
-            {
-                return TypeDetail.New(type);
-            });
-            return typeInfo;
-        }
+        public static TypeDetail GetTypeDetail(Type type) => typeDetailsByType.GetOrAdd(type, TypeDetailRuntime<object>.New);
 
         private static readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail?> methodDetailsByType = new();
         public static MethodDetail GetMethodDetail(Type type, string name, Type[]? parameterTypes = null)

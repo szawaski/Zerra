@@ -105,7 +105,7 @@ namespace Zerra.Reflection
             var key = new TypeKey(types);
             var genericTypeDetail = genericTypeDetailsByType.GetOrAdd(key, (_) =>
             {
-                return new TypeDetail<T>(typeof(T).MakeGenericType(types));
+                return new TypeDetailRuntime<T>(typeof(T).MakeGenericType(types));
             });
             return genericTypeDetail;
         }
