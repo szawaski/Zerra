@@ -37,8 +37,50 @@ namespace Zerra.Reflection
         private static readonly Type dictionaryEntryType = typeof(DictionaryEntry);
 
         public override bool IsNullable { get; }
-        public override CoreType? CoreType { get; }
-        public override SpecialType? SpecialType { get; }
+
+        private bool coreTypeLoaded = false;
+        private CoreType? coreType;
+        public override CoreType? CoreType
+        {
+            get
+            {
+                if (!coreTypeLoaded)
+                {
+                    lock (locker)
+                    {
+                        if (!coreTypeLoaded)
+                        {
+                            if (TypeLookup.CoreTypeLookup(Type, out var coreTypeLookup))
+                                coreType = coreTypeLookup;
+                            coreTypeLoaded = true;
+                        }
+                    }
+                }
+                return coreType;
+            }
+        }
+
+        private bool specialTypeLoaded = false;
+        private SpecialType? specialType;
+        public override SpecialType? SpecialType
+        {
+            get
+            {
+                if (!specialTypeLoaded)
+                {
+                    lock (locker)
+                    {
+                        if (!specialTypeLoaded)
+                        {
+                            if (TypeLookup.SpecialTypeLookup(Type, out var specialTypeLookup))
+                                specialType = specialTypeLookup;
+                            specialTypeLoaded = true;
+                        }
+                    }
+                }
+                return specialType;
+            }
+        }
 
         private Type[]? innerTypes = null;
         public override IReadOnlyList<Type> InnerTypes
@@ -1052,12 +1094,6 @@ namespace Zerra.Reflection
         internal TypeDetailRuntime(Type type) : base(type)
         {
             this.IsNullable = type.Name == nullaleTypeName;
-
-            if (TypeLookup.CoreTypeLookup(type, out var coreTypeLookup))
-                this.CoreType = coreTypeLookup;
-
-            if (TypeLookup.SpecialTypeLookup(Type, out var specialTypeLookup))
-                this.SpecialType = specialTypeLookup;
         }
 
         private static readonly Type typeDetailT = typeof(TypeDetailRuntime<>);
