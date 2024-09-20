@@ -709,7 +709,7 @@ namespace Zerra.Serialization.Json
                             case '"':
                                 reader.BackOne();
                                 state.CurrentFrame.State = 2;
-                                state.PushFrame(new ReadFrame() { TypeDetail = typeDetail.InnerTypeDetail, FrameType = ReadFrameType.Value });
+                                state.PushFrame(new ReadFrame() { TypeDetail = typeDetail.InnerTypeDetails[0], FrameType = ReadFrameType.Value });
                                 return;
                             case '}':
                                 state.EndFrame();
