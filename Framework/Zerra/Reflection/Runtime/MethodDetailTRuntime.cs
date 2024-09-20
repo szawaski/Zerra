@@ -9,7 +9,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
-namespace Zerra.Reflection
+namespace Zerra.Reflection.Runtime
 {
     internal sealed class MethodDetailRuntime<T> : MethodDetail<T>
     {

@@ -85,7 +85,21 @@ namespace Zerra.Reflection
 
         public abstract Delegate? CreatorTyped { get; }
 
-        public abstract IReadOnlyList<MemberDetail> SerializableMemberDetails { get; }
+        private IReadOnlyList<MemberDetail>? serializableMemberDetails = null;
+        public IReadOnlyList<MemberDetail> SerializableMemberDetails
+        {
+            get
+            {
+                if (serializableMemberDetails == null)
+                {
+                    lock (locker)
+                    {
+                        serializableMemberDetails ??= MemberDetails.Where(x => x.IsBacked && IsSerializableType(x.TypeDetailBoxed)).ToArray();
+                    }
+                }
+                return serializableMemberDetails;
+            }
+        }
 
         private Dictionary<string, MemberDetail>? membersByName = null;
         public MemberDetail GetMember(string name)
@@ -272,7 +286,7 @@ namespace Zerra.Reflection
         }
 
         protected readonly object locker;
-        protected TypeDetail(Type type)
+        public TypeDetail(Type type)
         {
             this.locker = new();
             this.Type = type;

@@ -961,7 +961,7 @@ namespace Zerra.CQRS
             foreach (var item in typeDetail.Interfaces.Where(x => x.Name == iCommandHandlerType.Name || x.Name == iCommandHandlerWithResultType.Name))
             {
                 var itemDetail = TypeAnalyzer.GetTypeDetail(item);
-                var messageType = itemDetail.InnerType;
+                var messageType = itemDetail.InnerTypes[0];
                 _ = messageTypes.Add(messageType);
             }
             return messageTypes;

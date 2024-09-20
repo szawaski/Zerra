@@ -11,7 +11,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-namespace Zerra.Reflection
+namespace Zerra.Reflection.Runtime
 {
     internal sealed class TypeDetailRuntime : TypeDetail
     {
@@ -712,22 +712,6 @@ namespace Zerra.Reflection
                     }
                 }
                 return attributes;
-            }
-        }
-
-        private IReadOnlyList<MemberDetail>? serializableMemberDetails = null;
-        public override IReadOnlyList<MemberDetail> SerializableMemberDetails
-        {
-            get
-            {
-                if (serializableMemberDetails == null)
-                {
-                    lock (locker)
-                    {
-                        serializableMemberDetails ??= MemberDetails.Where(x => x.IsBacked && IsSerializableType(x.TypeDetailBoxed)).ToArray();
-                    }
-                }
-                return serializableMemberDetails;
             }
         }
 

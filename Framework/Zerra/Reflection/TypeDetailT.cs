@@ -123,6 +123,6 @@ namespace Zerra.Reflection
             return constructor != null;
         }
 
-        internal TypeDetail(Type type) : base(type) { }
+        public TypeDetail(Type type) : base(type) { }
     }
 }

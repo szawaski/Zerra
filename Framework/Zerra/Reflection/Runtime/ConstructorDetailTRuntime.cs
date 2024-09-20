@@ -8,7 +8,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-namespace Zerra.Reflection
+namespace Zerra.Reflection.Runtime
 {
     internal sealed class ConstructorDetailRuntime<T> : ConstructorDetail<T>
     {
