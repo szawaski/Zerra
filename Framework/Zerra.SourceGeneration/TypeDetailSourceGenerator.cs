@@ -19,7 +19,7 @@ namespace Zerra.SourceGeneration
             var classProvider = context.SyntaxProvider.CreateSyntaxProvider(
                 (node, cancellationToken) => node is BaseTypeDeclarationSyntax,
                 (context, cancellationToken) => (INamedTypeSymbol)context.SemanticModel.GetDeclaredSymbol(context.Node)!
-            ).Where(x => x.DeclaredAccessibility == Accessibility.Public && !x.IsStatic && !x.IsAbstract && !x.IsValueType && x.ContainingType is null)
+            ).Where(x => x.DeclaredAccessibility == Accessibility.Public && !x.IsStatic && !x.IsAbstract && !x.IsValueType && x.ContainingType is null && !x.IsGenericType)
             .Collect();
 
             var compilationAndClasses = classProvider.Combine(context.CompilationProvider);
@@ -58,25 +58,79 @@ namespace Zerra.SourceGeneration
             var typeName = symbol.ToString();
 
             string className;
+            string initializerName;
             string fileName;
+            string? typeConstraints;
             if (symbol.TypeArguments.Length > 0)
             {
                 var sbClassName = new StringBuilder();
+                var sbConstraints = new StringBuilder();
                 _ = sbClassName.Append(symbol.Name).Append("TypeDetail<");
                 for (var i = 0; i < symbol.TypeArguments.Length; i++)
                 {
+                    var typeArgument = (ITypeParameterSymbol)symbol.TypeArguments[i];
                     if (i > 0)
                         _ = sbClassName.Append(',');
-                    _ = sbClassName.Append(symbol.TypeArguments[i].Name);
+                    _ = sbClassName.Append(typeArgument.Name);
+                    if (typeArgument.HasUnmanagedTypeConstraint || typeArgument.HasValueTypeConstraint || typeArgument.HasReferenceTypeConstraint || typeArgument.HasNotNullConstraint || typeArgument.HasConstructorConstraint)
+                    {
+                        _ = sbConstraints.Append(" where ").Append(typeArgument.Name).Append(" : ");
+                        var wroteConstraint = false;
+
+                        if (typeArgument.HasUnmanagedTypeConstraint)
+                        {
+                            if (wroteConstraint)
+                                _ = sbConstraints.Append(", ");
+                            else
+                                wroteConstraint = true;
+                            _ = sbConstraints.Append("unmanaged");
+                        }
+                        if (typeArgument.HasValueTypeConstraint)
+                        {
+                            if (wroteConstraint)
+                                _ = sbConstraints.Append(", ");
+                            else
+                                wroteConstraint = true;
+                            _ = sbConstraints.Append("struct");
+                        }
+                        if (typeArgument.HasReferenceTypeConstraint)
+                        {
+                            if (wroteConstraint)
+                                _ = sbConstraints.Append(", ");
+                            else
+                                wroteConstraint = true;
+                            _ = sbConstraints.Append("class");
+                        }
+                        if (typeArgument.HasNotNullConstraint)
+                        {
+                            if (wroteConstraint)
+                                _ = sbConstraints.Append(", ");
+                            else
+                                wroteConstraint = true;
+                            _ = sbConstraints.Append("notnull");
+                        }
+                        if (typeArgument.HasConstructorConstraint)
+                        {
+                            if (wroteConstraint)
+                                _ = sbConstraints.Append(", ");
+                            else
+                                wroteConstraint = true;
+                            _ = sbConstraints.Append("new()");
+                        }
+                    }
                 }
                 _ = sbClassName.Append('>');
                 className = sbClassName.ToString();
+                initializerName = $"{symbol.Name}TypeDetailInitializerT{symbol.TypeArguments.Length}";
                 fileName = ns == null ? $"{symbol.Name}TypeDetailT{symbol.TypeArguments.Length}.cs" : $"{ns}.{symbol.Name}TypeDetailT{symbol.TypeArguments.Length}.cs";
+                typeConstraints = sbConstraints.ToString();
             }
             else
             {
                 className = $"{symbol.Name}TypeDetail";
+                initializerName = $"{symbol.Name}TypeDetailInitializer";
                 fileName = ns == null ? $"{symbol.Name}TypeDetail.cs" : $"{ns}.{symbol.Name}TypeDetail.cs";
+                typeConstraints = null;
             }
 
             var isArray = symbol.Name.Contains('[');
@@ -161,11 +215,17 @@ namespace Zerra.SourceGeneration
 
                 namespace {{(ns == null ? null : $"{ns}.")}}SourceGeneration
                 {
-                    public sealed class {{className}} : TypeDetailTGenerationBase<{{typeName}}>
+                #if NET5_0_OR_GREATER
+                    public static class {{initializerName}}
                     {
-                        //[ModuleInitializer]
-                        //public static void Initialize() => TypeAnalyzer.InitializeTypeDetail(new {{className}}());
-                
+                #pragma warning disable CA2255
+                        [ModuleInitializer]
+                #pragma warning restore CA2255
+                        public static void Initialize() => TypeAnalyzer.InitializeTypeDetail(new {{className}}());
+                    }
+                #endif
+                    public sealed class {{className}} : TypeDetailTGenerationBase<{{typeName}}>{{typeConstraints}}
+                    {               
                         public override bool HasIEnumerable => {{(hasIEnumerable ? "true" : "false")}};
                         public override bool HasIEnumerableGeneric => {{(hasIEnumerableGeneric ? "true" : "false")}};
                         public override bool HasICollection => {{(hasICollection ? "true" : "false")}};
@@ -203,7 +263,7 @@ namespace Zerra.SourceGeneration
                         public override SpecialType? SpecialType => {{(specialType.HasValue ? "SpecialType." + specialType.Value.ToString() : "null")}};
                         public override CoreEnumType? EnumUnderlyingType => {{(enumType.HasValue ? "CoreEnumType." + enumType.Value.ToString() : "null")}};
 
-                        private readonly Type innerType = {{(innerType is null ? "null" : $"typeof({innerType})")}};
+                        private readonly Type? innerType = {{(innerType is null ? "null" : $"typeof({innerType})")}};
                         public override Type InnerType => innerType ?? throw new NotSupportedException();
 
                         public override bool IsTask => {{(isTask ? "true" : "false")}};

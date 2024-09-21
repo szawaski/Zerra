@@ -32,6 +32,11 @@ Zerra.Reflection.TypeAnalyzer
 		<LangVersion>12.0</LangVersion>
         <Version>5.0.0</Version>
     </PropertyGroup>
+    
+    <!--<PropertyGroup>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+        <CompilerGeneratedFilesOutputPath>Generated</CompilerGeneratedFilesOutputPath>
+    </PropertyGroup>-->
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>

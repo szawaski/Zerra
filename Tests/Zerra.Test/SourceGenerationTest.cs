@@ -21,7 +21,7 @@ namespace Zerra.Test
             var references = assemblies.Select(x => MetadataReference.CreateFromFile(x.Location)).ToArray();
 
             var compilation = CSharpCompilation.Create("TestProject",
-                [SyntaxFactory.ParseSyntaxTree("public class TestGen : System.Collections.Generic.List<string> { }")],
+                [SyntaxFactory.ParseSyntaxTree("public class TestGen<T> : System.Collections.Generic.List<T> where T : class, new() { }")],
                 references,
                 new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
