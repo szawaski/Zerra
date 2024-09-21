@@ -29,23 +29,6 @@ namespace ZerraDemo.Domain.Generated
             new PetModelMemberDetail_LastPooped(locker)
         ];
 
-        public override Func<PetModel> Creator => () => new PetModel();
-        public override bool HasCreator => true;
-
-        public override bool IsNullable => false;
-        public override CoreType? CoreType => null;
-        public override SpecialType? SpecialType => null;
-
-        public override Type InnerType => throw new NotSupportedException();
-
-        public override bool IsTask => false;
-
-        public override CoreEnumType? EnumUnderlyingType => null;
-
-        public override IReadOnlyList<Type> BaseTypes => [];
-
-        public override IReadOnlyList<Type> Interfaces => [];
-
         public override bool HasIEnumerable => false;
         public override bool HasIEnumerableGeneric => false;
         public override bool HasICollection => false;
@@ -73,6 +56,22 @@ namespace ZerraDemo.Domain.Generated
         public override bool IsIDictionary => false;
         public override bool IsIDictionaryGeneric => false;
         public override bool IsIReadOnlyDictionaryGeneric => false;
+
+        public override Func<PetModel> Creator => () => new PetModel();
+        public override bool HasCreator => true;
+
+        public override bool IsNullable => false;
+        public override CoreType? CoreType => null;
+        public override SpecialType? SpecialType => null;
+        public override CoreEnumType? EnumUnderlyingType => null;
+
+        public override Type InnerType => throw new NotSupportedException();
+
+        public override bool IsTask => false;
+
+        public override IReadOnlyList<Type> BaseTypes => [];
+
+        public override IReadOnlyList<Type> Interfaces => [];
 
         public override IReadOnlyList<Attribute> Attributes => [];
 
@@ -308,24 +307,6 @@ namespace ZerraDemo.Domain.Generated
 
         protected override Func<MemberDetail[]> CreateMemberDetails => () => [];
 
-        public override Func<PetModel[]> Creator => throw new NotSupportedException();
-        public override bool HasCreator => false;
-
-        public override bool IsNullable => false;
-        public override CoreType? CoreType => null;
-        public override SpecialType? SpecialType => null;
-
-        private readonly Type innerType = typeof(PetModel);
-        public override Type InnerType => innerType;
-
-        public override bool IsTask => false;
-
-        public override CoreEnumType? EnumUnderlyingType => null;
-
-        public override IReadOnlyList<Type> BaseTypes => [];
-
-        public override IReadOnlyList<Type> Interfaces => [];
-
         public override bool HasIEnumerable => true;
         public override bool HasIEnumerableGeneric => true;
         public override bool HasICollection => true;
@@ -353,6 +334,24 @@ namespace ZerraDemo.Domain.Generated
         public override bool IsIDictionary => false;
         public override bool IsIDictionaryGeneric => false;
         public override bool IsIReadOnlyDictionaryGeneric => throw new NotImplementedException();
+
+        public override Func<PetModel[]> Creator => throw new NotSupportedException();
+        public override bool HasCreator => false;
+
+        public override bool IsNullable => false;
+        public override CoreType? CoreType => null;
+        public override SpecialType? SpecialType => null;
+
+        private readonly Type innerType = typeof(PetModel);
+        public override Type InnerType => innerType;
+
+        public override bool IsTask => false;
+
+        public override CoreEnumType? EnumUnderlyingType => null;
+
+        public override IReadOnlyList<Type> BaseTypes => [];
+
+        public override IReadOnlyList<Type> Interfaces => [];
 
         public override IReadOnlyList<Attribute> Attributes => [];
 

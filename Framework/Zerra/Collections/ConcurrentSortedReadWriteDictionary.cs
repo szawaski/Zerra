@@ -170,7 +170,7 @@ namespace Zerra.Collections
         IDictionaryEnumerator IDictionary.GetEnumerator()
         {
             locker.EnterReadLock();
-            var enumerator = new ConcurrentSortedDictionaryEnumerator(dictionary.ToArray().AsEnumerable().GetEnumerator());
+            var enumerator = new ConcurrentSortedReadWriteDictionaryEnumerator(dictionary.ToArray().AsEnumerable().GetEnumerator());
             locker.ExitReadLock();
             return enumerator;
         }
@@ -408,10 +408,10 @@ namespace Zerra.Collections
             locker.Dispose();
         }
 
-        private sealed class ConcurrentSortedDictionaryEnumerator : IDictionaryEnumerator
+        private sealed class ConcurrentSortedReadWriteDictionaryEnumerator : IDictionaryEnumerator
         {
             private readonly IEnumerator<KeyValuePair<TKey, TValue>> enumerator;
-            public ConcurrentSortedDictionaryEnumerator(IEnumerator<KeyValuePair<TKey, TValue>> enumerator)
+            public ConcurrentSortedReadWriteDictionaryEnumerator(IEnumerator<KeyValuePair<TKey, TValue>> enumerator)
             {
                 this.enumerator = enumerator;
             }

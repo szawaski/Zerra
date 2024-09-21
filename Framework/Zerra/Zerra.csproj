@@ -42,12 +42,7 @@ Zerra.Reflection.TypeAnalyzer
     </PropertyGroup>
 
     <ItemGroup>
-        <None Remove="C:\Users\KaKush LLC\.nuget\packages\microsoft.diagnostics.tracing.traceevent\2.0.49\build\..\lib\native\amd64\KernelTraceControl.dll" />
-        <None Remove="C:\Users\KaKush LLC\.nuget\packages\microsoft.diagnostics.tracing.traceevent\2.0.49\build\..\lib\native\amd64\msdia140.dll" />
-        <None Remove="C:\Users\KaKush LLC\.nuget\packages\microsoft.diagnostics.tracing.traceevent\2.0.49\build\..\lib\native\x86\KernelTraceControl.dll" />
-        <None Remove="C:\Users\KaKush LLC\.nuget\packages\microsoft.diagnostics.tracing.traceevent\2.0.49\build\..\lib\native\x86\KernelTraceControl.Win61.dll" />
-        <None Remove="C:\Users\KaKush LLC\.nuget\packages\microsoft.diagnostics.tracing.traceevent\2.0.49\build\..\lib\native\x86\msdia140.dll" />
-        <None Remove="Serialization\nt20iehw.1xn~" />
+        <ProjectReference Include="..\Zerra.SourceGeneration\Zerra.SourceGeneration.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     </ItemGroup>
 
     <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
