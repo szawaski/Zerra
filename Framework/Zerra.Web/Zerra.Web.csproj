@@ -6,7 +6,7 @@
         <CheckEolTargetFramework>false</CheckEolTargetFramework>
         <Authors>Steven Zawaski</Authors>
         <Copyright>KaKush LLC</Copyright>
-        <Product>Zerra Framework Repository Sql</Product>
+        <Product>Zerra Framework Web</Product>
         <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
         <Description>Web and AspNetCore specific components for the Zerra Framework.
