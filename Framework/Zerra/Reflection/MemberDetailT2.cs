@@ -18,6 +18,9 @@ namespace Zerra.Reflection
         public abstract Action<T, V?> Setter { get; }
         public abstract bool HasSetter { get; }
 
+        public override sealed Delegate GetterTyped => Getter;
+        public override sealed Delegate SetterTyped => Setter;
+
         public abstract TypeDetail<V> TypeDetail { get; }
     }
 }

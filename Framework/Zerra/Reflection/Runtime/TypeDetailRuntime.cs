@@ -517,11 +517,7 @@ namespace Zerra.Reflection.Runtime
                 {
                     if (!TypeLookup.CoreTypes.Contains(Type))
                     {
-#if NETSTANDARD2_0
-                        var interfaces = Interfaces.Select(x => x.Name).ToArray();
-#else
-                        var interfaces = Interfaces.Select(x => x.Name).ToHashSet();
-#endif
+                        var interfaces = new HashSet<string>(Interfaces.Select(x => x.Name));
 
                         hasIEnumerable = Type.IsArray || Type.Name == enumberableTypeName || interfaces.Contains(enumberableTypeName);
                         hasIEnumerableGeneric = Type.IsArray || Type.Name == enumberableGenericTypeName || interfaces.Contains(enumberableGenericTypeName);
@@ -534,8 +530,6 @@ namespace Zerra.Reflection.Runtime
                         hasISetGeneric = Type.Name == setGenericTypeName || interfaces.Contains(setGenericTypeName);
 #if NET5_0_OR_GREATER
                         hasIReadOnlySetGeneric = Type.Name == readOnlySetGenericTypeName || interfaces.Contains(readOnlySetGenericTypeName);
-#else
-                        hasIReadOnlySetGeneric = false;
 #endif
                         hasIDictionary = Type.Name == dictionaryTypeName || interfaces.Contains(dictionaryTypeName);
                         hasIDictionaryGeneric = Type.Name == dictionaryGenericTypeName || interfaces.Contains(dictionaryGenericTypeName);
@@ -551,9 +545,7 @@ namespace Zerra.Reflection.Runtime
                         isIReadOnlyListGeneric = Type.Name == readOnlyListTypeName;
                         isISetGeneric = Type.Name == setGenericTypeName;
 #if NET5_0_OR_GREATER
-                        isIReadOnlySetGeneric = Type.Name == readOnlySetGenericTypeName;
-#else
-                        isIReadOnlySetGeneric = false;
+                        isIReadOnlySetGeneric = Type.Name == readOnlySetGenericTypeName;;
 #endif
                         isIDictionary = Type.Name == dictionaryTypeName;
                         isIDictionaryGeneric = Type.Name == dictionaryGenericTypeName;

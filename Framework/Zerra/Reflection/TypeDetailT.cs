@@ -19,6 +19,8 @@ namespace Zerra.Reflection
         public abstract Func<T> Creator { get; }
         public abstract bool HasCreator { get; }
 
+        public override sealed Delegate? CreatorTyped => Creator;
+
         private ConcurrentFactoryDictionary<TypeKey, MethodDetail<T>?>? methodLookups = null;
         private MethodDetail<T>? GetMethodInternal(string name, Type[]? parameterTypes = null)
         {
