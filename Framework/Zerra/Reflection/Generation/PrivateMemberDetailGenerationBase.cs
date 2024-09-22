@@ -1,37 +1,108 @@
-﻿// Copyright © KaKush LLC
-// Written By Steven Zawaski
-// Licensed to you under the MIT license
-
-using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-namespace Zerra.Reflection.Runtime
+namespace Zerra.Reflection.Generation
 {
-    internal sealed class MemberDetailRuntime<T, V> : MemberDetail<T, V>
+    public abstract class PrivateMemberDetailGenerationBase<T, V> : MemberDetail<T, V>
     {
-        public override MemberDetail? BackingFieldDetailBoxed { get; }
+        protected readonly object locker;
+        private readonly Action loadMemberInfo;
+        public PrivateMemberDetailGenerationBase(object locker, Action loadMemberInfo)
+        {
+            this.locker = locker;
+            this.loadMemberInfo = loadMemberInfo;
+        }
 
-        public override MemberInfo MemberInfo { get; }
-        public override string Name => MemberInfo.Name;
-        public override Type Type { get; }
-        public override bool IsBacked { get; }
+        public override sealed TypeDetail<V> TypeDetail => TypeAnalyzer<V>.GetTypeDetail();
+        public override sealed TypeDetail TypeDetailBoxed => TypeDetail;
 
-        private Attribute[]? attributes = null;
-        public override IReadOnlyList<Attribute> Attributes
+        private bool memberInfoLoaded = false;
+        private MemberInfo? memberInfo = null;
+        private MemberDetail<T, V>? backingFieldDetail = null;
+        private MemberDetail? backingFieldDetailBoxed = null;
+        public override sealed MemberInfo MemberInfo
         {
             get
             {
-                if (this.attributes == null)
+                if (!memberInfoLoaded)
                 {
                     lock (locker)
                     {
-                        this.attributes ??= MemberInfo.GetCustomAttributes().ToArray();
+                        if (!memberInfoLoaded)
+                        {
+                            loadMemberInfo();
+                            memberInfoLoaded = true;
+                        }
                     }
                 }
-                return this.attributes;
+                return memberInfo!;
+            }
+        }
+        public override sealed MemberDetail<T, V>? BackingFieldDetail
+        {
+            get
+            {
+                if (!memberInfoLoaded)
+                {
+                    lock (locker)
+                    {
+                        if (!memberInfoLoaded)
+                        {
+                            loadMemberInfo();
+                            memberInfoLoaded = true;
+                            //if (IsBacked)
+                            //{
+                            //    var fields = Type.GetFields(BindingFlags.NonPublic | BindingFlags.Instance);
+
+                            //    //<{property.Name}>k__BackingField
+                            //    //<{property.Name}>i__Field
+                            //    var backingName = $"<{Name}>";
+                            //    var backingField = fields.FirstOrDefault(x => x.Name.StartsWith(backingName));
+                            //    if (backingField != null)
+                            //    {
+                            //        backingFieldDetail = new MemberDetailRuntime<T, V>(backingField, null, locker);
+                            //        backingFieldDetailBoxed = backingFieldDetail;
+                            //    }
+                            //}
+                            //backingFieldDetailLoaded = true;
+                        }
+                    }
+                }
+                return backingFieldDetail;
+            }
+        }
+        public override sealed MemberDetail? BackingFieldDetailBoxed
+        {
+            get
+            {
+                if (!memberInfoLoaded)
+                {
+                    lock (locker)
+                    {
+                        if (!memberInfoLoaded)
+                        {
+                            loadMemberInfo();
+                            memberInfoLoaded = true;
+                            //if (IsBacked)
+                            //{
+                            //    var fields = Type.GetFields(BindingFlags.NonPublic | BindingFlags.Instance);
+
+                            //    //<{property.Name}>k__BackingField
+                            //    //<{property.Name}>i__Field
+                            //    var backingName = $"<{Name}>";
+                            //    var backingField = fields.FirstOrDefault(x => x.Name.StartsWith(backingName));
+                            //    if (backingField != null)
+                            //    {
+                            //        backingFieldDetail = new MemberDetailRuntime<T, V>(backingField, null, locker);
+                            //        backingFieldDetailBoxed = backingFieldDetail;
+                            //    }
+                            //}
+                            //backingFieldDetailLoaded = true;
+                        }
+                    }
+                }
+                return backingFieldDetail;
             }
         }
 
@@ -92,7 +163,7 @@ namespace Zerra.Reflection.Runtime
 
         private bool setterBoxedLoaded = false;
         private Action<object, object?>? setterBoxed = null;
-        public override Action<object, object?> SetterBoxed
+        public override sealed Action<object, object?> SetterBoxed
         {
             get
             {
@@ -101,7 +172,7 @@ namespace Zerra.Reflection.Runtime
                 return this.setterBoxed ?? throw new NotSupportedException($"{nameof(MemberDetail)} {Name} does not have a {nameof(SetterBoxed)}");
             }
         }
-        public override bool HasSetterBoxed
+        public override sealed bool HasSetterBoxed
         {
             get
             {
@@ -145,27 +216,9 @@ namespace Zerra.Reflection.Runtime
             }
         }
 
-        private TypeDetail? typeDetailBoxed = null;
-        public override TypeDetail TypeDetailBoxed
-        {
-            get
-            {
-                if (typeDetailBoxed == null)
-                {
-                    lock (locker)
-                    {
-                        typeDetailBoxed ??= TypeAnalyzer.GetTypeDetail(Type);
-                    }
-                }
-                return typeDetailBoxed;
-            }
-        }
-
-        public override MemberDetail<T, V>? BackingFieldDetail { get; }
-
         private bool getterLoaded = false;
         private Func<T, V?>? getter = null;
-        public override Func<T, V?> Getter
+        public override sealed Func<T, V?> Getter
         {
             get
             {
@@ -174,7 +227,7 @@ namespace Zerra.Reflection.Runtime
                 return this.getter ?? throw new NotSupportedException($"{nameof(MemberDetail)} {Name} does not have a {nameof(Getter)}");
             }
         }
-        public override bool HasGetter
+        public override sealed bool HasGetter
         {
             get
             {
@@ -220,7 +273,7 @@ namespace Zerra.Reflection.Runtime
 
         private bool setterLoaded = false;
         private Action<T, V?>? setter = null;
-        public override Action<T, V?> Setter
+        public override sealed Action<T, V?> Setter
         {
             get
             {
@@ -229,7 +282,7 @@ namespace Zerra.Reflection.Runtime
                 return this.setter ?? throw new NotSupportedException($"{nameof(MemberDetail)} {Name} does not have a {nameof(Setter)}");
             }
         }
-        public override bool HasSetter
+        public override sealed bool HasSetter
         {
             get
             {
@@ -273,56 +326,11 @@ namespace Zerra.Reflection.Runtime
             }
         }
 
-        private TypeDetail<V>? typeDetail = null;
-        public override TypeDetail<V> TypeDetail
+        internal override sealed void SetMemberInfo(MemberInfo memberInfo, MemberDetail? backingFieldDetailBoxed)
         {
-            get
-            {
-                if (typeDetail == null)
-                {
-                    lock (locker)
-                    {
-                        typeDetail ??= TypeAnalyzer<V>.GetTypeDetail();
-                    }
-                }
-                return typeDetail;
-            }
+            this.memberInfo = memberInfo;
+            this.backingFieldDetail = (MemberDetail<T, V>?)backingFieldDetailBoxed;
+            this.backingFieldDetailBoxed = backingFieldDetailBoxed;
         }
-
-        private readonly object locker;
-        internal MemberDetailRuntime(MemberInfo member, MemberDetail<T, V>? backingFieldDetail, object locker)
-        {
-            this.locker = locker;
-            this.BackingFieldDetail = backingFieldDetail;
-            this.BackingFieldDetailBoxed = backingFieldDetail;
-            this.MemberInfo = member;
-
-            if (member.MemberType == MemberTypes.Property)
-            {
-                var property = (PropertyInfo)MemberInfo;
-                this.Type = property.PropertyType;
-            }
-            else if (member.MemberType == MemberTypes.Field)
-            {
-                var field = (FieldInfo)MemberInfo;
-                this.Type = field.FieldType;
-            }
-            else
-            {
-                throw new NotSupportedException($"{nameof(MemberDetail)} does not support {member.MemberType}");
-            }
-
-            this.IsBacked = member.MemberType == MemberTypes.Field || backingFieldDetail != null;
-        }
-
-        private static readonly Type typeDetailT = typeof(MemberDetailRuntime<,>);
-        internal static MemberDetail New(Type type, Type valueType, MemberInfo member, MemberDetail? backingFieldDetail, object locker)
-        {
-            var typeDetailGeneric = typeDetailT.MakeGenericType(type, valueType);
-            var obj = typeDetailGeneric.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)[0].Invoke(new object?[] { member, backingFieldDetail, locker });
-            return (MemberDetail)obj;
-        }
-
-        internal override void SetMemberInfo(MemberInfo memberInfo, MemberDetail? backingFieldDetailBoxed) => throw new NotSupportedException();
     }
 }

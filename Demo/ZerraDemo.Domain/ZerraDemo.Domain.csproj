@@ -6,6 +6,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\..\Framework\Zerra.SourceGeneration\Zerra.SourceGeneration.csproj"  OutputItemType="Analyzer" ReferenceOutputAssembly="false"  />
         <ProjectReference Include="..\..\Framework\Zerra\Zerra.csproj" />
     </ItemGroup>
 
@@ -22,5 +23,10 @@
             <OutputFilePath>..\ZerraDemo.Web\wwwroot\js</OutputFilePath>
         </None>
     </ItemGroup>
+
+    <PropertyGroup>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+        <CompilerGeneratedFilesOutputPath>Generated</CompilerGeneratedFilesOutputPath>
+    </PropertyGroup>
 
 </Project>

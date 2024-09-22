@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Reflection;
 using Zerra.Collections;
 
 namespace Zerra.Reflection
@@ -328,6 +329,21 @@ namespace Zerra.Reflection
 
             return true;
         }
+        protected static bool SignatureCompare(string name1, ParameterInfo[] parameters1, MethodDetail methodDetail2)
+        {
+            if (name1 != methodDetail2.Name)
+                return false;
+
+            if (parameters1.Length != methodDetail2.ParametersInfo.Count)
+                return false;
+            for (var i = 0; i < parameters1.Length; i++)
+            {
+                if (parameters1[i].ParameterType != methodDetail2.ParametersInfo[i].ParameterType)
+                    return false;
+            }
+
+            return true;
+        }
         protected static bool SignatureCompare(MethodDetail methodDetail1, MethodDetail methodDetail2)
         {
             if (methodDetail1.Name != methodDetail2.Name)
@@ -356,6 +372,18 @@ namespace Zerra.Reflection
                     if (parameters1[i] != constructorDetail2.ParametersInfo[i].ParameterType)
                         return false;
                 }
+            }
+
+            return true;
+        }
+        protected static bool SignatureCompare(ParameterInfo[] parameters1, ConstructorDetail constructorDetail2)
+        {
+            if (parameters1.Length != constructorDetail2.ParametersInfo.Count)
+                return false;
+            for (var i = 0; i < parameters1.Length; i++)
+            {
+                if (parameters1[i].ParameterType != constructorDetail2.ParametersInfo[i].ParameterType)
+                    return false;
             }
 
             return true;
