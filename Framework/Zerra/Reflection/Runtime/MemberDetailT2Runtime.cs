@@ -323,6 +323,6 @@ namespace Zerra.Reflection.Runtime
             return (MemberDetail)obj;
         }
 
-        internal override void SetMemberInfo(MemberInfo memberInfo, MemberDetail? backingFieldDetailBoxed) => throw new NotSupportedException();
+        internal override void SetMemberInfo(MemberInfo memberInfo) => throw new NotSupportedException();
     }
 }

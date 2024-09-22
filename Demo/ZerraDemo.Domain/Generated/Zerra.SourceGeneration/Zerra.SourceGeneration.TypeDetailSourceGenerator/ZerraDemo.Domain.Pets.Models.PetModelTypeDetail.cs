@@ -106,6 +106,8 @@ namespace ZerraDemo.Domain.Pets.Models.SourceGeneration
 
             public override Action<object, object?> SetterBoxed => (x, value) => ((ZerraDemo.Domain.Pets.Models.PetModel)x).ID = (System.Guid)value!;
             public override bool HasSetterBoxed => true;
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Pets.Models.PetModel, System.Guid>?> CreateBackingFieldDetail => () => new _ID_k__BackingFieldMemberDetail(locker, loadMemberInfo);
         }
         public sealed class NameMemberDetail : MemberDetailGenerationBase<ZerraDemo.Domain.Pets.Models.PetModel, string?>
         {
@@ -131,6 +133,8 @@ namespace ZerraDemo.Domain.Pets.Models.SourceGeneration
 
             public override Action<object, object?> SetterBoxed => (x, value) => ((ZerraDemo.Domain.Pets.Models.PetModel)x).Name = (string?)value!;
             public override bool HasSetterBoxed => true;
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Pets.Models.PetModel, string?>?> CreateBackingFieldDetail => () => new _Name_k__BackingFieldMemberDetail(locker, loadMemberInfo);
         }
         public sealed class BreedMemberDetail : MemberDetailGenerationBase<ZerraDemo.Domain.Pets.Models.PetModel, string?>
         {
@@ -156,6 +160,8 @@ namespace ZerraDemo.Domain.Pets.Models.SourceGeneration
 
             public override Action<object, object?> SetterBoxed => (x, value) => ((ZerraDemo.Domain.Pets.Models.PetModel)x).Breed = (string?)value!;
             public override bool HasSetterBoxed => true;
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Pets.Models.PetModel, string?>?> CreateBackingFieldDetail => () => new _Breed_k__BackingFieldMemberDetail(locker, loadMemberInfo);
         }
         public sealed class SpeciesMemberDetail : MemberDetailGenerationBase<ZerraDemo.Domain.Pets.Models.PetModel, string?>
         {
@@ -181,6 +187,8 @@ namespace ZerraDemo.Domain.Pets.Models.SourceGeneration
 
             public override Action<object, object?> SetterBoxed => (x, value) => ((ZerraDemo.Domain.Pets.Models.PetModel)x).Species = (string?)value!;
             public override bool HasSetterBoxed => true;
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Pets.Models.PetModel, string?>?> CreateBackingFieldDetail => () => new _Species_k__BackingFieldMemberDetail(locker, loadMemberInfo);
         }
         public sealed class LastEatenMemberDetail : MemberDetailGenerationBase<ZerraDemo.Domain.Pets.Models.PetModel, System.DateTime?>
         {
@@ -206,6 +214,8 @@ namespace ZerraDemo.Domain.Pets.Models.SourceGeneration
 
             public override Action<object, object?> SetterBoxed => (x, value) => ((ZerraDemo.Domain.Pets.Models.PetModel)x).LastEaten = (System.DateTime?)value!;
             public override bool HasSetterBoxed => true;
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Pets.Models.PetModel, System.DateTime?>?> CreateBackingFieldDetail => () => new _LastEaten_k__BackingFieldMemberDetail(locker, loadMemberInfo);
         }
         public sealed class AmountEatenMemberDetail : MemberDetailGenerationBase<ZerraDemo.Domain.Pets.Models.PetModel, int?>
         {
@@ -231,6 +241,8 @@ namespace ZerraDemo.Domain.Pets.Models.SourceGeneration
 
             public override Action<object, object?> SetterBoxed => (x, value) => ((ZerraDemo.Domain.Pets.Models.PetModel)x).AmountEaten = (int?)value!;
             public override bool HasSetterBoxed => true;
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Pets.Models.PetModel, int?>?> CreateBackingFieldDetail => () => new _AmountEaten_k__BackingFieldMemberDetail(locker, loadMemberInfo);
         }
         public sealed class LastPoopedMemberDetail : MemberDetailGenerationBase<ZerraDemo.Domain.Pets.Models.PetModel, System.DateTime?>
         {
@@ -256,6 +268,113 @@ namespace ZerraDemo.Domain.Pets.Models.SourceGeneration
 
             public override Action<object, object?> SetterBoxed => (x, value) => ((ZerraDemo.Domain.Pets.Models.PetModel)x).LastPooped = (System.DateTime?)value!;
             public override bool HasSetterBoxed => true;
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Pets.Models.PetModel, System.DateTime?>?> CreateBackingFieldDetail => () => new _LastPooped_k__BackingFieldMemberDetail(locker, loadMemberInfo);
+        }
+        public sealed class _ID_k__BackingFieldMemberDetail : PrivateMemberDetailGenerationBase<ZerraDemo.Domain.Pets.Models.PetModel, System.Guid>
+        {
+            public _ID_k__BackingFieldMemberDetail(object locker, Action loadMemberInfo) : base(locker, loadMemberInfo) { }
+
+            public override string Name => "<ID>k__BackingField";
+
+            private readonly Type type = typeof(System.Guid);
+            public override Type Type => type;
+
+            public override bool IsBacked => true;
+
+            public override IReadOnlyList<Attribute> Attributes => [];
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Pets.Models.PetModel, System.Guid>?> CreateBackingFieldDetail => () => null;
+        }
+        public sealed class _Name_k__BackingFieldMemberDetail : PrivateMemberDetailGenerationBase<ZerraDemo.Domain.Pets.Models.PetModel, string?>
+        {
+            public _Name_k__BackingFieldMemberDetail(object locker, Action loadMemberInfo) : base(locker, loadMemberInfo) { }
+
+            public override string Name => "<Name>k__BackingField";
+
+            private readonly Type type = typeof(string);
+            public override Type Type => type;
+
+            public override bool IsBacked => true;
+
+            public override IReadOnlyList<Attribute> Attributes => [];
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Pets.Models.PetModel, string?>?> CreateBackingFieldDetail => () => null;
+        }
+        public sealed class _Breed_k__BackingFieldMemberDetail : PrivateMemberDetailGenerationBase<ZerraDemo.Domain.Pets.Models.PetModel, string?>
+        {
+            public _Breed_k__BackingFieldMemberDetail(object locker, Action loadMemberInfo) : base(locker, loadMemberInfo) { }
+
+            public override string Name => "<Breed>k__BackingField";
+
+            private readonly Type type = typeof(string);
+            public override Type Type => type;
+
+            public override bool IsBacked => true;
+
+            public override IReadOnlyList<Attribute> Attributes => [];
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Pets.Models.PetModel, string?>?> CreateBackingFieldDetail => () => null;
+        }
+        public sealed class _Species_k__BackingFieldMemberDetail : PrivateMemberDetailGenerationBase<ZerraDemo.Domain.Pets.Models.PetModel, string?>
+        {
+            public _Species_k__BackingFieldMemberDetail(object locker, Action loadMemberInfo) : base(locker, loadMemberInfo) { }
+
+            public override string Name => "<Species>k__BackingField";
+
+            private readonly Type type = typeof(string);
+            public override Type Type => type;
+
+            public override bool IsBacked => true;
+
+            public override IReadOnlyList<Attribute> Attributes => [];
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Pets.Models.PetModel, string?>?> CreateBackingFieldDetail => () => null;
+        }
+        public sealed class _LastEaten_k__BackingFieldMemberDetail : PrivateMemberDetailGenerationBase<ZerraDemo.Domain.Pets.Models.PetModel, System.DateTime?>
+        {
+            public _LastEaten_k__BackingFieldMemberDetail(object locker, Action loadMemberInfo) : base(locker, loadMemberInfo) { }
+
+            public override string Name => "<LastEaten>k__BackingField";
+
+            private readonly Type type = typeof(System.DateTime);
+            public override Type Type => type;
+
+            public override bool IsBacked => true;
+
+            public override IReadOnlyList<Attribute> Attributes => [];
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Pets.Models.PetModel, System.DateTime?>?> CreateBackingFieldDetail => () => null;
+        }
+        public sealed class _AmountEaten_k__BackingFieldMemberDetail : PrivateMemberDetailGenerationBase<ZerraDemo.Domain.Pets.Models.PetModel, int?>
+        {
+            public _AmountEaten_k__BackingFieldMemberDetail(object locker, Action loadMemberInfo) : base(locker, loadMemberInfo) { }
+
+            public override string Name => "<AmountEaten>k__BackingField";
+
+            private readonly Type type = typeof(int);
+            public override Type Type => type;
+
+            public override bool IsBacked => true;
+
+            public override IReadOnlyList<Attribute> Attributes => [];
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Pets.Models.PetModel, int?>?> CreateBackingFieldDetail => () => null;
+        }
+        public sealed class _LastPooped_k__BackingFieldMemberDetail : PrivateMemberDetailGenerationBase<ZerraDemo.Domain.Pets.Models.PetModel, System.DateTime?>
+        {
+            public _LastPooped_k__BackingFieldMemberDetail(object locker, Action loadMemberInfo) : base(locker, loadMemberInfo) { }
+
+            public override string Name => "<LastPooped>k__BackingField";
+
+            private readonly Type type = typeof(System.DateTime);
+            public override Type Type => type;
+
+            public override bool IsBacked => true;
+
+            public override IReadOnlyList<Attribute> Attributes => [];
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Pets.Models.PetModel, System.DateTime?>?> CreateBackingFieldDetail => () => null;
         }
     }
 }

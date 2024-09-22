@@ -106,6 +106,8 @@ namespace ZerraDemo.Domain.Ledger2.Models.SourceGeneration
 
             public override Action<object, object?> SetterBoxed => (x, value) => ((ZerraDemo.Domain.Ledger2.Models.Balance2Model)x).AccountID = (System.Guid)value!;
             public override bool HasSetterBoxed => true;
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Ledger2.Models.Balance2Model, System.Guid>?> CreateBackingFieldDetail => () => new _AccountID_k__BackingFieldMemberDetail(locker, loadMemberInfo);
         }
         public sealed class BalanceMemberDetail : MemberDetailGenerationBase<ZerraDemo.Domain.Ledger2.Models.Balance2Model, decimal>
         {
@@ -131,6 +133,8 @@ namespace ZerraDemo.Domain.Ledger2.Models.SourceGeneration
 
             public override Action<object, object?> SetterBoxed => (x, value) => ((ZerraDemo.Domain.Ledger2.Models.Balance2Model)x).Balance = (decimal)value!;
             public override bool HasSetterBoxed => true;
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Ledger2.Models.Balance2Model, decimal>?> CreateBackingFieldDetail => () => new _Balance_k__BackingFieldMemberDetail(locker, loadMemberInfo);
         }
         public sealed class LastTransactionDateMemberDetail : MemberDetailGenerationBase<ZerraDemo.Domain.Ledger2.Models.Balance2Model, System.DateTime?>
         {
@@ -156,6 +160,8 @@ namespace ZerraDemo.Domain.Ledger2.Models.SourceGeneration
 
             public override Action<object, object?> SetterBoxed => (x, value) => ((ZerraDemo.Domain.Ledger2.Models.Balance2Model)x).LastTransactionDate = (System.DateTime?)value!;
             public override bool HasSetterBoxed => true;
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Ledger2.Models.Balance2Model, System.DateTime?>?> CreateBackingFieldDetail => () => new _LastTransactionDate_k__BackingFieldMemberDetail(locker, loadMemberInfo);
         }
         public sealed class LastTransactionAmountMemberDetail : MemberDetailGenerationBase<ZerraDemo.Domain.Ledger2.Models.Balance2Model, decimal?>
         {
@@ -181,6 +187,68 @@ namespace ZerraDemo.Domain.Ledger2.Models.SourceGeneration
 
             public override Action<object, object?> SetterBoxed => (x, value) => ((ZerraDemo.Domain.Ledger2.Models.Balance2Model)x).LastTransactionAmount = (decimal?)value!;
             public override bool HasSetterBoxed => true;
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Ledger2.Models.Balance2Model, decimal?>?> CreateBackingFieldDetail => () => new _LastTransactionAmount_k__BackingFieldMemberDetail(locker, loadMemberInfo);
+        }
+        public sealed class _AccountID_k__BackingFieldMemberDetail : PrivateMemberDetailGenerationBase<ZerraDemo.Domain.Ledger2.Models.Balance2Model, System.Guid>
+        {
+            public _AccountID_k__BackingFieldMemberDetail(object locker, Action loadMemberInfo) : base(locker, loadMemberInfo) { }
+
+            public override string Name => "<AccountID>k__BackingField";
+
+            private readonly Type type = typeof(System.Guid);
+            public override Type Type => type;
+
+            public override bool IsBacked => true;
+
+            public override IReadOnlyList<Attribute> Attributes => [];
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Ledger2.Models.Balance2Model, System.Guid>?> CreateBackingFieldDetail => () => null;
+        }
+        public sealed class _Balance_k__BackingFieldMemberDetail : PrivateMemberDetailGenerationBase<ZerraDemo.Domain.Ledger2.Models.Balance2Model, decimal>
+        {
+            public _Balance_k__BackingFieldMemberDetail(object locker, Action loadMemberInfo) : base(locker, loadMemberInfo) { }
+
+            public override string Name => "<Balance>k__BackingField";
+
+            private readonly Type type = typeof(decimal);
+            public override Type Type => type;
+
+            public override bool IsBacked => true;
+
+            public override IReadOnlyList<Attribute> Attributes => [];
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Ledger2.Models.Balance2Model, decimal>?> CreateBackingFieldDetail => () => null;
+        }
+        public sealed class _LastTransactionDate_k__BackingFieldMemberDetail : PrivateMemberDetailGenerationBase<ZerraDemo.Domain.Ledger2.Models.Balance2Model, System.DateTime?>
+        {
+            public _LastTransactionDate_k__BackingFieldMemberDetail(object locker, Action loadMemberInfo) : base(locker, loadMemberInfo) { }
+
+            public override string Name => "<LastTransactionDate>k__BackingField";
+
+            private readonly Type type = typeof(System.DateTime);
+            public override Type Type => type;
+
+            public override bool IsBacked => true;
+
+            public override IReadOnlyList<Attribute> Attributes => [];
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Ledger2.Models.Balance2Model, System.DateTime?>?> CreateBackingFieldDetail => () => null;
+        }
+        public sealed class _LastTransactionAmount_k__BackingFieldMemberDetail : PrivateMemberDetailGenerationBase<ZerraDemo.Domain.Ledger2.Models.Balance2Model, decimal?>
+        {
+            public _LastTransactionAmount_k__BackingFieldMemberDetail(object locker, Action loadMemberInfo) : base(locker, loadMemberInfo) { }
+
+            public override string Name => "<LastTransactionAmount>k__BackingField";
+
+            private readonly Type type = typeof(decimal);
+            public override Type Type => type;
+
+            public override bool IsBacked => true;
+
+            public override IReadOnlyList<Attribute> Attributes => [];
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Ledger2.Models.Balance2Model, decimal?>?> CreateBackingFieldDetail => () => null;
         }
     }
 }

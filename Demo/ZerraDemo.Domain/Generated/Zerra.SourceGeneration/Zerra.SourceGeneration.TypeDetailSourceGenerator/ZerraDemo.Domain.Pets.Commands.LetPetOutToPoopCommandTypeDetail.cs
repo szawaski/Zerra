@@ -106,6 +106,23 @@ namespace ZerraDemo.Domain.Pets.Commands.SourceGeneration
 
             public override Action<object, object?> SetterBoxed => (x, value) => ((ZerraDemo.Domain.Pets.Commands.LetPetOutToPoopCommand)x).PetID = (System.Guid)value!;
             public override bool HasSetterBoxed => true;
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Pets.Commands.LetPetOutToPoopCommand, System.Guid>?> CreateBackingFieldDetail => () => new _PetID_k__BackingFieldMemberDetail(locker, loadMemberInfo);
+        }
+        public sealed class _PetID_k__BackingFieldMemberDetail : PrivateMemberDetailGenerationBase<ZerraDemo.Domain.Pets.Commands.LetPetOutToPoopCommand, System.Guid>
+        {
+            public _PetID_k__BackingFieldMemberDetail(object locker, Action loadMemberInfo) : base(locker, loadMemberInfo) { }
+
+            public override string Name => "<PetID>k__BackingField";
+
+            private readonly Type type = typeof(System.Guid);
+            public override Type Type => type;
+
+            public override bool IsBacked => true;
+
+            public override IReadOnlyList<Attribute> Attributes => [];
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Pets.Commands.LetPetOutToPoopCommand, System.Guid>?> CreateBackingFieldDetail => () => null;
         }
     }
 }

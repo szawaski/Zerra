@@ -32,6 +32,6 @@ namespace Zerra.Reflection
 
         public abstract TypeDetail TypeDetailBoxed { get; }
 
-        internal abstract void SetMemberInfo(MemberInfo memberInfo, MemberDetail? backingFieldDetailBoxed);
+        internal abstract void SetMemberInfo(MemberInfo memberInfo);
     }
 }

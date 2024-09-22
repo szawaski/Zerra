@@ -258,27 +258,28 @@ namespace Zerra.SourceGeneration
 
             var sbChildClasses = new StringBuilder();
 
-            var memberNames = new List<string>();
+            var membersToInitialize = new List<string>();
             var properties = symbolMembers.Where(x => x.Kind == SymbolKind.Property).Cast<IPropertySymbol>().ToArray();
-            var fields = symbolMembers.Where(x => x.Kind == SymbolKind.Field).Cast<IFieldSymbol>().ToList();
+            var fields = symbolMembers.Where(x => x.Kind == SymbolKind.Field).Cast<IFieldSymbol>().ToArray();
+            var backingFields = new HashSet<IFieldSymbol>();
             foreach (var property in properties)
             {
                 if (property.DeclaredAccessibility == Accessibility.Public)
-                    GeneratePublicMember(property, fields, fullTypeName, memberNames, sbChildClasses);
+                    GeneratePublicMember(property, fields, backingFields, fullTypeName, membersToInitialize, sbChildClasses);
                 else
-                    GeneratePrivateMember(property, fields, fullTypeName, memberNames, sbChildClasses);
+                    GeneratePrivateMember(property, fields, backingFields, fullTypeName, membersToInitialize, sbChildClasses);
             }
             foreach (var field in fields)
             {
                 if (field.DeclaredAccessibility == Accessibility.Public)
-                    GeneratePublicMember(field, fullTypeName, memberNames, sbChildClasses);
+                    GeneratePublicMember(field, fullTypeName, backingFields, membersToInitialize, sbChildClasses);
                 else
-                    GeneratePrivateMember(field, fullTypeName, memberNames, sbChildClasses);
+                    GeneratePrivateMember(field, fullTypeName, backingFields, membersToInitialize, sbChildClasses);
             }
 
             var sbMembers = new StringBuilder();
             _ = sbMembers.Append('[');
-            foreach (var memberName in memberNames)
+            foreach (var memberName in membersToInitialize)
             {
                 if (sbMembers.Length > 1)
                     _ = sbMembers.Append(", ");
@@ -381,25 +382,23 @@ namespace Zerra.SourceGeneration
             context.AddSource(fileName, SourceText.From(code, Encoding.UTF8));
         }
 
-        private static void GeneratePublicMember(IPropertySymbol propertySymbol, List<IFieldSymbol> fieldSymbols, string parentTypeName, List<string> memberNames, StringBuilder sbChildClasses)
+        private static void GeneratePublicMember(IPropertySymbol propertySymbol, IFieldSymbol[] fieldSymbols, HashSet<IFieldSymbol> backingFields, string parentTypeName, List<string> membersToInitialize, StringBuilder sbChildClasses)
         {
             var memberName = propertySymbol.Name;
-            var className = $"{memberName}MemberDetail";
+            var className = $"{propertySymbol.Name}MemberDetail";
             var typeName = propertySymbol.Type.ToString();
 
             //<{property.Name}>k__BackingField
             //<{property.Name}>i__Field
             var backingName = $"<{propertySymbol.Name}>";
             var fieldSymbol = fieldSymbols.FirstOrDefault(x => x.Name.StartsWith(backingName));
-            bool isBacked;
+            var isBacked = false;
+            string? fieldClassName = null;
             if (fieldSymbol is not null)
             {
-                fieldSymbols.Remove(fieldSymbol);
+                backingFields.Add(fieldSymbol);
                 isBacked = true;
-            }
-            else
-            {
-                isBacked = true;
+                fieldClassName = $"{fieldSymbol.Name.Replace('<', '_').Replace('>', '_')}MemberDetail";
             }
 
             var hasGetter = propertySymbol.GetMethod is not null;
@@ -431,31 +430,31 @@ namespace Zerra.SourceGeneration
 
                             public override Action<object, object?> SetterBoxed => (x, value) => {{(hasSetter ? $"(({parentTypeName})x).{memberName} = ({typeName})value!" : "throw new NotSupportedException()")}};
                             public override bool HasSetterBoxed => {{(hasSetter ? "true" : "false")}};
+
+                            protected override Func<MemberDetail<{{parentTypeName}}, {{typeName}}>?> CreateBackingFieldDetail => {{(fieldClassName is null ? "() => null" : $"() => new {fieldClassName}(locker, loadMemberInfo)")}};
                         }
                 """";
 
-            memberNames.Add(className);
+            membersToInitialize.Add(className);
             _ = sbChildClasses.Append(code);
         }
-        private static void GeneratePrivateMember(IPropertySymbol propertySymbol, List<IFieldSymbol> fieldSymbols, string parentTypeName, List<string> memberNames, StringBuilder sbChildClasses)
+        private static void GeneratePrivateMember(IPropertySymbol propertySymbol, IFieldSymbol[] fieldSymbols, HashSet<IFieldSymbol> backingFields, string parentTypeName, List<string> membersToInitialize, StringBuilder sbChildClasses)
         {
             var memberName = propertySymbol.Name;
-            var className = $"{memberName}MemberDetail";
+            var className = $"{propertySymbol.Name}MemberDetail";
             var typeName = propertySymbol.Type.ToString();
 
             //<{property.Name}>k__BackingField
             //<{property.Name}>i__Field
             var backingName = $"<{propertySymbol.Name}>";
             var fieldSymbol = fieldSymbols.FirstOrDefault(x => x.Name.StartsWith(backingName));
-            bool isBacked;
+            var isBacked = false;
+            string? fieldClassName = null;
             if (fieldSymbol is not null)
             {
-                fieldSymbols.Remove(fieldSymbol);
+                backingFields.Add(fieldSymbol);
                 isBacked = true;
-            }
-            else
-            {
-                isBacked = true;
+                fieldClassName = $"{fieldSymbol.Name.Replace('<', '_').Replace('>', '_')}MemberDetail";
             }
 
             var code = $$""""
@@ -472,16 +471,18 @@ namespace Zerra.SourceGeneration
                             public override bool IsBacked => {{(isBacked ? "true" : "false")}};
 
                             public override IReadOnlyList<Attribute> Attributes => [];
+
+                            protected override Func<MemberDetail<{{parentTypeName}}, {{typeName}}>?> CreateBackingFieldDetail => {{(fieldClassName is null ? "() => null" : $"() => new {fieldClassName}(locker, loadMemberInfo)")}};
                         }
                 """";
 
-            memberNames.Add(className);
+            membersToInitialize.Add(className);
             _ = sbChildClasses.Append(code);
         }
-        private static void GeneratePublicMember(IFieldSymbol fieldSymbol, string parentTypeName, List<string> memberNames, StringBuilder sbChildClasses)
+        private static void GeneratePublicMember(IFieldSymbol fieldSymbol, string parentTypeName, HashSet<IFieldSymbol> backingFields, List<string> membersToInitialize, StringBuilder sbChildClasses)
         {
             var memberName = fieldSymbol.Name;
-            var className = $"{memberName.Replace('<', '_').Replace('>', '_')}MemberDetail";
+            var className = $"{fieldSymbol.Name.Replace('<', '_').Replace('>', '_')}MemberDetail";
             var typeName = fieldSymbol.Type.ToString();
 
             var code = $$""""
@@ -510,16 +511,19 @@ namespace Zerra.SourceGeneration
 
                             public override Action<object, object?> SetterBoxed => (x, value) => (({{parentTypeName}})x).{{memberName}} = ({{typeName}})value!;
                             public override bool HasSetterBoxed => true;
+
+                            protected override Func<MemberDetail<{{parentTypeName}}, {{typeName}}>?> CreateBackingFieldDetail => () => null;
                         }
                 """";
 
-            memberNames.Add(className);
+            if (!backingFields.Contains(fieldSymbol))
+                membersToInitialize.Add(className);
             _ = sbChildClasses.Append(code);
         }
-        private static void GeneratePrivateMember(IFieldSymbol fieldSymbol, string parentTypeName, List<string> memberNames, StringBuilder sbChildClasses)
+        private static void GeneratePrivateMember(IFieldSymbol fieldSymbol, string parentTypeName, HashSet<IFieldSymbol> backingFields, List<string> membersToInitialize, StringBuilder sbChildClasses)
         {
             var memberName = fieldSymbol.Name;
-            var className = $"{memberName.Replace('<', '_').Replace('>', '_')}MemberDetail";
+            var className = $"{fieldSymbol.Name.Replace('<', '_').Replace('>', '_')}MemberDetail";
             var typeName = fieldSymbol.Type.ToString();
 
             var code = $$""""
@@ -536,10 +540,13 @@ namespace Zerra.SourceGeneration
                             public override bool IsBacked => true;
 
                             public override IReadOnlyList<Attribute> Attributes => [];
+
+                            protected override Func<MemberDetail<{{parentTypeName}}, {{typeName}}>?> CreateBackingFieldDetail => () => null;
                         }
                 """";
 
-            memberNames.Add(className);
+            if (!backingFields.Contains(fieldSymbol))
+                membersToInitialize.Add(className);
             _ = sbChildClasses.Append(code);
         }
 

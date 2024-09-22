@@ -134,23 +134,17 @@ namespace Zerra.Reflection.Generation
             IEnumerable<FieldInfo> fields = Type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
             foreach (var memberDetail in MemberDetails)
             {
-                MemberDetail? backingFieldDetail = null;
                 var property = properties.FirstOrDefault(x => x.Name == memberDetail.Name);
                 if (property != null)
                 {
-                    //<{property.Name}>k__BackingField
-                    //<{property.Name}>i__Field
-                    var backingName = $"<{memberDetail.Name}>";
-                    var backingField = fields.FirstOrDefault(x => x.Name.StartsWith(backingName));
-                    if (backingField != null)
-                        backingFieldDetail = MemberDetailRuntime<object, object>.New(Type, property.PropertyType, backingField, null, locker);
-                    memberDetail.SetMemberInfo(property, backingFieldDetail);
+                    memberDetail.SetMemberInfo(property);
                     continue;
                 }
                 var field = fields.FirstOrDefault(x => x.Name == memberDetail.Name);
                 if (field != null)
                 {
-                    memberDetail.SetMemberInfo(field, null);
+                    memberDetail.SetMemberInfo(field);
+                    continue;
                 }
                 throw new InvalidOperationException($"MemberInfo not found for generated member {Type.GetNiceName()}.{memberDetail.Name}");
             }

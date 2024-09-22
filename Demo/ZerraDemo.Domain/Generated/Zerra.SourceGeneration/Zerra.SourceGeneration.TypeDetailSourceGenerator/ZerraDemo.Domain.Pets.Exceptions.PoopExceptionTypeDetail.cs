@@ -106,6 +106,8 @@ namespace ZerraDemo.Domain.Pets.Exceptions.SourceGeneration
 
             public override Action<object, object?> SetterBoxed => (x, value) => throw new NotSupportedException();
             public override bool HasSetterBoxed => false;
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Pets.Exceptions.PoopException, string?>?> CreateBackingFieldDetail => () => new _PetName_k__BackingFieldMemberDetail(locker, loadMemberInfo);
         }
         public sealed class WeatherMemberDetail : MemberDetailGenerationBase<ZerraDemo.Domain.Pets.Exceptions.PoopException, ZerraDemo.Domain.Weather.Constants.WeatherType?>
         {
@@ -131,6 +133,38 @@ namespace ZerraDemo.Domain.Pets.Exceptions.SourceGeneration
 
             public override Action<object, object?> SetterBoxed => (x, value) => throw new NotSupportedException();
             public override bool HasSetterBoxed => false;
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Pets.Exceptions.PoopException, ZerraDemo.Domain.Weather.Constants.WeatherType?>?> CreateBackingFieldDetail => () => new _Weather_k__BackingFieldMemberDetail(locker, loadMemberInfo);
+        }
+        public sealed class _PetName_k__BackingFieldMemberDetail : PrivateMemberDetailGenerationBase<ZerraDemo.Domain.Pets.Exceptions.PoopException, string?>
+        {
+            public _PetName_k__BackingFieldMemberDetail(object locker, Action loadMemberInfo) : base(locker, loadMemberInfo) { }
+
+            public override string Name => "<PetName>k__BackingField";
+
+            private readonly Type type = typeof(string);
+            public override Type Type => type;
+
+            public override bool IsBacked => true;
+
+            public override IReadOnlyList<Attribute> Attributes => [];
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Pets.Exceptions.PoopException, string?>?> CreateBackingFieldDetail => () => null;
+        }
+        public sealed class _Weather_k__BackingFieldMemberDetail : PrivateMemberDetailGenerationBase<ZerraDemo.Domain.Pets.Exceptions.PoopException, ZerraDemo.Domain.Weather.Constants.WeatherType?>
+        {
+            public _Weather_k__BackingFieldMemberDetail(object locker, Action loadMemberInfo) : base(locker, loadMemberInfo) { }
+
+            public override string Name => "<Weather>k__BackingField";
+
+            private readonly Type type = typeof(ZerraDemo.Domain.Weather.Constants.WeatherType);
+            public override Type Type => type;
+
+            public override bool IsBacked => true;
+
+            public override IReadOnlyList<Attribute> Attributes => [];
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Pets.Exceptions.PoopException, ZerraDemo.Domain.Weather.Constants.WeatherType?>?> CreateBackingFieldDetail => () => null;
         }
     }
 }

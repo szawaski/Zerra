@@ -106,6 +106,8 @@ namespace ZerraDemo.Domain.Pets.Commands.SourceGeneration
 
             public override Action<object, object?> SetterBoxed => (x, value) => ((ZerraDemo.Domain.Pets.Commands.FeedPetCommand)x).PetID = (System.Guid)value!;
             public override bool HasSetterBoxed => true;
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Pets.Commands.FeedPetCommand, System.Guid>?> CreateBackingFieldDetail => () => new _PetID_k__BackingFieldMemberDetail(locker, loadMemberInfo);
         }
         public sealed class AmountMemberDetail : MemberDetailGenerationBase<ZerraDemo.Domain.Pets.Commands.FeedPetCommand, int>
         {
@@ -131,6 +133,38 @@ namespace ZerraDemo.Domain.Pets.Commands.SourceGeneration
 
             public override Action<object, object?> SetterBoxed => (x, value) => ((ZerraDemo.Domain.Pets.Commands.FeedPetCommand)x).Amount = (int)value!;
             public override bool HasSetterBoxed => true;
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Pets.Commands.FeedPetCommand, int>?> CreateBackingFieldDetail => () => new _Amount_k__BackingFieldMemberDetail(locker, loadMemberInfo);
+        }
+        public sealed class _PetID_k__BackingFieldMemberDetail : PrivateMemberDetailGenerationBase<ZerraDemo.Domain.Pets.Commands.FeedPetCommand, System.Guid>
+        {
+            public _PetID_k__BackingFieldMemberDetail(object locker, Action loadMemberInfo) : base(locker, loadMemberInfo) { }
+
+            public override string Name => "<PetID>k__BackingField";
+
+            private readonly Type type = typeof(System.Guid);
+            public override Type Type => type;
+
+            public override bool IsBacked => true;
+
+            public override IReadOnlyList<Attribute> Attributes => [];
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Pets.Commands.FeedPetCommand, System.Guid>?> CreateBackingFieldDetail => () => null;
+        }
+        public sealed class _Amount_k__BackingFieldMemberDetail : PrivateMemberDetailGenerationBase<ZerraDemo.Domain.Pets.Commands.FeedPetCommand, int>
+        {
+            public _Amount_k__BackingFieldMemberDetail(object locker, Action loadMemberInfo) : base(locker, loadMemberInfo) { }
+
+            public override string Name => "<Amount>k__BackingField";
+
+            private readonly Type type = typeof(int);
+            public override Type Type => type;
+
+            public override bool IsBacked => true;
+
+            public override IReadOnlyList<Attribute> Attributes => [];
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Pets.Commands.FeedPetCommand, int>?> CreateBackingFieldDetail => () => null;
         }
     }
 }

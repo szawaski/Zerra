@@ -106,6 +106,8 @@ namespace ZerraDemo.Domain.WeatherCached.Models.SourceGeneration
 
             public override Action<object, object?> SetterBoxed => (x, value) => ((ZerraDemo.Domain.WeatherCached.Models.WeatherCachedModel)x).Date = (System.DateTime)value!;
             public override bool HasSetterBoxed => true;
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.WeatherCached.Models.WeatherCachedModel, System.DateTime>?> CreateBackingFieldDetail => () => new _Date_k__BackingFieldMemberDetail(locker, loadMemberInfo);
         }
         public sealed class WeatherTypeMemberDetail : MemberDetailGenerationBase<ZerraDemo.Domain.WeatherCached.Models.WeatherCachedModel, ZerraDemo.Domain.WeatherCached.Constants.WeatherCachedType>
         {
@@ -131,6 +133,38 @@ namespace ZerraDemo.Domain.WeatherCached.Models.SourceGeneration
 
             public override Action<object, object?> SetterBoxed => (x, value) => ((ZerraDemo.Domain.WeatherCached.Models.WeatherCachedModel)x).WeatherType = (ZerraDemo.Domain.WeatherCached.Constants.WeatherCachedType)value!;
             public override bool HasSetterBoxed => true;
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.WeatherCached.Models.WeatherCachedModel, ZerraDemo.Domain.WeatherCached.Constants.WeatherCachedType>?> CreateBackingFieldDetail => () => new _WeatherType_k__BackingFieldMemberDetail(locker, loadMemberInfo);
+        }
+        public sealed class _Date_k__BackingFieldMemberDetail : PrivateMemberDetailGenerationBase<ZerraDemo.Domain.WeatherCached.Models.WeatherCachedModel, System.DateTime>
+        {
+            public _Date_k__BackingFieldMemberDetail(object locker, Action loadMemberInfo) : base(locker, loadMemberInfo) { }
+
+            public override string Name => "<Date>k__BackingField";
+
+            private readonly Type type = typeof(System.DateTime);
+            public override Type Type => type;
+
+            public override bool IsBacked => true;
+
+            public override IReadOnlyList<Attribute> Attributes => [];
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.WeatherCached.Models.WeatherCachedModel, System.DateTime>?> CreateBackingFieldDetail => () => null;
+        }
+        public sealed class _WeatherType_k__BackingFieldMemberDetail : PrivateMemberDetailGenerationBase<ZerraDemo.Domain.WeatherCached.Models.WeatherCachedModel, ZerraDemo.Domain.WeatherCached.Constants.WeatherCachedType>
+        {
+            public _WeatherType_k__BackingFieldMemberDetail(object locker, Action loadMemberInfo) : base(locker, loadMemberInfo) { }
+
+            public override string Name => "<WeatherType>k__BackingField";
+
+            private readonly Type type = typeof(ZerraDemo.Domain.WeatherCached.Constants.WeatherCachedType);
+            public override Type Type => type;
+
+            public override bool IsBacked => true;
+
+            public override IReadOnlyList<Attribute> Attributes => [];
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.WeatherCached.Models.WeatherCachedModel, ZerraDemo.Domain.WeatherCached.Constants.WeatherCachedType>?> CreateBackingFieldDetail => () => null;
         }
     }
 }

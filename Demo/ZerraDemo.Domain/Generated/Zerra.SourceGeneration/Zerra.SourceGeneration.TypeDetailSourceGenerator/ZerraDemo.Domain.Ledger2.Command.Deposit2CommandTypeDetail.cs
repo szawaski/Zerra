@@ -106,6 +106,8 @@ namespace ZerraDemo.Domain.Ledger2.Command.SourceGeneration
 
             public override Action<object, object?> SetterBoxed => (x, value) => ((ZerraDemo.Domain.Ledger2.Command.Deposit2Command)x).AccountID = (System.Guid)value!;
             public override bool HasSetterBoxed => true;
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Ledger2.Command.Deposit2Command, System.Guid>?> CreateBackingFieldDetail => () => new _AccountID_k__BackingFieldMemberDetail(locker, loadMemberInfo);
         }
         public sealed class AmountMemberDetail : MemberDetailGenerationBase<ZerraDemo.Domain.Ledger2.Command.Deposit2Command, decimal>
         {
@@ -131,6 +133,8 @@ namespace ZerraDemo.Domain.Ledger2.Command.SourceGeneration
 
             public override Action<object, object?> SetterBoxed => (x, value) => ((ZerraDemo.Domain.Ledger2.Command.Deposit2Command)x).Amount = (decimal)value!;
             public override bool HasSetterBoxed => true;
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Ledger2.Command.Deposit2Command, decimal>?> CreateBackingFieldDetail => () => new _Amount_k__BackingFieldMemberDetail(locker, loadMemberInfo);
         }
         public sealed class DescriptionMemberDetail : MemberDetailGenerationBase<ZerraDemo.Domain.Ledger2.Command.Deposit2Command, string?>
         {
@@ -156,6 +160,53 @@ namespace ZerraDemo.Domain.Ledger2.Command.SourceGeneration
 
             public override Action<object, object?> SetterBoxed => (x, value) => ((ZerraDemo.Domain.Ledger2.Command.Deposit2Command)x).Description = (string?)value!;
             public override bool HasSetterBoxed => true;
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Ledger2.Command.Deposit2Command, string?>?> CreateBackingFieldDetail => () => new _Description_k__BackingFieldMemberDetail(locker, loadMemberInfo);
+        }
+        public sealed class _AccountID_k__BackingFieldMemberDetail : PrivateMemberDetailGenerationBase<ZerraDemo.Domain.Ledger2.Command.Deposit2Command, System.Guid>
+        {
+            public _AccountID_k__BackingFieldMemberDetail(object locker, Action loadMemberInfo) : base(locker, loadMemberInfo) { }
+
+            public override string Name => "<AccountID>k__BackingField";
+
+            private readonly Type type = typeof(System.Guid);
+            public override Type Type => type;
+
+            public override bool IsBacked => true;
+
+            public override IReadOnlyList<Attribute> Attributes => [];
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Ledger2.Command.Deposit2Command, System.Guid>?> CreateBackingFieldDetail => () => null;
+        }
+        public sealed class _Amount_k__BackingFieldMemberDetail : PrivateMemberDetailGenerationBase<ZerraDemo.Domain.Ledger2.Command.Deposit2Command, decimal>
+        {
+            public _Amount_k__BackingFieldMemberDetail(object locker, Action loadMemberInfo) : base(locker, loadMemberInfo) { }
+
+            public override string Name => "<Amount>k__BackingField";
+
+            private readonly Type type = typeof(decimal);
+            public override Type Type => type;
+
+            public override bool IsBacked => true;
+
+            public override IReadOnlyList<Attribute> Attributes => [];
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Ledger2.Command.Deposit2Command, decimal>?> CreateBackingFieldDetail => () => null;
+        }
+        public sealed class _Description_k__BackingFieldMemberDetail : PrivateMemberDetailGenerationBase<ZerraDemo.Domain.Ledger2.Command.Deposit2Command, string?>
+        {
+            public _Description_k__BackingFieldMemberDetail(object locker, Action loadMemberInfo) : base(locker, loadMemberInfo) { }
+
+            public override string Name => "<Description>k__BackingField";
+
+            private readonly Type type = typeof(string);
+            public override Type Type => type;
+
+            public override bool IsBacked => true;
+
+            public override IReadOnlyList<Attribute> Attributes => [];
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.Ledger2.Command.Deposit2Command, string?>?> CreateBackingFieldDetail => () => null;
         }
     }
 }

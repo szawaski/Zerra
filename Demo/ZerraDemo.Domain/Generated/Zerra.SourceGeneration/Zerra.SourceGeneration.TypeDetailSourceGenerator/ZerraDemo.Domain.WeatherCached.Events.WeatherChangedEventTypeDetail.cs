@@ -106,6 +106,23 @@ namespace ZerraDemo.Domain.WeatherCached.Events.SourceGeneration
 
             public override Action<object, object?> SetterBoxed => (x, value) => ((ZerraDemo.Domain.WeatherCached.Events.WeatherChangedEvent)x).WeatherType = (ZerraDemo.Domain.WeatherCached.Constants.WeatherCachedType)value!;
             public override bool HasSetterBoxed => true;
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.WeatherCached.Events.WeatherChangedEvent, ZerraDemo.Domain.WeatherCached.Constants.WeatherCachedType>?> CreateBackingFieldDetail => () => new _WeatherType_k__BackingFieldMemberDetail(locker, loadMemberInfo);
+        }
+        public sealed class _WeatherType_k__BackingFieldMemberDetail : PrivateMemberDetailGenerationBase<ZerraDemo.Domain.WeatherCached.Events.WeatherChangedEvent, ZerraDemo.Domain.WeatherCached.Constants.WeatherCachedType>
+        {
+            public _WeatherType_k__BackingFieldMemberDetail(object locker, Action loadMemberInfo) : base(locker, loadMemberInfo) { }
+
+            public override string Name => "<WeatherType>k__BackingField";
+
+            private readonly Type type = typeof(ZerraDemo.Domain.WeatherCached.Constants.WeatherCachedType);
+            public override Type Type => type;
+
+            public override bool IsBacked => true;
+
+            public override IReadOnlyList<Attribute> Attributes => [];
+
+            protected override Func<MemberDetail<ZerraDemo.Domain.WeatherCached.Events.WeatherChangedEvent, ZerraDemo.Domain.WeatherCached.Constants.WeatherCachedType>?> CreateBackingFieldDetail => () => null;
         }
     }
 }

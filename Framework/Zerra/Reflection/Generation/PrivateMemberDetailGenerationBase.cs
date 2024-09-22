@@ -17,58 +17,36 @@ namespace Zerra.Reflection.Generation
         public override sealed TypeDetail<V> TypeDetail => TypeAnalyzer<V>.GetTypeDetail();
         public override sealed TypeDetail TypeDetailBoxed => TypeDetail;
 
-        private bool memberInfoLoaded = false;
         private MemberInfo? memberInfo = null;
-        private MemberDetail<T, V>? backingFieldDetail = null;
-        private MemberDetail? backingFieldDetailBoxed = null;
         public override sealed MemberInfo MemberInfo
         {
             get
             {
-                if (!memberInfoLoaded)
+                if (memberInfo is null)
                 {
                     lock (locker)
                     {
-                        if (!memberInfoLoaded)
+                        if (memberInfo is null)
                         {
                             loadMemberInfo();
-                            memberInfoLoaded = true;
+                            backingFieldDetailLoaded = true;
                         }
                     }
                 }
                 return memberInfo!;
             }
         }
+
+        protected abstract Func<MemberDetail<T, V>?> CreateBackingFieldDetail { get; }
+        private bool backingFieldDetailLoaded = false;
+        private MemberDetail<T, V>? backingFieldDetail = null;
+        private MemberDetail? backingFieldDetailBoxed = null;
         public override sealed MemberDetail<T, V>? BackingFieldDetail
         {
             get
             {
-                if (!memberInfoLoaded)
-                {
-                    lock (locker)
-                    {
-                        if (!memberInfoLoaded)
-                        {
-                            loadMemberInfo();
-                            memberInfoLoaded = true;
-                            //if (IsBacked)
-                            //{
-                            //    var fields = Type.GetFields(BindingFlags.NonPublic | BindingFlags.Instance);
-
-                            //    //<{property.Name}>k__BackingField
-                            //    //<{property.Name}>i__Field
-                            //    var backingName = $"<{Name}>";
-                            //    var backingField = fields.FirstOrDefault(x => x.Name.StartsWith(backingName));
-                            //    if (backingField != null)
-                            //    {
-                            //        backingFieldDetail = new MemberDetailRuntime<T, V>(backingField, null, locker);
-                            //        backingFieldDetailBoxed = backingFieldDetail;
-                            //    }
-                            //}
-                            //backingFieldDetailLoaded = true;
-                        }
-                    }
-                }
+                if (!backingFieldDetailLoaded)
+                    LoadBackingField();
                 return backingFieldDetail;
             }
         }
@@ -76,34 +54,28 @@ namespace Zerra.Reflection.Generation
         {
             get
             {
-                if (!memberInfoLoaded)
-                {
-                    lock (locker)
-                    {
-                        if (!memberInfoLoaded)
-                        {
-                            loadMemberInfo();
-                            memberInfoLoaded = true;
-                            //if (IsBacked)
-                            //{
-                            //    var fields = Type.GetFields(BindingFlags.NonPublic | BindingFlags.Instance);
-
-                            //    //<{property.Name}>k__BackingField
-                            //    //<{property.Name}>i__Field
-                            //    var backingName = $"<{Name}>";
-                            //    var backingField = fields.FirstOrDefault(x => x.Name.StartsWith(backingName));
-                            //    if (backingField != null)
-                            //    {
-                            //        backingFieldDetail = new MemberDetailRuntime<T, V>(backingField, null, locker);
-                            //        backingFieldDetailBoxed = backingFieldDetail;
-                            //    }
-                            //}
-                            //backingFieldDetailLoaded = true;
-                        }
-                    }
-                }
-                return backingFieldDetail;
+                if (!backingFieldDetailLoaded)
+                    LoadBackingField();
+                return backingFieldDetailBoxed;
             }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void LoadBackingField()
+        {
+            lock (locker)
+            {
+                if (!backingFieldDetailLoaded)
+                {
+                    backingFieldDetail = CreateBackingFieldDetail();
+                    backingFieldDetailBoxed = backingFieldDetail;
+                    backingFieldDetailLoaded = true;
+                }
+            }
+        }
+
+        internal override sealed void SetMemberInfo(MemberInfo memberInfo)
+        {
+            this.memberInfo = memberInfo;
         }
 
         private bool getterBoxedLoaded = false;
@@ -324,13 +296,6 @@ namespace Zerra.Reflection.Generation
                     setterLoaded = true;
                 }
             }
-        }
-
-        internal override sealed void SetMemberInfo(MemberInfo memberInfo, MemberDetail? backingFieldDetailBoxed)
-        {
-            this.memberInfo = memberInfo;
-            this.backingFieldDetail = (MemberDetail<T, V>?)backingFieldDetailBoxed;
-            this.backingFieldDetailBoxed = backingFieldDetailBoxed;
         }
     }
 }

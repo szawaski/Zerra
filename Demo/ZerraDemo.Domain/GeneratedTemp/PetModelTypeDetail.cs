@@ -142,6 +142,8 @@
 
 //            public override Action<object, object?> SetterBoxed => (x, value) => ((PetModel)x).ID = (Guid)value!;
 //            public override bool HasSetterBoxed => true;
+
+//            protected override Func<MemberDetail<PetModel, Guid>?> CreateBackingFieldDetail => () => null;
 //        }
 //        public sealed class PetModelMemberDetail_Name : MemberDetailGenerationBase<PetModel, string?>
 //        {
@@ -167,6 +169,8 @@
 
 //            public override Action<object, object?> SetterBoxed => (x, value) => ((PetModel)x).Name = (string?)value;
 //            public override bool HasSetterBoxed => true;
+
+//            protected override Func<MemberDetail<PetModel, string>?> CreateBackingFieldDetail => () => null;
 //        }
 //        public sealed class PetModelMemberDetail_Breed : MemberDetailGenerationBase<PetModel, string?>
 //        {
@@ -192,6 +196,8 @@
 
 //            public override Action<object, object?> SetterBoxed => (x, value) => ((PetModel)x).Breed = (string?)value;
 //            public override bool HasSetterBoxed => true;
+
+//            protected override Func<MemberDetail<PetModel, string>?> CreateBackingFieldDetail => () => null;
 //        }
 //        public sealed class PetModelMemberDetail_Species : MemberDetailGenerationBase<PetModel, string?>
 //        {
@@ -217,6 +223,8 @@
 
 //            public override Action<object, object?> SetterBoxed => (x, value) => ((PetModel)x).Species = (string?)value;
 //            public override bool HasSetterBoxed => true;
+
+//            protected override Func<MemberDetail<PetModel, string>?> CreateBackingFieldDetail => () => null;
 //        }
 //        public sealed class PetModelMemberDetail_LastEaten : MemberDetailGenerationBase<PetModel, DateTime?>
 //        {
@@ -242,6 +250,8 @@
 
 //            public override Action<object, object?> SetterBoxed => (x, value) => ((PetModel)x).LastEaten = (DateTime?)value;
 //            public override bool HasSetterBoxed => true;
+
+//            protected override Func<MemberDetail<PetModel, DateTime?>?> CreateBackingFieldDetail => () => null;
 //        }
 //        public sealed class PetModelMemberDetail_AmountEaten : MemberDetailGenerationBase<PetModel, int?>
 //        {
@@ -267,6 +277,8 @@
 
 //            public override Action<object, object?> SetterBoxed => (x, value) => ((PetModel)x).AmountEaten = (int?)value;
 //            public override bool HasSetterBoxed => true;
+
+//            protected override Func<MemberDetail<PetModel, int?>?> CreateBackingFieldDetail => () => null;
 //        }
 //        public sealed class PetModelMemberDetail_LastPooped : MemberDetailGenerationBase<PetModel, DateTime?>
 //        {
@@ -292,6 +304,8 @@
 
 //            public override Action<object, object?> SetterBoxed => (x, value) => ((PetModel)x).LastPooped = (DateTime?)value;
 //            public override bool HasSetterBoxed => true;
+
+//            protected override Func<MemberDetail<PetModel, DateTime?>?> CreateBackingFieldDetail => () => null;
 //        }
 //    }
 //    public class PetModelArrayTypeDetail : TypeDetailTGenerationBase<PetModel[]>
