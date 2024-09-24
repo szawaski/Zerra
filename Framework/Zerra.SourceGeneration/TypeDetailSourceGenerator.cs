@@ -377,7 +377,7 @@ namespace Zerra.SourceGeneration
         private static void GenerateConstructor(IMethodSymbol methodSymbol, string parentTypeName, string parentName, int constructorNumber, List<string> membersToInitialize, StringBuilder sbChildClasses)
         {
             var memberName = methodSymbol.Name;
-            var className = $"{parentName}ConstructorDetail{constructorNumber}";
+            var className = $"ConstructorDetail_{constructorNumber}";
 
             var hasCreator = methodSymbol.Parameters.Length == 0;
 
@@ -388,14 +388,14 @@ namespace Zerra.SourceGeneration
             {
                 if (creatorIndex > 0)
                     _ = sbCreatorWithArgs.Append(", ");
-               _ = sbCreatorWithArgs.Append('(').Append(parameter.Type.ToString()).Append(")args[").Append(creatorIndex++).Append("]");
+                _ = sbCreatorWithArgs.Append('(').Append(parameter.Type.ToString()).Append(")args[").Append(creatorIndex++).Append("]");
             }
             _ = sbCreatorWithArgs.Append(')');
             var creatorWithArgs = sbCreatorWithArgs.ToString();
 
             var attributes = GenerateAttributes(methodSymbol);
 
-            var parameters = GenerateParameters(methodSymbol, sbChildClasses);
+            var parameters = GenerateParameters(methodSymbol, constructorNumber, sbChildClasses);
 
             var code = $$""""
 
@@ -443,19 +443,20 @@ namespace Zerra.SourceGeneration
 #pragma warning disable RS1024 // Comparing instance so no need for special comparer
             var backingFields = new HashSet<IFieldSymbol>();
 #pragma warning restore RS1024 // Comparing instance so no need for special comparer
+            var memberNumber = 0;
             foreach (var property in properties)
             {
                 if (property.DeclaredAccessibility == Accessibility.Public)
-                    GeneratePublicMember(property, fields, backingFields, fullTypeName, membersToInitialize, sbChildClasses);
+                    GeneratePublicMember(property, properties.Length, fields, backingFields, fullTypeName, ++memberNumber, membersToInitialize, sbChildClasses);
                 else
-                    GeneratePrivateMember(property, fields, backingFields, fullTypeName, membersToInitialize, sbChildClasses);
+                    GeneratePrivateMember(property, properties.Length, fields, backingFields, fullTypeName, ++memberNumber, membersToInitialize, sbChildClasses);
             }
             foreach (var field in fields)
             {
                 if (field.DeclaredAccessibility == Accessibility.Public)
-                    GeneratePublicMember(field, fullTypeName, backingFields, membersToInitialize, sbChildClasses);
+                    GeneratePublicMember(field, fullTypeName, backingFields, ++memberNumber, membersToInitialize, sbChildClasses);
                 else
-                    GeneratePrivateMember(field, fullTypeName, backingFields, membersToInitialize, sbChildClasses);
+                    GeneratePrivateMember(field, fullTypeName, backingFields, ++memberNumber, membersToInitialize, sbChildClasses);
             }
 
             var sbMembers = new StringBuilder();
@@ -470,23 +471,33 @@ namespace Zerra.SourceGeneration
             var members = sbMembers.ToString();
             return members;
         }
-        private static void GeneratePublicMember(IPropertySymbol propertySymbol, IFieldSymbol[] fieldSymbols, HashSet<IFieldSymbol> backingFields, string parentTypeName, List<string> membersToInitialize, StringBuilder sbChildClasses)
+        private static void GeneratePublicMember(IPropertySymbol propertySymbol, int propertyTotal, IFieldSymbol[] fieldSymbols, HashSet<IFieldSymbol> backingFields, string parentTypeName, int methodNumber, List<string> membersToInitialize, StringBuilder sbChildClasses)
         {
             var memberName = propertySymbol.Name;
-            var className = $"{propertySymbol.Name}MemberDetail";
+            var className = $"MemberDetail_{methodNumber}";
             var typeName = propertySymbol.Type.ToString();
 
             //<{property.Name}>k__BackingField
             //<{property.Name}>i__Field
             var backingName = $"<{propertySymbol.Name}>";
-            var fieldSymbol = fieldSymbols.FirstOrDefault(x => x.Name.StartsWith(backingName));
+            IFieldSymbol? fieldSymbol = null;
+            var fieldMemberNumber = propertyTotal;
+            foreach (var f in fieldSymbols)
+            {
+                fieldMemberNumber++;
+                if (f.Name.StartsWith(backingName))
+                {
+                    fieldSymbol = f;
+                    break;
+                }
+            }
             var isBacked = false;
             string? fieldClassName = null;
             if (fieldSymbol is not null)
             {
                 backingFields.Add(fieldSymbol);
                 isBacked = true;
-                fieldClassName = $"{fieldSymbol.Name.Replace('<', '_').Replace('>', '_')}MemberDetail";
+                fieldClassName = $"MemberDetail_{fieldMemberNumber}";
             }
 
             var hasGetter = propertySymbol.GetMethod is not null;
@@ -528,23 +539,33 @@ namespace Zerra.SourceGeneration
             membersToInitialize.Add(className);
             _ = sbChildClasses.Append(code);
         }
-        private static void GeneratePrivateMember(IPropertySymbol propertySymbol, IFieldSymbol[] fieldSymbols, HashSet<IFieldSymbol> backingFields, string parentTypeName, List<string> membersToInitialize, StringBuilder sbChildClasses)
+        private static void GeneratePrivateMember(IPropertySymbol propertySymbol, int propertyTotal, IFieldSymbol[] fieldSymbols, HashSet<IFieldSymbol> backingFields, string parentTypeName, int methodNumber, List<string> membersToInitialize, StringBuilder sbChildClasses)
         {
             var memberName = propertySymbol.Name;
-            var className = $"{propertySymbol.Name}MemberDetail";
+            var className = $"MemberDetail_{methodNumber}";
             var typeName = propertySymbol.Type.ToString();
 
             //<{property.Name}>k__BackingField
             //<{property.Name}>i__Field
             var backingName = $"<{propertySymbol.Name}>";
-            var fieldSymbol = fieldSymbols.FirstOrDefault(x => x.Name.StartsWith(backingName));
+            IFieldSymbol? fieldSymbol = null;
+            var fieldMemberNumber = propertyTotal;
+            foreach (var f in fieldSymbols)
+            {
+                fieldMemberNumber++;
+                if (f.Name.StartsWith(backingName))
+                {
+                    fieldSymbol = f;
+                    break;
+                }
+            }
             var isBacked = false;
             string? fieldClassName = null;
             if (fieldSymbol is not null)
             {
                 backingFields.Add(fieldSymbol);
                 isBacked = true;
-                fieldClassName = $"{fieldSymbol.Name.Replace('<', '_').Replace('>', '_')}MemberDetail";
+                fieldClassName = $"MemberDetail_{fieldMemberNumber}";
             }
 
             var attributes = GenerateAttributes(propertySymbol);
@@ -571,10 +592,10 @@ namespace Zerra.SourceGeneration
             membersToInitialize.Add(className);
             _ = sbChildClasses.Append(code);
         }
-        private static void GeneratePublicMember(IFieldSymbol fieldSymbol, string parentTypeName, HashSet<IFieldSymbol> backingFields, List<string> membersToInitialize, StringBuilder sbChildClasses)
+        private static void GeneratePublicMember(IFieldSymbol fieldSymbol, string parentTypeName, HashSet<IFieldSymbol> backingFields, int methodNumber, List<string> membersToInitialize, StringBuilder sbChildClasses)
         {
             var memberName = fieldSymbol.Name;
-            var className = $"{fieldSymbol.Name.Replace('<', '_').Replace('>', '_')}MemberDetail";
+            var className = $"MemberDetail_{methodNumber}";
             var typeName = fieldSymbol.Type.ToString();
 
             var attributes = GenerateAttributes(fieldSymbol);
@@ -614,10 +635,10 @@ namespace Zerra.SourceGeneration
                 membersToInitialize.Add(className);
             _ = sbChildClasses.Append(code);
         }
-        private static void GeneratePrivateMember(IFieldSymbol fieldSymbol, string parentTypeName, HashSet<IFieldSymbol> backingFields, List<string> membersToInitialize, StringBuilder sbChildClasses)
+        private static void GeneratePrivateMember(IFieldSymbol fieldSymbol, string parentTypeName, HashSet<IFieldSymbol> backingFields, int methodNumber, List<string> membersToInitialize, StringBuilder sbChildClasses)
         {
             var memberName = fieldSymbol.Name;
-            var className = $"{fieldSymbol.Name.Replace('<', '_').Replace('>', '_')}MemberDetail";
+            var className = $"MemberDetail_{methodNumber}";
             var typeName = fieldSymbol.Type.ToString();
 
             var attributes = GenerateAttributes(fieldSymbol);
@@ -646,6 +667,50 @@ namespace Zerra.SourceGeneration
             _ = sbChildClasses.Append(code);
         }
 
+        private static string GenerateParameters(IMethodSymbol methodSymbol, int methodNumber, StringBuilder sbChildClasses)
+        {
+            var parametersToInitialize = new List<string>();
+            var parameterNumber = 0;
+            foreach (var parameter in methodSymbol.Parameters)
+            {
+                GenerateParameter(parameter, methodNumber, ++parameterNumber, parametersToInitialize, sbChildClasses);
+            }
+
+            var sbParameters = new StringBuilder();
+            _ = sbParameters.Append('[');
+            foreach (var parameterName in parametersToInitialize)
+            {
+                if (sbParameters.Length > 1)
+                    _ = sbParameters.Append(", ");
+                sbParameters.Append("new ").Append(parameterName).Append("(locker, LoadParameterInfo)");
+            }
+            _ = sbParameters.Append(']');
+            var parameters = sbParameters.ToString();
+            return parameters;
+        }
+        private static void GenerateParameter(IParameterSymbol parameterSymbol, int methodNumber, int parameterNumber, List<string> parametersToInitialize, StringBuilder sbChildClasses)
+        {
+            var parameterName = parameterSymbol.Name;
+            var className = $"ParameterDetail_{methodNumber}_{parameterNumber}";
+            var typeName = parameterSymbol.Type.ToString();
+
+            var code = $$""""
+
+                        public sealed class {{className}} : ParameterDetailGenerationBase
+                        {
+                            public {{className}}(object locker, Action loadParameterInfo) : base(locker, loadParameterInfo) { }
+
+                            public override string Name => "{{parameterName}}";
+
+                            private readonly Type type = typeof({{typeName.Replace("?", "")}});
+                            public override Type Type => type;
+                        }
+                """";
+
+            parametersToInitialize.Add(className);
+            _ = sbChildClasses.Append(code);
+        }
+
         private static string GenerateBaseTypes(INamedTypeSymbol typeSymbol)
         {
             var sbBaseTypes = new StringBuilder();
@@ -662,10 +727,6 @@ namespace Zerra.SourceGeneration
             _ = sbBaseTypes.Append(']');
             var baseTypes = sbBaseTypes.ToString();
             return baseTypes;
-        }
-        private static string GenerateParameters(IMethodSymbol methodSymbol, StringBuilder sbChildClasses)
-        {
-            return "[]";
         }
         private static string GenerateAttributes(ISymbol symbol)
         {
