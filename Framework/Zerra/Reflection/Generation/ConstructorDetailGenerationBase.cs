@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Zerra.Reflection.Generation
 {
@@ -15,7 +16,7 @@ namespace Zerra.Reflection.Generation
         }
 
         private ConstructorInfo? constructorInfo = null;
-        public override ConstructorInfo ConstructorInfo
+        public override sealed ConstructorInfo ConstructorInfo
         {
             get
             {
@@ -50,9 +51,9 @@ namespace Zerra.Reflection.Generation
             }
         }
 
-        protected abstract Func<ParameterDetail[]> CreateParameters { get; }
+        protected abstract Func<ParameterDetail[]> CreateParameterDetails { get; }
         private ParameterDetail[]? parameters = null;
-        public override sealed IReadOnlyList<ParameterDetail> Parameters
+        public override sealed IReadOnlyList<ParameterDetail> ParametersDetails
         {
             get
             {
@@ -60,7 +61,7 @@ namespace Zerra.Reflection.Generation
                 {
                     lock (locker)
                     {
-                        parameters ??= CreateParameters();
+                        parameters ??= CreateParameterDetails();
                     }
                 }
                 return parameters;
@@ -70,6 +71,20 @@ namespace Zerra.Reflection.Generation
         internal void SetConstructorInfo(ConstructorInfo constructorInfo)
         {
             this.constructorInfo = constructorInfo;
+        }
+
+        protected void LoadParameterInfo()
+        {
+            var parameters = ConstructorInfo.GetParameters();
+            foreach (var parameterDetail in ParametersDetails)
+            {
+                var parameter = parameters.FirstOrDefault(x => x.Name == parameterDetail.Name);
+                if (parameter == null)
+                    throw new InvalidOperationException($"Parameter not found for {parameterDetail.Name}");
+
+                var parameterBase = (ParameterDetailGenerationBase)parameterDetail;
+                parameterBase.SetParameterInfo(parameter);
+            }
         }
     }
 }

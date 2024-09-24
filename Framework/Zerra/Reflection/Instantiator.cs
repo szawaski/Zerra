@@ -52,7 +52,7 @@ namespace Zerra.Reflection
                 {
                     if (!constructorDetail.HasCreatorWithArgsBoxed)
                         continue;
-                    if (constructorDetail.Parameters.Count != (parameterTypes?.Length ?? 0))
+                    if (constructorDetail.ParametersDetails.Count != (parameterTypes?.Length ?? 0))
                         continue;
 
                     if (parameterTypes == null || parameterTypes.Length == 0)
@@ -64,7 +64,7 @@ namespace Zerra.Reflection
                         var match = true;
                         for (var i = 0; i < parameterTypes.Length; i++)
                         {
-                            if (parameterTypes[i] != constructorDetail.Parameters[i].Type)
+                            if (parameterTypes[i] != constructorDetail.ParametersDetails[i].Type)
                             {
                                 match = false;
                                 break;

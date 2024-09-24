@@ -135,7 +135,7 @@ namespace Zerra.Repository
                 MethodDetail? methodDetail = null;
                 foreach (var method in aggregateTypeDetail.MethodDetailsBoxed)
                 {
-                    if (!method.MethodInfo.IsStatic && method.Parameters.Count == 1 && method.Parameters[0].Type == eventType)
+                    if (!method.MethodInfo.IsStatic && method.ParameterDetails.Count == 1 && method.ParameterDetails[0].Type == eventType)
                     {
                         if (methodDetail != null)
                             throw new Exception($"Multiple aggregate event methods found in {aggregateType.Name} to accept {eventType.Name}");

@@ -77,14 +77,14 @@ namespace Zerra.Reflection
             {
                 foreach (var constructorDetail in ConstructorDetails)
                 {
-                    if (parameterTypes == null || constructorDetail.Parameters.Count == parameterTypes.Length)
+                    if (parameterTypes == null || constructorDetail.ParametersDetails.Count == parameterTypes.Length)
                     {
                         var match = true;
                         if (parameterTypes != null)
                         {
                             for (var i = 0; i < parameterTypes.Length; i++)
                             {
-                                if (parameterTypes[i].Name != constructorDetail.Parameters[i].Type.Name || parameterTypes[i].Namespace != constructorDetail.Parameters[i].Type.Namespace)
+                                if (parameterTypes[i].Name != constructorDetail.ParametersDetails[i].Type.Name || parameterTypes[i].Namespace != constructorDetail.ParametersDetails[i].Type.Namespace)
                                 {
                                     match = false;
                                     break;

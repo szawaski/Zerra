@@ -411,7 +411,7 @@ namespace Zerra.SourceGeneration
 
                             public override string Name => "{{memberName}}";
 
-                            protected override Func<ParameterDetail[]> CreateParameters => () => {{parameters}};
+                            protected override Func<ParameterDetail[]> CreateParameterDetails => () => {{parameters}};
 
                             protected override Func<Attribute[]> CreateAttributes => () => {{attributes}};
 

@@ -17,7 +17,7 @@ namespace Zerra.Reflection.Runtime
         public override string Name => MethodInfo.Name;
 
         private ParameterDetail[]? parameterInfos = null;
-        public override IReadOnlyList<ParameterDetail> Parameters
+        public override IReadOnlyList<ParameterDetail> ParameterDetails
         {
             get
             {

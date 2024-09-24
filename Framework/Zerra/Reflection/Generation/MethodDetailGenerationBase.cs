@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 
 namespace Zerra.Reflection.Generation
@@ -50,9 +51,9 @@ namespace Zerra.Reflection.Generation
             }
         }
 
-        protected abstract Func<ParameterDetail[]> CreateParameters { get; }
+        protected abstract Func<ParameterDetail[]> CreateParameterDetails { get; }
         private ParameterDetail[]? parameters = null;
-        public override sealed IReadOnlyList<ParameterDetail> Parameters
+        public override sealed IReadOnlyList<ParameterDetail> ParameterDetails
         {
             get
             {
@@ -60,7 +61,7 @@ namespace Zerra.Reflection.Generation
                 {
                     lock (locker)
                     {
-                        parameters ??= CreateParameters();
+                        parameters ??= CreateParameterDetails();
                     }
                 }
                 return parameters;
@@ -70,6 +71,20 @@ namespace Zerra.Reflection.Generation
         internal void SetMethodInfo(MethodInfo constructorInfo)
         {
             this.constructorInfo = constructorInfo;
+        }
+
+        protected void LoadParameterInfo()
+        {
+            var parameters = MethodInfo.GetParameters();
+            foreach (var parameterDetail in ParameterDetails)
+            {
+                var parameter = parameters.FirstOrDefault(x => x.Name == parameterDetail.Name);
+                if (parameter == null)
+                    throw new InvalidOperationException($"Parameter not found for {parameterDetail.Name}");
+
+                var parameterBase = (ParameterDetailGenerationBase)parameterDetail;
+                parameterBase.SetParameterInfo(parameter);
+            }
         }
     }
 }

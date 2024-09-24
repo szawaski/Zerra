@@ -19,6 +19,5 @@ namespace Zerra.Reflection.Runtime
             this.locker = locker;
             this.ParameterInfo = parameter;
         }
-
     }
 }

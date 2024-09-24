@@ -117,7 +117,7 @@ namespace Zerra.Reflection.Generation
             {
                 var constructor = constructors.FirstOrDefault(x => SignatureCompare(constructorParameters[x], constructorDetail));
                 if (constructor == null)
-                    throw new InvalidOperationException($"ConstructorInfo not found for generated constructor new({String.Join(", ", constructorDetail.Parameters.Select(x => x.Type.GetNiceName()))})");
+                    throw new InvalidOperationException($"ConstructorInfo not found for generated constructor new({String.Join(", ", constructorDetail.ParametersDetails.Select(x => x.Type.GetNiceName()))})");
 
                 var constructorBase = (ConstructorDetailGenerationBase<T>)constructorDetail;
                 constructorBase.SetConstructorInfo(constructor);
@@ -136,7 +136,7 @@ namespace Zerra.Reflection.Generation
                 var methodBase = (MethodDetailGenerationBase<T>)methodDetail;
                 var method = methods.FirstOrDefault(x => SignatureCompare(x.Name, methodParameters[x], methodDetail));
                 if (method == null)
-                    throw new InvalidOperationException($"MethodInfo not found for generated method {methodDetail.Name}({String.Join(", ", methodDetail.Parameters.Select(x => x.Type.GetNiceName()))})");
+                    throw new InvalidOperationException($"MethodInfo not found for generated method {methodDetail.Name}({String.Join(", ", methodDetail.ParameterDetails.Select(x => x.Type.GetNiceName()))})");
 
                 methodBase.SetMethodInfo(method);
             }

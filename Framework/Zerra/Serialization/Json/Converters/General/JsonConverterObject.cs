@@ -65,10 +65,10 @@ namespace Zerra.Serialization.Json.Converters.General
             if (typeDetail.Type.IsValueType || !typeDetail.HasCreator)
             {
                 //find best constructor
-                foreach (var constructor in typeDetail.ConstructorDetails.OrderByDescending(x => x.Parameters.Count))
+                foreach (var constructor in typeDetail.ConstructorDetails.OrderByDescending(x => x.ParametersDetails.Count))
                 {
                     var skip = false;
-                    foreach (var parameter in constructor.Parameters)
+                    foreach (var parameter in constructor.ParametersDetails)
                     {
                         //cannot have argument of itself or a null name
                         if (parameter.Type == typeDetail.Type || parameter.Name == null)
@@ -423,17 +423,17 @@ namespace Zerra.Serialization.Json.Converters.General
 
             if (collectValues)
             {
-                var args = new object?[parameterConstructor!.Parameters.Count];
+                var args = new object?[parameterConstructor!.ParametersDetails.Count];
                 for (var i = 0; i < args.Length; i++)
                 {
 #if NETSTANDARD2_0
-                    if (collectedValues!.TryGetValue(parameterConstructor.Parameters[i].Name!, out var parameter))
+                    if (collectedValues!.TryGetValue(parameterConstructor.ParametersDetails[i].Name!, out var parameter))
                     {
-                        collectedValues.Remove(parameterConstructor.Parameters[i].Name!);
+                        collectedValues.Remove(parameterConstructor.ParametersDetails[i].Name!);
                         args[i] = parameter;
                     }
 #else
-                    if (collectedValues!.Remove(parameterConstructor.Parameters[i].Name!, out var parameter))
+                    if (collectedValues!.Remove(parameterConstructor.ParametersDetails[i].Name!, out var parameter))
                         args[i] = parameter;
 #endif
                 }
