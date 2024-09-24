@@ -80,7 +80,7 @@ namespace Zerra.CQRS.Network
             MethodDetail? methodDetail = null;
             foreach (var method in typeDetail.MethodDetailsBoxed)
             {
-                if (method.MethodInfo.Name == data.ProviderMethod && method.ParametersInfo.Count == data.ProviderArguments.Length)
+                if (method.MethodInfo.Name == data.ProviderMethod && method.Parameters.Count == data.ProviderArguments.Length)
                 {
                     methodDetail = method;
                     break;

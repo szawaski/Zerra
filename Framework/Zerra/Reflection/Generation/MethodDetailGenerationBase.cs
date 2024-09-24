@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 
 namespace Zerra.Reflection.Generation
@@ -29,6 +30,40 @@ namespace Zerra.Reflection.Generation
                     }
                 }
                 return constructorInfo!;
+            }
+        }
+
+        protected abstract Func<Attribute[]> CreateAttributes { get; }
+        private Attribute[]? attributes = null;
+        public override sealed IReadOnlyList<Attribute> Attributes
+        {
+            get
+            {
+                if (attributes is null)
+                {
+                    lock (locker)
+                    {
+                        attributes ??= CreateAttributes();
+                    }
+                }
+                return attributes;
+            }
+        }
+
+        protected abstract Func<ParameterDetail[]> CreateParameters { get; }
+        private ParameterDetail[]? parameters = null;
+        public override sealed IReadOnlyList<ParameterDetail> Parameters
+        {
+            get
+            {
+                if (parameters is null)
+                {
+                    lock (locker)
+                    {
+                        parameters ??= CreateParameters();
+                    }
+                }
+                return parameters;
             }
         }
 

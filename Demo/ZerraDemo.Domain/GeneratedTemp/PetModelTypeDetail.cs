@@ -73,7 +73,7 @@
 
 //        public override IReadOnlyList<Type> Interfaces => [];
 
-//        public override IReadOnlyList<Attribute> Attributes => [];
+//        protected override Func<Attribute[]> CreateAttributes => () => [];
 
 //        public override IReadOnlyList<Type> InnerTypes => [];
 //        public override IReadOnlyList<TypeDetail> InnerTypeDetails => [];
@@ -102,11 +102,11 @@
 //            public override Func<PetModel> Creator => () => new PetModel();
 //            public override bool HasCreator => true;
 
-//            public override string Name => "main";
+//            public override string Name => ".ctor";
 
-//            public override IReadOnlyList<ParameterInfo> ParametersInfo => [];
+//            protected override Func<ParameterDetail[]> CreateParameters => () => [];
 
-//            public override IReadOnlyList<Attribute> Attributes => [];
+//            protected override Func<Attribute[]> CreateAttributes => () => [];
 
 //            public override Func<object?[]?, PetModel> CreatorWithArgsBoxed => throw new NotSupportedException();
 //            public override bool HasCreatorWithArgsBoxed => false;
@@ -135,7 +135,7 @@
 //            public override Action<PetModel, Guid> Setter => (x, value) => x.ID = value;
 //            public override bool HasSetter => true;
 
-//            public override IReadOnlyList<Attribute> Attributes => [];
+//            protected override Func<Attribute[]> CreateAttributes => () => [];
 
 //            public override Func<object, object?> GetterBoxed => (x) => ((PetModel)x).ID;
 //            public override bool HasGetterBoxed => true;
@@ -162,7 +162,7 @@
 //            public override Action<PetModel, string?> Setter => (x, value) => x.Name = value;
 //            public override bool HasSetter => true;
 
-//            public override IReadOnlyList<Attribute> Attributes => [];
+//            protected override Func<Attribute[]> CreateAttributes => () => [];
 
 //            public override Func<object, object?> GetterBoxed => (x) => ((PetModel)x).Name;
 //            public override bool HasGetterBoxed => true;
@@ -189,7 +189,7 @@
 //            public override Action<PetModel, string?> Setter => (x, value) => x.Breed = value;
 //            public override bool HasSetter => true;
 
-//            public override IReadOnlyList<Attribute> Attributes => [];
+//            protected override Func<Attribute[]> CreateAttributes => () => [];
 
 //            public override Func<object, object?> GetterBoxed => (x) => ((PetModel)x).Breed;
 //            public override bool HasGetterBoxed => true;
@@ -216,7 +216,7 @@
 //            public override Action<PetModel, string?> Setter => (x, value) => x.Species = value;
 //            public override bool HasSetter => true;
 
-//            public override IReadOnlyList<Attribute> Attributes => [];
+//            protected override Func<Attribute[]> CreateAttributes => () => [];
 
 //            public override Func<object, object?> GetterBoxed => (x) => ((PetModel)x).Species;
 //            public override bool HasGetterBoxed => true;
@@ -243,7 +243,7 @@
 //            public override Action<PetModel, DateTime?> Setter => (x, value) => x.LastEaten = value;
 //            public override bool HasSetter => true;
 
-//            public override IReadOnlyList<Attribute> Attributes => [];
+//            protected override Func<Attribute[]> CreateAttributes => () => [];
 
 //            public override Func<object, object?> GetterBoxed => (x) => ((PetModel)x).LastEaten;
 //            public override bool HasGetterBoxed => true;
@@ -270,7 +270,7 @@
 //            public override Action<PetModel, int?> Setter => (x, value) => x.AmountEaten = value;
 //            public override bool HasSetter => true;
 
-//            public override IReadOnlyList<Attribute> Attributes => [];
+//            protected override Func<Attribute[]> CreateAttributes => () => [];
 
 //            public override Func<object, object?> GetterBoxed => (x) => ((PetModel)x).AmountEaten;
 //            public override bool HasGetterBoxed => true;
@@ -297,7 +297,7 @@
 //            public override Action<PetModel, DateTime?> Setter => (x, value) => x.LastPooped = value;
 //            public override bool HasSetter => true;
 
-//            public override IReadOnlyList<Attribute> Attributes => [];
+//            protected override Func<Attribute[]> CreateAttributes => () => [];
 
 //            public override Func<object, object?> GetterBoxed => (x) => ((PetModel)x).LastPooped;
 //            public override bool HasGetterBoxed => true;
@@ -365,7 +365,7 @@
 
 //        public override IReadOnlyList<Type> Interfaces => [];
 
-//        public override IReadOnlyList<Attribute> Attributes => [];
+//        protected override Func<Attribute[]> CreateAttributes => () => [];
 
 //        private IReadOnlyList<Type>? innerTypes = null;
 //        public override IReadOnlyList<Type> InnerTypes

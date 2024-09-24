@@ -926,7 +926,7 @@ namespace Zerra.Reflection.Runtime
                 {
                     if (!Type.IsAbstract && !Type.IsGenericTypeDefinition)
                     {
-                        var emptyConstructor = this.ConstructorDetailsBoxed.FirstOrDefault(x => x.ParametersInfo.Count == 0);
+                        var emptyConstructor = this.ConstructorDetailsBoxed.FirstOrDefault(x => x.Parameters.Count == 0);
                         if (emptyConstructor != null && emptyConstructor.HasCreatorBoxed)
                         {
                             creatorBoxed = emptyConstructor.CreatorBoxed;
@@ -1045,7 +1045,7 @@ namespace Zerra.Reflection.Runtime
                 {
                     if (!Type.IsAbstract && !Type.IsGenericTypeDefinition)
                     {
-                        var emptyConstructor = this.ConstructorDetails.FirstOrDefault(x => x.ParametersInfo.Count == 0);
+                        var emptyConstructor = this.ConstructorDetails.FirstOrDefault(x => x.Parameters.Count == 0);
                         if (emptyConstructor != null && emptyConstructor.HasCreator)
                         {
                             creator = emptyConstructor.Creator;

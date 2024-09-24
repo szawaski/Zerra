@@ -11,35 +11,15 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using System.Runtime.InteropServices.ComTypes;
+using System.Reflection.Metadata;
 using System.Text;
+using System.Xml.Linq;
 
 namespace Zerra.SourceGeneration
 {
     [Generator]
     public class TypeDetailSourceGenerator : IIncrementalGenerator
     {
-        public void Initialize(IncrementalGeneratorInitializationContext context)
-        {
-            var classProvider = context.SyntaxProvider.CreateSyntaxProvider(
-                (node, cancellationToken) => node is BaseTypeDeclarationSyntax,
-                (context, cancellationToken) => (INamedTypeSymbol)context.SemanticModel.GetDeclaredSymbol(context.Node)!
-            ).Where(x => x.DeclaredAccessibility == Accessibility.Public && !x.IsStatic && !x.IsAbstract && !x.IsValueType && !x.IsGenericType)
-            .Collect();
-
-            var compilationAndClasses = classProvider.Combine(context.CompilationProvider);
-
-            context.RegisterSourceOutput(compilationAndClasses, (a, b) => Generate(a, b.Left, b.Right));
-        }
-
-        private static void Generate(SourceProductionContext context, ImmutableArray<INamedTypeSymbol> symbols, Compilation compilation)
-        {
-            var classList = new List<string>();
-            foreach (var symbol in symbols.GroupBy(x => $"{x.ContainingNamespace}.{x.Name}"))
-                GenerateType(context, symbol.First(), classList);
-            GeneriateInitializer(context, classList);
-        }
-
         private static readonly string nullaleTypeName = typeof(Nullable<>).Name;
         private static readonly string enumberableTypeName = nameof(IEnumerable);
         private static readonly string enumberableGenericTypeName = typeof(IEnumerable<>).Name;
@@ -58,7 +38,28 @@ namespace Zerra.SourceGeneration
         private static readonly string dictionaryGenericTypeName = typeof(IDictionary<,>).Name;
         private static readonly string readOnlyDictionaryGenericTypeName = typeof(IReadOnlyDictionary<,>).Name;
 
-        private static void GeneriateInitializer(SourceProductionContext context, List<string> classList)
+        public void Initialize(IncrementalGeneratorInitializationContext context)
+        {
+            var classProvider = context.SyntaxProvider.CreateSyntaxProvider(
+                (node, cancellationToken) => node is BaseTypeDeclarationSyntax,
+                (context, cancellationToken) => (INamedTypeSymbol)context.SemanticModel.GetDeclaredSymbol(context.Node)!
+            ).Where(x => x.DeclaredAccessibility == Accessibility.Public && !x.IsStatic && !x.IsAbstract && !x.IsValueType && !x.IsGenericType)
+            .Collect();
+
+            var compilationAndClasses = classProvider.Combine(context.CompilationProvider);
+
+            context.RegisterSourceOutput(compilationAndClasses, (a, b) => Generate(a, b.Left, b.Right));
+        }
+
+        private static void Generate(SourceProductionContext context, ImmutableArray<INamedTypeSymbol> symbols, Compilation compilation)
+        {
+            var classList = new List<string>();
+            foreach (var symbol in symbols.GroupBy(x => $"{x.ContainingNamespace}.{x.Name}"))
+                GenerateType(context, symbol.First(), classList);
+            GenerateInitializer(context, classList);
+        }
+
+        private static void GenerateInitializer(SourceProductionContext context, List<string> classList)
         {
             var sb = new StringBuilder();
             foreach (var item in classList)
@@ -240,53 +241,15 @@ namespace Zerra.SourceGeneration
 
             var isTask = specialType == SpecialType.Task;
 
-            var sbBaseTypes = new StringBuilder();
-            _ = sbBaseTypes.Append('[');
-            var baseType = typeSymbol.BaseType;
-            while (baseType is not null)
-            {
-                if (sbBaseTypes.Length > 1)
-                    _ = sbBaseTypes.Append(", ");
-                GetTypeOf(baseType, sbBaseTypes);
-                baseType = baseType.BaseType;
-                _ = sbBaseTypes;
-            }
-            _ = sbBaseTypes.Append(']');
-            var baseTypes = sbBaseTypes.ToString();
+            var baseTypes = GenerateBaseTypes(typeSymbol);
 
-            var symbolMembers = typeSymbol.GetMembers();
+            var attributes = GenerateAttributes(typeSymbol);
 
             var sbChildClasses = new StringBuilder();
 
-            var membersToInitialize = new List<string>();
-            var properties = symbolMembers.Where(x => x.Kind == SymbolKind.Property).Cast<IPropertySymbol>().ToArray();
-            var fields = symbolMembers.Where(x => x.Kind == SymbolKind.Field).Cast<IFieldSymbol>().ToArray();
-            var backingFields = new HashSet<IFieldSymbol>();
-            foreach (var property in properties)
-            {
-                if (property.DeclaredAccessibility == Accessibility.Public)
-                    GeneratePublicMember(property, fields, backingFields, fullTypeName, membersToInitialize, sbChildClasses);
-                else
-                    GeneratePrivateMember(property, fields, backingFields, fullTypeName, membersToInitialize, sbChildClasses);
-            }
-            foreach (var field in fields)
-            {
-                if (field.DeclaredAccessibility == Accessibility.Public)
-                    GeneratePublicMember(field, fullTypeName, backingFields, membersToInitialize, sbChildClasses);
-                else
-                    GeneratePrivateMember(field, fullTypeName, backingFields, membersToInitialize, sbChildClasses);
-            }
+            var constructors = GenerateConstructors(typeSymbol, sbChildClasses);
 
-            var sbMembers = new StringBuilder();
-            _ = sbMembers.Append('[');
-            foreach (var memberName in membersToInitialize)
-            {
-                if (sbMembers.Length > 1)
-                    _ = sbMembers.Append(", ");
-                sbMembers.Append("new ").Append(memberName).Append("(locker, LoadMemberInfo)");
-            }
-            _ = sbMembers.Append(']');
-            var members = sbMembers.ToString();
+            var members = GenerateMembers(typeSymbol, sbChildClasses);
 
             var childClasses = sbChildClasses.ToString();
 
@@ -349,7 +312,7 @@ namespace Zerra.SourceGeneration
 
                         public override IReadOnlyList<Type> Interfaces => [];
 
-                        public override IReadOnlyList<Attribute> Attributes => [];
+                        protected override Func<Attribute[]> CreateAttributes => () => {{attributes}};
 
                         public override IReadOnlyList<Type> InnerTypes => [];
                         public override IReadOnlyList<TypeDetail> InnerTypeDetails => [];
@@ -382,6 +345,131 @@ namespace Zerra.SourceGeneration
             context.AddSource(fileName, SourceText.From(code, Encoding.UTF8));
         }
 
+        private static string GenerateConstructors(INamedTypeSymbol typeSymbol, StringBuilder sbChildClasses)
+        {
+            var symbolMembers = typeSymbol.GetMembers();
+            var fullTypeName = typeSymbol.ToString();
+
+            var membersToInitialize = new List<string>();
+
+            var constructors = symbolMembers.Where(x => !x.IsStatic && x.Kind == SymbolKind.Method).Cast<IMethodSymbol>().Where(x => x.Name == ".ctor").ToArray();
+            var constructorNumber = 0;
+            foreach (var constructor in constructors)
+            {
+                if (constructor.DeclaredAccessibility == Accessibility.Public)
+                    GenerateConstructor(constructor, fullTypeName, typeSymbol.Name, ++constructorNumber, membersToInitialize, sbChildClasses);
+                //else
+                //GeneratePrivateConstructor(constructor, fullTypeName, typeSymbol.Name, ++constructorNumber, membersToInitialize, sbChildClasses);
+            }
+
+            var sbMembers = new StringBuilder();
+            _ = sbMembers.Append('[');
+            foreach (var memberName in membersToInitialize)
+            {
+                if (sbMembers.Length > 1)
+                    _ = sbMembers.Append(", ");
+                sbMembers.Append("new ").Append(memberName).Append("(locker, LoadMemberInfo)");
+            }
+            _ = sbMembers.Append(']');
+            var members = sbMembers.ToString();
+            return members;
+        }
+        private static void GenerateConstructor(IMethodSymbol methodSymbol, string parentTypeName, string parentName, int constructorNumber, List<string> membersToInitialize, StringBuilder sbChildClasses)
+        {
+            var memberName = methodSymbol.Name;
+            var className = $"{parentName}ConstructorDetail{constructorNumber}";
+
+            var hasCreator = methodSymbol.Parameters.Length == 0;
+
+            var sbCreatorWithArgs = new StringBuilder();
+            _ = sbCreatorWithArgs.Append("new ").Append(parentTypeName).Append('(');
+            var creatorIndex = 0;
+            foreach (var parameter in methodSymbol.Parameters)
+            {
+                if (creatorIndex > 0)
+                    _ = sbCreatorWithArgs.Append(", ");
+               _ = sbCreatorWithArgs.Append('(').Append(parameter.Type.ToString()).Append(")args[").Append(creatorIndex++).Append("]");
+            }
+            _ = sbCreatorWithArgs.Append(')');
+            var creatorWithArgs = sbCreatorWithArgs.ToString();
+
+            var attributes = GenerateAttributes(methodSymbol);
+
+            var parameters = GenerateParameters(methodSymbol, sbChildClasses);
+
+            var code = $$""""
+
+                        public sealed class {{className}} : ConstructorDetailGenerationBase<{{parentTypeName}}>
+                        {
+                            public {{className}}(object locker, Action loadConstructorInfo) : base(locker, loadConstructorInfo) { }
+
+                            public override Func<object?[]?, {{parentTypeName}}> CreatorWithArgs => (args) => {{creatorWithArgs}};
+                            public override bool HasCreatorWithArgs => true;
+
+                            public override Func<{{parentTypeName}}> Creator => () => {{(hasCreator ? $"new {parentTypeName}()" : "throw new NotSupportedException()")}};
+                            public override bool HasCreator => {{(hasCreator ? "true" : "false")}};
+
+                            public override string Name => "{{memberName}}";
+
+                            protected override Func<ParameterDetail[]> CreateParameters => () => {{parameters}};
+
+                            protected override Func<Attribute[]> CreateAttributes => () => {{attributes}};
+
+                            public override Func<object?[]?, {{parentTypeName}}> CreatorWithArgsBoxed => (args) => {{creatorWithArgs}};
+                            public override bool HasCreatorWithArgsBoxed => true;
+
+                            public override Func<object> CreatorBoxed => () => {{(hasCreator ? $"new {parentTypeName}()" : "throw new NotSupportedException()")}};
+                            public override bool HasCreatorBoxed => {{(hasCreator ? "true" : "false")}};
+
+                            public override Delegate? CreatorTyped => Creator;
+                            public override Delegate? CreatorWithArgsTyped => CreatorWithArgs;
+                        }
+                """";
+
+            membersToInitialize.Add(className);
+            _ = sbChildClasses.Append(code);
+        }
+
+        private static string GenerateMembers(INamedTypeSymbol typeSymbol, StringBuilder sbChildClasses)
+        {
+            var symbolMembers = typeSymbol.GetMembers();
+            var fullTypeName = typeSymbol.ToString();
+
+            var properties = symbolMembers.Where(x => x.Kind == SymbolKind.Property).Cast<IPropertySymbol>().ToArray();
+            var fields = symbolMembers.Where(x => x.Kind == SymbolKind.Field).Cast<IFieldSymbol>().ToArray();
+
+            var membersToInitialize = new List<string>();
+
+#pragma warning disable RS1024 // Comparing instance so no need for special comparer
+            var backingFields = new HashSet<IFieldSymbol>();
+#pragma warning restore RS1024 // Comparing instance so no need for special comparer
+            foreach (var property in properties)
+            {
+                if (property.DeclaredAccessibility == Accessibility.Public)
+                    GeneratePublicMember(property, fields, backingFields, fullTypeName, membersToInitialize, sbChildClasses);
+                else
+                    GeneratePrivateMember(property, fields, backingFields, fullTypeName, membersToInitialize, sbChildClasses);
+            }
+            foreach (var field in fields)
+            {
+                if (field.DeclaredAccessibility == Accessibility.Public)
+                    GeneratePublicMember(field, fullTypeName, backingFields, membersToInitialize, sbChildClasses);
+                else
+                    GeneratePrivateMember(field, fullTypeName, backingFields, membersToInitialize, sbChildClasses);
+            }
+
+            var sbMembers = new StringBuilder();
+            _ = sbMembers.Append('[');
+            foreach (var memberName in membersToInitialize)
+            {
+                if (sbMembers.Length > 1)
+                    _ = sbMembers.Append(", ");
+                sbMembers.Append("new ").Append(memberName).Append("(locker, LoadMemberInfo)");
+            }
+            _ = sbMembers.Append(']');
+            var members = sbMembers.ToString();
+            return members;
+        }
         private static void GeneratePublicMember(IPropertySymbol propertySymbol, IFieldSymbol[] fieldSymbols, HashSet<IFieldSymbol> backingFields, string parentTypeName, List<string> membersToInitialize, StringBuilder sbChildClasses)
         {
             var memberName = propertySymbol.Name;
@@ -404,6 +492,8 @@ namespace Zerra.SourceGeneration
             var hasGetter = propertySymbol.GetMethod is not null;
             var hasSetter = propertySymbol.SetMethod is not null;
 
+            var attributes = GenerateAttributes(propertySymbol);
+
             var code = $$""""
 
                         public sealed class {{className}} : MemberDetailGenerationBase<{{parentTypeName}}, {{typeName}}>
@@ -423,7 +513,7 @@ namespace Zerra.SourceGeneration
                             public override Action<{{parentTypeName}}, {{typeName}}> Setter => {{(hasSetter ? $"(x, value) => x.{memberName} = value" : "throw new NotSupportedException()")}};
                             public override bool HasSetter => {{(hasSetter ? "true" : "false")}};
 
-                            public override IReadOnlyList<Attribute> Attributes => [];
+                            protected override Func<Attribute[]> CreateAttributes => () => {{attributes}};
 
                             public override Func<object, object?> GetterBoxed => (x) => {{(hasGetter ? $"(({parentTypeName})x).{memberName}" : "throw new NotSupportedException()")}};
                             public override bool HasGetterBoxed => {{(hasGetter ? "true" : "false")}};
@@ -457,6 +547,8 @@ namespace Zerra.SourceGeneration
                 fieldClassName = $"{fieldSymbol.Name.Replace('<', '_').Replace('>', '_')}MemberDetail";
             }
 
+            var attributes = GenerateAttributes(propertySymbol);
+
             var code = $$""""
 
                         public sealed class {{className}} : PrivateMemberDetailGenerationBase<{{parentTypeName}}, {{typeName}}>
@@ -470,7 +562,7 @@ namespace Zerra.SourceGeneration
 
                             public override bool IsBacked => {{(isBacked ? "true" : "false")}};
 
-                            public override IReadOnlyList<Attribute> Attributes => [];
+                            public override Func<Attribute[]> CreateAttributes => () => {{attributes}};
 
                             protected override Func<MemberDetail<{{parentTypeName}}, {{typeName}}>?> CreateBackingFieldDetail => {{(fieldClassName is null ? "() => null" : $"() => new {fieldClassName}(locker, loadMemberInfo)")}};
                         }
@@ -484,6 +576,8 @@ namespace Zerra.SourceGeneration
             var memberName = fieldSymbol.Name;
             var className = $"{fieldSymbol.Name.Replace('<', '_').Replace('>', '_')}MemberDetail";
             var typeName = fieldSymbol.Type.ToString();
+
+            var attributes = GenerateAttributes(fieldSymbol);
 
             var code = $$""""
 
@@ -504,7 +598,7 @@ namespace Zerra.SourceGeneration
                             public override Action<{{parentTypeName}}, {{typeName}}> Setter => (x, value) => x.{{memberName}} = value;
                             public override bool HasSetter => true;
 
-                            public override IReadOnlyList<Attribute> Attributes => [];
+                            protected override Func<Attribute[]> CreateAttributes => () => {{attributes}};
 
                             public override Func<object, object?> GetterBoxed => (x) => (({{parentTypeName}})x).{{memberName}};
                             public override bool HasGetterBoxed => true;
@@ -526,6 +620,8 @@ namespace Zerra.SourceGeneration
             var className = $"{fieldSymbol.Name.Replace('<', '_').Replace('>', '_')}MemberDetail";
             var typeName = fieldSymbol.Type.ToString();
 
+            var attributes = GenerateAttributes(fieldSymbol);
+
             var code = $$""""
 
                         public sealed class {{className}} : PrivateMemberDetailGenerationBase<{{parentTypeName}}, {{typeName}}>
@@ -539,7 +635,7 @@ namespace Zerra.SourceGeneration
 
                             public override bool IsBacked => true;
 
-                            public override IReadOnlyList<Attribute> Attributes => [];
+                            protected override Func<Attribute[]> CreateAttributes => () => {{attributes}};
 
                             protected override Func<MemberDetail<{{parentTypeName}}, {{typeName}}>?> CreateBackingFieldDetail => () => null;
                         }
@@ -548,6 +644,85 @@ namespace Zerra.SourceGeneration
             if (!backingFields.Contains(fieldSymbol))
                 membersToInitialize.Add(className);
             _ = sbChildClasses.Append(code);
+        }
+
+        private static string GenerateBaseTypes(INamedTypeSymbol typeSymbol)
+        {
+            var sbBaseTypes = new StringBuilder();
+            _ = sbBaseTypes.Append('[');
+            var baseTypeSymbol = typeSymbol.BaseType;
+            while (baseTypeSymbol is not null)
+            {
+                if (sbBaseTypes.Length > 1)
+                    _ = sbBaseTypes.Append(", ");
+                GetTypeOf(baseTypeSymbol, sbBaseTypes);
+                baseTypeSymbol = baseTypeSymbol.BaseType;
+                _ = sbBaseTypes;
+            }
+            _ = sbBaseTypes.Append(']');
+            var baseTypes = sbBaseTypes.ToString();
+            return baseTypes;
+        }
+        private static string GenerateParameters(IMethodSymbol methodSymbol, StringBuilder sbChildClasses)
+        {
+            return "[]";
+        }
+        private static string GenerateAttributes(ISymbol symbol)
+        {
+            var attributeSymbols = symbol.GetAttributes();
+            var sbAttributes = new StringBuilder();
+            _ = sbAttributes.Append('[');
+            foreach (var attributeSymbol in attributeSymbols)
+            {
+                if (sbAttributes.Length > 1)
+                    _ = sbAttributes.Append(", ");
+                _ = sbAttributes.Append("new ").Append(attributeSymbol.AttributeClass.ToString()).Append('(');
+                foreach (var arg in attributeSymbol.NamedArguments)
+                {
+                    _ = sbAttributes.Append(arg.Key).Append(": ");
+                    TypedConstantToString(arg.Value, sbAttributes);
+                }
+                foreach (var arg in attributeSymbol.ConstructorArguments)
+                {
+                    TypedConstantToString(arg, sbAttributes);
+                }
+                _ = sbAttributes.Append(')');
+            }
+            _ = sbAttributes.Append(']');
+            var attributes = sbAttributes.ToString();
+            return attributes;
+        }
+        private static void TypedConstantToString(TypedConstant constant, StringBuilder sb)
+        {
+            switch (constant.Kind)
+            {
+                case TypedConstantKind.Primitive:
+                    if (constant.Type.Name == "String")
+                        _ = sb.Append("\"").Append(constant.Value?.ToString()).Append("\"");
+                    else
+                        _ = sb.Append(constant.Value?.ToString() ?? "null");
+                    break;
+                case TypedConstantKind.Enum:
+                    _ = sb.Append('(').Append(constant.Type.ToString()).Append(')').Append(constant.Value.ToString());
+                    break;
+                case TypedConstantKind.Type:
+                    //guessing
+                    _ = sb.Append("typeof(").Append(constant.Value.ToString()).Append(')');
+                    break;
+                case TypedConstantKind.Array:
+                    var pastFirstValue = false;
+                    foreach (var value in constant.Values)
+                    {
+                        if (pastFirstValue)
+                            sb.Append(", ");
+                        else
+                            pastFirstValue = true;
+                        TypedConstantToString(value, sb);
+                    }
+                    break;
+                default:
+                    throw new NotImplementedException();
+            }
         }
 
         private static string GetTypeOf(ITypeSymbol type)

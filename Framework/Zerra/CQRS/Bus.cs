@@ -59,7 +59,7 @@ namespace Zerra.CQRS
 
             var methodDetail = TypeAnalyzer.GetMethodDetail(interfaceType, methodName);
 
-            if (methodDetail.ParametersInfo.Count != (arguments is not null ? arguments.Length : 0))
+            if (methodDetail.Parameters.Count != (arguments is not null ? arguments.Length : 0))
                 throw new ArgumentException($"{interfaceType.GetNiceName()}.{methodName} invalid number of arguments");
 
             var args = new object?[arguments is not null ? arguments.Length : 0];
@@ -68,7 +68,7 @@ namespace Zerra.CQRS
                 var i = 0;
                 foreach (var argument in arguments)
                 {
-                    var parameter = JsonSerializer.Deserialize(methodDetail.ParametersInfo[i].ParameterType, argument);
+                    var parameter = JsonSerializer.Deserialize(methodDetail.Parameters[i].Type, argument);
                     args[i++] = parameter;
                 }
             }
@@ -697,7 +697,7 @@ namespace Zerra.CQRS
         public static TReturn _CallMethod<TReturn>(Type interfaceType, string methodName, object[] arguments, NetworkType networkType, string source)
         {
             var methodDetail = TypeAnalyzer.GetMethodDetail(interfaceType, methodName);
-            if (methodDetail.ParametersInfo.Count != arguments.Length)
+            if (methodDetail.Parameters.Count != arguments.Length)
                 throw new ArgumentException($"{interfaceType.GetNiceName()}.{methodName} invalid number of arguments");
 
             var metadata = callMetadata.GetOrAdd(interfaceType, (interfaceType) =>

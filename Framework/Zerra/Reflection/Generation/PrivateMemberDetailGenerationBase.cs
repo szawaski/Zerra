@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
@@ -70,6 +71,23 @@ namespace Zerra.Reflection.Generation
                     backingFieldDetailBoxed = backingFieldDetail;
                     backingFieldDetailLoaded = true;
                 }
+            }
+        }
+
+        protected abstract Func<Attribute[]> CreateAttributes { get; }
+        private Attribute[]? attributes = null;
+        public override sealed IReadOnlyList<Attribute> Attributes
+        {
+            get
+            {
+                if (attributes is null)
+                {
+                    lock (locker)
+                    {
+                        attributes ??= CreateAttributes();
+                    }
+                }
+                return attributes;
             }
         }
 

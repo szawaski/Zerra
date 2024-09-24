@@ -32,16 +32,16 @@ namespace Zerra.Reflection
             var method = methodDetailsByType.GetOrAdd(key, (_) =>
             {
                 var typeDetails = GetTypeDetail();
-                foreach (var methodDetail in typeDetails.MethodDetails.OrderBy(x => x.ParametersInfo.Count))
+                foreach (var methodDetail in typeDetails.MethodDetails.OrderBy(x => x.Parameters.Count))
                 {
-                    if (methodDetail.Name == name && (parameterTypes == null || methodDetail.ParametersInfo.Count == parameterTypes.Length))
+                    if (methodDetail.Name == name && (parameterTypes == null || methodDetail.Parameters.Count == parameterTypes.Length))
                     {
                         var match = true;
                         if (parameterTypes != null)
                         {
                             for (var i = 0; i < parameterTypes.Length; i++)
                             {
-                                if (parameterTypes[i].Name != methodDetail.ParametersInfo[i].ParameterType.Name || parameterTypes[i].Namespace != methodDetail.ParametersInfo[i].ParameterType.Namespace)
+                                if (parameterTypes[i].Name != methodDetail.Parameters[i].Type.Name || parameterTypes[i].Namespace != methodDetail.Parameters[i].Type.Namespace)
                                 {
                                     match = false;
                                     break;
@@ -66,14 +66,14 @@ namespace Zerra.Reflection
                 var typeDetails = GetTypeDetail();
                 foreach (var constructorDetail in typeDetails.ConstructorDetails)
                 {
-                    if (parameterTypes == null || constructorDetail.ParametersInfo.Count == parameterTypes.Length)
+                    if (parameterTypes == null || constructorDetail.Parameters.Count == parameterTypes.Length)
                     {
                         var match = true;
                         if (parameterTypes != null)
                         {
                             for (var i = 0; i < parameterTypes.Length; i++)
                             {
-                                if (parameterTypes[i] != constructorDetail.ParametersInfo[i].ParameterType)
+                                if (parameterTypes[i] != constructorDetail.Parameters[i].Type)
                                 {
                                     match = false;
                                     break;

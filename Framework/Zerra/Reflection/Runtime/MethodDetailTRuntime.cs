@@ -16,8 +16,8 @@ namespace Zerra.Reflection.Runtime
         public override MethodInfo MethodInfo { get; }
         public override string Name => MethodInfo.Name;
 
-        private ParameterInfo[]? parameterInfos = null;
-        public override IReadOnlyList<ParameterInfo> ParametersInfo
+        private ParameterDetail[]? parameterInfos = null;
+        public override IReadOnlyList<ParameterDetail> Parameters
         {
             get
             {
@@ -25,7 +25,8 @@ namespace Zerra.Reflection.Runtime
                 {
                     lock (locker)
                     {
-                        this.parameterInfos ??= MethodInfo.GetParameters();
+                        var parameters = MethodInfo.GetParameters();
+                        this.parameterInfos ??= parameters.Select(x => new ParameterDetailRuntime(x, locker)).ToArray();
                     }
                 }
                 return this.parameterInfos;

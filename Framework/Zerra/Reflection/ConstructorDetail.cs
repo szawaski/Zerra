@@ -13,7 +13,7 @@ namespace Zerra.Reflection
         public abstract ConstructorInfo ConstructorInfo { get; }
         public abstract string Name { get; }
 
-        public abstract IReadOnlyList<ParameterInfo> ParametersInfo { get; }
+        public abstract IReadOnlyList<ParameterDetail> Parameters { get; }
 
         public abstract IReadOnlyList<Attribute> Attributes { get; }
 

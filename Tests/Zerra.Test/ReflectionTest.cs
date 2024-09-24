@@ -76,9 +76,9 @@ namespace Zerra.Test
                 _ = method.HasCaller;
 
                 InspectTypeDetail(method.ReturnType, stack);
-                foreach (var parameter in method.ParametersInfo)
+                foreach (var parameter in method.Parameters)
                 {
-                    InspectTypeDetail(parameter.ParameterType.GetTypeDetail(), stack);
+                    InspectTypeDetail(parameter.Type.GetTypeDetail(), stack);
                 }
             }
             foreach (var constructor in constructors)
@@ -86,9 +86,9 @@ namespace Zerra.Test
                 _ = constructor.Attributes;
                 _ = constructor.HasCreatorWithArgs;
 
-                foreach (var parameter in constructor.ParametersInfo)
+                foreach (var parameter in constructor.Parameters)
                 {
-                    InspectTypeDetail(parameter.ParameterType.GetTypeDetail(), stack);
+                    InspectTypeDetail(parameter.Type.GetTypeDetail(), stack);
                 }
             }
             foreach (var attribute in attributes)

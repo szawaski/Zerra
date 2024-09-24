@@ -318,11 +318,11 @@ namespace Zerra.Reflection
 
             if (parameters1 != null)
             {
-                if (parameters1.Length != methodDetail2.ParametersInfo.Count)
+                if (parameters1.Length != methodDetail2.Parameters.Count)
                     return false;
                 for (var i = 0; i < parameters1.Length; i++)
                 {
-                    if (parameters1[i] != methodDetail2.ParametersInfo[i].ParameterType)
+                    if (parameters1[i] != methodDetail2.Parameters[i].Type)
                         return false;
                 }
             }
@@ -334,11 +334,11 @@ namespace Zerra.Reflection
             if (name1 != methodDetail2.Name)
                 return false;
 
-            if (parameters1.Length != methodDetail2.ParametersInfo.Count)
+            if (parameters1.Length != methodDetail2.Parameters.Count)
                 return false;
             for (var i = 0; i < parameters1.Length; i++)
             {
-                if (parameters1[i].ParameterType != methodDetail2.ParametersInfo[i].ParameterType)
+                if (parameters1[i].ParameterType != methodDetail2.Parameters[i].Type)
                     return false;
             }
 
@@ -348,15 +348,15 @@ namespace Zerra.Reflection
         {
             if (methodDetail1.Name != methodDetail2.Name)
                 return false;
-            if (methodDetail1.ParametersInfo.Count == 0 && methodDetail2.ParametersInfo.Count == 0)
+            if (methodDetail1.Parameters.Count == 0 && methodDetail2.Parameters.Count == 0)
                 return true;
-            if (methodDetail1.ParametersInfo.Count == 0 || methodDetail2.ParametersInfo.Count == 0)
+            if (methodDetail1.Parameters.Count == 0 || methodDetail2.Parameters.Count == 0)
                 return false;
-            if (methodDetail1.ParametersInfo.Count != methodDetail2.ParametersInfo.Count)
+            if (methodDetail1.Parameters.Count != methodDetail2.Parameters.Count)
                 return false;
-            for (var i = 0; i < methodDetail1.ParametersInfo.Count; i++)
+            for (var i = 0; i < methodDetail1.Parameters.Count; i++)
             {
-                if (methodDetail1.ParametersInfo[i].ParameterType != methodDetail2.ParametersInfo[i].ParameterType)
+                if (methodDetail1.Parameters[i].Type != methodDetail2.Parameters[i].Type)
                     return false;
             }
             return true;
@@ -365,11 +365,11 @@ namespace Zerra.Reflection
         {
             if (parameters1 != null)
             {
-                if (parameters1.Length != constructorDetail2.ParametersInfo.Count)
+                if (parameters1.Length != constructorDetail2.Parameters.Count)
                     return false;
                 for (var i = 0; i < parameters1.Length; i++)
                 {
-                    if (parameters1[i] != constructorDetail2.ParametersInfo[i].ParameterType)
+                    if (parameters1[i] != constructorDetail2.Parameters[i].Type)
                         return false;
                 }
             }
@@ -378,11 +378,11 @@ namespace Zerra.Reflection
         }
         protected static bool SignatureCompare(ParameterInfo[] parameters1, ConstructorDetail constructorDetail2)
         {
-            if (parameters1.Length != constructorDetail2.ParametersInfo.Count)
+            if (parameters1.Length != constructorDetail2.Parameters.Count)
                 return false;
             for (var i = 0; i < parameters1.Length; i++)
             {
-                if (parameters1[i].ParameterType != constructorDetail2.ParametersInfo[i].ParameterType)
+                if (parameters1[i].ParameterType != constructorDetail2.Parameters[i].Type)
                     return false;
             }
 

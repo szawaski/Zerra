@@ -87,19 +87,19 @@ namespace Zerra.Serialization.Bytes.Converters.General
             if (typeDetail.Type.IsValueType || !typeDetail.HasCreator)
             {
                 //find best constructor
-                foreach (var constructor in typeDetail.ConstructorDetails.OrderByDescending(x => x.ParametersInfo.Count))
+                foreach (var constructor in typeDetail.ConstructorDetails.OrderByDescending(x => x.Parameters.Count))
                 {
                     var skip = false;
-                    foreach (var parameter in constructor.ParametersInfo)
+                    foreach (var parameter in constructor.Parameters)
                     {
                         //cannot have argument of itself or a null name
-                        if (parameter.ParameterType == typeDetail.Type || parameter.Name == null)
+                        if (parameter.Type == typeDetail.Type || parameter.Name == null)
                         {
                             skip = true;
                             break;
                         }
                         //must have a matching a member
-                        if (!membersByName.Values.Any(x => x.Member.Type == parameter.ParameterType && MemberNameComparer.Instance.Equals(x.Member.Name, parameter.Name)))
+                        if (!membersByName.Values.Any(x => x.Member.Type == parameter.Type && MemberNameComparer.Instance.Equals(x.Member.Name, parameter.Name)))
                         {
                             skip = true;
                             break;
@@ -284,17 +284,17 @@ namespace Zerra.Serialization.Bytes.Converters.General
 
             if (collectValues)
             {
-                var args = new object?[parameterConstructor!.ParametersInfo.Count];
+                var args = new object?[parameterConstructor!.Parameters.Count];
                 for (var i = 0; i < args.Length; i++)
                 {
 #if NETSTANDARD2_0
-                    if (collectedValues!.TryGetValue(parameterConstructor.ParametersInfo[i].Name!, out var parameter))
+                    if (collectedValues!.TryGetValue(parameterConstructor.Parameters[i].Name!, out var parameter))
                     {
-                        collectedValues.Remove(parameterConstructor.ParametersInfo[i].Name!);
+                        collectedValues.Remove(parameterConstructor.Parameters[i].Name!);
                         args[i] = parameter;
                     }
 #else
-                    if (collectedValues!.Remove(parameterConstructor.ParametersInfo[i].Name!, out var parameter))
+                    if (collectedValues!.Remove(parameterConstructor.Parameters[i].Name!, out var parameter))
                         args[i] = parameter;
 #endif
                 }

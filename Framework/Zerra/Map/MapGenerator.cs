@@ -974,7 +974,7 @@ namespace Zerra.Map
                 else
                 {
                     //object
-                    if (!targetType.ConstructorDetailsBoxed.Any(x => x.ParametersInfo.Count == 0))
+                    if (!targetType.ConstructorDetailsBoxed.Any(x => x.Parameters.Count == 0))
                         return Expression.Constant(null, source.Type);
                     newTarget = Expression.Variable(target.Type, "newTarget");
                     assignNewTarget = Expression.Assign(newTarget, Expression.New(target.Type));
