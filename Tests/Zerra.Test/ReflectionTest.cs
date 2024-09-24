@@ -75,7 +75,7 @@ namespace Zerra.Test
                 _ = method.Attributes;
                 _ = method.HasCaller;
 
-                InspectTypeDetail(method.ReturnType, stack);
+                InspectTypeDetail(method.ReturnTypeDetail, stack);
                 foreach (var parameter in method.ParameterDetails)
                 {
                     InspectTypeDetail(parameter.Type.GetTypeDetail(), stack);

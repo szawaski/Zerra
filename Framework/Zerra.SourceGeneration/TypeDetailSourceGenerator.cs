@@ -249,6 +249,8 @@ namespace Zerra.SourceGeneration
 
             var constructors = GenerateConstructors(typeSymbol, sbChildClasses);
 
+            var methods = GenerateMethods(typeSymbol, sbChildClasses);
+
             var members = GenerateMembers(typeSymbol, sbChildClasses);
 
             var childClasses = sbChildClasses.ToString();
@@ -331,9 +333,9 @@ namespace Zerra.SourceGeneration
                         public override Func<object> CreatorBoxed => () => {{(hasCreator ? $"new {fullTypeName}()" : "throw new NotSupportedException()")}};
                         public override bool HasCreatorBoxed => {{(hasCreator ? "true" : "false")}};
 
-                        protected override Func<MethodDetail<{{fullTypeName}}>[]> CreateMethodDetails => () => [];
+                        protected override Func<MethodDetail<{{fullTypeName}}>[]> CreateMethodDetails => () => {{methods}};
 
-                        protected override Func<ConstructorDetail<{{fullTypeName}}>[]> CreateConstructorDetails => () => [];
+                        protected override Func<ConstructorDetail<{{fullTypeName}}>[]> CreateConstructorDetails => () => {{constructors}};
 
                         protected override Func<MemberDetail[]> CreateMemberDetails => () => {{members}};
 
@@ -352,14 +354,14 @@ namespace Zerra.SourceGeneration
 
             var membersToInitialize = new List<string>();
 
-            var constructors = symbolMembers.Where(x => !x.IsStatic && x.Kind == SymbolKind.Method).Cast<IMethodSymbol>().Where(x => x.Name == ".ctor").ToArray();
+            var constructors = symbolMembers.Where(x => x.Kind == SymbolKind.Method).Cast<IMethodSymbol>().Where(x => x.MethodKind == MethodKind.Constructor).ToArray();
             var constructorNumber = 0;
             foreach (var constructor in constructors)
             {
                 if (constructor.DeclaredAccessibility == Accessibility.Public)
-                    GenerateConstructor(constructor, fullTypeName, typeSymbol.Name, ++constructorNumber, membersToInitialize, sbChildClasses);
-                //else
-                //GeneratePrivateConstructor(constructor, fullTypeName, typeSymbol.Name, ++constructorNumber, membersToInitialize, sbChildClasses);
+                    GenerateConstructor(constructor, fullTypeName, ++constructorNumber, membersToInitialize, sbChildClasses);
+                else
+                    GeneratePrivateConstructor(constructor, fullTypeName, ++constructorNumber, membersToInitialize, sbChildClasses);
             }
 
             var sbMembers = new StringBuilder();
@@ -368,13 +370,13 @@ namespace Zerra.SourceGeneration
             {
                 if (sbMembers.Length > 1)
                     _ = sbMembers.Append(", ");
-                sbMembers.Append("new ").Append(memberName).Append("(locker, LoadMemberInfo)");
+                sbMembers.Append("new ").Append(memberName).Append("(locker, LoadConstructorInfo)");
             }
             _ = sbMembers.Append(']');
             var members = sbMembers.ToString();
             return members;
         }
-        private static void GenerateConstructor(IMethodSymbol methodSymbol, string parentTypeName, string parentName, int constructorNumber, List<string> membersToInitialize, StringBuilder sbChildClasses)
+        private static void GenerateConstructor(IMethodSymbol methodSymbol, string parentTypeName, int constructorNumber, List<string> membersToInitialize, StringBuilder sbChildClasses)
         {
             var memberName = methodSymbol.Name;
             var className = $"ConstructorDetail_{constructorNumber}";
@@ -420,9 +422,148 @@ namespace Zerra.SourceGeneration
 
                             public override Func<object> CreatorBoxed => () => {{(hasCreator ? $"new {parentTypeName}()" : "throw new NotSupportedException()")}};
                             public override bool HasCreatorBoxed => {{(hasCreator ? "true" : "false")}};
+                        }
+                """";
 
-                            public override Delegate? CreatorTyped => Creator;
-                            public override Delegate? CreatorWithArgsTyped => CreatorWithArgs;
+            membersToInitialize.Add(className);
+            _ = sbChildClasses.Append(code);
+        }
+        private static void GeneratePrivateConstructor(IMethodSymbol methodSymbol, string parentTypeName, int constructorNumber, List<string> membersToInitialize, StringBuilder sbChildClasses)
+        {
+            var memberName = methodSymbol.Name;
+            var className = $"ConstructorDetail_{constructorNumber}";
+
+            var attributes = GenerateAttributes(methodSymbol);
+
+            var parameters = GenerateParameters(methodSymbol, constructorNumber, sbChildClasses);
+
+            var code = $$""""
+
+                        public sealed class {{className}} : PrivateConstructorDetailGenerationBase<{{parentTypeName}}>
+                        {
+                            public {{className}}(object locker, Action loadConstructorInfo) : base(locker, loadConstructorInfo) { }
+
+                            public override string Name => "{{memberName}}";
+
+                            protected override Func<ParameterDetail[]> CreateParameterDetails => () => {{parameters}};
+
+                            protected override Func<Attribute[]> CreateAttributes => () => {{attributes}};
+                        }
+                """";
+
+            membersToInitialize.Add(className);
+            _ = sbChildClasses.Append(code);
+        }
+
+        private static string GenerateMethods(INamedTypeSymbol typeSymbol, StringBuilder sbChildClasses)
+        {
+            var symbolMembers = typeSymbol.GetMembers();
+            var fullTypeName = typeSymbol.ToString();
+
+            var membersToInitialize = new List<string>();
+
+            var methods = symbolMembers.Where(x => x.Kind == SymbolKind.Method).Cast<IMethodSymbol>().Where(x => !x.IsStatic && x.MethodKind == MethodKind.Ordinary).ToArray();
+            var methodNumber = 0;
+            foreach (var method in methods)
+            {
+                if (method.DeclaredAccessibility == Accessibility.Public)
+                    GenerateMethod(method, fullTypeName, ++methodNumber, membersToInitialize, sbChildClasses);
+                else
+                    GeneratePrivateMethod(method, fullTypeName, ++methodNumber, membersToInitialize, sbChildClasses);
+            }
+
+            var sbMembers = new StringBuilder();
+            _ = sbMembers.Append('[');
+            foreach (var memberName in membersToInitialize)
+            {
+                if (sbMembers.Length > 1)
+                    _ = sbMembers.Append(", ");
+                sbMembers.Append("new ").Append(memberName).Append("(locker, LoadMemberInfo)");
+            }
+            _ = sbMembers.Append(']');
+            var members = sbMembers.ToString();
+            return members;
+        }
+        private static void GenerateMethod(IMethodSymbol methodSymbol, string parentTypeName, int methodNumber, List<string> membersToInitialize, StringBuilder sbChildClasses)
+        {
+            var memberName = methodSymbol.Name;
+            var className = $"MethodDetail_{methodNumber}";
+
+            var isVoid = methodSymbol.ReturnType.ToString() == "void";
+
+            var sbCaller = new StringBuilder();
+            var sbCallerBoxed = new StringBuilder();
+            _ = sbCaller.Append("obj.").Append(memberName).Append('(');
+            _ = sbCallerBoxed.Append("((").Append(parentTypeName).Append(')').Append("obj).").Append(memberName).Append('(');
+            var creatorIndex = 0;
+            foreach (var parameter in methodSymbol.Parameters)
+            {
+                if (creatorIndex > 0)
+                {
+                    _ = sbCaller.Append(", ");
+                    _ = sbCallerBoxed.Append(", ");
+                }
+                _ = sbCaller.Append('(').Append(parameter.Type.ToString()).Append(")args[").Append(creatorIndex++).Append("]");
+                _ = sbCallerBoxed.Append('(').Append(parameter.Type.ToString()).Append(")args[").Append(creatorIndex++).Append("]");
+            }
+            _ = sbCaller.Append(')');
+            _ = sbCallerBoxed.Append(')');
+            var caller = sbCaller.ToString();
+            var callerBoxed = sbCallerBoxed.ToString();
+
+            var attributes = GenerateAttributes(methodSymbol);
+
+            var parameters = GenerateParameters(methodSymbol, methodNumber, sbChildClasses);
+
+            var code = $$""""
+
+                        public sealed class {{className}} : MethodDetailGenerationBase<{{parentTypeName}}>
+                        {
+                            public {{className}}(object locker, Action loadMethodInfo) : base(locker, loadMethodInfo) { }
+
+                            private Type? returnType = typeof({{methodSymbol.ReturnType.ToString()}});
+                            public override Type ReturnType => returnType;
+
+                            public override Func<{{parentTypeName}}?, object?[]?, object?> Caller => (obj, args) => {{(isVoid ? $"{{{caller};return null;}}" : caller)}};
+                            public override bool HasCaller => true;
+
+                            public override string Name => "{{memberName}}";
+
+                            protected override Func<ParameterDetail[]> CreateParameterDetails => () => {{parameters}};
+
+                            protected override Func<Attribute[]> CreateAttributes => () => {{attributes}};
+
+                            public override Func<object?, object?[]?, object?> CallerBoxed => (obj, args) => {{(isVoid ? $"{{{callerBoxed};return null;}}" : $"{callerBoxed}")}};
+                            public override bool HasCallerBoxed => true;
+                        }
+                """";
+
+            membersToInitialize.Add(className);
+            _ = sbChildClasses.Append(code);
+        }
+        private static void GeneratePrivateMethod(IMethodSymbol methodSymbol, string parentTypeName, int methodNumber, List<string> membersToInitialize, StringBuilder sbChildClasses)
+        {
+            var memberName = methodSymbol.Name;
+            var className = $"MethodDetail_{methodNumber}";
+
+            var attributes = GenerateAttributes(methodSymbol);
+
+            var parameters = GenerateParameters(methodSymbol, methodNumber, sbChildClasses);
+
+            var code = $$""""
+
+                        public sealed class {{className}} : PrivateMethodDetailGenerationBase<{{parentTypeName}}>
+                        {
+                            public {{className}}(object locker, Action loadMethodInfo) : base(locker, loadMethodInfo) { }
+                
+                            private Type? returnType = typeof({{methodSymbol.ReturnType.ToString()}});
+                            public override Type ReturnType => returnType;
+                
+                            public override string Name => "{{memberName}}";
+                
+                            protected override Func<ParameterDetail[]> CreateParameterDetails => () => {{parameters}};
+                
+                            protected override Func<Attribute[]> CreateAttributes => () => {{attributes}};
                         }
                 """";
 

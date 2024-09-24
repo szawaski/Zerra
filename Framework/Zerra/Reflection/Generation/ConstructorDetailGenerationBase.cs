@@ -68,6 +68,9 @@ namespace Zerra.Reflection.Generation
             }
         }
 
+        public override sealed Delegate? CreatorTyped => Creator;
+        public override sealed Delegate? CreatorWithArgsTyped => CreatorWithArgs;
+
         internal void SetConstructorInfo(ConstructorInfo constructorInfo)
         {
             this.constructorInfo = constructorInfo;

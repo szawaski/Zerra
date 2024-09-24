@@ -105,7 +105,7 @@ namespace Zerra.Reflection.Runtime
                                 var caller = this.callerBoxed;
                                 if (caller == null)
                                     return default;
-                                var returnTypeInfo = ReturnType;
+                                var returnTypeInfo = ReturnTypeDetail;
 
                                 if (returnTypeInfo.IsTask)
                                 {
@@ -130,8 +130,10 @@ namespace Zerra.Reflection.Runtime
             }
         }
 
+        public override Type ReturnType => MethodInfo.ReturnType;
+
         private TypeDetail? returnType = null;
-        public override TypeDetail ReturnType
+        public override TypeDetail ReturnTypeDetail
         {
             get
             {
@@ -202,7 +204,7 @@ namespace Zerra.Reflection.Runtime
                                 var caller = this.caller;
                                 if (caller == null)
                                     return default;
-                                var returnTypeInfo = ReturnType;
+                                var returnTypeInfo = ReturnTypeDetail;
 
                                 if (returnTypeInfo.IsTask)
                                 {
@@ -226,6 +228,8 @@ namespace Zerra.Reflection.Runtime
                 }
             }
         }
+
+        public override Delegate? CallerTyped => Caller;
 
         private readonly object locker;
         internal MethodDetailRuntime(MethodInfo method, object locker)

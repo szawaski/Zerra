@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 
 namespace Zerra.Reflection.Generation
 {
-    public abstract class MethodDetailGenerationBase<T> : MethodDetail<T>
+    public abstract class PrivateMethodDetailGenerationBase<T> : MethodDetail<T>
     {
         protected readonly object locker;
         private readonly Action loadMethodInfo;
-        public MethodDetailGenerationBase(object locker, Action loadMethodInfo)
+        public PrivateMethodDetailGenerationBase(object locker, Action loadMethodInfo)
         {
             this.locker = locker;
             this.loadMethodInfo = loadMethodInfo;
@@ -86,13 +86,35 @@ namespace Zerra.Reflection.Generation
             }
         }
 
+        internal void SetMethodInfo(MethodInfo constructorInfo)
+        {
+            this.constructorInfo = constructorInfo;
+        }
+
         private bool callerBoxedLoaded = false;
+        private Func<object?, object?[]?, object?>? callerBoxed = null;
         private Func<object?, object?[]?, Task<object?>>? callerBoxedAsync = null;
+        public override sealed Func<object?, object?[]?, object?> CallerBoxed
+        {
+            get
+            {
+                LoadCallerBoxed();
+                return this.callerBoxed ?? throw new NotSupportedException($"{nameof(MethodDetail)} {Name} does not have a {nameof(Caller)}");
+            }
+        }
+        public override sealed bool HasCallerBoxed
+        {
+            get
+            {
+                LoadCallerBoxed();
+                return this.callerBoxed != null;
+            }
+        }
         public override sealed Func<object?, object?[]?, Task<object?>> CallerBoxedAsync
         {
             get
             {
-                LoadCallerBoxedAsync();
+                LoadCallerBoxed();
                 return this.callerBoxedAsync ?? throw new NotSupportedException($"{nameof(MethodDetail)} {Name} does not have a {nameof(CallerAsync)}");
             }
         }
@@ -100,12 +122,12 @@ namespace Zerra.Reflection.Generation
         {
             get
             {
-                LoadCallerBoxedAsync();
+                LoadCallerBoxed();
                 return this.callerBoxedAsync != null;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void LoadCallerBoxedAsync()
+        private void LoadCallerBoxed()
         {
             if (!callerBoxedLoaded)
             {
@@ -113,11 +135,16 @@ namespace Zerra.Reflection.Generation
                 {
                     if (!callerBoxedLoaded)
                     {
-                        if (HasCallerBoxed)
+#if NETSTANDARD2_0
+                        if (!MethodInfo.IsGenericMethodDefinition && !MethodInfo.ReturnType.IsByRef)
+#else
+                        if (!MethodInfo.IsGenericMethodDefinition && !MethodInfo.ReturnType.IsByRef && !MethodInfo.ReturnType.IsByRefLike)
+#endif
                         {
+                            this.callerBoxed = AccessorGenerator.GenerateCaller(MethodInfo);
                             this.callerBoxedAsync = async (source, arguments) =>
                             {
-                                var caller = CallerBoxed;
+                                var caller = this.callerBoxed;
                                 if (caller == null)
                                     return default;
                                 var returnTypeInfo = ReturnTypeDetail;
@@ -146,12 +173,29 @@ namespace Zerra.Reflection.Generation
         }
 
         private bool callerLoaded = false;
+        private Func<T?, object?[]?, object?>? caller = null;
         private Func<T?, object?[]?, Task<object?>>? callerAsync = null;
+        public override sealed Func<T?, object?[]?, object?> Caller
+        {
+            get
+            {
+                LoadCaller();
+                return this.caller ?? throw new NotSupportedException($"{nameof(MethodDetail)} {Name} does not have a {nameof(Caller)}");
+            }
+        }
+        public override sealed bool HasCaller
+        {
+            get
+            {
+                LoadCaller();
+                return this.caller != null;
+            }
+        }
         public override sealed Func<T?, object?[]?, Task<object?>> CallerAsync
         {
             get
             {
-                LoadCallerAsync();
+                LoadCaller();
                 return this.callerAsync ?? throw new NotSupportedException($"{nameof(MethodDetail)} {Name} does not have a {nameof(CallerAsync)}");
             }
         }
@@ -159,12 +203,12 @@ namespace Zerra.Reflection.Generation
         {
             get
             {
-                LoadCallerAsync();
+                LoadCaller();
                 return this.callerAsync != null;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void LoadCallerAsync()
+        private void LoadCaller()
         {
             if (!callerLoaded)
             {
@@ -172,11 +216,16 @@ namespace Zerra.Reflection.Generation
                 {
                     if (!callerLoaded)
                     {
-                        if (HasCaller)
+#if NETSTANDARD2_0
+                        if (!MethodInfo.IsGenericMethodDefinition && !MethodInfo.ReturnType.IsByRef)
+#else
+                        if (!MethodInfo.IsGenericMethodDefinition && !MethodInfo.ReturnType.IsByRef && !MethodInfo.ReturnType.IsByRefLike)
+#endif
                         {
+                            this.caller = AccessorGenerator.GenerateCaller<T>(MethodInfo);
                             this.callerAsync = async (source, arguments) =>
                             {
-                                var caller = this.Caller;
+                                var caller = this.caller;
                                 if (caller == null)
                                     return default;
                                 var returnTypeInfo = ReturnTypeDetail;
@@ -204,12 +253,7 @@ namespace Zerra.Reflection.Generation
             }
         }
 
-        public override sealed Delegate? CallerTyped => Caller;
-
-        internal void SetMethodInfo(MethodInfo constructorInfo)
-        {
-            this.constructorInfo = constructorInfo;
-        }
+        public override Delegate? CallerTyped => Caller;
 
         protected void LoadParameterInfo()
         {
