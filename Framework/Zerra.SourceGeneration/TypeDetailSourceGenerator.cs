@@ -185,25 +185,25 @@ namespace Zerra.SourceGeneration
             classList.Add(qualifiedClassName);
 
             var isArray = typeName.Contains('[');
-            var interfaces = typeSymbol.AllInterfaces.Select(x => x.Name).ToImmutableHashSet();
+            var interfaceSymbols = typeSymbol.AllInterfaces.Select(x => x.Name).ToImmutableHashSet();
 
-            var hasIEnumerable = isArray || typeName == enumberableTypeName || interfaces.Contains(enumberableTypeName);
-            var hasIEnumerableGeneric = isArray || typeName == enumberableGenericTypeName || interfaces.Contains(enumberableGenericTypeName);
-            var hasICollection = typeName == collectionTypeName || interfaces.Contains(collectionTypeName);
-            var hasICollectionGeneric = typeName == collectionGenericTypeName || interfaces.Contains(collectionGenericTypeName);
-            var hasIReadOnlyCollectionGeneric = typeName == readOnlyCollectionGenericTypeName || interfaces.Contains(readOnlyCollectionGenericTypeName);
-            var hasIList = typeName == listTypeName || interfaces.Contains(listTypeName);
-            var hasIListGeneric = typeName == listGenericTypeName || interfaces.Contains(listGenericTypeName);
-            var hasIReadOnlyListGeneric = typeName == readOnlyListTypeName || interfaces.Contains(readOnlyListTypeName);
-            var hasISetGeneric = typeName == setGenericTypeName || interfaces.Contains(setGenericTypeName);
+            var hasIEnumerable = isArray || typeName == enumberableTypeName || interfaceSymbols.Contains(enumberableTypeName);
+            var hasIEnumerableGeneric = isArray || typeName == enumberableGenericTypeName || interfaceSymbols.Contains(enumberableGenericTypeName);
+            var hasICollection = typeName == collectionTypeName || interfaceSymbols.Contains(collectionTypeName);
+            var hasICollectionGeneric = typeName == collectionGenericTypeName || interfaceSymbols.Contains(collectionGenericTypeName);
+            var hasIReadOnlyCollectionGeneric = typeName == readOnlyCollectionGenericTypeName || interfaceSymbols.Contains(readOnlyCollectionGenericTypeName);
+            var hasIList = typeName == listTypeName || interfaceSymbols.Contains(listTypeName);
+            var hasIListGeneric = typeName == listGenericTypeName || interfaceSymbols.Contains(listGenericTypeName);
+            var hasIReadOnlyListGeneric = typeName == readOnlyListTypeName || interfaceSymbols.Contains(readOnlyListTypeName);
+            var hasISetGeneric = typeName == setGenericTypeName || interfaceSymbols.Contains(setGenericTypeName);
 #if NET5_0_OR_GREATER
             var hasIReadOnlySetGeneric = name == readOnlySetGenericTypeName || interfaces.Contains(readOnlySetGenericTypeName);
 #else
             var hasIReadOnlySetGeneric = false;
 #endif
-            var hasIDictionary = typeName == dictionaryTypeName || interfaces.Contains(dictionaryTypeName);
-            var hasIDictionaryGeneric = typeName == dictionaryGenericTypeName || interfaces.Contains(dictionaryGenericTypeName);
-            var hasIReadOnlyDictionaryGeneric = typeName == readOnlyDictionaryGenericTypeName || interfaces.Contains(readOnlyDictionaryGenericTypeName);
+            var hasIDictionary = typeName == dictionaryTypeName || interfaceSymbols.Contains(dictionaryTypeName);
+            var hasIDictionaryGeneric = typeName == dictionaryGenericTypeName || interfaceSymbols.Contains(dictionaryGenericTypeName);
+            var hasIReadOnlyDictionaryGeneric = typeName == readOnlyDictionaryGenericTypeName || interfaceSymbols.Contains(readOnlyDictionaryGenericTypeName);
 
             var isIEnumerable = typeName == enumberableTypeName;
             var isIEnumerableGeneric = typeName == enumberableGenericTypeName;
@@ -244,6 +244,8 @@ namespace Zerra.SourceGeneration
             var baseTypes = GenerateBaseTypes(typeSymbol);
 
             var attributes = GenerateAttributes(typeSymbol);
+
+            var interfaces = GenerateInterfaces(typeSymbol);
 
             var sbChildClasses = new StringBuilder();
 
@@ -312,7 +314,8 @@ namespace Zerra.SourceGeneration
 
                         public override IReadOnlyList<Type> BaseTypes => {{baseTypes}};
 
-                        public override IReadOnlyList<Type> Interfaces => [];
+                        private readonly Type[] interfaces = {{interfaces}};
+                        public override IReadOnlyList<Type> Interfaces => interfaces;
 
                         protected override Func<Attribute[]> CreateAttributes => () => {{attributes}};
 
@@ -863,10 +866,23 @@ namespace Zerra.SourceGeneration
                     _ = sbBaseTypes.Append(", ");
                 GetTypeOf(baseTypeSymbol, sbBaseTypes);
                 baseTypeSymbol = baseTypeSymbol.BaseType;
-                _ = sbBaseTypes;
             }
             _ = sbBaseTypes.Append(']');
             var baseTypes = sbBaseTypes.ToString();
+            return baseTypes;
+        }
+        private static string GenerateInterfaces(INamedTypeSymbol typeSymbol)
+        {
+            var sbInterfaceTypes = new StringBuilder();
+            _ = sbInterfaceTypes.Append('[');
+            foreach(var i in typeSymbol.AllInterfaces)
+            {
+                if (sbInterfaceTypes.Length > 1)
+                    _ = sbInterfaceTypes.Append(", ");
+                GetTypeOf(i, sbInterfaceTypes);
+            }
+            _ = sbInterfaceTypes.Append(']');
+            var baseTypes = sbInterfaceTypes.ToString();
             return baseTypes;
         }
         private static string GenerateAttributes(ISymbol symbol)
@@ -927,16 +943,6 @@ namespace Zerra.SourceGeneration
             }
         }
 
-        private static string GetTypeOf(ITypeSymbol type)
-        {
-            if (type is INamedTypeSymbol namedTypeSymbol)
-            {
-                var sb = new StringBuilder();
-                GetTypeOf(namedTypeSymbol, sb);
-                return sb.ToString();
-            }
-            return $"typeof({type.ContainingNamespace}.{type.Name})";
-        }
         private static void GetTypeOf(INamedTypeSymbol type, StringBuilder sb)
         {
             var genericArgsCount = type.TypeArguments.Length;
