@@ -22,6 +22,8 @@ namespace Zerra.Test
 
 using System;
 
+namespace ZerraDemo.Domain.Weather.Constants
+{
     [Flags]
     public enum WeatherType
     {
@@ -40,9 +42,12 @@ using System;
 
     public interface IWeatherQueryProvider
     {
-        Task<WeatherModel> GetWeather();
+        WeatherModel? GetWeather();
         Task<Stream> TestStreams();
     }
+
+}
+
 
 ";
 

@@ -9,6 +9,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 
 namespace Zerra.SourceGeneration
@@ -90,7 +91,7 @@ namespace Zerra.SourceGeneration
                 namespaceRecursionCheck = namespaceRecursionCheck.BaseType;
             }
 
-            var ns = typeSymbol.ToString().Contains("<global namespace>") ? null : typeSymbol.ContainingNamespace.ToString();
+            var ns = typeSymbol.ContainingNamespace.ToString().Contains("<global namespace>") ? null : typeSymbol.ContainingNamespace.ToString();
 
             var fullTypeName = typeSymbol.ToString();
             if (!typeSymbol.IsValueType)
@@ -99,7 +100,7 @@ namespace Zerra.SourceGeneration
             var typeName = typeSymbol.ToString();
             if (ns != null && typeName.StartsWith(ns))
                 typeName = typeName.Substring(ns.Length + 1);
-            typeName = typeName.Replace('<', '_').Replace('>', '_').Replace('.', '_');
+            typeName = typeName.Replace('<', '_').Replace('>', '_').Replace(',', '_').Replace('.', '_');
             if (typeName.EndsWith("?"))
             {
                 if (typeSymbol.IsValueType)
@@ -108,9 +109,16 @@ namespace Zerra.SourceGeneration
                     typeName = typeName.Replace("?", String.Empty);
             }
 
-            string className;
-            string fileName;
-            string? typeConstraints;
+            var className = $"{typeName}TypeDetail";
+            var fileName = ns == null ? $"{typeName}TypeDetail.cs" : $"{ns}.{typeName}TypeDetail.cs";
+
+            var fullClassName = ns == null ? $"SourceGeneration.{className}" : $"{ns}.SourceGeneration.{className}";
+            var classListItem = new Tuple<string, string>(fullTypeName, fullClassName);
+            if (classList.Contains(classListItem))
+                return;
+            classList.Add(classListItem);
+
+            string? typeConstraints = null;
             if (typeSymbol.TypeArguments.Length > 0)
             {
                 var sbConstraints = new StringBuilder();
@@ -167,22 +175,9 @@ namespace Zerra.SourceGeneration
                         }
                     }
                 }
-                className = $"{typeName}T{typeSymbol.TypeArguments.Length}TypeDetail";
-                fileName = ns == null ? $"{typeName}T{typeSymbol.TypeArguments.Length}TypeDetail.cs" : $"{ns}.{typeName}TypeDetail.cs";
+
                 typeConstraints = sbConstraints.ToString();
             }
-            else
-            {
-                className = $"{typeName}TypeDetail";
-                fileName = ns == null ? $"{typeName}TypeDetail.cs" : $"{ns}.{typeName}TypeDetail.cs";
-                typeConstraints = null;
-            }
-
-            var fullClassName = ns == null ? $"SourceGeneration.{className}" : $"{ns}.SourceGeneration.{className}";
-            var classListItem = new Tuple<string, string>(fullTypeName, fullClassName);
-            if (classList.Contains(classListItem))
-                return;
-            classList.Add(classListItem);
 
             var isArray = typeSymbol.Kind == SymbolKind.ArrayType;
             var interfaceNames = typeSymbol.AllInterfaces.Select(x => x.Name).ToImmutableHashSet();
