@@ -18,22 +18,31 @@ namespace Zerra.Test
             var assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(x => !x.IsDynamic).ToArray();
             var references = assemblies.Select(x => MetadataReference.CreateFromFile(x.Location)).ToArray();
 
-            var test = @"using System;
+            var test = @"
 
-namespace ZerraDemo.Domain.Pets.Models
-{
-    public class PetModel
+using System;
+
+    [Flags]
+    public enum WeatherType
     {
-        public Guid ID { get; set; }
-        public string? Name { get; set; }
-        public string? Breed { get; set; }
-        public string? Species { get; set; }
-
-        public DateTime? LastEaten { get; set; }
-        public int? AmountEaten { get; set; }
-        public DateTime? LastPooped { get; set; }
+        Sunny = 0,
+        OhioGraySkies = 1,
+        Cloudy = 2,
+        Windy = 4,
+        Rain = 8,
+        Snow = 16,
+        Hail = 32,
+        Tornado = 64,
+        Hurricane = 128,
+        Asteroid = 256,
+        Sharks = 512
     }
-}
+
+    public interface IWeatherQueryProvider
+    {
+        Task<WeatherModel> GetWeather();
+        Task<Stream> TestStreams();
+    }
 
 ";
 

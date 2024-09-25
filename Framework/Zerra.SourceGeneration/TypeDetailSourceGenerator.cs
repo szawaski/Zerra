@@ -50,6 +50,7 @@ namespace Zerra.SourceGeneration
                 //Zerra Generated File
                 #if NET5_0_OR_GREATER
 
+                using System;
                 using System.Runtime.CompilerServices;
                 using Zerra.Reflection;
 
@@ -74,38 +75,48 @@ namespace Zerra.SourceGeneration
             context.AddSource("TypeDetailInitializer.cs", SourceText.From(code, Encoding.UTF8));
         }
 
-        public static void GenerateType(SourceProductionContext context, INamedTypeSymbol typeSymbol, List<Tuple<string, string>> classList)
+        public static void GenerateType(SourceProductionContext context, INamedTypeSymbol typeSymbol, ImmutableArray<INamedTypeSymbol> allTypeSymbol, List<Tuple<string, string>> classList, bool recursive)
         {
-            var nsCheck = typeSymbol.ContainingNamespace.ToString();
-            if (!typeSymbol.IsValueType && nsCheck.StartsWith("System"))
+            if (typeSymbol.Name == "Void")
                 return;
-            if (nsCheck.StartsWith("Zerra.Reflection") || nsCheck.StartsWith("System.Reflection"))
-                return;
+            if (!recursive && allTypeSymbol.Contains(typeSymbol))
+                return; //We may recursion reference a type to parse later. Don't let recursion block prevent full load of types
 
-            var ns = typeSymbol.ContainingNamespace.ToString().Contains("<global namespace>") ? null : typeSymbol.ContainingNamespace.ToString();
+            var namespaceRecursionCheck = typeSymbol;
+            while (namespaceRecursionCheck is not null)
+            {
+                if (namespaceRecursionCheck.ContainingNamespace.ToString().StartsWith("Zerra.Reflection"))
+                    return;
+                namespaceRecursionCheck = namespaceRecursionCheck.BaseType;
+            }
+
+            var ns = typeSymbol.ToString().Contains("<global namespace>") ? null : typeSymbol.ContainingNamespace.ToString();
 
             var fullTypeName = typeSymbol.ToString();
-            var typeName = typeSymbol.Name;
-            if (typeSymbol.IsValueType && fullTypeName.EndsWith("?"))
-                typeName += "Nullable";
             if (!typeSymbol.IsValueType)
                 fullTypeName = fullTypeName.Replace("?", String.Empty);
 
+            var typeName = typeSymbol.ToString();
+            if (ns != null && typeName.StartsWith(ns))
+                typeName = typeName.Substring(ns.Length + 1);
+            typeName = typeName.Replace('<', '_').Replace('>', '_').Replace('.', '_');
+            if (typeName.EndsWith("?"))
+            {
+                if (typeSymbol.IsValueType)
+                    typeName = typeName.Replace("?", String.Empty) + "Nullable";
+                else
+                    typeName = typeName.Replace("?", String.Empty);
+            }
+
             string className;
-            string initializerName;
             string fileName;
             string? typeConstraints;
             if (typeSymbol.TypeArguments.Length > 0)
             {
-                var sbClassName = new StringBuilder();
                 var sbConstraints = new StringBuilder();
-                _ = sbClassName.Append(typeName).Append("TypeDetail<");
                 for (var i = 0; i < typeSymbol.TypeArguments.Length; i++)
                 {
                     var typeArgument = typeSymbol.TypeArguments[i];
-                    if (i > 0)
-                        _ = sbClassName.Append(',');
-                    _ = sbClassName.Append(typeArgument.Name);
                     if (typeArgument is ITypeParameterSymbol typeParameterSymbol)
                     {
                         if (typeParameterSymbol.HasUnmanagedTypeConstraint || typeParameterSymbol.HasValueTypeConstraint || typeParameterSymbol.HasReferenceTypeConstraint || typeParameterSymbol.HasNotNullConstraint || typeParameterSymbol.HasConstructorConstraint)
@@ -156,16 +167,13 @@ namespace Zerra.SourceGeneration
                         }
                     }
                 }
-                _ = sbClassName.Append('>');
-                className = sbClassName.ToString();
-                initializerName = $"{typeName}TypeDetailInitializerT{typeSymbol.TypeArguments.Length}";
-                fileName = ns == null ? $"{typeName}TypeDetailT{typeSymbol.TypeArguments.Length}.cs" : $"{ns}.{typeName}TypeDetailT{typeSymbol.TypeArguments.Length}.cs";
+                className = $"{typeName}T{typeSymbol.TypeArguments.Length}TypeDetail";
+                fileName = ns == null ? $"{typeName}T{typeSymbol.TypeArguments.Length}TypeDetail.cs" : $"{ns}.{typeName}TypeDetail.cs";
                 typeConstraints = sbConstraints.ToString();
             }
             else
             {
                 className = $"{typeName}TypeDetail";
-                initializerName = $"{typeName}TypeDetailInitializer";
                 fileName = ns == null ? $"{typeName}TypeDetail.cs" : $"{ns}.{typeName}TypeDetail.cs";
                 typeConstraints = null;
             }
@@ -179,42 +187,42 @@ namespace Zerra.SourceGeneration
             var isArray = typeSymbol.Kind == SymbolKind.ArrayType;
             var interfaceNames = typeSymbol.AllInterfaces.Select(x => x.Name).ToImmutableHashSet();
 
-            var hasIEnumerable = isArray || typeName == enumberableTypeName || interfaceNames.Contains(enumberableTypeName);
-            var hasIEnumerableGeneric = isArray || typeName == enumberableGenericTypeName || interfaceNames.Contains(enumberableGenericTypeName);
-            var hasICollection = typeName == collectionTypeName || interfaceNames.Contains(collectionTypeName);
-            var hasICollectionGeneric = typeName == collectionGenericTypeName || interfaceNames.Contains(collectionGenericTypeName);
-            var hasIReadOnlyCollectionGeneric = typeName == readOnlyCollectionGenericTypeName || interfaceNames.Contains(readOnlyCollectionGenericTypeName);
-            var hasIList = typeName == listTypeName || interfaceNames.Contains(listTypeName);
-            var hasIListGeneric = typeName == listGenericTypeName || interfaceNames.Contains(listGenericTypeName);
-            var hasIReadOnlyListGeneric = typeName == readOnlyListTypeName || interfaceNames.Contains(readOnlyListTypeName);
-            var hasISetGeneric = typeName == setGenericTypeName || interfaceNames.Contains(setGenericTypeName);
-            var hasIReadOnlySetGeneric = typeName == readOnlySetGenericTypeName || interfaceNames.Contains(readOnlySetGenericTypeName);
-            var hasIDictionary = typeName == dictionaryTypeName || interfaceNames.Contains(dictionaryTypeName);
-            var hasIDictionaryGeneric = typeName == dictionaryGenericTypeName || interfaceNames.Contains(dictionaryGenericTypeName);
-            var hasIReadOnlyDictionaryGeneric = typeName == readOnlyDictionaryGenericTypeName || interfaceNames.Contains(readOnlyDictionaryGenericTypeName);
+            var hasIEnumerable = isArray || typeSymbol.Name == enumberableTypeName || interfaceNames.Contains(enumberableTypeName);
+            var hasIEnumerableGeneric = isArray || typeSymbol.Name == enumberableGenericTypeName || interfaceNames.Contains(enumberableGenericTypeName);
+            var hasICollection = typeSymbol.Name == collectionTypeName || interfaceNames.Contains(collectionTypeName);
+            var hasICollectionGeneric = typeSymbol.Name == collectionGenericTypeName || interfaceNames.Contains(collectionGenericTypeName);
+            var hasIReadOnlyCollectionGeneric = typeSymbol.Name == readOnlyCollectionGenericTypeName || interfaceNames.Contains(readOnlyCollectionGenericTypeName);
+            var hasIList = typeSymbol.Name == listTypeName || interfaceNames.Contains(listTypeName);
+            var hasIListGeneric = typeSymbol.Name == listGenericTypeName || interfaceNames.Contains(listGenericTypeName);
+            var hasIReadOnlyListGeneric = typeSymbol.Name == readOnlyListTypeName || interfaceNames.Contains(readOnlyListTypeName);
+            var hasISetGeneric = typeSymbol.Name == setGenericTypeName || interfaceNames.Contains(setGenericTypeName);
+            var hasIReadOnlySetGeneric = typeSymbol.Name == readOnlySetGenericTypeName || interfaceNames.Contains(readOnlySetGenericTypeName);
+            var hasIDictionary = typeSymbol.Name == dictionaryTypeName || interfaceNames.Contains(dictionaryTypeName);
+            var hasIDictionaryGeneric = typeSymbol.Name == dictionaryGenericTypeName || interfaceNames.Contains(dictionaryGenericTypeName);
+            var hasIReadOnlyDictionaryGeneric = typeSymbol.Name == readOnlyDictionaryGenericTypeName || interfaceNames.Contains(readOnlyDictionaryGenericTypeName);
 
-            var isIEnumerable = typeName == enumberableTypeName;
-            var isIEnumerableGeneric = typeName == enumberableGenericTypeName;
-            var isICollection = typeName == collectionTypeName;
-            var isICollectionGeneric = typeName == collectionGenericTypeName;
-            var isIReadOnlyCollectionGeneric = typeName == readOnlyCollectionGenericTypeName;
-            var isIList = typeName == listTypeName;
-            var isIListGeneric = typeName == listGenericTypeName;
-            var isIReadOnlyListGeneric = typeName == readOnlyListTypeName;
-            var isISetGeneric = typeName == setGenericTypeName;
-            var isIReadOnlySetGeneric = typeName == readOnlySetGenericTypeName;
-            var isIDictionary = typeName == dictionaryTypeName;
-            var isIDictionaryGeneric = typeName == dictionaryGenericTypeName;
-            var isIReadOnlyDictionaryGeneric = typeName == readOnlyDictionaryGenericTypeName;
+            var isIEnumerable = typeSymbol.Name == enumberableTypeName;
+            var isIEnumerableGeneric = typeSymbol.Name == enumberableGenericTypeName;
+            var isICollection = typeSymbol.Name == collectionTypeName;
+            var isICollectionGeneric = typeSymbol.Name == collectionGenericTypeName;
+            var isIReadOnlyCollectionGeneric = typeSymbol.Name == readOnlyCollectionGenericTypeName;
+            var isIList = typeSymbol.Name == listTypeName;
+            var isIListGeneric = typeSymbol.Name == listGenericTypeName;
+            var isIReadOnlyListGeneric = typeSymbol.Name == readOnlyListTypeName;
+            var isISetGeneric = typeSymbol.Name == setGenericTypeName;
+            var isIReadOnlySetGeneric = typeSymbol.Name == readOnlySetGenericTypeName;
+            var isIDictionary = typeSymbol.Name == dictionaryTypeName;
+            var isIDictionaryGeneric = typeSymbol.Name == dictionaryGenericTypeName;
+            var isIReadOnlyDictionaryGeneric = typeSymbol.Name == readOnlyDictionaryGenericTypeName;
 
             var hasCreator = typeSymbol.Constructors.Any(x => !x.IsStatic && x.Parameters.Length == 0);
 
             CoreType? coreType = null;
-            if (TypeLookup.CoreTypeLookup(typeName, out var coreTypeParsed))
+            if (TypeLookup.CoreTypeLookup(typeSymbol.Name, out var coreTypeParsed))
                 coreType = coreTypeParsed;
 
             SpecialType? specialType = null;
-            if (TypeLookup.SpecialTypeLookup(typeName, out var specialTypeParsed))
+            if (TypeLookup.SpecialTypeLookup(typeSymbol.Name, out var specialTypeParsed))
                 specialType = specialTypeParsed;
 
             CoreEnumType? enumType = null;
@@ -253,11 +261,11 @@ namespace Zerra.SourceGeneration
 
             var sbChildClasses = new StringBuilder();
 
-            var constructors = GenerateConstructors(context, typeSymbol, classList, sbChildClasses);
+            var constructors = GenerateConstructors(context, typeSymbol, allTypeSymbol, classList, recursive, sbChildClasses);
 
-            var methods = GenerateMethods(context, typeSymbol, classList, sbChildClasses);
+            var methods = GenerateMethods(context, typeSymbol, allTypeSymbol, classList, recursive, sbChildClasses);
 
-            var members = GenerateMembers(context, typeSymbol, classList, sbChildClasses);
+            var members = GenerateMembers(context, typeSymbol, allTypeSymbol, classList, recursive, sbChildClasses);
 
             var childClasses = sbChildClasses.ToString();
 
@@ -349,7 +357,7 @@ namespace Zerra.SourceGeneration
             context.AddSource(fileName, SourceText.From(code, Encoding.UTF8));
         }
 
-        private static string GenerateConstructors(SourceProductionContext context, INamedTypeSymbol typeSymbol, List<Tuple<string, string>> classList, StringBuilder sbChildClasses)
+        private static string GenerateConstructors(SourceProductionContext context, INamedTypeSymbol typeSymbol, ImmutableArray<INamedTypeSymbol> allTypeSymbol, List<Tuple<string, string>> classList, bool recursive, StringBuilder sbChildClasses)
         {
             var symbolMembers = typeSymbol.GetMembers();
             var fullTypeName = typeSymbol.ToString();
@@ -365,13 +373,13 @@ namespace Zerra.SourceGeneration
                 else
                     GeneratePrivateConstructor(constructor, fullTypeName, ++constructorNumber, membersToInitialize, sbChildClasses);
 
-                if (constructor.ReturnType is INamedTypeSymbol namedType)
-                    GenerateType(context, namedType, classList);
-
-                foreach (var arg in constructor.Parameters)
+                if (recursive)
                 {
-                    if (arg.Type is INamedTypeSymbol argNamedType)
-                        GenerateType(context, argNamedType, classList);
+                    foreach (var arg in constructor.Parameters)
+                    {
+                        if (arg.Type is INamedTypeSymbol argNamedType)
+                            GenerateType(context, argNamedType, allTypeSymbol, classList, false);
+                    }
                 }
             }
 
@@ -466,7 +474,7 @@ namespace Zerra.SourceGeneration
             _ = sbChildClasses.Append(code);
         }
 
-        private static string GenerateMethods(SourceProductionContext context, INamedTypeSymbol typeSymbol, List<Tuple<string, string>> classList, StringBuilder sbChildClasses)
+        private static string GenerateMethods(SourceProductionContext context, INamedTypeSymbol typeSymbol, ImmutableArray<INamedTypeSymbol> allTypeSymbol, List<Tuple<string, string>> classList, bool recursive, StringBuilder sbChildClasses)
         {
             var symbolMembers = typeSymbol.GetMembers();
             var fullTypeName = typeSymbol.ToString();
@@ -482,13 +490,16 @@ namespace Zerra.SourceGeneration
                 else
                     GeneratePrivateMethod(method, fullTypeName, ++methodNumber, membersToInitialize, sbChildClasses);
 
-                if (method.ReturnType is INamedTypeSymbol namedType)
-                    GenerateType(context, namedType, classList);
-
-                foreach (var arg in method.Parameters)
+                if (recursive)
                 {
-                    if (arg.Type is INamedTypeSymbol argNamedType)
-                        GenerateType(context, argNamedType, classList);
+                    if (method.ReturnType is INamedTypeSymbol namedType)
+                        GenerateType(context, namedType, allTypeSymbol, classList, false);
+
+                    foreach (var arg in method.Parameters)
+                    {
+                        if (arg.Type is INamedTypeSymbol argNamedType)
+                            GenerateType(context, argNamedType, allTypeSymbol, classList, false);
+                    }
                 }
             }
 
@@ -591,7 +602,7 @@ namespace Zerra.SourceGeneration
             _ = sbChildClasses.Append(code);
         }
 
-        private static string GenerateMembers(SourceProductionContext context, INamedTypeSymbol typeSymbol, List<Tuple<string, string>> classList, StringBuilder sbChildClasses)
+        private static string GenerateMembers(SourceProductionContext context, INamedTypeSymbol typeSymbol, ImmutableArray<INamedTypeSymbol> allTypeSymbol, List<Tuple<string, string>> classList, bool recursive, StringBuilder sbChildClasses)
         {
             var symbolMembers = typeSymbol.GetMembers();
             var fullTypeName = typeSymbol.ToString();
@@ -612,8 +623,11 @@ namespace Zerra.SourceGeneration
                 else
                     GeneratePrivateMember(property, properties.Length, fields, backingFields, fullTypeName, ++memberNumber, membersToInitialize, sbChildClasses);
 
-                if (property.Type is INamedTypeSymbol namedType)
-                    GenerateType(context, namedType, classList);
+                if (recursive)
+                {
+                    if (property.Type is INamedTypeSymbol namedType)
+                        GenerateType(context, namedType, allTypeSymbol, classList, false);
+                }
             }
             foreach (var field in fields)
             {
@@ -622,8 +636,11 @@ namespace Zerra.SourceGeneration
                 else
                     GeneratePrivateMember(field, fullTypeName, backingFields, ++memberNumber, membersToInitialize, sbChildClasses);
 
-                if (field.Type is INamedTypeSymbol namedType)
-                    GenerateType(context, namedType, classList);
+                if (recursive)
+                {
+                    if (field.Type is INamedTypeSymbol namedType)
+                        GenerateType(context, namedType, allTypeSymbol, classList, false);
+                }
             }
 
             var sbMembers = new StringBuilder();

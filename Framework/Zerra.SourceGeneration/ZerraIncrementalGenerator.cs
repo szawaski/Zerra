@@ -18,9 +18,9 @@ namespace Zerra.SourceGeneration
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
             var classProvider = context.SyntaxProvider.CreateSyntaxProvider(
-                (node, cancellationToken) => node is BaseTypeDeclarationSyntax,
+                (node, cancellationToken) => node is BaseTypeDeclarationSyntax || node is InterfaceDeclarationSyntax,
                 (context, cancellationToken) => (INamedTypeSymbol)context.SemanticModel.GetDeclaredSymbol(context.Node)!
-            ).Where(x => x.DeclaredAccessibility == Accessibility.Public && !x.IsStatic && !x.IsAbstract && !x.IsValueType)
+            ).Where(x => x.DeclaredAccessibility == Accessibility.Public && !x.IsStatic)
             .Collect();
 
             var compilationAndClasses = classProvider.Combine(context.CompilationProvider);
@@ -31,8 +31,8 @@ namespace Zerra.SourceGeneration
         private static void Generate(SourceProductionContext context, ImmutableArray<INamedTypeSymbol> symbols, Compilation compilation)
         {
             var classList = new List<Tuple<string, string>>();
-            foreach (var symbol in symbols.GroupBy(x => $"{x.ContainingNamespace}.{x.Name}"))
-                TypeDetailSourceGenerator.GenerateType(context, symbol.First(), classList);
+            foreach (var symbol in symbols.GroupBy(x => x.ToString()))
+                TypeDetailSourceGenerator.GenerateType(context, symbol.First(), symbols, classList, true);
             TypeDetailSourceGenerator.GenerateInitializer(context, classList);
         }
     }
