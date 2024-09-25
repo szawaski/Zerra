@@ -15,5 +15,5 @@ namespace ZerraDemo.Domain.Pets.Exceptions
             this.PetName = petName;
             this.Weather = weather;
         }
-    }
+    } 
 }

@@ -3,7 +3,6 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Linq;
-using System.Text.Json.Serialization;
 using Zerra.CQRS;
 using Zerra.SourceGeneration;
 
@@ -19,14 +18,32 @@ namespace Zerra.Test
             var assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(x => !x.IsDynamic).ToArray();
             var references = assemblies.Select(x => MetadataReference.CreateFromFile(x.Location)).ToArray();
 
-           
+            var test = @"using System;
+
+namespace ZerraDemo.Domain.Pets.Models
+{
+    public class PetModel
+    {
+        public Guid ID { get; set; }
+        public string? Name { get; set; }
+        public string? Breed { get; set; }
+        public string? Species { get; set; }
+
+        public DateTime? LastEaten { get; set; }
+        public int? AmountEaten { get; set; }
+        public DateTime? LastPooped { get; set; }
+    }
+}
+
+";
+
             var compilation = CSharpCompilation.Create("TestProject",
-                [SyntaxFactory.ParseSyntaxTree("[Zerra.CQRS.ServiceSecure(\"beep\",\"bop\")] public class TestGen { }")],
+                [SyntaxFactory.ParseSyntaxTree(test)],
                 references,
                 new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
 
-            var sourceGenerator = new TypeDetailSourceGenerator().AsSourceGenerator();
+            var sourceGenerator = new ZerraIncrementalGenerator().AsSourceGenerator();
 
             GeneratorDriver driver = CSharpGeneratorDriver.Create(
                 generators: [sourceGenerator],

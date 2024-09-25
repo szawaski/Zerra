@@ -1,6 +1,5 @@
 ﻿//using System;
 //using System.Collections.Generic;
-//using System.Reflection;
 //using System.Runtime.CompilerServices;
 //using Zerra.Reflection;
 //using Zerra.Reflection.Generation;
@@ -11,7 +10,7 @@
 //    public class PetModelTypeDetail : TypeDetailTGenerationBase<PetModel>
 //    {
 //        [ModuleInitializer]
-//        public static void Initialize() => TypeAnalyzer.InitializeTypeDetail(new PetModelTypeDetail());
+//        public static void Initialize() => TypeAnalyzer.AddTypeDetailCreator(typeof(PetModel), () => new PetModelTypeDetail());
 
 //        protected override Func<MethodDetail<PetModel>[]> CreateMethodDetails => () => [];
 
@@ -311,7 +310,7 @@
 //    public class PetModelArrayTypeDetail : TypeDetailTGenerationBase<PetModel[]>
 //    {
 //        [ModuleInitializer]
-//        public static void Initialize() => TypeAnalyzer.InitializeTypeDetail(new PetModelArrayTypeDetail());
+//        public static void Initialize() => TypeAnalyzer.AddTypeDetailCreator(typeof(PetModel[]), () => new PetModelArrayTypeDetail());
 
 //        protected override Func<MethodDetail<PetModel[]>[]> CreateMethodDetails => () => [];
 

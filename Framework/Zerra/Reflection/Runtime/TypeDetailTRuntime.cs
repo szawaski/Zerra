@@ -27,13 +27,12 @@ namespace Zerra.Reflection.Runtime
         private static readonly string setGenericTypeName = typeof(ISet<>).Name;
 #if NET5_0_OR_GREATER
         private static readonly string readOnlySetGenericTypeName = typeof(IReadOnlySet<>).Name;
+#else
+        private static readonly string readOnlySetGenericTypeName = "IReadOnlySet`1";
 #endif
         private static readonly string dictionaryTypeName = typeof(IDictionary).Name;
         private static readonly string dictionaryGenericTypeName = typeof(IDictionary<,>).Name;
         private static readonly string readOnlyDictionaryGenericTypeName = typeof(IReadOnlyDictionary<,>).Name;
-
-        private static readonly Type keyValuePairType = typeof(KeyValuePair<,>);
-        private static readonly Type dictionaryEntryType = typeof(DictionaryEntry);
 
         public override bool IsNullable { get; }
 
@@ -528,9 +527,7 @@ namespace Zerra.Reflection.Runtime
                         hasIListGeneric = Type.Name == listGenericTypeName || interfaces.Contains(listGenericTypeName);
                         hasIReadOnlyListGeneric = Type.Name == readOnlyListTypeName || interfaces.Contains(readOnlyListTypeName);
                         hasISetGeneric = Type.Name == setGenericTypeName || interfaces.Contains(setGenericTypeName);
-#if NET5_0_OR_GREATER
                         hasIReadOnlySetGeneric = Type.Name == readOnlySetGenericTypeName || interfaces.Contains(readOnlySetGenericTypeName);
-#endif
                         hasIDictionary = Type.Name == dictionaryTypeName || interfaces.Contains(dictionaryTypeName);
                         hasIDictionaryGeneric = Type.Name == dictionaryGenericTypeName || interfaces.Contains(dictionaryGenericTypeName);
                         hasIReadOnlyDictionaryGeneric = Type.Name == readOnlyDictionaryGenericTypeName || interfaces.Contains(readOnlyDictionaryGenericTypeName);
@@ -544,9 +541,7 @@ namespace Zerra.Reflection.Runtime
                         isIListGeneric = Type.Name == listGenericTypeName;
                         isIReadOnlyListGeneric = Type.Name == readOnlyListTypeName;
                         isISetGeneric = Type.Name == setGenericTypeName;
-#if NET5_0_OR_GREATER
                         isIReadOnlySetGeneric = Type.Name == readOnlySetGenericTypeName;
-#endif
                         isIDictionary = Type.Name == dictionaryTypeName;
                         isIDictionaryGeneric = Type.Name == dictionaryGenericTypeName;
                         isIReadOnlyDictionaryGeneric = Type.Name == readOnlyDictionaryGenericTypeName;
@@ -815,6 +810,8 @@ namespace Zerra.Reflection.Runtime
             }
         }
 
+        private static readonly Type keyValuePairType = typeof(KeyValuePair<,>);
+        private static readonly Type dictionaryEntryType = typeof(DictionaryEntry);
         private bool dictionartyInnerTypeLoaded = false;
         private Type? dictionaryInnerType = null;
         public override Type DictionaryInnerType

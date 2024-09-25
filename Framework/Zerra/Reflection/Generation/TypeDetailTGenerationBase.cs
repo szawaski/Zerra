@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -9,6 +10,131 @@ namespace Zerra.Reflection.Generation
     public abstract class TypeDetailTGenerationBase<T> : TypeDetail<T>
     {
         public TypeDetailTGenerationBase() : base(typeof(T)) { }
+
+        private TypeDetail[]? innerTypesDetails = null;
+        public override sealed IReadOnlyList<TypeDetail> InnerTypeDetails
+        {
+            get
+            {
+                if (innerTypesDetails == null)
+                {
+                    lock (locker)
+                    {
+                        if (innerTypesDetails == null)
+                        {
+                            var innerTypesRef = InnerTypes;
+                            if (innerTypesRef != null)
+                            {
+                                var items = new TypeDetail[innerTypesRef.Count];
+                                for (var i = 0; i < innerTypesRef.Count; i++)
+                                {
+                                    items[i] = TypeAnalyzer.GetTypeDetail(innerTypesRef[i]);
+                                }
+                                innerTypesDetails = items;
+                            }
+                            else
+                            {
+                                innerTypesDetails = Array.Empty<TypeDetail>();
+                            }
+                        }
+                    }
+                }
+                return innerTypesDetails;
+            }
+        }
+
+        private bool innerTypeDetailLoaded = false;
+        private TypeDetail? innerTypesDetail = null;
+        public override sealed TypeDetail InnerTypeDetail
+        {
+            get
+            {
+                if (!innerTypeDetailLoaded)
+                {
+                    lock (locker)
+                    {
+                        if (!innerTypeDetailLoaded)
+                        {
+                            if (InnerTypes.Count == 1)
+                            {
+                                innerTypesDetail = InnerType.GetTypeDetail();
+                            }
+                        }
+                        innerTypeDetailLoaded = true;
+                    }
+                }
+                return innerTypesDetail ?? throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name} does not have a {nameof(InnerTypeDetail)}");
+            }
+        }
+
+        private TypeDetail? iEnumerableGenericInnerTypeDetail = null;
+        public override sealed TypeDetail IEnumerableGenericInnerTypeDetail
+        {
+            get
+            {
+                if (IEnumerableGenericInnerType == null)
+                    throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name.GetType()} is not an IEnumerableGeneric");
+                if (iEnumerableGenericInnerTypeDetail == null)
+                {
+                    lock (locker)
+                    {
+                        iEnumerableGenericInnerTypeDetail ??= TypeAnalyzer.GetTypeDetail(IEnumerableGenericInnerType);
+                    }
+                }
+                return iEnumerableGenericInnerTypeDetail;
+            }
+        }
+
+        private bool dictionaryInnerTypeDetailLoaded = false;
+        private TypeDetail? dictionaryInnerTypesDetail = null;
+        public override sealed TypeDetail DictionaryInnerTypeDetail
+        {
+            get
+            {
+                if (!dictionaryInnerTypeDetailLoaded)
+                {
+                    lock (locker)
+                    {
+                        if (!dictionaryInnerTypeDetailLoaded)
+                        {
+                            dictionaryInnerTypesDetail = DictionaryInnerType.GetTypeDetail();
+                        }
+                        innerTypeDetailLoaded = true;
+                    }
+                }
+                return dictionaryInnerTypesDetail ?? throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name} does not have a {nameof(DictionaryInnerTypeDetail)}");
+            }
+        }
+
+        private static readonly Type keyValuePairType = typeof(KeyValuePair<,>);
+        private static readonly Type dictionaryEntryType = typeof(DictionaryEntry);
+        private bool dictionartyInnerTypeLoaded = false;
+        private Type? dictionaryInnerType = null;
+        public override sealed Type DictionaryInnerType
+        {
+            get
+            {
+                if (!dictionartyInnerTypeLoaded)
+                {
+                    lock (locker)
+                    {
+                        if (!dictionartyInnerTypeLoaded)
+                        {
+                            if (HasIDictionaryGeneric || HasIReadOnlyDictionaryGeneric)
+                            {
+                                dictionaryInnerType = TypeAnalyzer.GetGenericType(keyValuePairType, (Type[])InnerTypes);
+                            }
+                            else if (HasIDictionary)
+                            {
+                                dictionaryInnerType = dictionaryEntryType;
+                            }
+                            dictionartyInnerTypeLoaded = true;
+                        }
+                    }
+                }
+                return dictionaryInnerType ?? throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name} does not have a {nameof(DictionaryInnerType)}");
+            }
+        }
 
         protected abstract Func<MethodDetail<T>[]> CreateMethodDetails { get; }
         private MethodDetail<T>[]? methodDetails = null;

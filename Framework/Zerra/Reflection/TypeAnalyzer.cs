@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Zerra.Collections;
@@ -157,8 +158,9 @@ namespace Zerra.Reflection
         }
 
         private static readonly ConcurrentFactoryDictionary<Type, TypeDetail> typeDetailsByType = new();
-        public static TypeDetail GetTypeDetail(Type type) => typeDetailsByType.GetOrAdd(type, TypeDetailRuntime<object>.New);
-        public static void InitializeTypeDetail(TypeDetail typeDetail) => typeDetailsByType.TryAdd(typeDetail.Type, typeDetail);
+        private static readonly Dictionary<Type, Func<TypeDetail>> typeDetailCreatorsByType = new();
+        public static TypeDetail GetTypeDetail(Type type) => typeDetailsByType.GetOrAdd(type, (t) => typeDetailCreatorsByType.TryGetValue(t, out var typeDetailCreator) ? typeDetailCreator() : TypeDetailRuntime<object>.New(t));
+        public static void AddTypeDetailCreator(Type type, Func<TypeDetail> typeDetailCreator) => typeDetailCreatorsByType.Add(type, typeDetailCreator);
 
         private static readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail?> methodDetailsByType = new();
         public static MethodDetail GetMethodDetail(Type type, string name, Type[]? parameterTypes = null)
