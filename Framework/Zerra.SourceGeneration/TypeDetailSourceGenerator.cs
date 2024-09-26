@@ -76,13 +76,28 @@ namespace Zerra.SourceGeneration
             context.AddSource("TypeDetailInitializer.cs", SourceText.From(code, Encoding.UTF8));
         }
 
+        private static bool ShouldGenerateType(INamedTypeSymbol typeSymbol, ImmutableArray<INamedTypeSymbol> allTypeSymbol)
+        {
+            //We only want types in this build or generics that contain the types in this build.
+            if (allTypeSymbol.Contains(typeSymbol))
+                return true;
+
+            if (typeSymbol.TypeParameters.Length == 0)
+                return false;
+
+            var allTypeSymbolString = allTypeSymbol.Select(x => $"{x.ContainingNamespace}.{x.Name}");
+            foreach (var typeArgument in typeSymbol.TypeParameters)
+            {
+                var typeArgumentString = $"{typeArgument.ContainingNamespace}.{typeArgument.Name}";
+                if (allTypeSymbolString.Contains(typeArgumentString))
+                    return true;
+            }
+
+            return false;
+        }
+
         public static void GenerateType(SourceProductionContext context, INamedTypeSymbol typeSymbol, ImmutableArray<INamedTypeSymbol> allTypeSymbol, List<Tuple<string, string>> classList, bool recursive)
         {
-            if (typeSymbol.Name == "Void")
-                return;
-            if (!recursive && allTypeSymbol.Contains(typeSymbol))
-                return; //We may recursion reference a type to parse later. Don't let recursion block prevent full load of types
-
             var namespaceRecursionCheck = typeSymbol;
             while (namespaceRecursionCheck is not null)
             {
@@ -212,6 +227,8 @@ namespace Zerra.SourceGeneration
 
             var hasCreator = typeSymbol.Constructors.Any(x => !x.IsStatic && x.Parameters.Length == 0);
 
+            var isNullable = typeSymbol.NullableAnnotation == NullableAnnotation.Annotated;
+
             CoreType? coreType = null;
             if (TypeLookup.CoreTypeLookup(typeSymbol.Name, out var coreTypeParsed))
                 coreType = coreTypeParsed;
@@ -308,7 +325,7 @@ namespace Zerra.SourceGeneration
                         public override Func<{{fullTypeName}}> Creator => () => {{(hasCreator ? $"new {fullTypeName}()" : "throw new NotSupportedException()")}};
                         public override bool HasCreator => {{(hasCreator ? "true" : "false")}};
 
-                        public override bool IsNullable => false;
+                        public override bool IsNullable => {{isNullable}};
 
                         public override CoreType? CoreType => {{(coreType.HasValue ? "CoreType." + coreType.Value.ToString() : "null")}};
                         public override SpecialType? SpecialType => {{(specialType.HasValue ? "SpecialType." + specialType.Value.ToString() : "null")}};
@@ -373,7 +390,10 @@ namespace Zerra.SourceGeneration
                     foreach (var arg in constructor.Parameters)
                     {
                         if (arg.Type is INamedTypeSymbol argNamedType)
-                            GenerateType(context, argNamedType, allTypeSymbol, classList, false);
+                        {
+                            if (ShouldGenerateType(argNamedType, allTypeSymbol))
+                                GenerateType(context, argNamedType, allTypeSymbol, classList, false);
+                        }
                     }
                 }
             }
@@ -488,12 +508,18 @@ namespace Zerra.SourceGeneration
                 if (recursive)
                 {
                     if (method.ReturnType is INamedTypeSymbol namedType)
-                        GenerateType(context, namedType, allTypeSymbol, classList, false);
+                    {
+                        if (ShouldGenerateType(namedType, allTypeSymbol))
+                            GenerateType(context, namedType, allTypeSymbol, classList, false);
+                    }
 
                     foreach (var arg in method.Parameters)
                     {
                         if (arg.Type is INamedTypeSymbol argNamedType)
-                            GenerateType(context, argNamedType, allTypeSymbol, classList, false);
+                        {
+                            if (ShouldGenerateType(argNamedType, allTypeSymbol))
+                                GenerateType(context, argNamedType, allTypeSymbol, classList, false);
+                        }
                     }
                 }
             }
@@ -621,7 +647,10 @@ namespace Zerra.SourceGeneration
                 if (recursive)
                 {
                     if (property.Type is INamedTypeSymbol namedType)
-                        GenerateType(context, namedType, allTypeSymbol, classList, false);
+                    {
+                        if (ShouldGenerateType(namedType, allTypeSymbol))
+                            GenerateType(context, namedType, allTypeSymbol, classList, false);
+                    }
                 }
             }
             foreach (var field in fields)
@@ -634,7 +663,10 @@ namespace Zerra.SourceGeneration
                 if (recursive)
                 {
                     if (field.Type is INamedTypeSymbol namedType)
-                        GenerateType(context, namedType, allTypeSymbol, classList, false);
+                    {
+                        if (ShouldGenerateType(namedType, allTypeSymbol))
+                            GenerateType(context, namedType, allTypeSymbol, classList, false);
+                    }
                 }
             }
 
