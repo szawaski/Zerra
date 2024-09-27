@@ -11,33 +11,30 @@
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
         <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM</PackageTags>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <Description>Core library for the Zerra Framework.
+        <Description>
+            Core library for the Zerra Framework.
 
-Commonly used types:
-Zerra.Providers.IBaseProvider
-Zerra.Graph
-Zerra.Map
-Zerra.Config
-Zerra.Serialization.ByteSerializer
-Zerra.Providers.Resolver
-Zerra.Log.ILoggingProvider
-Zerra.Encryption.EncryptionCommon
-Zerra.Encryption.Hasher
-Zerra.Compression.CompressionCommon
-Zerra.Linq.WhereBuilder
-Zerra.Reflection.TypeAnalyzer
+            Commonly used types:
+            Zerra.Providers.IBaseProvider
+            Zerra.Graph
+            Zerra.Map
+            Zerra.Config
+            Zerra.Serialization.ByteSerializer
+            Zerra.Providers.Resolver
+            Zerra.Log.ILoggingProvider
+            Zerra.Encryption.EncryptionCommon
+            Zerra.Encryption.Hasher
+            Zerra.Compression.CompressionCommon
+            Zerra.Linq.WhereBuilder
+            Zerra.Reflection.TypeAnalyzer
         </Description>
         <Company>KaKush LLC</Company>
         <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
-		<LangVersion>12.0</LangVersion>
+        <LangVersion>12.0</LangVersion>
         <Version>5.0.0</Version>
     </PropertyGroup>
 
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <PropertyGroup>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
@@ -89,6 +86,14 @@ Zerra.Reflection.TypeAnalyzer
         <PackageReference Include="System.Reflection.Emit" Version="4.7.0" />
         <PackageReference Include="System.Reflection.Emit.Lightweight" Version="4.7.0" />
     </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Zerra.SourceGeneration\Zerra.SourceGeneration.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"  />
+    </ItemGroup>
+    <!--<PropertyGroup>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+        <CompilerGeneratedFilesOutputPath>Generated</CompilerGeneratedFilesOutputPath>
+    </PropertyGroup>-->
 
     <ItemGroup>
         <None Include="..\..\LICENSE">

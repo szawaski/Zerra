@@ -92,6 +92,7 @@ namespace Zerra.SourceGeneration
         {
             return coreTypeLookup.TryGetValue(type, out coreType);
         }
+        public static IEnumerable<string> GetCoreTypeNames => coreTypeLookup.Keys;
 
         private static readonly IReadOnlyDictionary<string, CoreEnumType> coreEnumTypeLookup = new Dictionary<string, CoreEnumType>()
         {

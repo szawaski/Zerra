@@ -36,7 +36,7 @@ namespace Zerra.SourceGeneration
         private static readonly string dictionaryGenericTypeName = typeof(IDictionary<,>).Name;
         private static readonly string readOnlyDictionaryGenericTypeName = typeof(IReadOnlyDictionary<,>).Name;
 
-        public static void GenerateInitializer(SourceProductionContext context, List<Tuple<string, string>> classList)
+        public static void GenerateInitializer(SourceProductionContext context, Compilation compilation, List<Tuple<string, string>> classList)
         {
             var sb = new StringBuilder();
             foreach (var item in classList)
@@ -55,7 +55,7 @@ namespace Zerra.SourceGeneration
                 using System.Runtime.CompilerServices;
                 using Zerra.Reflection;
 
-                namespace Zerra.SourceGeneration
+                namespace {{classList.Count}}
                 {
                     public static class TypeDetailInitializer
                     {
@@ -325,11 +325,11 @@ namespace Zerra.SourceGeneration
                         public override Func<{{fullTypeName}}> Creator => () => {{(hasCreator ? $"new {fullTypeName}()" : "throw new NotSupportedException()")}};
                         public override bool HasCreator => {{(hasCreator ? "true" : "false")}};
 
-                        public override bool IsNullable => {{isNullable}};
+                        public override bool IsNullable => {{(isNullable ? "true" : "false")}};
 
-                        public override CoreType? CoreType => {{(coreType.HasValue ? "CoreType." + coreType.Value.ToString() : "null")}};
-                        public override SpecialType? SpecialType => {{(specialType.HasValue ? "SpecialType." + specialType.Value.ToString() : "null")}};
-                        public override CoreEnumType? EnumUnderlyingType => {{(enumType.HasValue ? "CoreEnumType." + enumType.Value.ToString() : "null")}};
+                        public override CoreType? CoreType => {{(coreType.HasValue ? "Zerra.Reflection.CoreType." + coreType.Value.ToString() : "null")}};
+                        public override SpecialType? SpecialType => {{(specialType.HasValue ? "Zerra.Reflection.SpecialType." + specialType.Value.ToString() : "null")}};
+                        public override CoreEnumType? EnumUnderlyingType => {{(enumType.HasValue ? "Zerra.Reflection.CoreEnumType." + enumType.Value.ToString() : "null")}};
 
                         private readonly Type? innerType = {{(innerType is null ? "null" : $"typeof({innerType})")}};
                         public override Type InnerType => innerType ?? throw new NotSupportedException();
@@ -352,7 +352,7 @@ namespace Zerra.SourceGeneration
                         public override Func<object, object?> TaskResultGetter => (obj) => {{(isTask ? "((System.Threading.Tasks.Task)obj).Result" : "throw new NotSupportedException()")}};
                         public override bool HasTaskResultGetter => {{(isTask ? "true" : "false")}};
 
-                        public override Func<object> CreatorBoxed => () => {{(hasCreator ? $"new {fullTypeName}()" : "throw new NotSupportedException()")}};
+                        public override Func<object> CreatorBoxed => {{(hasCreator ? $"() => new {fullTypeName}()" : "throw new NotSupportedException()")}};
                         public override bool HasCreatorBoxed => {{(hasCreator ? "true" : "false")}};
 
                         protected override Func<MethodDetail<{{fullTypeName}}>[]> CreateMethodDetails => () => {{methods}};
@@ -416,22 +416,27 @@ namespace Zerra.SourceGeneration
             var className = $"ConstructorDetail_{constructorNumber}";
 
             var hasCreator = methodSymbol.Parameters.Length == 0;
+            var hasCreatorWithArgs = methodSymbol.Parameters.All(x => x.RefKind == RefKind.None && !x.Type.IsRefLikeType && x.Type.Kind != SymbolKind.PointerType);
 
-            var sbCreatorWithArgs = new StringBuilder();
-            _ = sbCreatorWithArgs.Append("new ").Append(parentTypeName).Append('(');
-            var creatorIndex = 0;
-            foreach (var parameter in methodSymbol.Parameters)
+            string? creatorWithArgs = null;
+            if (hasCreatorWithArgs)
             {
-                if (creatorIndex > 0)
-                    _ = sbCreatorWithArgs.Append(", ");
-                _ = sbCreatorWithArgs.Append('(').Append(parameter.Type.ToString()).Append(")args[").Append(creatorIndex++).Append("]");
+                var sbCreatorWithArgs = new StringBuilder();
+                _ = sbCreatorWithArgs.Append("new ").Append(parentTypeName).Append('(');
+                var creatorIndex = 0;
+                foreach (var parameter in methodSymbol.Parameters)
+                {
+                    if (creatorIndex > 0)
+                        _ = sbCreatorWithArgs.Append(", ");
+                    _ = sbCreatorWithArgs.Append('(').Append(parameter.Type.ToString()).Append(")args[").Append(creatorIndex++).Append("]");
+                }
+                _ = sbCreatorWithArgs.Append(')');
+                creatorWithArgs = sbCreatorWithArgs.ToString();
             }
-            _ = sbCreatorWithArgs.Append(')');
-            var creatorWithArgs = sbCreatorWithArgs.ToString();
 
             var attributes = GenerateAttributes(methodSymbol);
 
-            var parameters = GenerateParameters(methodSymbol, constructorNumber, sbChildClasses);
+            var parameters = GenerateParameters(methodSymbol, $"c{constructorNumber}", sbChildClasses);
 
             var code = $$""""
 
@@ -439,10 +444,10 @@ namespace Zerra.SourceGeneration
                         {
                             public {{className}}(object locker, Action loadConstructorInfo) : base(locker, loadConstructorInfo) { }
 
-                            public override Func<object?[]?, {{parentTypeName}}> CreatorWithArgs => (args) => {{creatorWithArgs}};
-                            public override bool HasCreatorWithArgs => true;
+                            public override Func<object?[]?, {{parentTypeName}}> CreatorWithArgs => {{(hasCreatorWithArgs ? $"(args) => {creatorWithArgs}" : "throw new NotSupportedException()")}};
+                            public override bool HasCreatorWithArgs => {{(hasCreatorWithArgs ? "true" : "false")}};
 
-                            public override Func<{{parentTypeName}}> Creator => () => {{(hasCreator ? $"new {parentTypeName}()" : "throw new NotSupportedException()")}};
+                            public override Func<{{parentTypeName}}> Creator => {{(hasCreator ? $"() => new {parentTypeName}()" : "throw new NotSupportedException()")}};
                             public override bool HasCreator => {{(hasCreator ? "true" : "false")}};
 
                             public override string Name => "{{memberName}}";
@@ -451,10 +456,10 @@ namespace Zerra.SourceGeneration
 
                             protected override Func<Attribute[]> CreateAttributes => () => {{attributes}};
 
-                            public override Func<object?[]?, {{parentTypeName}}> CreatorWithArgsBoxed => (args) => {{creatorWithArgs}};
-                            public override bool HasCreatorWithArgsBoxed => true;
+                            public override Func<object?[]?, object> CreatorWithArgsBoxed => {{(hasCreatorWithArgs ? $"(args) => {creatorWithArgs}" : "throw new NotSupportedException()")}};
+                            public override bool HasCreatorWithArgsBoxed => {{(hasCreatorWithArgs ? "true" : "false")}};
 
-                            public override Func<object> CreatorBoxed => () => {{(hasCreator ? $"new {parentTypeName}()" : "throw new NotSupportedException()")}};
+                            public override Func<object> CreatorBoxed => {{(hasCreator ? $"() => new {parentTypeName}()" : "throw new NotSupportedException()")}};
                             public override bool HasCreatorBoxed => {{(hasCreator ? "true" : "false")}};
                         }
                 """";
@@ -469,7 +474,7 @@ namespace Zerra.SourceGeneration
 
             var attributes = GenerateAttributes(methodSymbol);
 
-            var parameters = GenerateParameters(methodSymbol, constructorNumber, sbChildClasses);
+            var parameters = GenerateParameters(methodSymbol, $"c{constructorNumber}", sbChildClasses);
 
             var code = $$""""
 
@@ -543,29 +548,35 @@ namespace Zerra.SourceGeneration
 
             var isVoid = methodSymbol.ReturnType.ToString() == "void";
 
-            var sbCaller = new StringBuilder();
-            var sbCallerBoxed = new StringBuilder();
-            _ = sbCaller.Append("obj.").Append(memberName).Append('(');
-            _ = sbCallerBoxed.Append("((").Append(parentTypeName).Append(')').Append("obj).").Append(memberName).Append('(');
-            var creatorIndex = 0;
-            foreach (var parameter in methodSymbol.Parameters)
+            var hasCaller = methodSymbol.Parameters.All(x => x.RefKind == RefKind.None && !x.Type.IsRefLikeType && x.Type.Kind != SymbolKind.PointerType);
+            string? caller = null;
+            string? callerBoxed = null;
+            if (hasCaller)
             {
-                if (creatorIndex > 0)
+                var sbCaller = new StringBuilder();
+                var sbCallerBoxed = new StringBuilder();
+                _ = sbCaller.Append("obj.").Append(memberName).Append('(');
+                _ = sbCallerBoxed.Append("((").Append(parentTypeName).Append(')').Append("obj).").Append(memberName).Append('(');
+                var creatorIndex = 0;
+                foreach (var parameter in methodSymbol.Parameters)
                 {
-                    _ = sbCaller.Append(", ");
-                    _ = sbCallerBoxed.Append(", ");
+                    if (creatorIndex > 0)
+                    {
+                        _ = sbCaller.Append(", ");
+                        _ = sbCallerBoxed.Append(", ");
+                    }
+                    _ = sbCaller.Append('(').Append(parameter.Type.ToString()).Append(")args[").Append(creatorIndex++).Append("]");
+                    _ = sbCallerBoxed.Append('(').Append(parameter.Type.ToString()).Append(")args[").Append(creatorIndex++).Append("]");
                 }
-                _ = sbCaller.Append('(').Append(parameter.Type.ToString()).Append(")args[").Append(creatorIndex++).Append("]");
-                _ = sbCallerBoxed.Append('(').Append(parameter.Type.ToString()).Append(")args[").Append(creatorIndex++).Append("]");
+                _ = sbCaller.Append(')');
+                _ = sbCallerBoxed.Append(')');
+                caller = sbCaller.ToString();
+                callerBoxed = sbCallerBoxed.ToString();
             }
-            _ = sbCaller.Append(')');
-            _ = sbCallerBoxed.Append(')');
-            var caller = sbCaller.ToString();
-            var callerBoxed = sbCallerBoxed.ToString();
 
             var attributes = GenerateAttributes(methodSymbol);
 
-            var parameters = GenerateParameters(methodSymbol, methodNumber, sbChildClasses);
+            var parameters = GenerateParameters(methodSymbol, $"m{methodNumber}", sbChildClasses);
 
             var code = $$""""
 
@@ -576,8 +587,8 @@ namespace Zerra.SourceGeneration
                             private Type? returnType = typeof({{methodSymbol.ReturnType.ToString()}});
                             public override Type ReturnType => returnType;
 
-                            public override Func<{{parentTypeName}}?, object?[]?, object?> Caller => (obj, args) => {{(isVoid ? $"{{{caller};return null;}}" : caller)}};
-                            public override bool HasCaller => true;
+                            public override Func<{{parentTypeName}}, object?[]?, object?> Caller => {{(hasCaller ? $"(obj, args) => {(isVoid ? $"{{{caller};return null;}}" : caller)}" : "throw new NotSupportedException()")}};
+                            public override bool HasCaller => {{(hasCaller ? "true" : "false")}};
 
                             public override string Name => "{{memberName}}";
 
@@ -585,8 +596,8 @@ namespace Zerra.SourceGeneration
 
                             protected override Func<Attribute[]> CreateAttributes => () => {{attributes}};
 
-                            public override Func<object?, object?[]?, object?> CallerBoxed => (obj, args) => {{(isVoid ? $"{{{callerBoxed};return null;}}" : $"{callerBoxed}")}};
-                            public override bool HasCallerBoxed => true;
+                            public override Func<object?, object?[]?, object?> CallerBoxed => {{(hasCaller ? $"(obj, args) => {(isVoid ? $"{{{callerBoxed};return null;}}" : $"{callerBoxed}")}" : "throw new NotSupportedException()")}};
+                            public override bool HasCallerBoxed => {{(hasCaller ? "true" : "false")}};
                         }
                 """";
 
@@ -600,7 +611,7 @@ namespace Zerra.SourceGeneration
 
             var attributes = GenerateAttributes(methodSymbol);
 
-            var parameters = GenerateParameters(methodSymbol, methodNumber, sbChildClasses);
+            var parameters = GenerateParameters(methodSymbol, $"m{methodNumber}", sbChildClasses);
 
             var code = $$""""
 
@@ -711,8 +722,10 @@ namespace Zerra.SourceGeneration
                 fieldClassName = $"MemberDetail_{fieldMemberNumber}";
             }
 
-            var hasGetter = propertySymbol.GetMethod is not null;
-            var hasSetter = propertySymbol.SetMethod is not null;
+            var isStatic = propertySymbol.IsStatic;
+
+            var hasGetter = propertySymbol.GetMethod is not null && !propertySymbol.IsIndexer;
+            var hasSetter = propertySymbol.SetMethod is not null && !propertySymbol.IsIndexer;
 
             var attributes = GenerateAttributes(propertySymbol);
 
@@ -729,18 +742,18 @@ namespace Zerra.SourceGeneration
 
                             public override bool IsBacked => {{(isBacked ? "true" : "false")}};
 
-                            public override Func<{{parentTypeName}}, {{typeName}}> Getter => (x) => {{(hasGetter ? $"x.{memberName}" : "throw new NotSupportedException()")}};
+                            public override Func<{{parentTypeName}}, {{typeName}}> Getter => (x) => {{(hasGetter ? $"{(isStatic ? propertySymbol.ContainingType.Name : "x")}.{memberName}" : "throw new NotSupportedException()")}};
                             public override bool HasGetter => {{(hasGetter ? "true" : "false")}};
 
-                            public override Action<{{parentTypeName}}, {{typeName}}> Setter => {{(hasSetter ? $"(x, value) => x.{memberName} = value" : "throw new NotSupportedException()")}};
+                            public override Action<{{parentTypeName}}, {{typeName}}> Setter => {{(hasSetter ? $"(x, value) => {(isStatic ? propertySymbol.ContainingType.Name : "x")}.{memberName} = value" : "throw new NotSupportedException()")}};
                             public override bool HasSetter => {{(hasSetter ? "true" : "false")}};
 
                             protected override Func<Attribute[]> CreateAttributes => () => {{attributes}};
 
-                            public override Func<object, object?> GetterBoxed => (x) => {{(hasGetter ? $"(({parentTypeName})x).{memberName}" : "throw new NotSupportedException()")}};
+                            public override Func<object, object?> GetterBoxed => (x) => {{(hasGetter ? $"{(isStatic ? propertySymbol.ContainingType.Name : $"(({parentTypeName})x)")}.{memberName}" : "throw new NotSupportedException()")}};
                             public override bool HasGetterBoxed => {{(hasGetter ? "true" : "false")}};
 
-                            public override Action<object, object?> SetterBoxed => (x, value) => {{(hasSetter ? $"(({parentTypeName})x).{memberName} = ({typeName})value!" : "throw new NotSupportedException()")}};
+                            public override Action<object, object?> SetterBoxed => (x, value) => {{(hasSetter ? $"{(isStatic ? propertySymbol.ContainingType.Name : $"(({parentTypeName})x)")}.{memberName} = ({typeName})value!" : "throw new NotSupportedException()")}};
                             public override bool HasSetterBoxed => {{(hasSetter ? "true" : "false")}};
 
                             protected override Func<MemberDetail<{{parentTypeName}}, {{typeName}}>?> CreateBackingFieldDetail => {{(fieldClassName is null ? "() => null" : $"() => new {fieldClassName}(locker, loadMemberInfo)")}};
@@ -809,6 +822,10 @@ namespace Zerra.SourceGeneration
             var className = $"MemberDetail_{methodNumber}";
             var typeName = fieldSymbol.Type.ToString();
 
+            var isStatic = fieldSymbol.IsStatic;
+
+            var hasSetter = !fieldSymbol.IsReadOnly && !fieldSymbol.IsConst;
+
             var attributes = GenerateAttributes(fieldSymbol);
 
             var code = $$""""
@@ -824,19 +841,19 @@ namespace Zerra.SourceGeneration
 
                             public override bool IsBacked => true;
 
-                            public override Func<{{parentTypeName}}, {{typeName}}> Getter => (x) => x.{{memberName}};
+                            public override Func<{{parentTypeName}}, {{typeName}}> Getter => (x) => {{(isStatic ? fieldSymbol.ContainingType.Name : "x")}}.{{memberName}};
                             public override bool HasGetter => true;
 
-                            public override Action<{{parentTypeName}}, {{typeName}}> Setter => (x, value) => x.{{memberName}} = value;
-                            public override bool HasSetter => true;
+                            public override Action<{{parentTypeName}}, {{typeName}}> Setter => {{(hasSetter ? $"(x, value) => {(isStatic ? fieldSymbol.ContainingType.Name : "x")}.{memberName} = value" : "throw new NotSupportedException()")}};
+                            public override bool HasSetter => {{(hasSetter ? "true" : "false")}};
 
                             protected override Func<Attribute[]> CreateAttributes => () => {{attributes}};
 
-                            public override Func<object, object?> GetterBoxed => (x) => (({{parentTypeName}})x).{{memberName}};
+                            public override Func<object, object?> GetterBoxed => (x) => {{(isStatic ? fieldSymbol.ContainingType.Name : $"(({parentTypeName})x)")}}.{{memberName}};
                             public override bool HasGetterBoxed => true;
 
-                            public override Action<object, object?> SetterBoxed => (x, value) => (({{parentTypeName}})x).{{memberName}} = ({{typeName}})value!;
-                            public override bool HasSetterBoxed => true;
+                            public override Action<object, object?> SetterBoxed => (x, value) => {{(hasSetter ? $"{(isStatic ? fieldSymbol.ContainingType.Name : $"(({parentTypeName})x)")}.{memberName} = ({typeName})value!" : "throw new NotSupportedException()")}};
+                            public override bool HasSetterBoxed => {{(hasSetter ? "true" : "false")}};
 
                             protected override Func<MemberDetail<{{parentTypeName}}, {{typeName}}>?> CreateBackingFieldDetail => () => null;
                         }
@@ -878,13 +895,13 @@ namespace Zerra.SourceGeneration
             _ = sbChildClasses.Append(code);
         }
 
-        private static string GenerateParameters(IMethodSymbol methodSymbol, int methodNumber, StringBuilder sbChildClasses)
+        private static string GenerateParameters(IMethodSymbol methodSymbol, string parentName, StringBuilder sbChildClasses)
         {
             var parametersToInitialize = new List<string>();
             var parameterNumber = 0;
             foreach (var parameter in methodSymbol.Parameters)
             {
-                GenerateParameter(parameter, methodNumber, ++parameterNumber, parametersToInitialize, sbChildClasses);
+                GenerateParameter(parameter, parentName, ++parameterNumber, parametersToInitialize, sbChildClasses);
             }
 
             var sbParameters = new StringBuilder();
@@ -899,10 +916,10 @@ namespace Zerra.SourceGeneration
             var parameters = sbParameters.ToString();
             return parameters;
         }
-        private static void GenerateParameter(IParameterSymbol parameterSymbol, int methodNumber, int parameterNumber, List<string> parametersToInitialize, StringBuilder sbChildClasses)
+        private static void GenerateParameter(IParameterSymbol parameterSymbol, string parentName, int parameterNumber, List<string> parametersToInitialize, StringBuilder sbChildClasses)
         {
             var parameterName = parameterSymbol.Name;
-            var className = $"ParameterDetail_{methodNumber}_{parameterNumber}";
+            var className = $"ParameterDetail_{parentName}_{parameterNumber}";
             var typeName = parameterSymbol.Type.ToString();
 
             var code = $$""""
@@ -999,6 +1016,8 @@ namespace Zerra.SourceGeneration
                 case TypedConstantKind.Primitive:
                     if (constant.Type.Name == "String")
                         _ = sb.Append("\"").Append(constant.Value?.ToString()).Append("\"");
+                    else if (constant.Type.Name == "Boolean")
+                        _ = sb.Append((bool)constant.Value ? "true" : "false");
                     else
                         _ = sb.Append(constant.Value?.ToString() ?? "null");
                     break;
