@@ -55,7 +55,7 @@ namespace Zerra.SourceGeneration
                 using System.Runtime.CompilerServices;
                 using Zerra.Reflection;
 
-                namespace {{classList.Count}}
+                namespace {{compilation.AssemblyName}}.SourceGeneration
                 {
                     public static class TypeDetailInitializer
                     {
