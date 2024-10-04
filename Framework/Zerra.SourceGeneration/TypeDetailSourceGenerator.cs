@@ -43,7 +43,7 @@ namespace Zerra.SourceGeneration
             {
                 if (sb.Length > 0)
                     sb.Append(Environment.NewLine).Append("            ");
-                sb.Append("TypeAnalyzer.AddTypeDetailCreator(typeof(").Append(item.Item1).Append("), () => new ").Append(item.Item2).Append("());");
+                sb.Append("TypeAnalyzer.AddTypeDetailCreator(typeof(").Append(item.Item1).Append("), () => new global::").Append(item.Item2).Append("());");
             }
             var lines = sb.ToString();
 
@@ -76,56 +76,62 @@ namespace Zerra.SourceGeneration
             context.AddSource("TypeDetailInitializer.cs", SourceText.From(code, Encoding.UTF8));
         }
 
-        private static bool ShouldGenerateType(INamedTypeSymbol typeSymbol, ImmutableArray<INamedTypeSymbol> allTypeSymbol)
+        private static bool ShouldGenerateType(ITypeSymbol typeSymbol, IReadOnlyCollection<ITypeSymbol> allTypeSymbol)
         {
             //We only want types in this build or generics that contain the types in this build.
-            if (allTypeSymbol.Contains(typeSymbol))
+            if (allTypeSymbol.Contains(typeSymbol, SymbolEqualityComparer.Default))
                 return true;
 
-            if (typeSymbol.TypeParameters.Length == 0)
-                return false;
-
-            var allTypeSymbolString = allTypeSymbol.Select(x => $"{x.ContainingNamespace}.{x.Name}");
-            foreach (var typeArgument in typeSymbol.TypeParameters)
+            if (typeSymbol is INamedTypeSymbol namedTypeSymbol)
             {
-                var typeArgumentString = $"{typeArgument.ContainingNamespace}.{typeArgument.Name}";
-                if (allTypeSymbolString.Contains(typeArgumentString))
+                if (namedTypeSymbol.TypeParameters.Length == 0)
+                    return false;
+
+                foreach (var typeArgument in namedTypeSymbol.TypeParameters)
+                {
+                    if (allTypeSymbol.Contains(typeArgument, SymbolEqualityComparer.Default))
+                        return true;
+                }
+            }
+            else if (typeSymbol is IArrayTypeSymbol arrayTypeSymbol)
+            {
+                if (allTypeSymbol.Contains(arrayTypeSymbol.ElementType, SymbolEqualityComparer.Default))
                     return true;
             }
 
             return false;
         }
 
-        public static void GenerateType(SourceProductionContext context, INamedTypeSymbol typeSymbol, ImmutableArray<INamedTypeSymbol> allTypeSymbol, List<Tuple<string, string>> classList, bool recursive)
+        public static void GenerateType(SourceProductionContext context, ITypeSymbol typeSymbol, IReadOnlyCollection<ITypeSymbol> allTypeSymbol, List<Tuple<string, string>> classList, bool recursive)
         {
             var namespaceRecursionCheck = typeSymbol;
             while (namespaceRecursionCheck is not null)
             {
-                if (namespaceRecursionCheck.ContainingNamespace.ToString().StartsWith("Zerra.Reflection"))
+                if (namespaceRecursionCheck.ContainingNamespace is not null && namespaceRecursionCheck.ContainingNamespace.ToString().StartsWith("Zerra.Reflection"))
                     return;
                 namespaceRecursionCheck = namespaceRecursionCheck.BaseType;
             }
 
-            var ns = typeSymbol.ContainingNamespace.ToString().Contains("<global namespace>") ? null : typeSymbol.ContainingNamespace.ToString();
+            var ns = typeSymbol.ContainingNamespace is null || typeSymbol.ContainingNamespace.ToString().Contains("<global namespace>") ? null : typeSymbol.ContainingNamespace.ToString();
 
             var fullTypeName = typeSymbol.ToString();
             if (!typeSymbol.IsValueType)
                 fullTypeName = fullTypeName.Replace("?", String.Empty);
 
-            var typeName = typeSymbol.ToString();
-            if (ns != null && typeName.StartsWith(ns))
-                typeName = typeName.Substring(ns.Length + 1);
-            typeName = typeName.Replace('<', '_').Replace('>', '_').Replace(',', '_').Replace('.', '_');
-            if (typeName.EndsWith("?"))
+            var typeNameForClass = typeSymbol.ToString();
+            if (ns != null && typeNameForClass.StartsWith(ns))
+                typeNameForClass = typeNameForClass.Substring(ns.Length + 1);
+            typeNameForClass = typeNameForClass.Replace('<', '_').Replace('>', '_').Replace(',', '_').Replace('.', '_').Replace("[]", "Array");
+            if (typeNameForClass.Contains("?"))
             {
                 if (typeSymbol.IsValueType)
-                    typeName = typeName.Replace("?", String.Empty) + "Nullable";
+                    typeNameForClass = typeNameForClass.Replace("?", "Nullable");
                 else
-                    typeName = typeName.Replace("?", String.Empty);
+                    typeNameForClass = typeNameForClass.Replace("?", String.Empty);
             }
 
-            var className = $"{typeName}TypeDetail";
-            var fileName = ns == null ? $"{typeName}TypeDetail.cs" : $"{ns}.{typeName}TypeDetail.cs";
+            var className = $"{typeNameForClass}TypeDetail";
+            var fileName = ns == null ? $"{typeNameForClass}TypeDetail.cs" : $"{ns}.{typeNameForClass}TypeDetail.cs";
 
             var fullClassName = ns == null ? $"SourceGeneration.{className}" : $"{ns}.SourceGeneration.{className}";
             var classListItem = new Tuple<string, string>(fullTypeName, fullClassName);
@@ -133,65 +139,70 @@ namespace Zerra.SourceGeneration
                 return;
             classList.Add(classListItem);
 
-            string? typeConstraints = null;
-            if (typeSymbol.TypeArguments.Length > 0)
-            {
-                var sbConstraints = new StringBuilder();
-                for (var i = 0; i < typeSymbol.TypeArguments.Length; i++)
-                {
-                    var typeArgument = typeSymbol.TypeArguments[i];
-                    if (typeArgument is ITypeParameterSymbol typeParameterSymbol)
-                    {
-                        if (typeParameterSymbol.HasUnmanagedTypeConstraint || typeParameterSymbol.HasValueTypeConstraint || typeParameterSymbol.HasReferenceTypeConstraint || typeParameterSymbol.HasNotNullConstraint || typeParameterSymbol.HasConstructorConstraint)
-                        {
-                            _ = sbConstraints.Append(" where ").Append(typeArgument.Name).Append(" : ");
-                            var wroteConstraint = false;
+            var namedTypeSymbol = typeSymbol as INamedTypeSymbol;
 
-                            if (typeParameterSymbol.HasUnmanagedTypeConstraint)
+            string? typeConstraints = null;
+            if (namedTypeSymbol is not null)
+            {
+                if (namedTypeSymbol.TypeArguments.Length > 0)
+                {
+                    var sbConstraints = new StringBuilder();
+                    for (var i = 0; i < namedTypeSymbol.TypeArguments.Length; i++)
+                    {
+                        var typeArgument = namedTypeSymbol.TypeArguments[i];
+                        if (typeArgument is ITypeParameterSymbol typeParameterSymbol)
+                        {
+                            if (typeParameterSymbol.HasUnmanagedTypeConstraint || typeParameterSymbol.HasValueTypeConstraint || typeParameterSymbol.HasReferenceTypeConstraint || typeParameterSymbol.HasNotNullConstraint || typeParameterSymbol.HasConstructorConstraint)
                             {
-                                if (wroteConstraint)
-                                    _ = sbConstraints.Append(", ");
-                                else
-                                    wroteConstraint = true;
-                                _ = sbConstraints.Append("unmanaged");
-                            }
-                            if (typeParameterSymbol.HasValueTypeConstraint)
-                            {
-                                if (wroteConstraint)
-                                    _ = sbConstraints.Append(", ");
-                                else
-                                    wroteConstraint = true;
-                                _ = sbConstraints.Append("struct");
-                            }
-                            if (typeParameterSymbol.HasReferenceTypeConstraint)
-                            {
-                                if (wroteConstraint)
-                                    _ = sbConstraints.Append(", ");
-                                else
-                                    wroteConstraint = true;
-                                _ = sbConstraints.Append("class");
-                            }
-                            if (typeParameterSymbol.HasNotNullConstraint)
-                            {
-                                if (wroteConstraint)
-                                    _ = sbConstraints.Append(", ");
-                                else
-                                    wroteConstraint = true;
-                                _ = sbConstraints.Append("notnull");
-                            }
-                            if (typeParameterSymbol.HasConstructorConstraint)
-                            {
-                                if (wroteConstraint)
-                                    _ = sbConstraints.Append(", ");
-                                else
-                                    wroteConstraint = true;
-                                _ = sbConstraints.Append("new()");
+                                _ = sbConstraints.Append(" where ").Append(typeArgument.Name).Append(" : ");
+                                var wroteConstraint = false;
+
+                                if (typeParameterSymbol.HasUnmanagedTypeConstraint)
+                                {
+                                    if (wroteConstraint)
+                                        _ = sbConstraints.Append(", ");
+                                    else
+                                        wroteConstraint = true;
+                                    _ = sbConstraints.Append("unmanaged");
+                                }
+                                if (typeParameterSymbol.HasValueTypeConstraint)
+                                {
+                                    if (wroteConstraint)
+                                        _ = sbConstraints.Append(", ");
+                                    else
+                                        wroteConstraint = true;
+                                    _ = sbConstraints.Append("struct");
+                                }
+                                if (typeParameterSymbol.HasReferenceTypeConstraint)
+                                {
+                                    if (wroteConstraint)
+                                        _ = sbConstraints.Append(", ");
+                                    else
+                                        wroteConstraint = true;
+                                    _ = sbConstraints.Append("class");
+                                }
+                                if (typeParameterSymbol.HasNotNullConstraint)
+                                {
+                                    if (wroteConstraint)
+                                        _ = sbConstraints.Append(", ");
+                                    else
+                                        wroteConstraint = true;
+                                    _ = sbConstraints.Append("notnull");
+                                }
+                                if (typeParameterSymbol.HasConstructorConstraint)
+                                {
+                                    if (wroteConstraint)
+                                        _ = sbConstraints.Append(", ");
+                                    else
+                                        wroteConstraint = true;
+                                    _ = sbConstraints.Append("new()");
+                                }
                             }
                         }
                     }
-                }
 
-                typeConstraints = sbConstraints.ToString();
+                    typeConstraints = sbConstraints.ToString();
+                }
             }
 
             var isArray = typeSymbol.Kind == SymbolKind.ArrayType;
@@ -225,27 +236,36 @@ namespace Zerra.SourceGeneration
             var isIDictionaryGeneric = typeSymbol.Name == dictionaryGenericTypeName;
             var isIReadOnlyDictionaryGeneric = typeSymbol.Name == readOnlyDictionaryGenericTypeName;
 
-            var hasCreator = typeSymbol.Constructors.Any(x => !x.IsStatic && x.Parameters.Length == 0);
+            var hasCreator = false;
+            if (namedTypeSymbol is not null)
+                hasCreator = namedTypeSymbol.Constructors.Any(x => !x.IsStatic && x.Parameters.Length == 0);
 
             var isNullable = typeSymbol.NullableAnnotation == NullableAnnotation.Annotated;
 
             CoreType? coreType = null;
-            if (TypeLookup.CoreTypeLookup(typeSymbol.Name, out var coreTypeParsed))
+            if (TypeLookup.CoreTypeLookup(fullTypeName, out var coreTypeParsed))
                 coreType = coreTypeParsed;
 
             SpecialType? specialType = null;
-            if (TypeLookup.SpecialTypeLookup(typeSymbol.Name, out var specialTypeParsed))
+            if (TypeLookup.SpecialTypeLookup(fullTypeName, out var specialTypeParsed))
                 specialType = specialTypeParsed;
 
             CoreEnumType? enumType = null;
-            if (typeSymbol.EnumUnderlyingType is not null && TypeLookup.CoreEnumTypeLookup(typeSymbol.EnumUnderlyingType.Name, out var enumTypeParsed))
-                enumType = enumTypeParsed;
+            if (namedTypeSymbol is not null)
+            {
+                if (namedTypeSymbol.EnumUnderlyingType is not null && TypeLookup.CoreEnumTypeLookup(namedTypeSymbol.EnumUnderlyingType.Name, out var enumTypeParsed))
+                    enumType = enumTypeParsed;
+            }
 
-            string? innerType;
-            if (typeSymbol.TypeKind == TypeKind.Array)
-                innerType = ((IArrayTypeSymbol)typeSymbol).ElementType.ToString();
-            else
-                innerType = typeSymbol.TypeArguments.Length == 1 ? typeSymbol.TypeArguments[0].ToString() : null;
+            string? innerType = null;
+            if (namedTypeSymbol is not null)
+            {
+                innerType = namedTypeSymbol.TypeArguments.Length == 1 ? namedTypeSymbol.TypeArguments[0].ToString() : null;
+            }
+            else if (typeSymbol is IArrayTypeSymbol arrayTypeSymbol)
+            {
+                innerType = arrayTypeSymbol.ElementType.ToString();
+            }
 
             var isTask = specialType == SpecialType.Task;
 
@@ -369,7 +389,7 @@ namespace Zerra.SourceGeneration
             context.AddSource(fileName, SourceText.From(code, Encoding.UTF8));
         }
 
-        private static string GenerateConstructors(SourceProductionContext context, INamedTypeSymbol typeSymbol, ImmutableArray<INamedTypeSymbol> allTypeSymbol, List<Tuple<string, string>> classList, bool recursive, StringBuilder sbChildClasses)
+        private static string GenerateConstructors(SourceProductionContext context, ITypeSymbol typeSymbol, IReadOnlyCollection<ITypeSymbol> allTypeSymbol, List<Tuple<string, string>> classList, bool recursive, StringBuilder sbChildClasses)
         {
             var symbolMembers = typeSymbol.GetMembers();
             var fullTypeName = typeSymbol.ToString();
@@ -494,7 +514,7 @@ namespace Zerra.SourceGeneration
             _ = sbChildClasses.Append(code);
         }
 
-        private static string GenerateMethods(SourceProductionContext context, INamedTypeSymbol typeSymbol, ImmutableArray<INamedTypeSymbol> allTypeSymbol, List<Tuple<string, string>> classList, bool recursive, StringBuilder sbChildClasses)
+        private static string GenerateMethods(SourceProductionContext context, ITypeSymbol typeSymbol, IReadOnlyCollection<ITypeSymbol> allTypeSymbol, List<Tuple<string, string>> classList, bool recursive, StringBuilder sbChildClasses)
         {
             var symbolMembers = typeSymbol.GetMembers();
             var fullTypeName = typeSymbol.ToString();
@@ -505,7 +525,7 @@ namespace Zerra.SourceGeneration
             var methodNumber = 0;
             foreach (var method in methods)
             {
-                if (method.DeclaredAccessibility == Accessibility.Public)
+                if (method.DeclaredAccessibility == Accessibility.Public && method.TypeArguments.Length == 0)
                     GenerateMethod(method, fullTypeName, ++methodNumber, membersToInitialize, sbChildClasses);
                 else
                     GeneratePrivateMethod(method, fullTypeName, ++methodNumber, membersToInitialize, sbChildClasses);
@@ -584,7 +604,7 @@ namespace Zerra.SourceGeneration
                         {
                             public {{className}}(object locker, Action loadMethodInfo) : base(locker, loadMethodInfo) { }
 
-                            private Type? returnType = typeof({{methodSymbol.ReturnType.ToString()}});
+                            private Type? returnType = {{(methodSymbol.ReturnType.Name == "Void" ? "null" : GetTypeOfName(methodSymbol.ReturnType))}};
                             public override Type ReturnType => returnType;
 
                             public override Func<{{parentTypeName}}, object?[]?, object?> Caller => {{(hasCaller ? $"(obj, args) => {(isVoid ? $"{{{caller};return null;}}" : caller)}" : "throw new NotSupportedException()")}};
@@ -619,7 +639,7 @@ namespace Zerra.SourceGeneration
                         {
                             public {{className}}(object locker, Action loadMethodInfo) : base(locker, loadMethodInfo) { }
                 
-                            private Type? returnType = typeof({{methodSymbol.ReturnType.ToString()}});
+                            private Type? returnType = {{GetTypeOfName(methodSymbol.ReturnType)}};
                             public override Type ReturnType => returnType;
                 
                             public override string Name => "{{memberName}}";
@@ -634,7 +654,7 @@ namespace Zerra.SourceGeneration
             _ = sbChildClasses.Append(code);
         }
 
-        private static string GenerateMembers(SourceProductionContext context, INamedTypeSymbol typeSymbol, ImmutableArray<INamedTypeSymbol> allTypeSymbol, List<Tuple<string, string>> classList, bool recursive, StringBuilder sbChildClasses)
+        private static string GenerateMembers(SourceProductionContext context, ITypeSymbol typeSymbol, IReadOnlyCollection<ITypeSymbol> allTypeSymbol, List<Tuple<string, string>> classList, bool recursive, StringBuilder sbChildClasses)
         {
             var symbolMembers = typeSymbol.GetMembers();
             var fullTypeName = typeSymbol.ToString();
@@ -737,7 +757,7 @@ namespace Zerra.SourceGeneration
 
                             public override string Name => "{{memberName}}";
 
-                            private readonly Type type = typeof({{typeName.Replace("?", "")}});
+                            private readonly Type type = {{GetTypeOfName(propertySymbol.Type)}};
                             public override Type Type => type;
 
                             public override bool IsBacked => {{(isBacked ? "true" : "false")}};
@@ -802,12 +822,12 @@ namespace Zerra.SourceGeneration
 
                             public override string Name => "{{memberName}}";
 
-                            private readonly Type type = typeof({{typeName.Replace("?", "")}});
+                            private readonly Type type = {{GetTypeOfName(propertySymbol.Type)}};
                             public override Type Type => type;
 
                             public override bool IsBacked => {{(isBacked ? "true" : "false")}};
 
-                            public override Func<Attribute[]> CreateAttributes => () => {{attributes}};
+                            protected override Func<Attribute[]> CreateAttributes => () => {{attributes}};
 
                             protected override Func<MemberDetail<{{parentTypeName}}, {{typeName}}>?> CreateBackingFieldDetail => {{(fieldClassName is null ? "() => null" : $"() => new {fieldClassName}(locker, loadMemberInfo)")}};
                         }
@@ -836,7 +856,7 @@ namespace Zerra.SourceGeneration
 
                             public override string Name => "{{memberName}}";
 
-                            private readonly Type type = typeof({{typeName.Replace("?", "")}});
+                            private readonly Type type = {{GetTypeOfName(fieldSymbol.Type)}};
                             public override Type Type => type;
 
                             public override bool IsBacked => true;
@@ -879,7 +899,7 @@ namespace Zerra.SourceGeneration
 
                             public override string Name => "{{memberName}}";
 
-                            private readonly Type type = typeof({{typeName.Replace("?", "")}});
+                            private readonly Type type = {{GetTypeOfName(fieldSymbol.Type)}};
                             public override Type Type => type;
 
                             public override bool IsBacked => true;
@@ -920,7 +940,6 @@ namespace Zerra.SourceGeneration
         {
             var parameterName = parameterSymbol.Name;
             var className = $"ParameterDetail_{parentName}_{parameterNumber}";
-            var typeName = parameterSymbol.Type.ToString();
 
             var code = $$""""
 
@@ -930,7 +949,7 @@ namespace Zerra.SourceGeneration
 
                             public override string Name => "{{parameterName}}";
 
-                            private readonly Type type = typeof({{typeName.Replace("?", "")}});
+                            private readonly Type type = {{GetTypeOfName(parameterSymbol.Type)}};
                             public override Type Type => type;
                         }
                 """";
@@ -939,7 +958,7 @@ namespace Zerra.SourceGeneration
             _ = sbChildClasses.Append(code);
         }
 
-        private static string GenerateBaseTypes(INamedTypeSymbol typeSymbol)
+        private static string GenerateBaseTypes(ITypeSymbol typeSymbol)
         {
             var sbBaseTypes = new StringBuilder();
             _ = sbBaseTypes.Append('[');
@@ -948,14 +967,14 @@ namespace Zerra.SourceGeneration
             {
                 if (sbBaseTypes.Length > 1)
                     _ = sbBaseTypes.Append(", ");
-                GetTypeOf(baseTypeSymbol, sbBaseTypes);
+                _ = sbBaseTypes.Append(GetTypeOfName(baseTypeSymbol));
                 baseTypeSymbol = baseTypeSymbol.BaseType;
             }
             _ = sbBaseTypes.Append(']');
             var baseTypes = sbBaseTypes.ToString();
             return baseTypes;
         }
-        private static string GenerateInterfaces(INamedTypeSymbol typeSymbol)
+        private static string GenerateInterfaces(ITypeSymbol typeSymbol)
         {
             var sbInterfaceTypes = new StringBuilder();
             _ = sbInterfaceTypes.Append('[');
@@ -963,7 +982,7 @@ namespace Zerra.SourceGeneration
             {
                 if (sbInterfaceTypes.Length > 1)
                     _ = sbInterfaceTypes.Append(", ");
-                GetTypeOf(i, sbInterfaceTypes);
+                _ = sbInterfaceTypes.Append(GetTypeOfName(i));
             }
             _ = sbInterfaceTypes.Append(']');
             var baseTypes = sbInterfaceTypes.ToString();
@@ -976,37 +995,63 @@ namespace Zerra.SourceGeneration
             _ = sbAttributes.Append('[');
             foreach (var attributeSymbol in attributeSymbols)
             {
+                if (attributeSymbol.AttributeClass.ContainingNamespace.ToString() == "System.Runtime.CompilerServices")
+                    continue;
                 if (sbAttributes.Length > 1)
                     _ = sbAttributes.Append(", ");
                 _ = sbAttributes.Append("new ").Append(attributeSymbol.AttributeClass.ToString()).Append('(');
-                foreach (var arg in attributeSymbol.NamedArguments)
-                {
-                    _ = sbAttributes.Append(arg.Key).Append(": ");
-                    TypedConstantToString(arg.Value, sbAttributes);
-                }
+                var usedFirst = false;
+                //if (attributeSymbol.NamedArguments.Length > 0)
+                //{
+                //    foreach (var arg in attributeSymbol.NamedArguments)
+                //    {
+                //        if (usedFirst)
+                //            _ = sbAttributes.Append(", ");
+                //        else
+                //            usedFirst = true;
+                //        _ = sbAttributes.Append(arg.Key).Append(": ");
+                //        TypedConstantToString(arg.Value, sbAttributes);
+                //    }
+                //}
+                //else
+                //{
                 foreach (var arg in attributeSymbol.ConstructorArguments)
                 {
+                    if (usedFirst)
+                        _ = sbAttributes.Append(", ");
+                    else
+                        usedFirst = true;
                     TypedConstantToString(arg, sbAttributes);
                 }
+                //}
                 _ = sbAttributes.Append(')');
             }
             _ = sbAttributes.Append(']');
             var attributes = sbAttributes.ToString();
             return attributes;
         }
-        private static string GenerateInnerTypes(INamedTypeSymbol typeSymbol)
+        private static string GenerateInnerTypes(ITypeSymbol typeSymbol)
         {
-            var sbInnerTypes = new StringBuilder();
-            _ = sbInnerTypes.Append('[');
-            foreach (var type in typeSymbol.TypeParameters)
+            if (typeSymbol is INamedTypeSymbol namedTypeSymbol)
             {
-                if (sbInnerTypes.Length > 1)
-                    _ = sbInnerTypes.Append(", ");
-                _ = sbInnerTypes.Append($"typeof(").Append(type.ToString()).Append(')');
+                var sbInnerTypes = new StringBuilder();
+                _ = sbInnerTypes.Append('[');
+                foreach (var type in namedTypeSymbol.TypeArguments)
+                {
+                    if (sbInnerTypes.Length > 1)
+                        _ = sbInnerTypes.Append(", ");
+                    _ = sbInnerTypes.Append($"typeof(").Append(type.ToString()).Append(')');
+                }
+                _ = sbInnerTypes.Append(']');
+                var attributes = sbInnerTypes.ToString();
+                return attributes;
             }
-            _ = sbInnerTypes.Append(']');
-            var attributes = sbInnerTypes.ToString();
-            return attributes;
+            else if (typeSymbol is IArrayTypeSymbol arrayTypeSymbol)
+            {
+                return $"[typeof({arrayTypeSymbol.ElementType.ToString()})]";
+            }
+
+            return "[]";
         }
 
         private static void TypedConstantToString(TypedConstant constant, StringBuilder sb)
@@ -1044,19 +1089,77 @@ namespace Zerra.SourceGeneration
             }
         }
 
-        private static void GetTypeOf(INamedTypeSymbol type, StringBuilder sb)
+        private static string GetTypeOfName(ITypeSymbol typeSymbol)
         {
-            var genericArgsCount = type.TypeArguments.Length;
-            if (genericArgsCount > 0)
+            if (typeSymbol.Name == "Void")
+                return "null";
+            if (typeSymbol is INamedTypeSymbol namedTypeSymbol && namedTypeSymbol.TypeArguments.Length > 0)
             {
-                _ = sb.Append($"typeof({type.ContainingNamespace}.{type.Name}<");
-                for (var i = 1; i < genericArgsCount; i++)
-                    _ = sb.Append(',');
+                var sb = new StringBuilder();
+                if (typeSymbol.ContainingType is not null)
+                    _ = sb.Append($"typeof({typeSymbol.ContainingType}.{typeSymbol.Name}<");
+                else
+                    _ = sb.Append($"typeof({typeSymbol.ContainingNamespace}.{typeSymbol.Name}<");
+
+                var constructed = namedTypeSymbol.TypeArguments.All(x => x.IsDefinition);
+                for (var i = 0; i < namedTypeSymbol.TypeArguments.Length; i++)
+                {
+                    if (i > 0)
+                        _ = sb.Append(',');
+                    if (constructed)
+                        _ = sb.Append(GetTypeOfNameRecursive(namedTypeSymbol.TypeArguments[i]));
+                }
+
                 _ = sb.Append(">)");
+                return sb.ToString();
             }
             else
             {
-                _ = sb.Append($"typeof({type.ContainingNamespace}.{type.Name})");
+                if (String.IsNullOrEmpty(typeSymbol.Name))
+                {
+                    return $"typeof({typeSymbol.ToString().Replace("?", String.Empty)})";
+                }
+                if (typeSymbol.ContainingType is not null)
+                    return $"typeof({typeSymbol.ContainingType}.{typeSymbol.Name})";
+                else
+                    return $"typeof({typeSymbol.ContainingNamespace}.{typeSymbol.Name})";
+
+            }
+        }
+        private static string GetTypeOfNameRecursive(ITypeSymbol typeSymbol)
+        {
+            if (typeSymbol.Name == "Void")
+                return "null";
+            if (typeSymbol is INamedTypeSymbol namedTypeSymbol && namedTypeSymbol.TypeArguments.Length > 0)
+            {
+                var sb = new StringBuilder();
+                if (typeSymbol.ContainingType is not null)
+                    _ = sb.Append($"{typeSymbol.ContainingType}.{typeSymbol.Name}<");
+                else
+                    _ = sb.Append($"{typeSymbol.ContainingNamespace}.{typeSymbol.Name}<");
+
+                var constructed = namedTypeSymbol.TypeArguments.All(x => x.IsDefinition);
+                for (var i = 0; i < namedTypeSymbol.TypeArguments.Length; i++)
+                {
+                    if (i > 0)
+                        _ = sb.Append(',');
+                    if (constructed)
+                        _ = sb.Append(GetTypeOfNameRecursive(namedTypeSymbol.TypeArguments[i]));
+                }
+
+                _ = sb.Append(">");
+                return sb.ToString();
+            }
+            else
+            {
+                if (String.IsNullOrEmpty(typeSymbol.Name))
+                {
+                    return typeSymbol.ToString().Replace("?", String.Empty);
+                }
+                if (typeSymbol.ContainingType is not null)
+                    return $"{typeSymbol.ContainingType}.{typeSymbol.Name}";
+                else
+                    return $"{typeSymbol.ContainingNamespace}.{typeSymbol.Name}";
             }
         }
     }
