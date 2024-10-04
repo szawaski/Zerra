@@ -1345,7 +1345,7 @@ namespace Zerra.Repository.MySql
                         if (!sqlColumn.IsNullable)
                         {
                             if (sqlColumn.IsPrimaryKey || sqlColumn.IsIdentity)
-                                throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} {nameof(MySqlEngine)} needs to make {sqlColumn} nullable but cannot automatically change column with a Primary Key or Identity");
+                                throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} {nameof(MySqlEngine)} needs to make {sqlColumn.Table}.{sqlColumn.Column} nullable but cannot automatically change column with a Primary Key or Identity");
 
                             _ = sb.Append("ALTER TABLE `").Append(model.DataSourceEntityName).Append("` MODIFY `").Append(sqlColumn.Column).Append("` ");
                             WriteSqlTypeFromColumnAsNullable(sb, sqlColumn);
