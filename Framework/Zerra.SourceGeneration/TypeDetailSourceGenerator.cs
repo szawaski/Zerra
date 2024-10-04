@@ -115,20 +115,16 @@ namespace Zerra.SourceGeneration
             var ns = typeSymbol.ContainingNamespace is null || typeSymbol.ContainingNamespace.ToString().Contains("<global namespace>") ? null : typeSymbol.ContainingNamespace.ToString();
 
             var fullTypeName = typeSymbol.ToString();
-            if (!typeSymbol.IsValueType)
-                fullTypeName = fullTypeName.Replace("?", String.Empty);
+            if (fullTypeName.EndsWith("?") && !typeSymbol.IsValueType)
+                fullTypeName = fullTypeName.Substring(0, fullTypeName.Length - 1);
 
             var typeNameForClass = typeSymbol.ToString();
             if (ns != null && typeNameForClass.StartsWith(ns))
                 typeNameForClass = typeNameForClass.Substring(ns.Length + 1);
             typeNameForClass = typeNameForClass.Replace('<', '_').Replace('>', '_').Replace(',', '_').Replace('.', '_').Replace("[]", "Array");
-            if (typeNameForClass.Contains("?"))
-            {
-                if (typeSymbol.IsValueType)
-                    typeNameForClass = typeNameForClass.Replace("?", "Nullable");
-                else
-                    typeNameForClass = typeNameForClass.Replace("?", String.Empty);
-            }
+            if (typeNameForClass.EndsWith("?") && !typeSymbol.IsValueType)
+                typeNameForClass = typeNameForClass.Substring(0, typeNameForClass.Length - 1);
+            typeNameForClass = typeNameForClass.Replace("?", "Nullable");
 
             var className = $"{typeNameForClass}TypeDetail";
             var fileName = ns == null ? $"{typeNameForClass}TypeDetail.cs" : $"{ns}.{typeNameForClass}TypeDetail.cs";
