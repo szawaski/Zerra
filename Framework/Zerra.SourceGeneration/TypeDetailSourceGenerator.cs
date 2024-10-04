@@ -272,10 +272,10 @@ namespace Zerra.SourceGeneration
             }
             else if (hasIEnumerableGeneric)
             {
-                var interfaceSymbol = typeSymbol.AllInterfaces.FirstOrDefault(x => x.Name == enumberableGenericTypeName);
+                var interfaceSymbol = typeSymbol.AllInterfaces.FirstOrDefault(x => x.MetadataName == enumberableGenericTypeName);
                 if (interfaceSymbol != null)
                 {
-                    iEnumerableInnerType = interfaceSymbol.TypeParameters[0].ToString();
+                    iEnumerableInnerType = interfaceSymbol.TypeArguments[0].ToString();
                 }
             }
 

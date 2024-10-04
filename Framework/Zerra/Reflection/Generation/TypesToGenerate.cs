@@ -10,7 +10,7 @@ using System.Collections.Generic;
 
 namespace Zerra.Reflection.Generation
 {
-    public class TypesToGenerate
+    internal class TypesToGenerate
     {
         #region Non-Generics
 
