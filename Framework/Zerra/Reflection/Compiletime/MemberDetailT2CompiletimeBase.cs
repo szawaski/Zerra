@@ -5,17 +5,19 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using Zerra.Reflection.Runtime;
 
-namespace Zerra.Reflection.Generation
+namespace Zerra.Reflection.Compiletime
 {
-    public abstract class MemberDetailGenerationBase<T, V> : MemberDetail<T, V>
+    public abstract class MemberDetailCompiletimeBase<T, V> : MemberDetail<T, V>
     {
         protected readonly object locker;
         protected readonly Action loadMemberInfo;
-        public MemberDetailGenerationBase(object locker, Action loadMemberInfo)
+        public MemberDetailCompiletimeBase(object locker, Action loadMemberInfo)
         {
             this.locker = locker;
             this.loadMemberInfo = loadMemberInfo;
         }
+
+        public override sealed bool IsGenerated => true;
 
         public override sealed TypeDetail<V> TypeDetail => TypeAnalyzer<V>.GetTypeDetail();
         public override sealed TypeDetail TypeDetailBoxed => TypeDetail;
@@ -93,9 +95,11 @@ namespace Zerra.Reflection.Generation
             }
         }
 
-        internal override sealed void SetMemberInfo(MemberInfo memberInfo)
+        internal override sealed void SetMemberInfo(MemberInfo memberInfo, MemberInfo? backingField)
         {
             this.memberInfo = memberInfo;
+            if (backingField is not null)
+                BackingFieldDetail?.SetMemberInfo(backingField, null);
         }
     }
 }

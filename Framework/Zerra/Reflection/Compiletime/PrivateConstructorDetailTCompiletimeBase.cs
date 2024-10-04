@@ -3,18 +3,21 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using Zerra.Reflection.Runtime;
 
-namespace Zerra.Reflection.Generation
+namespace Zerra.Reflection.Compiletime
 {
-    public abstract class PrivateConstructorDetailGenerationBase<T> : ConstructorDetail<T>
+    public abstract class PrivateConstructorDetailCompiletimeBase<T> : ConstructorDetail<T>
     {
         protected readonly object locker;
         private readonly Action loadConstructorInfo;
-        public PrivateConstructorDetailGenerationBase(object locker, Action loadConstructorInfo)
+        public PrivateConstructorDetailCompiletimeBase(object locker, Action loadConstructorInfo)
         {
             this.locker = locker;
             this.loadConstructorInfo = loadConstructorInfo;
         }
+
+        public override sealed bool IsGenerated => true;
 
         private ConstructorInfo? constructorInfo = null;
         public override sealed ConstructorInfo ConstructorInfo
@@ -52,27 +55,27 @@ namespace Zerra.Reflection.Generation
             }
         }
 
-        protected abstract Func<ParameterDetail[]> CreateParameterDetails { get; }
-        private ParameterDetail[]? parameters = null;
-        public override sealed IReadOnlyList<ParameterDetail> ParametersDetails
+        private ParameterDetail[]? parameterInfos = null;
+        public override IReadOnlyList<ParameterDetail> ParameterDetails
         {
             get
             {
-                if (parameters is null)
+                if (this.parameterInfos == null)
                 {
                     lock (locker)
                     {
-                        parameters ??= CreateParameterDetails();
+                        var parameters = ConstructorInfo.GetParameters();
+                        this.parameterInfos ??= parameters.Select(x => new ParameterDetailRuntime(x, locker)).ToArray();
                     }
                 }
-                return parameters;
+                return this.parameterInfos;
             }
         }
 
         public override sealed Delegate? CreatorTyped => Creator;
         public override sealed Delegate? CreatorWithArgsTyped => CreatorWithArgs;
 
-        internal void SetConstructorInfo(ConstructorInfo constructorInfo)
+        internal override sealed void SetConstructorInfo(ConstructorInfo constructorInfo)
         {
             this.constructorInfo = constructorInfo;
         }
@@ -226,13 +229,13 @@ namespace Zerra.Reflection.Generation
         protected void LoadParameterInfo()
         {
             var parameters = ConstructorInfo.GetParameters();
-            foreach (var parameterDetail in ParametersDetails)
+            foreach (var parameterDetail in ParameterDetails)
             {
                 var parameter = parameters.FirstOrDefault(x => x.Name == parameterDetail.Name);
                 if (parameter == null)
                     throw new InvalidOperationException($"Parameter not found for {parameterDetail.Name}");
 
-                var parameterBase = (ParameterDetailGenerationBase)parameterDetail;
+                var parameterBase = (ParameterDetailCompiletimeBase)parameterDetail;
                 parameterBase.SetParameterInfo(parameter);
             }
         }

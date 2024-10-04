@@ -10,7 +10,7 @@ using System.Runtime.CompilerServices;
 
 namespace Zerra.Reflection.Runtime
 {
-    internal sealed class MemberDetailRuntime<T, V> : MemberDetail<T, V>
+    internal sealed class MemberDetailRuntime : MemberDetail
     {
         public override bool IsGenerated => false;
 
@@ -69,13 +69,13 @@ namespace Zerra.Reflection.Runtime
                         var property = (PropertyInfo)MemberInfo;
                         if (!property.PropertyType.IsPointer)
                         {
-                            if (BackingFieldDetail == null)
+                            if (BackingFieldDetailBoxed == null)
                             {
                                 this.getterBoxed = AccessorGenerator.GenerateGetter(property);
                             }
                             else
                             {
-                                this.getterBoxed = BackingFieldDetail.GetterBoxed;
+                                this.getterBoxed = BackingFieldDetailBoxed.GetterBoxed;
                             }
                         }
                     }
@@ -124,13 +124,13 @@ namespace Zerra.Reflection.Runtime
                         var property = (PropertyInfo)MemberInfo;
                         if (!property.PropertyType.IsPointer)
                         {
-                            if (BackingFieldDetail == null)
+                            if (BackingFieldDetailBoxed == null)
                             {
                                 this.setterBoxed = AccessorGenerator.GenerateSetter(property);
                             }
                             else
                             {
-                                this.setterBoxed = BackingFieldDetail.SetterBoxed;
+                                this.setterBoxed = BackingFieldDetailBoxed.SetterBoxed;
                             }
                         }
                     }
@@ -153,148 +153,23 @@ namespace Zerra.Reflection.Runtime
             get
             {
                 if (typeDetailBoxed == null)
-                    LoadTypeDetail();
-                return typeDetailBoxed!;
-            }
-        }
-
-        public override MemberDetail<T, V>? BackingFieldDetail { get; }
-
-        private bool getterLoaded = false;
-        private Func<T, V?>? getter = null;
-        public override Func<T, V?> Getter
-        {
-            get
-            {
-                if (!getterLoaded)
-                    LoadGetter();
-                return this.getter ?? throw new NotSupportedException($"{nameof(MemberDetail)} {Name} does not have a {nameof(Getter)}");
-            }
-        }
-        public override bool HasGetter
-        {
-            get
-            {
-                if (!getterLoaded)
-                    LoadGetter();
-                return this.getter != null;
-            }
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void LoadGetter()
-        {
-            lock (locker)
-            {
-                if (!getterLoaded)
                 {
-                    if (MemberInfo.MemberType == MemberTypes.Property)
+                    lock (locker)
                     {
-                        var property = (PropertyInfo)MemberInfo;
-                        if (!property.PropertyType.IsPointer)
-                        {
-                            if (BackingFieldDetail == null)
-                            {
-                                this.getter = AccessorGenerator.GenerateGetter<T, V?>(property);
-                            }
-                            else
-                            {
-                                this.getter = BackingFieldDetail.Getter;
-                            }
-                        }
+                        typeDetailBoxed ??= TypeAnalyzer.GetTypeDetail(Type);
                     }
-                    else if (MemberInfo.MemberType == MemberTypes.Field)
-                    {
-                        var field = (FieldInfo)MemberInfo;
-                        if (!field.FieldType.IsPointer)
-                        {
-                            this.getter = AccessorGenerator.GenerateGetter<T, V?>(field);
-                        }
-                    }
-                    getterLoaded = true;
                 }
+                return typeDetailBoxed;
             }
         }
 
-        private bool setterLoaded = false;
-        private Action<T, V?>? setter = null;
-        public override Action<T, V?> Setter
-        {
-            get
-            {
-                if (!setterLoaded)
-                    LoadSetter();
-                return this.setter ?? throw new NotSupportedException($"{nameof(MemberDetail)} {Name} does not have a {nameof(Setter)}");
-            }
-        }
-        public override bool HasSetter
-        {
-            get
-            {
-                if (!setterLoaded)
-                    LoadSetter();
-                return this.setter != null;
-            }
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void LoadSetter()
-        {
-            lock (locker)
-            {
-                if (!setterLoaded)
-                {
-                    if (MemberInfo.MemberType == MemberTypes.Property)
-                    {
-                        var property = (PropertyInfo)MemberInfo;
-                        if (!property.PropertyType.IsPointer)
-                        {
-                            if (BackingFieldDetail == null)
-                            {
-                                this.setter = AccessorGenerator.GenerateSetter<T, V?>(property);
-                            }
-                            else
-                            {
-                                this.setter = BackingFieldDetail.Setter;
-                            }
-                        }
-                    }
-                    else if (MemberInfo.MemberType == MemberTypes.Field)
-                    {
-                        var field = (FieldInfo)MemberInfo;
-                        if (!field.FieldType.IsPointer)
-                        {
-                            this.setter = AccessorGenerator.GenerateSetter<T, V?>(field);
-                        }
-                    }
-                    setterLoaded = true;
-                }
-            }
-        }
-
-        private TypeDetail<V>? typeDetail = null;
-        public override TypeDetail<V> TypeDetail
-        {
-            get
-            {
-                if (typeDetail == null)
-                    LoadTypeDetail();
-                return typeDetail!;
-            }
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void LoadTypeDetail()
-        {
-            lock (locker)
-            {
-                typeDetail ??= TypeAnalyzer<V>.GetTypeDetail();
-                typeDetailBoxed = typeDetail;
-            }
-        }
+        public override Delegate GetterTyped => throw new NotSupportedException();
+        public override Delegate SetterTyped => throw new NotSupportedException();
 
         private readonly object locker;
-        internal MemberDetailRuntime(string name, MemberInfo member, MemberDetail<T, V>? backingFieldDetail, object locker)
+        internal MemberDetailRuntime(string name, MemberInfo member, MemberDetail? backingFieldDetail, object locker)
         {
             this.locker = locker;
-            this.BackingFieldDetail = backingFieldDetail;
             this.BackingFieldDetailBoxed = backingFieldDetail;
             this.MemberInfo = member;
             this.Name = name;
@@ -315,25 +190,6 @@ namespace Zerra.Reflection.Runtime
             }
 
             this.IsBacked = member.MemberType == MemberTypes.Field || backingFieldDetail != null;
-        }
-
-        private static readonly Type typeDetailT = typeof(MemberDetailRuntime<,>);
-        internal static MemberDetail New(Type type, Type valueType, string name, MemberInfo member, MemberDetail? backingFieldDetail, object locker)
-        {
-            if (!valueType.ContainsGenericParameters && !type.IsPointer && !type.IsByRef
-#if !NETSTANDARD2_0
-                && !valueType.IsByRefLike
-            #endif
-            )
-            {
-                var typeDetailGeneric = typeDetailT.MakeGenericType(type, valueType);
-                var obj = typeDetailGeneric.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)[0].Invoke(new object?[] { name, member, backingFieldDetail, locker });
-                return (MemberDetail)obj;
-            }
-            else
-            {
-                return new MemberDetailRuntime(name, member, backingFieldDetail, locker);
-            }
         }
 
         internal override void SetMemberInfo(MemberInfo memberInfo, MemberInfo? backingField) => throw new NotSupportedException();

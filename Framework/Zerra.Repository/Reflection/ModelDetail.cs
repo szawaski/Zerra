@@ -61,7 +61,7 @@ namespace Zerra.Repository.Reflection
 
         public override string ToString()
         {
-            return Type.GetNiceFullName();
+            return $"{Type.Name} {Name}";
         }
 
         internal ModelDetail(TypeDetail typeDetails)

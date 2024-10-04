@@ -454,7 +454,7 @@ namespace Zerra.Repository.MsSql
         {
             var typeDetails = TypeAnalyzer.GetTypeDetail(type);
 
-            if (value == null)
+            if (value is null)
             {
                 sb.Write("NULL");
                 return false;
@@ -466,71 +466,9 @@ namespace Zerra.Repository.MsSql
                 typeDetails = typeDetails.InnerTypeDetail;
             }
 
-            if (type.IsEnum)
+            if (typeDetails.CoreType.HasValue)
             {
-                sb.Write('\'');
-                sb.Write(value.ToString());
-                sb.Write('\'');
-                return false;
-            }
-
-            if (type.IsArray)
-            {
-                var arrayType = typeDetails.InnerType;
-                if (arrayType == typeof(byte))
-                {
-                    sb.Write("0x");
-                    sb.Write((byte[])value, CharWriter.ByteFormat.Hex);
-                    return false;
-                }
-                else
-                {
-                    sb.Write('(');
-
-                    var builderLength = sb.Length;
-
-                    var first = true;
-                    foreach (var item in (IEnumerable)value)
-                    {
-                        if (!first)
-                            sb.Write(',');
-                        ConvertToSqlValue(arrayType, item, ref sb, context);
-                        first = false;
-                    }
-
-                    if (builderLength == sb.Length)
-                        sb.Write("NULL");
-
-                    sb.Write(')');
-                    return false;
-                }
-            }
-
-            if (typeDetails.HasIEnumerableGeneric)
-            {
-                sb.Write('(');
-
-                var builderLength = sb.Length;
-
-                var first = true;
-                foreach (var item in (IEnumerable)value)
-                {
-                    if (!first)
-                        sb.Write(',');
-                    ConvertToSqlValue(typeDetails.IEnumerableGenericInnerType, item, ref sb, context);
-                    first = false;
-                }
-
-                if (builderLength == sb.Length)
-                    sb.Write("NULL");
-
-                sb.Write(')');
-                return false;
-            }
-
-            if (TypeLookup.CoreTypeLookup(type, out var coreType))
-            {
-                switch (coreType)
+                switch (typeDetails.CoreType.Value)
                 {
                     case CoreType.Boolean:
                         var lastOperator = context.MemberContext.OperatorStack.Peek();
@@ -802,6 +740,68 @@ namespace Zerra.Repository.MsSql
                         sb.Write(((string)value).Replace("'", "''"));
                         sb.Write('\''); return false;
                 }
+            }
+
+            if (type.IsEnum)
+            {
+                sb.Write('\'');
+                sb.Write(value.ToString());
+                sb.Write('\'');
+                return false;
+            }
+
+            if (type.IsArray)
+            {
+                var arrayType = typeDetails.InnerType;
+                if (arrayType == typeof(byte))
+                {
+                    sb.Write("0x");
+                    sb.Write((byte[])value, CharWriter.ByteFormat.Hex);
+                    return false;
+                }
+                else
+                {
+                    sb.Write('(');
+
+                    var builderLength = sb.Length;
+
+                    var first = true;
+                    foreach (var item in (IEnumerable)value)
+                    {
+                        if (!first)
+                            sb.Write(',');
+                        ConvertToSqlValue(arrayType, item, ref sb, context);
+                        first = false;
+                    }
+
+                    if (builderLength == sb.Length)
+                        sb.Write("NULL");
+
+                    sb.Write(')');
+                    return false;
+                }
+            }
+
+            if (typeDetails.HasIEnumerableGeneric)
+            {
+                sb.Write('(');
+
+                var builderLength = sb.Length;
+
+                var first = true;
+                foreach (var item in (IEnumerable)value)
+                {
+                    if (!first)
+                        sb.Write(',');
+                    ConvertToSqlValue(typeDetails.IEnumerableGenericInnerType, item, ref sb, context);
+                    first = false;
+                }
+
+                if (builderLength == sb.Length)
+                    sb.Write("NULL");
+
+                sb.Write(')');
+                return false;
             }
 
             if (type == typeof(object))

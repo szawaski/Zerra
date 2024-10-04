@@ -12,11 +12,13 @@ namespace Zerra.Reflection.Runtime
 {
     internal sealed class ConstructorDetailRuntime<T> : ConstructorDetail<T>
     {
+        public override bool IsGenerated => false;
+
         public override ConstructorInfo ConstructorInfo { get; }
         public override string Name => ConstructorInfo.Name;
 
         private ParameterDetail[]? parameterInfos = null;
-        public override IReadOnlyList<ParameterDetail> ParametersDetails
+        public override IReadOnlyList<ParameterDetail> ParameterDetails
         {
             get
             {
@@ -212,5 +214,7 @@ namespace Zerra.Reflection.Runtime
             var obj = typeDetailGeneric.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)[0].Invoke(new object[] { constructor, locker });
             return (ConstructorDetail)obj;
         }
+
+        internal override void SetConstructorInfo(ConstructorInfo constructorInfo) => throw new NotSupportedException();
     }
 }

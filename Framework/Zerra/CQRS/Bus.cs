@@ -75,14 +75,14 @@ namespace Zerra.CQRS
 
             bool isStream;
             object? model;
-            if (methodDetail.ReturnTypeDetail.IsTask)
+            if (methodDetail.ReturnTypeDetailBoxed.IsTask)
             {
-                isStream = methodDetail.ReturnTypeDetail.Type.IsGenericType && methodDetail.ReturnTypeDetail.InnerTypeDetail.BaseTypes.Contains(streamType);
+                isStream = methodDetail.ReturnTypeDetailBoxed.Type.IsGenericType && methodDetail.ReturnTypeDetailBoxed.InnerTypeDetail.BaseTypes.Contains(streamType);
                 model = await methodDetail.CallerBoxedAsync(callerProvider, args)!;
             }
             else
             {
-                isStream = methodDetail.ReturnTypeDetail.BaseTypes.Contains(streamType);
+                isStream = methodDetail.ReturnTypeDetailBoxed.BaseTypes.Contains(streamType);
                 model = methodDetail.CallerBoxed(callerProvider, args);
             }
 
@@ -772,11 +772,11 @@ namespace Zerra.CQRS
                 {
                     result = methodCaller.Call<TReturn>(interfaceType, methodName, arguments, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source);
                 }
-                else if (methodDetail.ReturnTypeDetail.IsTask)
+                else if (methodDetail.ReturnTypeDetailBoxed.IsTask)
                 {
-                    if (methodDetail.ReturnTypeDetail.Type.IsGenericType)
+                    if (methodDetail.ReturnTypeDetailBoxed.Type.IsGenericType)
                     {
-                        var method = sendMethodLoggedGenericAsyncMethod.GetGenericMethodDetail(methodDetail.ReturnTypeDetail.InnerType);
+                        var method = sendMethodLoggedGenericAsyncMethod.GetGenericMethodDetail(methodDetail.ReturnTypeDetailBoxed.InnerType);
                         result = method.CallerBoxed(null, [interfaceType, methodName, arguments, networkType, source, methodDetail, methodCaller]);
                     }
                     else
@@ -814,11 +814,11 @@ namespace Zerra.CQRS
 
                     result = methodDetail.CallerBoxed(provider, arguments);
                 }
-                else if (methodDetail.ReturnTypeDetail.IsTask)
+                else if (methodDetail.ReturnTypeDetailBoxed.IsTask)
                 {
-                    if (methodDetail.ReturnTypeDetail.Type.IsGenericType)
+                    if (methodDetail.ReturnTypeDetailBoxed.Type.IsGenericType)
                     {
-                        var method = callInternalLoggedGenericAsyncMethod.GetGenericMethodDetail(methodDetail.ReturnTypeDetail.InnerType);
+                        var method = callInternalLoggedGenericAsyncMethod.GetGenericMethodDetail(methodDetail.ReturnTypeDetailBoxed.InnerType);
                         result = method.CallerBoxed(null, [interfaceType, methodName, arguments, source, methodDetail]);
                     }
                     else
@@ -864,7 +864,7 @@ namespace Zerra.CQRS
                 var localresult = methodCaller.Call<Task<TReturn>>(interfaceType, methodName, arguments, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source)!;
                 var task = localresult;
                 await task;
-                taskresult = methodDetail.ReturnTypeDetail.TaskResultGetter(task)!;
+                taskresult = methodDetail.ReturnTypeDetailBoxed.TaskResultGetter(task)!;
             }
             catch (Exception ex)
             {
@@ -915,7 +915,7 @@ namespace Zerra.CQRS
                 var localresult = methodDetail.CallerBoxed(provider, arguments)!;
                 var task = (Task)localresult;
                 await task;
-                taskresult = methodDetail.ReturnTypeDetail.TaskResultGetter(localresult)!;
+                taskresult = methodDetail.ReturnTypeDetailBoxed.TaskResultGetter(localresult)!;
             }
             catch (Exception ex)
             {

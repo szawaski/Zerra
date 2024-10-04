@@ -9,8 +9,10 @@ namespace Zerra.Reflection.Runtime
 {
     internal sealed class ParameterDetailRuntime : ParameterDetail
     {
+        public override bool IsGenerated => false;
+
         public override ParameterInfo ParameterInfo { get; }
-        public override string Name => ParameterInfo.Name;
+        public override string? Name => ParameterInfo.Name;
         public override Type Type => ParameterInfo.ParameterType;
 
         private readonly object locker;

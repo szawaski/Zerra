@@ -5,50 +5,52 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
-namespace Zerra.Reflection.Generation
+namespace Zerra.Reflection.Compiletime
 {
-    public abstract class MethodDetailGenerationBase<T> : MethodDetail<T>
+    public abstract class MethodDetailCompiletimeBase<T> : MethodDetail<T>
     {
         protected readonly object locker;
         private readonly Action loadMethodInfo;
-        public MethodDetailGenerationBase(object locker, Action loadMethodInfo)
+        public MethodDetailCompiletimeBase(object locker, Action loadMethodInfo)
         {
             this.locker = locker;
             this.loadMethodInfo = loadMethodInfo;
         }
 
-        private MethodInfo? constructorInfo = null;
+        public override sealed bool IsGenerated => true;
+
+        private MethodInfo? methodInfo = null;
         public override sealed MethodInfo MethodInfo
         {
             get
             {
-                if (constructorInfo is null)
+                if (methodInfo is null)
                 {
                     lock (locker)
                     {
-                        if (constructorInfo is null)
+                        if (methodInfo is null)
                         {
                             loadMethodInfo();
                         }
                     }
                 }
-                return constructorInfo!;
+                return methodInfo!;
             }
         }
 
-        private TypeDetail? returnType = null;
-        public override sealed TypeDetail ReturnTypeDetail
+        private TypeDetail? returnTypeDetailBoxed = null;
+        public override sealed TypeDetail ReturnTypeDetailBoxed
         {
             get
             {
-                if (returnType == null)
+                if (returnTypeDetailBoxed == null)
                 {
                     lock (locker)
                     {
-                        returnType ??= TypeAnalyzer.GetTypeDetail(ReturnType);
+                        returnTypeDetailBoxed ??= TypeAnalyzer.GetTypeDetail(ReturnType);
                     }
                 }
-                return returnType;
+                return returnTypeDetailBoxed;
             }
         }
 
@@ -120,7 +122,7 @@ namespace Zerra.Reflection.Generation
                                 var caller = CallerBoxed;
                                 if (caller == null)
                                     return default;
-                                var returnTypeInfo = ReturnTypeDetail;
+                                var returnTypeInfo = ReturnTypeDetailBoxed;
 
                                 if (returnTypeInfo.IsTask)
                                 {
@@ -179,7 +181,7 @@ namespace Zerra.Reflection.Generation
                                 var caller = this.Caller;
                                 if (caller == null)
                                     return default;
-                                var returnTypeInfo = ReturnTypeDetail;
+                                var returnTypeInfo = ReturnTypeDetailBoxed;
 
                                 if (returnTypeInfo.IsTask)
                                 {
@@ -206,9 +208,9 @@ namespace Zerra.Reflection.Generation
 
         public override sealed Delegate? CallerTyped => Caller;
 
-        internal void SetMethodInfo(MethodInfo constructorInfo)
+        internal override sealed void SetMethodInfo(MethodInfo methodInfo)
         {
-            this.constructorInfo = constructorInfo;
+            this.methodInfo = methodInfo;
         }
 
         protected void LoadParameterInfo()
@@ -220,7 +222,7 @@ namespace Zerra.Reflection.Generation
                 if (parameter == null)
                     throw new InvalidOperationException($"Parameter not found for {parameterDetail.Name}");
 
-                var parameterBase = (ParameterDetailGenerationBase)parameterDetail;
+                var parameterBase = (ParameterDetailCompiletimeBase)parameterDetail;
                 parameterBase.SetParameterInfo(parameter);
             }
         }

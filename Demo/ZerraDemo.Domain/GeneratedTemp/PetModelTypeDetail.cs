@@ -2,12 +2,12 @@
 //using System.Collections.Generic;
 //using System.Runtime.CompilerServices;
 //using Zerra.Reflection;
-//using Zerra.Reflection.Generation;
+//using Zerra.Reflection.Compiletime;
 //using ZerraDemo.Domain.Pets.Models;
 
 //namespace ZerraDemo.Domain.GeneratedTemp
 //{
-//    public class PetModelTypeDetail : TypeDetailTGenerationBase<PetModel>
+//    public class PetModelTypeDetail : TypeDetailTCompiletimeBase<PetModel>
 //    {
 //        [ModuleInitializer]
 //        public static void Initialize() => TypeAnalyzer.AddTypeDetailCreator(typeof(PetModel), () => new PetModelTypeDetail());
@@ -91,7 +91,7 @@
 //        public override Func<object> CreatorBoxed => Creator;
 //        public override bool HasCreatorBoxed => true;
 
-//        public sealed class PetModelConstructorDetail : ConstructorDetailGenerationBase<PetModel>
+//        public sealed class PetModelConstructorDetail : ConstructorDetailCompiletimeBase<PetModel>
 //        {
 //            public PetModelConstructorDetail(object locker, Action loadConstructorInfo) : base(locker, loadConstructorInfo) { }
 
@@ -117,7 +117,7 @@
 //            public override Delegate? CreatorWithArgsTyped => null;
 //        }
 
-//        public sealed class PetModelMemberDetail_ID : MemberDetailGenerationBase<PetModel, Guid>
+//        public sealed class PetModelMemberDetail_ID : MemberDetailCompiletimeBase<PetModel, Guid>
 //        {
 //            public PetModelMemberDetail_ID(object locker, Action loadMemberInfo) : base(locker, loadMemberInfo) { }
 
@@ -144,7 +144,7 @@
 
 //            protected override Func<MemberDetail<PetModel, Guid>?> CreateBackingFieldDetail => () => null;
 //        }
-//        public sealed class PetModelMemberDetail_Name : MemberDetailGenerationBase<PetModel, string?>
+//        public sealed class PetModelMemberDetail_Name : MemberDetailCompiletimeBase<PetModel, string?>
 //        {
 //            public PetModelMemberDetail_Name(object locker, Action loadMemberInfo) : base(locker, loadMemberInfo) { }
 
@@ -171,7 +171,7 @@
 
 //            protected override Func<MemberDetail<PetModel, string>?> CreateBackingFieldDetail => () => null;
 //        }
-//        public sealed class PetModelMemberDetail_Breed : MemberDetailGenerationBase<PetModel, string?>
+//        public sealed class PetModelMemberDetail_Breed : MemberDetailCompiletimeBase<PetModel, string?>
 //        {
 //            public PetModelMemberDetail_Breed(object locker, Action loadMemberInfo) : base(locker, loadMemberInfo) { }
 
@@ -198,7 +198,7 @@
 
 //            protected override Func<MemberDetail<PetModel, string>?> CreateBackingFieldDetail => () => null;
 //        }
-//        public sealed class PetModelMemberDetail_Species : MemberDetailGenerationBase<PetModel, string?>
+//        public sealed class PetModelMemberDetail_Species : MemberDetailCompiletimeBase<PetModel, string?>
 //        {
 //            public PetModelMemberDetail_Species(object locker, Action loadMemberInfo) : base(locker, loadMemberInfo) { }
 
@@ -225,7 +225,7 @@
 
 //            protected override Func<MemberDetail<PetModel, string>?> CreateBackingFieldDetail => () => null;
 //        }
-//        public sealed class PetModelMemberDetail_LastEaten : MemberDetailGenerationBase<PetModel, DateTime?>
+//        public sealed class PetModelMemberDetail_LastEaten : MemberDetailCompiletimeBase<PetModel, DateTime?>
 //        {
 //            public PetModelMemberDetail_LastEaten(object locker, Action loadMemberInfo) : base(locker, loadMemberInfo) { }
 
@@ -252,7 +252,7 @@
 
 //            protected override Func<MemberDetail<PetModel, DateTime?>?> CreateBackingFieldDetail => () => null;
 //        }
-//        public sealed class PetModelMemberDetail_AmountEaten : MemberDetailGenerationBase<PetModel, int?>
+//        public sealed class PetModelMemberDetail_AmountEaten : MemberDetailCompiletimeBase<PetModel, int?>
 //        {
 //            public PetModelMemberDetail_AmountEaten(object locker, Action loadMemberInfo) : base(locker, loadMemberInfo) { }
 
@@ -279,7 +279,7 @@
 
 //            protected override Func<MemberDetail<PetModel, int?>?> CreateBackingFieldDetail => () => null;
 //        }
-//        public sealed class PetModelMemberDetail_LastPooped : MemberDetailGenerationBase<PetModel, DateTime?>
+//        public sealed class PetModelMemberDetail_LastPooped : MemberDetailCompiletimeBase<PetModel, DateTime?>
 //        {
 //            public PetModelMemberDetail_LastPooped(object locker, Action loadMemberInfo) : base(locker, loadMemberInfo) { }
 
@@ -307,7 +307,7 @@
 //            protected override Func<MemberDetail<PetModel, DateTime?>?> CreateBackingFieldDetail => () => null;
 //        }
 //    }
-//    public class PetModelArrayTypeDetail : TypeDetailTGenerationBase<PetModel[]>
+//    public class PetModelArrayTypeDetail : TypeDetailTCompiletimeBase<PetModel[]>
 //    {
 //        [ModuleInitializer]
 //        public static void Initialize() => TypeAnalyzer.AddTypeDetailCreator(typeof(PetModel[]), () => new PetModelArrayTypeDetail());

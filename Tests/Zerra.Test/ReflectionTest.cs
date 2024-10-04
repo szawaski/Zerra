@@ -25,7 +25,7 @@ namespace Zerra.Test
         private static readonly MethodInfo methodInspectTypeDetail = typeof(ReflectionTest).GetMethods(BindingFlags.NonPublic | BindingFlags.Instance).First(x => x.Name == nameof(InspectTypeDetail) && x.GetGenericArguments().Length == 1);
         private void InspectTypeDetail(TypeDetail typeDetail, Stack<Type> stack)
         {
-            if (typeDetail.CoreType.HasValue || typeDetail.Type.Name == "Void")
+            if (typeDetail.Type.ContainsGenericParameters || typeDetail.Type.IsPointer || typeDetail.Type.Name == "Void" || typeDetail.Type.IsByRef || typeDetail.Type.IsByRefLike)
                 return;
             methodInspectTypeDetail.MakeGenericMethod(typeDetail.Type).Invoke(this, new object[] { typeDetail, stack });
         }
@@ -75,7 +75,7 @@ namespace Zerra.Test
                 _ = method.Attributes;
                 _ = method.HasCaller;
 
-                InspectTypeDetail(method.ReturnTypeDetail, stack);
+                InspectTypeDetail(method.ReturnTypeDetailBoxed, stack);
                 foreach (var parameter in method.ParameterDetails)
                 {
                     InspectTypeDetail(parameter.Type.GetTypeDetail(), stack);
@@ -86,7 +86,7 @@ namespace Zerra.Test
                 _ = constructor.Attributes;
                 _ = constructor.HasCreatorWithArgs;
 
-                foreach (var parameter in constructor.ParametersDetails)
+                foreach (var parameter in constructor.ParameterDetails)
                 {
                     InspectTypeDetail(parameter.Type.GetTypeDetail(), stack);
                 }

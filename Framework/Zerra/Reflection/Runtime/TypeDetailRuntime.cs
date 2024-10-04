@@ -35,6 +35,8 @@ namespace Zerra.Reflection.Runtime
         private static readonly Type keyValuePairType = typeof(KeyValuePair<,>);
         private static readonly Type dictionaryEntryType = typeof(DictionaryEntry);
 
+        public override bool IsGenerated => false;
+
         public override bool IsNullable { get; }
 
         private bool coreTypeLoaded = false;
@@ -214,7 +216,7 @@ namespace Zerra.Reflection.Runtime
                     {
                         if (baseTypes == null)
                         {
-                            var baseType = Type;
+                            var baseType = Type.BaseType;
                             var items = new List<Type>();
                             while (baseType != null)
                             {
@@ -515,8 +517,8 @@ namespace Zerra.Reflection.Runtime
             {
                 if (!hasIsInterfaceLoaded)
                 {
-                    if (!TypeLookup.CoreTypes.Contains(Type))
-                    {
+                    //if (!TypeLookup.CoreTypes.Contains(Type))
+                    //{
                         var interfaces = new HashSet<string>(Interfaces.Select(x => x.Name));
 
                         hasIEnumerable = Type.IsArray || Type.Name == enumberableTypeName || interfaces.Contains(enumberableTypeName);
@@ -530,6 +532,8 @@ namespace Zerra.Reflection.Runtime
                         hasISetGeneric = Type.Name == setGenericTypeName || interfaces.Contains(setGenericTypeName);
 #if NET5_0_OR_GREATER
                         hasIReadOnlySetGeneric = Type.Name == readOnlySetGenericTypeName || interfaces.Contains(readOnlySetGenericTypeName);
+#else
+                        hasIReadOnlySetGeneric = false;
 #endif
                         hasIDictionary = Type.Name == dictionaryTypeName || interfaces.Contains(dictionaryTypeName);
                         hasIDictionaryGeneric = Type.Name == dictionaryGenericTypeName || interfaces.Contains(dictionaryGenericTypeName);
@@ -545,12 +549,14 @@ namespace Zerra.Reflection.Runtime
                         isIReadOnlyListGeneric = Type.Name == readOnlyListTypeName;
                         isISetGeneric = Type.Name == setGenericTypeName;
 #if NET5_0_OR_GREATER
-                        isIReadOnlySetGeneric = Type.Name == readOnlySetGenericTypeName;;
+                        isIReadOnlySetGeneric = Type.Name == readOnlySetGenericTypeName;
+#else
+                        isIReadOnlySetGeneric = false;
 #endif
                         isIDictionary = Type.Name == dictionaryTypeName;
                         isIDictionaryGeneric = Type.Name == dictionaryGenericTypeName;
                         isIReadOnlyDictionaryGeneric = Type.Name == readOnlyDictionaryGenericTypeName;
-                    }
+                    //}
                     hasIsInterfaceLoaded = true;
                 }
             }
@@ -570,28 +576,11 @@ namespace Zerra.Reflection.Runtime
                             var items = new List<MemberDetail>();
                             if (!Type.IsGenericTypeDefinition)
                             {
-                                IEnumerable<PropertyInfo> properties = Type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                                IEnumerable<FieldInfo> fields = Type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                                if (Type.IsInterface)
-                                {
-                                    foreach (var i in Interfaces)
-                                    {
-                                        var iProperties = i.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                                        var iFields = i.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-#if NETSTANDARD2_0
-                                        var existingPropertyNames = properties.Select(y => y.Name).ToArray();
-#else
-                                        var existingPropertyNames = properties.Select(y => y.Name).ToHashSet();
-#endif
-                                        properties = properties.Concat(iProperties.Where(x => !existingPropertyNames.Contains(x.Name)));
-#if NETSTANDARD2_0
-                                        var existingFieldNames = fields.Select(y => y.Name).ToArray();
-#else
-                                        var existingFieldNames = fields.Select(y => y.Name).ToHashSet();
-#endif
-                                        fields = fields.Concat(iFields.Where(x => !existingFieldNames.Contains(x.Name)));
-                                    }
-                                }
+                                var hasInterfaces = Interfaces.Count > 0;
+                                var names = hasInterfaces ? new HashSet<string>() : null; //explicit declarations can create duplicates with interfaces
+
+                                var properties = Type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+                                var fields = Type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
                                 foreach (var property in properties)
                                 {
                                     if (property.GetIndexParameters().Length > 0)
@@ -603,13 +592,58 @@ namespace Zerra.Reflection.Runtime
                                     var backingName = $"<{property.Name}>";
                                     var backingField = fields.FirstOrDefault(x => x.Name.StartsWith(backingName));
                                     if (backingField != null)
-                                        backingMember = MemberDetailRuntime<object, object>.New(Type, property.PropertyType, backingField, null, locker);
+                                        backingMember = MemberDetailRuntime<object, object>.New(Type, property.PropertyType, property.Name, backingField, null, locker);
 
-                                    items.Add(MemberDetailRuntime<object, object>.New(Type, property.PropertyType, property, backingMember, locker));
+                                    items.Add(MemberDetailRuntime<object, object>.New(Type, property.PropertyType, property.Name, property, backingMember, locker));
+                                    if (hasInterfaces)
+                                        names!.Add(property.Name);
                                 }
+
+                                if (hasInterfaces)
+                                {
+                                    foreach (var field in fields)
+                                        names!.Add(field.Name);
+
+                                    foreach (var i in Interfaces)
+                                    {
+                                        var iProperties = i.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);//don't get static interface members
+
+                                        foreach (var property in iProperties)
+                                        {
+                                            if (property.GetIndexParameters().Length > 0)
+                                                continue;
+                                            MemberDetail? backingMember = null;
+
+                                            //<{property.Name}>k__BackingField
+                                            //<{property.Name}>i__Field
+                                            var backingName = $"<{property.Name}>";
+                                            var backingField = fields.FirstOrDefault(x => x.Name.StartsWith(backingName));
+                                            if (backingField != null)
+                                            {
+                                                var backingMemberName = $"{property.DeclaringType?.Namespace}.{property.DeclaringType?.Name}.{property.Name.Split('.').Last()}";
+                                                backingMember = MemberDetailRuntime<object, object>.New(Type, property.PropertyType, backingMemberName, backingField, null, locker);
+                                            }
+
+                                            string name;
+                                            if (Type.IsInterface && !names!.Contains(property.Name))
+                                                name = property.Name;
+                                            else
+                                                name = $"{property.DeclaringType?.Namespace}.{property.DeclaringType?.Name}.{property.Name.Split('.').Last()}";
+
+                                            if (!names!.Contains(name))
+                                            {
+                                                items.Add(MemberDetailRuntime<object, object>.New(Type, property.PropertyType, name, property, backingMember, locker));
+                                                names!.Add(name);
+                                            }
+                                        }
+                                    }
+                                }
+
                                 foreach (var field in fields.Where(x => !items.Any(y => y.BackingFieldDetailBoxed?.MemberInfo == x)))
                                 {
-                                    items.Add(MemberDetailRuntime<object, object>.New(Type, field.FieldType, field, null, locker));
+                                    if (field.IsLiteral)
+                                        continue;
+                                    items.Add(MemberDetailRuntime<object, object>.New(Type, field.FieldType, field.Name, field, null, locker));
                                 }
                             }
 
@@ -633,21 +667,36 @@ namespace Zerra.Reflection.Runtime
                         if (methodDetailsBoxed == null)
                         {
                             var items = new List<MethodDetail>();
+                            var hasInterfaces = Interfaces.Count > 0;
+                            var names = hasInterfaces ? new HashSet<string>() : null; //explicit declarations can create duplicates with interfaces
                             if (!Type.IsGenericTypeDefinition)
                             {
                                 var methods = Type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
                                 foreach (var method in methods)
-                                    items.Add(MethodDetailRuntime<object>.New(Type, method, locker));
-                                if (Type.IsInterface)
+                                {
+                                    items.Add(MethodDetailRuntime<object>.New(Type, method.Name, method, locker));
+                                    if (hasInterfaces)
+                                        names!.Add(method.Name);
+                                }
+
+                                if (hasInterfaces)
                                 {
                                     foreach (var i in Interfaces)
                                     {
-                                        var iMethods = i.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+                                        var iMethods = i.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance); //don't get static interface methods
                                         foreach (var method in iMethods)
                                         {
-                                            var methodDetail = MethodDetailRuntime<object>.New(Type, method, locker);
-                                            if (!items.Any(x => SignatureCompare(x, methodDetail)))
-                                                items.Add(methodDetail);
+                                            string name;
+                                            if (Type.IsInterface && !names!.Contains(method.Name))
+                                                name = method.Name;
+                                            else
+                                                name = $"{method.DeclaringType?.Namespace}.{method.DeclaringType?.Name}.{method.Name.Split('.').Last()}";
+
+                                            if (!names!.Contains(name))
+                                            {
+                                                items.Add(MethodDetailRuntime<object>.New(Type, name, method, locker));
+                                                names!.Add(name);
+                                            }
                                         }
                                     }
                                 }
@@ -926,7 +975,7 @@ namespace Zerra.Reflection.Runtime
                 {
                     if (!Type.IsAbstract && !Type.IsGenericTypeDefinition)
                     {
-                        var emptyConstructor = this.ConstructorDetailsBoxed.FirstOrDefault(x => x.ParametersDetails.Count == 0);
+                        var emptyConstructor = this.ConstructorDetailsBoxed.FirstOrDefault(x => x.ParameterDetails.Count == 0);
                         if (emptyConstructor != null && emptyConstructor.HasCreatorBoxed)
                         {
                             creatorBoxed = emptyConstructor.CreatorBoxed;

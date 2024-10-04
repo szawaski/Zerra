@@ -5,39 +5,41 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
-namespace Zerra.Reflection.Generation
+namespace Zerra.Reflection.Compiletime
 {
-    public abstract class PrivateMethodDetailGenerationBase<T> : MethodDetail<T>
+    public abstract class PrivateMethodDetailCompiletimeBase<T> : MethodDetail<T>
     {
         protected readonly object locker;
         private readonly Action loadMethodInfo;
-        public PrivateMethodDetailGenerationBase(object locker, Action loadMethodInfo)
+        public PrivateMethodDetailCompiletimeBase(object locker, Action loadMethodInfo)
         {
             this.locker = locker;
             this.loadMethodInfo = loadMethodInfo;
         }
 
-        private MethodInfo? constructorInfo = null;
+        public override sealed bool IsGenerated => true;
+
+        private MethodInfo? methodInfo = null;
         public override sealed MethodInfo MethodInfo
         {
             get
             {
-                if (constructorInfo is null)
+                if (methodInfo is null)
                 {
                     lock (locker)
                     {
-                        if (constructorInfo is null)
+                        if (methodInfo is null)
                         {
                             loadMethodInfo();
                         }
                     }
                 }
-                return constructorInfo!;
+                return methodInfo!;
             }
         }
 
         private TypeDetail? returnType = null;
-        public override sealed TypeDetail ReturnTypeDetail
+        public override sealed TypeDetail ReturnTypeDetailBoxed
         {
             get
             {
@@ -86,9 +88,9 @@ namespace Zerra.Reflection.Generation
             }
         }
 
-        internal void SetMethodInfo(MethodInfo constructorInfo)
+        internal override sealed void SetMethodInfo(MethodInfo methodInfo)
         {
-            this.constructorInfo = constructorInfo;
+            this.methodInfo = methodInfo;
         }
 
         private bool callerBoxedLoaded = false;
@@ -135,11 +137,11 @@ namespace Zerra.Reflection.Generation
                 {
                     if (!callerBoxedLoaded)
                     {
-#if NETSTANDARD2_0
-                        if (!MethodInfo.IsGenericMethodDefinition && !MethodInfo.ReturnType.IsByRef)
-#else
-                        if (!MethodInfo.IsGenericMethodDefinition && !MethodInfo.ReturnType.IsByRef && !MethodInfo.ReturnType.IsByRefLike)
+                        if (!MethodInfo.IsGenericMethodDefinition && !MethodInfo.ReturnType.IsByRef
+#if !NETSTANDARD2_0
+                            && !MethodInfo.ReturnType.IsByRefLike
 #endif
+                        )
                         {
                             this.callerBoxed = AccessorGenerator.GenerateCaller(MethodInfo);
                             this.callerBoxedAsync = async (source, arguments) =>
@@ -147,7 +149,7 @@ namespace Zerra.Reflection.Generation
                                 var caller = this.callerBoxed;
                                 if (caller == null)
                                     return default;
-                                var returnTypeInfo = ReturnTypeDetail;
+                                var returnTypeInfo = ReturnTypeDetailBoxed;
 
                                 if (returnTypeInfo.IsTask)
                                 {
@@ -228,7 +230,7 @@ namespace Zerra.Reflection.Generation
                                 var caller = this.caller;
                                 if (caller == null)
                                     return default;
-                                var returnTypeInfo = ReturnTypeDetail;
+                                var returnTypeInfo = ReturnTypeDetailBoxed;
 
                                 if (returnTypeInfo.IsTask)
                                 {
@@ -264,7 +266,7 @@ namespace Zerra.Reflection.Generation
                 if (parameter == null)
                     throw new InvalidOperationException($"Parameter not found for {parameterDetail.Name}");
 
-                var parameterBase = (ParameterDetailGenerationBase)parameterDetail;
+                var parameterBase = (ParameterDetailCompiletimeBase)parameterDetail;
                 parameterBase.SetParameterInfo(parameter);
             }
         }

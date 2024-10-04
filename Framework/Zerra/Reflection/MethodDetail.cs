@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 
@@ -11,6 +12,8 @@ namespace Zerra.Reflection
 {
     public abstract class MethodDetail
     {
+        public abstract bool IsGenerated { get; }
+
         public abstract MethodInfo MethodInfo { get; }
         public abstract string Name { get; }
 
@@ -26,6 +29,13 @@ namespace Zerra.Reflection
         public abstract Delegate? CallerTyped { get; }
 
         public abstract Type ReturnType { get; }
-        public abstract TypeDetail ReturnTypeDetail { get; }
+        public abstract TypeDetail ReturnTypeDetailBoxed { get; }
+
+        internal abstract void SetMethodInfo(MethodInfo constructorInfo);
+
+        public override string ToString()
+        {
+            return $"{Name}({String.Join(",", ParameterDetails.Select(x => x.Type.Name))})";
+        }
     }
 }

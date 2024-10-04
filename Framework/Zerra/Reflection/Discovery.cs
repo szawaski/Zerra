@@ -6,6 +6,7 @@ using System;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -1257,138 +1258,166 @@ namespace Zerra.Reflection
 
         public static string GetNiceName(Type it)
         {
-            if (it == null)
+            if (it is null)
                 return "null";
-            var name = niceNames.GetOrAdd(it, (it) =>
-            {
-                return GenerateNiceName(it, false);
-            });
+            var name = niceNames.GetOrAdd(it, (it) => GenerateNiceName(it, false));
             return name;
         }
         public static string GetNiceFullName(Type it)
         {
-            if (it == null)
+            if (it is null)
                 return "null";
-            var name = niceFullNames.GetOrAdd(it, (it) =>
-            {
-                return GenerateNiceName(it, true);
-            });
+            var name = niceFullNames.GetOrAdd(it, (it) => GenerateNiceName(it, true));
             return name;
         }
 
-        //framework dependent if property exists
-        private static Func<object, object?>? typeGetIsZSArrayGetter;
-        private static bool loadedTypeGetIsZSArrayGetter = false;
-        private static Func<object, object?>? GetTypeGetIsZSArrayGetter()
+        private static string GenerateNiceName(Type type, bool includeNamespace)
         {
-            if (!loadedTypeGetIsZSArrayGetter)
+            if (type.ContainsGenericParameters)
             {
-                lock (niceFullNames)
+                var span = type.Name.AsSpan();
+                var i = 0;
+                for (; i < span.Length; i++)
                 {
-                    if (!loadedTypeGetIsZSArrayGetter)
-                    {
-                        if (TypeAnalyzer.GetTypeDetail(typeof(Type)).TryGetMember("IsSZArray", out var member))
-                            typeGetIsZSArrayGetter = member.GetterBoxed;
-                        loadedTypeGetIsZSArrayGetter = true;
-                    }
+                    if (span[i] == '`')
+                        break;
                 }
+
+                var name = span.Slice(0, i).ToString();
+
+                var parameters = type.GetGenericArguments();
+
+                var sb = new StringBuilder();
+
+                if (includeNamespace && type.Namespace is not null)
+                    sb.Append(type.Namespace).Append('.');
+                sb.Append(name).Append('<');
+
+                for (var j = 0; j < parameters.Length; j++)
+                {
+                    if (j > 0)
+                        sb.Append(',');
+                    var parameter = parameters[j];
+                    if (parameter.IsGenericParameter)
+                        sb.Append('T');
+                    else if (includeNamespace)
+                        sb.Append(GetNiceFullName(parameter));
+                    else
+                        sb.Append(GetNiceName(parameter));
+                }
+                sb.Append('>');
+                return sb.ToString();
             }
-            return typeGetIsZSArrayGetter;
-        }
-
-        private static string GenerateNiceName(Type type, bool ns)
-        {
-            var typeDetails = TypeAnalyzer.GetTypeDetail(type);
-
-            if (type.IsArray)
+            else if (type.IsGenericType && type.FullName is not null)
             {
                 var sb = new StringBuilder();
-                var rank = type.GetArrayRank();
-                var elementType = typeDetails.InnerType;
-                if (elementType.IsGenericParameter)
+
+                var openGeneric = 0;
+                var openGenericArray = 0;
+                var nameStart = 0;
+                var inArray = false;
+                var span = type.FullName.AsSpan();
+                var i = 0;
+                for (; i < span.Length; i++)
                 {
-                    _ = sb.Append('T');
+                    var c = span[i];
+                    switch (c)
+                    {
+                        case '[':
+                            if (nameStart == -1)
+                            {
+                                if (openGeneric == openGenericArray)
+                                {
+                                    openGeneric++;
+                                }
+                                else
+                                {
+                                    openGenericArray++;
+                                    if (nameStart != -1)
+                                    {
+                                        sb.Append(span.Slice(nameStart, i - 1 - nameStart).ToString());
+                                        nameStart = -1;
+                                    }
+                                    nameStart = i + 1;
+                                    if (i > 0 && span[i - 1] != ',')
+                                        sb.Append('<');
+                                }
+                            }
+                            else
+                            {
+                                sb.Append(span.Slice(nameStart, i + 1 - nameStart).ToString());
+                                nameStart = -1;
+                                inArray = true;
+                            }
+                            break;
+                        case '.':
+                            if (!includeNamespace && nameStart != -1)
+                            {
+                                nameStart = i + 1;
+                            }
+                            break;
+                        case ',':
+                            if (inArray)
+                            {
+                                sb.Append(',');
+                            }
+                            else if (openGenericArray != openGeneric)
+                            {
+                                sb.Append(',');
+                            }
+                            else if (nameStart != -1)
+                            {
+                                sb.Append(span.Slice(nameStart, i - nameStart).ToString());
+                                nameStart = -1;
+                            }
+                            break;
+                        case '`':
+                            if (nameStart != -1)
+                            {
+                                sb.Append(span.Slice(nameStart, i - nameStart).ToString());
+                                nameStart = -1;
+                            }
+                            break;
+                        case ']':
+                            if (inArray)
+                            {
+                                sb.Append(']');
+                                inArray = false;
+                            }
+                            else if (nameStart == -1)
+                            {
+                                if (openGenericArray == openGeneric)
+                                {
+                                    openGenericArray--;
+                                }
+                                else
+                                {
+                                    openGeneric--;
+                                    nameStart = i + 1;
+                                    sb.Append('>');
+                                }
+                            }
+                            break;
+                    }
+                }
+
+                return sb.ToString();
+            }
+            else
+            {
+                if (includeNamespace)
+                {
+                    if (type.FullName is not null)
+                        return type.FullName;
+                    if (type.Namespace is not null)
+                        return $"{type.Namespace}.{type.Name}";
+                    return type.Name;
                 }
                 else
                 {
-                    if (ns && !String.IsNullOrWhiteSpace(type.Namespace))
-                        _ = sb.Append(type.Namespace).Append('.');
-
-                    if (ns)
-                        _ = sb.Append(GetNiceFullName(elementType));
-                    else
-                        _ = sb.Append(GetNiceName(elementType));
+                    return type.Name;
                 }
-                _ = sb.Append('[');
-                var getter = GetTypeGetIsZSArrayGetter();
-
-                var szArray = getter != null && (bool)getter(type)!;
-                if (!szArray)
-                {
-                    if (rank == 1)
-                    {
-                        _ = sb.Append('*');
-                    }
-                    else if (rank > 1)
-                    {
-                        for (var i = 0; i < rank - 1; i++)
-                            _ = sb.Append(',');
-                    }
-                }
-                _ = sb.Append(']');
-
-                return sb.ToString();
             }
-
-            if (type.IsGenericType)
-            {
-                var sb = new StringBuilder();
-                if (ns && !String.IsNullOrWhiteSpace(type.Namespace))
-                    _ = sb.Append(type.Namespace).Append('.');
-
-                _ = sb.Append(type.Name.Split('`')[0]);
-
-                var genericTypes = typeDetails.InnerTypes;
-                _ = sb.Append('<');
-                var first = true;
-                foreach (var genericType in genericTypes)
-                {
-                    if (!first)
-                        _ = sb.Append(',');
-                    first = false;
-                    if (genericType.IsGenericType || genericType.IsArray)
-                    {
-                        if (ns)
-                            _ = sb.Append(GetNiceFullName(genericType));
-                        else
-                            _ = sb.Append(GetNiceName(genericType));
-                    }
-                    else
-                    {
-                        if (genericType.IsGenericParameter)
-                        {
-                            _ = sb.Append('T');
-                        }
-                        else
-                        {
-                            if (ns)
-                                _ = sb.Append(genericType.FullName);
-                            else
-                                _ = sb.Append(genericType.Name);
-                        }
-                    }
-                }
-                _ = sb.Append('>');
-
-                return sb.ToString();
-            }
-
-            if (ns && !String.IsNullOrWhiteSpace(type.Namespace))
-            {
-                return $"{type.Namespace}.{type.Name}";
-            }
-
-            return type.Name;
         }
     }
 }

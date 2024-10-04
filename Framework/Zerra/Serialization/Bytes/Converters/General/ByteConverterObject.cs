@@ -87,10 +87,10 @@ namespace Zerra.Serialization.Bytes.Converters.General
             if (typeDetail.Type.IsValueType || !typeDetail.HasCreator)
             {
                 //find best constructor
-                foreach (var constructor in typeDetail.ConstructorDetails.OrderByDescending(x => x.ParametersDetails.Count))
+                foreach (var constructor in typeDetail.ConstructorDetails.OrderByDescending(x => x.ParameterDetails.Count))
                 {
                     var skip = false;
-                    foreach (var parameter in constructor.ParametersDetails)
+                    foreach (var parameter in constructor.ParameterDetails)
                     {
                         //cannot have argument of itself or a null name
                         if (parameter.Type == typeDetail.Type || parameter.Name == null)
@@ -284,17 +284,17 @@ namespace Zerra.Serialization.Bytes.Converters.General
 
             if (collectValues)
             {
-                var args = new object?[parameterConstructor!.ParametersDetails.Count];
+                var args = new object?[parameterConstructor!.ParameterDetails.Count];
                 for (var i = 0; i < args.Length; i++)
                 {
 #if NETSTANDARD2_0
-                    if (collectedValues!.TryGetValue(parameterConstructor.ParametersDetails[i].Name!, out var parameter))
+                    if (collectedValues!.TryGetValue(parameterConstructor.ParameterDetails[i].Name!, out var parameter))
                     {
-                        collectedValues.Remove(parameterConstructor.ParametersDetails[i].Name!);
+                        collectedValues.Remove(parameterConstructor.ParameterDetails[i].Name!);
                         args[i] = parameter;
                     }
 #else
-                    if (collectedValues!.Remove(parameterConstructor.ParametersDetails[i].Name!, out var parameter))
+                    if (collectedValues!.Remove(parameterConstructor.ParameterDetails[i].Name!, out var parameter))
                         args[i] = parameter;
 #endif
                 }

@@ -3,13 +3,14 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Zerra.Reflection.Runtime;
 
-namespace Zerra.Reflection.Generation
+namespace Zerra.Reflection.Compiletime
 {
-    public abstract class TypeDetailTGenerationBase<T> : TypeDetail<T>
+    public abstract class TypeDetailCompiletimeBase : TypeDetail
     {
-        public TypeDetailTGenerationBase() : base(typeof(T)) { }
+        public TypeDetailCompiletimeBase(Type type) : base(type) { }
+
+        public override sealed bool IsGenerated => true;
 
         private TypeDetail[]? innerTypesDetails = null;
         public override sealed IReadOnlyList<TypeDetail> InnerTypeDetails
@@ -136,22 +137,8 @@ namespace Zerra.Reflection.Generation
             }
         }
 
-        protected abstract Func<MethodDetail<T>[]> CreateMethodDetails { get; }
-        private MethodDetail<T>[]? methodDetails = null;
-        public override sealed IReadOnlyList<MethodDetail<T>> MethodDetails
-        {
-            get
-            {
-                if (methodDetails is null)
-                {
-                    lock (locker)
-                    {
-                        methodDetails ??= CreateMethodDetails();
-                    }
-                }
-                return methodDetails;
-            }
-        }
+        protected abstract Func<MethodDetail[]> CreateMethodDetails { get; }
+        private MethodDetail[]? methodDetails = null;
         public override sealed IReadOnlyList<MethodDetail> MethodDetailsBoxed
         {
             get
@@ -167,22 +154,8 @@ namespace Zerra.Reflection.Generation
             }
         }
 
-        protected abstract Func<ConstructorDetail<T>[]> CreateConstructorDetails { get; }
-        private ConstructorDetail<T>[]? constructorDetails = null;
-        public override sealed IReadOnlyList<ConstructorDetail<T>> ConstructorDetails
-        {
-            get
-            {
-                if (constructorDetails is null)
-                {
-                    lock (locker)
-                    {
-                        constructorDetails ??= CreateConstructorDetails();
-                    }
-                }
-                return constructorDetails;
-            }
-        }
+        protected abstract Func<ConstructorDetail[]> CreateConstructorDetails { get; }
+        private ConstructorDetail[]? constructorDetails = null;
         public override sealed IReadOnlyList<ConstructorDetail> ConstructorDetailsBoxed
         {
             get
@@ -232,6 +205,10 @@ namespace Zerra.Reflection.Generation
             }
         }
 
+        public override sealed Delegate? CreatorTyped => throw new NotSupportedException();
+        public override sealed Func<object> CreatorBoxed => throw new NotSupportedException();
+        public override sealed bool HasCreatorBoxed => false;
+
         protected void LoadConstructorInfo()
         {
             if (Type.IsGenericTypeDefinition)
@@ -239,13 +216,13 @@ namespace Zerra.Reflection.Generation
 
             var constructors = Type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
             var constructorParameters = constructors.ToDictionary(x => x, x => x.GetParameters());
-            foreach (var constructorDetail in ConstructorDetails)
+            foreach (var constructorDetail in ConstructorDetailsBoxed)
             {
                 var constructor = constructors.FirstOrDefault(x => SignatureCompare(constructorParameters[x], constructorDetail));
                 if (constructor == null)
-                    throw new InvalidOperationException($"ConstructorInfo not found for generated constructor new({String.Join(", ", constructorDetail.ParametersDetails.Select(x => x.Type.GetNiceName()))})");
+                    throw new InvalidOperationException($"ConstructorInfo not found for generated constructor new({String.Join(", ", constructorDetail.ParameterDetails.Select(x => x.Type.GetNiceName()))})");
 
-                var constructorBase = (ConstructorDetailGenerationBase<T>)constructorDetail;
+                var constructorBase = (ConstructorDetail)constructorDetail;
                 constructorBase.SetConstructorInfo(constructor);
             }
         }
@@ -257,13 +234,13 @@ namespace Zerra.Reflection.Generation
 
             var methods = Type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
             var methodParameters = methods.ToDictionary(x => x, x => x.GetParameters());
-            foreach (var methodDetail in MethodDetails)
+            foreach (var methodDetail in MethodDetailsBoxed)
             {
-                var methodBase = (MethodDetailGenerationBase<T>)methodDetail;
                 var method = methods.FirstOrDefault(x => SignatureCompare(x.Name, methodParameters[x], methodDetail));
                 if (method == null)
                     throw new InvalidOperationException($"MethodInfo not found for generated method {methodDetail.Name}({String.Join(", ", methodDetail.ParameterDetails.Select(x => x.Type.GetNiceName()))})");
 
+                var methodBase = (MethodDetail)methodDetail;
                 methodBase.SetMethodInfo(method);
             }
         }
@@ -280,13 +257,18 @@ namespace Zerra.Reflection.Generation
                 var property = properties.FirstOrDefault(x => x.Name == memberDetail.Name);
                 if (property != null)
                 {
-                    memberDetail.SetMemberInfo(property);
+                    //<{property.Name}>k__BackingField
+                    //<{property.Name}>i__Field
+                    var backingName = $"<{property.Name}>";
+                    var backingField = fields.FirstOrDefault(x => x.Name.StartsWith(backingName));
+
+                    memberDetail.SetMemberInfo(property, backingField);
                     continue;
                 }
                 var field = fields.FirstOrDefault(x => x.Name == memberDetail.Name);
                 if (field != null)
                 {
-                    memberDetail.SetMemberInfo(field);
+                    memberDetail.SetMemberInfo(field, null);
                     continue;
                 }
                 throw new InvalidOperationException($"MemberInfo not found for generated member {Type.GetNiceName()}.{memberDetail.Name}");

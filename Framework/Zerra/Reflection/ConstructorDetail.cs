@@ -4,16 +4,19 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 
 namespace Zerra.Reflection
 {
     public abstract class ConstructorDetail
     {
+        public abstract bool IsGenerated { get; }
+
         public abstract ConstructorInfo ConstructorInfo { get; }
         public abstract string Name { get; }
 
-        public abstract IReadOnlyList<ParameterDetail> ParametersDetails { get; }
+        public abstract IReadOnlyList<ParameterDetail> ParameterDetails { get; }
 
         public abstract IReadOnlyList<Attribute> Attributes { get; }
 
@@ -25,5 +28,12 @@ namespace Zerra.Reflection
 
         public abstract Delegate? CreatorTyped { get; }
         public abstract Delegate? CreatorWithArgsTyped { get; }
+
+        internal abstract void SetConstructorInfo(ConstructorInfo constructorInfo);
+
+        public override string ToString()
+        {
+            return $"{Name}({String.Join(",", ParameterDetails.Select(x => x.Type.Name))})";
+        }
     }
 }

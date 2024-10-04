@@ -8,11 +8,14 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using Zerra.Collections;
+using Zerra.Reflection.Runtime;
 
 namespace Zerra.Reflection
 {
     public abstract class TypeDetail
     {
+        public abstract bool IsGenerated { get; }
+
         public Type Type { get; }
         public abstract bool IsNullable { get; }
         public abstract CoreType? CoreType { get; }
@@ -133,16 +136,19 @@ namespace Zerra.Reflection
         }
 
         private ConcurrentFactoryDictionary<TypeKey, MethodDetail?>? methodLookupsBoxed = null;
-        private MethodDetail? GetMethodBoxedInternal(string name, Type[]? parameterTypes = null)
+        private MethodDetail? GetMethodBoxedInternal(string name, int? parameterCount, Type[]? parameterTypes)
         {
-            var key = new TypeKey(name, parameterTypes);
+            if (parameterCount is not null && parameterTypes is not null && parameterTypes.Length != parameterCount)
+                throw new InvalidOperationException($"Number of parameters does not match the specified count");
+
+            var key = new TypeKey(name, parameterCount, parameterTypes);
             MethodDetail? found = null;
             methodLookupsBoxed ??= new();
             var method = methodLookupsBoxed.GetOrAdd(key, (_) =>
             {
                 foreach (var methodDetail in MethodDetailsBoxed)
                 {
-                    if (SignatureCompare(name, parameterTypes, methodDetail))
+                    if (SignatureCompare(name, parameterCount, parameterTypes, methodDetail))
                     {
                         if (found != null)
                             throw new InvalidOperationException($"More than one method found for {name}");
@@ -153,34 +159,57 @@ namespace Zerra.Reflection
             });
             return method;
         }
-        public MethodDetail GetMethodBoxed(string name, Type[]? parameterTypes = null)
+        public MethodDetail GetMethodBoxed(string name)
         {
-            var method = GetMethodBoxedInternal(name, parameterTypes);
+            var method = GetMethodBoxedInternal(name, null, null);
             if (method == null)
-                throw new MissingMethodException($"{Type.Name}.{name} method not found for the given parameters {(parameterTypes == null || parameterTypes.Length == 0 ? "(none)" : String.Join(",", parameterTypes.Select(x => x.GetNiceName())))}");
+                throw new MissingMethodException($"{Type.Name}.{name} method not found");
+            return method;
+        }
+        public MethodDetail GetMethodBoxed(string name, int parameterCount)
+        {
+            var method = GetMethodBoxedInternal(name, parameterCount, null);
+            if (method == null)
+                throw new MissingMethodException($"{Type.Name}.{name} method not found");
+            return method;
+        }
+        public MethodDetail GetMethodBoxed(string name, Type[] parameterTypes)
+        {
+            var method = GetMethodBoxedInternal(name, null, parameterTypes);
+            if (method == null)
+                throw new MissingMethodException($"{Type.Name}.{name} method not found");
             return method;
         }
         public bool TryGetMethodBoxed(string name,
 #if !NETSTANDARD2_0
-            [MaybeNullWhen(false)]
+    [MaybeNullWhen(false)]
 #endif
         out MethodDetail method)
         {
-            method = GetMethodBoxedInternal(name, null);
+            method = GetMethodBoxedInternal(name, null, null);
             return method != null;
         }
-        public bool TryGetMethodBoxed(string name, Type[] parameterTypes,
+        public bool TryGetMethodBoxed(string name, int parameterCount,
 #if !NETSTANDARD2_0
             [MaybeNullWhen(false)]
 #endif
         out MethodDetail method)
         {
-            method = GetMethodBoxedInternal(name, parameterTypes);
+            method = GetMethodBoxedInternal(name, parameterCount, null);
+            return method != null;
+        }
+        public bool TryGetMethodBoxed(string name, Type[] parameterTypes,
+#if !NETSTANDARD2_0
+    [MaybeNullWhen(false)]
+#endif
+        out MethodDetail method)
+        {
+            method = GetMethodBoxedInternal(name, null, parameterTypes);
             return method != null;
         }
 
         private ConcurrentFactoryDictionary<TypeKey, ConstructorDetail?>? constructorLookups = null;
-        private ConstructorDetail? GetConstructorBoxedInternal(Type[]? parameterTypes)
+        private ConstructorDetail? GetConstructorBoxedInternal(int? parameterCount, Type[]? parameterTypes)
         {
             var key = new TypeKey(parameterTypes);
             ConstructorDetail? found = null;
@@ -189,7 +218,7 @@ namespace Zerra.Reflection
             {
                 foreach (var constructorDetail in ConstructorDetailsBoxed)
                 {
-                    if (SignatureCompare(parameterTypes, constructorDetail))
+                    if (SignatureCompare(parameterCount, parameterTypes, constructorDetail))
                     {
                         if (found != null)
                             throw new InvalidOperationException($"More than one constructor found");
@@ -200,11 +229,25 @@ namespace Zerra.Reflection
             });
             return constructor;
         }
-        public ConstructorDetail GetConstructorBoxed(params Type[] parameterTypes)
+        public ConstructorDetail GetConstructorBoxed()
         {
-            var constructor = GetConstructorBoxedInternal(parameterTypes);
+            var constructor = GetConstructorBoxedInternal(null, null);
             if (constructor == null)
-                throw new MissingMethodException($"{Type.Name} constructor not found for the given parameters {String.Join(",", parameterTypes.Select(x => x.GetNiceName()))}");
+                throw new MissingMethodException($"{Type.Name} constructor not found");
+            return constructor;
+        }
+        public ConstructorDetail GetConstructorBoxed(int parameterCount)
+        {
+            var constructor = GetConstructorBoxedInternal(parameterCount, null);
+            if (constructor == null)
+                throw new MissingMethodException($"{Type.Name} constructor not found");
+            return constructor;
+        }
+        public ConstructorDetail GetConstructorBoxed(Type[] parameterTypes)
+        {
+            var constructor = GetConstructorBoxedInternal(null, parameterTypes);
+            if (constructor == null)
+                throw new MissingMethodException($"{Type.Name} constructor not found");
             return constructor;
         }
         public bool TryGetConstructorBoxed(
@@ -213,7 +256,16 @@ namespace Zerra.Reflection
 #endif
         out ConstructorDetail constructor)
         {
-            constructor = GetConstructorBoxedInternal(null);
+            constructor = GetConstructorBoxedInternal(null, null);
+            return constructor != null;
+        }
+        public bool TryGetConstructorBoxed(int parameterCount,
+#if !NETSTANDARD2_0
+    [MaybeNullWhen(false)]
+#endif
+        out ConstructorDetail constructor)
+        {
+            constructor = GetConstructorBoxedInternal(parameterCount, null);
             return constructor != null;
         }
         public bool TryGetConstructorBoxed(Type[] parameterTypes,
@@ -222,7 +274,7 @@ namespace Zerra.Reflection
 #endif
         out ConstructorDetail constructor)
         {
-            constructor = GetConstructorBoxedInternal(parameterTypes);
+            constructor = GetConstructorBoxedInternal(null, parameterTypes);
             return constructor != null;
         }
 
@@ -293,28 +345,30 @@ namespace Zerra.Reflection
             this.Type = type;
         }
 
-        protected static bool SignatureCompare(string name1, Type[]? parameters1, string name2, Type[]? parameters2)
+        public override string ToString()
         {
-            if (name1 != name2)
-                return false;
-
-            if (parameters1 != null && parameters2 != null)
-            {
-                if (parameters1.Length != parameters2.Length)
-                    return false;
-                for (var i = 0; i < parameters1.Length; i++)
-                {
-                    if (parameters1[i] != parameters2[i])
-                        return false;
-                }
-            }
-
-            return true;
+            return $"{Type.Name}";
         }
-        protected static bool SignatureCompare(string name1, Type[]? parameters1, MethodDetail methodDetail2)
+
+        public TypeDetail GetRuntimeTypeDetailBoxed()
+        {
+            if (!this.IsGenerated)
+                return this;
+            var runtimeTypeDetail = TypeDetailRuntime<object>.New(this.Type);
+            TypeAnalyzer.ReplaceTypeDetail(runtimeTypeDetail);
+            return runtimeTypeDetail;
+        }
+
+        protected static bool SignatureCompare(string name1, int? parameterCount, Type[]? parameters1, MethodDetail methodDetail2)
         {
             if (name1 != methodDetail2.Name)
                 return false;
+
+            if (parameterCount != null)
+            {
+                if (parameterCount != methodDetail2.ParameterDetails.Count)
+                    return false;
+            }
 
             if (parameters1 != null)
             {
@@ -329,6 +383,28 @@ namespace Zerra.Reflection
 
             return true;
         }
+        protected static bool SignatureCompare(int? parameterCount, Type[]? parameters1, ConstructorDetail constructorDetail2)
+        {
+            if (parameterCount != null)
+            {
+                if (parameterCount != constructorDetail2.ParameterDetails.Count)
+                    return false;
+            }
+
+            if (parameters1 != null)
+            {
+                if (parameters1.Length != constructorDetail2.ParameterDetails.Count)
+                    return false;
+                for (var i = 0; i < parameters1.Length; i++)
+                {
+                    if (parameters1[i] != constructorDetail2.ParameterDetails[i].Type)
+                        return false;
+                }
+            }
+
+            return true;
+        }
+
         protected static bool SignatureCompare(string name1, ParameterInfo[] parameters1, MethodDetail methodDetail2)
         {
             if (name1 != methodDetail2.Name)
@@ -344,45 +420,13 @@ namespace Zerra.Reflection
 
             return true;
         }
-        protected static bool SignatureCompare(MethodDetail methodDetail1, MethodDetail methodDetail2)
-        {
-            if (methodDetail1.Name != methodDetail2.Name)
-                return false;
-            if (methodDetail1.ParameterDetails.Count == 0 && methodDetail2.ParameterDetails.Count == 0)
-                return true;
-            if (methodDetail1.ParameterDetails.Count == 0 || methodDetail2.ParameterDetails.Count == 0)
-                return false;
-            if (methodDetail1.ParameterDetails.Count != methodDetail2.ParameterDetails.Count)
-                return false;
-            for (var i = 0; i < methodDetail1.ParameterDetails.Count; i++)
-            {
-                if (methodDetail1.ParameterDetails[i].Type != methodDetail2.ParameterDetails[i].Type)
-                    return false;
-            }
-            return true;
-        }
-        protected static bool SignatureCompare(Type[]? parameters1, ConstructorDetail constructorDetail2)
-        {
-            if (parameters1 != null)
-            {
-                if (parameters1.Length != constructorDetail2.ParametersDetails.Count)
-                    return false;
-                for (var i = 0; i < parameters1.Length; i++)
-                {
-                    if (parameters1[i] != constructorDetail2.ParametersDetails[i].Type)
-                        return false;
-                }
-            }
-
-            return true;
-        }
         protected static bool SignatureCompare(ParameterInfo[] parameters1, ConstructorDetail constructorDetail2)
         {
-            if (parameters1.Length != constructorDetail2.ParametersDetails.Count)
+            if (parameters1.Length != constructorDetail2.ParameterDetails.Count)
                 return false;
             for (var i = 0; i < parameters1.Length; i++)
             {
-                if (parameters1[i].ParameterType != constructorDetail2.ParametersDetails[i].Type)
+                if (parameters1[i].ParameterType != constructorDetail2.ParameterDetails[i].Type)
                     return false;
             }
 

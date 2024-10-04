@@ -389,30 +389,6 @@ namespace Zerra.Reflection
 
             var parameters = methodBase.GetParameters();
 
-            // throw an error if the number of argument values doesn't match method parameters
-            var argsOk = il.DefineLabel();
-            var argsNull = il.DefineLabel();
-            var argsLengthCheck = il.DefineLabel();
-
-            il.Emit(OpCodes.Ldarg, loadArgsIndex);
-            il.Emit(OpCodes.Brfalse_S, argsNull);
-
-            //Set argument count as length of argument object[]
-            il.Emit(OpCodes.Ldarg, loadArgsIndex);
-            il.Emit(OpCodes.Ldlen);
-            il.Emit(OpCodes.Br_S, argsLengthCheck);
-
-            //Set argument count as 0 because argument object[] is null
-            il.MarkLabel(argsNull);
-            il.Emit(OpCodes.Ldc_I4_0);
-
-            il.MarkLabel(argsLengthCheck);
-            il.Emit(OpCodes.Ldc_I4, parameters.Length);
-            il.Emit(OpCodes.Beq, argsOk);
-            il.Emit(OpCodes.Newobj, typeof(TargetParameterCountException).GetConstructor(Type.EmptyTypes)!);
-            il.Emit(OpCodes.Throw);
-            il.MarkLabel(argsOk);
-
             if (!methodBase.IsConstructor && !methodBase.IsStatic)
             {
                 if (methodBase.DeclaringType == null)
@@ -426,26 +402,25 @@ namespace Zerra.Reflection
                     il.Emit(OpCodes.Castclass, methodBase.DeclaringType);
             }
 
-            var localConvertible = il.DeclareLocal(typeof(IConvertible));
             var localObject = il.DeclareLocal(typeof(object));
-
-            var variableAddressOpCode = parameters.Length < 256 ? OpCodes.Ldloca_S : OpCodes.Ldloca;
-            var variableLoadOpCode = parameters.Length < 256 ? OpCodes.Ldloc_S : OpCodes.Ldloc;
 
             for (var i = 0; i < parameters.Length; i++)
             {
                 var parameter = parameters[i];
                 var parameterType = parameter.ParameterType;
+                if (parameterType.IsPointer)
+                    return false;
 
                 if (parameterType.IsByRef)
                 {
                     parameterType = parameterType.GetElementType();
                     if (parameterType == null)
                         return false;
+                    if (parameterType.IsPointer)
+                        return false;
 
                     var localVariable = il.DeclareLocal(parameterType);
 
-                    // don't need to set variable for 'out' parameter
                     if (!parameter.IsOut)
                     {
                         il.Emit(OpCodes.Ldarg, loadArgsIndex);
@@ -453,107 +428,14 @@ namespace Zerra.Reflection
                         il.Emit(OpCodes.Ldelem_Ref);
 
                         if (parameterType.IsValueType)
-                        {
-                            var skipSettingDefault = il.DefineLabel();
-                            var finishedProcessingParameter = il.DefineLabel();
-
-                            // check if parameter is not null
-                            il.Emit(OpCodes.Brtrue_S, skipSettingDefault);
-
-                            // parameter has no value, initialize to default
-                            il.Emit(variableAddressOpCode, localVariable);
-                            il.Emit(OpCodes.Initobj, parameterType);
-                            il.Emit(OpCodes.Br_S, finishedProcessingParameter);
-
-                            // parameter has value, get value from array again and unbox and set to variable
-                            il.MarkLabel(skipSettingDefault);
-                            il.Emit(OpCodes.Ldarg, loadArgsIndex);
-                            il.Emit(OpCodes.Ldc_I4, i);
-                            il.Emit(OpCodes.Ldelem_Ref);
-
                             il.Emit(OpCodes.Unbox_Any, parameterType);
-
-                            il.Emit(OpCodes.Stloc_S, localVariable);
-
-                            il.MarkLabel(finishedProcessingParameter);
-                        }
                         else
-                        {
                             il.Emit(OpCodes.Castclass, parameterType);
-                            il.Emit(OpCodes.Stloc_S, localVariable);
-                        }
+
+                        il.Emit(OpCodes.Stloc_S, localVariable);
                     }
 
-                    il.Emit(variableAddressOpCode, localVariable);
-                }
-                else if (parameterType.IsValueType)
-                {
-                    il.Emit(OpCodes.Ldarg, loadArgsIndex);
-                    il.Emit(OpCodes.Ldc_I4, i);
-                    il.Emit(OpCodes.Ldelem_Ref);
-                    il.Emit(OpCodes.Stloc_S, localObject);
-
-                    // have to check that value type parameters aren't null
-                    // otherwise they will error when unboxed
-                    var skipSettingDefault = il.DefineLabel();
-                    var finishedProcessingParameter = il.DefineLabel();
-
-                    // check if parameter is not null
-                    il.Emit(OpCodes.Ldloc_S, localObject);
-                    il.Emit(OpCodes.Brtrue_S, skipSettingDefault);
-
-                    // parameter has no value, initialize to default
-                    var localVariable = il.DeclareLocal(parameterType);
-                    il.Emit(variableAddressOpCode, localVariable);
-                    il.Emit(OpCodes.Initobj, parameterType);
-                    il.Emit(variableLoadOpCode, localVariable);
-                    il.Emit(OpCodes.Br_S, finishedProcessingParameter);
-
-                    // argument has value, try to convert it to parameter type
-                    il.MarkLabel(skipSettingDefault);
-
-                    if (parameterType.IsPrimitive)
-                    {
-                        // for primitive types we need to handle type widening (e.g. short -> int)
-                        var toParameterTypeMethod = typeof(IConvertible).GetMethod("To" + parameterType.Name, new[] { typeof(IFormatProvider) });
-
-                        if (toParameterTypeMethod != null)
-                        {
-                            var skipConvertible = il.DefineLabel();
-
-                            // check if argument type is an exact match for parameter type
-                            // in this case we may use cheap unboxing instead
-                            il.Emit(OpCodes.Ldloc_S, localObject);
-                            il.Emit(OpCodes.Isinst, parameterType);
-                            il.Emit(OpCodes.Brtrue_S, skipConvertible);
-
-                            // types don't match, check if argument implements IConvertible
-                            il.Emit(OpCodes.Ldloc_S, localObject);
-                            il.Emit(OpCodes.Isinst, typeof(IConvertible));
-                            il.Emit(OpCodes.Stloc_S, localConvertible);
-                            il.Emit(OpCodes.Ldloc_S, localConvertible);
-                            il.Emit(OpCodes.Brfalse_S, skipConvertible);
-
-                            // convert argument to parameter type
-                            il.Emit(OpCodes.Ldloc_S, localConvertible);
-                            il.Emit(OpCodes.Ldnull);
-                            il.Emit(OpCodes.Callvirt, toParameterTypeMethod);
-                            il.Emit(OpCodes.Br_S, finishedProcessingParameter);
-
-                            il.MarkLabel(skipConvertible);
-                        }
-                    }
-
-                    // we got here because either argument type matches parameter (conversion will succeed),
-                    // or argument type doesn't match parameter, but we're out of options (conversion will fail)
-                    il.Emit(OpCodes.Ldloc_S, localObject);
-
-                    if (parameterType.IsValueType)
-                        il.Emit(OpCodes.Unbox_Any, parameterType);
-                    else
-                        il.Emit(OpCodes.Castclass, parameterType);
-
-                    il.MarkLabel(finishedProcessingParameter);
+                    il.Emit(OpCodes.Ldloca_S, localVariable);
                 }
                 else
                 {
@@ -606,30 +488,6 @@ namespace Zerra.Reflection
 
             var parameters = methodBase.GetParameters();
 
-            // throw an error if the number of argument values doesn't match method parameters
-            var argsOk = il.DefineLabel();
-            var argsNull = il.DefineLabel();
-            var argsLengthCheck = il.DefineLabel();
-
-            il.Emit(OpCodes.Ldarg, loadArgsIndex);
-            il.Emit(OpCodes.Brfalse_S, argsNull);
-
-            //Set argument count as length of argument object[]
-            il.Emit(OpCodes.Ldarg, loadArgsIndex);
-            il.Emit(OpCodes.Ldlen);
-            il.Emit(OpCodes.Br_S, argsLengthCheck);
-
-            //Set argument count as 0 because argument object[] is null
-            il.MarkLabel(argsNull);
-            il.Emit(OpCodes.Ldc_I4_0);
-
-            il.MarkLabel(argsLengthCheck);
-            il.Emit(OpCodes.Ldc_I4, parameters.Length);
-            il.Emit(OpCodes.Beq, argsOk);
-            il.Emit(OpCodes.Newobj, typeof(TargetParameterCountException).GetConstructor(Type.EmptyTypes)!);
-            il.Emit(OpCodes.Throw);
-            il.MarkLabel(argsOk);
-
             if (!methodBase.IsConstructor && !methodBase.IsStatic)
             {
                 if (methodBase.DeclaringType == null)
@@ -638,26 +496,25 @@ namespace Zerra.Reflection
                 il.Emit(OpCodes.Ldarg_0);
             }
 
-            var localConvertible = il.DeclareLocal(typeof(IConvertible));
             var localObject = il.DeclareLocal(typeof(T));
-
-            var variableAddressOpCode = parameters.Length < 256 ? OpCodes.Ldloca_S : OpCodes.Ldloca;
-            var variableLoadOpCode = parameters.Length < 256 ? OpCodes.Ldloc_S : OpCodes.Ldloc;
 
             for (var i = 0; i < parameters.Length; i++)
             {
                 var parameter = parameters[i];
                 var parameterType = parameter.ParameterType;
+                if (parameterType.IsPointer)
+                    return false;
 
                 if (parameterType.IsByRef)
                 {
                     parameterType = parameterType.GetElementType();
                     if (parameterType == null)
                         return false;
+                    if (parameterType.IsPointer)
+                        return false;
 
                     var localVariable = il.DeclareLocal(parameterType);
 
-                    // don't need to set variable for 'out' parameter
                     if (!parameter.IsOut)
                     {
                         il.Emit(OpCodes.Ldarg, loadArgsIndex);
@@ -665,107 +522,13 @@ namespace Zerra.Reflection
                         il.Emit(OpCodes.Ldelem_Ref);
 
                         if (parameterType.IsValueType)
-                        {
-                            var skipSettingDefault = il.DefineLabel();
-                            var finishedProcessingParameter = il.DefineLabel();
-
-                            // check if parameter is not null
-                            il.Emit(OpCodes.Brtrue_S, skipSettingDefault);
-
-                            // parameter has no value, initialize to default
-                            il.Emit(variableAddressOpCode, localVariable);
-                            il.Emit(OpCodes.Initobj, parameterType);
-                            il.Emit(OpCodes.Br_S, finishedProcessingParameter);
-
-                            // parameter has value, get value from array again and unbox and set to variable
-                            il.MarkLabel(skipSettingDefault);
-                            il.Emit(OpCodes.Ldarg, loadArgsIndex);
-                            il.Emit(OpCodes.Ldc_I4, i);
-                            il.Emit(OpCodes.Ldelem_Ref);
-
                             il.Emit(OpCodes.Unbox_Any, parameterType);
-
-                            il.Emit(OpCodes.Stloc_S, localVariable);
-
-                            il.MarkLabel(finishedProcessingParameter);
-                        }
                         else
-                        {
                             il.Emit(OpCodes.Castclass, parameterType);
-                            il.Emit(OpCodes.Stloc_S, localVariable);
-                        }
+                        il.Emit(OpCodes.Stloc_S, localVariable);
                     }
 
-                    il.Emit(variableAddressOpCode, localVariable);
-                }
-                else if (parameterType.IsValueType)
-                {
-                    il.Emit(OpCodes.Ldarg, loadArgsIndex);
-                    il.Emit(OpCodes.Ldc_I4, i);
-                    il.Emit(OpCodes.Ldelem_Ref);
-                    il.Emit(OpCodes.Stloc_S, localObject);
-
-                    // have to check that value type parameters aren't null
-                    // otherwise they will error when unboxed
-                    var skipSettingDefault = il.DefineLabel();
-                    var finishedProcessingParameter = il.DefineLabel();
-
-                    // check if parameter is not null
-                    il.Emit(OpCodes.Ldloc_S, localObject);
-                    il.Emit(OpCodes.Brtrue_S, skipSettingDefault);
-
-                    // parameter has no value, initialize to default
-                    var localVariable = il.DeclareLocal(parameterType);
-                    il.Emit(variableAddressOpCode, localVariable);
-                    il.Emit(OpCodes.Initobj, parameterType);
-                    il.Emit(variableLoadOpCode, localVariable);
-                    il.Emit(OpCodes.Br_S, finishedProcessingParameter);
-
-                    // argument has value, try to convert it to parameter type
-                    il.MarkLabel(skipSettingDefault);
-
-                    if (parameterType.IsPrimitive)
-                    {
-                        // for primitive types we need to handle type widening (e.g. short -> int)
-                        var toParameterTypeMethod = typeof(IConvertible).GetMethod("To" + parameterType.Name, new[] { typeof(IFormatProvider) });
-
-                        if (toParameterTypeMethod != null)
-                        {
-                            var skipConvertible = il.DefineLabel();
-
-                            // check if argument type is an exact match for parameter type
-                            // in this case we may use cheap unboxing instead
-                            il.Emit(OpCodes.Ldloc_S, localObject);
-                            il.Emit(OpCodes.Isinst, parameterType);
-                            il.Emit(OpCodes.Brtrue_S, skipConvertible);
-
-                            // types don't match, check if argument implements IConvertible
-                            il.Emit(OpCodes.Ldloc_S, localObject);
-                            il.Emit(OpCodes.Isinst, typeof(IConvertible));
-                            il.Emit(OpCodes.Stloc_S, localConvertible);
-                            il.Emit(OpCodes.Ldloc_S, localConvertible);
-                            il.Emit(OpCodes.Brfalse_S, skipConvertible);
-
-                            // convert argument to parameter type
-                            il.Emit(OpCodes.Ldloc_S, localConvertible);
-                            il.Emit(OpCodes.Ldnull);
-                            il.Emit(OpCodes.Callvirt, toParameterTypeMethod);
-                            il.Emit(OpCodes.Br_S, finishedProcessingParameter);
-
-                            il.MarkLabel(skipConvertible);
-                        }
-                    }
-
-                    // we got here because either argument type matches parameter (conversion will succeed),
-                    // or argument type doesn't match parameter, but we're out of options (conversion will fail)
-                    il.Emit(OpCodes.Ldloc_S, localObject);
-
-                    if (parameterType.IsValueType)
-                        il.Emit(OpCodes.Unbox_Any, parameterType);
-                    else
-                        il.Emit(OpCodes.Castclass, parameterType);
-
-                    il.MarkLabel(finishedProcessingParameter);
+                    il.Emit(OpCodes.Ldloca_S, localVariable);
                 }
                 else
                 {

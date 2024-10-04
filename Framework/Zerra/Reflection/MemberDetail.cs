@@ -12,6 +12,8 @@ namespace Zerra.Reflection
 {
     public abstract class MemberDetail
     {
+        public abstract bool IsGenerated { get; }
+
         public abstract MemberDetail? BackingFieldDetailBoxed { get; }
 
         public abstract MemberInfo MemberInfo { get; }
@@ -32,6 +34,11 @@ namespace Zerra.Reflection
 
         public abstract TypeDetail TypeDetailBoxed { get; }
 
-        internal abstract void SetMemberInfo(MemberInfo memberInfo);
+        internal abstract void SetMemberInfo(MemberInfo memberInfo, MemberInfo? backingField);
+
+        public override string ToString()
+        {
+            return $"{Type.Name} {Name}";
+        }
     }
 }

@@ -46,7 +46,7 @@ namespace Zerra.Map
         private static readonly Type recursionDictionaryType = typeof(Dictionary<MapRecursionKey, object>);
         private static readonly Type mapLoggerType = typeof(IMapLogger);
         private static readonly Type exceptionType = typeof(Exception);
-        private static readonly ConstructorInfo newException = TypeAnalyzer.GetTypeDetail(typeof(Exception)).GetConstructorBoxed(typeof(string), typeof(Exception)).ConstructorInfo;
+        private static readonly ConstructorInfo newException = TypeAnalyzer.GetTypeDetail(typeof(Exception)).GetConstructorBoxed([typeof(string), typeof(Exception)]).ConstructorInfo;
         private static readonly MethodInfo mapLoggerChangeMethod = TypeAnalyzer.GetTypeDetail(mapLoggerType).GetMethodBoxed(nameof(IMapLogger.LogPropertyChange)).MethodInfo;
         private static readonly MethodInfo mapLoggerNoChangeMethod = TypeAnalyzer.GetTypeDetail(mapLoggerType).GetMethodBoxed(nameof(IMapLogger.LogPropertyNoChange)).MethodInfo;
         private static readonly MethodInfo mapLoggerNewObjectMethod = TypeAnalyzer.GetTypeDetail(mapLoggerType).GetMethodBoxed(nameof(IMapLogger.LogNewObject)).MethodInfo;
@@ -54,7 +54,7 @@ namespace Zerra.Map
         private static readonly MethodInfo dictionaryAddMethod = TypeAnalyzer.GetTypeDetail(recursionDictionaryType).GetMethodBoxed("Add").MethodInfo;
         private static readonly MethodInfo dictionaryRemoveMethod = TypeAnalyzer.GetTypeDetail(recursionDictionaryType).GetMethodBoxed("Remove", [typeof(MapRecursionKey)]).MethodInfo;
         private static readonly MethodInfo dictionaryTryGetMethod = TypeAnalyzer.GetTypeDetail(recursionDictionaryType).GetMethodBoxed("TryGetValue").MethodInfo;
-        private static readonly ConstructorInfo newRecursionKey = TypeAnalyzer.GetTypeDetail(typeof(MapRecursionKey)).GetConstructorBoxed(typeof(object), typeof(Type)).ConstructorInfo;
+        private static readonly ConstructorInfo newRecursionKey = TypeAnalyzer.GetTypeDetail(typeof(MapRecursionKey)).GetConstructorBoxed([typeof(object), typeof(Type)]).ConstructorInfo;
 
         private static readonly ConcurrentFactoryDictionary<TypeKey, object> mapsStore = new();
         public static MapGeneratorWithLog<TSource, TTarget> GetMap()
@@ -983,7 +983,7 @@ namespace Zerra.Map
                 else
                 {
                     //object
-                    if (!targetType.ConstructorDetailsBoxed.Any(x => x.ParametersDetails.Count == 0))
+                    if (!targetType.ConstructorDetailsBoxed.Any(x => x.ParameterDetails.Count == 0))
                         return Expression.Constant(null, source.Type);
                     newTarget = Expression.Variable(target.Type, "newTarget");
                     assignNewTarget = Expression.Assign(newTarget, Expression.New(target.Type));

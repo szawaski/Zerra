@@ -1,17 +1,19 @@
 ﻿using System.Reflection;
 using System;
 
-namespace Zerra.Reflection.Generation
+namespace Zerra.Reflection.Compiletime
 {
-    public abstract class ParameterDetailGenerationBase : ParameterDetail
+    public abstract class ParameterDetailCompiletimeBase : ParameterDetail
     {
         protected readonly object locker;
         private readonly Action loadParameterInfo;
-        public ParameterDetailGenerationBase(object locker, Action loadParameterInfo)
+        public ParameterDetailCompiletimeBase(object locker, Action loadParameterInfo)
         {
             this.locker = locker;
             this.loadParameterInfo = loadParameterInfo;
         }
+
+        public override sealed bool IsGenerated => true;
 
         private ParameterInfo? parameterInfo = null;
         public override sealed ParameterInfo ParameterInfo

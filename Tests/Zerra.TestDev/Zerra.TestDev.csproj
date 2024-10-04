@@ -1,52 +1,53 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
-    <Authors>Steven Zawaski</Authors>
-    <Copyright>KaKush LLC</Copyright>
-    <Product>Zerra Framework</Product>
-    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <PackageLicenseFile>LICENSE</PackageLicenseFile>
-  </PropertyGroup>
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <Authors>Steven Zawaski</Authors>
+        <Copyright>KaKush LLC</Copyright>
+        <Product>Zerra Framework</Product>
+        <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+        <LangVersion>12.0</LangVersion>
+    </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-  </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-  </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="BenchmarkDotNet" Version="0.13.11" />
-    <PackageReference Include="Dapper" Version="2.1.24" />
-    <PackageReference Include="FastMember" Version="1.5.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="5.0.7" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="System.Text.Json" Version="8.0.0" />
-    <PackageReference Include="Utf8Json" Version="1.3.7" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="BenchmarkDotNet" Version="0.13.11" />
+        <PackageReference Include="Dapper" Version="2.1.24" />
+        <PackageReference Include="FastMember" Version="1.5.0" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.0" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="5.0.7" />
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+        <PackageReference Include="System.Text.Json" Version="8.0.0" />
+        <PackageReference Include="Utf8Json" Version="1.3.7" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Zerra.Test\Zerra.Test.csproj" />
-    <ProjectReference Include="..\..\Misc\Zerra.Tools\Zerra.Tools.csproj" />
-    <ProjectReference Include="..\..\Framework\Zerra\Zerra.csproj" />
-    <ProjectReference Include="..\..\Framework\Zerra.Repository.EventStoreDB\Zerra.Repository.EventStoreDB.csproj" />
-    <ProjectReference Include="..\..\Framework\Zerra.Repository.MsSql\Zerra.Repository.MsSql.csproj" />
-    <ProjectReference Include="..\..\Framework\Zerra.Repository\Zerra.Repository.csproj" />
-  </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\Zerra.Test\Zerra.Test.csproj" />
+        <ProjectReference Include="..\..\Misc\Zerra.Tools\Zerra.Tools.csproj" />
+        <ProjectReference Include="..\..\Framework\Zerra\Zerra.csproj" />
+        <ProjectReference Include="..\..\Framework\Zerra.Repository.EventStoreDB\Zerra.Repository.EventStoreDB.csproj" />
+        <ProjectReference Include="..\..\Framework\Zerra.Repository.MsSql\Zerra.Repository.MsSql.csproj" />
+        <ProjectReference Include="..\..\Framework\Zerra.Repository\Zerra.Repository.csproj" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <None Include="..\..\LICENSE">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-  </ItemGroup>
+    <ItemGroup>
+        <None Include="..\..\LICENSE">
+            <Pack>True</Pack>
+            <PackagePath>\</PackagePath>
+        </None>
+    </ItemGroup>
 
-  <ItemGroup>
-    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
-  </ItemGroup>
+    <ItemGroup>
+        <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+    </ItemGroup>
 
 </Project>

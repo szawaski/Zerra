@@ -9,6 +9,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Zerra.Linq;
 
 namespace Zerra.Reflection.Runtime
 {
@@ -33,6 +34,8 @@ namespace Zerra.Reflection.Runtime
         private static readonly string dictionaryTypeName = typeof(IDictionary).Name;
         private static readonly string dictionaryGenericTypeName = typeof(IDictionary<,>).Name;
         private static readonly string readOnlyDictionaryGenericTypeName = typeof(IReadOnlyDictionary<,>).Name;
+
+        public override bool IsGenerated => false;
 
         public override bool IsNullable { get; }
 
@@ -213,7 +216,7 @@ namespace Zerra.Reflection.Runtime
                     {
                         if (baseTypes == null)
                         {
-                            var baseType = Type;
+                            var baseType = Type.BaseType;
                             var items = new List<Type>();
                             while (baseType != null)
                             {
@@ -514,8 +517,8 @@ namespace Zerra.Reflection.Runtime
             {
                 if (!hasIsInterfaceLoaded)
                 {
-                    if (!TypeLookup.CoreTypes.Contains(Type))
-                    {
+                    //if (!TypeLookup.CoreTypes.Contains(Type))
+                    //{
                         var interfaces = new HashSet<string>(Interfaces.Select(x => x.Name));
 
                         hasIEnumerable = Type.IsArray || Type.Name == enumberableTypeName || interfaces.Contains(enumberableTypeName);
@@ -545,7 +548,7 @@ namespace Zerra.Reflection.Runtime
                         isIDictionary = Type.Name == dictionaryTypeName;
                         isIDictionaryGeneric = Type.Name == dictionaryGenericTypeName;
                         isIReadOnlyDictionaryGeneric = Type.Name == readOnlyDictionaryGenericTypeName;
-                    }
+                    //}
                     hasIsInterfaceLoaded = true;
                 }
             }
@@ -565,28 +568,11 @@ namespace Zerra.Reflection.Runtime
                             var items = new List<MemberDetail>();
                             if (!Type.IsGenericTypeDefinition)
                             {
-                                IEnumerable<PropertyInfo> properties = Type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                                IEnumerable<FieldInfo> fields = Type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                                if (Type.IsInterface)
-                                {
-                                    foreach (var i in Interfaces)
-                                    {
-                                        var iProperties = i.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                                        var iFields = i.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-#if NETSTANDARD2_0
-                                        var existingPropertyNames = properties.Select(y => y.Name).ToArray();
-#else
-                                        var existingPropertyNames = properties.Select(y => y.Name).ToHashSet();
-#endif
-                                        properties = properties.Concat(iProperties.Where(x => !existingPropertyNames.Contains(x.Name)));
-#if NETSTANDARD2_0
-                                        var existingFieldNames = fields.Select(y => y.Name).ToArray();
-#else
-                                        var existingFieldNames = fields.Select(y => y.Name).ToHashSet();
-#endif
-                                        fields = fields.Concat(iFields.Where(x => !existingFieldNames.Contains(x.Name)));
-                                    }
-                                }
+                                var hasInterfaces = Interfaces.Count > 0;
+                                var names = hasInterfaces ? new HashSet<string>() : null; //explicit declarations can create duplicates with interfaces
+
+                                var properties = Type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+                                var fields = Type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
                                 foreach (var property in properties)
                                 {
                                     if (property.GetIndexParameters().Length > 0)
@@ -598,13 +584,58 @@ namespace Zerra.Reflection.Runtime
                                     var backingName = $"<{property.Name}>";
                                     var backingField = fields.FirstOrDefault(x => x.Name.StartsWith(backingName));
                                     if (backingField != null)
-                                        backingMember = MemberDetailRuntime<object, object>.New(Type, property.PropertyType, backingField, null, locker);
+                                        backingMember = MemberDetailRuntime<object, object>.New(Type, property.PropertyType, property.Name, backingField, null, locker);
 
-                                    items.Add(MemberDetailRuntime<object, object>.New(Type, property.PropertyType, property, backingMember, locker));
+                                    items.Add(MemberDetailRuntime<object, object>.New(Type, property.PropertyType, property.Name, property, backingMember, locker));
+                                    if (hasInterfaces)
+                                        names!.Add(property.Name);
                                 }
+
+                                if (hasInterfaces)
+                                {
+                                    foreach (var field in fields)
+                                        names!.Add(field.Name);
+
+                                    foreach (var i in Interfaces)
+                                    {
+                                        var iProperties = i.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);//don't get static interface members
+
+                                        foreach (var property in iProperties)
+                                        {
+                                            if (property.GetIndexParameters().Length > 0)
+                                                continue;
+                                            MemberDetail? backingMember = null;
+
+                                            //<{property.Name}>k__BackingField
+                                            //<{property.Name}>i__Field
+                                            var backingName = $"<{property.Name}>";
+                                            var backingField = fields.FirstOrDefault(x => x.Name.StartsWith(backingName));
+                                            if (backingField != null)
+                                            {
+                                                var backingMemberName = $"{property.DeclaringType?.Namespace}.{property.DeclaringType?.Name}.{property.Name.Split('.').Last()}";
+                                                backingMember = MemberDetailRuntime<object, object>.New(Type, property.PropertyType, backingMemberName, backingField, null, locker);
+                                            }
+
+                                            string name;
+                                            if (Type.IsInterface && !names!.Contains(property.Name))
+                                                name = property.Name;
+                                            else
+                                                name = $"{property.DeclaringType?.Namespace}.{property.DeclaringType?.Name}.{property.Name.Split('.').Last()}";
+
+                                            if (!names!.Contains(name))
+                                            {
+                                                items.Add(MemberDetailRuntime<object, object>.New(Type, property.PropertyType, name, property, backingMember, locker));
+                                                names!.Add(name);
+                                            }
+                                        }
+                                    }
+                                }
+
                                 foreach (var field in fields.Where(x => !items.Any(y => y.BackingFieldDetailBoxed?.MemberInfo == x)))
                                 {
-                                    items.Add(MemberDetailRuntime<object, object>.New(Type, field.FieldType, field, null, locker));
+                                    if (field.IsLiteral)
+                                        continue;
+                                    items.Add(MemberDetailRuntime<object, object>.New(Type, field.FieldType, field.Name, field, null, locker));
                                 }
                             }
 
@@ -622,36 +653,8 @@ namespace Zerra.Reflection.Runtime
             get
             {
                 if (methodDetailsBoxed == null)
-                {
-                    lock (locker)
-                    {
-                        if (methodDetailsBoxed == null)
-                        {
-                            var items = new List<MethodDetail>();
-                            if (!Type.IsGenericTypeDefinition)
-                            {
-                                var methods = Type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
-                                foreach (var method in methods)
-                                    items.Add(MethodDetailRuntime<object>.New(Type, method, locker));
-                                if (Type.IsInterface)
-                                {
-                                    foreach (var i in Interfaces)
-                                    {
-                                        var iMethods = i.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
-                                        foreach (var method in iMethods)
-                                        {
-                                            var methodDetail = MethodDetailRuntime<object>.New(Type, method, locker);
-                                            if (!items.Any(x => SignatureCompare(x, methodDetail)))
-                                                items.Add(methodDetail);
-                                        }
-                                    }
-                                }
-                            }
-                            methodDetailsBoxed = items.ToArray();
-                        }
-                    }
-                }
-                return methodDetailsBoxed;
+                    LoadMethodDetails();
+                return methodDetailsBoxed!;
             }
         }
 
@@ -661,27 +664,8 @@ namespace Zerra.Reflection.Runtime
             get
             {
                 if (constructorDetailsBoxed == null)
-                {
-                    lock (locker)
-                    {
-                        if (constructorDetailsBoxed == null)
-                        {
-                            if (!Type.IsGenericTypeDefinition)
-                            {
-                                var constructors = Type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                                var items = new ConstructorDetail[constructors.Length];
-                                for (var i = 0; i < items.Length; i++)
-                                    items[i] = ConstructorDetailRuntime<object>.New(Type, constructors[i], locker);
-                                constructorDetailsBoxed = items;
-                            }
-                            else
-                            {
-                                constructorDetailsBoxed = Array.Empty<ConstructorDetail>();
-                            }
-                        }
-                    }
-                }
-                return constructorDetailsBoxed;
+                    LoadConstructorDetails();
+                return constructorDetailsBoxed!;
             }
         }
 
@@ -923,7 +907,7 @@ namespace Zerra.Reflection.Runtime
                 {
                     if (!Type.IsAbstract && !Type.IsGenericTypeDefinition)
                     {
-                        var emptyConstructor = this.ConstructorDetailsBoxed.FirstOrDefault(x => x.ParametersDetails.Count == 0);
+                        var emptyConstructor = this.ConstructorDetailsBoxed.FirstOrDefault(x => x.ParameterDetails.Count == 0);
                         if (emptyConstructor != null && emptyConstructor.HasCreatorBoxed)
                         {
                             creatorBoxed = emptyConstructor.CreatorBoxed;
@@ -950,36 +934,55 @@ namespace Zerra.Reflection.Runtime
             get
             {
                 if (methodDetails == null)
+                    LoadMethodDetails();
+                return methodDetails!;
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void LoadMethodDetails()
+        {
+            lock (locker)
+            {
+                if (methodDetails == null)
                 {
-                    lock (locker)
+                    var items = new List<MethodDetail<T>>();
+                    var hasInterfaces = Interfaces.Count > 0;
+                    var names = hasInterfaces ? new HashSet<string>() : null; //explicit declarations can create duplicates with interfaces
+                    if (!Type.IsGenericTypeDefinition)
                     {
-                        if (methodDetails == null)
+                        var methods = Type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+                        foreach (var method in methods)
                         {
-                            var items = new List<MethodDetail<T>>();
-                            if (!Type.IsGenericTypeDefinition)
+                            items.Add(new MethodDetailRuntime<T>(method.Name, method, locker));
+                            if (hasInterfaces)
+                                names!.Add(method.Name);
+                        }
+
+                        if (hasInterfaces)
+                        {
+                            foreach (var i in Interfaces)
                             {
-                                var methods = Type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
-                                foreach (var method in methods)
-                                    items.Add(new MethodDetailRuntime<T>(method, locker));
-                                if (Type.IsInterface)
+                                var iMethods = i.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance); //don't get static interface methods
+                                foreach (var method in iMethods)
                                 {
-                                    foreach (var i in Interfaces)
+                                    string name;
+                                    if (Type.IsInterface && !names!.Contains(method.Name))
+                                        name = method.Name;
+                                    else
+                                        name = $"{method.DeclaringType?.Namespace}.{method.DeclaringType?.Name}.{method.Name.Split('.').Last()}";
+
+                                    if (!names!.Contains(name))
                                     {
-                                        var iMethods = i.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
-                                        foreach (var method in iMethods)
-                                        {
-                                            var methodDetail = new MethodDetailRuntime<T>(method, locker);
-                                            if (!items.Any(x => SignatureCompare(x, methodDetail)))
-                                                items.Add(methodDetail);
-                                        }
+                                        items.Add(new MethodDetailRuntime<T>(name, method, locker));
+                                        names!.Add(name);
                                     }
                                 }
                             }
-                            methodDetails = items.ToArray();
                         }
                     }
+                    methodDetails = items.ToArray();
+                    methodDetailsBoxed = methodDetails;
                 }
-                return methodDetails;
             }
         }
 
@@ -989,27 +992,31 @@ namespace Zerra.Reflection.Runtime
             get
             {
                 if (constructorDetails == null)
+                    LoadConstructorDetails();
+                return constructorDetails!;
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void LoadConstructorDetails()
+        {
+            lock (locker)
+            {
+                if (constructorDetails == null)
                 {
-                    lock (locker)
+                    if (!Type.IsGenericTypeDefinition)
                     {
-                        if (constructorDetails == null)
-                        {
-                            if (!Type.IsGenericTypeDefinition)
-                            {
-                                var constructors = Type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                                var items = new ConstructorDetailRuntime<T>[constructors.Length];
-                                for (var i = 0; i < items.Length; i++)
-                                    items[i] = new ConstructorDetailRuntime<T>(constructors[i], locker);
-                                constructorDetails = items;
-                            }
-                            else
-                            {
-                                constructorDetails = Array.Empty<ConstructorDetail<T>>();
-                            }
-                        }
+                        var constructors = Type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                        var items = new ConstructorDetailRuntime<T>[constructors.Length];
+                        for (var i = 0; i < items.Length; i++)
+                            items[i] = new ConstructorDetailRuntime<T>(constructors[i], locker);
+                        constructorDetails = items;
                     }
+                    else
+                    {
+                        constructorDetails = Array.Empty<ConstructorDetail<T>>();
+                    }
+                    constructorDetailsBoxed = constructorDetails;
                 }
-                return constructorDetails;
             }
         }
 
@@ -1042,7 +1049,7 @@ namespace Zerra.Reflection.Runtime
                 {
                     if (!Type.IsAbstract && !Type.IsGenericTypeDefinition)
                     {
-                        var emptyConstructor = this.ConstructorDetails.FirstOrDefault(x => x.ParametersDetails.Count == 0);
+                        var emptyConstructor = this.ConstructorDetails.FirstOrDefault(x => x.ParameterDetails.Count == 0);
                         if (emptyConstructor != null && emptyConstructor.HasCreator)
                         {
                             creator = emptyConstructor.Creator;
@@ -1069,7 +1076,11 @@ namespace Zerra.Reflection.Runtime
         private static readonly Type typeDetailT = typeof(TypeDetailRuntime<>);
         internal static TypeDetail New(Type type)
         {
-            if (!type.ContainsGenericParameters)
+            if (!type.ContainsGenericParameters && !type.IsPointer && type.Name != "Void" && !type.IsByRef
+#if !NETSTANDARD2_0
+                && !type.IsByRefLike
+#endif
+                )
             {
                 var typeDetailGeneric = typeDetailT.MakeGenericType(type);
                 var obj = typeDetailGeneric.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)[0].Invoke(new object[] { type });

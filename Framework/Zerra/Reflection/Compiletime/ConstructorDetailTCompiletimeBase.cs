@@ -3,17 +3,19 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Zerra.Reflection.Generation
+namespace Zerra.Reflection.Compiletime
 {
-    public abstract class ConstructorDetailGenerationBase<T> : ConstructorDetail<T>
+    public abstract class ConstructorDetailCompiletimeBase<T> : ConstructorDetail<T>
     {
         protected readonly object locker;
         private readonly Action loadConstructorInfo;
-        public ConstructorDetailGenerationBase(object locker, Action loadConstructorInfo)
+        public ConstructorDetailCompiletimeBase(object locker, Action loadConstructorInfo)
         {
             this.locker = locker;
             this.loadConstructorInfo = loadConstructorInfo;
         }
+
+        public override sealed bool IsGenerated => true;
 
         private ConstructorInfo? constructorInfo = null;
         public override sealed ConstructorInfo ConstructorInfo
@@ -53,7 +55,7 @@ namespace Zerra.Reflection.Generation
 
         protected abstract Func<ParameterDetail[]> CreateParameterDetails { get; }
         private ParameterDetail[]? parameters = null;
-        public override sealed IReadOnlyList<ParameterDetail> ParametersDetails
+        public override sealed IReadOnlyList<ParameterDetail> ParameterDetails
         {
             get
             {
@@ -71,7 +73,7 @@ namespace Zerra.Reflection.Generation
         public override sealed Delegate? CreatorTyped => Creator;
         public override sealed Delegate? CreatorWithArgsTyped => CreatorWithArgs;
 
-        internal void SetConstructorInfo(ConstructorInfo constructorInfo)
+        internal override sealed void SetConstructorInfo(ConstructorInfo constructorInfo)
         {
             this.constructorInfo = constructorInfo;
         }
@@ -79,13 +81,13 @@ namespace Zerra.Reflection.Generation
         protected void LoadParameterInfo()
         {
             var parameters = ConstructorInfo.GetParameters();
-            foreach (var parameterDetail in ParametersDetails)
+            foreach (var parameterDetail in ParameterDetails)
             {
                 var parameter = parameters.FirstOrDefault(x => x.Name == parameterDetail.Name);
                 if (parameter == null)
                     throw new InvalidOperationException($"Parameter not found for {parameterDetail.Name}");
 
-                var parameterBase = (ParameterDetailGenerationBase)parameterDetail;
+                var parameterBase = (ParameterDetailCompiletimeBase)parameterDetail;
                 parameterBase.SetParameterInfo(parameter);
             }
         }

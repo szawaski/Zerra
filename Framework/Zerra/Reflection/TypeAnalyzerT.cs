@@ -29,31 +29,7 @@ namespace Zerra.Reflection
         public static MethodDetail<T> GetMethodDetail(string name, Type[]? parameterTypes = null)
         {
             var key = new TypeKey(name, parameterTypes);
-            var method = methodDetailsByType.GetOrAdd(key, (_) =>
-            {
-                var typeDetails = GetTypeDetail();
-                foreach (var methodDetail in typeDetails.MethodDetails.OrderBy(x => x.ParameterDetails.Count))
-                {
-                    if (methodDetail.Name == name && (parameterTypes == null || methodDetail.ParameterDetails.Count == parameterTypes.Length))
-                    {
-                        var match = true;
-                        if (parameterTypes != null)
-                        {
-                            for (var i = 0; i < parameterTypes.Length; i++)
-                            {
-                                if (parameterTypes[i].Name != methodDetail.ParameterDetails[i].Type.Name || parameterTypes[i].Namespace != methodDetail.ParameterDetails[i].Type.Namespace)
-                                {
-                                    match = false;
-                                    break;
-                                }
-                            }
-                        }
-                        if (match)
-                            return methodDetail;
-                    }
-                }
-                return null;
-            });
+            var method = methodDetailsByType.GetOrAdd(key, (_) => (MethodDetail<T>)TypeAnalyzer.GetMethodDetail(typeof(T), name, parameterTypes));
             return method ?? throw new ArgumentException($"{typeof(T).GetNiceName()}.{name} method not found");
         }
 
@@ -61,31 +37,7 @@ namespace Zerra.Reflection
         public static ConstructorDetail<T> GetConstructorDetail(Type[]? parameterTypes = null)
         {
             var key = new TypeKey(parameterTypes);
-            var constructor = constructorDetailsByType.GetOrAdd(key, (_) =>
-            {
-                var typeDetails = GetTypeDetail();
-                foreach (var constructorDetail in typeDetails.ConstructorDetails)
-                {
-                    if (parameterTypes == null || constructorDetail.ParametersDetails.Count == parameterTypes.Length)
-                    {
-                        var match = true;
-                        if (parameterTypes != null)
-                        {
-                            for (var i = 0; i < parameterTypes.Length; i++)
-                            {
-                                if (parameterTypes[i] != constructorDetail.ParametersDetails[i].Type)
-                                {
-                                    match = false;
-                                    break;
-                                }
-                            }
-                        }
-                        if (match)
-                            return constructorDetail;
-                    }
-                }
-                return null;
-            });
+            var constructor = constructorDetailsByType.GetOrAdd(key, (_) => (ConstructorDetail<T>)TypeAnalyzer.GetConstructorDetail(typeof(T), parameterTypes));
             return constructor ?? throw new ArgumentException($"{typeof(T).GetNiceName()} constructor not found");
         }
 
@@ -93,10 +45,7 @@ namespace Zerra.Reflection
         public static MethodDetail<T> GetGenericMethodDetail(MethodDetail<T> methodDetail, params Type[] types)
         {
             var key = new TypeKey(methodDetail.MethodInfo.ToString(), types);
-            var genericMethod = genericMethodDetails.GetOrAdd(key, (_) =>
-            {
-                return new MethodDetailRuntime<T>(methodDetail.MethodInfo, types);
-            });
+            var genericMethod = genericMethodDetails.GetOrAdd(key, (_) => (MethodDetail<T>)TypeAnalyzer.GetGenericMethodDetail(methodDetail, types));
             return genericMethod;
         }
 
@@ -104,10 +53,7 @@ namespace Zerra.Reflection
         public static TypeDetail<T> GetGenericTypeDetail(params Type[] types)
         {
             var key = new TypeKey(types);
-            var genericTypeDetail = genericTypeDetailsByType.GetOrAdd(key, (_) =>
-            {
-                return new TypeDetailRuntime<T>(typeof(T).MakeGenericType(types));
-            });
+            var genericTypeDetail = genericTypeDetailsByType.GetOrAdd(key, (_) => (TypeDetail<T>)TypeAnalyzer.GetGenericTypeDetail(typeof(T), types));
             return genericTypeDetail;
         }
     }

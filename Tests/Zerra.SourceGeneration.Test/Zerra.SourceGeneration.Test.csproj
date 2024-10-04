@@ -8,8 +8,20 @@
         <Product>Zerra Framework</Product>
         <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <LangVersion>12.0</LangVersion>
     </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="..\..\LICENSE" Link="LICENSE">
+            <PackagePath>\</PackagePath>
+            <Pack>True</Pack>
+        </None>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.4.0" PrivateAssets="all" />
+    </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.10.0" />
@@ -22,18 +34,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\Framework\Zerra.Repository.MsSql\Zerra.Repository.MsSql.csproj" />
-        <ProjectReference Include="..\..\Framework\Zerra.Repository.MySql\Zerra.Repository.MySql.csproj" />
-        <ProjectReference Include="..\..\Framework\Zerra.Repository.PostgreSql\Zerra.Repository.PostgreSql.csproj" />
-        <ProjectReference Include="..\..\Framework\Zerra\Zerra.csproj" />
-        <ProjectReference Include="..\..\Framework\Zerra.Repository\Zerra.Repository.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <None Include="..\..\LICENSE">
-            <Pack>True</Pack>
-            <PackagePath></PackagePath>
-        </None>
+        <ProjectReference Include="..\..\Framework\Zerra.SourceGeneration\Zerra.SourceGeneration.csproj" />
     </ItemGroup>
 
 </Project>

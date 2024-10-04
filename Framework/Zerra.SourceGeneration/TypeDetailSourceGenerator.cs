@@ -9,7 +9,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 
 namespace Zerra.SourceGeneration
@@ -111,6 +110,9 @@ namespace Zerra.SourceGeneration
                     return;
                 namespaceRecursionCheck = namespaceRecursionCheck.BaseType;
             }
+
+            if (typeSymbol.GetAttributes().Any(x => x.AttributeClass?.Name == "ObsoleteAttribute"))
+                return;
 
             var ns = typeSymbol.ContainingNamespace is null || typeSymbol.ContainingNamespace.ToString().Contains("<global namespace>") ? null : typeSymbol.ContainingNamespace.ToString();
 
@@ -253,30 +255,29 @@ namespace Zerra.SourceGeneration
                     enumType = enumTypeParsed;
             }
 
-            string? innerType = null;
+            string? innerTypeOf = "null";
             if (namedTypeSymbol is not null)
             {
-                innerType = namedTypeSymbol.TypeArguments.Length == 1 ? namedTypeSymbol.TypeArguments[0].ToString() : null;
+                if (namedTypeSymbol.TypeArguments.Length == 1)
+                    innerTypeOf = GetTypeOfName(namedTypeSymbol.TypeArguments[0]);
             }
             else if (typeSymbol is IArrayTypeSymbol arrayTypeSymbol)
             {
-                innerType = arrayTypeSymbol.ElementType.ToString();
+                innerTypeOf = GetTypeOfName(arrayTypeSymbol.ElementType);
             }
 
             var isTask = specialType == SpecialType.Task;
 
-            string? iEnumerableInnerType = null;
+            string? iEnumerableInnerTypeOf = "null";
             if (isIEnumerableGeneric || typeSymbol.TypeKind == TypeKind.Array)
             {
-                iEnumerableInnerType = innerType;
+                iEnumerableInnerTypeOf = innerTypeOf;
             }
             else if (hasIEnumerableGeneric)
             {
                 var interfaceSymbol = typeSymbol.AllInterfaces.FirstOrDefault(x => x.MetadataName == enumberableGenericTypeName);
                 if (interfaceSymbol != null)
-                {
-                    iEnumerableInnerType = interfaceSymbol.TypeArguments[0].ToString();
-                }
+                    iEnumerableInnerTypeOf = GetTypeOfName(interfaceSymbol.TypeArguments[0]);
             }
 
             var baseTypes = GenerateBaseTypes(typeSymbol);
@@ -297,18 +298,26 @@ namespace Zerra.SourceGeneration
 
             var childClasses = sbChildClasses.ToString();
 
-            var code = $$"""
+            var canConstruct = typeSymbol.Kind == SymbolKind.ArrayType || (namedTypeSymbol is not null && !namedTypeSymbol.IsStatic && IsGenericDefined(namedTypeSymbol));
+
+            string code;
+            if (canConstruct)
+            {
+                code = $$"""
                 //Zerra Generated File
+
+                #pragma warning disable CS0105 // Using directive appeared previously in this namespace
+                #pragma warning disable CS8609 // Nullability of reference types in return type doesn't match overridden member.
 
                 using System;
                 using System.Collections.Generic;
                 using Zerra.Reflection;
-                using Zerra.Reflection.Generation;
+                using Zerra.Reflection.Compiletime;
                 {{(ns == null ? null : $"using {ns};")}}
 
                 namespace {{(ns == null ? null : $"{ns}.")}}SourceGeneration
                 {
-                    public sealed class {{className}} : TypeDetailTGenerationBase<{{fullTypeName}}>{{typeConstraints}}
+                    public sealed class {{className}} : TypeDetailCompiletimeBase<{{fullTypeName}}>{{typeConstraints}}
                     {               
                         public override bool HasIEnumerable => {{(hasIEnumerable ? "true" : "false")}};
                         public override bool HasIEnumerableGeneric => {{(hasIEnumerableGeneric ? "true" : "false")}};
@@ -338,7 +347,7 @@ namespace Zerra.SourceGeneration
                         public override bool IsIDictionaryGeneric => {{(isIDictionaryGeneric ? "true" : "false")}};
                         public override bool IsIReadOnlyDictionaryGeneric => {{(isIReadOnlyDictionaryGeneric ? "true" : "false")}};
 
-                        public override Func<{{fullTypeName}}> Creator => () => {{(hasCreator ? $"new {fullTypeName}()" : "throw new NotSupportedException()")}};
+                        public override Func<{{fullTypeName}}> Creator => () => {{(hasCreator ? $"new {fullTypeName}()!" : "throw new NotSupportedException()")}};
                         public override bool HasCreator => {{(hasCreator ? "true" : "false")}};
 
                         public override bool IsNullable => {{(isNullable ? "true" : "false")}};
@@ -347,8 +356,8 @@ namespace Zerra.SourceGeneration
                         public override SpecialType? SpecialType => {{(specialType.HasValue ? "Zerra.Reflection.SpecialType." + specialType.Value.ToString() : "null")}};
                         public override CoreEnumType? EnumUnderlyingType => {{(enumType.HasValue ? "Zerra.Reflection.CoreEnumType." + enumType.Value.ToString() : "null")}};
 
-                        private readonly Type? innerType = {{(innerType is null ? "null" : $"typeof({innerType})")}};
-                        public override Type InnerType => innerType ?? throw new NotSupportedException();
+                        private readonly Type? innerType = {{innerTypeOf}};
+                        public override Type InnerType => innerType!;
 
                         public override bool IsTask => {{(isTask ? "true" : "false")}};
 
@@ -362,13 +371,13 @@ namespace Zerra.SourceGeneration
                         private readonly Type[] innerTypes = {{innerTypes}};
                         public override IReadOnlyList<Type> InnerTypes => innerTypes;
 
-                        private readonly Type iEnumerableGenericInnerType = {{(iEnumerableInnerType is null ? "null" : $"typeof({iEnumerableInnerType})")}};
-                        public override Type IEnumerableGenericInnerType => iEnumerableGenericInnerType ?? throw new NotSupportedException();
+                        private readonly Type? iEnumerableGenericInnerType = {{iEnumerableInnerTypeOf}};
+                        public override Type IEnumerableGenericInnerType => iEnumerableGenericInnerType!;
 
                         public override Func<object, object?> TaskResultGetter => (obj) => {{(isTask ? "((System.Threading.Tasks.Task)obj).Result" : "throw new NotSupportedException()")}};
                         public override bool HasTaskResultGetter => {{(isTask ? "true" : "false")}};
 
-                        public override Func<object> CreatorBoxed => {{(hasCreator ? $"() => new {fullTypeName}()" : "throw new NotSupportedException()")}};
+                        public override Func<object> CreatorBoxed => {{(hasCreator ? $"() => new {fullTypeName}()!" : "throw new NotSupportedException()")}};
                         public override bool HasCreatorBoxed => {{(hasCreator ? "true" : "false")}};
 
                         protected override Func<MethodDetail<{{fullTypeName}}>[]> CreateMethodDetails => () => {{methods}};
@@ -381,6 +390,95 @@ namespace Zerra.SourceGeneration
                     }
                 }
                 """;
+            }
+            else
+            {
+                code = $$"""
+                //Zerra Generated File
+
+                #pragma warning disable CS0105 // Using directive appeared previously in this namespace
+                #pragma warning disable CS8609 // Nullability of reference types in return type doesn't match overridden member.
+
+                using System;
+                using System.Collections.Generic;
+                using Zerra.Reflection;
+                using Zerra.Reflection.Compiletime;
+                {{(ns == null ? null : $"using {ns};")}}
+
+                namespace {{(ns == null ? null : $"{ns}.")}}SourceGeneration
+                {
+                    public sealed class {{className}} : TypeDetailCompiletimeBase
+                    {   
+                        public {{className}}() : base(typeof({{fullTypeName}})) { }
+
+                        public override bool HasIEnumerable => {{(hasIEnumerable ? "true" : "false")}};
+                        public override bool HasIEnumerableGeneric => {{(hasIEnumerableGeneric ? "true" : "false")}};
+                        public override bool HasICollection => {{(hasICollection ? "true" : "false")}};
+                        public override bool HasICollectionGeneric => {{(hasICollectionGeneric ? "true" : "false")}};
+                        public override bool HasIReadOnlyCollectionGeneric => {{(hasIReadOnlyCollectionGeneric ? "true" : "false")}};
+                        public override bool HasIList => {{(hasIList ? "true" : "false")}};
+                        public override bool HasIListGeneric => {{(hasIListGeneric ? "true" : "false")}};
+                        public override bool HasIReadOnlyListGeneric => {{(hasIReadOnlyListGeneric ? "true" : "false")}};
+                        public override bool HasISetGeneric => {{(hasISetGeneric ? "true" : "false")}};
+                        public override bool HasIReadOnlySetGeneric => {{(hasIReadOnlySetGeneric ? "true" : "false")}};
+                        public override bool HasIDictionary => {{(hasIDictionary ? "true" : "false")}};
+                        public override bool HasIDictionaryGeneric => {{(hasIDictionaryGeneric ? "true" : "false")}};
+                        public override bool HasIReadOnlyDictionaryGeneric => {{(hasIReadOnlyDictionaryGeneric ? "true" : "false")}};
+                
+                        public override bool IsIEnumerable => {{(isIEnumerable ? "true" : "false")}};
+                        public override bool IsIEnumerableGeneric => {{(isIEnumerableGeneric ? "true" : "false")}};
+                        public override bool IsICollection => {{(isICollection ? "true" : "false")}};
+                        public override bool IsICollectionGeneric => {{(isICollectionGeneric ? "true" : "false")}};
+                        public override bool IsIReadOnlyCollectionGeneric => {{(isIReadOnlyCollectionGeneric ? "true" : "false")}};
+                        public override bool IsIList => {{(isIList ? "true" : "false")}};
+                        public override bool IsIListGeneric => {{(isIListGeneric ? "true" : "false")}};
+                        public override bool IsIReadOnlyListGeneric => {{(isIReadOnlyListGeneric ? "true" : "false")}};
+                        public override bool IsISetGeneric => {{(isISetGeneric ? "true" : "false")}};
+                        public override bool IsIReadOnlySetGeneric => {{(isIReadOnlySetGeneric ? "true" : "false")}};
+                        public override bool IsIDictionary => {{(isIDictionary ? "true" : "false")}};
+                        public override bool IsIDictionaryGeneric => {{(isIDictionaryGeneric ? "true" : "false")}};
+                        public override bool IsIReadOnlyDictionaryGeneric => {{(isIReadOnlyDictionaryGeneric ? "true" : "false")}};
+
+                        public override bool IsNullable => {{(isNullable ? "true" : "false")}};
+
+                        public override CoreType? CoreType => {{(coreType.HasValue ? "Zerra.Reflection.CoreType." + coreType.Value.ToString() : "null")}};
+                        public override SpecialType? SpecialType => {{(specialType.HasValue ? "Zerra.Reflection.SpecialType." + specialType.Value.ToString() : "null")}};
+                        public override CoreEnumType? EnumUnderlyingType => {{(enumType.HasValue ? "Zerra.Reflection.CoreEnumType." + enumType.Value.ToString() : "null")}};
+
+                        private readonly Type? innerType = {{innerTypeOf}};
+                        public override Type InnerType => innerType!;
+
+                        public override bool IsTask => {{(isTask ? "true" : "false")}};
+
+                        private readonly Type[] baseTypes = {{baseTypes}};
+                        public override IReadOnlyList<Type> BaseTypes => baseTypes;
+
+                        private readonly Type[] interfaces = {{interfaces}};
+                        public override IReadOnlyList<Type> Interfaces => interfaces;
+
+                        protected override Func<Attribute[]> CreateAttributes => () => {{attributes}};
+
+                        private readonly Type[] innerTypes = {{innerTypes}};
+                        public override IReadOnlyList<Type> InnerTypes => innerTypes;
+
+                        private readonly Type? iEnumerableGenericInnerType = {{iEnumerableInnerTypeOf}};
+                        public override Type IEnumerableGenericInnerType => iEnumerableGenericInnerType!;
+
+                        public override Func<object, object?> TaskResultGetter => (obj) => {{(isTask ? "((System.Threading.Tasks.Task)obj).Result" : "throw new NotSupportedException()")}};
+                        public override bool HasTaskResultGetter => {{(isTask ? "true" : "false")}};
+
+                        protected override Func<MethodDetail[]> CreateMethodDetails => () => {{methods}};
+
+                        protected override Func<ConstructorDetail[]> CreateConstructorDetails => () => [];
+
+                        protected override Func<MemberDetail[]> CreateMemberDetails => () => {{members}};
+
+                {{childClasses}}
+                    }
+                }
+                """;
+            }
+
 
             context.AddSource(fileName, SourceText.From(code, Encoding.UTF8));
         }
@@ -396,8 +494,12 @@ namespace Zerra.SourceGeneration
             var constructorNumber = 0;
             foreach (var constructor in constructors)
             {
-                if (constructor.DeclaredAccessibility == Accessibility.Public)
-                    GenerateConstructor(constructor, fullTypeName, ++constructorNumber, membersToInitialize, sbChildClasses);
+                if (constructor.GetAttributes().Any(x => x.AttributeClass?.Name == "ObsoleteAttribute"))
+                    continue;
+
+                var isPublic = constructor.DeclaredAccessibility == Accessibility.Public;
+                if (isPublic)
+                    GeneratePublicConstructor(constructor, fullTypeName, ++constructorNumber, membersToInitialize, sbChildClasses);
                 else
                     GeneratePrivateConstructor(constructor, fullTypeName, ++constructorNumber, membersToInitialize, sbChildClasses);
 
@@ -426,25 +528,31 @@ namespace Zerra.SourceGeneration
             var members = sbMembers.ToString();
             return members;
         }
-        private static void GenerateConstructor(IMethodSymbol methodSymbol, string parentTypeName, int constructorNumber, List<string> membersToInitialize, StringBuilder sbChildClasses)
+        private static void GeneratePublicConstructor(IMethodSymbol methodSymbol, string parentTypeName, int constructorNumber, List<string> membersToInitialize, StringBuilder sbChildClasses)
         {
             var memberName = methodSymbol.Name;
             var className = $"ConstructorDetail_{constructorNumber}";
 
             var hasCreator = methodSymbol.Parameters.Length == 0;
-            var hasCreatorWithArgs = methodSymbol.Parameters.All(x => x.RefKind == RefKind.None && !x.Type.IsRefLikeType && x.Type.Kind != SymbolKind.PointerType);
+            var hasCreatorWithArgs = methodSymbol.Parameters.All(x => !x.Type.IsRefLikeType && x.Type.Kind != SymbolKind.PointerType);
 
             string? creatorWithArgs = null;
             if (hasCreatorWithArgs)
             {
                 var sbCreatorWithArgs = new StringBuilder();
                 _ = sbCreatorWithArgs.Append("new ").Append(parentTypeName).Append('(');
-                var creatorIndex = 0;
-                foreach (var parameter in methodSymbol.Parameters)
+                for (var i = 0; i < methodSymbol.Parameters.Length; i++)
                 {
-                    if (creatorIndex > 0)
+                    var parameter = methodSymbol.Parameters[i];
+                    if (i > 0)
                         _ = sbCreatorWithArgs.Append(", ");
-                    _ = sbCreatorWithArgs.Append('(').Append(parameter.Type.ToString()).Append(")args[").Append(creatorIndex++).Append("]");
+                    //if (parameter.RefKind == RefKind.Out)
+                    //    _ = sbCreatorWithArgs.Append("out ");
+                    //else if (parameter.RefKind == RefKind.In)
+                    //    _ = sbCreatorWithArgs.Append("in ");
+                    //else if (parameter.RefKind == RefKind.Ref)
+                    //    _ = sbCreatorWithArgs.Append("ref ");
+                    _ = sbCreatorWithArgs.Append('(').Append(parameter.Type.ToString()).Append(")args![").Append(i).Append("]!");
                 }
                 _ = sbCreatorWithArgs.Append(')');
                 creatorWithArgs = sbCreatorWithArgs.ToString();
@@ -456,14 +564,14 @@ namespace Zerra.SourceGeneration
 
             var code = $$""""
 
-                        public sealed class {{className}} : ConstructorDetailGenerationBase<{{parentTypeName}}>
+                        public sealed class {{className}} : ConstructorDetailCompiletimeBase<{{parentTypeName}}>
                         {
                             public {{className}}(object locker, Action loadConstructorInfo) : base(locker, loadConstructorInfo) { }
 
                             public override Func<object?[]?, {{parentTypeName}}> CreatorWithArgs => {{(hasCreatorWithArgs ? $"(args) => {creatorWithArgs}" : "throw new NotSupportedException()")}};
                             public override bool HasCreatorWithArgs => {{(hasCreatorWithArgs ? "true" : "false")}};
 
-                            public override Func<{{parentTypeName}}> Creator => {{(hasCreator ? $"() => new {parentTypeName}()" : "throw new NotSupportedException()")}};
+                            public override Func<{{parentTypeName}}> Creator => {{(hasCreator ? $"() => new {parentTypeName}()!" : "throw new NotSupportedException()")}};
                             public override bool HasCreator => {{(hasCreator ? "true" : "false")}};
 
                             public override string Name => "{{memberName}}";
@@ -472,10 +580,10 @@ namespace Zerra.SourceGeneration
 
                             protected override Func<Attribute[]> CreateAttributes => () => {{attributes}};
 
-                            public override Func<object?[]?, object> CreatorWithArgsBoxed => {{(hasCreatorWithArgs ? $"(args) => {creatorWithArgs}" : "throw new NotSupportedException()")}};
+                            public override Func<object?[]?, object> CreatorWithArgsBoxed => {{(hasCreatorWithArgs ? $"(args) => {creatorWithArgs}!" : "throw new NotSupportedException()")}};
                             public override bool HasCreatorWithArgsBoxed => {{(hasCreatorWithArgs ? "true" : "false")}};
 
-                            public override Func<object> CreatorBoxed => {{(hasCreator ? $"() => new {parentTypeName}()" : "throw new NotSupportedException()")}};
+                            public override Func<object> CreatorBoxed => {{(hasCreator ? $"() => new {parentTypeName}()!" : "throw new NotSupportedException()")}};
                             public override bool HasCreatorBoxed => {{(hasCreator ? "true" : "false")}};
                         }
                 """";
@@ -490,17 +598,13 @@ namespace Zerra.SourceGeneration
 
             var attributes = GenerateAttributes(methodSymbol);
 
-            var parameters = GenerateParameters(methodSymbol, $"c{constructorNumber}", sbChildClasses);
-
             var code = $$""""
 
-                        public sealed class {{className}} : PrivateConstructorDetailGenerationBase<{{parentTypeName}}>
+                        public sealed class {{className}} : PrivateConstructorDetailCompiletimeBase<{{parentTypeName}}>
                         {
                             public {{className}}(object locker, Action loadConstructorInfo) : base(locker, loadConstructorInfo) { }
 
                             public override string Name => "{{memberName}}";
-
-                            protected override Func<ParameterDetail[]> CreateParameterDetails => () => {{parameters}};
 
                             protected override Func<Attribute[]> CreateAttributes => () => {{attributes}};
                         }
@@ -517,14 +621,52 @@ namespace Zerra.SourceGeneration
 
             var membersToInitialize = new List<string>();
 
-            var methods = symbolMembers.Where(x => x.Kind == SymbolKind.Method).Cast<IMethodSymbol>().Where(x => !x.IsStatic && x.MethodKind == MethodKind.Ordinary).ToArray();
-            var methodNumber = 0;
-            foreach (var method in methods)
+            var methods = symbolMembers.Where(x => x.Kind == SymbolKind.Method).Cast<IMethodSymbol>().Where(x => x.MethodKind == MethodKind.Ordinary || x.MethodKind == MethodKind.Destructor || x.MethodKind == MethodKind.PropertyGet || x.MethodKind == MethodKind.PropertySet || x.MethodKind == MethodKind.ExplicitInterfaceImplementation).Select(x => new Tuple<IMethodSymbol, string>(x, x.Name)).ToList();
+
+            if (typeSymbol.AllInterfaces.Length > 0)
             {
-                if (method.DeclaredAccessibility == Accessibility.Public && method.TypeArguments.Length == 0)
-                    GenerateMethod(method, fullTypeName, ++methodNumber, membersToInitialize, sbChildClasses);
-                else
-                    GeneratePrivateMethod(method, fullTypeName, ++methodNumber, membersToInitialize, sbChildClasses);
+                var names = new HashSet<string>();
+                foreach (var method in methods)
+                    names.Add(method.Item1.Name);
+
+                foreach (var i in typeSymbol.AllInterfaces)
+                {
+                    var iMethods = i.GetMembers().Where(x => x.Kind == SymbolKind.Method && !x.IsStatic).Cast<IMethodSymbol>().Where(x => x.MethodKind == MethodKind.Ordinary || x.MethodKind == MethodKind.Destructor || x.MethodKind == MethodKind.PropertyGet || x.MethodKind == MethodKind.PropertySet || x.MethodKind == MethodKind.ExplicitInterfaceImplementation).ToArray();
+                    foreach (var iMethod in iMethods)
+                    {
+                        string name;
+                        if (typeSymbol.TypeKind == TypeKind.Interface && !names.Contains(iMethod.Name))
+                            name = iMethod.Name;
+                        else
+                            name = $"{AdjustName(iMethod.ContainingType.ToString(), false)}.{AdjustName(iMethod.Name, true)}";
+
+                        if (!names.Contains(name))
+                        {
+                            methods.Add(new Tuple<IMethodSymbol, string>(iMethod, name));
+                            names.Add(name);
+                        }
+                    }
+                }
+            }
+
+            var methodNumber = 0;
+            foreach (var methodTuple in methods)
+            {
+                var method = methodTuple.Item1;
+                var explicitDeclaration = methodTuple.Item2;
+
+                if (method.ContainingType.TypeKind == TypeKind.Interface && method.IsStatic)
+                    continue;
+
+                if (method.GetAttributes().Any(x => x.AttributeClass?.Name == "ObsoleteAttribute"))
+                    continue;
+
+                var isPublic = method.DeclaredAccessibility == Accessibility.Public;
+                var isPublicReturn = IsPublic(method.ReturnType);
+                if (isPublic && isPublicReturn && method.MethodKind != MethodKind.PropertyGet && method.MethodKind != MethodKind.PropertySet)
+                    GeneratePublicMethod(explicitDeclaration, method, fullTypeName, ++methodNumber, membersToInitialize, sbChildClasses);
+                else if (isPublicReturn)
+                    GeneratePrivateMethod(explicitDeclaration, method, fullTypeName, ++methodNumber, membersToInitialize, sbChildClasses);
 
                 if (recursive)
                 {
@@ -551,43 +693,150 @@ namespace Zerra.SourceGeneration
             {
                 if (sbMembers.Length > 1)
                     _ = sbMembers.Append(", ");
-                sbMembers.Append("new ").Append(memberName).Append("(locker, LoadMemberInfo)");
+                sbMembers.Append("new ").Append(memberName).Append("(locker, LoadMethodInfo)");
             }
             _ = sbMembers.Append(']');
             var members = sbMembers.ToString();
             return members;
         }
-        private static void GenerateMethod(IMethodSymbol methodSymbol, string parentTypeName, int methodNumber, List<string> membersToInitialize, StringBuilder sbChildClasses)
+        private static void GeneratePublicMethod(string memberName, IMethodSymbol methodSymbol, string parentTypeName, int methodNumber, List<string> membersToInitialize, StringBuilder sbChildClasses)
         {
-            var memberName = methodSymbol.Name;
             var className = $"MethodDetail_{methodNumber}";
+            var isInterface = methodSymbol.ContainingType.TypeKind == TypeKind.Interface;
 
-            var isVoid = methodSymbol.ReturnType.ToString() == "void";
-
-            var hasCaller = methodSymbol.Parameters.All(x => x.RefKind == RefKind.None && !x.Type.IsRefLikeType && x.Type.Kind != SymbolKind.PointerType);
-            string? caller = null;
-            string? callerBoxed = null;
+            var hasCaller = !methodSymbol.IsGenericMethod && !methodSymbol.ReturnType.IsRefLikeType && methodSymbol.Parameters.All(x => !x.Type.IsRefLikeType && x.Type.Kind != SymbolKind.PointerType);
+            string caller;
+            string callerBoxed;
             if (hasCaller)
             {
                 var sbCaller = new StringBuilder();
                 var sbCallerBoxed = new StringBuilder();
-                _ = sbCaller.Append("obj.").Append(memberName).Append('(');
-                _ = sbCallerBoxed.Append("((").Append(parentTypeName).Append(')').Append("obj).").Append(memberName).Append('(');
-                var creatorIndex = 0;
-                foreach (var parameter in methodSymbol.Parameters)
+
+                _ = sbCaller.Append("(obj, args) => ");
+                _ = sbCallerBoxed.Append("(obj, args) => ");
+
+                var hasByRef = methodSymbol.Parameters.Any(x => x.RefKind != RefKind.None);
+
+                if (hasByRef || methodSymbol.ReturnsVoid)
                 {
-                    if (creatorIndex > 0)
+                    _ = sbCaller.Append('{');
+                    _ = sbCallerBoxed.Append('{');
+                }
+
+                if (hasByRef)
+                {
+                    for (var i = 0; i < methodSymbol.Parameters.Length; i++)
+                    {
+                        var parameter = methodSymbol.Parameters[i];
+                        if (parameter.RefKind == RefKind.None)
+                            continue;
+
+                        _ = sbCaller.Append("var arg").Append(i).Append('=');
+                        _ = sbCallerBoxed.Append("var arg").Append(i).Append('=');
+
+                        _ = sbCaller.Append('(').Append(parameter.Type.ToString()).Append(")args![").Append(i).Append("]!");
+                        _ = sbCallerBoxed.Append('(').Append(parameter.Type.ToString()).Append(")args![").Append(i).Append("]!");
+
+                        _ = sbCaller.Append(';');
+                        _ = sbCallerBoxed.Append(';');
+                    }
+
+                    if (!methodSymbol.ReturnsVoid)
+                    {
+                        _ = sbCaller.Append("return ");
+                        _ = sbCallerBoxed.Append("return ");
+                    }
+                }
+
+                if (isInterface)
+                {
+                    if (methodSymbol.IsStatic)
+                    {
+                        throw new InvalidOperationException();
+                    }
+                    else
+                    {
+                        _ = sbCaller.Append("((").Append(methodSymbol.ContainingType.ToString()).Append(')').Append("obj!)");
+                        _ = sbCallerBoxed.Append("((").Append(methodSymbol.ContainingType.ToString()).Append(')').Append("obj!)");
+                    }
+                }
+                else
+                {
+                    if (methodSymbol.IsStatic)
+                    {
+                        _ = sbCaller.Append(parentTypeName);
+                        _ = sbCallerBoxed.Append(parentTypeName);
+                    }
+                    else
+                    {
+                        _ = sbCaller.Append("obj");
+                        _ = sbCallerBoxed.Append("((").Append(parentTypeName).Append(')').Append("obj!)");
+                    }
+                }
+                _ = sbCaller.Append(".").Append(methodSymbol.Name).Append('(');
+                _ = sbCallerBoxed.Append(".").Append(methodSymbol.Name).Append('(');
+
+                for (var i = 0; i < methodSymbol.Parameters.Length; i++)
+                {
+                    var parameter = methodSymbol.Parameters[i];
+                    if (i > 0)
                     {
                         _ = sbCaller.Append(", ");
                         _ = sbCallerBoxed.Append(", ");
                     }
-                    _ = sbCaller.Append('(').Append(parameter.Type.ToString()).Append(")args[").Append(creatorIndex++).Append("]");
-                    _ = sbCallerBoxed.Append('(').Append(parameter.Type.ToString()).Append(")args[").Append(creatorIndex++).Append("]");
+
+                    if (parameter.RefKind == RefKind.Out)
+                    {
+                        _ = sbCaller.Append("out ");
+                        _ = sbCallerBoxed.Append("out ");
+                    }
+                    else if (parameter.RefKind == RefKind.In)
+                    {
+                        _ = sbCaller.Append("in ");
+                        _ = sbCallerBoxed.Append("in ");
+                    }
+                    else if (parameter.RefKind == RefKind.Ref || parameter.RefKind == RefKind.RefReadOnly)
+                    {
+                        _ = sbCaller.Append("ref ");
+                        _ = sbCallerBoxed.Append("ref ");
+                    }
+
+                    if (parameter.RefKind == RefKind.None)
+                    {
+                        _ = sbCaller.Append('(').Append(parameter.Type.ToString()).Append(")args![").Append(i).Append("]!");
+                        _ = sbCallerBoxed.Append('(').Append(parameter.Type.ToString()).Append(")args![").Append(i).Append("]!");
+                    }
+                    else
+                    {
+                        _ = sbCaller.Append("arg").Append(i);
+                        _ = sbCallerBoxed.Append("arg").Append(i);
+                    }
                 }
                 _ = sbCaller.Append(')');
                 _ = sbCallerBoxed.Append(')');
+
+                if (hasByRef || methodSymbol.ReturnsVoid)
+                {
+                    _ = sbCaller.Append(';');
+                    _ = sbCallerBoxed.Append(';');
+
+                    if (methodSymbol.ReturnsVoid)
+                    {
+                        _ = sbCaller.Append("return null;");
+                        _ = sbCallerBoxed.Append("return null;");
+                    }
+
+                    _ = sbCaller.Append('}');
+                    _ = sbCallerBoxed.Append('}');
+                }
+
                 caller = sbCaller.ToString();
                 callerBoxed = sbCallerBoxed.ToString();
+            }
+            else
+            {
+                caller = "throw new NotSupportedException()";
+                callerBoxed = "throw new NotSupportedException()";
             }
 
             var attributes = GenerateAttributes(methodSymbol);
@@ -596,14 +845,14 @@ namespace Zerra.SourceGeneration
 
             var code = $$""""
 
-                        public sealed class {{className}} : MethodDetailGenerationBase<{{parentTypeName}}>
+                        public sealed class {{className}} : MethodDetailCompiletimeBase<{{parentTypeName}}>
                         {
                             public {{className}}(object locker, Action loadMethodInfo) : base(locker, loadMethodInfo) { }
 
-                            private Type? returnType = {{(methodSymbol.ReturnType.Name == "Void" ? "null" : GetTypeOfName(methodSymbol.ReturnType))}};
-                            public override Type ReturnType => returnType;
+                            private Type? returnType = {{GetTypeOfName(methodSymbol.ReturnType)}};
+                            public override Type ReturnType => returnType!;
 
-                            public override Func<{{parentTypeName}}, object?[]?, object?> Caller => {{(hasCaller ? $"(obj, args) => {(isVoid ? $"{{{caller};return null;}}" : caller)}" : "throw new NotSupportedException()")}};
+                            public override Func<{{parentTypeName}}, object?[]?, object?> Caller => {{caller}};
                             public override bool HasCaller => {{(hasCaller ? "true" : "false")}};
 
                             public override string Name => "{{memberName}}";
@@ -612,7 +861,7 @@ namespace Zerra.SourceGeneration
 
                             protected override Func<Attribute[]> CreateAttributes => () => {{attributes}};
 
-                            public override Func<object?, object?[]?, object?> CallerBoxed => {{(hasCaller ? $"(obj, args) => {(isVoid ? $"{{{callerBoxed};return null;}}" : $"{callerBoxed}")}" : "throw new NotSupportedException()")}};
+                            public override Func<object?, object?[]?, object?> CallerBoxed => {{callerBoxed}};
                             public override bool HasCallerBoxed => {{(hasCaller ? "true" : "false")}};
                         }
                 """";
@@ -620,10 +869,10 @@ namespace Zerra.SourceGeneration
             membersToInitialize.Add(className);
             _ = sbChildClasses.Append(code);
         }
-        private static void GeneratePrivateMethod(IMethodSymbol methodSymbol, string parentTypeName, int methodNumber, List<string> membersToInitialize, StringBuilder sbChildClasses)
+        private static void GeneratePrivateMethod(string memberName, IMethodSymbol methodSymbol, string parentTypeName, int methodNumber, List<string> membersToInitialize, StringBuilder sbChildClasses)
         {
-            var memberName = methodSymbol.Name;
             var className = $"MethodDetail_{methodNumber}";
+            var isInterface = methodSymbol.ContainingType.TypeKind == TypeKind.Interface;
 
             var attributes = GenerateAttributes(methodSymbol);
 
@@ -631,15 +880,15 @@ namespace Zerra.SourceGeneration
 
             var code = $$""""
 
-                        public sealed class {{className}} : PrivateMethodDetailGenerationBase<{{parentTypeName}}>
+                        public sealed class {{className}} : PrivateMethodDetailCompiletimeBase<{{parentTypeName}}>
                         {
                             public {{className}}(object locker, Action loadMethodInfo) : base(locker, loadMethodInfo) { }
                 
                             private Type? returnType = {{GetTypeOfName(methodSymbol.ReturnType)}};
-                            public override Type ReturnType => returnType;
-                
+                            public override Type ReturnType => returnType!;
+
                             public override string Name => "{{memberName}}";
-                
+
                             protected override Func<ParameterDetail[]> CreateParameterDetails => () => {{parameters}};
                 
                             protected override Func<Attribute[]> CreateAttributes => () => {{attributes}};
@@ -650,13 +899,58 @@ namespace Zerra.SourceGeneration
             _ = sbChildClasses.Append(code);
         }
 
+        private static bool SignatureCompare(IMethodSymbol methodSymbol1, IMethodSymbol methodSymbol2)
+        {
+            if (methodSymbol1.Name != methodSymbol2.Name)
+                return false;
+            if (methodSymbol1.Parameters.Length != methodSymbol2.Parameters.Length)
+                return false;
+            for (var i = 0; i < methodSymbol1.Parameters.Length; i++)
+            {
+                if (methodSymbol1.Parameters[i].Type.ToString() != methodSymbol2.Parameters[i].Type.ToString())
+                    return false;
+            }
+            return true;
+        }
+
         private static string GenerateMembers(SourceProductionContext context, ITypeSymbol typeSymbol, IReadOnlyCollection<ITypeSymbol> allTypeSymbol, List<Tuple<string, string>> classList, bool recursive, StringBuilder sbChildClasses)
         {
             var symbolMembers = typeSymbol.GetMembers();
             var fullTypeName = typeSymbol.ToString();
 
-            var properties = symbolMembers.Where(x => x.Kind == SymbolKind.Property).Cast<IPropertySymbol>().ToArray();
-            var fields = symbolMembers.Where(x => x.Kind == SymbolKind.Field).Cast<IFieldSymbol>().ToArray();
+            var properties = symbolMembers.Where(x => x.Kind == SymbolKind.Property).Cast<IPropertySymbol>().Where(x => !x.IsStatic || x.ExplicitInterfaceImplementations.Length == 0).Select(x => new Tuple<IPropertySymbol, string>(x, x.Name)).ToList();
+            var fields = symbolMembers.Where(x => x.Kind == SymbolKind.Field).Cast<IFieldSymbol>().ToList();
+
+            if (typeSymbol.AllInterfaces.Length > 0)
+            {
+                var names = new HashSet<string>();
+                if (typeSymbol.TypeKind == TypeKind.Interface)
+                {
+                    foreach (var property in properties)
+                        names.Add(property.Item1.Name);
+                    foreach (var field in fields)
+                        names.Add(field.Name);
+                }
+
+                foreach (var i in typeSymbol.AllInterfaces)
+                {
+                    var iMembers = i.GetMembers();
+                    foreach (var iProperty in iMembers.Where(x => x.Kind == SymbolKind.Property && !x.IsStatic).Cast<IPropertySymbol>())
+                    {
+                        string name;
+                        if (typeSymbol.TypeKind == TypeKind.Interface && !names.Contains(iProperty.Name))
+                            name = iProperty.Name;
+                        else
+                            name = $"{iProperty.ContainingType.ToString()}.{iProperty.Name}";
+
+                        if (!names.Contains(name))
+                        {
+                            properties.Add(new Tuple<IPropertySymbol, string>(iProperty, name));
+                            names.Add(name);
+                        }
+                    }
+                }
+            }
 
             var membersToInitialize = new List<string>();
 
@@ -664,12 +958,25 @@ namespace Zerra.SourceGeneration
             var backingFields = new HashSet<IFieldSymbol>();
 #pragma warning restore RS1024 // Comparing instance so no need for special comparer
             var memberNumber = 0;
-            foreach (var property in properties)
+            var propertyCount = properties.Count();
+            foreach (var propertyTuple in properties)
             {
-                if (property.DeclaredAccessibility == Accessibility.Public)
-                    GeneratePublicMember(property, properties.Length, fields, backingFields, fullTypeName, ++memberNumber, membersToInitialize, sbChildClasses);
+                var property = propertyTuple.Item1;
+                var explicitDeclaration = propertyTuple.Item2;
+
+                if (property.IsIndexer)
+                    continue;
+                if (property.GetAttributes().Any(x => x.AttributeClass?.Name == "ObsoleteAttribute"))
+                    continue;
+
+                var isPublic = property.DeclaredAccessibility == Accessibility.Public;
+                var canBeReferencedAsCode = CanBeReferencedAsCode(property.Type);
+                if (isPublic && canBeReferencedAsCode)
+                    GeneratePublicMember(explicitDeclaration, property, propertyCount, fields, backingFields, fullTypeName, ++memberNumber, membersToInitialize, sbChildClasses);
+                else if (canBeReferencedAsCode)
+                    GeneratePrivateMember(explicitDeclaration, property, propertyCount, fields, backingFields, fullTypeName, ++memberNumber, membersToInitialize, sbChildClasses);
                 else
-                    GeneratePrivateMember(property, properties.Length, fields, backingFields, fullTypeName, ++memberNumber, membersToInitialize, sbChildClasses);
+                    GeneratePrivateTypeMember(explicitDeclaration, property, propertyCount, fields, backingFields, fullTypeName, ++memberNumber, membersToInitialize, sbChildClasses);
 
                 if (recursive)
                 {
@@ -682,10 +989,17 @@ namespace Zerra.SourceGeneration
             }
             foreach (var field in fields)
             {
-                if (field.DeclaredAccessibility == Accessibility.Public)
+                if (field.GetAttributes().Any(x => x.AttributeClass?.Name == "ObsoleteAttribute"))
+                    continue;
+
+                var isPublic = field.DeclaredAccessibility == Accessibility.Public;
+                var canBeReferencedAsCode = CanBeReferencedAsCode(field.Type);
+                if (isPublic && canBeReferencedAsCode)
                     GeneratePublicMember(field, fullTypeName, backingFields, ++memberNumber, membersToInitialize, sbChildClasses);
-                else
+                else if (canBeReferencedAsCode)
                     GeneratePrivateMember(field, fullTypeName, backingFields, ++memberNumber, membersToInitialize, sbChildClasses);
+                else
+                    GeneratePrivateTypeMember(field, fullTypeName, backingFields, ++memberNumber, membersToInitialize, sbChildClasses);
 
                 if (recursive)
                 {
@@ -709,11 +1023,11 @@ namespace Zerra.SourceGeneration
             var members = sbMembers.ToString();
             return members;
         }
-        private static void GeneratePublicMember(IPropertySymbol propertySymbol, int propertyTotal, IFieldSymbol[] fieldSymbols, HashSet<IFieldSymbol> backingFields, string parentTypeName, int methodNumber, List<string> membersToInitialize, StringBuilder sbChildClasses)
+        private static void GeneratePublicMember(string memberName, IPropertySymbol propertySymbol, int propertyTotal, IEnumerable<IFieldSymbol> fieldSymbols, HashSet<IFieldSymbol> backingFields, string parentTypeName, int methodNumber, List<string> membersToInitialize, StringBuilder sbChildClasses)
         {
-            var memberName = propertySymbol.Name;
             var className = $"MemberDetail_{methodNumber}";
             var typeName = propertySymbol.Type.ToString();
+            var isInterface = propertySymbol.ContainingType.TypeKind == TypeKind.Interface;
 
             //<{property.Name}>k__BackingField
             //<{property.Name}>i__Field
@@ -738,16 +1052,91 @@ namespace Zerra.SourceGeneration
                 fieldClassName = $"MemberDetail_{fieldMemberNumber}";
             }
 
-            var isStatic = propertySymbol.IsStatic;
-
             var hasGetter = propertySymbol.GetMethod is not null && !propertySymbol.IsIndexer;
             var hasSetter = propertySymbol.SetMethod is not null && !propertySymbol.IsIndexer;
+
+            string getter;
+            string getterBoxed;
+            if (hasGetter)
+            {
+                if (isInterface)
+                {
+                    if (propertySymbol.IsStatic)
+                    {
+                        hasGetter = false;
+                        getter = $"throw new NotSupportedException()";
+                        getterBoxed = $"throw new NotSupportedException()";
+                    }
+                    else
+                    {
+                        getter = $"(({propertySymbol.ContainingType.ToString()})x!).{propertySymbol.Name}";
+                        getterBoxed = $"(({propertySymbol.ContainingType.ToString()})x!).{propertySymbol.Name}";
+                    }
+                }
+                else
+                {
+                    if (propertySymbol.IsStatic)
+                    {
+                        getter = $"{propertySymbol.ContainingType.ToString()}.{propertySymbol.Name}";
+                        getterBoxed = $"{propertySymbol.ContainingType.ToString()}.{propertySymbol.Name}";
+                    }
+                    else
+                    {
+                        getter = $"x!.{propertySymbol.Name}";
+                        getterBoxed = $"(({parentTypeName})x!).{propertySymbol.Name}";
+                    }
+                }
+            }
+            else
+            {
+                getter = $"throw new NotSupportedException()";
+                getterBoxed = $"throw new NotSupportedException()";
+            }
+
+            string setter;
+            string setterBoxed;
+            if (hasSetter)
+            {
+                if (isInterface)
+                {
+                    if (propertySymbol.IsStatic)
+                    {
+                        hasSetter = false;
+                        setter = $"throw new NotSupportedException()";
+                        setterBoxed = $"throw new NotSupportedException()";
+                    }
+                    else
+                    {
+                        setter = $"(({propertySymbol.ContainingType.ToString()})x!).{propertySymbol.Name} = value";
+                        setterBoxed = $"(({propertySymbol.ContainingType.ToString()})x!).{propertySymbol.Name} = ({typeName})value!";
+                    }
+                }
+                else
+                {
+                    if (propertySymbol.IsStatic)
+                    {
+                        setter = $"{propertySymbol.ContainingType.ToString()}.{propertySymbol.Name} = value";
+                        setterBoxed = $"{propertySymbol.ContainingType.ToString()}.{propertySymbol.Name} = ({typeName})value!";
+                    }
+                    else
+                    {
+                        setter = $"x!.{propertySymbol.Name} = value";
+                        setterBoxed = $"(({propertySymbol.ContainingType.ToString()})x!).{propertySymbol.Name} = ({typeName})value!";
+                    }
+                }
+            }
+            else
+            {
+                setter = $"throw new NotSupportedException()";
+                setterBoxed = $"throw new NotSupportedException()";
+            }
+
 
             var attributes = GenerateAttributes(propertySymbol);
 
             var code = $$""""
 
-                        public sealed class {{className}} : MemberDetailGenerationBase<{{parentTypeName}}, {{typeName}}>
+                        public sealed class {{className}} : MemberDetailCompiletimeBase<{{parentTypeName}}, {{typeName}}>
                         {
                             public {{className}}(object locker, Action loadMemberInfo) : base(locker, loadMemberInfo) { }
 
@@ -758,18 +1147,18 @@ namespace Zerra.SourceGeneration
 
                             public override bool IsBacked => {{(isBacked ? "true" : "false")}};
 
-                            public override Func<{{parentTypeName}}, {{typeName}}> Getter => (x) => {{(hasGetter ? $"{(isStatic ? propertySymbol.ContainingType.Name : "x")}.{memberName}" : "throw new NotSupportedException()")}};
+                            public override Func<{{parentTypeName}}, {{typeName}}> Getter => (x) => {{getter}};
                             public override bool HasGetter => {{(hasGetter ? "true" : "false")}};
 
-                            public override Action<{{parentTypeName}}, {{typeName}}> Setter => {{(hasSetter ? $"(x, value) => {(isStatic ? propertySymbol.ContainingType.Name : "x")}.{memberName} = value" : "throw new NotSupportedException()")}};
+                            public override Action<{{parentTypeName}}, {{typeName}}> Setter => (x, value) => {{setter}};
                             public override bool HasSetter => {{(hasSetter ? "true" : "false")}};
 
                             protected override Func<Attribute[]> CreateAttributes => () => {{attributes}};
 
-                            public override Func<object, object?> GetterBoxed => (x) => {{(hasGetter ? $"{(isStatic ? propertySymbol.ContainingType.Name : $"(({parentTypeName})x)")}.{memberName}" : "throw new NotSupportedException()")}};
+                            public override Func<object, object?> GetterBoxed => (x) => {{getterBoxed}};
                             public override bool HasGetterBoxed => {{(hasGetter ? "true" : "false")}};
 
-                            public override Action<object, object?> SetterBoxed => (x, value) => {{(hasSetter ? $"{(isStatic ? propertySymbol.ContainingType.Name : $"(({parentTypeName})x)")}.{memberName} = ({typeName})value!" : "throw new NotSupportedException()")}};
+                            public override Action<object, object?> SetterBoxed => (x, value) => {{setterBoxed}};
                             public override bool HasSetterBoxed => {{(hasSetter ? "true" : "false")}};
 
                             protected override Func<MemberDetail<{{parentTypeName}}, {{typeName}}>?> CreateBackingFieldDetail => {{(fieldClassName is null ? "() => null" : $"() => new {fieldClassName}(locker, loadMemberInfo)")}};
@@ -779,11 +1168,11 @@ namespace Zerra.SourceGeneration
             membersToInitialize.Add(className);
             _ = sbChildClasses.Append(code);
         }
-        private static void GeneratePrivateMember(IPropertySymbol propertySymbol, int propertyTotal, IFieldSymbol[] fieldSymbols, HashSet<IFieldSymbol> backingFields, string parentTypeName, int methodNumber, List<string> membersToInitialize, StringBuilder sbChildClasses)
+        private static void GeneratePrivateMember(string memberName, IPropertySymbol propertySymbol, int propertyTotal, IEnumerable<IFieldSymbol> fieldSymbols, HashSet<IFieldSymbol> backingFields, string parentTypeName, int methodNumber, List<string> membersToInitialize, StringBuilder sbChildClasses)
         {
-            var memberName = propertySymbol.Name;
             var className = $"MemberDetail_{methodNumber}";
             var typeName = propertySymbol.Type.ToString();
+            var isInterface = propertySymbol.ContainingType.TypeKind == TypeKind.Interface;
 
             //<{property.Name}>k__BackingField
             //<{property.Name}>i__Field
@@ -812,20 +1201,63 @@ namespace Zerra.SourceGeneration
 
             var code = $$""""
 
-                        public sealed class {{className}} : PrivateMemberDetailGenerationBase<{{parentTypeName}}, {{typeName}}>
+                        public sealed class {{className}} : PrivateMemberDetailCompiletimeBase<{{parentTypeName}}, {{typeName}}>
                         {
                             public {{className}}(object locker, Action loadMemberInfo) : base(locker, loadMemberInfo) { }
 
                             public override string Name => "{{memberName}}";
-
-                            private readonly Type type = {{GetTypeOfName(propertySymbol.Type)}};
-                            public override Type Type => type;
 
                             public override bool IsBacked => {{(isBacked ? "true" : "false")}};
 
                             protected override Func<Attribute[]> CreateAttributes => () => {{attributes}};
 
                             protected override Func<MemberDetail<{{parentTypeName}}, {{typeName}}>?> CreateBackingFieldDetail => {{(fieldClassName is null ? "() => null" : $"() => new {fieldClassName}(locker, loadMemberInfo)")}};
+                        }
+                """";
+
+            membersToInitialize.Add(className);
+            _ = sbChildClasses.Append(code);
+        }
+        private static void GeneratePrivateTypeMember(string memberName, IPropertySymbol propertySymbol, int propertyTotal, IEnumerable<IFieldSymbol> fieldSymbols, HashSet<IFieldSymbol> backingFields, string parentTypeName, int methodNumber, List<string> membersToInitialize, StringBuilder sbChildClasses)
+        {
+            var className = $"MemberDetail_{methodNumber}";
+            var typeName = propertySymbol.Type.ToString();
+            var isInterface = propertySymbol.ContainingType.TypeKind == TypeKind.Interface;
+
+            //<{property.Name}>k__BackingField
+            //<{property.Name}>i__Field
+            var backingName = $"<{propertySymbol.Name}>";
+            IFieldSymbol? fieldSymbol = null;
+            var fieldMemberNumber = propertyTotal;
+            foreach (var f in fieldSymbols)
+            {
+                fieldMemberNumber++;
+                if (f.Name.StartsWith(backingName))
+                {
+                    fieldSymbol = f;
+                    break;
+                }
+            }
+            var isBacked = false;
+            if (fieldSymbol is not null)
+            {
+                backingFields.Add(fieldSymbol);
+                isBacked = true;
+            }
+
+            var attributes = GenerateAttributes(propertySymbol);
+
+            var code = $$""""
+
+                        public sealed class {{className}} : PrivateTypeMemberDetailCompiletimeBase
+                        {
+                            public {{className}}(object locker, Action loadMemberInfo) : base(locker, loadMemberInfo) { }
+
+                            public override string Name => "{{memberName}}";
+
+                            public override bool IsBacked => {{(isBacked ? "true" : "false")}};
+
+                            protected override Func<Attribute[]> CreateAttributes => () => {{attributes}};
                         }
                 """";
 
@@ -838,15 +1270,13 @@ namespace Zerra.SourceGeneration
             var className = $"MemberDetail_{methodNumber}";
             var typeName = fieldSymbol.Type.ToString();
 
-            var isStatic = fieldSymbol.IsStatic;
-
             var hasSetter = !fieldSymbol.IsReadOnly && !fieldSymbol.IsConst;
 
             var attributes = GenerateAttributes(fieldSymbol);
 
             var code = $$""""
 
-                        public sealed class {{className}} : MemberDetailGenerationBase<{{parentTypeName}}, {{typeName}}>
+                        public sealed class {{className}} : MemberDetailCompiletimeBase<{{parentTypeName}}, {{typeName}}>
                         {
                             public {{className}}(object locker, Action loadMemberInfo) : base(locker, loadMemberInfo) { }
 
@@ -857,18 +1287,18 @@ namespace Zerra.SourceGeneration
 
                             public override bool IsBacked => true;
 
-                            public override Func<{{parentTypeName}}, {{typeName}}> Getter => (x) => {{(isStatic ? fieldSymbol.ContainingType.Name : "x")}}.{{memberName}};
+                            public override Func<{{parentTypeName}}, {{typeName}}> Getter => (x) => {{(fieldSymbol.IsStatic ? fieldSymbol.ContainingType.ToString() : "x!")}}.{{fieldSymbol.Name}};
                             public override bool HasGetter => true;
 
-                            public override Action<{{parentTypeName}}, {{typeName}}> Setter => {{(hasSetter ? $"(x, value) => {(isStatic ? fieldSymbol.ContainingType.Name : "x")}.{memberName} = value" : "throw new NotSupportedException()")}};
+                            public override Action<{{parentTypeName}}, {{typeName}}> Setter => {{(hasSetter ? $"(x, value) => {(fieldSymbol.IsStatic ? fieldSymbol.ContainingType.ToString() : "x!")}.{fieldSymbol.Name} = value" : "throw new NotSupportedException()")}};
                             public override bool HasSetter => {{(hasSetter ? "true" : "false")}};
 
                             protected override Func<Attribute[]> CreateAttributes => () => {{attributes}};
 
-                            public override Func<object, object?> GetterBoxed => (x) => {{(isStatic ? fieldSymbol.ContainingType.Name : $"(({parentTypeName})x)")}}.{{memberName}};
+                            public override Func<object, object?> GetterBoxed => (x) => {{(fieldSymbol.IsStatic ? fieldSymbol.ContainingType.ToString() : $"(({fieldSymbol.ContainingType.ToString()})x!)")}}.{{fieldSymbol.Name}};
                             public override bool HasGetterBoxed => true;
 
-                            public override Action<object, object?> SetterBoxed => (x, value) => {{(hasSetter ? $"{(isStatic ? fieldSymbol.ContainingType.Name : $"(({parentTypeName})x)")}.{memberName} = ({typeName})value!" : "throw new NotSupportedException()")}};
+                            public override Action<object, object?> SetterBoxed => (x, value) => {{(hasSetter ? $"{(fieldSymbol.IsStatic ? fieldSymbol.ContainingType.ToString() : $"(({fieldSymbol.ContainingType.ToString()})x!)")}.{fieldSymbol.Name} = ({typeName})value!" : "throw new NotSupportedException()")}};
                             public override bool HasSetterBoxed => {{(hasSetter ? "true" : "false")}};
 
                             protected override Func<MemberDetail<{{parentTypeName}}, {{typeName}}>?> CreateBackingFieldDetail => () => null;
@@ -889,20 +1319,43 @@ namespace Zerra.SourceGeneration
 
             var code = $$""""
 
-                        public sealed class {{className}} : PrivateMemberDetailGenerationBase<{{parentTypeName}}, {{typeName}}>
+                        public sealed class {{className}} : PrivateMemberDetailCompiletimeBase<{{parentTypeName}}, {{typeName}}>
                         {
                             public {{className}}(object locker, Action loadMemberInfo) : base(locker, loadMemberInfo) { }
 
                             public override string Name => "{{memberName}}";
-
-                            private readonly Type type = {{GetTypeOfName(fieldSymbol.Type)}};
-                            public override Type Type => type;
 
                             public override bool IsBacked => true;
 
                             protected override Func<Attribute[]> CreateAttributes => () => {{attributes}};
 
                             protected override Func<MemberDetail<{{parentTypeName}}, {{typeName}}>?> CreateBackingFieldDetail => () => null;
+                        }
+                """";
+
+            if (!backingFields.Contains(fieldSymbol))
+                membersToInitialize.Add(className);
+            _ = sbChildClasses.Append(code);
+        }
+        private static void GeneratePrivateTypeMember(IFieldSymbol fieldSymbol, string parentTypeName, HashSet<IFieldSymbol> backingFields, int methodNumber, List<string> membersToInitialize, StringBuilder sbChildClasses)
+        {
+            var memberName = fieldSymbol.Name;
+            var className = $"MemberDetail_{methodNumber}";
+            var typeName = fieldSymbol.Type.ToString();
+
+            var attributes = GenerateAttributes(fieldSymbol);
+
+            var code = $$""""
+
+                        public sealed class {{className}} : PrivateTypeMemberDetailCompiletimeBase
+                        {
+                            public {{className}}(object locker, Action loadMemberInfo) : base(locker, loadMemberInfo) { }
+
+                            public override string Name => "{{memberName}}";
+
+                            public override bool IsBacked => true;
+
+                            protected override Func<Attribute[]> CreateAttributes => () => {{attributes}};
                         }
                 """";
 
@@ -937,16 +1390,18 @@ namespace Zerra.SourceGeneration
             var parameterName = parameterSymbol.Name;
             var className = $"ParameterDetail_{parentName}_{parameterNumber}";
 
+            var t = GetTypeOfName(parameterSymbol.Type);
+
             var code = $$""""
 
-                        public sealed class {{className}} : ParameterDetailGenerationBase
+                        public sealed class {{className}} : ParameterDetailCompiletimeBase
                         {
                             public {{className}}(object locker, Action loadParameterInfo) : base(locker, loadParameterInfo) { }
 
-                            public override string Name => "{{parameterName}}";
+                            public override string? Name => "{{parameterName}}";
 
-                            private readonly Type type = {{GetTypeOfName(parameterSymbol.Type)}};
-                            public override Type Type => type;
+                            private readonly Type? type = {{GetTypeOfName(parameterSymbol.Type, parameterSymbol.RefKind != RefKind.None)}};
+                            public override Type Type => type!;
                         }
                 """";
 
@@ -961,6 +1416,8 @@ namespace Zerra.SourceGeneration
             var baseTypeSymbol = typeSymbol.BaseType;
             while (baseTypeSymbol is not null)
             {
+                if (!CanBeReferencedAsCode(baseTypeSymbol))
+                    break;
                 if (sbBaseTypes.Length > 1)
                     _ = sbBaseTypes.Append(", ");
                 _ = sbBaseTypes.Append(GetTypeOfName(baseTypeSymbol));
@@ -976,6 +1433,8 @@ namespace Zerra.SourceGeneration
             _ = sbInterfaceTypes.Append('[');
             foreach (var i in typeSymbol.AllInterfaces)
             {
+                if (!CanBeReferencedAsCode(i))
+                    break;
                 if (sbInterfaceTypes.Length > 1)
                     _ = sbInterfaceTypes.Append(", ");
                 _ = sbInterfaceTypes.Append(GetTypeOfName(i));
@@ -991,8 +1450,17 @@ namespace Zerra.SourceGeneration
             _ = sbAttributes.Append('[');
             foreach (var attributeSymbol in attributeSymbols)
             {
-                if (attributeSymbol.AttributeClass.ContainingNamespace.ToString() == "System.Runtime.CompilerServices")
+                if (attributeSymbol.AttributeClass is null)
                     continue;
+                if (attributeSymbol.AttributeClass.ContainingNamespace.ToString().StartsWith("System.Runtime.CompilerServices"))
+                    continue;
+                if (attributeSymbol.AttributeClass.ContainingNamespace.ToString().StartsWith("System.Diagnostics"))
+                    continue;
+                if (!CanBeReferencedAsCode(attributeSymbol.AttributeClass))
+                    continue;
+                if (attributeSymbol.ConstructorArguments.Any(x => x.Type is null || !CanBeReferencedAsCode(x.Type)))
+                    continue;
+
                 if (sbAttributes.Length > 1)
                     _ = sbAttributes.Append(", ");
                 _ = sbAttributes.Append("new ").Append(attributeSymbol.AttributeClass.ToString()).Append('(');
@@ -1030,13 +1498,16 @@ namespace Zerra.SourceGeneration
         {
             if (typeSymbol is INamedTypeSymbol namedTypeSymbol)
             {
+                if (!IsGenericDefined(namedTypeSymbol))
+                    return "[]";
+
                 var sbInnerTypes = new StringBuilder();
                 _ = sbInnerTypes.Append('[');
                 foreach (var type in namedTypeSymbol.TypeArguments)
                 {
                     if (sbInnerTypes.Length > 1)
                         _ = sbInnerTypes.Append(", ");
-                    _ = sbInnerTypes.Append($"typeof(").Append(type.ToString()).Append(')');
+                    _ = sbInnerTypes.Append(GetTypeOfName(type));
                 }
                 _ = sbInnerTypes.Append(']');
                 var attributes = sbInnerTypes.ToString();
@@ -1044,7 +1515,7 @@ namespace Zerra.SourceGeneration
             }
             else if (typeSymbol is IArrayTypeSymbol arrayTypeSymbol)
             {
-                return $"[typeof({arrayTypeSymbol.ElementType.ToString()})]";
+                return $"[{GetTypeOfName(arrayTypeSymbol.ElementType)}]";
             }
 
             return "[]";
@@ -1055,19 +1526,19 @@ namespace Zerra.SourceGeneration
             switch (constant.Kind)
             {
                 case TypedConstantKind.Primitive:
-                    if (constant.Type.Name == "String")
+                    if (constant.Type?.Name == "String")
                         _ = sb.Append("\"").Append(constant.Value?.ToString()).Append("\"");
-                    else if (constant.Type.Name == "Boolean")
-                        _ = sb.Append((bool)constant.Value ? "true" : "false");
+                    else if (constant.Type?.Name == "Boolean")
+                        _ = sb.Append((bool?)constant.Value == true ? "true" : "false");
                     else
                         _ = sb.Append(constant.Value?.ToString() ?? "null");
                     break;
                 case TypedConstantKind.Enum:
-                    _ = sb.Append('(').Append(constant.Type.ToString()).Append(')').Append(constant.Value.ToString());
+                    _ = sb.Append('(').Append(constant.Type!.ToString()).Append(')').Append(constant.Value?.ToString() ?? "null");
                     break;
                 case TypedConstantKind.Type:
                     //guessing
-                    _ = sb.Append("typeof(").Append(constant.Value.ToString()).Append(')');
+                    _ = sb.Append("typeof(").Append(constant.Value?.ToString() ?? "null").Append(')');
                     break;
                 case TypedConstantKind.Array:
                     var pastFirstValue = false;
@@ -1085,78 +1556,194 @@ namespace Zerra.SourceGeneration
             }
         }
 
-        private static string GetTypeOfName(ITypeSymbol typeSymbol)
+        private static string GetTypeOfName(ITypeSymbol typeSymbol, bool isByRef = false)
         {
-            if (typeSymbol.Name == "Void")
+            if (typeSymbol.Kind == SymbolKind.ErrorType)
                 return "null";
+            if (typeSymbol.Kind == SymbolKind.TypeParameter)
+                return "null";
+            if (typeSymbol.Kind == SymbolKind.PointerType)
+                return "typeof(nint)";
+            if (typeSymbol.Name == "Void")
+                return "typeof(void)";
+            if (!IsPublic(typeSymbol))
+                return "null";
+
             if (typeSymbol is INamedTypeSymbol namedTypeSymbol && namedTypeSymbol.TypeArguments.Length > 0)
             {
                 var sb = new StringBuilder();
-                if (typeSymbol.ContainingType is not null)
-                    _ = sb.Append($"typeof({typeSymbol.ContainingType}.{typeSymbol.Name}<");
+                _ = sb.Append("typeof(");
+                if (String.IsNullOrEmpty(typeSymbol.Name))
+                {
+                    sb.Append(typeSymbol.ToString().Replace("?", String.Empty));
+                }
                 else
-                    _ = sb.Append($"typeof({typeSymbol.ContainingNamespace}.{typeSymbol.Name}<");
+                {
+                    if (typeSymbol.ContainingType is not null)
+                        _ = sb.Append(typeSymbol.ContainingType).Append('.');
+                    else if (typeSymbol.ContainingNamespace is not null)
+                        _ = sb.Append(typeSymbol.ContainingNamespace).Append('.');
+                    _ = sb.Append(typeSymbol.Name);
+                }
+                _ = sb.Append('<');
 
-                var constructed = namedTypeSymbol.TypeArguments.All(x => x.IsDefinition);
+                var constructed = IsGenericDefined(namedTypeSymbol);
                 for (var i = 0; i < namedTypeSymbol.TypeArguments.Length; i++)
                 {
                     if (i > 0)
                         _ = sb.Append(',');
                     if (constructed)
-                        _ = sb.Append(GetTypeOfNameRecursive(namedTypeSymbol.TypeArguments[i]));
+                        GetTypeOfNameRecursive(namedTypeSymbol.TypeArguments[i], sb);
                 }
 
                 _ = sb.Append(">)");
+                if (isByRef)
+                    _ = sb.Append(".MakeByRefType()");
                 return sb.ToString();
             }
             else
             {
                 if (String.IsNullOrEmpty(typeSymbol.Name))
-                {
-                    return $"typeof({typeSymbol.ToString().Replace("?", String.Empty)})";
-                }
-                if (typeSymbol.ContainingType is not null)
-                    return $"typeof({typeSymbol.ContainingType}.{typeSymbol.Name})";
+                    return $"typeof({typeSymbol.ToString().Replace("?", String.Empty)}){(isByRef ? ".MakeByRefType()" : null)}";
+                else if (typeSymbol.ContainingType is not null)
+                    return $"typeof({typeSymbol.ContainingType}.{typeSymbol.Name}){(isByRef ? ".MakeByRefType()" : null)}";
+                else if (typeSymbol.ContainingNamespace is not null)
+                    return $"typeof({typeSymbol.ContainingNamespace}.{typeSymbol.Name}){(isByRef ? ".MakeByRefType()" : null)}";
                 else
-                    return $"typeof({typeSymbol.ContainingNamespace}.{typeSymbol.Name})";
-
+                    return $"typeof({typeSymbol.Name}){(isByRef ? ".MakeByRefType()" : null)}";
             }
         }
-        private static string GetTypeOfNameRecursive(ITypeSymbol typeSymbol)
+        private static void GetTypeOfNameRecursive(ITypeSymbol typeSymbol, StringBuilder sb)
         {
-            if (typeSymbol.Name == "Void")
-                return "null";
+            if (String.IsNullOrEmpty(typeSymbol.Name))
+            {
+                sb.Append(typeSymbol.ToString().Replace("?", String.Empty));
+                return;
+            }
+
+            if (typeSymbol.ContainingType is not null)
+                _ = sb.Append(typeSymbol.ContainingType).Append('.');
+            else if (typeSymbol.ContainingNamespace is not null)
+                _ = sb.Append(typeSymbol.ContainingNamespace).Append('.');
+            _ = sb.Append(typeSymbol.Name);
+
             if (typeSymbol is INamedTypeSymbol namedTypeSymbol && namedTypeSymbol.TypeArguments.Length > 0)
             {
-                var sb = new StringBuilder();
-                if (typeSymbol.ContainingType is not null)
-                    _ = sb.Append($"{typeSymbol.ContainingType}.{typeSymbol.Name}<");
-                else
-                    _ = sb.Append($"{typeSymbol.ContainingNamespace}.{typeSymbol.Name}<");
-
-                var constructed = namedTypeSymbol.TypeArguments.All(x => x.IsDefinition);
+                var constructed = IsGenericDefined(namedTypeSymbol);
+                _ = sb.Append('<');
                 for (var i = 0; i < namedTypeSymbol.TypeArguments.Length; i++)
                 {
                     if (i > 0)
                         _ = sb.Append(',');
                     if (constructed)
-                        _ = sb.Append(GetTypeOfNameRecursive(namedTypeSymbol.TypeArguments[i]));
+                        GetTypeOfNameRecursive(namedTypeSymbol.TypeArguments[i], sb);
                 }
 
-                _ = sb.Append(">");
-                return sb.ToString();
+                _ = sb.Append('>');
             }
-            else
+        }
+
+        private static bool IsGenericDefined(INamedTypeSymbol namedTypeSymbol)
+        {
+            foreach (var argument in namedTypeSymbol.TypeArguments)
             {
-                if (String.IsNullOrEmpty(typeSymbol.Name))
-                {
-                    return typeSymbol.ToString().Replace("?", String.Empty);
-                }
-                if (typeSymbol.ContainingType is not null)
-                    return $"{typeSymbol.ContainingType}.{typeSymbol.Name}";
-                else
-                    return $"{typeSymbol.ContainingNamespace}.{typeSymbol.Name}";
+                if (argument.Kind == SymbolKind.ErrorType)
+                    return false;
+                if (argument.Kind == SymbolKind.TypeParameter)
+                    return false;
+                if (argument is not INamedTypeSymbol argumemtNamedTypeSymbol)
+                    return false;
+                if (!IsGenericDefined(argumemtNamedTypeSymbol))
+                    return false;
             }
+
+            return true;
+        }
+        private static bool IsPublic(ITypeSymbol typeSymbol)
+        {
+            if (typeSymbol.DeclaredAccessibility != Accessibility.Public && typeSymbol.DeclaredAccessibility != Accessibility.NotApplicable)
+                return false;
+            if (typeSymbol.Kind == SymbolKind.NamedType && typeSymbol is INamedTypeSymbol namedTypeSymbol)
+            {
+                foreach (var argument in namedTypeSymbol.TypeArguments)
+                {
+                    if (!IsPublic(argument))
+                        return false;
+                }
+            }
+            if (typeSymbol.Kind == SymbolKind.ArrayType && typeSymbol is IArrayTypeSymbol arrayTypeSymbol)
+            {
+                if (!IsPublic(arrayTypeSymbol.ElementType))
+                    return false;
+            }
+            return true;
+        }
+        private static bool CanBeReferencedAsCode(ITypeSymbol typeSymbol)
+        {
+            if (typeSymbol.DeclaredAccessibility != Accessibility.Public && typeSymbol.DeclaredAccessibility != Accessibility.NotApplicable)
+                return false;
+            if (typeSymbol.IsRefLikeType)
+                return false;
+            if (typeSymbol.Kind == SymbolKind.FunctionPointerType)
+                return false;
+            if (typeSymbol.Kind == SymbolKind.NamedType && typeSymbol is INamedTypeSymbol namedTypeSymbol)
+            {
+                foreach (var argument in namedTypeSymbol.TypeArguments)
+                {
+                    if (!CanBeReferencedAsCode(argument))
+                        return false;
+                }
+            }
+            if (typeSymbol.Kind == SymbolKind.ArrayType && typeSymbol is IArrayTypeSymbol arrayTypeSymbol)
+            {
+                if (!CanBeReferencedAsCode(arrayTypeSymbol.ElementType))
+                    return false;
+            }
+            return true;
+        }
+
+        private static string AdjustName(string name, bool removeNamespace)
+        {
+            Span<char> chars = name.ToCharArray();
+            var nameStart = 0;
+            var nameEnd = -1;
+            var openCount = 0;
+            var typeCount = 0;
+            for (var i = 0; i < chars.Length; i++)
+            {
+                switch (chars[i])
+                {
+                    case '.':
+                        if (removeNamespace && openCount == 0)
+                        {
+                            nameStart = i + 1;
+                            nameEnd = -1;
+                            typeCount = 0;
+                        }
+                        break;
+                    case '<':
+                        if (nameEnd == -1)
+                        {
+                            typeCount++;
+                            nameEnd = i;
+                        }
+                        openCount++;
+                        break;
+                    case '>':
+                        openCount--;
+                        break;
+                    case ',':
+                        if (openCount == 1)
+                        {
+                            typeCount++;
+                        }
+                        break;
+                }
+            }
+            if (nameEnd == -1)
+                return name;
+            var result = $"{chars.Slice(nameStart, nameEnd - nameStart).ToString()}`{typeCount}";
+            return result;
         }
     }
 }

@@ -42,10 +42,10 @@ namespace Zerra.SourceGeneration
             { "DateTime", CoreType.DateTime },
             { "DateTimeOffset", CoreType.DateTimeOffset },
             { "TimeSpan", CoreType.TimeSpan },
-#if NET6_0_OR_GREATER
+
             { "DateOnly", CoreType.DateOnly },
             { "TimeOnly", CoreType.TimeOnly },
-#endif
+
             { "Guid", CoreType.Guid },
 
             { "string", CoreType.String },
@@ -82,10 +82,10 @@ namespace Zerra.SourceGeneration
             { "DateTime?", CoreType.DateTimeNullable },
             { "DateTimeOffset?", CoreType.DateTimeOffsetNullable },
             { "TimeSpan?", CoreType.TimeSpanNullable },
-#if NET6_0_OR_GREATER
+
             { "DateOnly?", CoreType.DateOnlyNullable },
             { "TimeOnly?", CoreType.TimeOnlyNullable },
-#endif
+
             { "Guid?", CoreType.GuidNullable }
         };
         public static bool CoreTypeLookup(string type, out CoreType coreType)

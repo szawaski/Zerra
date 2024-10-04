@@ -15,6 +15,7 @@ namespace Zerra
     public class TypeKey
     {
         private readonly string? str;
+        private readonly int? number;
         private readonly Type? type1;
         private readonly Type? type2;
         private readonly Type[]? typeArray;
@@ -24,9 +25,10 @@ namespace Zerra
         /// </summary>
         /// <param name="type1">A type for the hash.</param>
         /// <param name="type2">A type for the hash.</param>
-        public TypeKey(Type? type1, Type type2)
+        public TypeKey(Type? type1, Type? type2)
         {
             this.str = null;
+            this.number = null;
             this.type1 = type1;
             this.type2 = type2;
             this.typeArray = null;
@@ -38,6 +40,7 @@ namespace Zerra
         public TypeKey(Type[]? typeArray)
         {
             this.str = null;
+            this.number = null;
             this.type1 = null;
             this.type2 = null;
             this.typeArray = typeArray;
@@ -47,9 +50,10 @@ namespace Zerra
         /// </summary>
         /// <param name="type1">A type for the hash.</param>
         /// <param name="typeArray">Types for the hash.</param>
-        public TypeKey(Type type1, Type[]? typeArray)
+        public TypeKey(Type? type1, Type[]? typeArray)
         {
             this.str = null;
+            this.number = null;
             this.type1 = type1;
             this.type2 = null;
             this.typeArray = typeArray;
@@ -63,6 +67,7 @@ namespace Zerra
         public TypeKey(Type? type1, Type? type2, Type[]? typeArray)
         {
             this.str = null;
+            this.number = null;
             this.type1 = type1;
             this.type2 = type2;
             this.typeArray = typeArray;
@@ -75,6 +80,7 @@ namespace Zerra
         public TypeKey(string? str, Type? type1)
         {
             this.str = str;
+            this.number = null;
             this.type1 = type1;
             this.type2 = null;
             this.typeArray = null;
@@ -88,6 +94,7 @@ namespace Zerra
         public TypeKey(string? str, Type? type1, Type? type2)
         {
             this.str = str;
+            this.number = null;
             this.type1 = type1;
             this.type2 = type2;
             this.typeArray = null;
@@ -100,6 +107,7 @@ namespace Zerra
         public TypeKey(string? str, Type[]? typeArray)
         {
             this.str = str;
+            this.number = null;
             this.type1 = null;
             this.type2 = null;
             this.typeArray = typeArray;
@@ -113,6 +121,7 @@ namespace Zerra
         public TypeKey(string? str, Type? type1, Type[]? typeArray)
         {
             this.str = str;
+            this.number = null;
             this.type1 = type1;
             this.type2 = null;
             this.typeArray = typeArray;
@@ -124,11 +133,40 @@ namespace Zerra
         /// <param name="type1">A type for the hash.</param>
         /// <param name="type2">A type for the hash.</param>
         /// <param name="typeArray">Types for the hash.</param>
-        public TypeKey(string str, Type type1, Type type2, Type[] typeArray)
+        public TypeKey(string str, Type? type1, Type? type2, Type[]? typeArray)
         {
             this.str = str;
+            this.number = null;
             this.type1 = type1;
             this.type2 = type2;
+            this.typeArray = typeArray;
+        }
+
+        /// <summary>
+        /// Creates a new TypeKey.
+        /// </summary>
+        /// <param name="str">A string for the hash.</param>
+        /// <param name="number">A number for the hash.</param>
+        public TypeKey(string str, int? number)
+        {
+            this.str = str;
+            this.number = number;
+            this.type1 = null;
+            this.type2 = null;
+            this.typeArray = null;
+        }
+        /// <summary>
+        /// Creates a new TypeKey.
+        /// </summary>
+        /// <param name="str">A string for the hash.</param>
+        /// <param name="number">A number for the hash.</param>
+        ///  <param name="typeArray">Types for the hash.</param>
+        public TypeKey(string str, int? number, Type[]? typeArray)
+        {
+            this.str = str;
+            this.number = number;
+            this.type1 = null;
+            this.type2 = null;
             this.typeArray = typeArray;
         }
 
@@ -141,7 +179,7 @@ namespace Zerra
         {
             if (obj is not TypeKey objCasted)
                 return false;
-            if (this.type1 != objCasted.type1 || this.type2 != objCasted.type2 || this.typeArray?.Length != objCasted.typeArray?.Length || this.str != objCasted.str)
+            if (this.number != objCasted.number || this.type1 != objCasted.type1 || this.type2 != objCasted.type2 || this.typeArray?.Length != objCasted.typeArray?.Length || this.str != objCasted.str)
                 return false;
 
             if (this.typeArray != null && objCasted.typeArray != null)
@@ -165,42 +203,41 @@ namespace Zerra
 #if !NETSTANDARD2_0
 
             if (typeArray == null)
-                return HashCode.Combine(str, type1, type2);
+                return HashCode.Combine(str, number, type1, type2);
 
             switch (typeArray.Length)
             {
-                case 0: return HashCode.Combine(str, type1, type2);
-                case 1: return HashCode.Combine(str, type1, type2, typeArray[0]);
-                case 2: return HashCode.Combine(str, type1, type2, typeArray[0], typeArray[1]);
-                case 3: return HashCode.Combine(str, type1, type2, typeArray[0], typeArray[1], typeArray[2]);
-                case 4: return HashCode.Combine(str, type1, type2, typeArray[0], typeArray[1], typeArray[2], typeArray[3]);
-                case 5: return HashCode.Combine(str, type1, type2, typeArray[0], typeArray[1], typeArray[2], typeArray[3], typeArray[4]);
+                case 0: return HashCode.Combine(str, number, type1, type2);
+                case 1: return HashCode.Combine(str, number, type1, type2, typeArray[0]);
+                case 2: return HashCode.Combine(str, number, type1, type2, typeArray[0], typeArray[1]);
+                case 3: return HashCode.Combine(str, number, type1, type2, typeArray[0], typeArray[1], typeArray[2]);
+                case 4: return HashCode.Combine(str, number, type1, type2, typeArray[0], typeArray[1], typeArray[2], typeArray[3]);
+                case 5:
+                    return HashCode.Combine(str, number, type1, type2, typeArray[0], typeArray[1], typeArray[2], 
+                        HashCode.Combine(typeArray[3], typeArray[4]));
                 case 6:
-                    return HashCode.Combine(str, type1, type2, typeArray[0], typeArray[1], typeArray[2], typeArray[3],
-                        HashCode.Combine(typeArray[4], typeArray[5]));
+                    return HashCode.Combine(str, number, type1, type2, typeArray[0], typeArray[1], typeArray[2],
+                        HashCode.Combine(typeArray[3], typeArray[4], typeArray[5]));
                 case 7:
-                    return HashCode.Combine(str, type1, type2, typeArray[0], typeArray[1], typeArray[2], typeArray[3],
-                        HashCode.Combine(typeArray[4], typeArray[5], typeArray[6]));
+                    return HashCode.Combine(str, number, type1, type2, typeArray[0], typeArray[1], typeArray[2],
+                        HashCode.Combine(typeArray[3], typeArray[4], typeArray[5], typeArray[6]));
                 case 8:
-                    return HashCode.Combine(str, type1, type2, typeArray[0], typeArray[1], typeArray[2], typeArray[3],
-                        HashCode.Combine(typeArray[4], typeArray[5], typeArray[6], typeArray[7]));
+                    return HashCode.Combine(str, number, type1, type2, typeArray[0], typeArray[1], typeArray[2],
+                        HashCode.Combine(typeArray[3], typeArray[4], typeArray[5], typeArray[6], typeArray[7]));
                 case 9:
-                    return HashCode.Combine(str, type1, type2, typeArray[0], typeArray[1], typeArray[2], typeArray[3],
-                        HashCode.Combine(typeArray[4], typeArray[5], typeArray[6], typeArray[7], typeArray[8]));
+                    return HashCode.Combine(str, number, type1, type2, typeArray[0], typeArray[1], typeArray[2],
+                        HashCode.Combine(typeArray[3], typeArray[4], typeArray[5], typeArray[6], typeArray[7], typeArray[8]));
                 case 10:
-                    return HashCode.Combine(str, type1, type2, typeArray[0], typeArray[1], typeArray[2], typeArray[3],
-                        HashCode.Combine(typeArray[4], typeArray[5], typeArray[6], typeArray[7], typeArray[8], typeArray[9]));
+                    return HashCode.Combine(str, number, type1, type2, typeArray[0], typeArray[1], typeArray[2],
+                        HashCode.Combine(typeArray[3], typeArray[4], typeArray[5], typeArray[6], typeArray[7], typeArray[8], typeArray[9]));
                 case 11:
-                    return HashCode.Combine(str, type1, type2, typeArray[0], typeArray[1], typeArray[2], typeArray[3],
-                        HashCode.Combine(typeArray[4], typeArray[5], typeArray[6], typeArray[7], typeArray[8], typeArray[9], typeArray[10]));
-                case 12:
-                    return HashCode.Combine(str, type1, type2, typeArray[0], typeArray[1], typeArray[2], typeArray[3],
-                        HashCode.Combine(typeArray[4], typeArray[5], typeArray[6], typeArray[7], typeArray[8], typeArray[9], typeArray[10], typeArray[11]));
+                    return HashCode.Combine(str, number, type1, type2, typeArray[0], typeArray[1], typeArray[2],
+                        HashCode.Combine(typeArray[3], typeArray[4], typeArray[5], typeArray[6], typeArray[7], typeArray[8], typeArray[9], typeArray[10]));
             }
 
-            var code = HashCode.Combine(str, type1, type2, typeArray[0], typeArray[1], typeArray[2], typeArray[3],
-                            HashCode.Combine(typeArray[4], typeArray[5], typeArray[6], typeArray[7], typeArray[8], typeArray[9], typeArray[10], typeArray[11]));
-            for (var i = 12; i < typeArray.Length; i++)
+            var code = HashCode.Combine(str, number, type1, type2, typeArray[0], typeArray[1], typeArray[2],
+                            HashCode.Combine(typeArray[3], typeArray[4], typeArray[5], typeArray[6], typeArray[7], typeArray[8], typeArray[9], typeArray[10]));
+            for (var i = 11; i < typeArray.Length; i++)
                 code = HashCode.Combine(code, typeArray[i]);
 
             return code;
@@ -210,6 +247,8 @@ namespace Zerra
                 var hash = (int)2166136261;
                 if (str != null)
                     hash = (hash * 16777619) ^ str.GetHashCode();
+                if (number != null)
+                    hash = (hash * 16777619) ^ number.GetHashCode();
                 if (type1 != null)
                     hash = (hash * 16777619) ^ type1.GetHashCode();
                 if (type2 != null)
@@ -234,6 +273,12 @@ namespace Zerra
             if (str != null)
             {
                 _ = sb.Append(str);
+            }
+            if (number != null)
+            {
+                if (sb.Length > 0)
+                    _ = sb.Append(", ");
+                _ = sb.Append(number);
             }
             if (type1 != null)
             {

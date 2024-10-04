@@ -1,4 +1,8 @@
-﻿// Copyright © KaKush LLC
+﻿namespace Zerra.Test
+{
+    public static class TypesToGenerateCode
+    {
+        public static string Code { get; } = @"// Copyright © KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -8,10 +12,20 @@ using System.Collections.Generic;
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
-namespace Zerra.Reflection.Generation
+namespace Zerra.Reflection.Compiletime
 {
     internal class TypesToGenerate
     {
+        public object Object { get; set; }
+
+        #region Generics
+
+        public IList<object> IListMakeUnbounded { get; set; }
+        public ICollection<object> ICollectionMakeUnbounded { get; set; }
+        public IEnumerable<object> IEnumerableMakeUnbounded { get; set; }
+
+        #endregion
+
         #region Non-Generics
 
         public IList IList { get; set; }
@@ -617,5 +631,8 @@ namespace Zerra.Reflection.Generation
 
         #endregion
 
+    }
+}
+";
     }
 }

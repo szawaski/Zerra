@@ -3,19 +3,33 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-namespace Zerra.Reflection.Generation
+namespace Zerra.Reflection.Compiletime
 {
-    public abstract class PrivateMemberDetailGenerationBase<T, V> : MemberDetail<T, V>
+    public abstract class PrivateMemberDetailCompiletimeBase<T, V> : MemberDetail<T, V>
     {
         protected readonly object locker;
         private readonly Action loadMemberInfo;
-        public PrivateMemberDetailGenerationBase(object locker, Action loadMemberInfo)
+        public PrivateMemberDetailCompiletimeBase(object locker, Action loadMemberInfo)
         {
             this.locker = locker;
             this.loadMemberInfo = loadMemberInfo;
         }
 
-        public override sealed TypeDetail<V> TypeDetail => TypeAnalyzer<V>.GetTypeDetail();
+        public override sealed bool IsGenerated => true;
+
+        private TypeDetail<V>? typeDetail = null;
+        public override sealed TypeDetail<V> TypeDetail
+        {
+            get
+            {
+                if (typeDetail is null)
+                {
+                    lock (locker)
+                        typeDetail ??= TypeAnalyzer<V>.GetTypeDetail();
+                }
+                return typeDetail;
+            }
+        }
         public override sealed TypeDetail TypeDetailBoxed => TypeDetail;
 
         private MemberInfo? memberInfo = null;
@@ -37,6 +51,9 @@ namespace Zerra.Reflection.Generation
                 return memberInfo!;
             }
         }
+
+        private Type type = typeof(V);
+        public override sealed Type Type => type;
 
         protected abstract Func<MemberDetail<T, V>?> CreateBackingFieldDetail { get; }
         private bool backingFieldDetailLoaded = false;
@@ -91,9 +108,11 @@ namespace Zerra.Reflection.Generation
             }
         }
 
-        internal override sealed void SetMemberInfo(MemberInfo memberInfo)
+        internal override sealed void SetMemberInfo(MemberInfo memberInfo, MemberInfo? backingField)
         {
             this.memberInfo = memberInfo;
+            if (backingField is not null)
+                BackingFieldDetail?.SetMemberInfo(backingField, null);
         }
 
         private bool getterBoxedLoaded = false;

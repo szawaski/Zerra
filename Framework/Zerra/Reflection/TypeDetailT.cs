@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Zerra.Collections;
+using Zerra.Reflection.Runtime;
 
 namespace Zerra.Reflection
 {
@@ -22,7 +23,7 @@ namespace Zerra.Reflection
         public override sealed Delegate? CreatorTyped => Creator;
 
         private ConcurrentFactoryDictionary<TypeKey, MethodDetail<T>?>? methodLookups = null;
-        private MethodDetail<T>? GetMethodInternal(string name, Type[]? parameterTypes = null)
+        private MethodDetail<T>? GetMethodInternal(string name, int? parameterCount, Type[]? parameterTypes)
         {
             var key = new TypeKey(name, parameterTypes);
             MethodDetail<T>? found = null;
@@ -31,7 +32,7 @@ namespace Zerra.Reflection
             {
                 foreach (var methodDetail in MethodDetails)
                 {
-                    if (SignatureCompare(name, parameterTypes, methodDetail))
+                    if (SignatureCompare(name, parameterCount, parameterTypes, methodDetail))
                     {
                         if (found != null)
                             throw new InvalidOperationException($"More than one method found for {name}");
@@ -42,11 +43,25 @@ namespace Zerra.Reflection
             });
             return method;
         }
-        public MethodDetail<T> GetMethod(string name, Type[]? parameterTypes = null)
+        public MethodDetail<T> GetMethod(string name)
         {
-            var method = GetMethodInternal(name, parameterTypes);
+            var method = GetMethodInternal(name, null, null);
             if (method == null)
-                throw new MissingMethodException($"{Type.Name}.{name} method not found for the given parameters {(parameterTypes == null || parameterTypes.Length == 0 ? "(none)" : String.Join(",", parameterTypes.Select(x => x.GetNiceName())))}");
+                throw new MissingMethodException($"{Type.Name}.{name} method not found");
+            return method;
+        }
+        public MethodDetail<T> GetMethod(string name, int parameterCount)
+        {
+            var method = GetMethodInternal(name, parameterCount, null);
+            if (method == null)
+                throw new MissingMethodException($"{Type.Name}.{name} method not found");
+            return method;
+        }
+        public MethodDetail<T> GetMethod(string name, Type[] parameterTypes)
+        {
+            var method = GetMethodInternal(name, null, parameterTypes);
+            if (method == null)
+                throw new MissingMethodException($"{Type.Name}.{name} method not found");
             return method;
         }
         public bool TryGetMethod(string name,
@@ -55,16 +70,25 @@ namespace Zerra.Reflection
 #endif
         out MethodDetail<T> method)
         {
-            method = GetMethodInternal(name, null);
+            method = GetMethodInternal(name, null, null);
             return method != null;
         }
-        public bool TryGetMethod(string name, Type[] parameterTypes,
+        public bool TryGetMethod(string name, int parameterCount,
 #if !NETSTANDARD2_0
             [MaybeNullWhen(false)]
 #endif
         out MethodDetail<T> method)
         {
-            method = GetMethodInternal(name, parameterTypes);
+            method = GetMethodInternal(name, parameterCount, null);
+            return method != null;
+        }
+        public bool TryGetMethod(string name, Type[] parameterTypes,
+#if !NETSTANDARD2_0
+    [MaybeNullWhen(false)]
+#endif
+        out MethodDetail<T> method)
+        {
+            method = GetMethodInternal(name, null, parameterTypes);
             return method != null;
         }
 
@@ -77,14 +101,14 @@ namespace Zerra.Reflection
             {
                 foreach (var constructorDetail in ConstructorDetails)
                 {
-                    if (parameterTypes == null || constructorDetail.ParametersDetails.Count == parameterTypes.Length)
+                    if (parameterTypes == null || constructorDetail.ParameterDetails.Count == parameterTypes.Length)
                     {
                         var match = true;
                         if (parameterTypes != null)
                         {
                             for (var i = 0; i < parameterTypes.Length; i++)
                             {
-                                if (parameterTypes[i].Name != constructorDetail.ParametersDetails[i].Type.Name || parameterTypes[i].Namespace != constructorDetail.ParametersDetails[i].Type.Namespace)
+                                if (parameterTypes[i].Name != constructorDetail.ParameterDetails[i].Type.Name || parameterTypes[i].Namespace != constructorDetail.ParameterDetails[i].Type.Namespace)
                                 {
                                     match = false;
                                     break;
@@ -126,5 +150,14 @@ namespace Zerra.Reflection
         }
 
         public TypeDetail(Type type) : base(type) { }
+
+        public TypeDetail<T> GetRuntimeTypeDetail()
+        {
+            if (!this.IsGenerated)
+                return this;
+            var runtimeTypeDetail = new TypeDetailRuntime<T>(this.Type);
+            TypeAnalyzer.ReplaceTypeDetail(runtimeTypeDetail);
+            return runtimeTypeDetail;
+        }
     }
 }

@@ -13,8 +13,10 @@ namespace Zerra.Reflection.Runtime
 {
     internal sealed class MethodDetailRuntime<T> : MethodDetail<T>
     {
+        public override bool IsGenerated => false;
+
         public override MethodInfo MethodInfo { get; }
-        public override string Name => MethodInfo.Name;
+        public override string Name { get; }
 
         private ParameterDetail[]? parameterInfos = null;
         public override IReadOnlyList<ParameterDetail> ParameterDetails
@@ -93,11 +95,11 @@ namespace Zerra.Reflection.Runtime
                 {
                     if (!callerBoxedLoaded)
                     {
-#if NETSTANDARD2_0
-                        if (!MethodInfo.IsGenericMethodDefinition && !MethodInfo.ReturnType.IsByRef)
-#else
-                        if (!MethodInfo.IsGenericMethodDefinition && !MethodInfo.ReturnType.IsByRef && !MethodInfo.ReturnType.IsByRefLike)
+                        if (!MethodInfo.IsGenericMethodDefinition && !MethodInfo.ReturnType.IsByRef
+#if !NETSTANDARD2_0
+                            && !MethodInfo.ReturnType.IsByRefLike
 #endif
+                        )
                         {
                             this.callerBoxed = AccessorGenerator.GenerateCaller(MethodInfo);
                             this.callerBoxedAsync = async (source, arguments) =>
@@ -105,7 +107,7 @@ namespace Zerra.Reflection.Runtime
                                 var caller = this.callerBoxed;
                                 if (caller == null)
                                     return default;
-                                var returnTypeInfo = ReturnTypeDetail;
+                                var returnTypeInfo = ReturnTypeDetailBoxed;
 
                                 if (returnTypeInfo.IsTask)
                                 {
@@ -133,7 +135,7 @@ namespace Zerra.Reflection.Runtime
         public override Type ReturnType => MethodInfo.ReturnType;
 
         private TypeDetail? returnType = null;
-        public override TypeDetail ReturnTypeDetail
+        public override TypeDetail ReturnTypeDetailBoxed
         {
             get
             {
@@ -204,7 +206,7 @@ namespace Zerra.Reflection.Runtime
                                 var caller = this.caller;
                                 if (caller == null)
                                     return default;
-                                var returnTypeInfo = ReturnTypeDetail;
+                                var returnTypeInfo = ReturnTypeDetailBoxed;
 
                                 if (returnTypeInfo.IsTask)
                                 {
@@ -232,18 +234,21 @@ namespace Zerra.Reflection.Runtime
         public override Delegate? CallerTyped => Caller;
 
         private readonly object locker;
-        internal MethodDetailRuntime(MethodInfo method, object locker)
+        internal MethodDetailRuntime(string name, MethodInfo method, object locker)
         {
             this.locker = locker;
             this.MethodInfo = method;
+            this.Name = name;
         }
 
         private static readonly Type typeDetailT = typeof(MethodDetailRuntime<>);
-        internal static MethodDetail New(Type type, MethodInfo method, object locker)
+        internal static MethodDetail New(Type type, string name, MethodInfo method, object locker)
         {
             var typeDetailGeneric = typeDetailT.MakeGenericType(type);
-            var obj = typeDetailGeneric.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)[0].Invoke(new object[] { method, locker });
+            var obj = typeDetailGeneric.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)[0].Invoke(new object[] { name, method, locker });
             return (MethodDetail)obj;
         }
+
+        internal override void SetMethodInfo(MethodInfo constructorInfo) => throw new NotSupportedException();
     }
 }
