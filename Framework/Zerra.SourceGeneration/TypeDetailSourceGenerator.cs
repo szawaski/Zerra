@@ -206,7 +206,7 @@ namespace Zerra.SourceGeneration
             }
 
             var isArray = typeSymbol.Kind == SymbolKind.ArrayType;
-            var interfaceNames = typeSymbol.AllInterfaces.Select(x => x.Name).ToImmutableHashSet();
+            var interfaceNames = typeSymbol.AllInterfaces.Select(x => x.MetadataName).ToImmutableHashSet();
 
             var hasIEnumerable = isArray || typeSymbol.Name == enumberableTypeName || interfaceNames.Contains(enumberableTypeName);
             var hasIEnumerableGeneric = isArray || typeSymbol.Name == enumberableGenericTypeName || interfaceNames.Contains(enumberableGenericTypeName);
@@ -243,11 +243,11 @@ namespace Zerra.SourceGeneration
             var isNullable = typeSymbol.NullableAnnotation == NullableAnnotation.Annotated;
 
             CoreType? coreType = null;
-            if (TypeLookup.CoreTypeLookup(fullTypeName, out var coreTypeParsed))
+            if (TypeLookup.CoreTypeLookup(fullTypeName.Split('.').Last(), out var coreTypeParsed))
                 coreType = coreTypeParsed;
 
             SpecialType? specialType = null;
-            if (TypeLookup.SpecialTypeLookup(fullTypeName, out var specialTypeParsed))
+            if (TypeLookup.SpecialTypeLookup(fullTypeName.Split('.').Last(), out var specialTypeParsed))
                 specialType = specialTypeParsed;
 
             CoreEnumType? enumType = null;
