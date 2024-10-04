@@ -290,7 +290,6 @@ namespace Zerra.CQRS.Network
         }
         public async Task RequestCookieCredentials(string address, string json)
         {
-            HttpClient? client = null;
             Stream? responseStream = null;
             try
             {
