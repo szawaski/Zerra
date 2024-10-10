@@ -4,7 +4,6 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using Zerra.SourceGeneration;
 
 namespace Zerra.Test
@@ -25,9 +24,7 @@ namespace Zerra.Test
             var netVersionString = netVersion.ToString("0.0");
             var directive = $"NET{netVersionString.Replace('.', '_')}";
 
-            var thisRuntimeAssembly = AppDomain.CurrentDomain.GetAssemblies().First(x => x.Location.EndsWith("System.Runtime.dll"));
-            var netCorePath = new DirectoryInfo(thisRuntimeAssembly.Location);
-            netCorePath = netCorePath.Parent.Parent;
+            var netCorePath = DirectoryHelper.NetCoreDirectory;
             var folders = netCorePath.GetDirectories($"{netVersionString}.*");
             var netCoreVersionPath = folders.OrderByDescending(x => Int32.Parse(x.Name.Split('.').Last())).FirstOrDefault();
             if (netCoreVersionPath is null)
@@ -55,9 +52,7 @@ namespace Zerra.Test
             var results = driverResult.GetRunResult();
             var result = results.Results.Single();
 
-            var directory = new DirectoryInfo(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location));
-            while (!File.Exists($"{directory.FullName}{Path.DirectorySeparatorChar}Zerra.sln"))
-                directory = directory.Parent;
+            var directory = DirectoryHelper.SolutionDirectory;
             var path = $"{directory}{Path.DirectorySeparatorChar}Framework{Path.DirectorySeparatorChar}Zerra{Path.DirectorySeparatorChar}Generated";
             if (!Directory.Exists(path))
                 Directory.CreateDirectory(path);
