@@ -16,42 +16,31 @@ namespace Zerra.Reflection
 {
     public static class Discovery
     {
-        private static readonly ConcurrentDictionary<Type, List<Type>> typeByInterface;
-        private static readonly ConcurrentDictionary<string, List<Type>> typeByInterfaceName;
-        private static readonly ConcurrentDictionary<Type, List<Type>> classByInterface;
-        private static readonly ConcurrentDictionary<string, List<Type>> classByInterfaceName;
-        private static readonly ConcurrentDictionary<Type, List<Type>> classByBase;
-        private static readonly ConcurrentDictionary<string, List<Type>> classByBaseName;
-        private static readonly ConcurrentDictionary<Type, List<Type>> typeByAttribute;
+        private static readonly ConcurrentDictionary<Type, List<Type>> typeByInterface = new();
+        private static readonly ConcurrentDictionary<string, List<Type>> typeByInterfaceName = new();
+        private static readonly ConcurrentDictionary<Type, List<Type>> classByInterface = new();
+        private static readonly ConcurrentDictionary<string, List<Type>> classByInterfaceName = new();
+        private static readonly ConcurrentDictionary<Type, List<Type>> classByBase = new();
+        private static readonly ConcurrentDictionary<string, List<Type>> classByBaseName = new();
+        private static readonly ConcurrentDictionary<Type, List<Type>> typeByAttribute = new();
 
-        private static readonly ConcurrentDictionary<Type, List<Type>> interfaceByType;
+        private static readonly ConcurrentDictionary<Type, List<Type>> interfaceByType = new();
 
-        private static readonly ConcurrentDictionary<string, ConcurrentReadWriteList<Type>> typeByName;
+        private static readonly ConcurrentDictionary<string, ConcurrentReadWriteList<Type>> typeByName = new();
 
         private static readonly ConcurrentFactoryDictionary<Type, string> niceNames = new();
         private static readonly ConcurrentFactoryDictionary<Type, string> niceFullNames = new();
 
-        private static readonly HashSet<string> discoveredAssemblies;
+        private static readonly HashSet<string> discoveredAssemblies = new();
 
         static Discovery()
         {
             Config.SetDiscoveryStarted();
 
-            interfaceByType = new();
-            typeByInterfaceName = new();
-            classByInterface = new();
-            classByInterfaceName = new();
-            classByBase = new();
-            classByBaseName = new();
-
-            typeByAttribute = new();
-            typeByInterface = new();
-
-            typeByName = new();
-
-            discoveredAssemblies = new();
-
-            LoadAssemblies();
+            if (Config.AssemblyLoaderEnabled)
+            {
+                LoadAssemblies();
+            }
             Discover();
             Generate();
         }
@@ -59,9 +48,10 @@ namespace Zerra.Reflection
         private static void LoadAssemblies()
         {
             var loadedAssemblies = new HashSet<string>();
-            var currentAsssemblies = AppDomain.CurrentDomain.GetAssemblies().Where(x => !x.IsDynamic);
-            foreach (var currentAssembly in currentAsssemblies)
+            foreach (var currentAssembly in AppDomain.CurrentDomain.GetAssemblies())
             {
+                if (currentAssembly.IsDynamic)
+                    continue;
                 if (!String.IsNullOrEmpty(currentAssembly.FullName))
                     _ = loadedAssemblies.Add(currentAssembly.FullName);
             }
@@ -84,25 +74,21 @@ namespace Zerra.Reflection
 
                     var assemblyName = AssemblyName.GetAssemblyName(assemblyFilePath);
 
-                    if (loadedAssemblies.Contains(assemblyName.FullName))
+                    if (assemblyName.Name is not null && assemblyName.Name.EndsWith(".Web.Views"))
                         continue;
 
-                    if (assemblyName.Name != null && assemblyName.Name.EndsWith(".Web.Views"))
+                    if (!loadedAssemblies.Add(assemblyName.FullName))
                         continue;
 
                     try
                     {
                         var assembly = Assembly.Load(assemblyName);
-                        if (!String.IsNullOrEmpty(assembly.FullName))
-                            _ = loadedAssemblies.Add(assembly.FullName);
                     }
                     catch (System.IO.FileNotFoundException)
                     {
                         try
                         {
                             var assembly = Assembly.LoadFrom(assemblyFileName);
-                            if (!String.IsNullOrEmpty(assembly.FullName))
-                                _ = loadedAssemblies.Add(assembly.FullName);
                         }
                         catch (Exception)
                         {
@@ -119,32 +105,42 @@ namespace Zerra.Reflection
         }
         private static void Discover()
         {
-            Assembly[] assemblies;
-            if (Config.DiscoveryAssemblyNameStartsWiths.Length > 0)
-                assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(x => !x.IsDynamic && Config.DiscoveryAssemblyNameStartsWiths.Any(y => x.FullName != null && x.FullName.StartsWith(y))).ToArray();
-            else
-                assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(x => !x.IsDynamic).ToArray();
-
-            foreach (var assembly in assemblies)
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
-                if (assembly.FullName == null || discoveredAssemblies.Contains(assembly.FullName))
+                if (assembly.IsDynamic)
+                    continue;
+                if (assembly.FullName is null)
+                    continue;
+                if (Config.DiscoveryAssemblyNameStartsWiths.Length > 0 && !Config.DiscoveryAssemblyNameStartsWiths.Any(y => assembly.FullName != null && assembly.FullName.StartsWith(y)))
+                    continue;
+                if (discoveredAssemblies.Contains(assembly.FullName))
                     continue;
 
-                discoveredAssemblies.Add(assembly.FullName);
+                DiscoverAssembly(assembly);
+            }
+        }
+        private static void DiscoverAssembly(Assembly assembly)
+        {
+            if (assembly.FullName is null) throw new ArgumentNullException(nameof(Assembly.FullName));
 
-                Type[]? typesInAssembly = null;
-                try
-                {
-                    typesInAssembly = assembly.GetTypes();
-                }
-                catch { }
-                if (typesInAssembly == null)
+            if (!discoveredAssemblies.Add(assembly.FullName))
+                return;
+
+            Type[]? typesInAssembly = null;
+            try
+            {
+                typesInAssembly = assembly.GetTypes();
+            }
+            catch { }
+
+            if (typesInAssembly == null)
+                return;
+
+            foreach (var typeInAssembly in typesInAssembly)
+            {
+                if (String.IsNullOrWhiteSpace(typeInAssembly.FullName))
                     continue;
-
-                foreach (var typeInAssembly in typesInAssembly.Where(x => !String.IsNullOrWhiteSpace(x.FullName)))
-                {
-                    DiscoverType(typeInAssembly);
-                }
+                DiscoverType(typeInAssembly);
             }
         }
         private static void DiscoverType(Type typeInAssembly)
@@ -1335,7 +1331,11 @@ namespace Zerra.Reflection
                                     openGenericArray++;
                                     if (nameStart != -1)
                                     {
+#if NETSTANDARD2_0
                                         sb.Append(span.Slice(nameStart, i - 1 - nameStart).ToString());
+#else
+                                        sb.Append(span.Slice(nameStart, i - 1 - nameStart));
+#endif
                                         nameStart = -1;
                                     }
                                     nameStart = i + 1;
@@ -1345,7 +1345,11 @@ namespace Zerra.Reflection
                             }
                             else
                             {
+#if NETSTANDARD2_0
                                 sb.Append(span.Slice(nameStart, i + 1 - nameStart).ToString());
+#else
+                                sb.Append(span.Slice(nameStart, i + 1 - nameStart));
+#endif
                                 nameStart = -1;
                                 inArray = true;
                             }
@@ -1367,14 +1371,22 @@ namespace Zerra.Reflection
                             }
                             else if (nameStart != -1)
                             {
+#if NETSTANDARD2_0
                                 sb.Append(span.Slice(nameStart, i - nameStart).ToString());
+#else
+                                sb.Append(span.Slice(nameStart, i - nameStart));
+#endif
                                 nameStart = -1;
                             }
                             break;
                         case '`':
                             if (nameStart != -1)
                             {
+#if NETSTANDARD2_0
                                 sb.Append(span.Slice(nameStart, i - nameStart).ToString());
+#else
+                                sb.Append(span.Slice(nameStart, i - nameStart));
+#endif
                                 nameStart = -1;
                             }
                             break;

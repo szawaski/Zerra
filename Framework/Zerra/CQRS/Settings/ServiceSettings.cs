@@ -3,9 +3,11 @@
 // Licensed to you under the MIT license
 
 using Zerra.Linq;
+using Zerra.Reflection;
 
 namespace Zerra.CQRS.Settings
 {
+    [GenerateTypeDetail]
     public sealed class ServiceSettings
     {
         public string? ThisServiceName { get; internal set; }

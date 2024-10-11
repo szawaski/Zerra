@@ -78,18 +78,19 @@ namespace Zerra.SourceGeneration
         private static bool ShouldGenerateType(ITypeSymbol typeSymbol, IReadOnlyCollection<ITypeSymbol> allTypeSymbol)
         {
             //We only want types in this build or generics that contain the types in this build.
+
+            if (typeSymbol.Name == "Void")
+                return false;
+
             if (allTypeSymbol.Contains(typeSymbol, SymbolEqualityComparer.Default))
                 return true;
 
             if (typeSymbol is INamedTypeSymbol namedTypeSymbol)
             {
-                if (namedTypeSymbol.TypeParameters.Length == 0)
-                    return false;
-
                 foreach (var typeArgument in namedTypeSymbol.TypeParameters)
                 {
                     if (allTypeSymbol.Contains(typeArgument, SymbolEqualityComparer.Default))
-                        return true;
+                        return false;
                 }
             }
             else if (typeSymbol is IArrayTypeSymbol arrayTypeSymbol)
@@ -98,7 +99,7 @@ namespace Zerra.SourceGeneration
                     return true;
             }
 
-            return false;
+            return true;
         }
 
         public static void GenerateType(SourceProductionContext context, ITypeSymbol typeSymbol, IReadOnlyCollection<ITypeSymbol> allTypeSymbol, List<Tuple<string, string>> classList, bool recursive)
@@ -116,9 +117,7 @@ namespace Zerra.SourceGeneration
 
             var ns = typeSymbol.ContainingNamespace is null || typeSymbol.ContainingNamespace.ToString().Contains("<global namespace>") ? null : typeSymbol.ContainingNamespace.ToString();
 
-            var fullTypeName = typeSymbol.ToString();
-            if (fullTypeName.EndsWith("?") && !typeSymbol.IsValueType)
-                fullTypeName = fullTypeName.Substring(0, fullTypeName.Length - 1);
+            var fullTypeName = GetFullTimeType(typeSymbol);
 
             var typeNameForClass = typeSymbol.ToString();
             if (ns != null && typeNameForClass.StartsWith(ns))
@@ -486,7 +485,7 @@ namespace Zerra.SourceGeneration
         private static string GenerateConstructors(SourceProductionContext context, ITypeSymbol typeSymbol, IReadOnlyCollection<ITypeSymbol> allTypeSymbol, List<Tuple<string, string>> classList, bool recursive, StringBuilder sbChildClasses)
         {
             var symbolMembers = typeSymbol.GetMembers();
-            var fullTypeName = typeSymbol.ToString();
+            var fullTypeName = GetFullTimeType(typeSymbol);
 
             var membersToInitialize = new List<string>();
 
@@ -507,11 +506,8 @@ namespace Zerra.SourceGeneration
                 {
                     foreach (var arg in constructor.Parameters)
                     {
-                        if (arg.Type is INamedTypeSymbol argNamedType)
-                        {
-                            if (ShouldGenerateType(argNamedType, allTypeSymbol))
-                                GenerateType(context, argNamedType, allTypeSymbol, classList, false);
-                        }
+                        if (ShouldGenerateType(arg.Type, allTypeSymbol))
+                            GenerateType(context, arg.Type, allTypeSymbol, classList, false);
                     }
                 }
             }
@@ -617,7 +613,7 @@ namespace Zerra.SourceGeneration
         private static string GenerateMethods(SourceProductionContext context, ITypeSymbol typeSymbol, IReadOnlyCollection<ITypeSymbol> allTypeSymbol, List<Tuple<string, string>> classList, bool recursive, StringBuilder sbChildClasses)
         {
             var symbolMembers = typeSymbol.GetMembers();
-            var fullTypeName = typeSymbol.ToString();
+            var fullTypeName = GetFullTimeType(typeSymbol);
 
             var membersToInitialize = new List<string>();
 
@@ -670,19 +666,13 @@ namespace Zerra.SourceGeneration
 
                 if (recursive)
                 {
-                    if (method.ReturnType is INamedTypeSymbol namedType)
-                    {
-                        if (ShouldGenerateType(namedType, allTypeSymbol))
-                            GenerateType(context, namedType, allTypeSymbol, classList, false);
-                    }
+                    if (ShouldGenerateType(method.ReturnType, allTypeSymbol))
+                        GenerateType(context, method.ReturnType, allTypeSymbol, classList, false);
 
                     foreach (var arg in method.Parameters)
                     {
-                        if (arg.Type is INamedTypeSymbol argNamedType)
-                        {
-                            if (ShouldGenerateType(argNamedType, allTypeSymbol))
-                                GenerateType(context, argNamedType, allTypeSymbol, classList, false);
-                        }
+                        if (ShouldGenerateType(arg.Type, allTypeSymbol))
+                            GenerateType(context, arg.Type, allTypeSymbol, classList, false);
                     }
                 }
             }
@@ -916,7 +906,7 @@ namespace Zerra.SourceGeneration
         private static string GenerateMembers(SourceProductionContext context, ITypeSymbol typeSymbol, IReadOnlyCollection<ITypeSymbol> allTypeSymbol, List<Tuple<string, string>> classList, bool recursive, StringBuilder sbChildClasses)
         {
             var symbolMembers = typeSymbol.GetMembers();
-            var fullTypeName = typeSymbol.ToString();
+            var fullTypeName = GetFullTimeType(typeSymbol);
 
             var properties = symbolMembers.Where(x => x.Kind == SymbolKind.Property).Cast<IPropertySymbol>().Where(x => !x.IsStatic || x.ExplicitInterfaceImplementations.Length == 0).Select(x => new Tuple<IPropertySymbol, string>(x, x.Name)).ToList();
             var fields = symbolMembers.Where(x => x.Kind == SymbolKind.Field).Cast<IFieldSymbol>().ToList();
@@ -980,11 +970,8 @@ namespace Zerra.SourceGeneration
 
                 if (recursive)
                 {
-                    if (property.Type is INamedTypeSymbol namedType)
-                    {
-                        if (ShouldGenerateType(namedType, allTypeSymbol))
-                            GenerateType(context, namedType, allTypeSymbol, classList, false);
-                    }
+                    if (ShouldGenerateType(property.Type, allTypeSymbol))
+                        GenerateType(context, property.Type, allTypeSymbol, classList, false);
                 }
             }
             foreach (var field in fields)
@@ -1003,11 +990,8 @@ namespace Zerra.SourceGeneration
 
                 if (recursive)
                 {
-                    if (field.Type is INamedTypeSymbol namedType)
-                    {
-                        if (ShouldGenerateType(namedType, allTypeSymbol))
-                            GenerateType(context, namedType, allTypeSymbol, classList, false);
-                    }
+                    if (ShouldGenerateType(field.Type, allTypeSymbol))
+                        GenerateType(context, field.Type, allTypeSymbol, classList, false);
                 }
             }
 
@@ -1686,6 +1670,7 @@ namespace Zerra.SourceGeneration
                 return false;
             if (typeSymbol.Kind == SymbolKind.FunctionPointerType)
                 return false;
+
             if (typeSymbol.Kind == SymbolKind.NamedType && typeSymbol is INamedTypeSymbol namedTypeSymbol)
             {
                 foreach (var argument in namedTypeSymbol.TypeArguments)
@@ -1700,6 +1685,14 @@ namespace Zerra.SourceGeneration
                     return false;
             }
             return true;
+        }
+
+        private static string GetFullTimeType(ITypeSymbol typeSymbol)
+        {
+            var fullTypeName = typeSymbol.ToString();
+            if (fullTypeName.EndsWith("?") && !typeSymbol.IsValueType)
+                fullTypeName = fullTypeName.Substring(0, fullTypeName.Length - 1);
+            return fullTypeName;
         }
 
         private static string AdjustName(string name, bool removeNamespace)

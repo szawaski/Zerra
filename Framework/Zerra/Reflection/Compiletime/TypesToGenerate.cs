@@ -31,7 +31,7 @@ namespace Zerra.Reflection.Compiletime
 
         #endregion
 
-        #region Basic
+        #region CoreTypes
 
         public bool BooleanThing { get; set; }
         public byte ByteThing { get; set; }

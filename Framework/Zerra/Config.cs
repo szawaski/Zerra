@@ -39,6 +39,27 @@ namespace Zerra
             }
         }
 
+        private static bool assemblyLoaderEnabled = true;
+        public static bool AssemblyLoaderEnabled
+        {
+            get
+            {
+                lock (discoveryLock)
+                {
+                    return assemblyLoaderEnabled;
+                }
+            }
+            set
+            {
+                lock (discoveryLock)
+                {
+                    if (discoveryStarted)
+                        throw new InvalidOperationException("Discovery has already started");
+                    assemblyLoaderEnabled = value;
+                }
+            }
+        }
+
         internal static string[] DiscoveryAssemblyNameStartsWiths;
 
         private static readonly Assembly? entryAssembly;

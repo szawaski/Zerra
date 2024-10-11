@@ -56,7 +56,8 @@ namespace Zerra.SourceGeneration
 
         private static void GenerateForRegular(SourceProductionContext context, ImmutableArray<ITypeSymbol> symbols, Compilation compilation)
         {
-            var symbolsToGenerate = new List<ITypeSymbol>();
+            var classList = new List<Tuple<string, string>>();
+
             foreach (var symbol in symbols)
             {
                 if (symbol.Kind != SymbolKind.NamedType || symbol is not INamedTypeSymbol namedTypeSymbol)
@@ -78,27 +79,25 @@ namespace Zerra.SourceGeneration
                 if (((IMethodSymbol)constructors[0]).Parameters.Length > 0)
                     continue;
 
-                symbolsToGenerate.Add(symbol);
+                TypeDetailSourceGenerator.GenerateType(context, symbol, symbols, classList, true);
             }
 
-            var classList = new List<Tuple<string, string>>();
-            foreach (var symbol in symbols.GroupBy(x => x.ToString()))
-                TypeDetailSourceGenerator.GenerateType(context, symbol.First(), symbols, classList, true);
             if (classList.Count > 0)
                 TypeDetailSourceGenerator.GenerateInitializer(context, compilation, classList);
         }
 
         private static void GenerateForZerra(SourceProductionContext context, ImmutableArray<ITypeSymbol> symbols, Compilation compilation)
         {
-            var symbolsToGenerate = new List<ITypeSymbol>();
+            var classList = new List<Tuple<string, string>>();
+
 
             var helperClass = symbols.First(x => x.Name == "TypesToGenerate");
             foreach (var item in helperClass.GetMembers().Where(x => x.Kind == SymbolKind.Property).Cast<IPropertySymbol>())
             {
                 if (item.Name.EndsWith("MakeUnbounded"))
-                    symbolsToGenerate.Add(((INamedTypeSymbol)item.Type).ConstructUnboundGenericType());
+                    TypeDetailSourceGenerator.GenerateType(context, ((INamedTypeSymbol)item.Type).ConstructUnboundGenericType(), symbols, classList, false);
                 else
-                    symbolsToGenerate.Add(item.Type);
+                    TypeDetailSourceGenerator.GenerateType(context, item.Type, symbols, classList, false);
             }
 
             foreach (var symbol in symbols)
@@ -108,18 +107,14 @@ namespace Zerra.SourceGeneration
                 {
                     if (s.GetAttributes().Any(x => x.AttributeClass?.Name == "GenerateTypeDetailAttribute"))
                     {
-                        symbolsToGenerate.Add(symbol);
+                        TypeDetailSourceGenerator.GenerateType(context, symbol, symbols, classList, true);
                         break;
                     }
                     s = s.BaseType;
                 }
             }
 
-            var classList = new List<Tuple<string, string>>();
-            foreach (var symbol in symbolsToGenerate)
-                TypeDetailSourceGenerator.GenerateType(context, symbol, symbols, classList, false);
-            if (classList.Count > 0)
-                TypeDetailSourceGenerator.GenerateInitializer(context, compilation, classList);
+            TypeDetailSourceGenerator.GenerateInitializer(context, compilation, classList);
         }
     }
 }
