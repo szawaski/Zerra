@@ -50,40 +50,10 @@ namespace Zerra.SourceGeneration
 #endif
                 )
                 GenerateForZerra(context, symbols, compilation);
+            else if (compilation.Assembly.Name.StartsWith("Zerra."))
+                GenerateForZerraExtensions(context, symbols, compilation);
             else
                 GenerateForRegular(context, symbols, compilation);
-        }
-
-        private static void GenerateForRegular(SourceProductionContext context, ImmutableArray<ITypeSymbol> symbols, Compilation compilation)
-        {
-            var classList = new List<Tuple<string, string>>();
-
-            foreach (var symbol in symbols)
-            {
-                if (symbol.Kind != SymbolKind.NamedType || symbol is not INamedTypeSymbol namedTypeSymbol)
-                    continue;
-                if (namedTypeSymbol.TypeKind != TypeKind.Class && namedTypeSymbol.TypeKind != TypeKind.Struct && namedTypeSymbol.TypeKind != TypeKind.Enum)
-                    continue;
-
-                var members = namedTypeSymbol.GetMembers();
-                var methods = members.Where(x => x.Kind == SymbolKind.Method).Cast<IMethodSymbol>().ToArray();
-                var constructors = methods.Where(x => x.MethodKind == MethodKind.Constructor).ToArray();
-
-                //only types, properties, fields, methods
-                if (members.Count(x => x.Kind != SymbolKind.NamedType || x.Kind != SymbolKind.Property || x.Kind != SymbolKind.Field || x.Kind != SymbolKind.Method) > 0)
-                    continue;
-                //only one constructor method
-                if (methods.Length != constructors.Length && constructors.Length != 1)
-                    continue;
-                //only one parameterless constructor method
-                if (((IMethodSymbol)constructors[0]).Parameters.Length > 0)
-                    continue;
-
-                TypeDetailSourceGenerator.GenerateType(context, symbol, symbols, classList, true);
-            }
-
-            if (classList.Count > 0)
-                TypeDetailSourceGenerator.GenerateInitializer(context, compilation, classList);
         }
 
         private static void GenerateForZerra(SourceProductionContext context, ImmutableArray<ITypeSymbol> symbols, Compilation compilation)
@@ -102,19 +72,65 @@ namespace Zerra.SourceGeneration
 
             foreach (var symbol in symbols)
             {
-                var s = symbol;
-                while (s is not null)
+                if (symbol.GetAttributes().Any(x => x.AttributeClass?.Name == "GenerateTypeDetailAttribute"))
                 {
-                    if (s.GetAttributes().Any(x => x.AttributeClass?.Name == "GenerateTypeDetailAttribute"))
-                    {
-                        TypeDetailSourceGenerator.GenerateType(context, symbol, symbols, classList, true);
-                        break;
-                    }
-                    s = s.BaseType;
+                    TypeDetailSourceGenerator.GenerateType(context, symbol, symbols, classList, true);
                 }
             }
 
             TypeDetailSourceGenerator.GenerateInitializer(context, compilation, classList);
+        }
+
+        private static void GenerateForZerraExtensions(SourceProductionContext context, ImmutableArray<ITypeSymbol> symbols, Compilation compilation)
+        {
+            var classList = new List<Tuple<string, string>>();
+
+            foreach (var symbol in symbols)
+            {
+                if (symbol.GetAttributes().Any(x => x.AttributeClass?.Name == "GenerateTypeDetailAttribute"))
+                {
+                    TypeDetailSourceGenerator.GenerateType(context, symbol, symbols, classList, true);
+                }
+            }
+
+            TypeDetailSourceGenerator.GenerateInitializer(context, compilation, classList);
+        }
+
+        private static void GenerateForRegular(SourceProductionContext context, ImmutableArray<ITypeSymbol> symbols, Compilation compilation)
+        {
+            var classList = new List<Tuple<string, string>>();
+
+            foreach (var symbol in symbols)
+            {
+                if (symbol.Kind != SymbolKind.NamedType || symbol is not INamedTypeSymbol namedTypeSymbol)
+                    continue;
+                if (namedTypeSymbol.TypeKind != TypeKind.Class && namedTypeSymbol.TypeKind != TypeKind.Struct && namedTypeSymbol.TypeKind != TypeKind.Enum)
+                    continue;
+
+                if (!symbol.GetAttributes().Any(x => x.AttributeClass?.Name == "GenerateTypeDetailAttribute"))
+                {
+                    var members = namedTypeSymbol.GetMembers();
+                    var methods = members.Where(x => x.Kind == SymbolKind.Method).Cast<IMethodSymbol>().ToArray();
+                    var constructors = methods.Where(x => x.MethodKind == MethodKind.Constructor).ToArray();
+
+                    //We will pickup data objects only (DTO/POCO/etc)
+
+                    //only types, properties, fields, methods
+                    if (members.Count(x => x.Kind != SymbolKind.NamedType && x.Kind != SymbolKind.Property && x.Kind != SymbolKind.Field && x.Kind != SymbolKind.Method) > 0)
+                        continue;
+                    //only one constructor method
+                    if (methods.Length != constructors.Length && constructors.Length != 1)
+                        continue;
+                    //only one parameterless constructor method
+                    if (((IMethodSymbol)constructors[0]).Parameters.Length > 0)
+                        continue;
+                }
+
+                TypeDetailSourceGenerator.GenerateType(context, symbol, symbols, classList, true);
+            }
+
+            if (classList.Count > 0)
+                TypeDetailSourceGenerator.GenerateInitializer(context, compilation, classList);
         }
     }
 }
