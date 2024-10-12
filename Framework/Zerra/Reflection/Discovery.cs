@@ -115,6 +115,8 @@ namespace Zerra.Reflection
                     continue;
                 if (discoveredAssemblies.Contains(assembly.FullName))
                     continue;
+                if (assembly.FullName.StartsWith("Zerra,")/* || assembly.FullName.StartsWith("Zerra.")*/)
+                    continue;
 
                 DiscoverAssembly(assembly);
             }
@@ -1289,17 +1291,30 @@ namespace Zerra.Reflection
                     sb.Append(type.Namespace).Append('.');
                 sb.Append(name).Append('<');
 
-                for (var j = 0; j < parameters.Length; j++)
+                if (i < span.Length)
                 {
-                    if (j > 0)
-                        sb.Append(',');
-                    var parameter = parameters[j];
-                    if (parameter.IsGenericParameter)
+                    var genericCount = Int32.Parse(span.Slice(i + 1, span.Length - i - 1).ToString());
+                    for (var j = 0; j < genericCount; j++)
+                    {
+                        if (j > 0)
+                            sb.Append(',');
                         sb.Append('T');
-                    else if (includeNamespace)
-                        sb.Append(GetNiceFullName(parameter));
-                    else
-                        sb.Append(GetNiceName(parameter));
+                    }
+                }
+                else
+                {
+                    for (var j = 0; j < parameters.Length; j++)
+                    {
+                        if (j > 0)
+                            sb.Append(',');
+                        var parameter = parameters[j];
+                        if (parameter.IsGenericParameter)
+                            sb.Append('T');
+                        else if (includeNamespace)
+                            sb.Append(GetNiceFullName(parameter));
+                        else
+                            sb.Append(GetNiceName(parameter));
+                    }
                 }
                 sb.Append('>');
                 return sb.ToString();
