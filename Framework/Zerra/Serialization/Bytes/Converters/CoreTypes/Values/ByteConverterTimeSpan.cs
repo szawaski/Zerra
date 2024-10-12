@@ -8,7 +8,7 @@ using Zerra.Serialization.Bytes.State;
 
 namespace Zerra.Serialization.Bytes.Converters.CoreTypes.Values
 {
-    internal sealed class ByteConverterTimeSpanOffset<TParent> : ByteConverter<TParent, TimeSpan>
+    internal sealed class ByteConverterTimeSpan<TParent> : ByteConverter<TParent, TimeSpan>
     {
         protected override bool StackRequired => false;
 

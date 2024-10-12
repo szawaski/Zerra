@@ -7,7 +7,7 @@ using Zerra.Reflection;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 
-namespace Zerra.Serialization.Json.Converters.Collections.HashSets
+namespace Zerra.Serialization.Json.Converters.Collections.Sets
 {
     internal sealed class JsonConverterHashSetT<TParent, TValue> : JsonConverter<TParent, HashSet<TValue>>
     {
