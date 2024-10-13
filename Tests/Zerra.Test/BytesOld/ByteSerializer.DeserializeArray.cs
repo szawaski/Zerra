@@ -763,12 +763,12 @@ namespace Zerra.Serialization.Bytes
                         if (typeDetail.Type.IsInterface)
                         {
                             var dictionaryGenericType = TypeAnalyzer.GetGenericType(dictionaryType, (Type[])typeDetail.TypeDetail.IEnumerableGenericInnerTypeDetail.InnerTypes);
-                            var value = Instantiator.Create(dictionaryGenericType, new Type[] { innerItemEnumerable }, innerValue);
+                            var value = Instantiator.Create(dictionaryGenericType, [innerItemEnumerable], innerValue);
                             return value;
                         }
                         else
                         {
-                            var value = Instantiator.Create(typeDetail.Type, new Type[] { innerItemEnumerable }, innerValue);
+                            var value = Instantiator.Create(typeDetail.Type, [innerItemEnumerable], innerValue);
                             return value;
                         }
                     }
@@ -828,7 +828,7 @@ namespace Zerra.Serialization.Bytes
                                 if (!reader.ReadIsNull())
                                 {
                                     var innerValue = FromBytesEnumerable(ref reader, typeDetail.InnerTypeDetail, false, false, ref options);
-                                    var item = Instantiator.Create(typeDetail.Type, new Type[] { innerItemEnumerable }, innerValue);
+                                    var item = Instantiator.Create(typeDetail.Type, [innerItemEnumerable], innerValue);
                                     array.SetValue(item, i);
                                 }
                             }
@@ -844,7 +844,7 @@ namespace Zerra.Serialization.Bytes
                                     if (!reader.ReadIsNull())
                                     {
                                         var innerValue = FromBytesEnumerable(ref reader, typeDetail.InnerTypeDetail, false, false, ref options);
-                                        var item = Instantiator.Create(typeDetail.Type, new Type[] { innerItemEnumerable }, innerValue);
+                                        var item = Instantiator.Create(typeDetail.Type, [innerItemEnumerable], innerValue);
                                         _ = list.Add(item);
                                     }
                                     else
@@ -864,7 +864,7 @@ namespace Zerra.Serialization.Bytes
                                     if (!reader.ReadIsNull())
                                     {
                                         var innerValue = FromBytesEnumerable(ref reader, typeDetail.InnerTypeDetail, false, false, ref options);
-                                        var item = Instantiator.Create(typeDetail.Type, new Type[] { innerItemEnumerable }, innerValue);
+                                        var item = Instantiator.Create(typeDetail.Type, [innerItemEnumerable], innerValue);
                                         adderArgs[0] = item;
                                         adder.CallerBoxed(set, adderArgs);
                                     }

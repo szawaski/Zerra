@@ -22,7 +22,7 @@ namespace Zerra.Repository
 
             public Return(object? value)
             {
-                this.Values = new object?[] { value };
+                this.Values = [value];
             }
             public Return(object?[] values)
             {

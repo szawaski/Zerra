@@ -52,7 +52,7 @@ namespace Zerra.Map
             {
                 var genericMapType = TypeAnalyzer.GetGenericTypeDetail(mapType, sourceType, targetType);
                 var map = genericMapType.GetMethodBoxed("GetMap").CallerBoxed(null, null);
-                return (s, l, g) => { return genericMapType.GetMethodBoxed("Copy").CallerBoxed(map, new object?[] { s, l, g })!; };
+                return (s, l, g) => { return genericMapType.GetMethodBoxed("Copy").CallerBoxed(map, [s, l, g])!; };
             });
 
             return (TTarget)copyFunc(source, logger, graph);
@@ -72,7 +72,7 @@ namespace Zerra.Map
             {
                 var genericMapType = TypeAnalyzer.GetGenericTypeDetail(mapType, sourceType, targetType);
                 var map = genericMapType.GetMethodBoxed("GetMap").CallerBoxed(null, null);
-                return (s, l, g) => { return genericMapType.GetMethodBoxed("Copy").CallerBoxed(map, new object?[] { s, l, g })!; };
+                return (s, l, g) => { return genericMapType.GetMethodBoxed("Copy").CallerBoxed(map, [s, l, g])!; };
             });
 
             return (TTarget)copyFunc(source, logger, graph);
@@ -94,7 +94,7 @@ namespace Zerra.Map
             {
                 var genericMapType = TypeAnalyzer.GetGenericTypeDetail(mapType, sourceType, targetType);
                 var map = genericMapType.GetMethodBoxed("GetMap").CallerBoxed(null, null);
-                return (s, t, l, g) => { return genericMapType.GetMethodBoxed("CopyTo").CallerBoxed(map, new object?[] { s, t, l, g })!; };
+                return (s, t, l, g) => { return genericMapType.GetMethodBoxed("CopyTo").CallerBoxed(map, [s, t, l, g])!; };
             });
 
             _ = copyToFunc(source, target, logger, graph);

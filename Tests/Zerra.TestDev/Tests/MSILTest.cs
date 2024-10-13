@@ -160,7 +160,7 @@ namespace Zerra.TestDev
 
             public Task GetThings(int stuff)
             {
-                return Bus._CallMethod<Task>(typeof(ICallThings), "GetThings", new object[] { stuff }, networkType, source);
+                return Bus._CallMethod<Task>(typeof(ICallThings), "GetThings", [stuff], networkType, source);
             }
         }
     }

@@ -17,14 +17,14 @@ namespace Zerra.Repository
         public Update(string? eventName, object? source, TModel model, Graph<TModel>? graph)
             : base(PersistOperation.Update, eventName, source)
         {
-            this.Models = new TModel[] { model };
+            this.Models = [model];
             this.Graph = graph;
         }
         public Update(PersistEvent @event, TModel model) : this(@event, model, null) { }
         public Update(PersistEvent @event, TModel model, Graph<TModel>? graph)
             : base(PersistOperation.Update, @event)
         {
-            this.Models = new TModel[] { model };
+            this.Models = [model];
             this.Graph = graph;
         }
         public Update(ICollection<TModel> models) : this(null, null, models, null) { }

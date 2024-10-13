@@ -16,7 +16,7 @@ namespace Zerra.CQRS
     internal static class BusRouters
     {
         private static readonly Type taskType = typeof(Task);
-        private static readonly ConstructorInfo notSupportedExceptionConstructor = typeof(NotSupportedException).GetConstructor(new Type[] { typeof(string) }) ?? throw new Exception($"{nameof(NotSupportedException)} constructor not found");
+        private static readonly ConstructorInfo notSupportedExceptionConstructor = typeof(NotSupportedException).GetConstructor([typeof(string)]) ?? throw new Exception($"{nameof(NotSupportedException)} constructor not found");
         private static readonly ConstructorInfo objectConstructor = typeof(object).GetConstructor(Array.Empty<Type>()) ?? throw new Exception($"{nameof(Object)} constructor not found");
         private static readonly MethodInfo getTypeMethod = typeof(object).GetMethod(nameof(Object.GetType)) ?? throw new Exception($"{nameof(Object)}.{nameof(Object.GetType)} not found");
         private static readonly MethodInfo typeofMethod = typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle)) ?? throw new Exception($"{nameof(Type)}.{nameof(Type.GetTypeFromHandle)} not found");
@@ -29,7 +29,7 @@ namespace Zerra.CQRS
             {
                 return GenerateProviderToCallMethodInternalClass(interfaceType);
             });
-            var instance = Instantiator.GetSingle(interfaceType.Name + ((byte)networkType) + source, () => Instantiator.Create(callerClassType, new Type[] { typeof(NetworkType), typeof(string) }, networkType, source));
+            var instance = Instantiator.GetSingle(interfaceType.Name + ((byte)networkType) + source, () => Instantiator.Create(callerClassType, [typeof(NetworkType), typeof(string)], networkType, source));
             return instance;
         }
         private static Type GenerateProviderToCallMethodInternalClass(Type interfaceType)
@@ -55,7 +55,7 @@ namespace Zerra.CQRS
             var networkTypeField = typeBuilder.DefineField("networkType", typeof(NetworkType), FieldAttributes.Private | FieldAttributes.InitOnly);
             var sourceField = typeBuilder.DefineField("source", typeof(string), FieldAttributes.Private | FieldAttributes.InitOnly);
 
-            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Standard, new Type[] { typeof(NetworkType), typeof(string) });
+            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Standard, [typeof(NetworkType), typeof(string)]);
             {
                 constructorBuilder.DefineParameter(0, ParameterAttributes.None, "networkType");
                 constructorBuilder.DefineParameter(1, ParameterAttributes.None, "source");
@@ -190,7 +190,7 @@ namespace Zerra.CQRS
             {
                 return GenerateCommandHandlerToDispatchInternalClass(interfaceType);
             });
-            var instance = Instantiator.GetSingle(interfaceType.Name + (requireAffirmation ? 1 : 0) + (byte)networkType + source, () => Instantiator.Create(dispatcherClassType, new Type[] { typeof(bool), typeof(NetworkType), typeof(string), typeof(BusLogging) }, requireAffirmation, networkType, source, busLogging));
+            var instance = Instantiator.GetSingle(interfaceType.Name + (requireAffirmation ? 1 : 0) + (byte)networkType + source, () => Instantiator.Create(dispatcherClassType, [typeof(bool), typeof(NetworkType), typeof(string), typeof(BusLogging)], requireAffirmation, networkType, source, busLogging));
             return instance;
         }
         private static Type GenerateCommandHandlerToDispatchInternalClass(Type interfaceType)
@@ -217,7 +217,7 @@ namespace Zerra.CQRS
             var sourceField = typeBuilder.DefineField("source", typeof(string), FieldAttributes.Private | FieldAttributes.InitOnly);
             var busLoggingField = typeBuilder.DefineField("busLogging", typeof(BusLogging), FieldAttributes.Private | FieldAttributes.InitOnly);
 
-            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Standard, new Type[] { typeof(bool), typeof(NetworkType), typeof(string), typeof(BusLogging) });
+            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Standard, [typeof(bool), typeof(NetworkType), typeof(string), typeof(BusLogging)]);
             {
                 constructorBuilder.DefineParameter(0, ParameterAttributes.None, "requireAffirmation");
                 constructorBuilder.DefineParameter(1, ParameterAttributes.None, "networkType");
@@ -327,7 +327,7 @@ namespace Zerra.CQRS
             {
                 return GenerateCommandWithResultHandlerToDispatchInternalClass(interfaceType);
             });
-            var instance = Instantiator.GetSingle(interfaceType.Name + (byte)networkType + source, () => Instantiator.Create(dispatcherClassType, new Type[] { typeof(bool), typeof(NetworkType), typeof(string), typeof(BusLogging) }, networkType, source, busLogging));
+            var instance = Instantiator.GetSingle(interfaceType.Name + (byte)networkType + source, () => Instantiator.Create(dispatcherClassType, [typeof(bool), typeof(NetworkType), typeof(string), typeof(BusLogging)], networkType, source, busLogging));
             return instance;
         }
         private static Type GenerateCommandWithResultHandlerToDispatchInternalClass(Type interfaceType)
@@ -354,7 +354,7 @@ namespace Zerra.CQRS
             var sourceField = typeBuilder.DefineField("source", typeof(string), FieldAttributes.Private | FieldAttributes.InitOnly);
             var busLoggingField = typeBuilder.DefineField("busLogging", typeof(BusLogging), FieldAttributes.Private | FieldAttributes.InitOnly);
 
-            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Standard, new Type[] { typeof(bool), typeof(NetworkType), typeof(string), typeof(BusLogging) });
+            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Standard, [typeof(bool), typeof(NetworkType), typeof(string), typeof(BusLogging)]);
             {
                 constructorBuilder.DefineParameter(0, ParameterAttributes.None, "requireAffirmation");
                 constructorBuilder.DefineParameter(1, ParameterAttributes.None, "networkType");
@@ -464,7 +464,7 @@ namespace Zerra.CQRS
             {
                 return GenerateEventHandlerToDispatchInternalClass(interfaceType);
             });
-            var instance = Instantiator.GetSingle(interfaceType.Name + (byte)networkType + source, () => Instantiator.Create(dispatcherClassType, new Type[] { typeof(NetworkType), typeof(string), typeof(BusLogging) }, networkType, source, busLogging));
+            var instance = Instantiator.GetSingle(interfaceType.Name + (byte)networkType + source, () => Instantiator.Create(dispatcherClassType, [typeof(NetworkType), typeof(string), typeof(BusLogging)], networkType, source, busLogging));
             return instance;
         }
         private static Type GenerateEventHandlerToDispatchInternalClass(Type interfaceType)
@@ -490,7 +490,7 @@ namespace Zerra.CQRS
             var sourceField = typeBuilder.DefineField("source", typeof(string), FieldAttributes.Private | FieldAttributes.InitOnly);
             var busLoggingField = typeBuilder.DefineField("busLogging", typeof(BusLogging), FieldAttributes.Private | FieldAttributes.InitOnly);
 
-            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Standard, new Type[] { typeof(NetworkType), typeof(string), typeof(BusLogging) });
+            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Standard, [typeof(NetworkType), typeof(string), typeof(BusLogging)]);
             {
                 constructorBuilder.DefineParameter(0, ParameterAttributes.None, "networkType");
                 constructorBuilder.DefineParameter(1, ParameterAttributes.None, "source");

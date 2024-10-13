@@ -17,14 +17,14 @@ namespace Zerra.Repository
         public Create(string? eventName, object? source, TModel model, Graph<TModel>? graph)
             : base(PersistOperation.Create, eventName, source)
         {
-            this.Models = new TModel[] { model };
+            this.Models = [model];
             this.Graph = graph;
         }
         public Create(PersistEvent @event, TModel model) : this(@event, model, null) { }
         public Create(PersistEvent @event, TModel model, Graph<TModel>? graph)
             : base(PersistOperation.Create, @event)
         {
-            this.Models = new TModel[] { model };
+            this.Models = [model];
             this.Graph = graph;
         }
         public Create(ICollection<TModel> models) : this(null, null, models, null) { }

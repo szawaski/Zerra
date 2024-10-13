@@ -788,7 +788,7 @@ namespace Zerra.Serialization.Json
                     {
                         var method = TypeAnalyzer.GetGenericMethodDetail(dictionaryToArrayMethod, typeDetail.DictionaryInnerType);
 
-                        state.CurrentFrame.Enumerator = ((ICollection)method.CallerBoxed(null, new object?[] { state.CurrentFrame.Object })!).GetEnumerator();
+                        state.CurrentFrame.Enumerator = ((ICollection)method.CallerBoxed(null, [state.CurrentFrame.Object])!).GetEnumerator();
                         state.CurrentFrame.State = 1;
                     }
 

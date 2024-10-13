@@ -308,10 +308,10 @@ namespace Zerra.Repository
 
                             var queryGeneric = TypeAnalyzer.GetGenericTypeDetail(queryManyType, relatedType);
                             var queryParameterTypes = GetQueryManyParameterTypes(relatedType);
-                            var query = queryGeneric.GetConstructorBoxed(queryParameterTypes).CreatorWithArgsBoxed(new object?[] { queryExpression, relatedGraph });
+                            var query = queryGeneric.GetConstructorBoxed(queryParameterTypes).CreatorWithArgsBoxed([queryExpression, relatedGraph]);
 
                             var repoQueryMany = TypeAnalyzer.GetGenericMethodDetail(repoQueryManyGeneric, relatedType);
-                            var relatedModels = (ICollection)repoQueryMany.CallerBoxed(repoQueryMany, new object[] { query })!;
+                            var relatedModels = (ICollection)repoQueryMany.CallerBoxed(repoQueryMany, [query])!;
 
                             var relatedModelIdentities = new Dictionary<object, object>();
                             foreach (var relatedModel in relatedModels)
@@ -372,10 +372,10 @@ namespace Zerra.Repository
 
                             var queryGeneric = TypeAnalyzer.GetGenericTypeDetail(queryManyType, relatedType);
                             var queryParameterTypes = GetQueryManyParameterTypes(relatedType);
-                            var query = queryGeneric.GetConstructorBoxed(queryParameterTypes).CreatorWithArgsBoxed(new object?[] { queryExpression, relatedGraph });
+                            var query = queryGeneric.GetConstructorBoxed(queryParameterTypes).CreatorWithArgsBoxed([queryExpression, relatedGraph]);
 
                             var repoQueryMany = TypeAnalyzer.GetGenericMethodDetail(repoQueryManyGeneric, relatedType);
-                            var relatedModels = (ICollection)repoQueryMany.CallerBoxed(repoQueryMany, new object[] { query })!;
+                            var relatedModels = (ICollection)repoQueryMany.CallerBoxed(repoQueryMany, [query])!;
 
                             var relatedModelIdentities = new Dictionary<object, object>();
                             foreach (var relatedModel in relatedModels)
@@ -466,10 +466,10 @@ namespace Zerra.Repository
 
                             var queryGeneric = TypeAnalyzer.GetGenericTypeDetail(queryManyType, relatedType);
                             var queryParameterTypes = GetQueryManyParameterTypes(relatedType);
-                            var query = queryGeneric.GetConstructorBoxed(queryParameterTypes).CreatorWithArgsBoxed(new object?[] { queryExpression, relatedGraph });
+                            var query = queryGeneric.GetConstructorBoxed(queryParameterTypes).CreatorWithArgsBoxed([queryExpression, relatedGraph]);
 
                             var repoQueryMany = TypeAnalyzer.GetGenericMethodDetail(repoQueryAsyncManyGeneric, relatedType);
-                            var relatedModels = (ICollection)(await repoQueryMany.CallerBoxedAsync(repoQueryMany, new object[] { query }))!;
+                            var relatedModels = (ICollection)(await repoQueryMany.CallerBoxedAsync(repoQueryMany, [query]))!;
 
                             var relatedModelIdentities = new Dictionary<object, object>();
                             foreach (var relatedModel in relatedModels)
@@ -530,10 +530,10 @@ namespace Zerra.Repository
 
                             var queryGeneric = TypeAnalyzer.GetGenericTypeDetail(queryManyType, relatedType);
                             var queryParameterTypes = GetQueryManyParameterTypes(relatedType);
-                            var query = queryGeneric.GetConstructorBoxed(queryParameterTypes).CreatorWithArgsBoxed(new object?[] { queryExpression, relatedGraph });
+                            var query = queryGeneric.GetConstructorBoxed(queryParameterTypes).CreatorWithArgsBoxed([queryExpression, relatedGraph]);
 
                             var repoQueryMany = TypeAnalyzer.GetGenericMethodDetail(repoQueryAsyncManyGeneric, relatedType);
-                            var relatedModels = (ICollection)(await repoQueryMany.CallerBoxedAsync(repoQueryMany, new object[] { query }))!;
+                            var relatedModels = (ICollection)(await repoQueryMany.CallerBoxedAsync(repoQueryMany, [query]))!;
 
                             var relatedModelIdentities = new Dictionary<object, object>();
                             foreach (var relatedModel in relatedModels)
@@ -1069,7 +1069,7 @@ namespace Zerra.Repository
         protected static readonly Type UpdateType = typeof(Update<>);
         protected static readonly Type DeleteType = typeof(Delete<>);
 
-        private static readonly Type[] GraphParameterTypes = new Type[] { typeof(string[]) };
+        private static readonly Type[] GraphParameterTypes = [typeof(string[])];
 
         private static readonly ConcurrentFactoryDictionary<Type, Type[]> persistParameterTypes = new();
         private static Type[] GetPersistParameterTypes(Type type)
@@ -1318,17 +1318,17 @@ namespace Zerra.Repository
                         {
                             var persistGeneric = TypeAnalyzer.GetGenericTypeDetail(CreateType, relatedType);
                             var persistParameterTypes = GetPersistParameterTypes(relatedType);
-                            var persist = persistGeneric.GetConstructorBoxed(persistParameterTypes).CreatorWithArgsBoxed(new object?[] { @event, relatedModel, relatedGraph });
+                            var persist = persistGeneric.GetConstructorBoxed(persistParameterTypes).CreatorWithArgsBoxed([@event, relatedModel, relatedGraph]);
                             var repoCreate = TypeAnalyzer.GetGenericMethodDetail(repoPersistGeneric, relatedType);
-                            _ = repoCreate.CallerBoxed(repoCreate, new object[] { persist });
+                            _ = repoCreate.CallerBoxed(repoCreate, [persist]);
                         }
                         else
                         {
                             var persistGeneric = TypeAnalyzer.GetGenericTypeDetail(UpdateType, relatedType);
                             var persistParameterTypes = GetPersistParameterTypes(relatedType);
-                            var persist = persistGeneric.GetConstructorBoxed(persistParameterTypes).CreatorWithArgsBoxed(new object?[] { @event, relatedModel, relatedGraph });
+                            var persist = persistGeneric.GetConstructorBoxed(persistParameterTypes).CreatorWithArgsBoxed([@event, relatedModel, relatedGraph]);
                             var repoUpdate = TypeAnalyzer.GetGenericMethodDetail(repoPersistGeneric, relatedType);
-                            _ = repoUpdate.CallerBoxed(repoUpdate, new object[] { persist });
+                            _ = repoUpdate.CallerBoxed(repoUpdate, [persist]);
                         }
 
                         var relatedIdentity = ModelAnalyzer.GetIdentity(relatedType, relatedModel);
@@ -1385,14 +1385,14 @@ namespace Zerra.Repository
                         var relatedIdentityPropertyNames = ModelAnalyzer.GetIdentityPropertyNames(relatedType);
 
                         var allNames = relatedIdentityPropertyNames.Concat(new string[] { modelPropertyInfo.ForeignIdentity }).ToArray();
-                        var queryGraph = relatedGraphType.GetConstructorBoxed(GraphParameterTypes).CreatorWithArgsBoxed(new object[] { allNames });
+                        var queryGraph = relatedGraphType.GetConstructorBoxed(GraphParameterTypes).CreatorWithArgsBoxed([allNames]);
 
                         var queryGeneric = TypeAnalyzer.GetGenericTypeDetail(queryManyType, relatedType);
                         var queryParameterTypes = GetQueryManyParameterTypes(relatedType);
-                        var query = queryGeneric.GetConstructorBoxed(queryParameterTypes).CreatorWithArgsBoxed(new object[] { queryExpression, queryGraph });
+                        var query = queryGeneric.GetConstructorBoxed(queryParameterTypes).CreatorWithArgsBoxed([queryExpression, queryGraph]);
 
                         var repoQueryMany = TypeAnalyzer.GetGenericMethodDetail(repoQueryManyGeneric, relatedType);
-                        var relatedExistings = (ICollection)repoQueryMany.CallerBoxed(repoQueryMany, new object[] { query })!;
+                        var relatedExistings = (ICollection)repoQueryMany.CallerBoxed(repoQueryMany, [query])!;
 
                         foreach (var relatedExisting in relatedExistings)
                             _ = relatedModelsExisting.Add(relatedExisting);
@@ -1465,25 +1465,25 @@ namespace Zerra.Repository
                     {
                         var persistGeneric = TypeAnalyzer.GetGenericTypeDetail(DeleteType, relatedType);
                         var persistParameterTypes = GetPersistEnumerableParameterTypes(relatedType);
-                        var persist = persistGeneric.GetConstructorBoxed(persistParameterTypes).CreatorWithArgsBoxed(new object?[] { @event, relatedModelsDelete, relatedGraph });
+                        var persist = persistGeneric.GetConstructorBoxed(persistParameterTypes).CreatorWithArgsBoxed([@event, relatedModelsDelete, relatedGraph]);
                         var repoDelete = TypeAnalyzer.GetGenericMethodDetail(repoPersistGeneric, relatedType);
-                        _ = repoDelete.CallerBoxed(repoDelete, new object[] { persist });
+                        _ = repoDelete.CallerBoxed(repoDelete, [persist]);
                     }
                     if (relatedModelsUpdate.Count > 0)
                     {
                         var persistGeneric = TypeAnalyzer.GetGenericTypeDetail(UpdateType, relatedType);
                         var persistParameterTypes = GetPersistEnumerableParameterTypes(relatedType);
-                        var persist = persistGeneric.GetConstructorBoxed(persistParameterTypes).CreatorWithArgsBoxed(new object?[] { @event, relatedModelsUpdate, relatedGraph });
+                        var persist = persistGeneric.GetConstructorBoxed(persistParameterTypes).CreatorWithArgsBoxed([@event, relatedModelsUpdate, relatedGraph]);
                         var repoUpdate = TypeAnalyzer.GetGenericMethodDetail(repoPersistGeneric, relatedType);
-                        _ = repoUpdate.CallerBoxed(repoUpdate, new object[] { persist });
+                        _ = repoUpdate.CallerBoxed(repoUpdate, [persist]);
                     }
                     if (relatedModelsCreate.Count > 0)
                     {
                         var persistGeneric = TypeAnalyzer.GetGenericTypeDetail(CreateType, relatedType);
                         var persistParameterTypes = GetPersistEnumerableParameterTypes(relatedType);
-                        var persist = persistGeneric.GetConstructorBoxed(persistParameterTypes).CreatorWithArgsBoxed(new object?[] { @event, relatedModelsCreate, relatedGraph });
+                        var persist = persistGeneric.GetConstructorBoxed(persistParameterTypes).CreatorWithArgsBoxed([@event, relatedModelsCreate, relatedGraph]);
                         var repoCreate = TypeAnalyzer.GetGenericMethodDetail(repoPersistGeneric, relatedType);
-                        _ = repoCreate.CallerBoxed(repoCreate, new object[] { persist });
+                        _ = repoCreate.CallerBoxed(repoCreate, [persist]);
                     }
                     //});
                     //tasks.Add(task);
@@ -1522,14 +1522,14 @@ namespace Zerra.Repository
                     var relatedIdentityPropertyNames = ModelAnalyzer.GetIdentityPropertyNames(relatedType);
 
                     var allNames = relatedIdentityPropertyNames.Concat(new string[] { modelPropertyInfo.ForeignIdentity }).ToArray();
-                    var queryGraph = relatedGraphType.GetConstructorBoxed(GraphParameterTypes).CreatorWithArgsBoxed(new object[] { allNames });
+                    var queryGraph = relatedGraphType.GetConstructorBoxed(GraphParameterTypes).CreatorWithArgsBoxed([allNames]);
 
                     var queryGeneric = TypeAnalyzer.GetGenericTypeDetail(queryManyType, relatedType);
                     var queryParameterTypes = GetQueryManyParameterTypes(relatedType);
-                    var query = queryGeneric.GetConstructorBoxed(queryParameterTypes).CreatorWithArgsBoxed(new object[] { queryExpression, queryGraph });
+                    var query = queryGeneric.GetConstructorBoxed(queryParameterTypes).CreatorWithArgsBoxed([queryExpression, queryGraph]);
 
                     var repoQueryMany = TypeAnalyzer.GetGenericMethodDetail(repoQueryManyGeneric, relatedType);
-                    var relatedExistings = (ICollection)repoQueryMany.CallerBoxed(repoQueryMany, new object[] { query })!;
+                    var relatedExistings = (ICollection)repoQueryMany.CallerBoxed(repoQueryMany, [query])!;
 
                     foreach (var relatedExisting in relatedExistings)
                         _ = relatedModelsExisting.Add(relatedExisting);
@@ -1538,9 +1538,9 @@ namespace Zerra.Repository
                     {
                         var persistGeneric = TypeAnalyzer.GetGenericTypeDetail(DeleteType, relatedType);
                         var persistParameterTypes = GetPersistEnumerableParameterTypes(relatedType);
-                        var persist = persistGeneric.GetConstructorBoxed(persistParameterTypes).CreatorWithArgsBoxed(new object?[] { @event, relatedModelsExisting, relatedGraph });
+                        var persist = persistGeneric.GetConstructorBoxed(persistParameterTypes).CreatorWithArgsBoxed([@event, relatedModelsExisting, relatedGraph]);
                         var repoDelete = TypeAnalyzer.GetGenericMethodDetail(repoPersistGeneric, relatedType);
-                        _ = repoDelete.CallerBoxed(repoDelete, new object[] { persist });
+                        _ = repoDelete.CallerBoxed(repoDelete, [persist]);
                     }
                     //});
                     //tasks.Add(task);
@@ -1580,17 +1580,17 @@ namespace Zerra.Repository
                         {
                             var persistGeneric = TypeAnalyzer.GetGenericTypeDetail(CreateType, relatedType);
                             var persistParameterTypes = GetPersistParameterTypes(relatedType);
-                            var persist = persistGeneric.GetConstructorBoxed(persistParameterTypes).CreatorWithArgsBoxed(new object?[] { @event, relatedModel, relatedGraph });
+                            var persist = persistGeneric.GetConstructorBoxed(persistParameterTypes).CreatorWithArgsBoxed([@event, relatedModel, relatedGraph]);
                             var repoCreate = TypeAnalyzer.GetGenericMethodDetail(repoPersistAsyncGeneric, relatedType);
-                            _ = await repoCreate.CallerBoxedAsync(repoCreate, new object[] { persist });
+                            _ = await repoCreate.CallerBoxedAsync(repoCreate, [persist]);
                         }
                         else
                         {
                             var persistGeneric = TypeAnalyzer.GetGenericTypeDetail(UpdateType, relatedType);
                             var persistParameterTypes = GetPersistParameterTypes(relatedType);
-                            var persist = persistGeneric.GetConstructorBoxed(persistParameterTypes).CreatorWithArgsBoxed(new object?[] { @event, relatedModel, relatedGraph });
+                            var persist = persistGeneric.GetConstructorBoxed(persistParameterTypes).CreatorWithArgsBoxed([@event, relatedModel, relatedGraph]);
                             var repoUpdate = TypeAnalyzer.GetGenericMethodDetail(repoPersistAsyncGeneric, relatedType);
-                            _ = await repoUpdate.CallerBoxedAsync(repoUpdate, new object[] { persist });
+                            _ = await repoUpdate.CallerBoxedAsync(repoUpdate, [persist]);
                         }
 
                         var relatedIdentity = ModelAnalyzer.GetIdentity(relatedType, relatedModel);
@@ -1647,14 +1647,14 @@ namespace Zerra.Repository
                         var relatedIdentityPropertyNames = ModelAnalyzer.GetIdentityPropertyNames(relatedType);
 
                         var allNames = relatedIdentityPropertyNames.Concat(new string[] { modelPropertyInfo.ForeignIdentity }).ToArray();
-                        var queryGraph = relatedGraphType.GetConstructorBoxed(GraphParameterTypes).CreatorWithArgsBoxed(new object[] { allNames });
+                        var queryGraph = relatedGraphType.GetConstructorBoxed(GraphParameterTypes).CreatorWithArgsBoxed([allNames]);
 
                         var queryGeneric = TypeAnalyzer.GetGenericTypeDetail(queryManyType, relatedType);
                         var queryParameterTypes = GetQueryManyParameterTypes(relatedType);
-                        var query = queryGeneric.GetConstructorBoxed(queryParameterTypes).CreatorWithArgsBoxed(new object[] { queryExpression, queryGraph });
+                        var query = queryGeneric.GetConstructorBoxed(queryParameterTypes).CreatorWithArgsBoxed([queryExpression, queryGraph]);
 
                         var repoQueryMany = TypeAnalyzer.GetGenericMethodDetail(repoQueryAsyncManyGeneric, relatedType);
-                        var relatedExistings = (ICollection)(await repoQueryMany.CallerBoxedAsync(repoQueryMany, new object[] { query }))!;
+                        var relatedExistings = (ICollection)(await repoQueryMany.CallerBoxedAsync(repoQueryMany, [query]))!;
 
                         foreach (var relatedExisting in relatedExistings)
                             _ = relatedModelsExisting.Add(relatedExisting);
@@ -1727,25 +1727,25 @@ namespace Zerra.Repository
                     {
                         var persistGeneric = TypeAnalyzer.GetGenericTypeDetail(DeleteType, relatedType);
                         var persistParameterTypes = GetPersistEnumerableParameterTypes(relatedType);
-                        var persist = persistGeneric.GetConstructorBoxed(persistParameterTypes).CreatorWithArgsBoxed(new object?[] { @event, relatedModelsDelete, relatedGraph });
+                        var persist = persistGeneric.GetConstructorBoxed(persistParameterTypes).CreatorWithArgsBoxed([@event, relatedModelsDelete, relatedGraph]);
                         var repoDelete = TypeAnalyzer.GetGenericMethodDetail(repoPersistAsyncGeneric, relatedType);
-                        _ = await repoDelete.CallerBoxedAsync(repoDelete, new object[] { persist });
+                        _ = await repoDelete.CallerBoxedAsync(repoDelete, [persist]);
                     }
                     if (relatedModelsUpdate.Count > 0)
                     {
                         var persistGeneric = TypeAnalyzer.GetGenericTypeDetail(UpdateType, relatedType);
                         var persistParameterTypes = GetPersistEnumerableParameterTypes(relatedType);
-                        var persist = persistGeneric.GetConstructorBoxed(persistParameterTypes).CreatorWithArgsBoxed(new object?[] { @event, relatedModelsUpdate, relatedGraph });
+                        var persist = persistGeneric.GetConstructorBoxed(persistParameterTypes).CreatorWithArgsBoxed([@event, relatedModelsUpdate, relatedGraph]);
                         var repoUpdate = TypeAnalyzer.GetGenericMethodDetail(repoPersistAsyncGeneric, relatedType);
-                        _ = await repoUpdate.CallerBoxedAsync(repoUpdate, new object[] { persist });
+                        _ = await repoUpdate.CallerBoxedAsync(repoUpdate, [persist]);
                     }
                     if (relatedModelsCreate.Count > 0)
                     {
                         var persistGeneric = TypeAnalyzer.GetGenericTypeDetail(CreateType, relatedType);
                         var persistParameterTypes = GetPersistEnumerableParameterTypes(relatedType);
-                        var persist = persistGeneric.GetConstructorBoxed(persistParameterTypes).CreatorWithArgsBoxed(new object?[] { @event, relatedModelsCreate, relatedGraph });
+                        var persist = persistGeneric.GetConstructorBoxed(persistParameterTypes).CreatorWithArgsBoxed([@event, relatedModelsCreate, relatedGraph]);
                         var repoCreate = TypeAnalyzer.GetGenericMethodDetail(repoPersistAsyncGeneric, relatedType);
-                        _ = await repoCreate.CallerBoxedAsync(repoCreate, new object[] { persist });
+                        _ = await repoCreate.CallerBoxedAsync(repoCreate, [persist]);
                     }
                     //});
                     //tasks.Add(task);
@@ -1784,14 +1784,14 @@ namespace Zerra.Repository
                     var relatedIdentityPropertyNames = ModelAnalyzer.GetIdentityPropertyNames(relatedType);
 
                     var allNames = relatedIdentityPropertyNames.Concat(new string[] { modelPropertyInfo.ForeignIdentity }).ToArray();
-                    var queryGraph = relatedGraphType.GetConstructorBoxed(GraphParameterTypes).CreatorWithArgsBoxed(new object[] { allNames });
+                    var queryGraph = relatedGraphType.GetConstructorBoxed(GraphParameterTypes).CreatorWithArgsBoxed([allNames]);
 
                     var queryGeneric = TypeAnalyzer.GetGenericTypeDetail(queryManyType, relatedType);
                     var queryParameterTypes = GetQueryManyParameterTypes(relatedType);
-                    var query = queryGeneric.GetConstructorBoxed(queryParameterTypes).CreatorWithArgsBoxed(new object[] { queryExpression, queryGraph });
+                    var query = queryGeneric.GetConstructorBoxed(queryParameterTypes).CreatorWithArgsBoxed([queryExpression, queryGraph]);
 
                     var repoQueryMany = TypeAnalyzer.GetGenericMethodDetail(repoQueryAsyncManyGeneric, relatedType);
-                    var relatedExistings = (ICollection)(await repoQueryMany.CallerBoxedAsync(repoQueryMany, new object[] { query }))!;
+                    var relatedExistings = (ICollection)(await repoQueryMany.CallerBoxedAsync(repoQueryMany, [query]))!;
 
                     foreach (var relatedExisting in relatedExistings)
                         _ = relatedModelsExisting.Add(relatedExisting);
@@ -1800,9 +1800,9 @@ namespace Zerra.Repository
                     {
                         var persistGeneric = TypeAnalyzer.GetGenericTypeDetail(DeleteType, relatedType);
                         var persistParameterTypes = GetPersistEnumerableParameterTypes(relatedType);
-                        var persist = persistGeneric.GetConstructorBoxed(persistParameterTypes).CreatorWithArgsBoxed(new object?[] { @event, relatedModelsExisting, relatedGraph });
+                        var persist = persistGeneric.GetConstructorBoxed(persistParameterTypes).CreatorWithArgsBoxed([@event, relatedModelsExisting, relatedGraph]);
                         var repoDelete = TypeAnalyzer.GetGenericMethodDetail(repoPersistAsyncGeneric, relatedType);
-                        _ = await repoDelete.CallerBoxedAsync(repoDelete, new object[] { persist });
+                        _ = await repoDelete.CallerBoxedAsync(repoDelete, [persist]);
                     }
                     //});
                     //tasks.Add(task);

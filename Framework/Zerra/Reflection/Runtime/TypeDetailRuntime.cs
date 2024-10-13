@@ -100,7 +100,7 @@ namespace Zerra.Reflection.Runtime
                             }
                             else if (Type.IsArray)
                             {
-                                innerTypes = new Type[] { Type.GetElementType()! };
+                                innerTypes = [Type.GetElementType()!];
                             }
                             else
                             {

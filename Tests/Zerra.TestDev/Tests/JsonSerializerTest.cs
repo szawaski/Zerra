@@ -46,7 +46,7 @@ namespace Zerra.TestDev
             var data = System.Text.Json.JsonSerializer.Serialize(item);
 
             var method = typeof(JsonSerializerTest).GetMethod(nameof(TempTestSpeed2), BindingFlags.Static | BindingFlags.NonPublic).MakeGenericMethod(item.GetType());
-            return (Task)method.Invoke(null, new object[] { item, data, 5000, 5 });
+            return (Task)method.Invoke(null, [item, data, 5000, 5]);
         }
 
         private static async Task TempTestSpeed2<T>(T item, string data, int iterations, int loops)

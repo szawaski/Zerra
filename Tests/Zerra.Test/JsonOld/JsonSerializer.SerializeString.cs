@@ -1170,7 +1170,7 @@ namespace Zerra.Serialization.Json
                             var valueGetter = innerTypeDetail.GetMemberFieldBacked("value").GetterBoxed;
                             var method = TypeAnalyzer.GetGenericMethodDetail(dictionaryToArrayMethod, typeDetail.DictionaryInnerType);
 
-                            var innerValue = (ICollection)method.CallerBoxed(null, new object[] { value })!;
+                            var innerValue = (ICollection)method.CallerBoxed(null, [value])!;
                             if (!options.Nameless)
                                 writer.Write('{');
                             else
@@ -1254,7 +1254,7 @@ namespace Zerra.Serialization.Json
                                 var valueGetter = innerTypeDetail.GetMemberFieldBacked("value").GetterBoxed;
                                 var method = TypeAnalyzer.GetGenericMethodDetail(dictionaryToArrayMethod, typeDetail.InnerTypes[0]);
 
-                                var innerValue = (ICollection)method.CallerBoxed(null, new object[] { value })!;
+                                var innerValue = (ICollection)method.CallerBoxed(null, [value])!;
                                 if (!options.Nameless)
                                     writer.Write('{');
                                 else

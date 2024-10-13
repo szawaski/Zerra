@@ -74,7 +74,7 @@ namespace Zerra.TestDev
             var dataOld = ByteSerializerOld.Serialize(item, options);
 
             var method = typeof(ByteSerializerTest).GetMethod(nameof(TempTestSpeed2), BindingFlags.Static | BindingFlags.NonPublic).MakeGenericMethod(item.GetType());
-            return (Task)method.Invoke(null, new object[] { item, data, dataOld, options, 5000, 5 });
+            return (Task)method.Invoke(null, [item, data, dataOld, options, 5000, 5]);
         }
 
         private static async Task TempTestSpeed2<T>(T item, byte[] data, byte[] dataOld, ByteSerializerOptions options, int iterations, int loops)

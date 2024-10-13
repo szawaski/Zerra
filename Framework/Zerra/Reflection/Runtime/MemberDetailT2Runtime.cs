@@ -327,7 +327,7 @@ namespace Zerra.Reflection.Runtime
             )
             {
                 var typeDetailGeneric = typeDetailT.MakeGenericType(type, valueType);
-                var obj = typeDetailGeneric.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)[0].Invoke(new object?[] { name, member, backingFieldDetail, locker });
+                var obj = typeDetailGeneric.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)[0].Invoke([name, member, backingFieldDetail, locker]);
                 return (MemberDetail)obj;
             }
             else

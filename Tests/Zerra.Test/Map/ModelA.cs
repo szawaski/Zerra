@@ -67,13 +67,13 @@ namespace Zerra.Test.Map
                 Prop1 = 5,
                 Prop2 = 15,
 
-                ArrayToArray = new int[] { 4, 5, 6 },
-                ArrayToList = new int[] { 7, 8, 9 },
-                ArrayToIList = new int[] { 10, 11, 12 },
-                ArrayToSet = new int[] { 13, 14, 15 },
-                ArrayToISet = new int[] { 16, 17, 18 },
-                ArrayToICollection = new int[] { 19, 20, 21 },
-                ArrayToIEnumerable = new int[] { 22, 23, 24 },
+                ArrayToArray = [4, 5, 6],
+                ArrayToList = [7, 8, 9],
+                ArrayToIList = [10, 11, 12],
+                ArrayToSet = [13, 14, 15],
+                ArrayToISet = [16, 17, 18],
+                ArrayToICollection = [19, 20, 21],
+                ArrayToIEnumerable = [22, 23, 24],
 
                 ListToArray = new List<int> { 4, 5, 6 },
                 ListToList = new List<int> { 7, 8, 9 },
@@ -104,32 +104,32 @@ namespace Zerra.Test.Map
                     Prop1 = 101,
                     PropA = 102,
                     Prop2 = 103,
-                    ArrayToArray = new int[] { 1, 2, 3 }
+                    ArrayToArray = [1, 2, 3]
                 },
-                ModelToModelArray = new ModelA[]
-                {
+                ModelToModelArray =
+                [
                     new()
                     {
                         Prop1 = 101,
                         PropA = 102,
                         Prop2 = 103,
-                        ArrayToArray = new int[] { 1, 2, 3 },
+                        ArrayToArray = [1, 2, 3],
                     },
                     new()
                     {
                         Prop1 = 104,
                         PropA = 105,
                         Prop2 = 106,
-                        ArrayToArray = new int[] { 4, 5, 6 }
+                        ArrayToArray = [4, 5, 6]
                     },
                     new()
                     {
                         Prop1 = 107,
                         PropA = 108,
                         Prop2 = 109,
-                        ArrayToArray = new int[] { 7, 8, 9 }
+                        ArrayToArray = [7, 8, 9]
                     }
-                },
+                ],
 
                 Dictionary1 = new() { { "1", "A" }, { "2", "B" }, { "3", "C" } },
                 Dictionary2 = new() { { "1", new() { Value1 = 1, Value2 = "A" } }, { "2", new() { Value1 = 2, Value2 = "B" } }, { "3", new() { Value1 = 3, Value2 = "C" } } },

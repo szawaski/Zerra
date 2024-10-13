@@ -17,14 +17,14 @@ namespace Zerra.Repository
         public Delete(string? eventName, object? source, TModel model, Graph<TModel>? graph)
             : base(PersistOperation.Delete, eventName, source)
         {
-            this.Models = new TModel[] { model };
+            this.Models = [model];
             this.Graph = graph;
         }
         public Delete(PersistEvent @event, TModel model) : this(@event, model, null) { }
         public Delete(PersistEvent @event, TModel model, Graph<TModel>? graph)
             : base(PersistOperation.Delete, @event)
         {
-            this.Models = new TModel[] { model };
+            this.Models = [model];
             this.Graph = graph;
         }
         public Delete(ICollection<TModel> models) : this(null, null, models, null) { }

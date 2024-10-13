@@ -2084,7 +2084,7 @@ namespace Zerra.Serialization.Bytes.IO
             var mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
             var hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
             var flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-            value = new decimal(new int[] { lo, mid, hi, flags });
+            value = new decimal([lo, mid, hi, flags]);
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2105,7 +2105,7 @@ namespace Zerra.Serialization.Bytes.IO
             var mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
             var hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
             var flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-            value = new decimal(new int[] { lo, mid, hi, flags });
+            value = new decimal([lo, mid, hi, flags]);
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2125,7 +2125,7 @@ namespace Zerra.Serialization.Bytes.IO
                 var mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                 var hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                 var flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-                var item = new decimal(new int[] { lo, mid, hi, flags });
+                var item = new decimal([lo, mid, hi, flags]);
                 value[i] = item;
             }
             return true;
@@ -2147,7 +2147,7 @@ namespace Zerra.Serialization.Bytes.IO
                 var mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                 var hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                 var flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-                var item = new decimal(new int[] { lo, mid, hi, flags });
+                var item = new decimal([lo, mid, hi, flags]);
                 value.Add(item);
             }
             return true;
@@ -2173,7 +2173,7 @@ namespace Zerra.Serialization.Bytes.IO
                 var mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                 var hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                 var flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-                var item = new decimal(new int[] { lo, mid, hi, flags });
+                var item = new decimal([lo, mid, hi, flags]);
                 value.Add(item);
             }
             return true;
@@ -2200,7 +2200,7 @@ namespace Zerra.Serialization.Bytes.IO
                     var mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                     var hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                     var flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-                    var item = new decimal(new int[] { lo, mid, hi, flags });
+                    var item = new decimal([lo, mid, hi, flags]);
                     value[i] = item;
                 }
             }
@@ -2228,7 +2228,7 @@ namespace Zerra.Serialization.Bytes.IO
                     var mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                     var hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                     var flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-                    var item = new decimal(new int[] { lo, mid, hi, flags });
+                    var item = new decimal([lo, mid, hi, flags]);
                     value.Add(item);
                 }
                 else
@@ -2264,7 +2264,7 @@ namespace Zerra.Serialization.Bytes.IO
                     var mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                     var hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                     var flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-                    var item = new decimal(new int[] { lo, mid, hi, flags });
+                    var item = new decimal([lo, mid, hi, flags]);
                     value.Add(item);
                 }
                 else

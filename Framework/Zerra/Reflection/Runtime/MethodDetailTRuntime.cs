@@ -245,7 +245,7 @@ namespace Zerra.Reflection.Runtime
         internal static MethodDetail New(Type type, string name, MethodInfo method, object locker)
         {
             var typeDetailGeneric = typeDetailT.MakeGenericType(type);
-            var obj = typeDetailGeneric.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)[0].Invoke(new object[] { name, method, locker });
+            var obj = typeDetailGeneric.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)[0].Invoke([name, method, locker]);
             return (MethodDetail)obj;
         }
 

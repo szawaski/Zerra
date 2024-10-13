@@ -309,7 +309,7 @@ namespace Zerra.Map
             return lambda.Compile();
         }
 
-        private static readonly Type[] typeArgumentsForParse = new Type[] { typeof(string) };
+        private static readonly Type[] typeArgumentsForParse = [typeof(string)];
         private Expression GenerateMap(Graph? graph, Expression source, Expression target, Expression recursionDictionary, ref int depth)
         {
             if (sourceType.CoreType.HasValue || targetType.CoreType.HasValue)

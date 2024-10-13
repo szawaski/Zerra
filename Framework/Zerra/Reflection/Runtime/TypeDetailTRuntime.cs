@@ -100,7 +100,7 @@ namespace Zerra.Reflection.Runtime
                             }
                             else if (Type.IsArray)
                             {
-                                innerTypes = new Type[] { Type.GetElementType()! };
+                                innerTypes = [Type.GetElementType()!];
                             }
                             else
                             {
@@ -1083,7 +1083,7 @@ namespace Zerra.Reflection.Runtime
                 )
             {
                 var typeDetailGeneric = typeDetailT.MakeGenericType(type);
-                var obj = typeDetailGeneric.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)[0].Invoke(new object[] { type });
+                var obj = typeDetailGeneric.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)[0].Invoke([type]);
                 return (TypeDetail)obj;
             }
             else

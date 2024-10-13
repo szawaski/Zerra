@@ -1226,13 +1226,13 @@ namespace Zerra.Serialization.Bytes
                         if (typeDetail.Type.IsInterface)
                         {
                             var dictionaryGenericType = TypeAnalyzer.GetGenericType(dictionaryType, (Type[])typeDetail.TypeDetail.IEnumerableGenericInnerTypeDetail.InnerTypes);
-                            state.CurrentFrame.ResultObject = Instantiator.Create(dictionaryGenericType, new Type[] { innerItemEnumerable }, innerValue);
+                            state.CurrentFrame.ResultObject = Instantiator.Create(dictionaryGenericType, [innerItemEnumerable], innerValue);
                             state.EndFrame();
                             return;
                         }
                         else
                         {
-                            state.CurrentFrame.ResultObject = Instantiator.Create(typeDetail.Type, new Type[] { innerItemEnumerable }, innerValue);
+                            state.CurrentFrame.ResultObject = Instantiator.Create(typeDetail.Type, [innerItemEnumerable], innerValue);
                             state.EndFrame();
                             return;
                         }

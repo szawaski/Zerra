@@ -57,7 +57,7 @@ namespace Zerra.Serialization.Bytes
         //Flag: 0 indicating the end of an object
         private const ushort endObjectFlagUShort = 0;
         private const byte endObjectFlagByte = 0;
-        private static readonly byte[] endObjectFlagUInt16 = new byte[2] { 0, 0 };
+        private static readonly byte[] endObjectFlagUInt16 = [0, 0];
 
         private static readonly ByteSerializerOptions defaultOptions = new();
 

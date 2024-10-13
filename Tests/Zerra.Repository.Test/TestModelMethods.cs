@@ -112,7 +112,7 @@ namespace Zerra.Repository.Test
                 StringThing = "Hello\r\nWorld!",
                 StringThingNull = null,
 
-                BytesThing = new byte[] { 1, 2, 3 },
+                BytesThing = [1, 2, 3],
                 BytesThingNull = null,
             };
             return model;

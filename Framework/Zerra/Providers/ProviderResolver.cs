@@ -11,15 +11,15 @@ namespace Zerra.Providers
 {
     public static class ProviderResolver
     {
-        private static readonly Type?[] interfaceStack = new Type?[]
-        {
+        private static readonly Type?[] interfaceStack =
+        [
             typeof(IRuleProvider),
             typeof(ICacheProvider),
             typeof(IEncryptionProvider),
             typeof(ICompressionProvider),
             typeof(IDualBaseProvider),
             null
-        };
+        ];
 
         private static readonly Type ignoreInterface = typeof(IIgnoreProviderResolver);
 

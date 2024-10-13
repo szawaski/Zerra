@@ -10,7 +10,7 @@ namespace Zerra.CQRS.Network
 {
     public static class IPResolver
     {
-        private static readonly char[] anyhosts = new char[] { '+', '*' };
+        private static readonly char[] anyhosts = ['+', '*'];
         public static IList<IPEndPoint> GetIPEndPoints(string url)
         {
             var endpoints = new List<IPEndPoint>();

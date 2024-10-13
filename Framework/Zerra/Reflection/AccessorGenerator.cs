@@ -22,7 +22,7 @@ namespace Zerra.Reflection
             if (!propertyInfo.CanRead)
                 return null;
 
-            var dynamicMethod = new DynamicMethod($"{propertyInfo.ReflectedType.Name}.{propertyInfo.Name}.Getter", typeof(object), new Type[] { typeof(object) }, typeof(object), true);
+            var dynamicMethod = new DynamicMethod($"{propertyInfo.ReflectedType.Name}.{propertyInfo.Name}.Getter", typeof(object), [typeof(object)], typeof(object), true);
             var il = dynamicMethod.GetILGenerator();
 
             var getMethod = propertyInfo.GetGetMethod(true);
@@ -61,7 +61,7 @@ namespace Zerra.Reflection
             if (!propertyInfo.CanRead)
                 return null;
 
-            var dynamicMethod = new DynamicMethod($"{propertyInfo.ReflectedType.Name}.{propertyInfo.Name}.Getter`2", propertyInfo.PropertyType, new Type[] { propertyInfo.ReflectedType }, propertyInfo.ReflectedType, true);
+            var dynamicMethod = new DynamicMethod($"{propertyInfo.ReflectedType.Name}.{propertyInfo.Name}.Getter`2", propertyInfo.PropertyType, [propertyInfo.ReflectedType], propertyInfo.ReflectedType, true);
             var il = dynamicMethod.GetILGenerator();
 
             var getMethod = propertyInfo.GetGetMethod(true);
@@ -90,7 +90,7 @@ namespace Zerra.Reflection
             if (!propertyInfo.CanWrite)
                 return null;
 
-            var dynamicMethod = new DynamicMethod($"{propertyInfo.ReflectedType.Name}.{propertyInfo.Name}.Setter", null, new Type[] { typeof(object), typeof(object) }, typeof(object), true);
+            var dynamicMethod = new DynamicMethod($"{propertyInfo.ReflectedType.Name}.{propertyInfo.Name}.Setter", null, [typeof(object), typeof(object)], typeof(object), true);
             var il = dynamicMethod.GetILGenerator();
 
             var setMethod = propertyInfo.GetSetMethod(true);
@@ -130,7 +130,7 @@ namespace Zerra.Reflection
             if (!propertyInfo.CanWrite)
                 return null;
 
-            var dynamicMethod = new DynamicMethod($"{propertyInfo.ReflectedType.Name}.{propertyInfo.Name}.Setter`2", null, new Type[] { propertyInfo.ReflectedType, propertyInfo.PropertyType }, propertyInfo.ReflectedType, true);
+            var dynamicMethod = new DynamicMethod($"{propertyInfo.ReflectedType.Name}.{propertyInfo.Name}.Setter`2", null, [propertyInfo.ReflectedType, propertyInfo.PropertyType], propertyInfo.ReflectedType, true);
             var il = dynamicMethod.GetILGenerator();
 
             var setMethod = propertyInfo.GetSetMethod(true);
@@ -158,7 +158,7 @@ namespace Zerra.Reflection
             if (fieldInfo.ReflectedType == null)
                 return null;
 
-            var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Getter", typeof(object), new Type[] { typeof(object) }, typeof(object), true);
+            var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Getter", typeof(object), [typeof(object)], typeof(object), true);
             var il = dynamicMethod.GetILGenerator();
 
             if (!fieldInfo.IsStatic)
@@ -190,7 +190,7 @@ namespace Zerra.Reflection
             if (fieldInfo.ReflectedType == null || fieldInfo.DeclaringType == null)
                 return null;
 
-            var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Getter`2", fieldInfo.FieldType, new Type[] { fieldInfo.ReflectedType }, fieldInfo.ReflectedType, true);
+            var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Getter`2", fieldInfo.FieldType, [fieldInfo.ReflectedType], fieldInfo.ReflectedType, true);
             var il = dynamicMethod.GetILGenerator();
 
             if (!fieldInfo.IsStatic)
@@ -212,7 +212,7 @@ namespace Zerra.Reflection
             if (fieldInfo.ReflectedType == null)
                 return null;
 
-            var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Setter", null, new Type[] { typeof(object), typeof(object) }, typeof(object), true);
+            var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Setter", null, [typeof(object), typeof(object)], typeof(object), true);
             var il = dynamicMethod.GetILGenerator();
 
             if (!fieldInfo.IsStatic)
@@ -245,7 +245,7 @@ namespace Zerra.Reflection
             if (fieldInfo.ReflectedType == null)
                 return null;
 
-            var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Setter`2", null, new Type[] { fieldInfo.ReflectedType, fieldInfo.FieldType }, fieldInfo.ReflectedType, true);
+            var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Setter`2", null, [fieldInfo.ReflectedType, fieldInfo.FieldType], fieldInfo.ReflectedType, true);
             var il = dynamicMethod.GetILGenerator();
 
             if (!fieldInfo.IsStatic)
@@ -269,7 +269,7 @@ namespace Zerra.Reflection
             if (constructorInfo.DeclaringType == null)
                 return null;
 
-            var dynamicMethod = new DynamicMethod($"{constructorInfo.DeclaringType.Name}.{constructorInfo.Name}.Creator", typeof(object), new Type[] { typeof(object[]) }, true);
+            var dynamicMethod = new DynamicMethod($"{constructorInfo.DeclaringType.Name}.{constructorInfo.Name}.Creator", typeof(object), [typeof(object[])], true);
             var il = dynamicMethod.GetILGenerator();
 
             var success = GenerateMethod(il, constructorInfo);
@@ -284,7 +284,7 @@ namespace Zerra.Reflection
             if (constructorInfo.DeclaringType == null)
                 return null;
 
-            var dynamicMethod = new DynamicMethod($"{constructorInfo.DeclaringType.Name}.{constructorInfo.Name}.Creator`1", typeof(T), new Type[] { typeof(object[]) }, true);
+            var dynamicMethod = new DynamicMethod($"{constructorInfo.DeclaringType.Name}.{constructorInfo.Name}.Creator`1", typeof(T), [typeof(object[])], true);
             var il = dynamicMethod.GetILGenerator();
 
             var success = GenerateMethod<T>(il, constructorInfo);
@@ -300,7 +300,7 @@ namespace Zerra.Reflection
             if (constructorInfo.DeclaringType == null)
                 return null;
 
-            var dynamicMethod = new DynamicMethod($"{constructorInfo.DeclaringType.Name}.{constructorInfo.Name}.Creator", typeof(object), new Type[] { typeof(object[]) }, true);
+            var dynamicMethod = new DynamicMethod($"{constructorInfo.DeclaringType.Name}.{constructorInfo.Name}.Creator", typeof(object), [typeof(object[])], true);
             var il = dynamicMethod.GetILGenerator();
 
             var success = GenerateMethodNoArgs(il, constructorInfo);
@@ -315,7 +315,7 @@ namespace Zerra.Reflection
             if (constructorInfo.DeclaringType == null)
                 return null;
 
-            var dynamicMethod = new DynamicMethod($"{constructorInfo.DeclaringType.Name}.{constructorInfo.Name}.Creator`1", typeof(T), new Type[] { typeof(object[]) }, true);
+            var dynamicMethod = new DynamicMethod($"{constructorInfo.DeclaringType.Name}.{constructorInfo.Name}.Creator`1", typeof(T), [typeof(object[])], true);
             var il = dynamicMethod.GetILGenerator();
 
             var success = GenerateMethodNoArgs<T>(il, constructorInfo);
@@ -331,7 +331,7 @@ namespace Zerra.Reflection
             if (methodInfo.ReflectedType == null)
                 return null;
 
-            var dynamicMethod = new DynamicMethod($"{methodInfo.ReflectedType.Name}.{methodInfo.Name}.Caller", typeof(object), new Type[] { typeof(object), typeof(object[]) }, true);
+            var dynamicMethod = new DynamicMethod($"{methodInfo.ReflectedType.Name}.{methodInfo.Name}.Caller", typeof(object), [typeof(object), typeof(object[])], true);
             var il = dynamicMethod.GetILGenerator();
 
             var success = GenerateMethod(il, methodInfo);
@@ -346,7 +346,7 @@ namespace Zerra.Reflection
             if (methodInfo.ReflectedType == null)
                 return null;
 
-            var dynamicMethod = new DynamicMethod($"{methodInfo.ReflectedType.Name}.{methodInfo.Name}.Caller`1", typeof(object), new Type[] { methodInfo.ReflectedType, typeof(object[]) }, true);
+            var dynamicMethod = new DynamicMethod($"{methodInfo.ReflectedType.Name}.{methodInfo.Name}.Caller`1", typeof(object), [methodInfo.ReflectedType, typeof(object[])], true);
             var il = dynamicMethod.GetILGenerator();
 
             var success = GenerateMethod<T>(il, methodInfo);

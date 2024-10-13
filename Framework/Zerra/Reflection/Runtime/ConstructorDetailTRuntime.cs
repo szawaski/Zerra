@@ -211,7 +211,7 @@ namespace Zerra.Reflection.Runtime
         internal static ConstructorDetail New(Type type, ConstructorInfo constructor, object locker)
         {
             var typeDetailGeneric = typeDetailT.MakeGenericType(type);
-            var obj = typeDetailGeneric.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)[0].Invoke(new object[] { constructor, locker });
+            var obj = typeDetailGeneric.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)[0].Invoke([constructor, locker]);
             return (ConstructorDetail)obj;
         }
 

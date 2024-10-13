@@ -147,7 +147,7 @@ namespace Zerra.Reflection
                     setMethodName,
                     MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual | MethodAttributes.Final,
                     null,
-                    new Type[] { property.PropertyType }
+                    [property.PropertyType]
                 );
                 var setMethodBuilderIL = setMethodBuilder.GetILGenerator();
                 setMethodBuilderIL.Emit(OpCodes.Ldarg_0);

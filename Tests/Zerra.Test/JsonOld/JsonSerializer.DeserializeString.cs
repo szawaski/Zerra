@@ -463,11 +463,11 @@ namespace Zerra.Serialization.Json
                                     if (memberDetail.TypeDetailBoxed.Type.IsInterface)
                                     {
                                         var dictionaryGenericType = TypeAnalyzer.GetGenericType(dictionaryType, (Type[])memberDetail.TypeDetailBoxed.IEnumerableGenericInnerTypeDetail.InnerTypes);
-                                        dictionary = Instantiator.Create(dictionaryGenericType, new Type[] { innerItemEnumerable }, value);
+                                        dictionary = Instantiator.Create(dictionaryGenericType, [innerItemEnumerable], value);
                                     }
                                     else
                                     {
-                                        dictionary = Instantiator.Create(memberDetail.TypeDetailBoxed.Type, new Type[] { innerItemEnumerable }, value);
+                                        dictionary = Instantiator.Create(memberDetail.TypeDetailBoxed.Type, [innerItemEnumerable], value);
                                     }
                                     memberDetail.SetterBoxed(obj, dictionary);
                                 }

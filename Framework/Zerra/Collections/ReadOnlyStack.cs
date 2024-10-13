@@ -19,7 +19,7 @@ namespace Zerra.Collections
         }
         public ReadOnlyStack(T value)
         {
-            this.stack = new T[] { value };
+            this.stack = [value];
             this.index = 0;
         }
 

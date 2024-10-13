@@ -27,7 +27,7 @@ namespace Zerra.Test
         {
             if (typeDetail.Type.ContainsGenericParameters || typeDetail.Type.IsPointer || typeDetail.Type.Name == "Void" || typeDetail.Type.IsByRef || typeDetail.Type.IsByRefLike)
                 return;
-            methodInspectTypeDetail.MakeGenericMethod(typeDetail.Type).Invoke(this, new object[] { typeDetail, stack });
+            methodInspectTypeDetail.MakeGenericMethod(typeDetail.Type).Invoke(this, [typeDetail, stack]);
         }
         private void InspectTypeDetail<T>(TypeDetail<T> typeDetail, Stack<Type> stack)
         {

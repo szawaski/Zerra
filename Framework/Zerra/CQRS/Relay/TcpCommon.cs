@@ -12,8 +12,8 @@ namespace Zerra.CQRS.Relay
 {
     internal static class TcpCommon
     {
-        private static readonly string[] tcpRawHeaderPrefixes = new string[] { "RAW", "ERR" };
-        private static readonly string[] httpHeaderPrefixes = new string[] { "HTTP/1.0", "HTTP/1.1", "HTTP/2.0", "GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "TRACE", "PATCH" };
+        private static readonly string[] tcpRawHeaderPrefixes = ["RAW", "ERR"];
+        private static readonly string[] httpHeaderPrefixes = ["HTTP/1.0", "HTTP/1.1", "HTTP/2.0", "GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "TRACE", "PATCH"];
         private const char protocolHeaderPrefixEnd = ' ';
         public const int MaxProtocolHeaderPrefixLength = 10;
 

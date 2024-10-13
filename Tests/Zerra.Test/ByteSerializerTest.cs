@@ -539,7 +539,7 @@ namespace Zerra.Test
         [TestMethod]
         public void StringArrayOfArrayThing()
         {
-            var model1 = new string[][] { new string[] { "a", "b", "c" }, new string[] { "d", "e", "f" } };
+            var model1 = new string[][] { ["a", "b", "c"], ["d", "e", "f"] };
             var bytes = ByteSerializer.Serialize(model1);
             var model2 = ByteSerializer.Deserialize<string[][]>(bytes);
         }
