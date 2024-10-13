@@ -78,9 +78,9 @@ namespace Zerra
             executingAssemblyPath = Path.GetDirectoryName(executingAssembly.Location);
 
             if (!String.IsNullOrWhiteSpace(entryNameSpace))
-                DiscoveryAssemblyNameStartsWiths = ["Zerra,", "Zerra.", entryNameSpace];
+                DiscoveryAssemblyNameStartsWiths = ["Zerra.", entryNameSpace];
             else
-                DiscoveryAssemblyNameStartsWiths = ["Zerra,", "Zerra."];
+                DiscoveryAssemblyNameStartsWiths = ["Zerra."];
 
             discoveryStarted = false;
         }
