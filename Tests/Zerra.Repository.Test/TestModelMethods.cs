@@ -208,7 +208,7 @@ namespace Zerra.Repository.Test
             Assert.IsNull(model1.StringThingNull);
             Assert.IsNull(model2.StringThingNull);
 
-            if (model1.BytesThing != null)
+            if (model1.BytesThing is not null)
             {
                 Assert.IsNotNull(model2.BytesThing);
                 Assert.AreEqual(model1.BytesThing.Length, model2.BytesThing.Length);

@@ -79,7 +79,7 @@ namespace Zerra.CQRS.AzureEventHub
                     }
                 }
 
-                if (hubNamespace == null)
+                if (hubNamespace is null)
                     throw new Exception($"{nameof(GetEnsuredConsumerGroup)} could not parse host");
 
                 var context = new AuthenticationContext($"https://login.windows.net/{tenantID}");
@@ -137,7 +137,7 @@ namespace Zerra.CQRS.AzureEventHub
                     }
                 }
 
-                if (hubNamespace == null)
+                if (hubNamespace is null)
                     throw new Exception($"{nameof(GetEnsuredConsumerGroup)} could not parse host");
 
                 var context = new AuthenticationContext($"https://login.windows.net/{tenantID}");

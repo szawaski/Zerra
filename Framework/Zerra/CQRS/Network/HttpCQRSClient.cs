@@ -62,7 +62,7 @@ namespace Zerra.CQRS.Network
                 data.AddProviderArguments(arguments);
 
                 IDictionary<string, IList<string?>>? authHeaders = null;
-                if (authorizer != null)
+                if (authorizer is not null)
                     authHeaders = authorizer.BuildAuthHeaders();
 
                 var buffer = bufferOwner.AsMemory();
@@ -81,7 +81,7 @@ namespace Zerra.CQRS.Network
 
                     requestBodyStream = new HttpProtocolBodyStream(null, stream, null, true);
 
-                    if (symmetricConfig != null)
+                    if (symmetricConfig is not null)
                     {
                         requestBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, requestBodyStream, true);
                         ContentTypeSerializer.Serialize(contentType, requestBodyCryptoStream, data);
@@ -136,7 +136,7 @@ namespace Zerra.CQRS.Network
                     //Response Body
                     responseBodyStream = new HttpProtocolBodyStream(null, stream, responseHeader.BodyStartBuffer, false);
 
-                    if (symmetricConfig != null)
+                    if (symmetricConfig is not null)
                         responseBodyStream = SymmetricEncryptor.Decrypt(symmetricConfig, responseBodyStream, false);
 
                     if (responseHeader.IsError)
@@ -159,20 +159,20 @@ namespace Zerra.CQRS.Network
                 }
                 catch (Exception ex)
                 {
-                    if (responseBodyStream != null)
+                    if (responseBodyStream is not null)
                         responseBodyStream.Dispose();
-                    if (requestBodyCryptoStream != null)
+                    if (requestBodyCryptoStream is not null)
                         requestBodyCryptoStream.Dispose();
-                    if (requestBodyStream != null)
+                    if (requestBodyStream is not null)
                         requestBodyStream.Dispose();
                     if (isThrowingRemote)
                     {
-                        if (stream != null)
+                        if (stream is not null)
                             stream.Dispose();
                     }
                     else
                     {
-                        if (stream != null)
+                        if (stream is not null)
                         {
                             stream.DisposeSocket();
                             if (!stream.NewConnection)
@@ -220,7 +220,7 @@ namespace Zerra.CQRS.Network
                 data.AddProviderArguments(arguments);
 
                 IDictionary<string, IList<string?>>? authHeaders = null;
-                if (authorizer != null)
+                if (authorizer is not null)
                     authHeaders = authorizer.BuildAuthHeaders();
 
                 var buffer = bufferOwner.AsMemory();
@@ -239,7 +239,7 @@ namespace Zerra.CQRS.Network
 
                     requestBodyStream = new HttpProtocolBodyStream(null, stream, null, true);
 
-                    if (symmetricConfig != null)
+                    if (symmetricConfig is not null)
                     {
                         requestBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, requestBodyStream, true);
                         await ContentTypeSerializer.SerializeAsync(contentType, requestBodyCryptoStream, data);
@@ -306,7 +306,7 @@ namespace Zerra.CQRS.Network
                     //Response Body
                     responseBodyStream = new HttpProtocolBodyStream(null, stream, responseHeader.BodyStartBuffer, false);
 
-                    if (symmetricConfig != null)
+                    if (symmetricConfig is not null)
                         responseBodyStream = SymmetricEncryptor.Decrypt(symmetricConfig, responseBodyStream, false);
 
                     if (responseHeader.IsError)
@@ -333,7 +333,7 @@ namespace Zerra.CQRS.Network
                 }
                 catch (Exception ex)
                 {
-                    if (responseBodyStream != null)
+                    if (responseBodyStream is not null)
                     {
 #if NETSTANDARD2_0
                         responseBodyStream.Dispose();
@@ -341,7 +341,7 @@ namespace Zerra.CQRS.Network
                         await responseBodyStream.DisposeAsync();
 #endif
                     }
-                    if (requestBodyStream != null)
+                    if (requestBodyStream is not null)
                     {
 #if NETSTANDARD2_0
                         requestBodyStream.Dispose();
@@ -349,7 +349,7 @@ namespace Zerra.CQRS.Network
                         await requestBodyStream.DisposeAsync();
 #endif
                     }
-                    if (requestBodyCryptoStream != null)
+                    if (requestBodyCryptoStream is not null)
                     {
 #if NETSTANDARD2_0
                         requestBodyCryptoStream.Dispose();
@@ -359,12 +359,12 @@ namespace Zerra.CQRS.Network
                     }
                     if (isThrowingRemote)
                     {
-                        if (stream != null)
+                        if (stream is not null)
                             stream.Dispose();
                     }
                     else
                     {
-                        if (stream != null)
+                        if (stream is not null)
                         {
                             stream.DisposeSocket();
                             if (!stream.NewConnection)
@@ -417,7 +417,7 @@ namespace Zerra.CQRS.Network
                 };
 
                 IDictionary<string, IList<string?>>? authHeaders = null;
-                if (authorizer != null)
+                if (authorizer is not null)
                     authHeaders = authorizer.BuildAuthHeaders();
 
                 var buffer = bufferOwner.AsMemory();
@@ -436,7 +436,7 @@ namespace Zerra.CQRS.Network
 
                     requestBodyStream = new HttpProtocolBodyStream(null, stream, null, true);
 
-                    if (symmetricConfig != null)
+                    if (symmetricConfig is not null)
                     {
                         requestBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, requestBodyStream, true);
                         await ContentTypeSerializer.SerializeAsync(contentType, requestBodyCryptoStream, data);
@@ -504,7 +504,7 @@ namespace Zerra.CQRS.Network
                     //Response Body
                     responseBodyStream = new HttpProtocolBodyStream(null, stream, responseHeader.BodyStartBuffer, false);
 
-                    if (symmetricConfig != null)
+                    if (symmetricConfig is not null)
                         responseBodyStream = SymmetricEncryptor.Decrypt(symmetricConfig, responseBodyStream, false);
 
                     if (responseHeader.IsError)
@@ -522,7 +522,7 @@ namespace Zerra.CQRS.Network
                 }
                 catch (Exception ex)
                 {
-                    if (responseBodyStream != null)
+                    if (responseBodyStream is not null)
                     {
 #if NETSTANDARD2_0
                         responseBodyStream.Dispose();
@@ -530,7 +530,7 @@ namespace Zerra.CQRS.Network
                         await responseBodyStream.DisposeAsync();
 #endif
                     }
-                    if (requestBodyStream != null)
+                    if (requestBodyStream is not null)
                     {
 #if NETSTANDARD2_0
                         requestBodyStream.Dispose();
@@ -538,7 +538,7 @@ namespace Zerra.CQRS.Network
                         await requestBodyStream.DisposeAsync();
 #endif
                     }
-                    if (requestBodyCryptoStream != null)
+                    if (requestBodyCryptoStream is not null)
                     {
 #if NETSTANDARD2_0
                         requestBodyCryptoStream.Dispose();
@@ -548,12 +548,12 @@ namespace Zerra.CQRS.Network
                     }
                     if (isThrowingRemote)
                     {
-                        if (stream != null)
+                        if (stream is not null)
                             stream.Dispose();
                     }
                     else
                     {
-                        if (stream != null)
+                        if (stream is not null)
                         {
                             stream.DisposeSocket();
                             if (!stream.NewConnection)
@@ -606,7 +606,7 @@ namespace Zerra.CQRS.Network
                 };
 
                 IDictionary<string, IList<string?>>? authHeaders = null;
-                if (authorizer != null)
+                if (authorizer is not null)
                     authHeaders = authorizer.BuildAuthHeaders();
 
                 var buffer = bufferOwner.AsMemory();
@@ -625,7 +625,7 @@ namespace Zerra.CQRS.Network
 
                     requestBodyStream = new HttpProtocolBodyStream(null, stream, null, true);
 
-                    if (symmetricConfig != null)
+                    if (symmetricConfig is not null)
                     {
                         requestBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, requestBodyStream, true);
                         await ContentTypeSerializer.SerializeAsync(contentType, requestBodyCryptoStream, data);
@@ -693,7 +693,7 @@ namespace Zerra.CQRS.Network
                     //Response Body
                     responseBodyStream = new HttpProtocolBodyStream(null, stream, responseHeader.BodyStartBuffer, false);
 
-                    if (symmetricConfig != null)
+                    if (symmetricConfig is not null)
                         responseBodyStream = SymmetricEncryptor.Decrypt(symmetricConfig, responseBodyStream, false);
 
                     if (responseHeader.IsError)
@@ -720,7 +720,7 @@ namespace Zerra.CQRS.Network
                 }
                 catch (Exception ex)
                 {
-                    if (responseBodyStream != null)
+                    if (responseBodyStream is not null)
                     {
 #if NETSTANDARD2_0
                         responseBodyStream.Dispose();
@@ -728,7 +728,7 @@ namespace Zerra.CQRS.Network
                         await responseBodyStream.DisposeAsync();
 #endif
                     }
-                    if (requestBodyStream != null)
+                    if (requestBodyStream is not null)
                     {
 #if NETSTANDARD2_0
                         requestBodyStream.Dispose();
@@ -736,7 +736,7 @@ namespace Zerra.CQRS.Network
                         await requestBodyStream.DisposeAsync();
 #endif
                     }
-                    if (requestBodyCryptoStream != null)
+                    if (requestBodyCryptoStream is not null)
                     {
 #if NETSTANDARD2_0
                         requestBodyCryptoStream.Dispose();
@@ -746,12 +746,12 @@ namespace Zerra.CQRS.Network
                     }
                     if (isThrowingRemote)
                     {
-                        if (stream != null)
+                        if (stream is not null)
                             stream.Dispose();
                     }
                     else
                     {
-                        if (stream != null)
+                        if (stream is not null)
                         {
                             stream.DisposeSocket();
                             if (!stream.NewConnection)

@@ -17,7 +17,7 @@ namespace ZerraDemo.Domain.Ledger1
             Access.CheckRole("Admin");
 
             var item = await Repo.QueryAsync(new QuerySingle<Ledger1AccountDataModel>(x => x.AccountID == accountID));
-            if (item == null)
+            if (item is null)
                 return false;
             return item.HasBalance;
         }
@@ -30,7 +30,7 @@ namespace ZerraDemo.Domain.Ledger1
             var reversed = items.Reverse();
             var current = reversed.FirstOrDefault();
 
-            if (current == null)
+            if (current is null)
             {
                 return new Balance1Model()
                 {
@@ -47,7 +47,7 @@ namespace ZerraDemo.Domain.Ledger1
             {
                 AccountID = accountID,
                 Balance = current.Balance,
-                LastTransactionAmount = previous == null ? current.Balance : current.Balance - previous.Balance,
+                LastTransactionAmount = previous is null ? current.Balance : current.Balance - previous.Balance,
                 LastTransactionDate = current.UpdatedDate
             };
 
@@ -63,7 +63,7 @@ namespace ZerraDemo.Domain.Ledger1
             var models = new List<Transaction1Model>();
             foreach (var item in items)
             {
-                if (item.Source == null)
+                if (item.Source is null)
                     continue;
 
                 decimal amount;

@@ -39,11 +39,11 @@ namespace Zerra.Linq
 
         private static Expression Rebind(Expression exp, RebinderContext context)
         {
-            if (context.ExpressionReplacements != null && context.ExpressionReplacements.TryGetValue(exp, out var newExpression))
+            if (context.ExpressionReplacements is not null && context.ExpressionReplacements.TryGetValue(exp, out var newExpression))
             {
                 return newExpression;
             }
-            if (context.ExpressionStringReplacements != null && context.ExpressionStringReplacements.TryGetValue(exp.ToString(), out newExpression))
+            if (context.ExpressionStringReplacements is not null && context.ExpressionStringReplacements.TryGetValue(exp.ToString(), out newExpression))
             {
                 return newExpression;
             }
@@ -132,7 +132,7 @@ namespace Zerra.Linq
                             replacementExpressions[i] = replacementExpression;
                         }
 
-                        return Expression.Call(cast.Object != null ? Rebind(cast.Object, context) : null, cast.Method, replacementExpressions);
+                        return Expression.Call(cast.Object is not null ? Rebind(cast.Object, context) : null, cast.Method, replacementExpressions);
                     }
                 case ExpressionType.Coalesce:
                     {
@@ -216,7 +216,7 @@ namespace Zerra.Linq
                 case ExpressionType.Goto:
                     {
                         var cast = (GotoExpression)exp;
-                        return Expression.Goto(cast.Target, cast.Value != null ? Rebind(cast.Value, context) : null, cast.Type);
+                        return Expression.Goto(cast.Target, cast.Value is not null ? Rebind(cast.Value, context) : null, cast.Type);
                     }
                 case ExpressionType.GreaterThan:
                     {
@@ -237,7 +237,7 @@ namespace Zerra.Linq
                     {
                         var cast = (IndexExpression)exp;
 
-                        if (cast.Object != null)
+                        if (cast.Object is not null)
                         {
                             var replacementExpressions = new Expression[cast.Arguments.Count];
                             for (var i = 0; i < cast.Arguments.Count; i++)
@@ -279,7 +279,7 @@ namespace Zerra.Linq
                 case ExpressionType.Label:
                     {
                         var cast = (LabelExpression)exp;
-                        return Expression.Label(cast.Target, cast.DefaultValue != null ? Rebind(cast.DefaultValue, context) : null);
+                        return Expression.Label(cast.Target, cast.DefaultValue is not null ? Rebind(cast.DefaultValue, context) : null);
                     }
                 case ExpressionType.Lambda:
                     {
@@ -345,7 +345,7 @@ namespace Zerra.Linq
                     {
                         var cast = (MemberExpression)exp;
 
-                        if (cast.Expression != null)
+                        if (cast.Expression is not null)
                         {
                             return Expression.MakeMemberAccess(Rebind(cast.Expression, context), cast.Member);
                         }
@@ -403,7 +403,7 @@ namespace Zerra.Linq
                     {
                         var cast = (NewExpression)exp;
 
-                        if (cast.Constructor != null)
+                        if (cast.Constructor is not null)
                         {
                             var replacementExpressions = new Expression[cast.Arguments.Count];
                             for (var i = 0; i < cast.Arguments.Count; i++)
@@ -480,7 +480,7 @@ namespace Zerra.Linq
                         return exp;
                         //var cast = (ParameterExpression)exp;
 
-                        //if (context.TypeReplacements != null && context.TypeReplacements.TryGetValue(cast.Type, out Type replacementType))
+                        //if (context.TypeReplacements is not null && context.TypeReplacements.TryGetValue(cast.Type, out Type replacementType))
                         //{
                         //    if (!context.Parameters.TryGetValue(replacementType, out ParameterExpression replacementParameter))
                         //    {
@@ -591,7 +591,7 @@ namespace Zerra.Linq
                             replacementCases[i] = replacementCase;
                         }
 
-                        return Expression.Switch(cast.Type, Rebind(cast.SwitchValue, context), cast.DefaultBody != null ? Rebind(cast.DefaultBody, context) : null, cast.Comparison, cast.Cases);
+                        return Expression.Switch(cast.Type, Rebind(cast.SwitchValue, context), cast.DefaultBody is not null ? Rebind(cast.DefaultBody, context) : null, cast.Comparison, cast.Cases);
                     }
                 case ExpressionType.Throw:
                     {
@@ -607,16 +607,16 @@ namespace Zerra.Linq
                         {
                             var handler = cast.Handlers[i];
                             ParameterExpression? replacementParameter = null;
-                            if (handler.Variable != null)
+                            if (handler.Variable is not null)
                             {
                                 var replacementExpression = Rebind(handler.Variable, context);
                                 replacementParameter = ExtractParametersExpression(replacementExpression).SingleOrDefault();
                             }
-                            var replacementBlock = Expression.MakeCatchBlock(handler.Test, replacementParameter, Rebind(handler.Body, context), handler.Filter != null ? Rebind(handler.Filter, context) : null);
+                            var replacementBlock = Expression.MakeCatchBlock(handler.Test, replacementParameter, Rebind(handler.Body, context), handler.Filter is not null ? Rebind(handler.Filter, context) : null);
                             replacementBlocks[i] = replacementBlock;
                         }
 
-                        return Expression.MakeTry(cast.Type, Rebind(cast.Body, context), cast.Finally != null ? Rebind(cast.Finally, context) : null, cast.Fault != null ? Rebind(cast.Fault, context) : null, replacementBlocks);
+                        return Expression.MakeTry(cast.Type, Rebind(cast.Body, context), cast.Finally is not null ? Rebind(cast.Finally, context) : null, cast.Fault is not null ? Rebind(cast.Fault, context) : null, replacementBlocks);
                     }
                 case ExpressionType.TypeAs:
                     {
@@ -656,7 +656,7 @@ namespace Zerra.Linq
         }
         private static void ExtractParametersExpressionInternal(Expression exp, List<ParameterExpression> parameters)
         {
-            if (exp == null)
+            if (exp is null)
                 return;
 
             switch (exp.NodeType)
@@ -730,7 +730,7 @@ namespace Zerra.Linq
                 case ExpressionType.Call:
                     {
                         var cast = (MethodCallExpression)exp;
-                        if (cast.Object != null)
+                        if (cast.Object is not null)
                             ExtractParametersExpressionInternal(cast.Object, parameters);
                         foreach (var arg in cast.Arguments)
                             ExtractParametersExpressionInternal(arg, parameters);
@@ -830,7 +830,7 @@ namespace Zerra.Linq
                 case ExpressionType.Goto:
                     {
                         var cast = (GotoExpression)exp;
-                        if (cast.Value != null)
+                        if (cast.Value is not null)
                             ExtractParametersExpressionInternal(cast.Value, parameters);
                         return;
                     }
@@ -857,7 +857,7 @@ namespace Zerra.Linq
                 case ExpressionType.Index:
                     {
                         var cast = (IndexExpression)exp;
-                        if (cast.Object != null)
+                        if (cast.Object is not null)
                             ExtractParametersExpressionInternal(cast.Object, parameters);
                         foreach (var arg in cast.Arguments)
                             ExtractParametersExpressionInternal(arg, parameters);
@@ -887,7 +887,7 @@ namespace Zerra.Linq
                 case ExpressionType.Label:
                     {
                         var cast = (LabelExpression)exp;
-                        if (cast.DefaultValue != null)
+                        if (cast.DefaultValue is not null)
                             ExtractParametersExpressionInternal(cast.DefaultValue, parameters);
                         return;
                     }
@@ -946,7 +946,7 @@ namespace Zerra.Linq
                 case ExpressionType.MemberAccess:
                     {
                         var cast = (MemberExpression)exp;
-                        if (cast.Expression != null)
+                        if (cast.Expression is not null)
                             ExtractParametersExpressionInternal(cast.Expression, parameters);
                         return;
                     }
@@ -1172,7 +1172,7 @@ namespace Zerra.Linq
                     {
                         var cast = (SwitchExpression)exp;
                         ExtractParametersExpressionInternal(cast.SwitchValue, parameters);
-                        if (cast.DefaultBody != null)
+                        if (cast.DefaultBody is not null)
                             ExtractParametersExpressionInternal(cast.DefaultBody, parameters);
                         foreach (var item in cast.Cases)
                         {
@@ -1192,14 +1192,14 @@ namespace Zerra.Linq
                     {
                         var cast = (TryExpression)exp;
                         ExtractParametersExpressionInternal(cast.Body, parameters);
-                        if (cast.Fault != null)
+                        if (cast.Fault is not null)
                             ExtractParametersExpressionInternal(cast.Fault, parameters);
-                        if (cast.Finally != null)
+                        if (cast.Finally is not null)
                             ExtractParametersExpressionInternal(cast.Finally, parameters);
                         foreach (var item in cast.Handlers)
                         {
                             ExtractParametersExpressionInternal(item.Body, parameters);
-                            if (item.Variable != null)
+                            if (item.Variable is not null)
                                 ExtractParametersExpressionInternal(item.Variable, parameters);
                         }
                         return;

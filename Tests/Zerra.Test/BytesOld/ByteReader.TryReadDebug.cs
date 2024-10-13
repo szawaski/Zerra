@@ -42,7 +42,7 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = buffer[position++] == nullByte;
+            value = buffer[position++] is nullByte;
 
             return true;
         }
@@ -73,7 +73,7 @@ namespace Zerra.Serialization.Bytes.IO
 
             if (nullFlags)
             {
-                if (buffer[position++] == nullByte)
+                if (buffer[position++] is nullByte)
                 {
                     value = null;
                     return true;
@@ -153,7 +153,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new bool?[length];
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var item = buffer[position++] != 0;
                     value[i] = item;
@@ -174,7 +174,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new List<bool?>(length);
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var item = buffer[position++] != 0;
                     value.Add(item);
@@ -203,7 +203,7 @@ namespace Zerra.Serialization.Bytes.IO
 #endif
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var item = buffer[position++] != 0;
                     value.Add(item);
@@ -241,7 +241,7 @@ namespace Zerra.Serialization.Bytes.IO
 
             if (nullFlags)
             {
-                if (buffer[position++] == nullByte)
+                if (buffer[position++] is nullByte)
                 {
                     value = null;
                     return true;
@@ -323,7 +323,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new byte?[length];
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var item = buffer[position++];
                     value[i] = item;
@@ -344,7 +344,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new List<byte?>(length);
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var item = buffer[position++];
                     value.Add(item);
@@ -373,7 +373,7 @@ namespace Zerra.Serialization.Bytes.IO
 #endif
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var item = buffer[position++];
                     value.Add(item);
@@ -411,7 +411,7 @@ namespace Zerra.Serialization.Bytes.IO
 
             if (nullFlags)
             {
-                if (buffer[position++] == nullByte)
+                if (buffer[position++] is nullByte)
                 {
                     value = null;
                     return true;
@@ -491,7 +491,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new sbyte?[length];
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var item = (sbyte)buffer[position++];
                     value[i] = item;
@@ -512,7 +512,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new List<sbyte?>(length);
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var item = (sbyte)buffer[position++];
                     value.Add(item);
@@ -541,7 +541,7 @@ namespace Zerra.Serialization.Bytes.IO
 #endif
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var item = (sbyte)buffer[position++];
                     value.Add(item);
@@ -579,7 +579,7 @@ namespace Zerra.Serialization.Bytes.IO
 
             if (nullFlags)
             {
-                if (buffer[position++] == nullByte)
+                if (buffer[position++] is nullByte)
                 {
                     value = null;
                     return true;
@@ -659,7 +659,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new short?[length];
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var item = (short)(buffer[position++] | buffer[position++] << 8);
                     value[i] = item;
@@ -680,7 +680,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new List<short?>(length);
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var item = (short)(buffer[position++] | buffer[position++] << 8);
                     value.Add(item);
@@ -709,7 +709,7 @@ namespace Zerra.Serialization.Bytes.IO
 #endif
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var item = (short)(buffer[position++] | buffer[position++] << 8);
                     value.Add(item);
@@ -747,7 +747,7 @@ namespace Zerra.Serialization.Bytes.IO
 
             if (nullFlags)
             {
-                if (buffer[position++] == nullByte)
+                if (buffer[position++] is nullByte)
                 {
                     value = null;
                     return true;
@@ -827,7 +827,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new ushort?[length];
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var item = (ushort)(buffer[position++] | buffer[position++] << 8);
                     value[i] = item;
@@ -848,7 +848,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new List<ushort?>(length);
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var item = (ushort)(buffer[position++] | buffer[position++] << 8);
                     value.Add(item);
@@ -877,7 +877,7 @@ namespace Zerra.Serialization.Bytes.IO
 #endif
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var item = (ushort)(buffer[position++] | buffer[position++] << 8);
                     value.Add(item);
@@ -915,7 +915,7 @@ namespace Zerra.Serialization.Bytes.IO
 
             if (nullFlags)
             {
-                if (buffer[position++] == nullByte)
+                if (buffer[position++] is nullByte)
                 {
                     value = null;
                     return true;
@@ -995,7 +995,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new int?[length];
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var item = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     value[i] = item;
@@ -1016,7 +1016,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new List<int?>(length);
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var item = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     value.Add(item);
@@ -1045,7 +1045,7 @@ namespace Zerra.Serialization.Bytes.IO
 #endif
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var item = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     value.Add(item);
@@ -1083,7 +1083,7 @@ namespace Zerra.Serialization.Bytes.IO
 
             if (nullFlags)
             {
-                if (buffer[position++] == nullByte)
+                if (buffer[position++] is nullByte)
                 {
                     value = null;
                     return true;
@@ -1163,7 +1163,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new uint?[length];
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var item = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     value[i] = item;
@@ -1184,7 +1184,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new List<uint?>(length);
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var item = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     value.Add(item);
@@ -1213,7 +1213,7 @@ namespace Zerra.Serialization.Bytes.IO
 #endif
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var item = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     value.Add(item);
@@ -1253,7 +1253,7 @@ namespace Zerra.Serialization.Bytes.IO
 
             if (nullFlags)
             {
-                if (buffer[position++] == nullByte)
+                if (buffer[position++] is nullByte)
                 {
                     value = null;
                     return true;
@@ -1341,7 +1341,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new long?[length];
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
@@ -1364,7 +1364,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new List<long?>(length);
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
@@ -1395,7 +1395,7 @@ namespace Zerra.Serialization.Bytes.IO
 #endif
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
@@ -1437,7 +1437,7 @@ namespace Zerra.Serialization.Bytes.IO
 
             if (nullFlags)
             {
-                if (buffer[position++] == nullByte)
+                if (buffer[position++] is nullByte)
                 {
                     value = null;
                     return true;
@@ -1525,7 +1525,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new ulong?[length];
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
@@ -1548,7 +1548,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new List<ulong?>(length);
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
@@ -1579,7 +1579,7 @@ namespace Zerra.Serialization.Bytes.IO
 #endif
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
@@ -1620,7 +1620,7 @@ namespace Zerra.Serialization.Bytes.IO
 
             if (nullFlags)
             {
-                if (buffer[position++] == nullByte)
+                if (buffer[position++] is nullByte)
                 {
                     value = null;
                     return true;
@@ -1704,7 +1704,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new float?[length];
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var tmpBuffer = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var item = *((float*)&tmpBuffer);
@@ -1726,7 +1726,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new List<float?>(length);
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var tmpBuffer = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var item = *((float*)&tmpBuffer);
@@ -1756,7 +1756,7 @@ namespace Zerra.Serialization.Bytes.IO
 #endif
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var tmpBuffer = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var item = *((float*)&tmpBuffer);
@@ -1798,7 +1798,7 @@ namespace Zerra.Serialization.Bytes.IO
 
             if (nullFlags)
             {
-                if (buffer[position++] == nullByte)
+                if (buffer[position++] is nullByte)
                 {
                     value = null;
                     return true;
@@ -1890,7 +1890,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new double?[length];
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
@@ -1914,7 +1914,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new List<double?>(length);
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
@@ -1946,7 +1946,7 @@ namespace Zerra.Serialization.Bytes.IO
 #endif
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
@@ -1991,7 +1991,7 @@ namespace Zerra.Serialization.Bytes.IO
 
             if (nullFlags)
             {
-                if (buffer[position++] == nullByte)
+                if (buffer[position++] is nullByte)
                 {
                     value = null;
                     return true;
@@ -2087,7 +2087,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new decimal?[length];
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var lo = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                     var mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
@@ -2112,7 +2112,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new List<decimal?>(length);
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var lo = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                     var mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
@@ -2145,7 +2145,7 @@ namespace Zerra.Serialization.Bytes.IO
 #endif
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var lo = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                     var mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
@@ -2190,7 +2190,7 @@ namespace Zerra.Serialization.Bytes.IO
 
             if (nullFlags)
             {
-                if (buffer[position++] == nullByte)
+                if (buffer[position++] is nullByte)
                 {
                     value = null;
                     return true;
@@ -2282,7 +2282,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new DateTime?[length];
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
@@ -2306,7 +2306,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new List<DateTime?>(length);
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
@@ -2338,7 +2338,7 @@ namespace Zerra.Serialization.Bytes.IO
 #endif
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
@@ -2383,7 +2383,7 @@ namespace Zerra.Serialization.Bytes.IO
 
             if (nullFlags)
             {
-                if (buffer[position++] == nullByte)
+                if (buffer[position++] is nullByte)
                 {
                     value = null;
                     return true;
@@ -2479,7 +2479,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new DateTimeOffset?[length];
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
@@ -2504,7 +2504,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new List<DateTimeOffset?>(length);
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
@@ -2537,7 +2537,7 @@ namespace Zerra.Serialization.Bytes.IO
 #endif
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
@@ -2582,7 +2582,7 @@ namespace Zerra.Serialization.Bytes.IO
 
             if (nullFlags)
             {
-                if (buffer[position++] == nullByte)
+                if (buffer[position++] is nullByte)
                 {
                     value = null;
                     return true;
@@ -2674,7 +2674,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new TimeSpan?[length];
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
@@ -2698,7 +2698,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new List<TimeSpan?>(length);
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
@@ -2730,7 +2730,7 @@ namespace Zerra.Serialization.Bytes.IO
 #endif
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
@@ -2773,7 +2773,7 @@ namespace Zerra.Serialization.Bytes.IO
 
             if (nullFlags)
             {
-                if (buffer[position++] == nullByte)
+                if (buffer[position++] is nullByte)
                 {
                     value = null;
                     return true;
@@ -2857,7 +2857,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new DateOnly?[length];
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var dayNumber = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var item = DateOnly.FromDayNumber(dayNumber);
@@ -2879,7 +2879,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new List<DateOnly?>(length);
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var dayNumber = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var item = DateOnly.FromDayNumber(dayNumber);
@@ -2909,7 +2909,7 @@ namespace Zerra.Serialization.Bytes.IO
 #endif
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var dayNumber = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var item = DateOnly.FromDayNumber(dayNumber);
@@ -2951,7 +2951,7 @@ namespace Zerra.Serialization.Bytes.IO
 
             if (nullFlags)
             {
-                if (buffer[position++] == nullByte)
+                if (buffer[position++] is nullByte)
                 {
                     value = null;
                     return true;
@@ -3043,7 +3043,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new TimeOnly?[length];
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
@@ -3067,7 +3067,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new List<TimeOnly?>(length);
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
@@ -3099,7 +3099,7 @@ namespace Zerra.Serialization.Bytes.IO
 #endif
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
@@ -3146,7 +3146,7 @@ namespace Zerra.Serialization.Bytes.IO
 
             if (nullFlags)
             {
-                if (buffer[position++] == nullByte)
+                if (buffer[position++] is nullByte)
                 {
                     value = null;
                     return true;
@@ -3248,7 +3248,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new Guid?[length];
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
 #if NETSTANDARD2_0
                     var item = new Guid(buffer.Slice(position, 16).ToArray());
@@ -3274,7 +3274,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new List<Guid?>(length);
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
 #if NETSTANDARD2_0
                     var item = new Guid(buffer.Slice(position, 16).ToArray());
@@ -3308,7 +3308,7 @@ namespace Zerra.Serialization.Bytes.IO
 #endif
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
 #if NETSTANDARD2_0
                     var item = new Guid(buffer.Slice(position, 16).ToArray());
@@ -3355,7 +3355,7 @@ namespace Zerra.Serialization.Bytes.IO
 
             if (nullFlags)
             {
-                if (buffer[position++] == nullByte)
+                if (buffer[position++] is nullByte)
                 {
                     value = null;
                     return true;
@@ -3455,7 +3455,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new char?[length];
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     char item;
                     fixed (byte* pBuffer = &buffer[position])
@@ -3482,7 +3482,7 @@ namespace Zerra.Serialization.Bytes.IO
             value = new List<char?>(length);
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     char item;
                     fixed (byte* pBuffer = &buffer[position])
@@ -3516,7 +3516,7 @@ namespace Zerra.Serialization.Bytes.IO
 #endif
             for (var i = 0; i < length; i++)
             {
-                if (buffer[position++] != nullByte)
+                if (buffer[position++] is not nullByte)
                 {
                     char item;
                     fixed (byte* pBuffer = &buffer[position])
@@ -3544,7 +3544,7 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            if (nullFlags && buffer[position++] == nullByte)
+            if (nullFlags && buffer[position++] is nullByte)
             {
                 value = null;
                 return true;

@@ -40,7 +40,7 @@ namespace Zerra.Identity.Cryptography
 
         public static bool Validate(string text, string signature, AsymmetricAlgorithm asymmetricAlgorithm, XmlSignatureAlgorithmType signatureAlgorithm, bool base64UrlEncoding)
         {
-            if (signature == null)
+            if (signature is null)
                 return false;
 
             var textBytes = Encoding.UTF8.GetBytes(text);

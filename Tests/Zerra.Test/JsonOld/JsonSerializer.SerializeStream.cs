@@ -16,9 +16,9 @@ namespace Zerra.Serialization.Json
     {
         public static void Serialize(Stream stream, object? obj, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
-            if (obj == null)
+            if (obj is null)
             {
                 stream.Write(nullBytes, 0, nullBytes.Length);
                 return;
@@ -30,7 +30,7 @@ namespace Zerra.Serialization.Json
         }
         public static void Serialize<T>(Stream stream, T? obj, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
 
             var type = typeof(T);
@@ -39,11 +39,11 @@ namespace Zerra.Serialization.Json
         }
         public static void Serialize(Stream stream, object? obj, Type type, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
-            if (type == null)
+            if (type is null)
                 throw new ArgumentNullException(nameof(type));
-            if (obj == null)
+            if (obj is null)
             {
                 stream.Write(nullBytes, 0, nullBytes.Length);
                 return;
@@ -100,9 +100,9 @@ namespace Zerra.Serialization.Json
 
         public static Task SerializeAsync(Stream stream, object? obj, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
-            if (obj == null)
+            if (obj is null)
             {
                 stream.Write(nullBytes, 0, nullBytes.Length);
                 return Task.CompletedTask;
@@ -114,7 +114,7 @@ namespace Zerra.Serialization.Json
         }
         public static Task SerializeAsync<T>(Stream stream, T? obj, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
 
             var type = typeof(T);
@@ -123,11 +123,11 @@ namespace Zerra.Serialization.Json
         }
         public static async Task SerializeAsync(Stream stream, object? obj, Type type, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
-            if (type == null)
+            if (type is null)
                 throw new ArgumentNullException(nameof(type));
-            if (obj == null)
+            if (obj is null)
             {
 #if NET5_0_OR_GREATER
                 await stream.WriteAsync(nullBytes);
@@ -244,13 +244,13 @@ namespace Zerra.Serialization.Json
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static WriteFrame CreateWriteFrame(ref WriteState state, TypeDetail typeDetail, object? obj, Graph? graph = null)
         {
-            if (((typeDetail.Type.IsInterface && !typeDetail.HasIEnumerable) || typeDetail.Type.FullName == "System.Object") && obj != null)
+            if (((typeDetail.Type.IsInterface && !typeDetail.HasIEnumerable) || typeDetail.Type.FullName == "System.Object") && obj is not null)
             {
                 var objectType = obj.GetType();
                 typeDetail = TypeAnalyzer.GetTypeDetail(objectType);
             }
 
-            if (obj == null)
+            if (obj is null)
             {
                 return new WriteFrame() { FrameType = WriteFrameType.Null, TypeDetail = typeDetail, Object = null, Graph = graph };
             }
@@ -758,8 +758,8 @@ namespace Zerra.Serialization.Json
             switch (specialType)
             {
                 case SpecialType.Type:
-                    var valueType = state.CurrentFrame.Object == null ? null : (Type)state.CurrentFrame.Object;
-                    if (valueType == null)
+                    var valueType = state.CurrentFrame.Object is null ? null : (Type)state.CurrentFrame.Object;
+                    if (valueType is null)
                     {
                         if (!writer.TryWrite("null", out sizeNeeded))
                         {
@@ -774,7 +774,7 @@ namespace Zerra.Serialization.Json
 
                 case SpecialType.Dictionary:
 
-                    if (state.CurrentFrame.Object == null)
+                    if (state.CurrentFrame.Object is null)
                     {
                         if (!writer.TryWrite("null", out sizeNeeded))
                         {
@@ -1021,7 +1021,7 @@ namespace Zerra.Serialization.Json
                             break;
 
                         state.CurrentFrame.ObjectPropertyValue = state.CurrentFrame.MemberEnumerator.Current.GetterBoxed(state.CurrentFrame.Object!);
-                        if (state.DoNotWriteNull && state.CurrentFrame.ObjectPropertyValue == null)
+                        if (state.DoNotWriteNull && state.CurrentFrame.ObjectPropertyValue is null)
                             break;
 
                         if (state.CurrentFrame.EnumeratorPassedFirstProperty)
@@ -2117,7 +2117,7 @@ namespace Zerra.Serialization.Json
                         case CoreEnumType.ByteNullable:
                             {
                                 var value = state.CurrentFrame.Enumerator!.Current!;
-                                if (value != null)
+                                if (value is not null)
                                 {
                                     if (!writer.TryWrite((byte)value, out sizeNeeded))
                                     {
@@ -2139,7 +2139,7 @@ namespace Zerra.Serialization.Json
                         case CoreEnumType.SByteNullable:
                             {
                                 var value = state.CurrentFrame.Enumerator!.Current!;
-                                if (value != null)
+                                if (value is not null)
                                 {
                                     if (!writer.TryWrite((sbyte)value, out sizeNeeded))
                                     {
@@ -2161,7 +2161,7 @@ namespace Zerra.Serialization.Json
                         case CoreEnumType.Int16Nullable:
                             {
                                 var value = state.CurrentFrame.Enumerator!.Current!;
-                                if (value != null)
+                                if (value is not null)
                                 {
                                     if (!writer.TryWrite((short)value, out sizeNeeded))
                                     {
@@ -2183,7 +2183,7 @@ namespace Zerra.Serialization.Json
                         case CoreEnumType.UInt16Nullable:
                             {
                                 var value = state.CurrentFrame.Enumerator!.Current!;
-                                if (value != null)
+                                if (value is not null)
                                 {
                                     if (!writer.TryWrite((ushort)value, out sizeNeeded))
                                     {
@@ -2205,7 +2205,7 @@ namespace Zerra.Serialization.Json
                         case CoreEnumType.Int32Nullable:
                             {
                                 var value = state.CurrentFrame.Enumerator!.Current!;
-                                if (value != null)
+                                if (value is not null)
                                 {
                                     if (!writer.TryWrite((int)value, out sizeNeeded))
                                     {
@@ -2227,7 +2227,7 @@ namespace Zerra.Serialization.Json
                         case CoreEnumType.UInt32Nullable:
                             {
                                 var value = state.CurrentFrame.Enumerator!.Current!;
-                                if (value != null)
+                                if (value is not null)
                                 {
                                     if (!writer.TryWrite((uint)value, out sizeNeeded))
                                     {
@@ -2249,7 +2249,7 @@ namespace Zerra.Serialization.Json
                         case CoreEnumType.Int64Nullable:
                             {
                                 var value = state.CurrentFrame.Enumerator!.Current!;
-                                if (value != null)
+                                if (value is not null)
                                 {
                                     if (!writer.TryWrite((long)value, out sizeNeeded))
                                     {
@@ -2271,7 +2271,7 @@ namespace Zerra.Serialization.Json
                         case CoreEnumType.UInt64Nullable:
                             {
                                 var value = state.CurrentFrame.Enumerator!.Current!;
-                                if (value != null)
+                                if (value is not null)
                                 {
                                     if (!writer.TryWrite((ulong)value, out sizeNeeded))
                                     {
@@ -2300,7 +2300,7 @@ namespace Zerra.Serialization.Json
                     {
                         if (typeDetail.IsNullable)
                         {
-                            if (state.CurrentFrame.Enumerator!.Current == null)
+                            if (state.CurrentFrame.Enumerator!.Current is null)
                             {
                                 state.CurrentFrame.State = 7;
                             }
@@ -2463,7 +2463,7 @@ namespace Zerra.Serialization.Json
                         goto laststate;
                     }
 
-                    if (state.CurrentFrame.Enumerator.Current == null)
+                    if (state.CurrentFrame.Enumerator.Current is null)
                     {
                         if (state.CurrentFrame.EnumeratorPassedFirstProperty)
                         {
@@ -2554,13 +2554,13 @@ namespace Zerra.Serialization.Json
                             goto nextprop;
 
                         state.CurrentFrame.ObjectPropertyValue = state.CurrentFrame.MemberEnumerator.Current.GetterBoxed(state.CurrentFrame.Enumerator!.Current!);
-                        if (state.DoNotWriteNull && state.CurrentFrame.ObjectPropertyValue == null)
+                        if (state.DoNotWriteNull && state.CurrentFrame.ObjectPropertyValue is null)
                             goto nextprop;
 
                         var graph = state.CurrentFrame.Graph;
                         var member = state.CurrentFrame.MemberEnumerator.Current;
 
-                        if (graph != null && !graph.HasMember(member.Name))
+                        if (graph is not null && !graph.HasMember(member.Name))
                             goto nextprop;
 
                         if (state.CurrentFrame.EnumeratorPassedFirstProperty2)
@@ -2668,7 +2668,7 @@ namespace Zerra.Serialization.Json
         {
             int sizeNeeded;
 
-            if (value == null)
+            if (value is null)
             {
                 if (!writer.TryWrite("null", out sizeNeeded))
                 {

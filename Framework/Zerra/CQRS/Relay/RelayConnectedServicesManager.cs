@@ -28,7 +28,7 @@ namespace Zerra.CQRS.Relay
         {
             if (String.IsNullOrWhiteSpace(info.Url))
                 return;
-            if (info.ProviderTypes == null || info.ProviderTypes.Length == 0)
+            if (info.ProviderTypes is null || info.ProviderTypes.Length == 0)
                 return;
 
             lock (servicesByUrl)
@@ -67,7 +67,7 @@ namespace Zerra.CQRS.Relay
             lock (servicesByUrl)
             {
                 var service = servicesByUrl[url];
-                if (service != null)
+                if (service is not null)
                 {
                     _ = servicesByUrl.TryRemove(url, out _);
                     foreach (var servicesForProvider in servicesByProviderType.Values)
@@ -111,7 +111,7 @@ namespace Zerra.CQRS.Relay
             try
             {
                 var path = Config.GetEnvironmentFilePath("relaystate.dat");
-                if (path == null)
+                if (path is null)
                     throw new InvalidOperationException("Could not load environment to save relaystate.dat");
 
                 var infos = new List<ServiceInfo>();
@@ -165,7 +165,7 @@ namespace Zerra.CQRS.Relay
                         }
                         catch { }
                     }
-                    if (infoArray != null)
+                    if (infoArray is not null)
                     {
                         foreach (var info in infoArray)
                         {

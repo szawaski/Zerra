@@ -27,7 +27,7 @@ namespace Zerra.Identity.OpenID.Documents
 
             var json = binding.GetDocument();
 
-            if (json == null)
+            if (json is null)
                 return;
 
             this.ServiceProvider = json[OpenIDBinding.ClientFormName]?.ToObject<string>();
@@ -38,9 +38,9 @@ namespace Zerra.Identity.OpenID.Documents
         {
             var json = new JObject();
 
-            if (this.ServiceProvider != null)
+            if (this.ServiceProvider is not null)
                 json.Add(OpenIDBinding.ClientFormName, JToken.FromObject(this.ServiceProvider));
-            if (this.Token != null)
+            if (this.Token is not null)
                 json.Add("token", JToken.FromObject(this.Token));
 
             return json;

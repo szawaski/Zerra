@@ -20,7 +20,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 value = default;
                 return false;
             }
-            if (typeName == null)
+            if (typeName is null)
             {
                 value = default;
                 return true;

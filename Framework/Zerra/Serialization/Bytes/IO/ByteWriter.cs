@@ -77,7 +77,7 @@ namespace Zerra.Serialization.Bytes.IO
 
         public void Dispose()
         {
-            if (bufferOwner != null)
+            if (bufferOwner is not null)
             {
                 Array.Clear(bufferOwner, 0, position);
                 ArrayPoolHelper<byte>.Return(bufferOwner);

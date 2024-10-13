@@ -26,7 +26,7 @@ namespace Zerra.Identity.Cryptography
         public static byte[] EncryptBytes(byte[] bytes, X509Certificate2 cert)
         {
             var rsa = cert.GetRSAPublicKey();
-            if (rsa == null)
+            if (rsa is null)
                 throw new IdentityProviderException("X509 must be RSA");
 
             var encryptedBytes = rsa.Encrypt(bytes, RSAEncryptionPadding.Pkcs1);
@@ -42,7 +42,7 @@ namespace Zerra.Identity.Cryptography
         public static byte[] DecryptBytes(byte[] bytes, X509Certificate2 cert)
         {
             var rsa = cert.GetRSAPrivateKey();
-            if (rsa == null)
+            if (rsa is null)
                 throw new IdentityProviderException("X509 must be RSA");
 
             var decryptedBytes = rsa.Decrypt(bytes, RSAEncryptionPadding.Pkcs1);

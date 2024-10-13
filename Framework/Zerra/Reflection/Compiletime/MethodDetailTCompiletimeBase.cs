@@ -43,7 +43,7 @@ namespace Zerra.Reflection.Compiletime
         {
             get
             {
-                if (returnTypeDetailBoxed == null)
+                if (returnTypeDetailBoxed is null)
                 {
                     lock (locker)
                     {
@@ -103,7 +103,7 @@ namespace Zerra.Reflection.Compiletime
             get
             {
                 LoadCallerBoxedAsync();
-                return this.callerBoxedAsync != null;
+                return this.callerBoxedAsync is not null;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -120,7 +120,7 @@ namespace Zerra.Reflection.Compiletime
                             this.callerBoxedAsync = async (source, arguments) =>
                             {
                                 var caller = CallerBoxed;
-                                if (caller == null)
+                                if (caller is null)
                                     return default;
                                 var returnTypeInfo = ReturnTypeDetailBoxed;
 
@@ -162,7 +162,7 @@ namespace Zerra.Reflection.Compiletime
             get
             {
                 LoadCallerAsync();
-                return this.callerAsync != null;
+                return this.callerAsync is not null;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -179,7 +179,7 @@ namespace Zerra.Reflection.Compiletime
                             this.callerAsync = async (source, arguments) =>
                             {
                                 var caller = this.Caller;
-                                if (caller == null)
+                                if (caller is null)
                                     return default;
                                 var returnTypeInfo = ReturnTypeDetailBoxed;
 
@@ -219,7 +219,7 @@ namespace Zerra.Reflection.Compiletime
             foreach (var parameterDetail in ParameterDetails)
             {
                 var parameter = parameters.FirstOrDefault(x => x.Name == parameterDetail.Name);
-                if (parameter == null)
+                if (parameter is null)
                     throw new InvalidOperationException($"Parameter not found for {parameterDetail.Name}");
 
                 var parameterBase = (ParameterDetailCompiletimeBase)parameterDetail;

@@ -36,7 +36,7 @@ public sealed class EnumName : Attribute
     {
         return hasFlags.GetOrAdd(type, (type) =>
         {
-            return type.GetCustomAttribute<FlagsAttribute>() != null;
+            return type.GetCustomAttribute<FlagsAttribute>() is not null;
         });
     }
 
@@ -139,12 +139,12 @@ public sealed class EnumName : Attribute
                         }
 
                         var name = enumValue.ToString();
-                        if (name == null)
+                        if (name is null)
                             continue;
 
                         var field = fields.First(x => x.Name == name);
                         var attribute = field.GetCustomAttribute<EnumName>(false);
-                        if (attribute != null && attribute.Text != null)
+                        if (attribute is not null && attribute.Text is not null)
                             name = attribute.Text;
 
                         if (sb.Length != 0)
@@ -162,12 +162,12 @@ public sealed class EnumName : Attribute
                 foreach (var enumValue in values)
                 {
                     var name = enumValue.ToString();
-                    if (name == null)
+                    if (name is null)
                         continue;
 
                     var field = fields.First(x => x.Name == name);
                     var attribute = field.GetCustomAttribute<EnumName>(false);
-                    if (attribute != null && attribute.Text != null)
+                    if (attribute is not null && attribute.Text is not null)
                         name = attribute.Text;
 
                     unchecked
@@ -318,7 +318,7 @@ public sealed class EnumName : Attribute
             foreach (var enumValue in Enum.GetValues(type))
             {
                 var name = enumValue.ToString();
-                if (name == null)
+                if (name is null)
                     continue;
 
                 var field = fields.First(x => x.Name == name);
@@ -362,7 +362,7 @@ public sealed class EnumName : Attribute
                 }
 
                 var attribute = field.GetCustomAttribute<EnumName>(false);
-                if (attribute != null)
+                if (attribute is not null)
                 {
 #if NETSTANDARD2_0
                     if (!items.ContainsKey(attribute.Text))

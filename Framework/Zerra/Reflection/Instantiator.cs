@@ -55,7 +55,7 @@ namespace Zerra.Reflection
                     if (constructorDetail.ParameterDetails.Count != (parameterTypes?.Length ?? 0))
                         continue;
 
-                    if (parameterTypes == null || parameterTypes.Length == 0)
+                    if (parameterTypes is null || parameterTypes.Length == 0)
                     {
                         return constructorDetail.CreatorWithArgsBoxed;
                     }
@@ -78,8 +78,8 @@ namespace Zerra.Reflection
                 }
                 return null;
             });
-            if (creator == null)
-                throw new MissingMethodException($"Constructor for {type.GetNiceName()} not available for the given parameters {(parameterTypes == null || parameterTypes.Length == 0 ? "(none)" : String.Join(",", parameterTypes.Select(x => x.GetNiceName())))}");
+            if (creator is null)
+                throw new MissingMethodException($"Constructor for {type.GetNiceName()} not available for the given parameters {(parameterTypes is null || parameterTypes.Length == 0 ? "(none)" : String.Join(",", parameterTypes.Select(x => x.GetNiceName())))}");
 
             return creator;
         }

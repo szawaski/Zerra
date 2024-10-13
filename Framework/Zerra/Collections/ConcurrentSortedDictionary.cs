@@ -374,7 +374,7 @@ namespace Zerra.Collections
                 if (!dictionary.TryGetValue(key, out var currentvalue))
                     return false;
                 
-                if (currentvalue != null && comparisonValue != null && !currentvalue.Equals(comparisonValue))
+                if (currentvalue is not null && comparisonValue is not null && !currentvalue.Equals(comparisonValue))
                     return false;
                 dictionary[key] = value;
                 return true;

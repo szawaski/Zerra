@@ -19,7 +19,7 @@ namespace Zerra.Serialization.Bytes
     {
         public static byte[] Serialize<T>(T? obj, ByteSerializerOptions? options = null)
         {
-            if (obj == null)
+            if (obj is null)
                 return Array.Empty<byte>();
 
             options ??= defaultOptions;
@@ -44,7 +44,7 @@ namespace Zerra.Serialization.Bytes
         }
         public static byte[] Serialize(object? obj, ByteSerializerOptions? options = null)
         {
-            if (obj == null)
+            if (obj is null)
                 return Array.Empty<byte>();
 
             options ??= defaultOptions;
@@ -70,9 +70,9 @@ namespace Zerra.Serialization.Bytes
         }
         public static byte[] Serialize(object? obj, Type type, ByteSerializerOptions? options = null)
         {
-            if (type == null)
+            if (type is null)
                 throw new ArgumentNullException(nameof(type));
-            if (obj == null)
+            if (obj is null)
                 return Array.Empty<byte>();
 
             options ??= defaultOptions;
@@ -98,9 +98,9 @@ namespace Zerra.Serialization.Bytes
 
         public static void Serialize<T>(Stream stream, T? obj, ByteSerializerOptions? options = null)
         {
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
-            if (obj == null)
+            if (obj is null)
                 return;
 
             options ??= defaultOptions;
@@ -147,9 +147,9 @@ namespace Zerra.Serialization.Bytes
         }
         public static void Serialize(Stream stream, object? obj, ByteSerializerOptions? options = null)
         {
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
-            if (obj == null)
+            if (obj is null)
                 return;
 
             options ??= defaultOptions;
@@ -196,11 +196,11 @@ namespace Zerra.Serialization.Bytes
         }
         public static void Serialize(Stream stream, object? obj, Type type, ByteSerializerOptions? options = null)
         {
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
-            if (type == null)
+            if (type is null)
                 throw new ArgumentNullException(nameof(type));
-            if (obj == null)
+            if (obj is null)
                 return;
 
             options ??= defaultOptions;
@@ -248,9 +248,9 @@ namespace Zerra.Serialization.Bytes
 
         public static async Task SerializeAsync<T>(Stream stream, T? obj, ByteSerializerOptions? options = null)
         {
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
-            if (obj == null)
+            if (obj is null)
                 return;
 
             options ??= defaultOptions;
@@ -297,14 +297,14 @@ namespace Zerra.Serialization.Bytes
         }
         public static async Task SerializeAsync(Stream stream, object? obj, ByteSerializerOptions? options = null)
         {
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
-            if (obj == null)
+            if (obj is null)
                 return;
 
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
-            if (obj == null)
+            if (obj is null)
                 return;
 
             options ??= defaultOptions;
@@ -351,16 +351,16 @@ namespace Zerra.Serialization.Bytes
         }
         public static async Task SerializeAsync(Stream stream, object? obj, Type type, ByteSerializerOptions? options = null)
         {
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
-            if (type == null)
+            if (type is null)
                 throw new ArgumentNullException(nameof(type));
-            if (obj == null)
+            if (obj is null)
                 return;
 
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
-            if (obj == null)
+            if (obj is null)
                 return;
 
             options ??= defaultOptions;

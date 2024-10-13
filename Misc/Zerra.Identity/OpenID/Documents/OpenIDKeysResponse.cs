@@ -29,7 +29,7 @@ namespace Zerra.Identity.OpenID.Documents
 
             var json = binding.GetDocument();
 
-            if (json == null)
+            if (json is null)
                 return;
 
             var keys = json["keys"].ToObject<JwtKey[]>();
@@ -51,7 +51,7 @@ namespace Zerra.Identity.OpenID.Documents
             var certs = new List<X509Certificate2>();
             foreach (var key in keys)
             {
-                if (key.X509Certificates != null)
+                if (key.X509Certificates is not null)
                 {
                     foreach (var x509String in key.X509Certificates)
                     {

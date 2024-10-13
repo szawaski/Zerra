@@ -18,7 +18,7 @@ namespace Zerra.Identity.Cryptography
         public static XmlDocument EncryptXmlDoc(XmlDocument xmlDoc, X509Certificate2 cert, XmlEncryptionAlgorithmType encryptionAlgorithm, string elementPrefix, string elementName, string wrapperElementPrefix = null, string wrapperElementName = null)
         {
             var rsa = cert.GetRSAPublicKey();
-            if (rsa == null)
+            if (rsa is null)
                 throw new IdentityProviderException("X509 must be RSA");
 
             if (String.IsNullOrWhiteSpace(wrapperElementName))
@@ -72,7 +72,7 @@ namespace Zerra.Identity.Cryptography
         public static XmlDocument DecryptXmlDoc(XmlDocument xmlDoc, X509Certificate2 cert)
         {
             var rsa = cert.GetRSAPrivateKey();
-            if (rsa == null)
+            if (rsa is null)
                 throw new IdentityProviderException("X509 must be RSA");
 
             var elements = xmlDoc.DocumentElement.GetElements(null, "EncryptedData", true).Select(x => x.ParentNode).OfType<XmlElement>().ToArray();
@@ -121,7 +121,7 @@ namespace Zerra.Identity.Cryptography
                     encryptionAlgorithm = thisEncryptionAlgorithm;
                 }
             }
-            if (encryptionAlgorithm == null)
+            if (encryptionAlgorithm is null)
                 throw new IdentityProviderException("Encryption algorithm not found");
             return encryptionAlgorithm.Value;
         }

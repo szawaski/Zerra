@@ -17,14 +17,14 @@ namespace Zerra.Reflection.Compiletime
         {
             get
             {
-                if (innerTypesDetails == null)
+                if (innerTypesDetails is null)
                 {
                     lock (locker)
                     {
-                        if (innerTypesDetails == null)
+                        if (innerTypesDetails is null)
                         {
                             var innerTypesRef = InnerTypes;
-                            if (innerTypesRef != null)
+                            if (innerTypesRef is not null)
                             {
                                 var items = new TypeDetail[innerTypesRef.Count];
                                 for (var i = 0; i < innerTypesRef.Count; i++)
@@ -73,9 +73,9 @@ namespace Zerra.Reflection.Compiletime
         {
             get
             {
-                if (IEnumerableGenericInnerType == null)
+                if (IEnumerableGenericInnerType is null)
                     throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name.GetType()} is not an IEnumerableGeneric");
-                if (iEnumerableGenericInnerTypeDetail == null)
+                if (iEnumerableGenericInnerTypeDetail is null)
                 {
                     lock (locker)
                     {
@@ -243,7 +243,7 @@ namespace Zerra.Reflection.Compiletime
             foreach (var constructorDetail in ConstructorDetails)
             {
                 var constructor = constructors.FirstOrDefault(x => SignatureCompare(constructorParameters[x], constructorDetail));
-                if (constructor == null)
+                if (constructor is null)
                     throw new InvalidOperationException($"ConstructorInfo not found for generated constructor new({String.Join(", ", constructorDetail.ParameterDetails.Select(x => x.Type.GetNiceName()))})");
 
                 var constructorBase = (ConstructorDetail)constructorDetail;
@@ -261,7 +261,7 @@ namespace Zerra.Reflection.Compiletime
             foreach (var methodDetail in MethodDetails)
             {
                 var method = methods.FirstOrDefault(x => SignatureCompare(x.Name, methodParameters[x], methodDetail));
-                if (method == null)
+                if (method is null)
                     throw new InvalidOperationException($"MethodInfo not found for generated method {methodDetail.Name}({String.Join(", ", methodDetail.ParameterDetails.Select(x => x.Type.GetNiceName()))})");
 
                 var methodBase = (MethodDetail)methodDetail;
@@ -279,7 +279,7 @@ namespace Zerra.Reflection.Compiletime
             foreach (var memberDetail in MemberDetails)
             {
                 var property = properties.FirstOrDefault(x => x.Name == memberDetail.Name);
-                if (property != null)
+                if (property is not null)
                 {                    
                     //<{property.Name}>k__BackingField
                     //<{property.Name}>i__Field
@@ -290,7 +290,7 @@ namespace Zerra.Reflection.Compiletime
                     continue;
                 }
                 var field = fields.FirstOrDefault(x => x.Name == memberDetail.Name);
-                if (field != null)
+                if (field is not null)
                 {
                     memberDetail.SetMemberInfo(field, null);
                     continue;

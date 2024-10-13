@@ -69,7 +69,7 @@ namespace Zerra
         public Graph(bool includeAllMembers, IEnumerable<Expression<Func<T, object?>>>? members)
             : base(includeAllMembers, (IEnumerable<string>?)null)
         {
-            if (members != null)
+            if (members is not null)
                 AddMembers(members);
         }
 
@@ -87,13 +87,13 @@ namespace Zerra
             }
             else if (expression.NodeType == ExpressionType.Call && expression is MethodCallExpression call)
             {
-                if (call.Arguments.Count != 2 || call.Object != null)
+                if (call.Arguments.Count != 2 || call.Object is not null)
                     throw new ArgumentException("Invalid member expression");
                 if (call.Arguments[0].NodeType != ExpressionType.MemberAccess || call.Arguments[0] is not MemberExpression member)
                     throw new ArgumentException("Invalid member expression");
                 if (call.Arguments[1].NodeType != ExpressionType.Lambda || call.Arguments[1] is not LambdaExpression lambda)
                     throw new ArgumentException("Invalid member expression");
-                if (member.Expression == null)
+                if (member.Expression is null)
                     throw new ArgumentException("Invalid member expression");
 
                 ReadMemberExpressionMember(lambda.Body, memberInfos);
@@ -109,7 +109,7 @@ namespace Zerra
                 }
                 if (expression.NodeType != ExpressionType.MemberAccess || expression is not MemberExpression member)
                     throw new ArgumentException("Invalid member expression");
-                if (member.Expression == null)
+                if (member.Expression is null)
                     throw new ArgumentException("Invalid member expression");
 
                 memberInfos.Push(member.Member);
@@ -128,7 +128,7 @@ namespace Zerra
         /// <param name="members">The members to include.</param>
         public void AddMembers(IEnumerable<Expression<Func<T, object?>>> members)
         {
-            if (members == null)
+            if (members is null)
                 throw new ArgumentNullException(nameof(members));
 
             memberInfoBuilder ??= new(memberInfoBuilderDefaultCapacity);
@@ -153,7 +153,7 @@ namespace Zerra
         /// <param name="members">The members to remove.</param>
         public void RemoveMembers(IEnumerable<Expression<Func<T, object?>>> members)
         {
-            if (members == null)
+            if (members is null)
                 throw new ArgumentNullException(nameof(members));
 
             memberInfoBuilder ??= new(memberInfoBuilderDefaultCapacity);
@@ -173,7 +173,7 @@ namespace Zerra
         /// <param name="members">The member to include.</param>
         public void AddMember(Expression<Func<T, object?>> member)
         {
-            if (member == null)
+            if (member is null)
                 throw new ArgumentNullException(nameof(member));
 
             memberInfoBuilder ??= new(memberInfoBuilderDefaultCapacity);
@@ -190,7 +190,7 @@ namespace Zerra
         /// <param name="members">The member to remove.</param>
         public void RemoveMember(Expression<Func<T, object?>> member)
         {
-            if (member == null)
+            if (member is null)
                 throw new ArgumentNullException(nameof(member));
 
             memberInfoBuilder ??= new(memberInfoBuilderDefaultCapacity);

@@ -15,11 +15,11 @@ namespace Zerra.Repository.MsSql
         private IDataStoreEngine? engine = null;
         protected override sealed IDataStoreEngine GetEngine()
         {
-            if (engine == null)
+            if (engine is null)
             {
                 lock (locker)
                 {
-                    if (engine == null)
+                    if (engine is null)
                     {
                         try
                         {

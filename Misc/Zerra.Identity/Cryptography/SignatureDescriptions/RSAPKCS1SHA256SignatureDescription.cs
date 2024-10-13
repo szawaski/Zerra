@@ -19,7 +19,7 @@ namespace Zerra.Identity.Cryptography
 
         public override AsymmetricSignatureDeformatter CreateDeformatter(AsymmetricAlgorithm key)
         {
-            if (key == null)
+            if (key is null)
             {
                 throw new ArgumentNullException(nameof(key));
             }
@@ -31,7 +31,7 @@ namespace Zerra.Identity.Cryptography
 
         public override AsymmetricSignatureFormatter CreateFormatter(AsymmetricAlgorithm key)
         {
-            if (key == null)
+            if (key is null)
             {
                 throw new ArgumentNullException(nameof(key));
             }

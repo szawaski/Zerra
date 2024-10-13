@@ -20,7 +20,7 @@ namespace Zerra.Serialization.Json
         }
         public static object? DeserializeStackBased(Type type, Memory<byte> bytes, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
-            if (type == null) throw new ArgumentNullException(nameof(type));
+            if (type is null) throw new ArgumentNullException(nameof(type));
 
             options ??= defaultOptions;
 
@@ -57,7 +57,7 @@ namespace Zerra.Serialization.Json
         }
         public static object? DeserializeStackBased(Type type, Memory<char> json, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
-            if (type == null) throw new ArgumentNullException(nameof(type));
+            if (type is null) throw new ArgumentNullException(nameof(type));
 
             options ??= defaultOptions;
 
@@ -94,9 +94,9 @@ namespace Zerra.Serialization.Json
         }
         public static object? Deserialize(Type type, Stream stream, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
-            if (type == null)
+            if (type is null)
                 throw new ArgumentNullException(nameof(type));
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
 
             options ??= defaultOptions;
@@ -201,7 +201,7 @@ namespace Zerra.Serialization.Json
 
         public static async Task<T?> DeserializeAsync<T>(Stream stream, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
 
             options ??= defaultOptions;
@@ -307,9 +307,9 @@ namespace Zerra.Serialization.Json
         }
         public static async Task<object?> DeserializeAsync(Type type, Stream stream, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
-            if (type == null)
+            if (type is null)
                 throw new ArgumentNullException(nameof(type));
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
 
             options ??= defaultOptions;
@@ -498,7 +498,7 @@ namespace Zerra.Serialization.Json
             var typeDetail = state.CurrentFrame.TypeDetail;
             var graph = state.CurrentFrame.Graph;
 
-            if (typeDetail != null && typeDetail.Type.IsInterface && !typeDetail.HasIEnumerable)
+            if (typeDetail is not null && typeDetail.Type.IsInterface && !typeDetail.HasIEnumerable)
             {
                 var emptyImplementationType = EmptyImplementations.GetEmptyImplementationType(typeDetail.Type);
                 typeDetail = TypeAnalyzer.GetTypeDetail(emptyImplementationType);
@@ -515,7 +515,7 @@ namespace Zerra.Serialization.Json
 
                 case '{':
                     state.CurrentFrame.State = 0;
-                    if (typeDetail != null && (typeDetail.HasIDictionaryGeneric || typeDetail.HasIReadOnlyDictionaryGeneric))
+                    if (typeDetail is not null && (typeDetail.HasIDictionaryGeneric || typeDetail.HasIReadOnlyDictionaryGeneric))
                         state.CurrentFrame.FrameType = ReadFrameType.Dictionary;
                     else
                         state.CurrentFrame.FrameType = ReadFrameType.Object;
@@ -523,7 +523,7 @@ namespace Zerra.Serialization.Json
 
                 case '[':
                     state.CurrentFrame.State = 0;
-                    if (!state.Nameless || (typeDetail != null && typeDetail.HasIEnumerableGeneric))
+                    if (!state.Nameless || (typeDetail is not null && typeDetail.HasIEnumerableGeneric))
                         state.CurrentFrame.FrameType = ReadFrameType.Array;
                     else
                         state.CurrentFrame.FrameType = ReadFrameType.ArrayNameless;
@@ -538,7 +538,7 @@ namespace Zerra.Serialization.Json
                     state.CurrentFrame.State = 0;
                     if (s[0] != 'u' || s[1] != 'l' || s[2] != 'l')
                         throw reader.CreateException("Expected number/true/false/null");
-                    if (typeDetail != null && typeDetail.CoreType.HasValue)
+                    if (typeDetail is not null && typeDetail.CoreType.HasValue)
                         state.CurrentFrame.ResultObject = ConvertNullToType(typeDetail.CoreType.Value);
                     state.EndFrame();
                     return;
@@ -552,7 +552,7 @@ namespace Zerra.Serialization.Json
                     state.CurrentFrame.State = 0;
                     if (s[0] != 'r' || s[1] != 'u' || s[2] != 'e')
                         throw reader.CreateException("Expected number/true/false/null");
-                    if (typeDetail != null && typeDetail.CoreType.HasValue)
+                    if (typeDetail is not null && typeDetail.CoreType.HasValue)
                         state.CurrentFrame.ResultObject = ConvertTrueToType(typeDetail.CoreType.Value);
                     state.EndFrame();
                     return;
@@ -566,7 +566,7 @@ namespace Zerra.Serialization.Json
                     state.CurrentFrame.State = 0;
                     if (s[0] != 'a' || s[1] != 'l' || s[2] != 's' || s[3] != 'e')
                         throw reader.CreateException("Expected number/true/false/null");
-                    if (typeDetail != null && typeDetail.CoreType.HasValue)
+                    if (typeDetail is not null && typeDetail.CoreType.HasValue)
                         state.CurrentFrame.ResultObject = ConvertFalseToType(typeDetail.CoreType.Value);
                     state.EndFrame();
                     return;
@@ -585,7 +585,7 @@ namespace Zerra.Serialization.Json
 
             if (state.CurrentFrame.State == 0)
             {
-                state.CurrentFrame.ResultObject = typeDetail != null && typeDetail.HasCreatorBoxed ? typeDetail.CreatorBoxed() : null;
+                state.CurrentFrame.ResultObject = typeDetail is not null && typeDetail.HasCreatorBoxed ? typeDetail.CreatorBoxed() : null;
                 state.CurrentFrame.State = 1;
             }
 
@@ -626,7 +626,7 @@ namespace Zerra.Serialization.Json
                             throw reader.CreateException("Unexpected character");
 
                         Graph? propertyGraph = null;
-                        if (typeDetail != null && TryGetMember(typeDetail, propertyName, out var memberDetail))
+                        if (typeDetail is not null && TryGetMember(typeDetail, propertyName, out var memberDetail))
                         {
                             state.CurrentFrame.ObjectProperty = memberDetail;
                             propertyGraph = state.CurrentFrame.Graph?.GetChildGraph(memberDetail.Name)!;
@@ -641,13 +641,13 @@ namespace Zerra.Serialization.Json
                         return;
 
                     case 3: //property value
-                        if (state.CurrentFrame.ObjectProperty != null && state.CurrentFrame.ResultObject != null && state.LastFrameResultObject != null && state.CurrentFrame.ObjectProperty.HasSetterBoxed)
+                        if (state.CurrentFrame.ObjectProperty is not null && state.CurrentFrame.ResultObject is not null && state.LastFrameResultObject is not null && state.CurrentFrame.ObjectProperty.HasSetterBoxed)
                         {
                             //special case nullable enum
                             if (state.CurrentFrame.ObjectProperty.TypeDetailBoxed.IsNullable && state.CurrentFrame.ObjectProperty.TypeDetailBoxed.InnerTypeDetail.EnumUnderlyingType.HasValue)
                                 state.LastFrameResultObject = Enum.ToObject(state.CurrentFrame.ObjectProperty.TypeDetailBoxed.InnerTypeDetail.Type, state.LastFrameResultObject);
 
-                            if (state.CurrentFrame.Graph == null || state.CurrentFrame.Graph.HasMember(state.CurrentFrame.ObjectProperty.Name))
+                            if (state.CurrentFrame.Graph is null || state.CurrentFrame.Graph.HasMember(state.CurrentFrame.ObjectProperty.Name))
                                 state.CurrentFrame.ObjectProperty.SetterBoxed(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
                         }
 
@@ -769,7 +769,7 @@ namespace Zerra.Serialization.Json
 
             if (state.CurrentFrame.State == 0)
             {
-                if (typeDetail != null && typeDetail.HasIEnumerableGeneric)
+                if (typeDetail is not null && typeDetail.HasIEnumerableGeneric)
                 {
                     state.CurrentFrame.ArrayElementType = typeDetail.IEnumerableGenericInnerTypeDetail;
                     if (typeDetail.Type.IsArray)
@@ -853,9 +853,9 @@ namespace Zerra.Serialization.Json
 
                         if (c == ']')
                         {
-                            if (state.CurrentFrame.ResultObject != null)
+                            if (state.CurrentFrame.ResultObject is not null)
                             {
-                                if (typeDetail != null && typeDetail.Type.IsArray && state.CurrentFrame.ArrayElementType != null)
+                                if (typeDetail is not null && typeDetail.Type.IsArray && state.CurrentFrame.ArrayElementType is not null)
                                 {
                                     var list = (IList)state.CurrentFrame.ResultObject;
                                     var array = Array.CreateInstance(state.CurrentFrame.ArrayElementType.Type, list.Count);
@@ -875,10 +875,10 @@ namespace Zerra.Serialization.Json
                         return;
 
                     case 2: //array value
-                        if (state.CurrentFrame.ResultObject != null)
+                        if (state.CurrentFrame.ResultObject is not null)
                         {
                             //special case nullable enum
-                            if (state.CurrentFrame.ArrayElementType!.IsNullable && state.CurrentFrame.ArrayElementType.InnerTypeDetail.EnumUnderlyingType.HasValue && state.LastFrameResultObject != null)
+                            if (state.CurrentFrame.ArrayElementType!.IsNullable && state.CurrentFrame.ArrayElementType.InnerTypeDetail.EnumUnderlyingType.HasValue && state.LastFrameResultObject is not null)
                                 state.LastFrameResultObject = Enum.ToObject(state.CurrentFrame.ArrayElementType.InnerTypeDetail.Type, state.LastFrameResultObject);
 
                             state.CurrentFrame.AddMethodArgs![0] = state.LastFrameResultObject;
@@ -900,9 +900,9 @@ namespace Zerra.Serialization.Json
                                 state.CurrentFrame.State = 1;
                                 break;
                             case ']':
-                                if (state.CurrentFrame.ResultObject != null)
+                                if (state.CurrentFrame.ResultObject is not null)
                                 {
-                                    if (typeDetail != null && typeDetail.Type.IsArray && state.CurrentFrame.ArrayElementType != null)
+                                    if (typeDetail is not null && typeDetail.Type.IsArray && state.CurrentFrame.ArrayElementType is not null)
                                     {
                                         var list = (IList)state.CurrentFrame.ResultObject;
                                         var array = Array.CreateInstance(state.CurrentFrame.ArrayElementType.Type, list.Count);
@@ -928,7 +928,7 @@ namespace Zerra.Serialization.Json
 
             if (state.CurrentFrame.State == 0)
             {
-                state.CurrentFrame.ResultObject = typeDetail != null && typeDetail.HasCreatorBoxed ? typeDetail.CreatorBoxed() : null;
+                state.CurrentFrame.ResultObject = typeDetail is not null && typeDetail.HasCreatorBoxed ? typeDetail.CreatorBoxed() : null;
                 state.CurrentFrame.State = 1;
             }
 
@@ -951,7 +951,7 @@ namespace Zerra.Serialization.Json
 
                         reader.BackOne();
 
-                        var memberDetail = typeDetail != null && state.CurrentFrame.PropertyIndexForNameless < typeDetail.SerializableMemberDetails.Count
+                        var memberDetail = typeDetail is not null && state.CurrentFrame.PropertyIndexForNameless < typeDetail.SerializableMemberDetails.Count
                           ? typeDetail.SerializableMemberDetails[state.CurrentFrame.PropertyIndexForNameless]
                           : null;
                         state.CurrentFrame.State = 2;
@@ -960,12 +960,12 @@ namespace Zerra.Serialization.Json
 
                     case 2: //array value
 
-                        if (state.CurrentFrame.ResultObject != null && state.LastFrameResultObject != null)
+                        if (state.CurrentFrame.ResultObject is not null && state.LastFrameResultObject is not null)
                         {
-                            memberDetail = typeDetail != null && state.CurrentFrame.PropertyIndexForNameless < typeDetail.SerializableMemberDetails.Count
+                            memberDetail = typeDetail is not null && state.CurrentFrame.PropertyIndexForNameless < typeDetail.SerializableMemberDetails.Count
                                 ? typeDetail.SerializableMemberDetails[state.CurrentFrame.PropertyIndexForNameless]
                                 : null;
-                            if (memberDetail != null && memberDetail.HasSetterBoxed)
+                            if (memberDetail is not null && memberDetail.HasSetterBoxed)
                             {
                                 var propertyGraph = state.CurrentFrame.Graph?.GetChildGraph(memberDetail.Name);
                                 if (memberDetail.TypeDetailBoxed.SpecialType.HasValue && memberDetail.TypeDetailBoxed.SpecialType == SpecialType.Dictionary)
@@ -990,7 +990,7 @@ namespace Zerra.Serialization.Json
                                     if (memberDetail.TypeDetailBoxed.IsNullable && memberDetail.TypeDetailBoxed.InnerTypeDetail.EnumUnderlyingType.HasValue)
                                         state.LastFrameResultObject = Enum.ToObject(memberDetail.TypeDetailBoxed.InnerTypeDetail.Type, state.LastFrameResultObject);
 
-                                    if (state.CurrentFrame.Graph == null || state.CurrentFrame.Graph.HasMember(memberDetail.Name))
+                                    if (state.CurrentFrame.Graph is null || state.CurrentFrame.Graph.HasMember(memberDetail.Name))
                                         memberDetail.SetterBoxed(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
                                 }
                             }
@@ -1025,7 +1025,7 @@ namespace Zerra.Serialization.Json
         {
             var typeDetail = state.CurrentFrame.TypeDetail;
 
-            if (typeDetail == null)
+            if (typeDetail is null)
             {
                 ReadLiteralNumberAsEmpty(ref reader, ref state);
                 return;
@@ -1257,7 +1257,7 @@ namespace Zerra.Serialization.Json
         //                var propertyGraph = graph?.GetChildGraph(propertyName);
         //                var value = FromJsonToJsonObject(c, ref reader, ref decodeBuffer, propertyGraph);
 
-        //                if (graph != null)
+        //                if (graph is not null)
         //                {
         //                    switch (value.JsonType)
         //                    {
@@ -1322,7 +1322,7 @@ namespace Zerra.Serialization.Json
         //                if (canExpectComma)
         //                    throw reader.CreateException("Unexpected character");
         //                var value = FromJsonToJsonObject(c, ref reader, ref decodeBuffer, graph);
-        //                if (arrayList != null)
+        //                if (arrayList is not null)
         //                    arrayList.Add(value);
         //                canExpectComma = true;
         //                break;

@@ -88,11 +88,11 @@ namespace Zerra.Reflection.Runtime
         {
             get
             {
-                if (innerTypes == null)
+                if (innerTypes is null)
                 {
                     lock (locker)
                     {
-                        if (innerTypes == null)
+                        if (innerTypes is null)
                         {
                             if (Type.IsGenericType)
                             {
@@ -210,15 +210,15 @@ namespace Zerra.Reflection.Runtime
         {
             get
             {
-                if (baseTypes == null)
+                if (baseTypes is null)
                 {
                     lock (locker)
                     {
-                        if (baseTypes == null)
+                        if (baseTypes is null)
                         {
                             var baseType = Type.BaseType;
                             var items = new List<Type>();
-                            while (baseType != null)
+                            while (baseType is not null)
                             {
                                 items.Add(baseType);
                                 baseType = baseType.BaseType;
@@ -236,7 +236,7 @@ namespace Zerra.Reflection.Runtime
         {
             get
             {
-                if (interfaces == null)
+                if (interfaces is null)
                 {
                     lock (locker)
                     {
@@ -567,11 +567,11 @@ namespace Zerra.Reflection.Runtime
         {
             get
             {
-                if (memberDetails == null)
+                if (memberDetails is null)
                 {
                     lock (locker)
                     {
-                        if (memberDetails == null)
+                        if (memberDetails is null)
                         {
                             var items = new List<MemberDetail>();
                             if (!Type.IsGenericTypeDefinition)
@@ -591,7 +591,7 @@ namespace Zerra.Reflection.Runtime
                                     //<{property.Name}>i__Field
                                     var backingName = $"<{property.Name}>";
                                     var backingField = fields.FirstOrDefault(x => x.Name.StartsWith(backingName));
-                                    if (backingField != null)
+                                    if (backingField is not null)
                                         backingMember = MemberDetailRuntime<object, object>.New(Type, property.PropertyType, property.Name, backingField, null, locker);
 
                                     items.Add(MemberDetailRuntime<object, object>.New(Type, property.PropertyType, property.Name, property, backingMember, locker));
@@ -618,7 +618,7 @@ namespace Zerra.Reflection.Runtime
                                             //<{property.Name}>i__Field
                                             var backingName = $"<{property.Name}>";
                                             var backingField = fields.FirstOrDefault(x => x.Name.StartsWith(backingName));
-                                            if (backingField != null)
+                                            if (backingField is not null)
                                             {
                                                 var backingMemberName = $"{property.DeclaringType?.Namespace}.{property.DeclaringType?.Name}.{property.Name.Split('.').Last()}";
                                                 backingMember = MemberDetailRuntime<object, object>.New(Type, property.PropertyType, backingMemberName, backingField, null, locker);
@@ -660,11 +660,11 @@ namespace Zerra.Reflection.Runtime
         {
             get
             {
-                if (methodDetailsBoxed == null)
+                if (methodDetailsBoxed is null)
                 {
                     lock (locker)
                     {
-                        if (methodDetailsBoxed == null)
+                        if (methodDetailsBoxed is null)
                         {
                             var items = new List<MethodDetail>();
                             var hasInterfaces = Interfaces.Count > 0;
@@ -714,11 +714,11 @@ namespace Zerra.Reflection.Runtime
         {
             get
             {
-                if (constructorDetailsBoxed == null)
+                if (constructorDetailsBoxed is null)
                 {
                     lock (locker)
                     {
-                        if (constructorDetailsBoxed == null)
+                        if (constructorDetailsBoxed is null)
                         {
                             if (!Type.IsGenericTypeDefinition)
                             {
@@ -744,7 +744,7 @@ namespace Zerra.Reflection.Runtime
         {
             get
             {
-                if (attributes == null)
+                if (attributes is null)
                 {
                     lock (locker)
                     {
@@ -760,14 +760,14 @@ namespace Zerra.Reflection.Runtime
         {
             get
             {
-                if (innerTypesDetails == null)
+                if (innerTypesDetails is null)
                 {
                     lock (locker)
                     {
-                        if (innerTypesDetails == null)
+                        if (innerTypesDetails is null)
                         {
                             var innerTypesRef = InnerTypes;
-                            if (innerTypesRef != null)
+                            if (innerTypesRef is not null)
                             {
                                 var items = new TypeDetail[innerTypesRef.Count];
                                 for (var i = 0; i < innerTypesRef.Count; i++)
@@ -818,7 +818,7 @@ namespace Zerra.Reflection.Runtime
             {
                 if (!HasIEnumerable)
                     throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name.GetType()} is not an IEnumerableGeneric");
-                if (iEnumerableGenericInnerType == null)
+                if (iEnumerableGenericInnerType is null)
                     LoadIEnumerableGeneric();
                 return iEnumerableGenericInnerType ?? throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name.GetType()} is not an IEnumerableGeneric"); ;
             }
@@ -828,7 +828,7 @@ namespace Zerra.Reflection.Runtime
         {
             lock (locker)
             {
-                if (iEnumerableGenericInnerType == null)
+                if (iEnumerableGenericInnerType is null)
                 {
                     if (Type.Name == enumberableGenericTypeName)
                     {
@@ -851,9 +851,9 @@ namespace Zerra.Reflection.Runtime
         {
             get
             {
-                if (IEnumerableGenericInnerType == null)
+                if (IEnumerableGenericInnerType is null)
                     throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name.GetType()} is not an IEnumerableGeneric");
-                if (iEnumerableGenericInnerTypeDetail == null)
+                if (iEnumerableGenericInnerTypeDetail is null)
                 {
                     lock (locker)
                     {
@@ -932,9 +932,9 @@ namespace Zerra.Reflection.Runtime
                 if (!this.IsTask || !this.Type.IsGenericType)
                     return false;
 
-                if (taskResultGetter == null)
+                if (taskResultGetter is null)
                     LoadTaskResultGetter();
-                return taskResultGetter != null;
+                return taskResultGetter is not null;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -963,7 +963,7 @@ namespace Zerra.Reflection.Runtime
             {
                 if (!creatorBoxedLoaded)
                     LoadCreatorBoxed();
-                return creatorBoxed != null;
+                return creatorBoxed is not null;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -976,7 +976,7 @@ namespace Zerra.Reflection.Runtime
                     if (!Type.IsAbstract && !Type.IsGenericTypeDefinition)
                     {
                         var emptyConstructor = this.ConstructorDetailsBoxed.FirstOrDefault(x => x.ParameterDetails.Count == 0);
-                        if (emptyConstructor != null && emptyConstructor.HasCreatorBoxed)
+                        if (emptyConstructor is not null && emptyConstructor.HasCreatorBoxed)
                         {
                             creatorBoxed = emptyConstructor.CreatorBoxed;
                         }

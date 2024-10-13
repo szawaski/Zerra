@@ -36,13 +36,13 @@ namespace Zerra.Identity.OpenID.Documents
 
             var json = binding.GetDocument();
 
-            if (json == null)
+            if (json is null)
                 return;
 
             this.ServiceProvider = json[OpenIDBinding.ClientFormName]?.ToObject<string>();
 
             var redirectUrlPostLogout = json["post_logout_redirect_uri"]?.ToObject<string>();
-            if (redirectUrlPostLogout != null)
+            if (redirectUrlPostLogout is not null)
             {
                 var redirectUrlPostLogoutSplit = redirectUrlPostLogout.Split(new string[] { "?state=" }, StringSplitOptions.None);
                 this.RedirectUrlPostLogout = redirectUrlPostLogoutSplit[0];
@@ -55,10 +55,10 @@ namespace Zerra.Identity.OpenID.Documents
         {
             var json = new JObject();
 
-            if (this.ServiceProvider != null)
+            if (this.ServiceProvider is not null)
                 json.Add(OpenIDBinding.ClientFormName, JToken.FromObject(this.ServiceProvider));
 
-            if (this.RedirectUrlPostLogout != null)
+            if (this.RedirectUrlPostLogout is not null)
             {
                 var redirectUrlPostLogout = this.RedirectUrlPostLogout + "?state=" + WebUtility.UrlEncode(this.State);
                 json.Add("post_logout_redirect_uri", JToken.FromObject(redirectUrlPostLogout));

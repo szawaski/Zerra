@@ -19,7 +19,7 @@ namespace Zerra.Map
         public static TTarget Map<TSource, TTarget>(this TSource source) { return Map<TSource, TTarget>(source, null); }
         public static TTarget Map<TSource, TTarget>(this TSource source, Graph? graph)
         {
-            if (source == null)
+            if (source is null)
                 throw new ArgumentNullException(nameof(source));
 
             var map = Zerra.Map.MapGenerator<TSource, TTarget>.GetMap();
@@ -29,9 +29,9 @@ namespace Zerra.Map
         public static void MapTo<TSource, TTarget>(this TSource source, TTarget target) { MapTo(source, target, null); }
         public static void MapTo<TSource, TTarget>(this TSource source, TTarget target, Graph? graph)
         {
-            if (source == null)
+            if (source is null)
                 throw new ArgumentNullException(nameof(source));
-            if (target == null)
+            if (target is null)
                 throw new ArgumentNullException(nameof(target));
 
             var map = Zerra.Map.MapGenerator<TSource, TTarget>.GetMap();
@@ -41,7 +41,7 @@ namespace Zerra.Map
         public static TTarget Map<TTarget>(this object source) { return Map<TTarget>(source, null); }
         public static TTarget Map<TTarget>(this object source, Graph? graph)
         {
-            if (source == null)
+            if (source is null)
                 throw new ArgumentNullException(nameof(source));
 
             var sourceType = source.GetType();
@@ -61,7 +61,7 @@ namespace Zerra.Map
         public static TTarget Copy<TTarget>(this TTarget source) { return Copy(source, null); }
         public static TTarget Copy<TTarget>(this TTarget source, Graph? graph)
         {
-            if (source == null)
+            if (source is null)
                 throw new ArgumentNullException(nameof(source));
 
             var sourceType = source.GetType();
@@ -81,9 +81,9 @@ namespace Zerra.Map
         public static void CopyTo<TTarget>(this object source, TTarget target) { CopyTo(source, target, null); }
         public static void CopyTo<TTarget>(this object source, TTarget target, Graph? graph)
         {
-            if (source == null)
+            if (source is null)
                 throw new ArgumentNullException(nameof(source));
-            if (target == null)
+            if (target is null)
                 throw new ArgumentNullException(nameof(target));
 
             var sourceType = source.GetType();

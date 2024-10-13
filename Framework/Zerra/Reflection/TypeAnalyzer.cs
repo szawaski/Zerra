@@ -19,7 +19,7 @@ namespace Zerra.Reflection
             if (!TypeLookup.CoreTypeLookup(type, out var coreType))
                 throw new NotImplementedException($"Type convert not available for {type.Name}");
 
-            if (obj == null)
+            if (obj is null)
             {
                 return coreType switch
                 {
@@ -123,7 +123,7 @@ namespace Zerra.Reflection
 
         private static Guid ConvertToGuid(object obj)
         {
-            if (obj == null)
+            if (obj is null)
                 return Guid.Empty;
             return Guid.Parse(obj.ToString() ?? String.Empty);
         }
@@ -131,20 +131,20 @@ namespace Zerra.Reflection
 
         private static TimeSpan ConvertToTimeSpan(object obj)
         {
-            if (obj == null)
+            if (obj is null)
                 return TimeSpan.MinValue;
             return TimeSpan.Parse(obj.ToString() ?? String.Empty, System.Globalization.CultureInfo.InvariantCulture);
         }
 #if NET6_0_OR_GREATER
         private static DateOnly ConvertToDateOnly(object obj)
         {
-            if (obj == null)
+            if (obj is null)
                 return DateOnly.MinValue;
             return DateOnly.Parse(obj.ToString() ?? String.Empty, System.Globalization.CultureInfo.InvariantCulture);
         }
         private static TimeOnly ConvertToTimeOnly(object obj)
         {
-            if (obj == null)
+            if (obj is null)
                 return TimeOnly.MinValue;
             return TimeOnly.Parse(obj.ToString() ?? String.Empty, System.Globalization.CultureInfo.InvariantCulture);
         }
@@ -152,7 +152,7 @@ namespace Zerra.Reflection
 
         private static DateTimeOffset ConvertToDateTimeOffset(object obj)
         {
-            if (obj == null)
+            if (obj is null)
                 return DateTimeOffset.MinValue;
             return DateTimeOffset.Parse(obj.ToString() ?? String.Empty, System.Globalization.CultureInfo.CurrentCulture);
         }
@@ -172,10 +172,10 @@ namespace Zerra.Reflection
                 var typeDetails = GetTypeDetail(type);
                 foreach (var methodDetail in typeDetails.MethodDetailsBoxed.OrderBy(x => x.ParameterDetails.Count))
                 {
-                    if (methodDetail.Name == name && (parameterTypes == null || methodDetail.ParameterDetails.Count == parameterTypes.Length))
+                    if (methodDetail.Name == name && (parameterTypes is null || methodDetail.ParameterDetails.Count == parameterTypes.Length))
                     {
                         var match = true;
-                        if (parameterTypes != null)
+                        if (parameterTypes is not null)
                         {
                             for (var i = 0; i < parameterTypes.Length; i++)
                             {
@@ -204,10 +204,10 @@ namespace Zerra.Reflection
                 var typeDetails = GetTypeDetail(type);
                 foreach (var constructorDetail in typeDetails.ConstructorDetailsBoxed)
                 {
-                    if (parameterTypes == null || constructorDetail.ParameterDetails.Count == parameterTypes.Length)
+                    if (parameterTypes is null || constructorDetail.ParameterDetails.Count == parameterTypes.Length)
                     {
                         var match = true;
-                        if (parameterTypes != null)
+                        if (parameterTypes is not null)
                         {
                             for (var i = 0; i < parameterTypes.Length; i++)
                             {
@@ -230,7 +230,7 @@ namespace Zerra.Reflection
         private static readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail> genericMethodDetailsByMethod = new();
         public static MethodDetail GetGenericMethodDetail(MethodInfo method, params Type[] types)
         {
-            if (method.ReflectedType == null)
+            if (method.ReflectedType is null)
                 throw new ArgumentNullException("method.ReflectedType");
             var key = new TypeKey(method.ToString(), types);
             var genericMethod = genericMethodDetailsByMethod.GetOrAdd(key, (_) =>

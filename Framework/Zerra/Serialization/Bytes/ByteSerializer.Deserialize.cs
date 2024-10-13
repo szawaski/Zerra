@@ -19,8 +19,6 @@ namespace Zerra.Serialization.Bytes
     {
         public static T? Deserialize<T>(ReadOnlySpan<byte> bytes, ByteSerializerOptions? options = null)
         {
-            if (bytes == null) 
-                throw new ArgumentNullException(nameof(bytes));
             if (bytes.Length == 0)
                 return default;
 
@@ -47,8 +45,7 @@ namespace Zerra.Serialization.Bytes
         }
         public static object? Deserialize(Type type, ReadOnlySpan<byte> bytes, ByteSerializerOptions? options = null)
         {
-            if (type == null) throw new ArgumentNullException(nameof(type));
-            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+            if (type is null) throw new ArgumentNullException(nameof(type));
 
             options ??= defaultOptions;
 
@@ -74,7 +71,7 @@ namespace Zerra.Serialization.Bytes
 
         public static T? Deserialize<T>(Stream stream, ByteSerializerOptions? options = null)
         {
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
 
             options ??= defaultOptions;
@@ -170,9 +167,9 @@ namespace Zerra.Serialization.Bytes
         }
         public static object? Deserialize(Type type, Stream stream, ByteSerializerOptions? options = null)
         {
-            if (type == null)
+            if (type is null)
                 throw new ArgumentNullException(nameof(type));
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
 
             options ??= defaultOptions;
@@ -269,7 +266,7 @@ namespace Zerra.Serialization.Bytes
 
         public static async Task<T?> DeserializeAsync<T>(Stream stream, ByteSerializerOptions? options = null)
         {
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
 
             options ??= defaultOptions;
@@ -365,9 +362,9 @@ namespace Zerra.Serialization.Bytes
         }
         public static async Task<object?> DeserializeAsync(Type type, Stream stream, ByteSerializerOptions? options = null)
         {
-            if (type == null)
+            if (type is null)
                 throw new ArgumentNullException(nameof(type));
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
 
             options ??= defaultOptions;

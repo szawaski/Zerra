@@ -48,7 +48,7 @@ namespace Zerra.Identity.Consumers
             var callbackServiceProvider = callbackDocument.ServiceProvider;
             var code = callbackDocument.AccessCode;
 
-            if (code == null)
+            if (code is null)
                 return null;
 
             if (serviceProvider != callbackServiceProvider)

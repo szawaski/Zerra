@@ -164,7 +164,7 @@ namespace Zerra.Identity.Consumers
                 }
                 catch (WebException ex)
                 {
-                    if (ex.Response == null)
+                    if (ex.Response is null)
                         throw ex;
                     var responseTokenStream = ex.Response.GetResponseStream();
                     var error = await new StreamReader(responseTokenStream).ReadToEndAsync();
@@ -202,13 +202,13 @@ namespace Zerra.Identity.Consumers
             var keys = await GetSignaturePublicKeys(this.identityProviderCertUrl);
             var key = keys.FirstOrDefault(x => x.X509Thumbprint == callbackDocument.X509Thumbprint);
             key ??= keys.FirstOrDefault(x => x.KeyID == callbackDocument.KeyID);
-            if (key == null)
+            if (key is null)
                 throw new IdentityProviderException("Identity Provider OpenID certificate not found from Json Key Url");
             if (key.KeyType != "RSA")
                 throw new IdentityProviderException("Identity Provider OpenID only supporting RSA at the moment");
 
             RSA rsa;
-            if (key.X509Certificates == null || key.X509Certificates.Length == 0)
+            if (key.X509Certificates is null || key.X509Certificates.Length == 0)
             {
                 var rsaParams = new RSAParameters()
                 {
@@ -254,7 +254,7 @@ namespace Zerra.Identity.Consumers
                 var content = await new StreamReader(stream).ReadToEndAsync();
                 var keys = JsonConvert.DeserializeObject<JwtKeys>(content);
 
-                if (keys == null)
+                if (keys is null)
                     return null;
 
                 return keys.keys;
@@ -268,7 +268,7 @@ namespace Zerra.Identity.Consumers
 
                 var keys = JsonConvert.DeserializeObject<JwtKeys>(content);
 
-                if (keys == null)
+                if (keys is null)
                     return null;
 
                 return keys.keys;

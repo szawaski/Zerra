@@ -85,7 +85,7 @@ namespace Zerra.Identity.Saml2
                     String.Format("Received: {0}, Expected: {1}", subjectNotOnOrAfter, DateTimeOffset.UtcNow));
             }
 
-            if (expectedUrls != null)
+            if (expectedUrls is not null)
             {
                 var subjectRecipient = SubjectRecipient(this.Document.DocumentElement);
                 if (!String.IsNullOrWhiteSpace(subjectRecipient) && !expectedUrls.Contains(subjectRecipient))

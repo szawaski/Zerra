@@ -19,7 +19,7 @@ namespace Zerra.Map
         public static TTarget Map<TSource, TTarget>(this TSource source, IMapLogger logger) { return source.Map<TSource, TTarget>(logger, null); }
         public static TTarget Map<TSource, TTarget>(this TSource source, IMapLogger logger, Graph? graph)
         {
-            if (source == null)
+            if (source is null)
                 throw new ArgumentNullException(nameof(source));
 
             var map = MapGeneratorWithLog<TSource, TTarget>.GetMap();
@@ -29,9 +29,9 @@ namespace Zerra.Map
         public static void MapTo<TSource, TTarget>(this TSource source, TTarget target, IMapLogger logger) { source.MapTo(target, logger, null); }
         public static void MapTo<TSource, TTarget>(this TSource source, TTarget target, IMapLogger logger, Graph? graph)
         {
-            if (source == null)
+            if (source is null)
                 throw new ArgumentNullException(nameof(source));
-            if (target == null)
+            if (target is null)
                 throw new ArgumentNullException(nameof(target));
 
             var map = MapGeneratorWithLog<TSource, TTarget>.GetMap();
@@ -41,7 +41,7 @@ namespace Zerra.Map
         public static TTarget Map<TTarget>(this object source, IMapLogger logger) { return source.Map<TTarget>(logger, null); }
         public static TTarget Map<TTarget>(this object source, IMapLogger logger, Graph? graph)
         {
-            if (source == null)
+            if (source is null)
                 throw new ArgumentNullException(nameof(source));
 
             var sourceType = source.GetType();
@@ -61,7 +61,7 @@ namespace Zerra.Map
         public static TTarget Copy<TTarget>(this TTarget source, IMapLogger logger) { return source.Copy(logger, null); }
         public static TTarget Copy<TTarget>(this TTarget source, IMapLogger logger, Graph? graph)
         {
-            if (source == null)
+            if (source is null)
                 throw new ArgumentNullException(nameof(source));
 
             var sourceType = source.GetType();
@@ -81,9 +81,9 @@ namespace Zerra.Map
         public static void CopyTo<TTarget>(this object source, TTarget target, IMapLogger logger) { source.CopyTo(target, logger, null); }
         public static void CopyTo<TTarget>(this object source, TTarget target, IMapLogger logger, Graph? graph)
         {
-            if (source == null)
+            if (source is null)
                 throw new ArgumentNullException(nameof(source));
-            if (target == null)
+            if (target is null)
                 throw new ArgumentNullException(nameof(target));
 
             var sourceType = source.GetType();

@@ -29,8 +29,6 @@ namespace Zerra.Serialization.Bytes.IO
 
         public ByteReader(ReadOnlySpan<byte> bytes, Encoding encoding)
         {
-            if (bytes == null)
-                throw new ArgumentNullException(nameof(bytes));
             this.buffer = bytes;
             this.encoding = encoding;
             this.position = 0;
@@ -54,7 +52,7 @@ namespace Zerra.Serialization.Bytes.IO
                 sizeNeeded += 1;
                 if (this.length - position < sizeNeeded)
                     return false;
-                if (buffer[tempPosition++] != nullByte)
+                if (buffer[tempPosition++] is not nullByte)
                 {
                     sizeNeeded += sizePerElement;
                     tempPosition += sizePerElement;

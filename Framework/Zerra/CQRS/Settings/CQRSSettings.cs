@@ -29,7 +29,7 @@ namespace Zerra.CQRS.Settings
         public static ServiceSettings Get(bool bindingUrlFromStandardVariables)
         {
             var settingsName = Config.EntryAssemblyName;
-            if (settingsName == null)
+            if (settingsName is null)
                 throw new Exception($"Entry Assembly is null, {nameof(CQRSSettings)} cannot identify which service is running");
             return Get(settingsName, bindingUrlFromStandardVariables);
         }
@@ -44,12 +44,12 @@ namespace Zerra.CQRS.Settings
                 fileName = String.Format(genericSettingsFileName, environmentName);
                 filePath = Config.GetEnvironmentFilePath(fileName);
             }
-            if (filePath == null)
+            if (filePath is null)
             {
                 fileName = settingsFileName;
                 filePath = Config.GetEnvironmentFilePath(fileName);
             }
-            if (filePath == null || fileName == null)
+            if (filePath is null || fileName is null)
             {
                 var notFound = $"Config {serviceName} did not find {settingsFileName}";
                 Log.InfoAsync(notFound).GetAwaiter().GetResult();
@@ -70,7 +70,7 @@ namespace Zerra.CQRS.Settings
 
             _ = Log.InfoAsync($"Config {serviceName} Loaded {fileName}");
 
-            if (settings.Queries != null)
+            if (settings.Queries is not null)
             {
                 foreach (var service in settings.Queries)
                 {

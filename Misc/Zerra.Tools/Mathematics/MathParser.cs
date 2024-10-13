@@ -379,7 +379,7 @@ namespace Zerra.Mathematics
                 while (Char.IsWhiteSpace(context.Current) && context.Index < context.Chars.Length)
                     context.Next();
                 var subpart = ParseOperators(ref context);
-                if (subpart == null)
+                if (subpart is null)
                     break;
                 subparts.Add(subpart);
             }
@@ -427,10 +427,10 @@ namespace Zerra.Mathematics
                     }
                 }
 
-                if (methodFound != null)
+                if (methodFound is not null)
                     break; //ending ( guarentees can't be longer
             }
-            if (methodFound != null)
+            if (methodFound is not null)
             {
                 var argumentParts = new List<StatementPart>();
                 while (context.Index < context.Chars.Length)
@@ -448,27 +448,27 @@ namespace Zerra.Mathematics
                 var part = new StatementPart(startIndex, methodFound, argumentParts);
                 return part;
             }
-            if (unaryFound != null && binaryFound != null)
+            if (unaryFound is not null && binaryFound is not null)
             {
                 if (unaryFound.Token.Length < binaryFound.Token.Length)
                     binaryFound = null;
                 else if (unaryFound.Token.Length > binaryFound.Token.Length)
                     unaryFound = null;
 
-                if (unaryFound != null && binaryFound != null)
+                if (unaryFound is not null && binaryFound is not null)
                 {
                     context.Reset(startIndex + unaryFound.Token.Length); //possibly looked for a longer operator name
                     var part = new StatementPart(startIndex, unaryFound, binaryFound);
                     return part;
                 }
             }
-            if (unaryFound != null)
+            if (unaryFound is not null)
             {
                 context.Reset(startIndex + unaryFound.Token.Length); //possibly looked for a longer operator name
                 var part = new StatementPart(startIndex, unaryFound);
                 return part;
             }
-            if (binaryFound != null)
+            if (binaryFound is not null)
             {
                 context.Reset(startIndex + binaryFound.Token.Length); //possibly looked for a longer operator name
                 var part = new StatementPart(startIndex, binaryFound);
@@ -523,20 +523,20 @@ namespace Zerra.Mathematics
 
         private Expression BuildLinqExpression(ref ParserContext context, StatementPart part)
         {
-            if (part.SubParts != null)
+            if (part.SubParts is not null)
                 return BuildLinqExpression(ref context, part.SubParts, part.SubParts.Count);
 
-            if (part.Variable != null)
+            if (part.Variable is not null)
             {
                 var existing = context.LinqParameters.FirstOrDefault(x => x.Name == part.Variable);
-                if (existing != null)
+                if (existing is not null)
                     return existing;
 
                 var expression = Expression.Parameter(typeof(double), part.Variable);
                 context.LinqParameters.Add(expression);
                 return expression;
             }
-            else if (part.Number != null)
+            else if (part.Number is not null)
             {
                 if (!Double.TryParse(part.Number, out var value))
                     throw new MathParserException($"Invalid expression \"{part.Number}\" at \"{part.Index}\"");
@@ -616,7 +616,7 @@ namespace Zerra.Mathematics
                 var i = 0;
                 foreach (var part in parts)
                 {
-                    if (part.MethodOperator != null)
+                    if (part.MethodOperator is not null)
                     {
                         var replacements = new Dictionary<string, Expression>();
                         for (var j = 0; j < part.SubParts.Count; j++)

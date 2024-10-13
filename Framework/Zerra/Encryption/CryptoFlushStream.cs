@@ -32,18 +32,18 @@ namespace Zerra.Encryption
 
         public void FlushFinalBlock()
         {
-            if (cryptoStream != null)
+            if (cryptoStream is not null)
                 cryptoStream.FlushFinalBlock();
-            else if (cryptoShiftStream != null)
+            else if (cryptoShiftStream is not null)
                 cryptoShiftStream.FlushFinalBlock();
         }
 
 #if NET5_0_OR_GREATER
         public ValueTask FlushFinalBlockAsync()
         {
-            if (cryptoStream != null)
+            if (cryptoStream is not null)
                 return cryptoStream.FlushFinalBlockAsync();
-            else if (cryptoShiftStream != null)
+            else if (cryptoShiftStream is not null)
                 return cryptoShiftStream.FlushFinalBlockAsync();
             return ValueTask.CompletedTask;
         }

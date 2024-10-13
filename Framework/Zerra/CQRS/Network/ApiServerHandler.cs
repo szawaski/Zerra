@@ -16,16 +16,16 @@ namespace Zerra.CQRS.Network
         {
             if (!String.IsNullOrWhiteSpace(data.ProviderType))
             {
-                if (contentType == null)
+                if (contentType is null)
                     return null;
 
                 var response = await Call(data);
 
-                if (response.Stream != null)
+                if (response.Stream is not null)
                 {
                     return new ApiResponseData(response.Stream);
                 }
-                else if (response.Model != null)
+                else if (response.Model is not null)
                 {
                     var bytes = ContentTypeSerializer.Serialize(contentType.Value, response.Model);
                     return new ApiResponseData(bytes);
@@ -39,7 +39,7 @@ namespace Zerra.CQRS.Network
             {
                 if (data.MessageResult)
                 {
-                    if (contentType == null)
+                    if (contentType is null)
                         return null;
 
                     var result = await DispatchWithResult(data);
@@ -60,7 +60,7 @@ namespace Zerra.CQRS.Network
         {
             if (String.IsNullOrWhiteSpace(data.ProviderType)) throw new ArgumentNullException(nameof(ApiRequestData.ProviderType));
             if (String.IsNullOrWhiteSpace(data.ProviderMethod)) throw new ArgumentNullException(nameof(ApiRequestData.ProviderMethod));
-            if (data.ProviderArguments == null) throw new ArgumentNullException(nameof(ApiRequestData.ProviderArguments));
+            if (data.ProviderArguments is null) throw new ArgumentNullException(nameof(ApiRequestData.ProviderArguments));
             if (String.IsNullOrWhiteSpace(data.Source)) throw new ArgumentNullException(nameof(ApiRequestData.Source));
 
             var providerType = Discovery.GetTypeFromName(data.ProviderType);
@@ -86,7 +86,7 @@ namespace Zerra.CQRS.Network
                     break;
                 }
             }
-            if (methodDetail == null)
+            if (methodDetail is null)
                 throw new Exception($"Method {data.ProviderType}.{data.ProviderMethod} does not exsist");
 
             var blockedMethod = false;
@@ -104,7 +104,7 @@ namespace Zerra.CQRS.Network
         private static Task Dispatch(ApiRequestData data)
         {
             if (String.IsNullOrWhiteSpace(data.MessageType)) throw new ArgumentNullException(nameof(ApiRequestData.MessageType));
-            if (data.MessageData == null) throw new ArgumentNullException(nameof(ApiRequestData.MessageData));
+            if (data.MessageData is null) throw new ArgumentNullException(nameof(ApiRequestData.MessageData));
             if (String.IsNullOrWhiteSpace(data.Source)) throw new ArgumentNullException(nameof(ApiRequestData.Source));
 
             var commandType = Discovery.GetTypeFromName(data.MessageType);
@@ -122,7 +122,7 @@ namespace Zerra.CQRS.Network
                 throw new Exception($"{typeDetail.Type.GetNiceName()} is not exposed");
 
             var command = (ICommand?)JsonSerializer.Deserialize(commandType, data.MessageData);
-            if (command == null)
+            if (command is null)
                 throw new Exception($"Invalid {nameof(data.MessageData)}");
 
             if (data.MessageAwait)
@@ -133,7 +133,7 @@ namespace Zerra.CQRS.Network
         private static Task<object?> DispatchWithResult(ApiRequestData data)
         {
             if (String.IsNullOrWhiteSpace(data.MessageType)) throw new ArgumentNullException(nameof(ApiRequestData.MessageType));
-            if (data.MessageData == null) throw new ArgumentNullException(nameof(ApiRequestData.MessageData));
+            if (data.MessageData is null) throw new ArgumentNullException(nameof(ApiRequestData.MessageData));
             if (String.IsNullOrWhiteSpace(data.Source)) throw new ArgumentNullException(nameof(ApiRequestData.Source));
 
             var commandType = Discovery.GetTypeFromName(data.MessageType);
@@ -151,7 +151,7 @@ namespace Zerra.CQRS.Network
                 throw new Exception($"{typeDetail.Type.GetNiceName()} is not exposed");
 
             var command = (ICommand?)JsonSerializer.Deserialize(commandType, data.MessageData);
-            if (command == null)
+            if (command is null)
                 throw new Exception($"Invalid {nameof(data.MessageData)}");
 
             return Bus.HandleRemoteCommandWithResultDispatchAwaitAsync(command, data.Source, true);

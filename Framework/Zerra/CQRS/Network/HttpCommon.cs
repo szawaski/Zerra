@@ -383,13 +383,13 @@ namespace Zerra.CQRS.Network
                 headerBuffer.Write(newLineBytes);
             }
 
-            if (authHeaders != null)
+            if (authHeaders is not null)
             {
                 foreach (var authHeader in authHeaders)
                 {
                     foreach (var authHeaderValue in authHeader.Value)
                     {
-                        if (authHeaderValue == null)
+                        if (authHeaderValue is null)
                             continue;
                         headerBuffer.Write(encoding.GetBytes(authHeader.Key));
                         headerBuffer.Write(headerSplitBytes);
@@ -508,7 +508,7 @@ namespace Zerra.CQRS.Network
                 headerBuffer.Write(newLineBytes);
             }
 
-            if (authHeaders != null)
+            if (authHeaders is not null)
             {
                 foreach (var authHeader in authHeaders)
                 {

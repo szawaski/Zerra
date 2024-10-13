@@ -19,7 +19,7 @@ namespace ZerraDemo.Common
         public DemoCookieApiAuthorizer()
         {
             var authenticationKey = Config.GetSetting("AuthenticationKey");
-            if (authenticationKey == null)
+            if (authenticationKey is null)
                 throw new Exception("Missing Config AuthenticationKey");
             this.encryptionKey = SymmetricEncryptor.GetKey(authenticationKey);
         }

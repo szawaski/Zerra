@@ -26,7 +26,7 @@ namespace Zerra.Reflection.Runtime
         {
             get
             {
-                if (this.attributes == null)
+                if (this.attributes is null)
                 {
                     lock (locker)
                     {
@@ -54,7 +54,7 @@ namespace Zerra.Reflection.Runtime
             {
                 if (!getterBoxedLoaded)
                     LoadGetterBoxed();
-                return this.getterBoxed != null;
+                return this.getterBoxed is not null;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -69,7 +69,7 @@ namespace Zerra.Reflection.Runtime
                         var property = (PropertyInfo)MemberInfo;
                         if (!property.PropertyType.IsPointer)
                         {
-                            if (BackingFieldDetail == null)
+                            if (BackingFieldDetail is null)
                             {
                                 this.getterBoxed = AccessorGenerator.GenerateGetter(property);
                             }
@@ -109,7 +109,7 @@ namespace Zerra.Reflection.Runtime
             {
                 if (!setterBoxedLoaded)
                     LoadSetterBoxed();
-                return this.setterBoxed != null;
+                return this.setterBoxed is not null;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -124,7 +124,7 @@ namespace Zerra.Reflection.Runtime
                         var property = (PropertyInfo)MemberInfo;
                         if (!property.PropertyType.IsPointer)
                         {
-                            if (BackingFieldDetail == null)
+                            if (BackingFieldDetail is null)
                             {
                                 this.setterBoxed = AccessorGenerator.GenerateSetter(property);
                             }
@@ -152,7 +152,7 @@ namespace Zerra.Reflection.Runtime
         {
             get
             {
-                if (typeDetailBoxed == null)
+                if (typeDetailBoxed is null)
                     LoadTypeDetail();
                 return typeDetailBoxed!;
             }
@@ -177,7 +177,7 @@ namespace Zerra.Reflection.Runtime
             {
                 if (!getterLoaded)
                     LoadGetter();
-                return this.getter != null;
+                return this.getter is not null;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -192,7 +192,7 @@ namespace Zerra.Reflection.Runtime
                         var property = (PropertyInfo)MemberInfo;
                         if (!property.PropertyType.IsPointer)
                         {
-                            if (BackingFieldDetail == null)
+                            if (BackingFieldDetail is null)
                             {
                                 this.getter = AccessorGenerator.GenerateGetter<T, V?>(property);
                             }
@@ -232,7 +232,7 @@ namespace Zerra.Reflection.Runtime
             {
                 if (!setterLoaded)
                     LoadSetter();
-                return this.setter != null;
+                return this.setter is not null;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -247,7 +247,7 @@ namespace Zerra.Reflection.Runtime
                         var property = (PropertyInfo)MemberInfo;
                         if (!property.PropertyType.IsPointer)
                         {
-                            if (BackingFieldDetail == null)
+                            if (BackingFieldDetail is null)
                             {
                                 this.setter = AccessorGenerator.GenerateSetter<T, V?>(property);
                             }
@@ -275,7 +275,7 @@ namespace Zerra.Reflection.Runtime
         {
             get
             {
-                if (typeDetail == null)
+                if (typeDetail is null)
                     LoadTypeDetail();
                 return typeDetail!;
             }
@@ -314,7 +314,7 @@ namespace Zerra.Reflection.Runtime
                 throw new NotSupportedException($"{nameof(MemberDetail)} does not support {member.MemberType}");
             }
 
-            this.IsBacked = member.MemberType == MemberTypes.Field || backingFieldDetail != null;
+            this.IsBacked = member.MemberType == MemberTypes.Field || backingFieldDetail is not null;
         }
 
         private static readonly Type typeDetailT = typeof(MemberDetailRuntime<,>);

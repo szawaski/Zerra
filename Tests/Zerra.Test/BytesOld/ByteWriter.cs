@@ -60,7 +60,7 @@ namespace Zerra.Serialization.Bytes.IO
             if (position + additionalSize <= buffer.Length)
                 return;
 
-            if (bufferOwner == null)
+            if (bufferOwner is null)
                 throw new InvalidOperationException($"{nameof(ByteWriter)} has reached it's buffer limit");
 
             var minSize = position + additionalSize;
@@ -86,7 +86,7 @@ namespace Zerra.Serialization.Bytes.IO
 
         public void Dispose()
         {
-            if (bufferOwner != null)
+            if (bufferOwner is not null)
             {
                 buffer.Clear();
                 ArrayPoolHelper<byte>.Return(bufferOwner);

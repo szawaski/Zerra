@@ -47,7 +47,7 @@ namespace Zerra.CQRS.RabbitMQ
 
         void ICommandConsumer.Setup(CommandCounter commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
         {
-            if (this.connection != null)
+            if (this.connection is not null)
                 throw new InvalidOperationException("Connection already open");
             this.commandCounter = commandCounter;
             this.commandHandlerAsync = handlerAsync;
@@ -56,7 +56,7 @@ namespace Zerra.CQRS.RabbitMQ
         }
         void IEventConsumer.Setup(HandleRemoteEventDispatch handlerAsync)
         {
-            if (this.connection != null)
+            if (this.connection is not null)
                 throw new InvalidOperationException("Connection already open");
             this.eventHandlerAsync = handlerAsync;
         }
@@ -73,7 +73,7 @@ namespace Zerra.CQRS.RabbitMQ
         }
         private void Open()
         {
-            if (this.connection != null)
+            if (this.connection is not null)
                 return;
 
             try
@@ -98,7 +98,7 @@ namespace Zerra.CQRS.RabbitMQ
 
         private void OpenExchanges()
         {
-            if (this.connection == null)
+            if (this.connection is null)
                 return;
 
             foreach (var exchange in commandExchanges.Values.Where(x => !x.IsOpen))
@@ -127,7 +127,7 @@ namespace Zerra.CQRS.RabbitMQ
             this.commandExchanges.Clear();
             this.eventExchanges.Clear();
 
-            if (this.connection != null)
+            if (this.connection is not null)
             {
                 this.connection.Close();
                 this.connection.Dispose();
@@ -143,7 +143,7 @@ namespace Zerra.CQRS.RabbitMQ
 
         void ICommandConsumer.RegisterCommandType(int maxConcurrent, string topic, Type type)
         {
-            if (commandCounter == null || commandHandlerAsync == null || commandHandlerAwaitAsync == null || commandHandlerWithResultAwaitAsync == null)
+            if (commandCounter is null || commandHandlerAsync is null || commandHandlerAwaitAsync is null || commandHandlerWithResultAwaitAsync is null)
                 throw new Exception($"{nameof(RabbitMQConsumer)} is not setup");
 
             lock (commandExchanges)
@@ -164,7 +164,7 @@ namespace Zerra.CQRS.RabbitMQ
 
         void IEventConsumer.RegisterEventType(int maxConcurrent, string topic, Type type)
         {
-            if (eventHandlerAsync == null)
+            if (eventHandlerAsync is null)
                 throw new Exception($"{nameof(RabbitMQConsumer)} is not setup");
 
             lock (eventExchanges)

@@ -24,7 +24,7 @@ namespace Zerra.Serialization.Json
             var type = typeof(T);
             var typeDetails = TypeAnalyzer.GetTypeDetail(type);
 
-            if (json == null || json.Length == 0)
+            if (json.Length == 0)
                 return (T?)ConvertStringToType(String.Empty, typeDetails);
 
             var reader = new CharReaderOld(json);
@@ -54,7 +54,7 @@ namespace Zerra.Serialization.Json
 
             var typeDetails = TypeAnalyzer.GetTypeDetail(type);
 
-            if (json == null || json.Length == 0)
+            if (json.Length == 0)
                 return ConvertStringToType(String.Empty, typeDetails);
 
             var reader = new CharReaderOld(json);
@@ -85,7 +85,7 @@ namespace Zerra.Serialization.Json
         public static T? Deserialize<T>(ReadOnlySpan<byte> bytes, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
             var obj = Deserialize(typeof(T), bytes, options, graph);
-            if (obj == null)
+            if (obj is null)
                 return default;
             return (T)obj;
         }
@@ -96,7 +96,7 @@ namespace Zerra.Serialization.Json
 
             var typeDetails = TypeAnalyzer.GetTypeDetail(type);
 
-            if (bytes == null || bytes.Length == 0)
+            if (bytes.Length == 0)
                 return ConvertStringToType(String.Empty, typeDetails);
 
 #if NETSTANDARD2_0
@@ -156,7 +156,7 @@ namespace Zerra.Serialization.Json
 
         private static object? FromStringJson(char c, ref CharReaderOld reader, ref CharWriterOld decodeBuffer, TypeDetail? typeDetail, Graph? graph, ref OptionsStruct options)
         {
-            if (typeDetail != null && typeDetail.Type.IsInterface && !typeDetail.HasIEnumerable)
+            if (typeDetail is not null && typeDetail.Type.IsInterface && !typeDetail.HasIEnumerable)
             {
                 var emptyImplementationType = EmptyImplementations.GetEmptyImplementationType(typeDetail.Type);
                 typeDetail = TypeAnalyzer.GetTypeDetail(emptyImplementationType);
@@ -168,12 +168,12 @@ namespace Zerra.Serialization.Json
                     var value = FromStringString(ref reader, ref decodeBuffer);
                     return ConvertStringToType(value, typeDetail);
                 case '{':
-                    if (typeDetail != null && typeDetail.SpecialType == SpecialType.Dictionary)
+                    if (typeDetail is not null && typeDetail.SpecialType == SpecialType.Dictionary)
                         return FromStringJsonDictionary(ref reader, ref decodeBuffer, typeDetail, graph, ref options);
                     else
                         return FromStringJsonObject(ref reader, ref decodeBuffer, typeDetail, graph, ref options);
                 case '[':
-                    if (!options.Nameless || (typeDetail != null && typeDetail.HasIEnumerableGeneric))
+                    if (!options.Nameless || (typeDetail is not null && typeDetail.HasIEnumerableGeneric))
                         return FromStringJsonArray(ref reader, ref decodeBuffer, typeDetail, graph, ref options);
                     else
                         return FromStringJsonArrayNameless(ref reader, ref decodeBuffer, typeDetail, graph, ref options);
@@ -184,7 +184,7 @@ namespace Zerra.Serialization.Json
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static object? FromStringJsonObject(ref CharReaderOld reader, ref CharWriterOld decodeBuffer, TypeDetail? typeDetail, Graph? graph, ref OptionsStruct options)
         {
-            var obj = typeDetail != null && typeDetail.HasCreatorBoxed ? typeDetail.CreatorBoxed() : null;
+            var obj = typeDetail is not null && typeDetail.HasCreatorBoxed ? typeDetail.CreatorBoxed() : null;
             var canExpectComma = false;
             while (reader.TryReadSkipWhiteSpace(out var c))
             {
@@ -202,19 +202,19 @@ namespace Zerra.Serialization.Json
                         if (!reader.TryReadSkipWhiteSpace(out c))
                             throw reader.CreateException("Json ended prematurely");
 
-                        if (obj != null)
+                        if (obj is not null)
                         {
                             if (TryGetMember(typeDetail!, propertyName, out var memberDetail))
                             {
                                 var propertyGraph = graph?.GetChildGraph(memberDetail.Name);
                                 var value = FromStringJson(c, ref reader, ref decodeBuffer, memberDetail.TypeDetailBoxed, propertyGraph, ref options);
-                                if (value != null && memberDetail.HasSetterBoxed)
+                                if (value is not null && memberDetail.HasSetterBoxed)
                                 {
                                     //special case nullable enum
                                     if (memberDetail.TypeDetailBoxed.IsNullable && memberDetail.TypeDetailBoxed.InnerTypeDetail.EnumUnderlyingType.HasValue)
                                         value = Enum.ToObject(memberDetail.TypeDetailBoxed.InnerTypeDetail.Type, value);
 
-                                    if (graph == null || graph.HasMember(memberDetail.Name))
+                                    if (graph is null || graph.HasMember(memberDetail.Name))
                                         memberDetail.SetterBoxed(obj, value);
                                 }
                             }
@@ -249,7 +249,7 @@ namespace Zerra.Serialization.Json
             object? obj = null;
             MethodDetail? method = null;
             object?[]? addMethodArgs = null;
-            if (typeDetail != null)
+            if (typeDetail is not null)
             {
                 if (typeDetail.Type.IsInterface)
                 {
@@ -277,7 +277,7 @@ namespace Zerra.Serialization.Json
                         if (!reader.TryReadSkipWhiteSpace(out c))
                             throw reader.CreateException("Json ended prematurely");
 
-                        if (obj != null)
+                        if (obj is not null)
                         {
                             //Dictionary Special Case
                             var value = FromStringJson(c, ref reader, ref decodeBuffer, typeDetail!.InnerTypeDetails[1], null, ref options);
@@ -315,7 +315,7 @@ namespace Zerra.Serialization.Json
             MethodDetail? addMethod = null;
             object?[]? addMethodArgs = null;
             TypeDetail? arrayElementType = null;
-            if (typeDetail != null && typeDetail.HasIEnumerableGeneric)
+            if (typeDetail is not null && typeDetail.HasIEnumerableGeneric)
             {
                 arrayElementType = typeDetail.IEnumerableGenericInnerTypeDetail;
                 if (typeDetail.Type.IsArray)
@@ -390,9 +390,9 @@ namespace Zerra.Serialization.Json
                 switch (c)
                 {
                     case ']':
-                        if (collection == null)
+                        if (collection is null)
                             return null;
-                        if (typeDetail != null && typeDetail.Type.IsArray && arrayElementType != null)
+                        if (typeDetail is not null && typeDetail.Type.IsArray && arrayElementType is not null)
                         {
                             var list = (IList)collection;
                             var array = Array.CreateInstance(arrayElementType.Type, list.Count);
@@ -411,10 +411,10 @@ namespace Zerra.Serialization.Json
                         if (canExpectComma)
                             throw reader.CreateException("Unexpected character");
                         var value = FromStringJson(c, ref reader, ref decodeBuffer, arrayElementType, graph, ref options);
-                        if (collection != null)
+                        if (collection is not null)
                         {
                             //special case nullable enum
-                            if (arrayElementType!.IsNullable && arrayElementType.InnerTypeDetail.EnumUnderlyingType.HasValue && value != null)
+                            if (arrayElementType!.IsNullable && arrayElementType.InnerTypeDetail.EnumUnderlyingType.HasValue && value is not null)
                                 value = Enum.ToObject(arrayElementType.InnerTypeDetails[0].Type, value);
 
                             addMethodArgs![0] = value;
@@ -429,7 +429,7 @@ namespace Zerra.Serialization.Json
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static object? FromStringJsonArrayNameless(ref CharReaderOld reader, ref CharWriterOld decodeBuffer, TypeDetail? typeDetail, Graph? graph, ref OptionsStruct options)
         {
-            var obj = typeDetail != null && typeDetail.HasCreatorBoxed ? typeDetail.CreatorBoxed() : null;
+            var obj = typeDetail is not null && typeDetail.HasCreatorBoxed ? typeDetail.CreatorBoxed() : null;
             var canExpectComma = false;
             var propertyIndexForNameless = 0;
             while (reader.TryReadSkipWhiteSpace(out var c))
@@ -447,12 +447,12 @@ namespace Zerra.Serialization.Json
                     default:
                         if (canExpectComma)
                             throw reader.CreateException("Unexpected character");
-                        if (obj != null)
+                        if (obj is not null)
                         {
-                            var memberDetail = typeDetail != null && propertyIndexForNameless < typeDetail.SerializableMemberDetails.Count
+                            var memberDetail = typeDetail is not null && propertyIndexForNameless < typeDetail.SerializableMemberDetails.Count
                                 ? typeDetail.SerializableMemberDetails[propertyIndexForNameless++]
                                 : null;
-                            if (memberDetail != null && memberDetail.HasSetterBoxed)
+                            if (memberDetail is not null && memberDetail.HasSetterBoxed)
                             {
                                 var propertyGraph = graph?.GetChildGraph(memberDetail.Name);
                                 var value = FromStringJson(c, ref reader, ref decodeBuffer, memberDetail?.TypeDetailBoxed, propertyGraph, ref options);
@@ -473,13 +473,13 @@ namespace Zerra.Serialization.Json
                                 }
                                 else
                                 {
-                                    if (value != null)
+                                    if (value is not null)
                                     {
                                         //special case nullable enum
                                         if (memberDetail.TypeDetailBoxed.IsNullable && memberDetail.TypeDetailBoxed.InnerTypeDetail.EnumUnderlyingType.HasValue)
                                             value = Enum.ToObject(memberDetail.TypeDetailBoxed.InnerTypeDetail.Type, value);
 
-                                        if (graph == null || graph.HasMember(memberDetail.Name))
+                                        if (graph is null || graph.HasMember(memberDetail.Name))
                                             memberDetail.SetterBoxed(obj, value);
                                     }
                                 }
@@ -518,7 +518,7 @@ namespace Zerra.Serialization.Json
                             throw reader.CreateException("Json ended prematurely");
                         if (c != 'l')
                             throw reader.CreateException("Expected number/true/false/null");
-                        if (typeDetail != null && typeDetail.CoreType.HasValue)
+                        if (typeDetail is not null && typeDetail.CoreType.HasValue)
                             return ConvertNullToType(typeDetail.CoreType.Value);
                         return null;
                     }
@@ -536,7 +536,7 @@ namespace Zerra.Serialization.Json
                             throw reader.CreateException("Json ended prematurely");
                         if (c != 'e')
                             throw reader.CreateException("Expected number/true/false/null");
-                        if (typeDetail != null && typeDetail.CoreType.HasValue)
+                        if (typeDetail is not null && typeDetail.CoreType.HasValue)
                             return ConvertTrueToType(typeDetail.CoreType.Value);
                         return null;
                     }
@@ -558,13 +558,13 @@ namespace Zerra.Serialization.Json
                             throw reader.CreateException("Json ended prematurely");
                         if (c != 'e')
                             throw reader.CreateException("Expected number/true/false/null");
-                        if (typeDetail != null && typeDetail.CoreType.HasValue)
+                        if (typeDetail is not null && typeDetail.CoreType.HasValue)
                             return ConvertFalseToType(typeDetail.CoreType.Value);
                         return null;
                     }
                 default:
                     {
-                        if (typeDetail != null)
+                        if (typeDetail is not null)
                         {
                             if (typeDetail.CoreType == CoreType.String)
                             {
@@ -626,7 +626,7 @@ namespace Zerra.Serialization.Json
                         var propertyGraph = graph?.GetChildGraph(propertyName);
                         var value = FromStringJsonToJsonObject(c, ref reader, ref decodeBuffer, propertyGraph);
 
-                        if (graph != null)
+                        if (graph is not null)
                         {
                             switch (value.JsonType)
                             {
@@ -691,7 +691,7 @@ namespace Zerra.Serialization.Json
                         if (canExpectComma)
                             throw reader.CreateException("Unexpected character");
                         var value = FromStringJsonToJsonObject(c, ref reader, ref decodeBuffer, graph);
-                        //if (arrayList != null)
+                        //if (arrayList is not null)
                         arrayList.Add(value);
                         canExpectComma = true;
                         break;

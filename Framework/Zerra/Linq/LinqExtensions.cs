@@ -19,12 +19,12 @@ namespace Zerra.Linq
             {
                 foreach (var itemPredicate in predicate)
                 {
-                    if (itemIt == null)
+                    if (itemIt is null)
                     {
-                        if (itemPredicate == null)
+                        if (itemPredicate is null)
                             return true;
                     }
-                    else if (itemPredicate != null && itemIt.Equals(itemPredicate))
+                    else if (itemPredicate is not null && itemIt.Equals(itemPredicate))
                     {
                         return true;
                     }

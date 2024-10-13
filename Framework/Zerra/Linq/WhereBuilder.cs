@@ -71,9 +71,9 @@ namespace Zerra.Linq
                 {
                     break;
                 }
-                else if (exp == null)
+                else if (exp is null)
                 {
-                    if (item.Expression == null)
+                    if (item.Expression is null)
                         throw new ArgumentException("Invalid Linq Where grouping structure");
                     exp = WhereBuilder<TModel>.Rebind(item.Expression, parameter);
                 }
@@ -81,7 +81,7 @@ namespace Zerra.Linq
                 {
                     i++;
                     var group = BuildGroup(ref i, parameter);
-                    if (group != null)
+                    if (group is not null)
                     {
                         if (item.And)
                         {

@@ -72,7 +72,7 @@ namespace Zerra.CQRS.RabbitMQ
 
                 try
                 {
-                    if (this.channel != null)
+                    if (this.channel is not null)
                         throw new Exception("Exchange already open");
 
                     this.channel = connection.CreateModel();
@@ -101,19 +101,19 @@ namespace Zerra.CQRS.RabbitMQ
                         try
                         {
                             RabbitMQMessage? message;
-                            if (symmetricConfig != null)
+                            if (symmetricConfig is not null)
                                 message = RabbitMQCommon.Deserialize<RabbitMQMessage>(SymmetricEncryptor.Decrypt(symmetricConfig, e.Body.Span));
                             else
                                 message = RabbitMQCommon.Deserialize<RabbitMQMessage>(e.Body.Span);
 
-                            if (message == null || message.MessageType == null || message.MessageData == null || message.Source == null)
+                            if (message is null || message.MessageType is null || message.MessageData is null || message.Source is null)
                                 throw new Exception("Invalid Message");
 
                             var command = RabbitMQCommon.Deserialize(message.MessageType, message.MessageData) as ICommand;
-                            if (command == null)
+                            if (command is null)
                                 throw new Exception("Invalid Message");
 
-                            if (message.Claims != null)
+                            if (message.Claims is not null)
                             {
                                 var claimsIdentity = new ClaimsIdentity(message.Claims.Select(x => new Claim(x[0], x[1])), "CQRS");
                                 Thread.CurrentPrincipal = new ClaimsPrincipal(claimsIdentity);
@@ -152,7 +152,7 @@ namespace Zerra.CQRS.RabbitMQ
                             var acknowledgement = new Acknowledgement(result, error);
 
                             var acknowledgmentBody = RabbitMQCommon.Serialize(acknowledgement);
-                            if (symmetricConfig != null)
+                            if (symmetricConfig is not null)
                                 acknowledgmentBody = SymmetricEncryptor.Encrypt(symmetricConfig, acknowledgmentBody);
 
                             this.channel.BasicPublish(String.Empty, e.BasicProperties.ReplyTo, replyProperties, acknowledgmentBody);
@@ -181,7 +181,7 @@ namespace Zerra.CQRS.RabbitMQ
 
                     if (!canceller.IsCancellationRequested)
                     {
-                        if (channel != null)
+                        if (channel is not null)
                         {
                             channel.Close();
                             channel.Dispose();
@@ -200,7 +200,7 @@ namespace Zerra.CQRS.RabbitMQ
 
                 throttle?.Dispose();
 
-                if (channel != null)
+                if (channel is not null)
                 {
                     channel.Close();
                     channel.Dispose();

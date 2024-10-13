@@ -64,9 +64,9 @@ namespace Zerra.Identity.OpenID.Bindings
                 var jwtHeader = JsonConvert.DeserializeObject<JwtHeader>(jwtHeaderString);
                 DeserializeJwtPayload(jwtPayloadString);
 
-                if (!this.Document.ContainsKey(nameof(JwtHeader.X509Thumbprint)) && jwtHeader.X509Thumbprint != null)
+                if (!this.Document.ContainsKey(nameof(JwtHeader.X509Thumbprint)) && jwtHeader.X509Thumbprint is not null)
                     this.Document.Add(nameof(JwtHeader.X509Thumbprint), JToken.FromObject(jwtHeader.X509Thumbprint));
-                if (!this.Document.ContainsKey(nameof(JwtHeader.KeyID)) && jwtHeader.KeyID != null)
+                if (!this.Document.ContainsKey(nameof(JwtHeader.KeyID)) && jwtHeader.KeyID is not null)
                     this.Document.Add(nameof(JwtHeader.KeyID), JToken.FromObject(jwtHeader.KeyID));
 
                 this.SignatureAlgorithm = Algorithms.GetSignatureAlgorithmFromJwt(jwtHeader.Algorithm);

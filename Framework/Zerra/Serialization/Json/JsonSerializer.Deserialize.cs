@@ -25,8 +25,6 @@ namespace Zerra.Serialization.Json
 
         public static T? Deserialize<T>(ReadOnlySpan<char> chars, JsonSerializerOptions? options = null, Graph? graph = null)
         {
-            if (chars == null)
-                throw new ArgumentNullException(nameof(chars));
             if (chars.Length == 0)
             {
                 if (typeof(T) == typeof(string))
@@ -61,10 +59,8 @@ namespace Zerra.Serialization.Json
         }
         public static object? Deserialize(Type type, ReadOnlySpan<char> chars, JsonSerializerOptions? options = null, Graph? graph = null)
         {
-            if (type == null)
+            if (type is null)
                 throw new ArgumentNullException(nameof(type));
-            if (chars == null)
-                throw new ArgumentNullException(nameof(chars));
             if (chars.Length == 0)
             {
                 if (type == typeof(string))
@@ -100,8 +96,6 @@ namespace Zerra.Serialization.Json
 
         public static T? Deserialize<T>(ReadOnlySpan<byte> bytes, JsonSerializerOptions? options = null, Graph? graph = null)
         {
-            if (bytes == null)
-                throw new ArgumentNullException(nameof(bytes));
             if (bytes.Length == 0)
             {
                 if (typeof(T) == typeof(string))
@@ -136,10 +130,8 @@ namespace Zerra.Serialization.Json
         }
         public static object? Deserialize(Type type, ReadOnlySpan<byte> bytes, JsonSerializerOptions? options = null, Graph? graph = null)
         {
-            if (type == null)
+            if (type is null)
                 throw new ArgumentNullException(nameof(type));
-            if (bytes == null)
-                throw new ArgumentNullException(nameof(bytes));
             if (bytes.Length == 0)
             {
                 if (type == typeof(string))
@@ -175,7 +167,7 @@ namespace Zerra.Serialization.Json
 
         public static T? Deserialize<T>(Stream stream, JsonSerializerOptions? options = null, Graph? graph = null)
         {
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
 
             options ??= defaultOptions;
@@ -277,9 +269,9 @@ namespace Zerra.Serialization.Json
         }
         public static object? Deserialize(Type type, Stream stream, JsonSerializerOptions? options = null, Graph? graph = null)
         {
-            if (type == null)
+            if (type is null)
                 throw new ArgumentNullException(nameof(type));
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
 
             options ??= defaultOptions;
@@ -385,7 +377,7 @@ namespace Zerra.Serialization.Json
 
         public static async Task<T?> DeserializeAsync<T>(Stream stream, JsonSerializerOptions? options = null, Graph? graph = null)
         {
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
 
             options ??= defaultOptions;
@@ -490,9 +482,9 @@ namespace Zerra.Serialization.Json
         }
         public static async Task<object?> DeserializeAsync(Type type, Stream stream, JsonSerializerOptions? options = null, Graph? graph = null)
         {
-            if (type == null)
+            if (type is null)
                 throw new ArgumentNullException(nameof(type));
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
 
             options ??= defaultOptions;

@@ -32,7 +32,7 @@ namespace Zerra.Serialization.QueryString
             foreach (var item in query)
             {
                 var value = (string?)item.Value;
-                if (value != null)
+                if (value is not null)
                     SetValue(typeDetail, model, item.Key, value);
             }
 
@@ -59,7 +59,7 @@ namespace Zerra.Serialization.QueryString
                         switch (c)
                         {
                             case '=':
-                                if (name != null)
+                                if (name is not null)
                                     throw new Exception($"Invalid query string at position {i}");
 #if NETSTANDARD2_0
                                 name = new string(bufferOwner, 0, bufferLength);
@@ -69,7 +69,7 @@ namespace Zerra.Serialization.QueryString
                                 bufferLength = 0;
                                 break;
                             case '&':
-                                if (name == null)
+                                if (name is null)
                                     throw new Exception($"Invalid query string at position {i}");
 #if NETSTANDARD2_0
                                 var value = new string(bufferOwner, 0, bufferLength);
@@ -92,7 +92,7 @@ namespace Zerra.Serialization.QueryString
                         p++;
                     }
 
-                    if (name != null)
+                    if (name is not null)
                     {
 #if NETSTANDARD2_0
                         var value = new string(bufferOwner, 0, bufferLength);
@@ -254,27 +254,27 @@ namespace Zerra.Serialization.QueryString
 #endif
                 CoreType.Guid => Guid.Parse(value),
                 CoreType.String => value,
-                CoreType.BooleanNullable => value == null ? null : bool.Parse(value),
-                CoreType.ByteNullable => value == null ? null : byte.Parse(value),
-                CoreType.SByteNullable => value == null ? null : sbyte.Parse(value),
-                CoreType.UInt16Nullable => value == null ? null : ushort.Parse(value),
-                CoreType.Int16Nullable => value == null ? null : short.Parse(value),
-                CoreType.UInt32Nullable => value == null ? null : uint.Parse(value),
-                CoreType.Int32Nullable => value == null ? null : int.Parse(value),
-                CoreType.UInt64Nullable => value == null ? null : ulong.Parse(value),
-                CoreType.Int64Nullable => value == null ? null : long.Parse(value),
-                CoreType.SingleNullable => value == null ? null : float.Parse(value),
-                CoreType.DoubleNullable => value == null ? null : double.Parse(value),
-                CoreType.DecimalNullable => value == null ? null : decimal.Parse(value),
-                CoreType.CharNullable => value == null ? null : char.Parse(value),
-                CoreType.DateTimeNullable => value == null ? null : DateTime.Parse(value, null, DateTimeStyles.RoundtripKind),
-                CoreType.DateTimeOffsetNullable => value == null ? null : DateTimeOffset.Parse(value, null, DateTimeStyles.RoundtripKind),
-                CoreType.TimeSpanNullable => value == null ? null : TimeSpan.Parse(value),
+                CoreType.BooleanNullable => value is null ? null : bool.Parse(value),
+                CoreType.ByteNullable => value is null ? null : byte.Parse(value),
+                CoreType.SByteNullable => value is null ? null : sbyte.Parse(value),
+                CoreType.UInt16Nullable => value is null ? null : ushort.Parse(value),
+                CoreType.Int16Nullable => value is null ? null : short.Parse(value),
+                CoreType.UInt32Nullable => value is null ? null : uint.Parse(value),
+                CoreType.Int32Nullable => value is null ? null : int.Parse(value),
+                CoreType.UInt64Nullable => value is null ? null : ulong.Parse(value),
+                CoreType.Int64Nullable => value is null ? null : long.Parse(value),
+                CoreType.SingleNullable => value is null ? null : float.Parse(value),
+                CoreType.DoubleNullable => value is null ? null : double.Parse(value),
+                CoreType.DecimalNullable => value is null ? null : decimal.Parse(value),
+                CoreType.CharNullable => value is null ? null : char.Parse(value),
+                CoreType.DateTimeNullable => value is null ? null : DateTime.Parse(value, null, DateTimeStyles.RoundtripKind),
+                CoreType.DateTimeOffsetNullable => value is null ? null : DateTimeOffset.Parse(value, null, DateTimeStyles.RoundtripKind),
+                CoreType.TimeSpanNullable => value is null ? null : TimeSpan.Parse(value),
 #if NET6_0_OR_GREATER
-                CoreType.DateOnlyNullable => value == null ? null : DateOnly.Parse(value),
-                CoreType.TimeOnlyNullable => value == null ? null : TimeOnly.Parse(value),
+                CoreType.DateOnlyNullable => value is null ? null : DateOnly.Parse(value),
+                CoreType.TimeOnlyNullable => value is null ? null : TimeOnly.Parse(value),
 #endif
-                CoreType.GuidNullable => value == null ? null : Guid.Parse(value),
+                CoreType.GuidNullable => value is null ? null : Guid.Parse(value),
                 _ => throw new NotImplementedException($"Type conversion not available for {member.Type.Name}"),
             };
 

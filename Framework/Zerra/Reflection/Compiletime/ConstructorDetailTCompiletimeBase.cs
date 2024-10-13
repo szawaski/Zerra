@@ -84,7 +84,7 @@ namespace Zerra.Reflection.Compiletime
             foreach (var parameterDetail in ParameterDetails)
             {
                 var parameter = parameters.FirstOrDefault(x => x.Name == parameterDetail.Name);
-                if (parameter == null)
+                if (parameter is null)
                     throw new InvalidOperationException($"Parameter not found for {parameterDetail.Name}");
 
                 var parameterBase = (ParameterDetailCompiletimeBase)parameterDetail;

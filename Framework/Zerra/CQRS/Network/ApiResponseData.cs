@@ -10,7 +10,7 @@ namespace Zerra.CQRS.Network
     {
         public byte[]? Bytes { get; }
         public Stream? Stream { get; }
-        public bool Void { get { return Bytes == null && Stream == null; } }
+        public bool Void { get { return Bytes is null && Stream is null; } }
         public ApiResponseData()
         {
             this.Bytes = null;

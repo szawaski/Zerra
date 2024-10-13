@@ -182,7 +182,7 @@ namespace Zerra
             if (this.number != objCasted.number || this.type1 != objCasted.type1 || this.type2 != objCasted.type2 || this.typeArray?.Length != objCasted.typeArray?.Length || this.str != objCasted.str)
                 return false;
 
-            if (this.typeArray != null && objCasted.typeArray != null)
+            if (this.typeArray is not null && objCasted.typeArray is not null)
             {
                 for (var i = 0; i < this.typeArray.Length; i++)
                 {
@@ -202,7 +202,7 @@ namespace Zerra
         {
 #if !NETSTANDARD2_0
 
-            if (typeArray == null)
+            if (typeArray is null)
                 return HashCode.Combine(str, number, type1, type2);
 
             switch (typeArray.Length)
@@ -245,15 +245,15 @@ namespace Zerra
             unchecked
             {
                 var hash = (int)2166136261;
-                if (str != null)
+                if (str is not null)
                     hash = (hash * 16777619) ^ str.GetHashCode();
-                if (number != null)
+                if (number is not null)
                     hash = (hash * 16777619) ^ number.GetHashCode();
-                if (type1 != null)
+                if (type1 is not null)
                     hash = (hash * 16777619) ^ type1.GetHashCode();
-                if (type2 != null)
+                if (type2 is not null)
                     hash = (hash * 16777619) ^ type2.GetHashCode();
-                if (typeArray != null)
+                if (typeArray is not null)
                 {
                     for (var i = 0; i < typeArray.Length; i++)
                         hash = (hash * 16777619) ^ typeArray[i].GetHashCode();
@@ -270,29 +270,29 @@ namespace Zerra
         public override string ToString()
         {
             var sb = new StringBuilder();
-            if (str != null)
+            if (str is not null)
             {
                 _ = sb.Append(str);
             }
-            if (number != null)
+            if (number is not null)
             {
                 if (sb.Length > 0)
                     _ = sb.Append(", ");
                 _ = sb.Append(number);
             }
-            if (type1 != null)
+            if (type1 is not null)
             {
                 if (sb.Length > 0)
                     _ = sb.Append(", ");
                 _ = sb.Append(type1.GetNiceName());
             }
-            if (type2 != null)
+            if (type2 is not null)
             {
                 if (sb.Length > 0)
                     _ = sb.Append(", ");
                 _ = sb.Append(type2.GetNiceName());
             }
-            if (typeArray != null)
+            if (typeArray is not null)
             {
                 if (sb.Length > 0)
                     _ = sb.Append(", ");

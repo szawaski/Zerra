@@ -120,7 +120,7 @@ namespace Zerra.SourceGeneration
             var fullTypeName = GetFullTimeType(typeSymbol);
 
             var typeNameForClass = typeSymbol.ToString();
-            if (ns != null && typeNameForClass.StartsWith(ns))
+            if (ns is not null && typeNameForClass.StartsWith(ns))
                 typeNameForClass = typeNameForClass.Substring(ns.Length + 1);
             typeNameForClass = typeNameForClass.Replace('<', '_').Replace('>', '_').Replace(',', '_').Replace('.', '_').Replace("[]", "Array");
             if (typeNameForClass.EndsWith("?") && !typeSymbol.IsValueType)
@@ -128,9 +128,9 @@ namespace Zerra.SourceGeneration
             typeNameForClass = typeNameForClass.Replace("?", "Nullable");
 
             var className = $"{typeNameForClass}TypeDetail";
-            var fileName = ns == null ? $"{typeNameForClass}TypeDetail.cs" : $"{ns}.{typeNameForClass}TypeDetail.cs";
+            var fileName = ns is null ? $"{typeNameForClass}TypeDetail.cs" : $"{ns}.{typeNameForClass}TypeDetail.cs";
 
-            var fullClassName = ns == null ? $"SourceGeneration.{className}" : $"{ns}.SourceGeneration.{className}";
+            var fullClassName = ns is null ? $"SourceGeneration.{className}" : $"{ns}.SourceGeneration.{className}";
             var classListItem = new Tuple<string, string>(fullTypeName, fullClassName);
             if (classList.Contains(classListItem))
                 return;
@@ -275,7 +275,7 @@ namespace Zerra.SourceGeneration
             else if (hasIEnumerableGeneric)
             {
                 var interfaceSymbol = typeSymbol.AllInterfaces.FirstOrDefault(x => x.MetadataName == enumberableGenericTypeName);
-                if (interfaceSymbol != null)
+                if (interfaceSymbol is not null)
                     iEnumerableInnerTypeOf = GetTypeOfName(interfaceSymbol.TypeArguments[0]);
             }
 
@@ -312,9 +312,9 @@ namespace Zerra.SourceGeneration
                 using System.Collections.Generic;
                 using Zerra.Reflection;
                 using Zerra.Reflection.Compiletime;
-                {{(ns == null ? null : $"using {ns};")}}
+                {{(ns is null ? null : $"using {ns};")}}
 
-                namespace {{(ns == null ? null : $"{ns}.")}}SourceGeneration
+                namespace {{(ns is null ? null : $"{ns}.")}}SourceGeneration
                 {
                     public sealed class {{className}} : TypeDetailCompiletimeBase<{{fullTypeName}}>{{typeConstraints}}
                     {               
@@ -402,9 +402,9 @@ namespace Zerra.SourceGeneration
                 using System.Collections.Generic;
                 using Zerra.Reflection;
                 using Zerra.Reflection.Compiletime;
-                {{(ns == null ? null : $"using {ns};")}}
+                {{(ns is null ? null : $"using {ns};")}}
 
-                namespace {{(ns == null ? null : $"{ns}.")}}SourceGeneration
+                namespace {{(ns is null ? null : $"{ns}.")}}SourceGeneration
                 {
                     public sealed class {{className}} : TypeDetailCompiletimeBase
                     {   

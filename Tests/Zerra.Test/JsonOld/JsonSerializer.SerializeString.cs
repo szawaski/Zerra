@@ -16,21 +16,21 @@ namespace Zerra.Serialization.Json
     {
         public static string Serialize<T>(T? obj, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
-            if (obj == null)
+            if (obj is null)
                 return "null";
 
             return ToStringJson(typeof(T), obj, options, graph);
         }
         public static string Serialize(object? obj, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
-            if (obj == null)
+            if (obj is null)
                 return "null";
 
             return ToStringJson(obj.GetType(), obj, options, graph);
         }
         public static string Serialize(object? obj, Type type, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
-            if (obj == null)
+            if (obj is null)
                 return "null";
 
             return ToStringJson(type, obj, options, graph);
@@ -38,7 +38,7 @@ namespace Zerra.Serialization.Json
 
         public static byte[] SerializeBytes<T>(T? obj, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
-            if (obj == null)
+            if (obj is null)
                 return Encoding.UTF8.GetBytes("null");
 
             var json = ToStringJson(typeof(T), obj, options, graph);
@@ -46,7 +46,7 @@ namespace Zerra.Serialization.Json
         }
         public static byte[] SerializeBytes(object? obj, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
-            if (obj == null)
+            if (obj is null)
                 return Encoding.UTF8.GetBytes("null");
 
             var json = ToStringJson(obj.GetType(), obj, options, graph);
@@ -54,7 +54,7 @@ namespace Zerra.Serialization.Json
         }
         public static byte[] SerializeBytes(object? obj, Type type, JsonSerializerOptionsOld? options = null, Graph? graph = null)
         {
-            if (obj == null)
+            if (obj is null)
                 return Encoding.UTF8.GetBytes("null");
 
             var json = ToStringJson(type, obj, options, graph);
@@ -95,13 +95,13 @@ namespace Zerra.Serialization.Json
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ToStringJson(object? value, TypeDetail typeDetail, Graph? graph, ref CharWriterOld writer, ref OptionsStruct options)
         {
-            if (((typeDetail.Type.IsInterface && !typeDetail.HasIEnumerable) || typeDetail.Type.FullName == "System.Object") && value != null)
+            if (((typeDetail.Type.IsInterface && !typeDetail.HasIEnumerable) || typeDetail.Type.FullName == "System.Object") && value is not null)
             {
                 var objectType = value.GetType();
                 typeDetail = TypeAnalyzer.GetTypeDetail(objectType);
             }
 
-            if (value == null)
+            if (value is null)
             {
                 writer.Write("null");
                 return;
@@ -180,12 +180,12 @@ namespace Zerra.Serialization.Json
                 if (!member.HasGetterBoxed)
                     continue;
 
-                if (graph != null && !graph.HasMember(member.Name))
+                if (graph is not null && !graph.HasMember(member.Name))
                     continue;
 
                 var propertyValue = member.GetterBoxed(value);
 
-                if (options.DoNotWriteNullProperties && propertyValue == null)
+                if (options.DoNotWriteNullProperties && propertyValue is null)
                     continue;
 
                 if (firstProperty)
@@ -228,7 +228,7 @@ namespace Zerra.Serialization.Json
                         first = false;
                     else
                         writer.Write(',');
-                    if (value != null)
+                    if (value is not null)
                     {
                         if (options.EnumAsNumber)
                         {
@@ -257,7 +257,7 @@ namespace Zerra.Serialization.Json
                         first = false;
                     else
                         writer.Write(',');
-                    if (value != null)
+                    if (value is not null)
                     {
                         if (options.EnumAsNumber)
                         {
@@ -293,7 +293,7 @@ namespace Zerra.Serialization.Json
                         first = false;
                     else
                         writer.Write(',');
-                    if (value != null)
+                    if (value is not null)
                     {
                         var enumerable = (IEnumerable)value;
                         writer.Write('[');
@@ -316,7 +316,7 @@ namespace Zerra.Serialization.Json
                         first = false;
                     else
                         writer.Write(',');
-                    if (value != null)
+                    if (value is not null)
                     {
                         if (!options.Nameless)
                             writer.Write('{');
@@ -329,12 +329,12 @@ namespace Zerra.Serialization.Json
                             if (!member.HasGetterBoxed)
                                 continue;
 
-                            if (graph != null && !graph.HasMember(member.Name))
+                            if (graph is not null && !graph.HasMember(member.Name))
                                 continue;
 
                             var propertyValue = member.GetterBoxed(value);
 
-                            if (options.DoNotWriteNullProperties && propertyValue == null)
+                            if (options.DoNotWriteNullProperties && propertyValue is null)
                                 continue;
 
                             if (firstProperty)
@@ -1153,8 +1153,8 @@ namespace Zerra.Serialization.Json
             {
                 case SpecialType.Type:
                     {
-                        var valueType = value == null ? null : (Type)value;
-                        if (valueType != null)
+                        var valueType = value is null ? null : (Type)value;
+                        if (valueType is not null)
                             ToStringJsonString(valueType.FullName, ref writer);
                         else
                             writer.Write("null");
@@ -1162,7 +1162,7 @@ namespace Zerra.Serialization.Json
                     return;
                 case SpecialType.Dictionary:
                     {
-                        if (value != null)
+                        if (value is not null)
                         {
                             var innerTypeDetail = typeDetail.DictionaryInnerTypeDetail;
 
@@ -1229,8 +1229,8 @@ namespace Zerra.Serialization.Json
                                 first = false;
                             else
                                 writer.Write(',');
-                            var valueType = value == null ? null : (Type)value;
-                            if (valueType != null)
+                            var valueType = value is null ? null : (Type)value;
+                            if (valueType is not null)
                                 ToStringJsonString(valueType.FullName, ref writer);
                             else
                                 writer.Write("null");
@@ -1246,7 +1246,7 @@ namespace Zerra.Serialization.Json
                                 first = false;
                             else
                                 writer.Write(',');
-                            if (value != null)
+                            if (value is not null)
                             {
                                 var innerTypeDetail = typeDetail.InnerTypeDetail;
 
@@ -1302,7 +1302,7 @@ namespace Zerra.Serialization.Json
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static void ToStringJsonString(string? value, ref CharWriterOld writer)
         {
-            if (value == null)
+            if (value is null)
             {
                 writer.Write("null");
                 return;

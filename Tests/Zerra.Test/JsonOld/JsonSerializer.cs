@@ -36,7 +36,7 @@ namespace Zerra.Serialization.Json
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static object? ConvertStringToType(string? s, TypeDetail? typeDetail)
         {
-            if (typeDetail == null || s == null)
+            if (typeDetail is null || s is null)
                 return null;
 
             if (typeDetail.CoreType.HasValue)

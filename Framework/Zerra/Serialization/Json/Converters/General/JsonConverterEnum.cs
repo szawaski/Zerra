@@ -84,7 +84,7 @@ namespace Zerra.Serialization.Json.Converters.General
 
         protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, in TValue? value)
         {
-            if (value == null)
+            if (value is null)
             {
                 if (!writer.TryWriteNull(out state.CharsNeeded))
                     return false;

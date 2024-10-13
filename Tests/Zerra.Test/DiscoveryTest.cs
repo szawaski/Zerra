@@ -46,7 +46,7 @@ namespace Zerra.Test
             while (true)
             {
                 var nextProviderType = ProviderResolver.GetNextType<ITestProvider>(providerType);
-                if (nextProviderType == null)
+                if (nextProviderType is null)
                     break;
 
                 providerType = nextProviderType;

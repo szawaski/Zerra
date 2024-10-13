@@ -110,7 +110,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 };
 
                 var body = AzureServiceBusCommon.Serialize(message);
-                if (symmetricConfig != null)
+                if (symmetricConfig is not null)
                     body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
 
                 if (requireAcknowledgement)
@@ -211,7 +211,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 };
 
                 var body = AzureServiceBusCommon.Serialize(message);
-                if (symmetricConfig != null)
+                if (symmetricConfig is not null)
                     body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
 
                 var ackKey = Guid.NewGuid().ToString("N");
@@ -284,7 +284,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 };
 
                 var body = AzureServiceBusCommon.Serialize(message);
-                if (symmetricConfig != null)
+                if (symmetricConfig is not null)
                     body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
 
                 var serviceBusMessage = new ServiceBusMessage(body);
@@ -310,7 +310,7 @@ namespace Zerra.CQRS.AzureServiceBus
                     for (; ; )
                     {
                         var serviceBusMessage = await receiver.ReceiveMessageAsync(null, canceller.Token);
-                        if (serviceBusMessage == null)
+                        if (serviceBusMessage is null)
                             continue;
                         await receiver.CompleteMessageAsync(serviceBusMessage);
 
@@ -321,7 +321,7 @@ namespace Zerra.CQRS.AzureServiceBus
                         try
                         {
                             var response = serviceBusMessage.Body.ToStream();
-                            if (symmetricConfig != null)
+                            if (symmetricConfig is not null)
                                 response = SymmetricEncryptor.Decrypt(symmetricConfig, response, false);
                             acknowledgement = await AzureServiceBusCommon.DeserializeAsync<Acknowledgement>(response);
                             acknowledgement ??= new Acknowledgement("Invalid Acknowledgement");

@@ -11,7 +11,7 @@ namespace ZerraDemo.Common
         {
             if (Thread.CurrentPrincipal is not ClaimsPrincipal principal)
                 throw new SecurityException();
-            if (principal.Identity == null)
+            if (principal.Identity is null)
                 throw new SecurityException();
             if (!principal.Identity.IsAuthenticated)
                 throw new SecurityException();
@@ -21,12 +21,12 @@ namespace ZerraDemo.Common
         {
             if (Thread.CurrentPrincipal is not ClaimsPrincipal principal)
                 throw new SecurityException();
-            if (principal.Identity == null)
+            if (principal.Identity is null)
                 throw new SecurityException();
             if (!principal.Identity.IsAuthenticated)
                 throw new SecurityException();
             var token = principal.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Name)?.Value;
-            if (token == null)
+            if (token is null)
                 throw new SecurityException();
             return token;
         }
@@ -40,14 +40,14 @@ namespace ZerraDemo.Common
         {
             if (Thread.CurrentPrincipal is not ClaimsPrincipal principal)
                 return false;
-            if (principal.Identity == null)
+            if (principal.Identity is null)
                 throw new SecurityException();
             if (!principal.Identity.IsAuthenticated)
                 return false;
             foreach (var role in roles)
             {
                 var token = principal.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Role)?.Value;
-                if (token != null && token == role)
+                if (token is not null && token == role)
                     return true;
             }
             return false;

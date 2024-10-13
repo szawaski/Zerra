@@ -193,7 +193,7 @@ namespace Zerra.Serialization.Bytes.IO
             EnsureBufferSize(2 * maxLength);
             foreach (var value in values)
             {
-                var cast = value == null ? null : (byte?)(byte)value;
+                var cast = value is null ? null : (byte?)(byte)value;
                 if (cast.HasValue)
                 {
                     buffer[position++] = notNullByte;
@@ -276,7 +276,7 @@ namespace Zerra.Serialization.Bytes.IO
             EnsureBufferSize(2 * maxLength);
             foreach (var value in values)
             {
-                var cast = value == null ? null : (sbyte?)(sbyte)value;
+                var cast = value is null ? null : (sbyte?)(sbyte)value;
                 if (cast.HasValue)
                 {
                     buffer[position++] = notNullByte;
@@ -364,7 +364,7 @@ namespace Zerra.Serialization.Bytes.IO
             EnsureBufferSize(3 * maxLength);
             foreach (var value in values)
             {
-                var cast = value == null ? null : (short?)(short)value;
+                var cast = value is null ? null : (short?)(short)value;
                 if (cast.HasValue)
                 {
                     buffer[position++] = notNullByte;
@@ -453,7 +453,7 @@ namespace Zerra.Serialization.Bytes.IO
             EnsureBufferSize(3 * maxLength);
             foreach (var value in values)
             {
-                var cast = value == null ? null : (ushort?)(ushort)value;
+                var cast = value is null ? null : (ushort?)(ushort)value;
                 if (cast.HasValue)
                 {
                     buffer[position++] = notNullByte;
@@ -552,7 +552,7 @@ namespace Zerra.Serialization.Bytes.IO
             EnsureBufferSize(5 * maxLength);
             foreach (var value in values)
             {
-                var cast = value == null ? null : (int?)(int)value;
+                var cast = value is null ? null : (int?)(int)value;
                 if (cast.HasValue)
                 {
                     buffer[position++] = notNullByte;
@@ -653,7 +653,7 @@ namespace Zerra.Serialization.Bytes.IO
             EnsureBufferSize(5 * maxLength);
             foreach (var value in values)
             {
-                var cast = value == null ? null : (uint?)(uint)value;
+                var cast = value is null ? null : (uint?)(uint)value;
                 if (cast.HasValue)
                 {
                     buffer[position++] = notNullByte;
@@ -774,7 +774,7 @@ namespace Zerra.Serialization.Bytes.IO
             EnsureBufferSize(9 * maxLength);
             foreach (var value in values)
             {
-                var cast = value == null ? null : (long?)(long)value;
+                var cast = value is null ? null : (long?)(long)value;
                 if (cast.HasValue)
                 {
                     buffer[position++] = notNullByte;
@@ -899,7 +899,7 @@ namespace Zerra.Serialization.Bytes.IO
             EnsureBufferSize(9 * maxLength);
             foreach (var value in values)
             {
-                var cast = value == null ? null : (ulong?)(ulong)value;
+                var cast = value is null ? null : (ulong?)(ulong)value;
                 if (cast.HasValue)
                 {
                     buffer[position++] = notNullByte;
@@ -1011,7 +1011,7 @@ namespace Zerra.Serialization.Bytes.IO
             EnsureBufferSize(5 * maxLength);
             foreach (var value in values)
             {
-                var cast = value == null ? null : (float?)(float)value;
+                var cast = value is null ? null : (float?)(float)value;
                 if (cast.HasValue)
                 {
                     buffer[position++] = notNullByte;
@@ -1141,7 +1141,7 @@ namespace Zerra.Serialization.Bytes.IO
             EnsureBufferSize(9 * maxLength);
             foreach (var value in values)
             {
-                var cast = value == null ? null : (double?)(double)value;
+                var cast = value is null ? null : (double?)(double)value;
                 if (cast.HasValue)
                 {
                     buffer[position++] = notNullByte;
@@ -1333,7 +1333,7 @@ namespace Zerra.Serialization.Bytes.IO
             EnsureBufferSize(17 * maxLength);
             foreach (var value in values)
             {
-                var cast = value == null ? null : (decimal?)(decimal)value;
+                var cast = value is null ? null : (decimal?)(decimal)value;
                 if (cast.HasValue)
                 {
                     buffer[position++] = notNullByte;
@@ -1471,7 +1471,7 @@ namespace Zerra.Serialization.Bytes.IO
             EnsureBufferSize(9 * maxLength);
             foreach (var value in values)
             {
-                var cast = value == null ? null : (DateTime?)(DateTime)value;
+                var cast = value is null ? null : (DateTime?)(DateTime)value;
                 if (cast.HasValue)
                 {
                     buffer[position++] = notNullByte;
@@ -1611,7 +1611,7 @@ namespace Zerra.Serialization.Bytes.IO
             EnsureBufferSize(11 * maxLength);
             foreach (var value in values)
             {
-                var cast = value == null ? null : (DateTimeOffset?)(DateTimeOffset)value;
+                var cast = value is null ? null : (DateTimeOffset?)(DateTimeOffset)value;
                 if (cast.HasValue)
                 {
                     buffer[position++] = notNullByte;
@@ -1739,7 +1739,7 @@ namespace Zerra.Serialization.Bytes.IO
             EnsureBufferSize(9 * maxLength);
             foreach (var value in values)
             {
-                var cast = value == null ? null : (TimeSpan?)(TimeSpan)value;
+                var cast = value is null ? null : (TimeSpan?)(TimeSpan)value;
                 if (cast.HasValue)
                 {
                     buffer[position++] = notNullByte;
@@ -1845,7 +1845,7 @@ namespace Zerra.Serialization.Bytes.IO
             EnsureBufferSize(5 * maxLength);
             foreach (var value in values)
             {
-                var cast = value == null ? null : (DateOnly?)(DateOnly)value;
+                var cast = value is null ? null : (DateOnly?)(DateOnly)value;
                 if (cast.HasValue)
                 {
                     buffer[position++] = notNullByte;
@@ -1966,7 +1966,7 @@ namespace Zerra.Serialization.Bytes.IO
             EnsureBufferSize(9 * maxLength);
             foreach (var value in values)
             {
-                var cast = value == null ? null : (TimeOnly?)(TimeOnly)value;
+                var cast = value is null ? null : (TimeOnly?)(TimeOnly)value;
                 if (cast.HasValue)
                 {
                     buffer[position++] = notNullByte;
@@ -2097,7 +2097,7 @@ namespace Zerra.Serialization.Bytes.IO
             EnsureBufferSize(17 * maxLength);
             foreach (var value in values)
             {
-                var cast = value == null ? null : (Guid?)(Guid)value;
+                var cast = value is null ? null : (Guid?)(Guid)value;
                 if (cast.HasValue)
                 {
                     buffer[position++] = notNullByte;
@@ -2193,7 +2193,7 @@ namespace Zerra.Serialization.Bytes.IO
             EnsureBufferSize(3 * maxLength);
             foreach (var value in values)
             {
-                var cast = value == null ? null : (char?)(char)value;
+                var cast = value is null ? null : (char?)(char)value;
                 if (cast.HasValue)
                 {
                     buffer[position++] = notNullByte;
@@ -2210,7 +2210,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(string? value, bool nullFlags)
         {
-            if (value != null)
+            if (value is not null)
             {
                 var sizeNeeded = encoding.GetMaxByteCount(value.Length);
                 EnsureBufferSize(sizeNeeded + 4 + (nullFlags ? 1 : 0));
@@ -2241,12 +2241,12 @@ namespace Zerra.Serialization.Bytes.IO
         {
             var sizeNeeded = 0;
             foreach (var value in values)
-                sizeNeeded += value == null ? 1 : encoding.GetMaxByteCount(value.Length) + 5;
+                sizeNeeded += value is null ? 1 : encoding.GetMaxByteCount(value.Length) + 5;
             EnsureBufferSize(sizeNeeded);
 
             foreach (var value in values)
             {
-                if (value != null)
+                if (value is not null)
                 {
 #if NETSTANDARD2_0
                     var charBytes = encoding.GetBytes(value);
@@ -2280,7 +2280,7 @@ namespace Zerra.Serialization.Bytes.IO
 
             foreach (string value in values)
             {
-                if (value != null)
+                if (value is not null)
                 {
 #if NETSTANDARD2_0
                     var charBytes = encoding.GetBytes(value);

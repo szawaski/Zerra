@@ -96,7 +96,7 @@ namespace Zerra.Repository.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void Write(string? value)
         {
-            if (value == null)
+            if (value is null)
                 return;
             var length = value.Length;
             if (length == 0)
@@ -119,7 +119,7 @@ namespace Zerra.Repository.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void Write(char[] value, int index, int count)
         {
-            if (value == null)
+            if (value is null)
                 throw new ArgumentNullException(nameof(value));
             EnsureBufferSize(count);
             var pCount = value.Length;
@@ -1214,8 +1214,6 @@ namespace Zerra.Repository.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void Write(ReadOnlySpan<char> value)
         {
-            if (value == null)
-                throw new ArgumentNullException(nameof(value));
             if (value.Length == 0)
                 return;
             EnsureBufferSize(value.Length);

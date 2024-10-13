@@ -114,7 +114,7 @@ namespace Zerra.CQRS.Network
 
                 var isError = prefix == protocolErrorPrefix;
 
-                if (providerType == nullProviderType)
+                if (providerType is nullProviderType)
                     providerType = null;
 
                 return new TcpRequestHeader(buffer.Slice(position, length - position), isError, contentType.Value, providerType);

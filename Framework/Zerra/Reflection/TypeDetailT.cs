@@ -34,7 +34,7 @@ namespace Zerra.Reflection
                 {
                     if (SignatureCompare(name, parameterCount, parameterTypes, methodDetail))
                     {
-                        if (found != null)
+                        if (found is not null)
                             throw new InvalidOperationException($"More than one method found for {name}");
                         found = methodDetail;
                     }
@@ -46,21 +46,21 @@ namespace Zerra.Reflection
         public MethodDetail<T> GetMethod(string name)
         {
             var method = GetMethodInternal(name, null, null);
-            if (method == null)
+            if (method is null)
                 throw new MissingMethodException($"{Type.Name}.{name} method not found");
             return method;
         }
         public MethodDetail<T> GetMethod(string name, int parameterCount)
         {
             var method = GetMethodInternal(name, parameterCount, null);
-            if (method == null)
+            if (method is null)
                 throw new MissingMethodException($"{Type.Name}.{name} method not found");
             return method;
         }
         public MethodDetail<T> GetMethod(string name, Type[] parameterTypes)
         {
             var method = GetMethodInternal(name, null, parameterTypes);
-            if (method == null)
+            if (method is null)
                 throw new MissingMethodException($"{Type.Name}.{name} method not found");
             return method;
         }
@@ -71,7 +71,7 @@ namespace Zerra.Reflection
         out MethodDetail<T> method)
         {
             method = GetMethodInternal(name, null, null);
-            return method != null;
+            return method is not null;
         }
         public bool TryGetMethod(string name, int parameterCount,
 #if !NETSTANDARD2_0
@@ -80,7 +80,7 @@ namespace Zerra.Reflection
         out MethodDetail<T> method)
         {
             method = GetMethodInternal(name, parameterCount, null);
-            return method != null;
+            return method is not null;
         }
         public bool TryGetMethod(string name, Type[] parameterTypes,
 #if !NETSTANDARD2_0
@@ -89,7 +89,7 @@ namespace Zerra.Reflection
         out MethodDetail<T> method)
         {
             method = GetMethodInternal(name, null, parameterTypes);
-            return method != null;
+            return method is not null;
         }
 
         private ConcurrentFactoryDictionary<TypeKey, ConstructorDetail<T>?>? constructorLookups = null;
@@ -101,10 +101,10 @@ namespace Zerra.Reflection
             {
                 foreach (var constructorDetail in ConstructorDetails)
                 {
-                    if (parameterTypes == null || constructorDetail.ParameterDetails.Count == parameterTypes.Length)
+                    if (parameterTypes is null || constructorDetail.ParameterDetails.Count == parameterTypes.Length)
                     {
                         var match = true;
-                        if (parameterTypes != null)
+                        if (parameterTypes is not null)
                         {
                             for (var i = 0; i < parameterTypes.Length; i++)
                             {
@@ -126,7 +126,7 @@ namespace Zerra.Reflection
         public ConstructorDetail<T> GetConstructor(params Type[] parameterTypes)
         {
             var constructor = GetConstructorInternal(parameterTypes);
-            if (constructor == null)
+            if (constructor is null)
                 throw new MissingMethodException($"{Type.Name} constructor not found for the given parameters {String.Join(",", parameterTypes.Select(x => x.GetNiceName()))}");
             return constructor;
         }
@@ -137,7 +137,7 @@ namespace Zerra.Reflection
         out ConstructorDetail<T> constructor)
         {
             constructor = GetConstructorInternal(null);
-            return constructor != null;
+            return constructor is not null;
         }
         public bool TryGetConstructor(Type[] parameterTypes,
 #if !NETSTANDARD2_0
@@ -146,7 +146,7 @@ namespace Zerra.Reflection
         out ConstructorDetail<T> constructor)
         {
             constructor = GetConstructorInternal(parameterTypes);
-            return constructor != null;
+            return constructor is not null;
         }
 
         public TypeDetail(Type type) : base(type) { }

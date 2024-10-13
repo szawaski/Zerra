@@ -26,7 +26,7 @@ namespace Zerra.Repository
         out T engine, out DataStoreGenerationType dataStoreGenerationType) where T : class, IDataStoreEngine
         {
             (engine, dataStoreGenerationType) = GetEngine<T>();
-            if (engine == null)
+            if (engine is null)
                 return false;
 
             lock (validatedLock)
@@ -52,7 +52,7 @@ namespace Zerra.Repository
         public T InitializeEngine<T>(bool reinitialize = false) where T : class, IDataStoreEngine
         {
             var (engine, dataStoreGenerationType) = GetEngine<T>();
-            if (engine == null)
+            if (engine is null)
                 throw new Exception($"{this.GetType().GetNiceName()} could not produce an engine of {typeof(T).Name}");
 
             lock (validatedLock)

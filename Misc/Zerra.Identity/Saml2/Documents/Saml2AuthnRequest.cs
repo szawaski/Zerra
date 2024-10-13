@@ -34,7 +34,7 @@ namespace Zerra.Identity.Saml2.Documents
 
             var xmlDoc = binding.GetDocument();
 
-            if (xmlDoc == null)
+            if (xmlDoc is null)
                 return;
 
             if (xmlDoc.DocumentElement.LocalName != Saml2Names.AuthnRequest)

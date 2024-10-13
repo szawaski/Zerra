@@ -30,7 +30,7 @@ public static class EnumNameExtensions
     public static string? EnumName<T>(this T? value)
         where T : struct, Enum
     {
-        if (value == null)
+        if (value is null)
             return null;
         return global::EnumName.GetName<T>(value.Value);
     }

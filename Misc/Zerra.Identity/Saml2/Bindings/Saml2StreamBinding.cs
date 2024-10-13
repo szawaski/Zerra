@@ -56,13 +56,13 @@ namespace Zerra.Identity.Saml2.Bindings
 
         public override void Sign(X509Certificate2 cert, bool requiredSignature)
         {
-            if (requiredSignature && cert == null)
+            if (requiredSignature && cert is null)
                 throw new IdentityProviderException("Saml2 Missing Cert for Validating Required Signature");
 
             if (this.HasSignature)
                 throw new IdentityProviderException("Saml2 Document is Already Signed");
 
-            if (cert == null)
+            if (cert is null)
                 return;
 
             this.SignatureAlgorithm ??= Cryptography.XmlSignatureAlgorithmType.RsaSha256;
@@ -74,13 +74,13 @@ namespace Zerra.Identity.Saml2.Bindings
 
         public override void ValidateSignature(X509Certificate2 cert, bool requiredSignature)
         {
-            if (requiredSignature && cert == null)
+            if (requiredSignature && cert is null)
                 throw new IdentityProviderException("Saml2 Missing Cert for Validating Required Signature");
 
             if (requiredSignature && !this.HasSignature)
                 throw new IdentityProviderException("Saml2 Document Missing Required Signature");
 
-            if (cert == null)
+            if (cert is null)
                 return;
 
             if (this.HasSignature)

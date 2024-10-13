@@ -326,7 +326,7 @@ namespace Zerra.Linq
         {
             var member = (MemberExpression)exp;
 
-            if (member.Expression == null)
+            if (member.Expression is null)
             {
                 _ = context.Builder.Append(member.Member.DeclaringType?.GetNiceName()).Append('.').Append(member.Member.Name);
                 if (context.MemberAccessStack.Count > 0)
@@ -385,7 +385,7 @@ namespace Zerra.Linq
         {
             var call = (MethodCallExpression)exp;
 
-            if (call.Object == null)
+            if (call.Object is null)
             {
                 _ = context.Builder.Append(call.Method.DeclaringType?.Name);
             }
@@ -544,13 +544,13 @@ namespace Zerra.Linq
             _ = context.Builder.Append("try {");
             ConvertToString(@try.Body, context);
             _ = context.Builder.Append('}');
-            if (@try.Fault != null)
+            if (@try.Fault is not null)
             {
                 _ = context.Builder.Append("catch {");
                 ConvertToString(@try.Fault, context);
                 _ = context.Builder.Append('}');
             }
-            if (@try.Finally != null)
+            if (@try.Finally is not null)
             {
                 _ = context.Builder.Append("finally {");
                 ConvertToString(@try.Finally, context);
@@ -572,7 +572,7 @@ namespace Zerra.Linq
                     _ = context.Builder.Append(':');
                 }
             }
-            if (@switch.DefaultBody != null)
+            if (@switch.DefaultBody is not null)
             {
                 _ = context.Builder.Append("default: ");
                 ConvertToString(@switch.DefaultBody, context);
@@ -650,7 +650,7 @@ namespace Zerra.Linq
         {
             var typeDetails = TypeAnalyzer.GetTypeDetail(type);
 
-            if (value == null)
+            if (value is null)
             {
                 _ = context.Builder.Append("null");
                 ConvertToStringValueStack(context);
@@ -685,7 +685,7 @@ namespace Zerra.Linq
                 return;
             }
 
-            if (typeDetails.HasIEnumerableGeneric && typeDetails.IEnumerableGenericInnerType != null)
+            if (typeDetails.HasIEnumerableGeneric && typeDetails.IEnumerableGenericInnerType is not null)
             {
                 _ = context.Builder.Append('[');
                 var first = true;

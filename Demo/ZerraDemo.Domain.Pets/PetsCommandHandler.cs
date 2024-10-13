@@ -43,7 +43,7 @@ namespace ZerraDemo.Domain.Pets
                 x => x.LastEaten,
                 x => x.AmountEaten
             )));
-            if (item == null)
+            if (item is null)
                 throw new Exception("Pet not found");
 
             item.AmountEaten ??= 0;

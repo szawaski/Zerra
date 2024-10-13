@@ -23,11 +23,11 @@ namespace Zerra.Providers
         {
             get
             {
-                if (this.nextProvider == null)
+                if (this.nextProvider is null)
                 {
                     lock (locker)
                     {
-                        if (this.nextProvider == null)
+                        if (this.nextProvider is null)
                         {
                             nextProvider = ProviderResolver.GetNext<TProvider>(this.GetType());
                             nextProvider ??= EmptyImplementations.GetEmptyImplementation<TProvider>();
@@ -42,7 +42,7 @@ namespace Zerra.Providers
         {
             lock (locker)
             {
-                if (this.nextProvider != null)
+                if (this.nextProvider is not null)
                     throw new InvalidOperationException("Next provider already set.");
                 this.nextProvider = provider;
             }

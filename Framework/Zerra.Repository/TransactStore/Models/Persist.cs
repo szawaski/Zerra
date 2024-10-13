@@ -41,7 +41,7 @@ namespace Zerra.Repository
         {
             this.Operation = persist.Operation;
             this.Event = persist.Event;
-            this.Graph = persist.Graph == null ? null : new Graph<TModel>(persist.Graph);
+            this.Graph = persist.Graph is null ? null : new Graph<TModel>(persist.Graph);
             this.Models = persist.Models;
             this.IDs = persist.IDs;
         }

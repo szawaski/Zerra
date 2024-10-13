@@ -22,8 +22,8 @@ namespace Zerra.Serialization.Bytes
         }
         public static object? DeserializeStackBased(Type type, byte[] bytes, ByteSerializerOptions? options = null)
         {
-            if (type == null) throw new ArgumentNullException(nameof(type));
-            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+            if (type is null) throw new ArgumentNullException(nameof(type));
+            if (bytes is null) throw new ArgumentNullException(nameof(bytes));
 
             options ??= defaultOptions;
 
@@ -52,9 +52,9 @@ namespace Zerra.Serialization.Bytes
         }
         public static object? Deserialize(Type type, Stream stream, ByteSerializerOptions? options = null)
         {
-            if (type == null)
+            if (type is null)
                 throw new ArgumentNullException(nameof(type));
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
 
             options ??= defaultOptions;
@@ -156,7 +156,7 @@ namespace Zerra.Serialization.Bytes
 
         public static async Task<T?> DeserializeAsync<T>(Stream stream, ByteSerializerOptions? options = null)
         {
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
 
             options ??= defaultOptions;
@@ -259,9 +259,9 @@ namespace Zerra.Serialization.Bytes
         }
         public static async Task<object?> DeserializeAsync(Type type, Stream stream, ByteSerializerOptions? options = null)
         {
-            if (type == null)
+            if (type is null)
                 throw new ArgumentNullException(nameof(type));
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
 
             options ??= defaultOptions;
@@ -402,7 +402,7 @@ namespace Zerra.Serialization.Bytes
                 frame.FrameType = ReadFrameType.PropertyType;
                 return frame;
             }
-            else if (typeDetail == null)
+            else if (typeDetail is null)
             {
                 throw new NotSupportedException("Cannot deserialize without type information");
             }
@@ -487,17 +487,17 @@ namespace Zerra.Serialization.Bytes
                     return;
                 }
 
-                if (typeName == null)
+                if (typeName is null)
                     throw new NotSupportedException("Cannot deserialize without type information");
 
                 var typeFromBytes = Discovery.GetTypeFromName(typeName);
 
-                if (typeFromBytes != null)
+                if (typeFromBytes is not null)
                 {
                     var newTypeDetail = GetTypeInformation(typeFromBytes, state.IndexSize, state.IgnoreIndexAttribute);
 
                     //overrides potentially boxed type with actual type if exists in assembly
-                    if (typeDetail != null)
+                    if (typeDetail is not null)
                     {
                         var typeDetailCheck = typeDetail.TypeDetail;
                         if (typeDetailCheck.IsNullable)
@@ -512,13 +512,13 @@ namespace Zerra.Serialization.Bytes
                     state.CurrentFrame.TypeDetail = newTypeDetail;
                 }
             }
-            else if (typeDetail != null && typeDetail.Type.IsInterface && !typeDetail.TypeDetail.HasIEnumerableGeneric)
+            else if (typeDetail is not null && typeDetail.Type.IsInterface && !typeDetail.TypeDetail.HasIEnumerableGeneric)
             {
                 var emptyImplementationType = EmptyImplementations.GetEmptyImplementationType(typeDetail.Type);
                 typeDetail = GetTypeInformation(emptyImplementationType, state.IndexSize, state.IgnoreIndexAttribute);
             }
 
-            if (typeDetail == null)
+            if (typeDetail is null)
                 throw new NotSupportedException("Cannot deserialize without type information");
 
             state.CurrentFrame.HasReadPropertyType = true;
@@ -532,7 +532,7 @@ namespace Zerra.Serialization.Bytes
             var typeDetail = state.CurrentFrame.TypeDetail;
             var nullFlags = state.CurrentFrame.NullFlags;
 
-            if (typeDetail == null)
+            if (typeDetail is null)
                 throw new NotSupportedException("Cannot deserialize without type information");
 
             int sizeNeeded;
@@ -1132,7 +1132,7 @@ namespace Zerra.Serialization.Bytes
 
 
             object? enumValue;
-            if (numValue != null)
+            if (numValue is not null)
             {
                 if (!typeDetail.TypeDetail.IsNullable)
                     enumValue = Enum.ToObject(typeDetail.Type, numValue);
@@ -1180,7 +1180,7 @@ namespace Zerra.Serialization.Bytes
                             return;
                         }
                         var typeName = value;
-                        if (typeName == null)
+                        if (typeName is null)
                         {
                             //state.CurrentFrame.Obj = null;
                             state.EndFrame();
@@ -1276,9 +1276,9 @@ namespace Zerra.Serialization.Bytes
 
             for (; ; )
             {
-                if (!state.CurrentFrame.DrainBytes && state.CurrentFrame.ObjectProperty != null)
+                if (!state.CurrentFrame.DrainBytes && state.CurrentFrame.ObjectProperty is not null)
                 {
-                    if (state.CurrentFrame.ResultObject != null)
+                    if (state.CurrentFrame.ResultObject is not null)
                         state.CurrentFrame.ObjectProperty.Setter(state.CurrentFrame.ResultObject, state.LastFrameResultObject);
                     state.CurrentFrame.ObjectProperty = null;
                 }
@@ -1315,7 +1315,7 @@ namespace Zerra.Serialization.Bytes
                     _ = typeDetail.PropertiesByName?.TryGetValue(name!, out property);
                     state.CurrentFrame.ObjectProperty = property;
 
-                    if (property == null)
+                    if (property is null)
                     {
                         if (!state.UsePropertyNames && !state.IncludePropertyTypes)
                             throw new Exception($"Cannot deserialize with property {name} undefined and no types.");
@@ -1371,7 +1371,7 @@ namespace Zerra.Serialization.Bytes
                     _ = typeDetail.PropertiesByIndex?.TryGetValue(propertyIndex, out property);
                     state.CurrentFrame.ObjectProperty = property;
 
-                    if (property == null)
+                    if (property is null)
                     {
                         if (!state.UsePropertyNames && !state.IncludePropertyTypes)
                             throw new Exception($"Cannot deserialize with property {propertyIndex} undefined and no types.");
@@ -2981,7 +2981,7 @@ namespace Zerra.Serialization.Bytes
                 };
 
                 object? enumValue;
-                if (numValue != null)
+                if (numValue is not null)
                 {
                     if (!typeDetail.TypeDetail.IsNullable)
                         enumValue = Enum.ToObject(typeDetail.Type, numValue);

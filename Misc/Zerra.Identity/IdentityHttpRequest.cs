@@ -19,7 +19,7 @@ namespace Zerra.Identity
         {
             this.QueryString = queryString;
             this.Query = query;
-            this.HasFormContentType = form != null;
+            this.HasFormContentType = form is not null;
             this.HasFormContentType = hasFormContentType;
             this.Form = form;
         }

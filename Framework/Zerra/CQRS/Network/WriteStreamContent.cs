@@ -17,14 +17,14 @@ namespace Zerra.CQRS.Network
         private readonly Action<Stream>? streamDelegate;
         public WriteStreamContent(Func<Stream, Task> streamDelegate)
         {
-            if (streamDelegate == null)
+            if (streamDelegate is null)
                 throw new ArgumentNullException(nameof(streamDelegate));
             this.streamAsyncDelegate = streamDelegate;
             this.streamDelegate = null;
         }
         public WriteStreamContent(Action<Stream> streamDelegate)
         {
-            if (streamDelegate == null)
+            if (streamDelegate is null)
                 throw new ArgumentNullException(nameof(streamDelegate));
             this.streamAsyncDelegate = null;
             this.streamDelegate = streamDelegate;
@@ -32,9 +32,9 @@ namespace Zerra.CQRS.Network
 
         protected override async Task SerializeToStreamAsync(Stream stream, TransportContext? context)
         {
-            if (streamAsyncDelegate != null)
+            if (streamAsyncDelegate is not null)
                 await streamAsyncDelegate(stream);
-            else if (streamDelegate != null)
+            else if (streamDelegate is not null)
                 streamDelegate(stream);
             else
                 throw new InvalidOperationException($"{nameof(WriteStreamContent)} did not initialize correctly");
@@ -42,9 +42,9 @@ namespace Zerra.CQRS.Network
 #if NET5_0_OR_GREATER
         protected override void SerializeToStream(Stream stream, TransportContext? context, CancellationToken cancellationToken)
         {
-            if (streamAsyncDelegate != null)
+            if (streamAsyncDelegate is not null)
                 streamAsyncDelegate(stream).GetAwaiter().GetResult();
-            else if (streamDelegate != null)
+            else if (streamDelegate is not null)
                 streamDelegate(stream);
             else
                 throw new InvalidOperationException($"{nameof(WriteStreamContent)} did not initialize correctly");
@@ -52,9 +52,9 @@ namespace Zerra.CQRS.Network
 
         protected override async Task SerializeToStreamAsync(Stream stream, TransportContext? context, CancellationToken cancellationToken)
         {
-            if (streamAsyncDelegate != null)
+            if (streamAsyncDelegate is not null)
                 await streamAsyncDelegate(stream);
-            else if (streamDelegate != null)
+            else if (streamDelegate is not null)
                 streamDelegate(stream);
             else
                 throw new InvalidOperationException($"{nameof(WriteStreamContent)} did not initialize correctly");

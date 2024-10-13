@@ -137,7 +137,7 @@ namespace Zerra.Reflection.Compiletime
             {
                 if (!getterBoxedLoaded)
                     LoadGetterBoxed();
-                return this.getterBoxed != null;
+                return this.getterBoxed is not null;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -152,7 +152,7 @@ namespace Zerra.Reflection.Compiletime
                         var property = (PropertyInfo)MemberInfo;
                         if (!property.PropertyType.IsPointer)
                         {
-                            if (BackingFieldDetailBoxed == null)
+                            if (BackingFieldDetailBoxed is null)
                             {
                                 this.getterBoxed = AccessorGenerator.GenerateGetter(property);
                             }
@@ -192,7 +192,7 @@ namespace Zerra.Reflection.Compiletime
             {
                 if (!setterBoxedLoaded)
                     LoadSetterBoxed();
-                return this.setterBoxed != null;
+                return this.setterBoxed is not null;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -207,7 +207,7 @@ namespace Zerra.Reflection.Compiletime
                         var property = (PropertyInfo)MemberInfo;
                         if (!property.PropertyType.IsPointer)
                         {
-                            if (BackingFieldDetailBoxed == null)
+                            if (BackingFieldDetailBoxed is null)
                             {
                                 this.setterBoxed = AccessorGenerator.GenerateSetter(property);
                             }

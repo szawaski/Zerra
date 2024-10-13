@@ -92,10 +92,10 @@ namespace Zerra.CQRS.AzureEventHub
 
             isOpen = true;
 
-            if (maxConcurrent == null)
+            if (maxConcurrent is null)
                 throw new Exception($"{nameof(AzureEventHubConsumer)} is not setup");
 
-            if ((commandCounter == null || handlerAsync == null || handlerAwaitAsync == null) && (eventHandlerAsync == null))
+            if ((commandCounter is null || handlerAsync is null || handlerAwaitAsync is null) && (eventHandlerAsync is null))
                 throw new Exception($"{nameof(AzureEventHubConsumer)} is not setup");
 
             _ = ListeningThread();
@@ -143,7 +143,7 @@ namespace Zerra.CQRS.AzureEventHub
 
                         if (isCommand)
                         {
-                            if (commandCounter == null || handlerAsync == null || handlerAwaitAsync == null || handlerWithResultAwaitAsync == null)
+                            if (commandCounter is null || handlerAsync is null || handlerAwaitAsync is null || handlerWithResultAwaitAsync is null)
                                 throw new Exception($"{nameof(AzureEventHubConsumer)} is not setup");
 
                             if (!commandCounter.BeginReceive())
@@ -151,7 +151,7 @@ namespace Zerra.CQRS.AzureEventHub
                         }
                         else if (isEvent)
                         {
-                            if (eventHandlerAsync == null)
+                            if (eventHandlerAsync is null)
                                 throw new Exception($"{nameof(AzureEventHubConsumer)} is not setup");
                         }
 
@@ -197,18 +197,18 @@ namespace Zerra.CQRS.AzureEventHub
                 }
 
                 var body = partitionEvent.Data.EventBody.ToArray();
-                if (symmetricConfig != null)
+                if (symmetricConfig is not null)
                     body = SymmetricEncryptor.Decrypt(symmetricConfig, body);
 
                 var message = AzureEventHubCommon.Deserialize<AzureEventHubMessage>(body);
-                if (message == null || message.MessageType == null || message.MessageData == null || message.Source == null)
+                if (message is null || message.MessageType is null || message.MessageData is null || message.Source is null)
                     throw new Exception("Invalid Message");
 
                 var commandOrEvent = AzureEventHubCommon.Deserialize(message.MessageType, message.MessageData);
-                if (commandOrEvent == null)
+                if (commandOrEvent is null)
                     throw new Exception("Invalid Message");
 
-                if (message.Claims != null)
+                if (message.Claims is not null)
                 {
                     var claimsIdentity = new ClaimsIdentity(message.Claims.Select(x => new Claim(x[0], x[1])), "CQRS");
                     Thread.CurrentPrincipal = new ClaimsPrincipal(claimsIdentity);
@@ -251,7 +251,7 @@ namespace Zerra.CQRS.AzureEventHub
             {
                 var acknowledgement = new Acknowledgement(result, error);
                 var ackBody = AzureEventHubCommon.Serialize(acknowledgement);
-                if (symmetricConfig != null)
+                if (symmetricConfig is not null)
                     ackBody = SymmetricEncryptor.Encrypt(symmetricConfig, ackBody);
 
                 await using (var producer = new EventHubProducerClient(host, eventHubName))

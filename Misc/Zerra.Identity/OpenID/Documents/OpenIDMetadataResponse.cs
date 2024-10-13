@@ -35,7 +35,7 @@ namespace Zerra.Identity.OpenID.Documents
 
             var json = binding.GetDocument();
 
-            if (json == null)
+            if (json is null)
                 return;
 
             this.Issuer = json["issuer"]?.ToObject<string>();
@@ -47,7 +47,7 @@ namespace Zerra.Identity.OpenID.Documents
             this.ScopesSupported = json["scopes_supported"]?.ToObject<string[]>();
 
             var responseTypesSupported = json["response_types_supported"]?.ToObject<string[]>();
-            if (responseTypesSupported != null)
+            if (responseTypesSupported is not null)
             {
                 var items = new List<OpenIDResponseType>();
                 foreach (var x in responseTypesSupported)
@@ -59,7 +59,7 @@ namespace Zerra.Identity.OpenID.Documents
             }
 
             var subjectTypeSupported = json["subject_types_supported"]?.ToObject<string[]>();
-            if (subjectTypeSupported != null)
+            if (subjectTypeSupported is not null)
             {
                 var items = new List<OpenIDSubjectIdentifier>();
                 foreach (var x in subjectTypeSupported)
@@ -71,7 +71,7 @@ namespace Zerra.Identity.OpenID.Documents
             }
 
             var signatureAlgorithms = json["id_token_signing_alg_values_supported"]?.ToObject<string[]>();
-            if (signatureAlgorithms != null)
+            if (signatureAlgorithms is not null)
             {
                 var items = new List<XmlSignatureAlgorithmType>();
                 foreach (var x in signatureAlgorithms)
@@ -85,7 +85,7 @@ namespace Zerra.Identity.OpenID.Documents
             this.ClaimsSupported = json["claims_supported"]?.ToObject<string[]>();
 
             var responseModesSupported = json["response_modes_supported"]?.ToObject<string[]>();
-            if (responseModesSupported != null)
+            if (responseModesSupported is not null)
             {
                 var items = new List<OpenIDResponseMode>();
                 foreach (var x in responseModesSupported)
@@ -101,30 +101,30 @@ namespace Zerra.Identity.OpenID.Documents
         {
             var json = new JObject();
 
-            if (this.Issuer != null)
+            if (this.Issuer is not null)
                 json.Add("issuer", JToken.FromObject(this.Issuer));
-            if (this.LoginUrl != null)
+            if (this.LoginUrl is not null)
                 json.Add("authorization_endpoint", JToken.FromObject(this.LoginUrl));
-            if (this.TokenUrl != null)
+            if (this.TokenUrl is not null)
                 json.Add("token_endpoint", JToken.FromObject(this.TokenUrl));
-            if (this.UserInfoUrl != null)
+            if (this.UserInfoUrl is not null)
                 json.Add("userinfo_endpoint", JToken.FromObject(this.UserInfoUrl));
-            if (this.KeysUrl != null)
+            if (this.KeysUrl is not null)
                 json.Add("jwks_uri", JToken.FromObject(this.KeysUrl));
-            if (this.LogoutUrl != null)
+            if (this.LogoutUrl is not null)
                 json.Add("end_session_endpoint", JToken.FromObject(this.LogoutUrl));
 
-            if (this.ScopesSupported != null)
+            if (this.ScopesSupported is not null)
                 json.Add("scopes_supported", JToken.FromObject(this.ScopesSupported));
-            if (this.ResponseTypesSupported != null)
+            if (this.ResponseTypesSupported is not null)
                 json.Add("response_types_supported", JToken.FromObject(this.ResponseTypesSupported.Select(x => x.EnumName()).ToArray()));
-            if (this.SubjectTypeSupported != null)
+            if (this.SubjectTypeSupported is not null)
                 json.Add("subject_types_supported", JToken.FromObject(this.SubjectTypeSupported.Select(x => x.EnumName()).ToArray()));
-            if (this.SignatureAlgorithms != null)
+            if (this.SignatureAlgorithms is not null)
                 json.Add("id_token_signing_alg_values_supported", JToken.FromObject(this.SignatureAlgorithms.Select(x => Algorithms.GetSignatureAlgorithmJwt(x)).ToArray()));
-            if (this.ClaimsSupported != null)
+            if (this.ClaimsSupported is not null)
                 json.Add("claims_supported", JToken.FromObject(this.ClaimsSupported));
-            if (this.ResponseModesSupported != null)
+            if (this.ResponseModesSupported is not null)
                 json.Add("response_modes_supported", JToken.FromObject(this.ResponseModesSupported.Select(x => x.EnumName()).ToArray()));
 
             return json;

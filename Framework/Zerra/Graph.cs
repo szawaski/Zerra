@@ -50,7 +50,7 @@ namespace Zerra
         {
             get
             {
-                if (this.signature == null)
+                if (this.signature is null)
                 {
                     GenerateSignature();
                 }
@@ -111,7 +111,7 @@ namespace Zerra
         {
             this.includeAllMembers = includeAllMembers;
 
-            if (members != null)
+            if (members is not null)
                 AddMembers(members);
         }
 
@@ -222,7 +222,7 @@ namespace Zerra
         /// <param name="members">The members to include.</param>
         public void AddMembers(IEnumerable<string> members)
         {
-            if (members == null)
+            if (members is null)
                 throw new ArgumentNullException(nameof(members));
 
             foreach (var member in members)
@@ -240,7 +240,7 @@ namespace Zerra
         /// <param name="members">The members to remove.</param>
         public void RemoveMembers(IEnumerable<string> members)
         {
-            if (members == null)
+            if (members is null)
                 throw new ArgumentNullException(nameof(members));
 
             foreach (var member in members)

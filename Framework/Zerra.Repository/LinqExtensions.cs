@@ -60,14 +60,14 @@ namespace Zerra.Repository
         //     where TModel : class, new()
         //{
         //    IQueryable<TSource> whereQuery = source;
-        //    if (query.Where != null)
+        //    if (query.Where is not null)
         //    {
         //        var sourceWhere = (Expression<Func<TSource, bool>>)LinqRebinder.RebindType(query.Where, typeof(TModel), typeof(TSource));
         //        whereQuery = whereQuery.Where(sourceWhere);
         //    }
 
         //    IQueryable<TSource> orderQuery = whereQuery;
-        //    if (query.Order != null)
+        //    if (query.Order is not null)
         //    {
         //        orderQuery = orderQuery.OrderBy(query.Order);
         //    }
@@ -85,13 +85,13 @@ namespace Zerra.Repository
             where TModel : class, new()
         {
             var whereQuery = source;
-            if (query.Where != null)
+            if (query.Where is not null)
             {
                 whereQuery = whereQuery.Where(query.Where);
             }
 
             var orderQuery = whereQuery;
-            if (query.Order != null)
+            if (query.Order is not null)
             {
                 orderQuery = orderQuery.OrderBy(query.Order);
             }

@@ -49,10 +49,10 @@ namespace Zerra.CQRS.Network
 
         public static void ApplyException(Acknowledgement? ack, Exception? ex)
         {
-            if (ack == null)
+            if (ack is null)
                 return;
 
-            if (ex == null)
+            if (ex is null)
             {
                 ack.Success = true;
                 ack.ErrorMessage = null;
@@ -71,13 +71,13 @@ namespace Zerra.CQRS.Network
 
         public static void ThrowIfFailed(Acknowledgement? ack)
         {
-            if (ack == null)
+            if (ack is null)
                 throw new RemoteServiceException("Acknowledgement Failed");
             if (ack.Success)
                 return;
 
             Exception? ex = null;
-            if (ack.DataType != null && ack.Data != null && ack.Data.Length > 0)
+            if (ack.DataType is not null && ack.Data is not null && ack.Data.Length > 0)
             {
                 try
                 {
@@ -90,12 +90,12 @@ namespace Zerra.CQRS.Network
 
         public static object? GetResultOrThrowIfFailed(Acknowledgement? ack)
         {
-            if (ack == null)
+            if (ack is null)
                 throw new RemoteServiceException("Acknowledgement Failed");
             if (!ack.Success)
             {
                 Exception? ex = null;
-                if (ack.DataType != null && ack.Data != null && ack.Data.Length > 0)
+                if (ack.DataType is not null && ack.Data is not null && ack.Data.Length > 0)
                 {
                     try
                     {
@@ -107,7 +107,7 @@ namespace Zerra.CQRS.Network
             }
 
             object? result = null;
-            if (ack.DataType != null && ack.Data != null && ack.Data.Length > 0)
+            if (ack.DataType is not null && ack.Data is not null && ack.Data.Length > 0)
             {
                 try
                 {

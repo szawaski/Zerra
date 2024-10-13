@@ -31,7 +31,7 @@ namespace Zerra.Identity.OpenID.Documents
 
             var json = binding.GetDocument();
 
-            if (json == null)
+            if (json is null)
                 return;
 
             this.Code = json["code"]?.ToObject<string>();
@@ -47,13 +47,13 @@ namespace Zerra.Identity.OpenID.Documents
         {
             var json = new JObject();
 
-            if (this.GrantType != null)
+            if (this.GrantType is not null)
                 json.Add("grant_type", JToken.FromObject(this.GrantType?.EnumName()));
-            if (this.Code != null)
+            if (this.Code is not null)
                 json.Add("code", JToken.FromObject(this.Code));
-            if (this.Secret != null)
+            if (this.Secret is not null)
                 json.Add("client_secret", JToken.FromObject(this.Secret));
-            if (this.RedirectUrl != null)
+            if (this.RedirectUrl is not null)
                 json.Add("redirect_uri", JToken.FromObject(this.RedirectUrl));
 
             return json;

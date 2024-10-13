@@ -13,7 +13,7 @@ namespace Zerra.Identity
     {
         public static XmlElement GetSingleElementRequired(this XmlElement element, string prefix, string name, bool deep)
         {
-            if (element == null || String.IsNullOrWhiteSpace(name))
+            if (element is null || String.IsNullOrWhiteSpace(name))
                 return null;
 
             var list = new List<XmlElement>();
@@ -28,7 +28,7 @@ namespace Zerra.Identity
 
         public static XmlElement GetSingleElement(this XmlElement element, string prefix, string name, bool deep)
         {
-            if (element == null || String.IsNullOrWhiteSpace(name))
+            if (element is null || String.IsNullOrWhiteSpace(name))
                 return null;
 
             var list = new List<XmlElement>();
@@ -43,7 +43,7 @@ namespace Zerra.Identity
 
         public static XmlElement GetFirstElement(this XmlElement element, string prefix, string name, bool deep)
         {
-            if (element == null || String.IsNullOrWhiteSpace(name))
+            if (element is null || String.IsNullOrWhiteSpace(name))
                 return null;
 
             var list = new List<XmlElement>();
@@ -56,7 +56,7 @@ namespace Zerra.Identity
 
         public static List<XmlElement> GetElements(this XmlElement element, string prefix, string name, bool deep)
         {
-            if (element == null || String.IsNullOrWhiteSpace(name))
+            if (element is null || String.IsNullOrWhiteSpace(name))
                 return null;
 
             var list = new List<XmlElement>();
@@ -76,7 +76,7 @@ namespace Zerra.Identity
                         break;
                     }
                 }
-                if ((prefix == null || node.Prefix == prefix) && node.LocalName == name)
+                if ((prefix is null || node.Prefix == prefix) && node.LocalName == name)
                 {
                     list.Add(node);
                     if (single)

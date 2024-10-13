@@ -53,7 +53,7 @@ namespace Zerra.CQRS.Network
             if (commandTypes.Count > 0)
                 throw new Exception($"Cannot register interface because this instance of {thisType.GetNiceName()} is already being used for commands");
 
-            if (throttle != null)
+            if (throttle is not null)
                 throttle.Dispose();
             throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
 
@@ -77,7 +77,7 @@ namespace Zerra.CQRS.Network
             if (interfaceTypes.Count > 0)
                 throw new Exception($"Cannot register command because this instance of {thisType.GetNiceName()} is already being used for queries");
 
-            if (throttle != null)
+            if (throttle is not null)
                 throttle.Dispose();
             throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
 
@@ -152,7 +152,7 @@ namespace Zerra.CQRS.Network
             {
                 if (disposed)
                     return;
-                if (listeners != null)
+                if (listeners is not null)
                 {
                     foreach (var listener in listeners)
                         listener.Dispose();

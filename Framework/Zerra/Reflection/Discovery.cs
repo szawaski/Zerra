@@ -111,7 +111,7 @@ namespace Zerra.Reflection
                     continue;
                 if (assembly.FullName is null)
                     continue;
-                if (Config.DiscoveryAssemblyNameStartsWiths.Length > 0 && !Config.DiscoveryAssemblyNameStartsWiths.Any(y => assembly.FullName != null && assembly.FullName.StartsWith(y)))
+                if (Config.DiscoveryAssemblyNameStartsWiths.Length > 0 && !Config.DiscoveryAssemblyNameStartsWiths.Any(y => assembly.FullName is not null && assembly.FullName.StartsWith(y)))
                     continue;
                 if (discoveredAssemblies.Contains(assembly.FullName))
                     continue;
@@ -135,7 +135,7 @@ namespace Zerra.Reflection
             }
             catch { }
 
-            if (typesInAssembly == null)
+            if (typesInAssembly is null)
                 return;
 
             foreach (var typeInAssembly in typesInAssembly)
@@ -149,7 +149,7 @@ namespace Zerra.Reflection
         {
             var typeList1 = typeByName.GetOrAdd(typeInAssembly.Name, (key) => { return new(); });
             typeList1.Add(typeInAssembly);
-            if (typeInAssembly.FullName != null && typeInAssembly.Name != typeInAssembly.FullName)
+            if (typeInAssembly.FullName is not null && typeInAssembly.Name != typeInAssembly.FullName)
             {
                 var typeList2 = typeByName.GetOrAdd(typeInAssembly.FullName, (key) => { return new(); });
                 typeList2.Add(typeInAssembly);
@@ -191,7 +191,7 @@ namespace Zerra.Reflection
             }
 
             Type? baseType = typeInAssembly.BaseType;
-            while (baseType != null)
+            while (baseType is not null)
             {
                 var classByBaseList = classByBase.GetOrAdd(baseType, (key) => { return new(); });
                 classByBaseList.Add(typeInAssembly);
@@ -210,7 +210,7 @@ namespace Zerra.Reflection
             foreach (var attributeType in attributeTypes)
             {
                 var thisAttributeType = attributeType;
-                while (thisAttributeType != null && thisAttributeType != typeof(Attribute))
+                while (thisAttributeType is not null && thisAttributeType != typeof(Attribute))
                 {
                     var list = typeByAttribute.GetOrAdd(thisAttributeType, (key) => { return new(); });
                     list.Add(typeInAssembly);
@@ -237,7 +237,7 @@ namespace Zerra.Reflection
 
         public static bool HasTypeByInterface(Type interfaceType)
         {
-            if (interfaceType == null)
+            if (interfaceType is null)
                 throw new ArgumentNullException(nameof(interfaceType));
             if (!interfaceType.IsInterface)
                 throw new ArgumentException($"Type {GetNiceName(interfaceType)} is not an interface");
@@ -254,7 +254,7 @@ namespace Zerra.Reflection
         }
         public static bool HasClassByBase(Type baseType)
         {
-            if (baseType == null)
+            if (baseType is null)
                 throw new ArgumentNullException(nameof(baseType));
 
             if (baseType.ContainsGenericParameters)
@@ -269,7 +269,7 @@ namespace Zerra.Reflection
         }
         public static bool HasClassByInterface(Type interfaceType)
         {
-            if (interfaceType == null)
+            if (interfaceType is null)
                 throw new ArgumentNullException(nameof(interfaceType));
             if (!interfaceType.IsInterface)
                 throw new ArgumentException($"Type {GetNiceName(interfaceType)} is not an interface");
@@ -286,11 +286,11 @@ namespace Zerra.Reflection
         }
         public static bool HasClassByInterface(Type interfaceType, Type secondaryInterface)
         {
-            if (interfaceType == null)
+            if (interfaceType is null)
                 throw new ArgumentNullException(nameof(interfaceType));
             if (!interfaceType.IsInterface)
                 throw new ArgumentException($"Type {GetNiceName(interfaceType)} is not an interface");
-            if (secondaryInterface == null)
+            if (secondaryInterface is null)
                 throw new ArgumentNullException(nameof(secondaryInterface));
 
             List<Type>? classList;
@@ -311,7 +311,7 @@ namespace Zerra.Reflection
                 if (!interfaceByType.TryGetValue(classType, out var interfaceList))
                     continue;
 
-                if (secondaryInterface == null || interfaceList.Contains(secondaryInterface))
+                if (secondaryInterface is null || interfaceList.Contains(secondaryInterface))
                     return true;
             }
 
@@ -319,11 +319,11 @@ namespace Zerra.Reflection
         }
         public static unsafe bool HasClassByInterface(Type interfaceType, IReadOnlyList<Type?> secondaryInterfaces, int secondaryInterfaceStartIndex, Type ignoreInterface)
         {
-            if (interfaceType == null)
+            if (interfaceType is null)
                 throw new ArgumentNullException(nameof(interfaceType));
             if (!interfaceType.IsInterface)
                 throw new ArgumentException($"Type {GetNiceName(interfaceType)} is not an interface");
-            if (secondaryInterfaces == null)
+            if (secondaryInterfaces is null)
                 throw new ArgumentNullException(nameof(secondaryInterfaces));
             if (secondaryInterfaceStartIndex < 0 || secondaryInterfaceStartIndex > secondaryInterfaces.Count - 1)
                 throw new ArgumentOutOfRangeException(nameof(secondaryInterfaceStartIndex));
@@ -360,7 +360,7 @@ namespace Zerra.Reflection
 
                 for (var i = 0; i < secondaryInterfaces.Count; i++)
                 {
-                    if (secondaryInterfaces[i] != null)
+                    if (secondaryInterfaces[i] is not null)
                     {
                         var found = false;
                         for (var k = 0; k < interfaceList.Count; k++)
@@ -369,7 +369,7 @@ namespace Zerra.Reflection
                             {
                                 found = true;
                             }
-                            if (ignoreInterface != null && ignoreInterface == interfaceList[k])
+                            if (ignoreInterface is not null && ignoreInterface == interfaceList[k])
                             {
                                 found = false;
                                 break;
@@ -388,7 +388,7 @@ namespace Zerra.Reflection
                         var found = false;
                         for (var k = 0; k < interfaceList.Count; k++)
                         {
-                            if (ignoreInterface != null && ignoreInterface == interfaceList[k])
+                            if (ignoreInterface is not null && ignoreInterface == interfaceList[k])
                             {
                                 found = true;
                                 break;
@@ -428,7 +428,7 @@ namespace Zerra.Reflection
 
         public static Type? GetTypeByInterface(Type interfaceType, bool throwException = true)
         {
-            if (interfaceType == null)
+            if (interfaceType is null)
                 throw new ArgumentNullException(nameof(interfaceType));
             if (!interfaceType.IsInterface)
                 throw new ArgumentException($"Type {GetNiceName(interfaceType)} is not an interface");
@@ -468,7 +468,7 @@ namespace Zerra.Reflection
         }
         public static Type? GetClassByBase(Type baseType, bool throwException = true)
         {
-            if (baseType == null)
+            if (baseType is null)
                 throw new ArgumentNullException(nameof(baseType));
 
             List<Type>? classList;
@@ -506,7 +506,7 @@ namespace Zerra.Reflection
         }
         public static Type? GetClassByInterface(Type interfaceType, bool throwException = true)
         {
-            if (interfaceType == null)
+            if (interfaceType is null)
                 throw new ArgumentNullException(nameof(interfaceType));
             if (!interfaceType.IsInterface)
                 throw new ArgumentException($"Type {GetNiceName(interfaceType)} is not an interface");
@@ -546,11 +546,11 @@ namespace Zerra.Reflection
         }
         public static Type? GetClassByInterface(Type interfaceType, Type secondaryInterface, bool throwException = true)
         {
-            if (interfaceType == null)
+            if (interfaceType is null)
                 throw new ArgumentNullException(nameof(interfaceType));
             if (!interfaceType.IsInterface)
                 throw new ArgumentException($"Type {GetNiceName(interfaceType)} is not an interface");
-            if (secondaryInterface == null)
+            if (secondaryInterface is null)
                 throw new ArgumentNullException(nameof(secondaryInterface));
 
             List<Type>? classList;
@@ -585,7 +585,7 @@ namespace Zerra.Reflection
 
                 if (interfaceList.Contains(secondaryInterface))
                 {
-                    if (found == null)
+                    if (found is null)
                     {
                         found = classType;
                     }
@@ -599,7 +599,7 @@ namespace Zerra.Reflection
                 }
             }
 
-            if (found == null)
+            if (found is null)
             {
                 if (throwException)
                     throw new Exception($"No classes found for {GetNiceName(interfaceType)} with secondary interface type {GetNiceName(secondaryInterface)}");
@@ -611,11 +611,11 @@ namespace Zerra.Reflection
         }
         public static unsafe Type? GetClassByInterface(Type interfaceType, IReadOnlyList<Type?> secondaryInterfaces, int secondaryInterfaceStartIndex, Type ignoreInterface, bool throwException = true)
         {
-            if (interfaceType == null)
+            if (interfaceType is null)
                 throw new ArgumentNullException(nameof(interfaceType));
             if (!interfaceType.IsInterface)
                 throw new ArgumentException($"Type {GetNiceName(interfaceType)} is not an interface");
-            if (secondaryInterfaces == null)
+            if (secondaryInterfaces is null)
                 throw new ArgumentNullException(nameof(secondaryInterfaces));
             if (secondaryInterfaceStartIndex < 0 || secondaryInterfaceStartIndex > secondaryInterfaces.Count - 1)
                 throw new ArgumentOutOfRangeException(nameof(secondaryInterfaceStartIndex));
@@ -662,7 +662,7 @@ namespace Zerra.Reflection
 
                 for (var i = 0; i < secondaryInterfaces.Count; i++)
                 {
-                    if (secondaryInterfaces[i] != null)
+                    if (secondaryInterfaces[i] is not null)
                     {
                         var found = false;
                         for (var k = 0; k < interfaceList.Count; k++)
@@ -671,7 +671,7 @@ namespace Zerra.Reflection
                             {
                                 found = true;
                             }
-                            if (ignoreInterface != null && ignoreInterface == interfaceList[k])
+                            if (ignoreInterface is not null && ignoreInterface == interfaceList[k])
                             {
                                 found = false;
                                 break;
@@ -690,7 +690,7 @@ namespace Zerra.Reflection
                         var found = false;
                         for (var k = 0; k < interfaceList.Count; k++)
                         {
-                            if (ignoreInterface != null && ignoreInterface == interfaceList[k])
+                            if (ignoreInterface is not null && ignoreInterface == interfaceList[k])
                             {
                                 found = true;
                                 break;
@@ -734,7 +734,7 @@ namespace Zerra.Reflection
             if (index == -1)
             {
                 if (throwException)
-                    throw new Exception($"No classes found for {GetNiceName(interfaceType)} with secondary interfaces types {String.Join(", ", secondaryInterfaces.Select(x => x == null ? "null" : GetNiceName(x)))}");
+                    throw new Exception($"No classes found for {GetNiceName(interfaceType)} with secondary interfaces types {String.Join(", ", secondaryInterfaces.Select(x => x is null ? "null" : GetNiceName(x)))}");
                 else
                     return null;
             }
@@ -744,7 +744,7 @@ namespace Zerra.Reflection
 
         public static IReadOnlyList<Type> GetTypesByInterface(Type interfaceType)
         {
-            if (interfaceType == null)
+            if (interfaceType is null)
                 throw new ArgumentNullException(nameof(interfaceType));
             if (!interfaceType.IsInterface)
                 throw new ArgumentException($"Type {GetNiceName(interfaceType)} is not an interface");
@@ -766,7 +766,7 @@ namespace Zerra.Reflection
         }
         public static IReadOnlyList<Type> GetClassesByBase(Type baseType)
         {
-            if (baseType == null)
+            if (baseType is null)
                 throw new ArgumentNullException(nameof(baseType));
 
             List<Type>? typeList;
@@ -786,7 +786,7 @@ namespace Zerra.Reflection
         }
         public static IReadOnlyList<Type> GetClassesByInterface(Type interfaceType)
         {
-            if (interfaceType == null)
+            if (interfaceType is null)
                 throw new ArgumentNullException(nameof(interfaceType));
             if (!interfaceType.IsInterface)
                 throw new ArgumentException($"Type {GetNiceName(interfaceType)} is not an interface");
@@ -808,11 +808,11 @@ namespace Zerra.Reflection
         }
         public static IReadOnlyList<Type> GetClassesByInterface(Type interfaceType, Type secondaryInterface)
         {
-            if (interfaceType == null)
+            if (interfaceType is null)
                 throw new ArgumentNullException(nameof(interfaceType));
             if (!interfaceType.IsInterface)
                 throw new ArgumentException($"Type {GetNiceName(interfaceType)} is not an interface");
-            if (secondaryInterface == null)
+            if (secondaryInterface is null)
                 throw new ArgumentNullException(nameof(secondaryInterface));
 
             List<Type>? classList;
@@ -835,7 +835,7 @@ namespace Zerra.Reflection
                 if (!interfaceByType.TryGetValue(classType, out var interfaceList))
                     continue;
 
-                if (secondaryInterface == null || interfaceList.Contains(secondaryInterface))
+                if (secondaryInterface is null || interfaceList.Contains(secondaryInterface))
                 {
                     list.Add(classType);
                 }
@@ -845,11 +845,11 @@ namespace Zerra.Reflection
         }
         public static unsafe IReadOnlyCollection<Type> GetClassesByInterface(Type interfaceType, IReadOnlyList<Type> secondaryInterfaces, int secondaryInterfaceStartIndex, Type ignoreInterface)
         {
-            if (interfaceType == null)
+            if (interfaceType is null)
                 throw new ArgumentNullException(nameof(interfaceType));
             if (!interfaceType.IsInterface)
                 throw new ArgumentException($"Type {GetNiceName(interfaceType)} is not an interface");
-            if (secondaryInterfaces == null)
+            if (secondaryInterfaces is null)
                 throw new ArgumentNullException(nameof(secondaryInterfaces));
             if (secondaryInterfaceStartIndex < 0 || secondaryInterfaceStartIndex > secondaryInterfaces.Count - 1)
                 throw new ArgumentOutOfRangeException(nameof(secondaryInterfaceStartIndex));
@@ -886,7 +886,7 @@ namespace Zerra.Reflection
 
                 for (var i = 0; i < secondaryInterfaces.Count; i++)
                 {
-                    if (secondaryInterfaces[i] != null)
+                    if (secondaryInterfaces[i] is not null)
                     {
                         var found = false;
                         for (var k = 0; k < interfaceList.Count; k++)
@@ -895,7 +895,7 @@ namespace Zerra.Reflection
                             {
                                 found = true;
                             }
-                            if (ignoreInterface != null && ignoreInterface == interfaceList[k])
+                            if (ignoreInterface is not null && ignoreInterface == interfaceList[k])
                             {
                                 found = false;
                                 break;
@@ -914,7 +914,7 @@ namespace Zerra.Reflection
                         var found = false;
                         for (var k = 0; k < interfaceList.Count; k++)
                         {
-                            if (ignoreInterface != null && ignoreInterface == interfaceList[k])
+                            if (ignoreInterface is not null && ignoreInterface == interfaceList[k])
                             {
                                 found = true;
                                 break;
@@ -949,11 +949,11 @@ namespace Zerra.Reflection
         public static void DefineClassByInterface<T>(Type implementationType) => DefineClassByInterface(typeof(T), implementationType);
         public static void DefineClassByInterface(Type interfaceType, Type implementationType)
         {
-            if (interfaceType == null)
+            if (interfaceType is null)
                 throw new ArgumentNullException(nameof(interfaceType));
             if (!interfaceType.IsInterface)
                 throw new ArgumentException($"Type {GetNiceName(interfaceType)} is not an interface");
-            if (implementationType == null)
+            if (implementationType is null)
                 throw new ArgumentNullException(nameof(implementationType));
             if (!implementationType.IsClass || implementationType.IsAbstract)
                 throw new ArgumentException($"Type {GetNiceName(implementationType)} is not a non-abstract class");
@@ -965,7 +965,7 @@ namespace Zerra.Reflection
 
         public static IEnumerable<Type> GetTypesFromAttribute(Type attribute)
         {
-            if (attribute == null)
+            if (attribute is null)
                 throw new ArgumentNullException(nameof(attribute));
             if (!typeByAttribute.TryGetValue(attribute, out var classList))
                 return Type.EmptyTypes;
@@ -980,7 +980,7 @@ namespace Zerra.Reflection
             if (!typeByName.TryGetValue(name, out var matches))
             {
                 var type = Type.GetType(name);
-                if (type == null)
+                if (type is null)
                     type = ParseType(name);
                 matches = typeByName.GetOrAdd(name, (key) => { return new ConcurrentReadWriteList<Type>(); });
                 lock (matches)
@@ -1090,7 +1090,7 @@ namespace Zerra.Reflection
                                 {
                                     openArray = true;
 
-                                    if (currentName == null)
+                                    if (currentName is null)
                                     {
                                         if (i == 0)
                                             throw new Exception($"{nameof(ParseType)} Unexpected '{c}' at position {index - 1}");
@@ -1215,7 +1215,7 @@ namespace Zerra.Reflection
             }
             finally
             {
-                if (rented != null)
+                if (rented is not null)
                 {
                     Array.Clear(rented, 0, rented.Length);
                     ArrayPool<char>.Shared.Return(rented);
@@ -1228,7 +1228,7 @@ namespace Zerra.Reflection
             if (!typeByName.TryGetValue(name, out var matches))
             {
                 var type = Type.GetType(name);
-                if (type == null)
+                if (type is null)
                 {
                     throw new Exception($"Could not find type {name}.  Remember discovery finds assemblies with the same first namespace segment.  Additional assemblies must be added with Config class.");
                 }

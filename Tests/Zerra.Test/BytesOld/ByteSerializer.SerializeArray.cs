@@ -15,7 +15,7 @@ namespace Zerra.Serialization.Bytes
     {
         public static byte[] Serialize(object? item, ByteSerializerOptions? options = null)
         {
-            if (item == null)
+            if (item is null)
                 return Array.Empty<byte>();
 
             var type = item.GetType();
@@ -24,14 +24,14 @@ namespace Zerra.Serialization.Bytes
         }
         public static byte[] Serialize<T>(T? item, ByteSerializerOptions? options = null)
         {
-            if (item == null)
+            if (item is null)
                 return Array.Empty<byte>();
 
             return Serialize(item, typeof(T), options);
         }
         public static byte[] Serialize(object obj, Type type, ByteSerializerOptions? options = null)
         {
-            if (obj == null)
+            if (obj is null)
                 return Array.Empty<byte>();
 
             options ??= defaultOptions;
@@ -62,7 +62,7 @@ namespace Zerra.Serialization.Bytes
         {
             if (options.IncludePropertyTypes)
             {
-                if (value != null)
+                if (value is not null)
                 {
                     var typeFromValue = value.GetType();
                     var typeName = typeFromValue.FullName;
@@ -72,13 +72,13 @@ namespace Zerra.Serialization.Bytes
             }
             else if (typeDetail.Type.IsInterface && !typeDetail.TypeDetail.HasIEnumerableGeneric)
             {
-                if (value != null)
+                if (value is not null)
                 {
                     var objectType = value.GetType();
                     typeDetail = GetTypeInformation(objectType, options.IndexSize, options.IgnoreIndexAttribute);
                 }
             }
-            else if (typeDetail == null)
+            else if (typeDetail is null)
             {
                 throw new InvalidOperationException("Must include type information to deserialize without specifying a type.");
             }
@@ -103,7 +103,7 @@ namespace Zerra.Serialization.Bytes
 
             if (typeDetail.TypeDetail.HasIEnumerableGeneric)
             {
-                if (value != null)
+                if (value is not null)
                 {
                     if (typeDetail.TypeDetail.HasICollection)
                     {
@@ -134,7 +134,7 @@ namespace Zerra.Serialization.Bytes
 
             if (nullFlags)
             {
-                if (value == null)
+                if (value is null)
                 {
                     writer.Write(false); //no object
                     return;
@@ -144,7 +144,7 @@ namespace Zerra.Serialization.Bytes
             foreach (var indexProperty in typeDetail.PropertiesByIndex!)
             {
                 var propertyValue = indexProperty.Value.Getter(value!);
-                if (propertyValue != null)
+                if (propertyValue is not null)
                 {
                     if (options.UsePropertyNames)
                     {
@@ -192,7 +192,7 @@ namespace Zerra.Serialization.Bytes
         {
             writer.Write(length); //object count
 
-            if (length == 0 || values == null)
+            if (length == 0 || values is null)
                 return;
 
             if (typeDetail.TypeDetail.CoreType.HasValue)
@@ -215,7 +215,7 @@ namespace Zerra.Serialization.Bytes
 
             foreach (var value in values)
             {
-                if (value == null)
+                if (value is null)
                 {
                     writer.Write(false); //no object
                     continue;
@@ -526,28 +526,28 @@ namespace Zerra.Serialization.Bytes
                     return;
 
                 case CoreEnumType.ByteNullable:
-                    writer.Write(value == null ? null : (byte?)(byte)value, nullFlags);
+                    writer.Write(value is null ? null : (byte?)(byte)value, nullFlags);
                     return;
                 case CoreEnumType.SByteNullable:
-                    writer.Write(value == null ? null : (sbyte?)(sbyte)value, nullFlags);
+                    writer.Write(value is null ? null : (sbyte?)(sbyte)value, nullFlags);
                     return;
                 case CoreEnumType.Int16Nullable:
-                    writer.Write(value == null ? null : (short?)(short)value, nullFlags);
+                    writer.Write(value is null ? null : (short?)(short)value, nullFlags);
                     return;
                 case CoreEnumType.UInt16Nullable:
-                    writer.Write(value == null ? null : (ushort?)(ushort)value, nullFlags);
+                    writer.Write(value is null ? null : (ushort?)(ushort)value, nullFlags);
                     return;
                 case CoreEnumType.Int32Nullable:
-                    writer.Write(value == null ? null : (int?)(int)value, nullFlags);
+                    writer.Write(value is null ? null : (int?)(int)value, nullFlags);
                     return;
                 case CoreEnumType.UInt32Nullable:
-                    writer.Write(value == null ? null : (uint?)(uint)value, nullFlags);
+                    writer.Write(value is null ? null : (uint?)(uint)value, nullFlags);
                     return;
                 case CoreEnumType.Int64Nullable:
-                    writer.Write(value == null ? null : (long?)(long)value, nullFlags);
+                    writer.Write(value is null ? null : (long?)(long)value, nullFlags);
                     return;
                 case CoreEnumType.UInt64Nullable:
-                    writer.Write(value == null ? null : (ulong?)(ulong)value, nullFlags);
+                    writer.Write(value is null ? null : (ulong?)(ulong)value, nullFlags);
                     return;
                 default:
                     throw new NotImplementedException();
@@ -621,13 +621,13 @@ namespace Zerra.Serialization.Bytes
             {
                 case SpecialType.Type:
                     {
-                        var valueType = value == null ? null : (Type)value;
+                        var valueType = value is null ? null : (Type)value;
                         writer.Write(valueType?.FullName, nullFlags);
                     }
                     return;
                 case SpecialType.Dictionary:
                     {
-                        if (value != null)
+                        if (value is not null)
                         {
                             if (nullFlags)
                                 writer.WriteNotNull();
@@ -664,7 +664,7 @@ namespace Zerra.Serialization.Bytes
                     {
                         foreach (var value in values)
                         {
-                            if (value != null)
+                            if (value is not null)
                             {
                                 writer.WriteNotNull();
                                 var method = TypeAnalyzer.GetGenericMethodDetail(enumerableToArrayMethod, typeDetail.TypeDetail.IEnumerableGenericInnerType);

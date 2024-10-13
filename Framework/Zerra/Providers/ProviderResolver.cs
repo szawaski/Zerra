@@ -59,13 +59,13 @@ namespace Zerra.Providers
                             break;
                         }
                     }
-                    if (highest != null)
+                    if (highest is not null)
                         break;
                 }
                 return highest;
             });
 
-            if (highestInterfaceType == null)
+            if (highestInterfaceType is null)
                 return null;
 
             var nextInterfaceIndex = 0;
@@ -84,7 +84,7 @@ namespace Zerra.Providers
         public static TInterface? GetNext<TInterface>(Type providerType)
         {
             var nextProviderType = GetNextType<TInterface>(providerType);
-            if (nextProviderType == null)
+            if (nextProviderType is null)
                 return default;
 
             var provider = (TInterface)Instantiator.GetSingle(nextProviderType);
@@ -162,7 +162,7 @@ namespace Zerra.Providers
                 throw new ArgumentException("Generic parameter must be an interface");
 
             var providerType = Discovery.GetClassByInterface(interfaceType, interfaceStack, 0, ignoreInterface, false);
-            if (providerType == null)
+            if (providerType is null)
                 return null;
 
             var provider = Instantiator.GetSingle(providerType);
@@ -185,7 +185,7 @@ namespace Zerra.Providers
                 throw new ArgumentException("Generic parameter must be an interface");
 
             var providerType = Discovery.GetClassByInterface(interfaceType, interfaceStack, interfaceStack.Length - 1, ignoreInterface, true);
-            if (providerType == null)
+            if (providerType is null)
                 return null;
             var provider = Instantiator.GetSingle(providerType);
 
@@ -209,7 +209,7 @@ namespace Zerra.Providers
 
             var index = GetInterfaceIndex(secondaryInterfaceType);
             var providerType = Discovery.GetClassByInterface(interfaceType, interfaceStack, index, ignoreInterface, true);
-            if (providerType == null)
+            if (providerType is null)
                 return null;
 
             var provider = Instantiator.GetSingle(providerType);

@@ -28,7 +28,7 @@ namespace Zerra.Identity.Cryptography
         private static XmlElement GenerateSignedXml(XmlDocument xmlDoc, X509Certificate2 cert, XmlSignatureAlgorithmType signatureAlgorithm, XmlDigestAlgorithmType digestAlgorithm)
         {
             var rsa = cert.GetRSAPrivateKey();
-            if (rsa == null)
+            if (rsa is null)
                 throw new IdentityProviderException("X509 must be RSA");
 
             var signatureAlgorithmUrl = Algorithms.GetSignatureAlgorithmUrl(signatureAlgorithm);
@@ -79,7 +79,7 @@ namespace Zerra.Identity.Cryptography
 
         public static bool HasSignature(XmlElement element)
         {
-            return GetSignatureElement(element) != null;
+            return GetSignatureElement(element) is not null;
         }
 
         private static XmlElement GetSignatureElement(XmlElement element)

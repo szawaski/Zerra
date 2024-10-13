@@ -32,7 +32,7 @@ namespace Zerra.Web
 
         public ICommandConsumer? CreateCommandConsumer(string messageHost, SymmetricConfig? symmetricConfig)
         {
-            if (applicationBuilder == null)
+            if (applicationBuilder is null)
                 throw new NotSupportedException($"{nameof(KestrelServiceCreator)} needs {nameof(IApplicationBuilder)} for {nameof(CreateCommandConsumer)}");
 
             if (!middlewareAdded)
@@ -62,7 +62,7 @@ namespace Zerra.Web
 
         public IQueryServer? CreateQueryServer(string serviceUrl, SymmetricConfig? symmetricConfig)
         {
-            if (applicationBuilder == null)
+            if (applicationBuilder is null)
                 throw new NotSupportedException($"{nameof(KestrelServiceCreator)} needs {nameof(IApplicationBuilder)} for {nameof(CreateQueryServer)}");
 
             if (!middlewareAdded)

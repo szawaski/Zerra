@@ -75,7 +75,7 @@ namespace Zerra.Map
         {
             lock (locker)
             {
-                if (compiledMap != null || compiledGraphMaps.Count > 0)
+                if (compiledMap is not null || compiledGraphMaps.Count > 0)
                     throw new MapException("Map already complied. Define must be called before Maps are used. Create a class that inherits IMapDefiner<T, U>.");
 
                 if (sourceType.CoreType.HasValue || targetType.CoreType.HasValue)
@@ -104,7 +104,7 @@ namespace Zerra.Map
         {
             lock (locker)
             {
-                if (compiledMap != null || compiledGraphMaps.Count > 0)
+                if (compiledMap is not null || compiledGraphMaps.Count > 0)
                     throw new MapException("Map already complied. Define must be called before Maps are used. Create a class that inherits IMapDefiner<T, U>.");
 
                 if (sourceType.CoreType.HasValue || targetType.CoreType.HasValue)
@@ -138,7 +138,7 @@ namespace Zerra.Map
 
         public TTarget Copy(TSource source, Graph? graph = null)
         {
-            if (source == null)
+            if (source is null)
                 throw new ArgumentNullException(nameof(source));
 
             TTarget target;
@@ -198,9 +198,9 @@ namespace Zerra.Map
                 target = targetType.Creator();
             }
 
-            if (graph == null)
+            if (graph is null)
             {
-                if (compiledMap == null)
+                if (compiledMap is null)
                 {
                     lock (locker)
                     {
@@ -218,9 +218,9 @@ namespace Zerra.Map
 
         public TTarget CopyTo(TSource source, TTarget target, Graph? graph = null)
         {
-            if (source == null)
+            if (source is null)
                 throw new ArgumentNullException(nameof(source));
-            if (target == null)
+            if (target is null)
                 throw new ArgumentNullException(nameof(target));
 
             return CopyInternal(source, target, graph, new Dictionary<MapRecursionKey, object>());
@@ -228,9 +228,9 @@ namespace Zerra.Map
 
         internal TTarget CopyInternal(TSource source, TTarget target, Graph? graph, Dictionary<MapRecursionKey, object> recursionDictionary)
         {
-            if (graph == null)
+            if (graph is null)
             {
-                if (compiledMap == null)
+                if (compiledMap is null)
                 {
                     lock (locker)
                     {
@@ -753,7 +753,7 @@ namespace Zerra.Map
                 blockExpressions.Add(recursionDictionaryAdd);
                 foreach (var mapTo in memberMaps)
                 {
-                    if (graph != null && !graph.HasMember(mapTo.Key))
+                    if (graph is not null && !graph.HasMember(mapTo.Key))
                         continue;
 
                     var sourceLambda = mapTo.Value.Item1;

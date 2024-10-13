@@ -69,7 +69,7 @@ namespace Zerra.CQRS.AzureServiceBus
                             await throttle.WaitAsync(canceller.Token);
 
                             var serviceBusMessage = await receiver.ReceiveMessageAsync(null, canceller.Token);
-                            if (serviceBusMessage == null)
+                            if (serviceBusMessage is null)
                             {
                                 throttle.Release();
                                 continue;
@@ -114,7 +114,7 @@ namespace Zerra.CQRS.AzureServiceBus
                     AzureServiceBusMessage? message;
                     try
                     {
-                        if (symmetricConfig != null)
+                        if (symmetricConfig is not null)
                             body = SymmetricEncryptor.Decrypt(symmetricConfig, body, false);
 
                         message = await AzureServiceBusCommon.DeserializeAsync<AzureServiceBusMessage>(body);
@@ -124,14 +124,14 @@ namespace Zerra.CQRS.AzureServiceBus
                         body.Dispose();
                     }
 
-                    if (message == null || message.MessageType == null || message.MessageData == null || message.Source == null)
+                    if (message is null || message.MessageType is null || message.MessageData is null || message.Source is null)
                         throw new Exception("Invalid Message");
 
                     var @event = AzureServiceBusCommon.Deserialize(message.MessageType, message.MessageData) as IEvent;
-                    if (@event == null)
+                    if (@event is null)
                         throw new Exception("Invalid Message");
 
-                    if (message.Claims != null)
+                    if (message.Claims is not null)
                     {
                         var claimsIdentity = new ClaimsIdentity(message.Claims.Select(x => new Claim(x[0], x[1])), "CQRS");
                         Thread.CurrentPrincipal = new ClaimsPrincipal(claimsIdentity);

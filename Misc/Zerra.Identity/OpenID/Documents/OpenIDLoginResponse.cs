@@ -79,7 +79,7 @@ namespace Zerra.Identity.OpenID.Documents
 
             var json = binding.GetDocument();
 
-            if (json == null)
+            if (json is null)
                 return;
 
             this.AccessCode = json["code"]?.ToObject<string>();
@@ -94,7 +94,7 @@ namespace Zerra.Identity.OpenID.Documents
             this.UserName ??= json[nameof(JwtOpenIDPayload.AAD_UserPrincipalName)]?.ToObject<string>();
 
             this.Name = json[nameof(JwtOpenIDPayload.AAD_Name)]?.ToObject<string>();
-            if (json[nameof(JwtOpenIDPayload.Roles)] != null)
+            if (json[nameof(JwtOpenIDPayload.Roles)] is not null)
             {
                 if (json[nameof(JwtOpenIDPayload.Roles)].Type == JTokenType.Array)
                     this.Roles = json[nameof(JwtOpenIDPayload.Roles)]?.ToObject<string[]>();
@@ -123,49 +123,49 @@ namespace Zerra.Identity.OpenID.Documents
         {
             var json = new JObject();
 
-            if (this.AccessCode != null)
+            if (this.AccessCode is not null)
                 json.Add("code", JToken.FromObject(this.AccessCode));
 
-            if (this.ID != null)
+            if (this.ID is not null)
                 json.Add(nameof(JwtOpenIDPayload.JsonTokenID), JToken.FromObject(this.ID));
-            if (this.Issuer != null)
+            if (this.Issuer is not null)
                 json.Add(nameof(JwtOpenIDPayload.Issuer), JToken.FromObject(this.Issuer));
-            if (this.Subject != null)
+            if (this.Subject is not null)
                 json.Add(nameof(JwtOpenIDPayload.Subject), JToken.FromObject(this.Subject));
-            if (this.Audience != null)
+            if (this.Audience is not null)
                 json.Add(nameof(JwtOpenIDPayload.Audience), JToken.FromObject(this.Audience));
-            if (this.UserID != null)
+            if (this.UserID is not null)
                 json.Add(nameof(JwtOpenIDPayload.AAD_ObjectID), JToken.FromObject(this.UserID));
-            if (this.UserName != null)
+            if (this.UserName is not null)
             {
                 json.Add(nameof(JwtOpenIDPayload.UniqueName), JToken.FromObject(this.UserName));
                 json.Add(nameof(JwtOpenIDPayload.AAD_UserPrincipalName), JToken.FromObject(this.UserName));
             }
-            if (this.Name != null)
+            if (this.Name is not null)
                 json.Add(nameof(JwtOpenIDPayload.AAD_Name), JToken.FromObject(this.Name));
-            if (this.Roles != null)
+            if (this.Roles is not null)
                 json.Add(nameof(JwtOpenIDPayload.Roles), JToken.FromObject(this.Roles));
-            if (this.Emails != null)
+            if (this.Emails is not null)
                 json.Add(nameof(JwtOpenIDPayload.AAD_Emails), JToken.FromObject(this.Emails));
 
-            if (this.Nonce != null)
+            if (this.Nonce is not null)
                 json.Add(nameof(JwtOpenIDPayload.Nonce), JToken.FromObject(this.Nonce));
-            if (this.IssuedAtTime != null)
+            if (this.IssuedAtTime is not null)
                 json.Add(nameof(JwtOpenIDPayload.IssuedAtTime), JToken.FromObject(this.IssuedAtTime));
-            if (this.NotBefore != null)
+            if (this.NotBefore is not null)
                 json.Add(nameof(JwtOpenIDPayload.NotBefore), JToken.FromObject(this.NotBefore));
-            if (this.Expiration != null)
+            if (this.Expiration is not null)
                 json.Add(nameof(JwtOpenIDPayload.Expiration), JToken.FromObject(this.Expiration));
 
-            if (this.X509Thumbprint != null)
+            if (this.X509Thumbprint is not null)
                 json.Add(nameof(JwtHeader.X509Thumbprint), JToken.FromObject(this.X509Thumbprint));
-            if (this.KeyID != null)
+            if (this.KeyID is not null)
                 json.Add(nameof(JwtHeader.KeyID), JToken.FromObject(this.KeyID));
 
-            if (this.State != null)
+            if (this.State is not null)
                 json.Add("state", JToken.FromObject(this.State));
 
-            if (this.OtherClaims != null)
+            if (this.OtherClaims is not null)
             {
                 foreach (var claim in this.OtherClaims)
                 {

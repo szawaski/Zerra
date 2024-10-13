@@ -71,7 +71,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     foreach (var parameter in constructor.ParameterDetails)
                     {
                         //cannot have argument of itself or a null name
-                        if (parameter.Type == typeDetail.Type || parameter.Name == null)
+                        if (parameter.Type == typeDetail.Type || parameter.Name is null)
                         {
                             skip = true;
                             break;
@@ -88,7 +88,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     parameterConstructor = constructor;
                     break;
                 }
-                collectValues = parameterConstructor != null;
+                collectValues = parameterConstructor is not null;
             }
         }
 

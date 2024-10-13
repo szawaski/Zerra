@@ -133,7 +133,7 @@ AND ((KF.TABLE_SCHEMA = '{0}' AND KF.TABLE_NAME = '{1}') OR (KP.TABLE_SCHEMA = '
                                     }
 
                                     var dataSourceTypeAttribute = CSharpAttributeFromSqlType(dataType, isNullable, characterMaximumLength, numericPrecision, numericScale, datetimePrecision);
-                                    if (dataSourceTypeAttribute != null)
+                                    if (dataSourceTypeAttribute is not null)
                                         _ = sb.Append(tab).Append(tab).Append(dataSourceTypeAttribute).Append(Environment.NewLine);
 
                                     if (!IsSafeName(columnName, out var safeColumnName))

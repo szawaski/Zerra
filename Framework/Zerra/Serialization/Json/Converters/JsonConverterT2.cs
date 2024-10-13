@@ -425,7 +425,7 @@ namespace Zerra.Serialization.Json.Converters
         }
         public override sealed bool TryWriteFromParent(ref JsonWriter writer, ref WriteState state, TParent parent, string? propertyName, bool ignoreDoNotWriteNullProperties)
         {
-            if (getter == null)
+            if (getter is null)
                 return true;
             var value = getter(parent);
 

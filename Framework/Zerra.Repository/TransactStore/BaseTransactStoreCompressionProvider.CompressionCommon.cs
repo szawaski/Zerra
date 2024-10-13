@@ -89,7 +89,7 @@ namespace Zerra.Repository
                 {
                     var typeDetails = TypeAnalyzer.GetTypeDetail(type);
                     var propertyDetails = typeDetails.MemberDetails.Where(x => x.Type == typeof(string) || x.Type == typeof(byte[])).ToArray();
-                    if (graph != null)
+                    if (graph is not null)
                     {
                         propertyDetails = propertyDetails.Where(x => graph.HasMember(x.Name)).ToArray();
                     }

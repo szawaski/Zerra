@@ -48,14 +48,14 @@ namespace Zerra.Serialization.Json.Converters
             var discoveredType = JsonConverterDiscovery.Discover(interfaceType);
 
             //Generic match
-            if (discoveredType == null && typeDetail.Type.IsGenericType && !typeDetail.IsNullable)
+            if (discoveredType is null && typeDetail.Type.IsGenericType && !typeDetail.IsNullable)
             {
                 var genericType = typeDetail.Type.GetGenericTypeDefinition();
                 interfaceType = byteConverterHandlesType.GetGenericType(genericType);
                 discoveredType = JsonConverterDiscovery.Discover(interfaceType);
             }
 
-            if (discoveredType != null)
+            if (discoveredType is not null)
             {
                 var discoveredTypeDetail = discoveredType.GetTypeDetail();
                 switch (discoveredTypeDetail.InnerTypes.Count)

@@ -44,7 +44,7 @@ namespace Zerra.Repository.IO
             if (position + additionalSize <= buffer.Length)
                 return;
 
-            if (bufferOwner == null)
+            if (bufferOwner is null)
                 throw new InvalidOperationException($"{nameof(CharWriter)} has reached it's buffer limit");
 
             var minSize = position + additionalSize;
@@ -72,7 +72,7 @@ namespace Zerra.Repository.IO
 
         public void Dispose()
         {
-            if (bufferOwner != null)
+            if (bufferOwner is not null)
             {
                 buffer.Clear();
                 ArrayPoolHelper<char>.Return(bufferOwner);

@@ -173,7 +173,7 @@ namespace Zerra.CQRS.Network
             }
             catch
             {
-                if (responseStream != null)
+                if (responseStream is not null)
                 {
                     try
                     {
@@ -253,7 +253,7 @@ namespace Zerra.CQRS.Network
             }
             catch
             {
-                if (responseStream != null)
+                if (responseStream is not null)
                 {
                     try
                     {
@@ -323,7 +323,7 @@ namespace Zerra.CQRS.Network
             }
             catch
             {
-                if (responseStream != null)
+                if (responseStream is not null)
                 {
                     try
                     {

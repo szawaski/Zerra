@@ -75,7 +75,7 @@ namespace Zerra.Serialization.Bytes.Converters
                         return false;
                     }
 
-                    if (typeName == null)
+                    if (typeName is null)
                         throw new NotSupportedException($"Cannot deserialize {typeDetail.Type.GetNiceName()} without type information");
 
                     state.EntryReadType = Discovery.GetTypeFromName(typeName);
@@ -289,7 +289,7 @@ namespace Zerra.Serialization.Bytes.Converters
                         return false;
                     }
 
-                    if (typeName == null)
+                    if (typeName is null)
                         throw new NotSupportedException($"Cannot deserialize {typeDetail.Type.GetNiceName()} without type information");
 
                     state.EntryReadType = Discovery.GetTypeFromName(typeName);
@@ -499,7 +499,7 @@ namespace Zerra.Serialization.Bytes.Converters
                         return false;
                     }
 
-                    if (typeName == null)
+                    if (typeName is null)
                         throw new NotSupportedException($"Cannot deserialize {typeDetail.Type.GetNiceName()} without type information");
 
                     state.Current.ChildReadType = Discovery.GetTypeFromName(typeName);
@@ -590,7 +590,7 @@ namespace Zerra.Serialization.Bytes.Converters
         }
         public override sealed bool TryWriteFromParent(ref ByteWriter writer, ref WriteState state, TParent parent, bool nullFlags, ushort indexProperty, string? indexPropertyName)
         {
-            if (getter == null)
+            if (getter is null)
                 return true;
             var value = getter(parent);
 

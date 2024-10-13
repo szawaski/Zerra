@@ -27,7 +27,7 @@ namespace Zerra.Serialization.Json.Converters.General
             {
                 get
                 {
-                    if (converter == null)
+                    if (converter is null)
                     {
                         lock (this)
                         {

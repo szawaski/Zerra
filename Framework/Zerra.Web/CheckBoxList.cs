@@ -73,7 +73,7 @@ namespace Microsoft.AspNetCore.Mvc.Rendering
 
             foreach (var item in selectList)
             {
-                item.Selected = (item.Value != null) ? selectedValues.Contains(item.Value) : selectedValues.Contains(item.Text);
+                item.Selected = (item.Value is not null) ? selectedValues.Contains(item.Value) : selectedValues.Contains(item.Text);
                 newSelectList.Add(item);
             }
 

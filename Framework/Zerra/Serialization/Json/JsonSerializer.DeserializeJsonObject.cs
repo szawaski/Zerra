@@ -22,8 +22,6 @@ namespace Zerra.Serialization.Json
 
         public static JsonObject? DeserializeJsonObject(ReadOnlySpan<char> chars, JsonSerializerOptions? options = null, Graph? graph = null)
         {
-            if (chars == null)
-                throw new ArgumentNullException(nameof(chars));
             if (chars.Length == 0)
                 return new JsonObject();
 
@@ -52,8 +50,6 @@ namespace Zerra.Serialization.Json
 
         public static JsonObject? DeserializeJsonObject(ReadOnlySpan<byte> bytes, JsonSerializerOptions? options = null, Graph? graph = null)
         {
-            if (bytes == null)
-                throw new ArgumentNullException(nameof(bytes));
             if (bytes.Length == 0)
                 return new JsonObject();
 
@@ -82,7 +78,7 @@ namespace Zerra.Serialization.Json
 
         public static JsonObject? DeserializeJsonObject(Stream stream, JsonSerializerOptions? options = null, Graph? graph = null)
         {
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
 
             options ??= defaultOptions;
@@ -179,7 +175,7 @@ namespace Zerra.Serialization.Json
 
         public static async Task<JsonObject?> DeserializeJsonObjectAsync(Stream stream, JsonSerializerOptions? options = null, Graph? graph = null)
         {
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
 
             options ??= defaultOptions;

@@ -54,7 +54,7 @@ namespace Zerra.Identity.Saml2.Documents
 
             var xmlDoc = binding.GetDocument();
 
-            if (xmlDoc == null)
+            if (xmlDoc is null)
                 return;
 
             if (xmlDoc.DocumentElement.LocalName != Saml2Names.AuthnResponse)
@@ -88,7 +88,7 @@ namespace Zerra.Identity.Saml2.Documents
             var attributes = attributeStatement?.GetElements(null, "Attribute", false);
 
             var roles = new List<string>();
-            if (attributes != null)
+            if (attributes is not null)
             {
                 foreach (var attribute in attributes)
                 {

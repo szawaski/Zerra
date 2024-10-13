@@ -33,7 +33,7 @@ namespace Zerra.Serialization.Json.Converters
         {
             scoped Span<char> buffer;
 
-            if (state.StringBuffer == null)
+            if (state.StringBuffer is null)
             {
                 buffer = stackalloc char[128];
             }
@@ -76,7 +76,7 @@ namespace Zerra.Serialization.Json.Converters
                 if (state.IsFinalBlock && reader.Position == reader.Length)
                 {
                     value = buffer.Slice(0, state.StringPosition).ToString();
-                    if (state.StringBuffer != null)
+                    if (state.StringBuffer is not null)
                     {
                         ArrayPoolHelper<char>.Return(state.StringBuffer);
                         state.StringBuffer = null;
@@ -86,7 +86,7 @@ namespace Zerra.Serialization.Json.Converters
                     return true;
                 }
                 state.CharsNeeded = 1;
-                if (state.StringBuffer == null)
+                if (state.StringBuffer is null)
                 {
                     state.StringBuffer = ArrayPoolHelper<char>.Rent(buffer.Length);
                     buffer.Slice(0, state.StringPosition).CopyTo(state.StringBuffer);
@@ -116,7 +116,7 @@ namespace Zerra.Serialization.Json.Converters
                 state.StringBuffer = ArrayPoolHelper<char>.Rent(buffer.Length * 2);
                 buffer.CopyTo(state.StringBuffer);
                 buffer = state.StringBuffer;
-                if (oldRented != null)
+                if (oldRented is not null)
                     ArrayPoolHelper<char>.Return(oldRented);
             }
             buffer[state.StringPosition++] = c;
@@ -129,7 +129,7 @@ namespace Zerra.Serialization.Json.Converters
                     if (state.IsFinalBlock && reader.Position == reader.Length)
                     {
                         value = buffer.Slice(0, state.StringPosition).ToString();
-                        if (state.StringBuffer != null)
+                        if (state.StringBuffer is not null)
                         {
                             ArrayPoolHelper<char>.Return(state.StringBuffer);
                             state.StringBuffer = null;
@@ -139,7 +139,7 @@ namespace Zerra.Serialization.Json.Converters
                         return true;
                     }
                     state.CharsNeeded = 1;
-                    if (state.StringBuffer == null)
+                    if (state.StringBuffer is null)
                     {
                         state.StringBuffer = ArrayPoolHelper<char>.Rent(buffer.Length);
                         buffer.Slice(0, state.StringPosition).CopyTo(state.StringBuffer);
@@ -167,7 +167,7 @@ namespace Zerra.Serialization.Json.Converters
                             state.StringBuffer = ArrayPoolHelper<char>.Rent(buffer.Length * 2);
                             buffer.CopyTo(state.StringBuffer);
                             buffer = state.StringBuffer;
-                            if (oldRented != null)
+                            if (oldRented is not null)
                                 ArrayPoolHelper<char>.Return(oldRented);
                         }
                         buffer[state.StringPosition++] = c;
@@ -180,7 +180,7 @@ namespace Zerra.Serialization.Json.Converters
                             state.StringBuffer = ArrayPoolHelper<char>.Rent(buffer.Length * 2);
                             buffer.CopyTo(state.StringBuffer);
                             buffer = state.StringBuffer;
-                            if (oldRented != null)
+                            if (oldRented is not null)
                                 ArrayPoolHelper<char>.Return(oldRented);
                         }
                         buffer[state.StringPosition++] = c;
@@ -190,7 +190,7 @@ namespace Zerra.Serialization.Json.Converters
                     case '\n':
                     case '\t':
                         value = buffer.Slice(0, state.StringPosition).ToString();
-                        if (state.StringBuffer != null)
+                        if (state.StringBuffer is not null)
                         {
                             ArrayPoolHelper<char>.Return(state.StringBuffer);
                             state.StringBuffer = null;
@@ -203,7 +203,7 @@ namespace Zerra.Serialization.Json.Converters
                     case ']':
                         reader.BackOne();
                         value = buffer.Slice(0, state.StringPosition).ToString();
-                        if (state.StringBuffer != null)
+                        if (state.StringBuffer is not null)
                         {
                             ArrayPoolHelper<char>.Return(state.StringBuffer);
                             state.StringBuffer = null;
@@ -219,7 +219,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.StringBuffer = ArrayPoolHelper<char>.Rent(buffer.Length * 2);
                     buffer.CopyTo(state.StringBuffer);
                     buffer = state.StringBuffer;
-                    if (oldRented != null)
+                    if (oldRented is not null)
                         ArrayPoolHelper<char>.Return(oldRented);
                 }
                 buffer[state.StringPosition++] = c;
@@ -233,7 +233,7 @@ namespace Zerra.Serialization.Json.Converters
                     if (state.IsFinalBlock && reader.Position == reader.Length)
                     {
                         value = buffer.Slice(0, state.StringPosition).ToString();
-                        if (state.StringBuffer != null)
+                        if (state.StringBuffer is not null)
                         {
                             ArrayPoolHelper<char>.Return(state.StringBuffer);
                             state.StringBuffer = null;
@@ -243,7 +243,7 @@ namespace Zerra.Serialization.Json.Converters
                         return true;
                     }
                     state.CharsNeeded = 1;
-                    if (state.StringBuffer == null)
+                    if (state.StringBuffer is null)
                     {
                         state.StringBuffer = ArrayPoolHelper<char>.Rent(buffer.Length);
                         buffer.Slice(0, state.StringPosition).CopyTo(state.StringBuffer);
@@ -272,7 +272,7 @@ namespace Zerra.Serialization.Json.Converters
                             state.StringBuffer = ArrayPoolHelper<char>.Rent(buffer.Length * 2);
                             buffer.CopyTo(state.StringBuffer);
                             buffer = state.StringBuffer;
-                            if (oldRented != null)
+                            if (oldRented is not null)
                                 ArrayPoolHelper<char>.Return(oldRented);
                         }
                         buffer[state.StringPosition++] = c;
@@ -282,7 +282,7 @@ namespace Zerra.Serialization.Json.Converters
                     case '\n':
                     case '\t':
                         value = buffer.Slice(0, state.StringPosition).ToString();
-                        if (state.StringBuffer != null)
+                        if (state.StringBuffer is not null)
                         {
                             ArrayPoolHelper<char>.Return(state.StringBuffer);
                             state.StringBuffer = null;
@@ -295,7 +295,7 @@ namespace Zerra.Serialization.Json.Converters
                     case ']':
                         reader.BackOne();
                         value = buffer.Slice(0, state.StringPosition).ToString();
-                        if (state.StringBuffer != null)
+                        if (state.StringBuffer is not null)
                         {
                             ArrayPoolHelper<char>.Return(state.StringBuffer);
                             state.StringBuffer = null;
@@ -311,7 +311,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.StringBuffer = ArrayPoolHelper<char>.Rent(buffer.Length * 2);
                     buffer.CopyTo(state.StringBuffer);
                     buffer = state.StringBuffer;
-                    if (oldRented != null)
+                    if (oldRented is not null)
                         ArrayPoolHelper<char>.Return(oldRented);
                 }
                 buffer[state.StringPosition++] = c;
@@ -323,7 +323,7 @@ namespace Zerra.Serialization.Json.Converters
                 if (state.IsFinalBlock && reader.Position == reader.Length)
                 {
                     value = buffer.Slice(0, state.StringPosition).ToString();
-                    if (state.StringBuffer != null)
+                    if (state.StringBuffer is not null)
                     {
                         ArrayPoolHelper<char>.Return(state.StringBuffer);
                         state.StringBuffer = null;
@@ -333,7 +333,7 @@ namespace Zerra.Serialization.Json.Converters
                     return true;
                 }
                 state.CharsNeeded = 1;
-                if (state.StringBuffer == null)
+                if (state.StringBuffer is null)
                 {
                     state.StringBuffer = ArrayPoolHelper<char>.Rent(buffer.Length);
                     buffer.Slice(0, state.StringPosition).CopyTo(state.StringBuffer);
@@ -365,7 +365,7 @@ namespace Zerra.Serialization.Json.Converters
                 state.StringBuffer = ArrayPoolHelper<char>.Rent(buffer.Length * 2);
                 buffer.CopyTo(state.StringBuffer);
                 buffer = state.StringBuffer;
-                if (oldRented != null)
+                if (oldRented is not null)
                     ArrayPoolHelper<char>.Return(oldRented);
             }
             buffer[state.StringPosition++] = c;
@@ -378,7 +378,7 @@ namespace Zerra.Serialization.Json.Converters
                     if (state.IsFinalBlock && reader.Position == reader.Length)
                     {
                         value = buffer.Slice(0, state.StringPosition).ToString();
-                        if (state.StringBuffer != null)
+                        if (state.StringBuffer is not null)
                         {
                             ArrayPoolHelper<char>.Return(state.StringBuffer);
                             state.StringBuffer = null;
@@ -388,7 +388,7 @@ namespace Zerra.Serialization.Json.Converters
                         return true;
                     }
                     state.CharsNeeded = 1;
-                    if (state.StringBuffer == null)
+                    if (state.StringBuffer is null)
                     {
                         state.StringBuffer = ArrayPoolHelper<char>.Rent(buffer.Length);
                         buffer.Slice(0, state.StringPosition).CopyTo(state.StringBuffer);
@@ -415,7 +415,7 @@ namespace Zerra.Serialization.Json.Converters
                     case '\n':
                     case '\t':
                         value = buffer.Slice(0, state.StringPosition).ToString();
-                        if (state.StringBuffer != null)
+                        if (state.StringBuffer is not null)
                         {
                             ArrayPoolHelper<char>.Return(state.StringBuffer);
                             state.StringBuffer = null;
@@ -428,7 +428,7 @@ namespace Zerra.Serialization.Json.Converters
                     case ']':
                         reader.BackOne();
                         value = buffer.Slice(0, state.StringPosition).ToString();
-                        if (state.StringBuffer != null)
+                        if (state.StringBuffer is not null)
                         {
                             ArrayPoolHelper<char>.Return(state.StringBuffer);
                             state.StringBuffer = null;
@@ -444,7 +444,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.StringBuffer = ArrayPoolHelper<char>.Rent(buffer.Length * 2);
                     buffer.CopyTo(state.StringBuffer);
                     buffer = state.StringBuffer;
-                    if (oldRented != null)
+                    if (oldRented is not null)
                         ArrayPoolHelper<char>.Return(oldRented);
                 }
                 buffer[state.StringPosition++] = c;
@@ -3140,7 +3140,7 @@ namespace Zerra.Serialization.Json.Converters
                 state.ReadStringStart = true;
             }
 
-            if (state.StringBuffer == null)
+            if (state.StringBuffer is null)
             {
                 buffer = stackalloc char[128];
             }
@@ -3167,7 +3167,7 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (!reader.TryReadSpanUntilQuoteOrEscape(out var s, out state.CharsNeeded))
                     {
-                        if (state.StringBuffer == null)
+                        if (state.StringBuffer is null)
                         {
                             state.StringBuffer = ArrayPoolHelper<char>.Rent(buffer.Length);
                             buffer.Slice(0, state.StringPosition).CopyTo(state.StringBuffer);
@@ -3181,7 +3181,7 @@ namespace Zerra.Serialization.Json.Converters
                         state.StringBuffer = ArrayPoolHelper<char>.Rent(buffer.Length * 2);
                         buffer.CopyTo(state.StringBuffer);
                         buffer = state.StringBuffer;
-                        if (oldRented != null)
+                        if (oldRented is not null)
                             ArrayPoolHelper<char>.Return(oldRented);
                     }
                     s.Slice(0, s.Length - 1).CopyTo(buffer.Slice(state.StringPosition));
@@ -3190,7 +3190,7 @@ namespace Zerra.Serialization.Json.Converters
                     if (c == '\"')
                     {
                         value = buffer.Slice(0, state.StringPosition).ToString();
-                        if (state.StringBuffer != null)
+                        if (state.StringBuffer is not null)
                         {
                             ArrayPoolHelper<char>.Return(state.StringBuffer);
                             state.StringBuffer = null;
@@ -3209,7 +3209,7 @@ namespace Zerra.Serialization.Json.Converters
                     if (!reader.TryReadNext(out c))
                     {
                         state.CharsNeeded = 1;
-                        if (state.StringBuffer == null)
+                        if (state.StringBuffer is null)
                         {
                             state.StringBuffer = ArrayPoolHelper<char>.Rent(buffer.Length);
                             buffer.Slice(0, state.StringPosition).CopyTo(state.StringBuffer);
@@ -3224,7 +3224,7 @@ namespace Zerra.Serialization.Json.Converters
                         state.StringBuffer = ArrayPoolHelper<char>.Rent(buffer.Length * 2);
                         buffer.CopyTo(state.StringBuffer);
                         buffer = state.StringBuffer;
-                        if (oldRented != null)
+                        if (oldRented is not null)
                             ArrayPoolHelper<char>.Return(oldRented);
                     }
 
@@ -3263,7 +3263,7 @@ namespace Zerra.Serialization.Json.Converters
                 //reading escape unicode
                 if (!reader.TryReadEscapeHex(out var unicodeSpan, out state.CharsNeeded))
                 {
-                    if (state.StringBuffer == null)
+                    if (state.StringBuffer is null)
                     {
                         state.StringBuffer = ArrayPoolHelper<char>.Rent(buffer.Length);
                         buffer.Slice(0, state.StringPosition).CopyTo(state.StringBuffer);
@@ -3284,7 +3284,7 @@ namespace Zerra.Serialization.Json.Converters
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected static bool WriteString(ref JsonWriter writer, ref WriteState state, string? value)
         {
-            if (value == null)
+            if (value is null)
             {
                 if (!writer.TryWriteNull(out state.CharsNeeded))
                     return false;
@@ -3406,7 +3406,7 @@ namespace Zerra.Serialization.Json.Converters
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected static bool WriteChar(ref JsonWriter writer, ref WriteState state, char? value)
         {
-            if (value == null)
+            if (value is null)
             {
                 if (!writer.TryWriteNull(out state.CharsNeeded))
                     return false;

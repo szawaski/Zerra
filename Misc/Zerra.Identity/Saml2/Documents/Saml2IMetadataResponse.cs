@@ -77,7 +77,7 @@ namespace Zerra.Identity.Saml2.Documents
 
             var xmlDoc = binding.GetDocument();
 
-            if (xmlDoc == null)
+            if (xmlDoc is null)
                 return;
 
             throw new NotImplementedException("Need to parse SAML to load the document variables");
@@ -139,7 +139,7 @@ namespace Zerra.Identity.Saml2.Documents
 
         private void WriteSigningKey(XmlWriter xw)
         {
-            if (this.IdentityProviderCert != null)
+            if (this.IdentityProviderCert is not null)
             {
                 xw.WriteStartElement(Saml2Names.MetadataPrefix, "KeyDescriptor", null);
                 xw.WriteAttributeString("use", "signing");
@@ -160,7 +160,7 @@ namespace Zerra.Identity.Saml2.Documents
 
         private void WriteEncryptionKey(XmlWriter xw)
         {
-            if (this.ServiceProviderCert != null)
+            if (this.ServiceProviderCert is not null)
             {
                 xw.WriteStartElement(Saml2Names.MetadataPrefix, "KeyDescriptor", null);
                 xw.WriteAttributeString("use", "encryption");

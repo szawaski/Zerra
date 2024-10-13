@@ -17,7 +17,7 @@ namespace Zerra.T4.CSharp
         }
         public CSharpNamespace(CSharpNamespace root, string name)
         {
-            if (root != null)
+            if (root is not null)
                 this.Name = $"{root.Name}.{name}";
             else
                 this.Name = name;

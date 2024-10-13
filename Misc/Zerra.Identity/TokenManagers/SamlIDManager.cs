@@ -46,7 +46,7 @@ namespace Zerra.Identity.TokenManagers
             _ = ids.TryRemove(samlID, out var samlIDInfo);
 
             var valid = true;
-            if (samlIDInfo == null)
+            if (samlIDInfo is null)
                 valid = false;
             else if (serviceProvider != samlIDInfo.ServiceProvider)
                 valid = false;

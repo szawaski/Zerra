@@ -16,14 +16,14 @@ namespace Zerra.Serialization.Bytes
     {
         public static T? Deserialize<T>(ReadOnlySpan<byte> bytes, ByteSerializerOptions? options = null)
         {
-            if (bytes == null || bytes.Length == 0)
+            if (bytes.Length == 0)
                 return default;
 
             return (T?)Deserialize(typeof(T), bytes, options);
         }
         public static object? Deserialize(Type type, ReadOnlySpan<byte> bytes, ByteSerializerOptions? options = null)
         {
-            if (bytes == null || bytes.Length == 0)
+            if (bytes.Length == 0)
                 return null;
 
             options ??= defaultOptions;
@@ -42,17 +42,17 @@ namespace Zerra.Serialization.Bytes
             if (options.IncludePropertyTypes)
             {
                 var typeName = reader.ReadString(false);
-                if (typeName == null)
+                if (typeName is null)
                     throw new NotSupportedException("Cannot deserialize without type information");
 
                 var typeFromBytes = Discovery.GetTypeFromName(typeName);
 
-                if (typeFromBytes != null)
+                if (typeFromBytes is not null)
                 {
                     var newTypeDetail = GetTypeInformation(typeFromBytes, options.IndexSize, options.IgnoreIndexAttribute);
 
                     //overrides potentially boxed type with actual type if exists in assembly
-                    if (typeDetail != null)
+                    if (typeDetail is not null)
                     {
                         var typeDetailCheck = typeDetail.TypeDetail;
                         if (typeDetailCheck.IsNullable)
@@ -66,13 +66,13 @@ namespace Zerra.Serialization.Bytes
                     }
                 }
             }
-            else if (typeDetail != null && typeDetail.Type.IsInterface && !typeDetail.TypeDetail.HasIEnumerableGeneric)
+            else if (typeDetail is not null && typeDetail.Type.IsInterface && !typeDetail.TypeDetail.HasIEnumerableGeneric)
             {
                 var emptyImplementationType = EmptyImplementations.GetEmptyImplementationType(typeDetail.Type);
                 typeDetail = GetTypeInformation(emptyImplementationType, options.IndexSize, options.IgnoreIndexAttribute);
             }
 
-            if (typeDetail == null)
+            if (typeDetail is null)
                 throw new NotSupportedException("Cannot deserialize without type information");
 
             if (typeDetail.TypeDetail.CoreType.HasValue)
@@ -84,7 +84,7 @@ namespace Zerra.Serialization.Bytes
             {
                 var numValue = FromBytesCoreEnumType(ref reader, typeDetail.TypeDetail.EnumUnderlyingType.Value, nullFlags);
                 object? value;
-                if (numValue != null)
+                if (numValue is not null)
                 {
                     if (!typeDetail.TypeDetail.IsNullable)
                         value = Enum.ToObject(typeDetail.Type, numValue);
@@ -136,7 +136,7 @@ namespace Zerra.Serialization.Bytes
 
                     _ = typeDetail.PropertiesByName?.TryGetValue(name!, out indexProperty);
 
-                    if (indexProperty == null)
+                    if (indexProperty is null)
                     {
                         if (!options.UsePropertyNames && !options.IncludePropertyTypes)
                             throw new Exception($"Cannot deserialize with property {name} undefined and no types.");
@@ -147,7 +147,7 @@ namespace Zerra.Serialization.Bytes
                     else
                     {
                         var value = FromBytes(ref reader, indexProperty.SerailzierTypeDetails, false, false, ref options);
-                        if (obj != null)
+                        if (obj is not null)
                             indexProperty.Setter(obj, value);
                     }
                 }
@@ -163,10 +163,10 @@ namespace Zerra.Serialization.Bytes
                     if (propertyIndex == endObjectFlagUShort)
                         return obj;
 
-                    if (typeDetail.PropertiesByIndex != null && typeDetail.PropertiesByIndex.Keys.Contains(propertyIndex))
+                    if (typeDetail.PropertiesByIndex is not null && typeDetail.PropertiesByIndex.Keys.Contains(propertyIndex))
                         indexProperty = typeDetail.PropertiesByIndex[propertyIndex];
 
-                    if (indexProperty == null)
+                    if (indexProperty is null)
                     {
                         if (!options.UsePropertyNames && !options.IncludePropertyTypes)
                             throw new Exception($"Cannot deserialize with property {propertyIndex} undefined and no types.");
@@ -177,7 +177,7 @@ namespace Zerra.Serialization.Bytes
                     else
                     {
                         var value = FromBytes(ref reader, indexProperty.SerailzierTypeDetails, false, false, ref options);
-                        if (obj != null)
+                        if (obj is not null)
                             indexProperty.Setter(obj, value);
                     }
                 }
@@ -214,7 +214,7 @@ namespace Zerra.Serialization.Bytes
                     {
                         var numValue = FromBytesCoreEnumType(ref reader, typeDetail.TypeDetail.EnumUnderlyingType.Value, true);
                         object? item;
-                        if (numValue != null)
+                        if (numValue is not null)
                         {
                             if (!typeDetail.TypeDetail.IsNullable)
                                 item = Enum.ToObject(typeDetail.Type, numValue);
@@ -238,7 +238,7 @@ namespace Zerra.Serialization.Bytes
                     {
                         var numValue = FromBytesCoreEnumType(ref reader, typeDetail.TypeDetail.EnumUnderlyingType.Value, true);
                         object? item;
-                        if (numValue != null)
+                        if (numValue is not null)
                         {
                             if (!typeDetail.TypeDetail.IsNullable)
                                 item = Enum.ToObject(typeDetail.Type, numValue);
@@ -261,7 +261,7 @@ namespace Zerra.Serialization.Bytes
                     {
                         var numValue = FromBytesCoreEnumType(ref reader, typeDetail.TypeDetail.EnumUnderlyingType.Value, true);
                         object? item;
-                        if (numValue != null)
+                        if (numValue is not null)
                         {
                             if (!typeDetail.TypeDetail.IsNullable)
                                 item = Enum.ToObject(typeDetail.Type, numValue);
@@ -749,7 +749,7 @@ namespace Zerra.Serialization.Bytes
                 case SpecialType.Type:
                     {
                         var typeName = reader.ReadString(nullFlags);
-                        if (typeName == null)
+                        if (typeName is null)
                             return null;
                         object value = Discovery.GetTypeFromName(typeName);
                         return value;
@@ -790,7 +790,7 @@ namespace Zerra.Serialization.Bytes
                             for (var i = 0; i < length; i++)
                             {
                                 var typeName = reader.ReadString(true);
-                                if (typeName != null)
+                                if (typeName is not null)
                                 {
                                     var item = Discovery.GetTypeFromName(typeName);
                                     array[i] = item;
@@ -804,7 +804,7 @@ namespace Zerra.Serialization.Bytes
                             for (var i = 0; i < length; i++)
                             {
                                 var typeName = reader.ReadString(true);
-                                if (typeName != null)
+                                if (typeName is not null)
                                 {
                                     var item = Discovery.GetTypeFromName(typeName);
                                     list.Add(item);

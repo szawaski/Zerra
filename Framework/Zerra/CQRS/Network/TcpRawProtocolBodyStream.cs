@@ -40,7 +40,7 @@ namespace Zerra.CQRS.Network
 
         protected override void Dispose(bool disposing)
         {
-            if (segmentLengthBufferSource != null)
+            if (segmentLengthBufferSource is not null)
             {
                 ArrayPoolHelper<byte>.Return(segmentLengthBufferSource);
                 segmentLengthBufferSource = null;
@@ -51,7 +51,7 @@ namespace Zerra.CQRS.Network
 #if !NETSTANDARD2_0
         public override ValueTask DisposeAsync()
         {
-            if (segmentLengthBufferSource != null)
+            if (segmentLengthBufferSource is not null)
             {
                 ArrayPoolHelper<byte>.Return(segmentLengthBufferSource);
                 segmentLengthBufferSource = null;

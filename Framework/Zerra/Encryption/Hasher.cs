@@ -38,7 +38,7 @@ namespace Zerra.Encryption
         public static string GenerateHash(HashAlgoritmType hashAlgoritmType, string plain, string? salt = null)
         {
             var plainBytes = Encoding.UTF8.GetBytes(plain);
-            var saltBytes = salt != null ? Encoding.UTF8.GetBytes(salt) : null;
+            var saltBytes = salt is not null ? Encoding.UTF8.GetBytes(salt) : null;
             var hashedBytes = GenerateHash(hashAlgoritmType, plainBytes, saltBytes);
             var hash = Convert.ToBase64String(hashedBytes);
             return hash;
@@ -109,7 +109,7 @@ namespace Zerra.Encryption
         public static string PBKDF2GenerateHash(string plain, string? salt = null)
         {
             var plainBytes = Encoding.UTF8.GetBytes(plain);
-            var saltBytes = salt != null ? Encoding.UTF8.GetBytes(salt) : null;
+            var saltBytes = salt is not null ? Encoding.UTF8.GetBytes(salt) : null;
             var hashedBytes = PBKDF2GenerateHash(plainBytes, saltBytes);
             var hash = Convert.ToBase64String(hashedBytes);
             return hash;

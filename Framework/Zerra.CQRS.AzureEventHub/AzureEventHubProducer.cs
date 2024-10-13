@@ -103,7 +103,7 @@ namespace Zerra.CQRS.AzureEventHub
                 };
 
                 var body = AzureEventHubCommon.Serialize(message);
-                if (symmetricConfig != null)
+                if (symmetricConfig is not null)
                     body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
 
                 await using (var producer = new EventHubProducerClient(host, eventHubName))
@@ -195,7 +195,7 @@ namespace Zerra.CQRS.AzureEventHub
                 };
 
                 var body = AzureEventHubCommon.Serialize(message);
-                if (symmetricConfig != null)
+                if (symmetricConfig is not null)
                     body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
 
                 await using (var producer = new EventHubProducerClient(host, eventHubName))
@@ -265,7 +265,7 @@ namespace Zerra.CQRS.AzureEventHub
                 };
 
                 var body = AzureEventHubCommon.Serialize(message);
-                if (symmetricConfig != null)
+                if (symmetricConfig is not null)
                     body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
 
                 await using (var producer = new EventHubProducerClient(host, eventHubName))
@@ -319,7 +319,7 @@ namespace Zerra.CQRS.AzureEventHub
                         try
                         {
                             var response = partitionEvent.Data.EventBody.ToArray();
-                            if (symmetricConfig != null)
+                            if (symmetricConfig is not null)
                                 response = SymmetricEncryptor.Decrypt(symmetricConfig, response);
                             acknowledgement = AzureEventHubCommon.Deserialize<Acknowledgement>(response);
                             acknowledgement ??= new Acknowledgement("Invalid Acknowledgement");

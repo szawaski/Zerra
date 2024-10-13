@@ -23,7 +23,7 @@ namespace Zerra.Serialization.Bytes
             {
                 get
                 {
-                    if (serializerTypeDetails == null)
+                    if (serializerTypeDetails is null)
                     {
                         lock (this)
                         {

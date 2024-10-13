@@ -132,7 +132,7 @@ namespace Zerra.Serialization.Json
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryWrite(string? value, out int sizeNeeded)
         {
-            if (value == null)
+            if (value is null)
             {
                 sizeNeeded = 0;
                 return true;
@@ -164,7 +164,7 @@ namespace Zerra.Serialization.Json
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryWrite(char[] value, int index, int count, out int sizeNeeded)
         {
-            if (value == null)
+            if (value is null)
                 throw new ArgumentNullException(nameof(value));
             sizeNeeded = count;
             if (length - position < sizeNeeded)
@@ -1226,8 +1226,6 @@ namespace Zerra.Serialization.Json
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryWrite(ReadOnlySpan<char> value, out int sizeNeeded)
         {
-            if (value == null)
-                throw new ArgumentNullException(nameof(value));
             if (value.Length == 0)
             {
                 sizeNeeded = 0;

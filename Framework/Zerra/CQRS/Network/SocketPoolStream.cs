@@ -35,7 +35,7 @@ namespace Zerra.CQRS.Network
 
         protected override void Dispose(bool disposing)
         {
-            if (socket != null)
+            if (socket is not null)
             {
                 returnSocket(socket, hostAndPort, closeSocket);
                 socket = null;

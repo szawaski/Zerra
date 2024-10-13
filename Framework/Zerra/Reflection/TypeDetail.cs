@@ -94,7 +94,7 @@ namespace Zerra.Reflection
         {
             get
             {
-                if (serializableMemberDetails == null)
+                if (serializableMemberDetails is null)
                 {
                     lock (locker)
                     {
@@ -108,7 +108,7 @@ namespace Zerra.Reflection
         private Dictionary<string, MemberDetail>? membersByName = null;
         public MemberDetail GetMember(string name)
         {
-            if (membersByName == null)
+            if (membersByName is null)
             {
                 lock (locker)
                 {
@@ -125,7 +125,7 @@ namespace Zerra.Reflection
 #endif
         out MemberDetail member)
         {
-            if (membersByName == null)
+            if (membersByName is null)
             {
                 lock (locker)
                 {
@@ -150,7 +150,7 @@ namespace Zerra.Reflection
                 {
                     if (SignatureCompare(name, parameterCount, parameterTypes, methodDetail))
                     {
-                        if (found != null)
+                        if (found is not null)
                             throw new InvalidOperationException($"More than one method found for {name}");
                         found = methodDetail;
                     }
@@ -162,21 +162,21 @@ namespace Zerra.Reflection
         public MethodDetail GetMethodBoxed(string name)
         {
             var method = GetMethodBoxedInternal(name, null, null);
-            if (method == null)
+            if (method is null)
                 throw new MissingMethodException($"{Type.Name}.{name} method not found");
             return method;
         }
         public MethodDetail GetMethodBoxed(string name, int parameterCount)
         {
             var method = GetMethodBoxedInternal(name, parameterCount, null);
-            if (method == null)
+            if (method is null)
                 throw new MissingMethodException($"{Type.Name}.{name} method not found");
             return method;
         }
         public MethodDetail GetMethodBoxed(string name, Type[] parameterTypes)
         {
             var method = GetMethodBoxedInternal(name, null, parameterTypes);
-            if (method == null)
+            if (method is null)
                 throw new MissingMethodException($"{Type.Name}.{name} method not found");
             return method;
         }
@@ -187,7 +187,7 @@ namespace Zerra.Reflection
         out MethodDetail method)
         {
             method = GetMethodBoxedInternal(name, null, null);
-            return method != null;
+            return method is not null;
         }
         public bool TryGetMethodBoxed(string name, int parameterCount,
 #if !NETSTANDARD2_0
@@ -196,7 +196,7 @@ namespace Zerra.Reflection
         out MethodDetail method)
         {
             method = GetMethodBoxedInternal(name, parameterCount, null);
-            return method != null;
+            return method is not null;
         }
         public bool TryGetMethodBoxed(string name, Type[] parameterTypes,
 #if !NETSTANDARD2_0
@@ -205,7 +205,7 @@ namespace Zerra.Reflection
         out MethodDetail method)
         {
             method = GetMethodBoxedInternal(name, null, parameterTypes);
-            return method != null;
+            return method is not null;
         }
 
         private ConcurrentFactoryDictionary<TypeKey, ConstructorDetail?>? constructorLookups = null;
@@ -220,7 +220,7 @@ namespace Zerra.Reflection
                 {
                     if (SignatureCompare(parameterCount, parameterTypes, constructorDetail))
                     {
-                        if (found != null)
+                        if (found is not null)
                             throw new InvalidOperationException($"More than one constructor found");
                         found = constructorDetail;
                     }
@@ -232,21 +232,21 @@ namespace Zerra.Reflection
         public ConstructorDetail GetConstructorBoxed()
         {
             var constructor = GetConstructorBoxedInternal(null, null);
-            if (constructor == null)
+            if (constructor is null)
                 throw new MissingMethodException($"{Type.Name} constructor not found");
             return constructor;
         }
         public ConstructorDetail GetConstructorBoxed(int parameterCount)
         {
             var constructor = GetConstructorBoxedInternal(parameterCount, null);
-            if (constructor == null)
+            if (constructor is null)
                 throw new MissingMethodException($"{Type.Name} constructor not found");
             return constructor;
         }
         public ConstructorDetail GetConstructorBoxed(Type[] parameterTypes)
         {
             var constructor = GetConstructorBoxedInternal(null, parameterTypes);
-            if (constructor == null)
+            if (constructor is null)
                 throw new MissingMethodException($"{Type.Name} constructor not found");
             return constructor;
         }
@@ -257,7 +257,7 @@ namespace Zerra.Reflection
         out ConstructorDetail constructor)
         {
             constructor = GetConstructorBoxedInternal(null, null);
-            return constructor != null;
+            return constructor is not null;
         }
         public bool TryGetConstructorBoxed(int parameterCount,
 #if !NETSTANDARD2_0
@@ -266,7 +266,7 @@ namespace Zerra.Reflection
         out ConstructorDetail constructor)
         {
             constructor = GetConstructorBoxedInternal(parameterCount, null);
-            return constructor != null;
+            return constructor is not null;
         }
         public bool TryGetConstructorBoxed(Type[] parameterTypes,
 #if !NETSTANDARD2_0
@@ -275,13 +275,13 @@ namespace Zerra.Reflection
         out ConstructorDetail constructor)
         {
             constructor = GetConstructorBoxedInternal(null, parameterTypes);
-            return constructor != null;
+            return constructor is not null;
         }
 
         private Dictionary<string, MemberDetail>? serializableMembersByNameLower = null;
         public MemberDetail GetSerializableMemberCaseInsensitive(string name)
         {
-            if (serializableMembersByNameLower == null)
+            if (serializableMembersByNameLower is null)
             {
                 lock (locker)
                 {
@@ -298,7 +298,7 @@ namespace Zerra.Reflection
 #endif
          out MemberDetail member)
         {
-            if (serializableMembersByNameLower == null)
+            if (serializableMembersByNameLower is null)
             {
                 lock (locker)
                 {
@@ -311,7 +311,7 @@ namespace Zerra.Reflection
         private Dictionary<string, MemberDetail>? membersFieldBackedByName = null;
         public MemberDetail GetMemberFieldBacked(string name)
         {
-            if (membersFieldBackedByName == null)
+            if (membersFieldBackedByName is null)
             {
                 lock (locker)
                 {
@@ -328,7 +328,7 @@ namespace Zerra.Reflection
 #endif
         out MemberDetail member)
         {
-            if (membersFieldBackedByName == null)
+            if (membersFieldBackedByName is null)
             {
                 lock (locker)
                 {
@@ -364,13 +364,13 @@ namespace Zerra.Reflection
             if (name1 != methodDetail2.Name)
                 return false;
 
-            if (parameterCount != null)
+            if (parameterCount is not null)
             {
                 if (parameterCount != methodDetail2.ParameterDetails.Count)
                     return false;
             }
 
-            if (parameters1 != null)
+            if (parameters1 is not null)
             {
                 if (parameters1.Length != methodDetail2.ParameterDetails.Count)
                     return false;
@@ -385,13 +385,13 @@ namespace Zerra.Reflection
         }
         protected static bool SignatureCompare(int? parameterCount, Type[]? parameters1, ConstructorDetail constructorDetail2)
         {
-            if (parameterCount != null)
+            if (parameterCount is not null)
             {
                 if (parameterCount != constructorDetail2.ParameterDetails.Count)
                     return false;
             }
 
-            if (parameters1 != null)
+            if (parameters1 is not null)
             {
                 if (parameters1.Length != constructorDetail2.ParameterDetails.Count)
                     return false;

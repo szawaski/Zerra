@@ -21,15 +21,15 @@ namespace Zerra.Repository
         private Expression<Func<TModel, bool>>? AppendWhereExpression(Expression<Func<TModel, bool>>? whereExpression, Graph<TModel>? graph)
         {
             var appendWhereExpression = WhereExpression(graph);
-            if (whereExpression == null && appendWhereExpression == null)
+            if (whereExpression is null && appendWhereExpression is null)
             {
                 return null;
             }
-            else if (whereExpression == null)
+            else if (whereExpression is null)
             {
                 return appendWhereExpression;
             }
-            else if (appendWhereExpression == null)
+            else if (appendWhereExpression is null)
             {
                 return whereExpression;
             }
@@ -51,15 +51,15 @@ namespace Zerra.Repository
         {
             var expression1 = this.GetWhereExpression(graph);
             var expression2 = ProviderRelation?.GetWhereExpressionIncludingBase(graph);
-            if (expression1 == null && expression2 == null)
+            if (expression1 is null && expression2 is null)
             {
                 return null;
             }
-            else if (expression1 == null)
+            else if (expression1 is null)
             {
                 return expression2;
             }
-            else if (expression2 == null)
+            else if (expression2 is null)
             {
                 return expression1;
             }
@@ -79,7 +79,7 @@ namespace Zerra.Repository
         public virtual ICollection<TModel> OnGet(ICollection<TModel> models, Graph<TModel>? graph) { return models; }
         public override sealed async Task<ICollection<TModel>> OnGetIncludingBaseAsync(ICollection<TModel> models, Graph<TModel>? graph)
         {
-            if (ProviderRelation != null)
+            if (ProviderRelation is not null)
             {
                 var returnModels1 = await ProviderRelation.OnGetIncludingBaseAsync(models, graph);
                 var returnModels2 = this.OnGet(returnModels1, graph);
@@ -129,7 +129,7 @@ namespace Zerra.Repository
 
             TModel? returnModel = null;
 
-            if (model != null)
+            if (model is not null)
             {
                 returnModel = OnGet(new TModel[] { model }, appenedQuery.Graph).SingleOrDefault();
             }
@@ -150,7 +150,7 @@ namespace Zerra.Repository
 
             TModel? returnModel = null;
 
-            if (model != null)
+            if (model is not null)
             {
                 returnModel = OnGet(new TModel[] { model }, appenedQuery.Graph).SingleOrDefault();
             }
@@ -223,7 +223,7 @@ namespace Zerra.Repository
 
         public override sealed async Task CreateAsync(Persist<TModel> persist)
         {
-            if (persist.Models == null)
+            if (persist.Models is null)
                 throw new Exception($"Invalid {nameof(Persist<TModel>)} for {nameof(CreateAsync)}");
 
             var appenedPersist = new Persist<TModel>(persist);
@@ -234,7 +234,7 @@ namespace Zerra.Repository
 
         public override sealed async Task UpdateAsync(Persist<TModel> persist)
         {
-            if (persist.Models == null)
+            if (persist.Models is null)
                 throw new Exception($"Invalid {nameof(Persist<TModel>)} for {nameof(UpdateAsync)}");
 
             var appenedPersist = new Persist<TModel>(persist);
@@ -246,17 +246,17 @@ namespace Zerra.Repository
         public override sealed async Task DeleteAsync(Persist<TModel> persist)
         {
             ICollection returnIds;
-            if (persist.IDs != null)
+            if (persist.IDs is not null)
             {
                 returnIds = OnDelete(persist.IDs);
             }
-            else if (persist.Models != null)
+            else if (persist.Models is not null)
             {
                 var ids = new List<object>();
                 foreach (var model in persist.Models)
                 {
                     var id = ModelAnalyzer.GetIdentity(model);
-                    if (id == null)
+                    if (id is null)
                         throw new Exception($"Model {typeof(TModel).GetNiceName()} missing Identity");
                     ids.Add(id);
                 }

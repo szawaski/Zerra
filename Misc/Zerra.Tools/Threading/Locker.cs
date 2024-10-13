@@ -67,7 +67,7 @@ namespace Zerra.Threading
 
         public static Locker<T> Lock(string purpose, T key)
         {
-            if (purpose == null)
+            if (purpose is null)
                 throw new ArgumentException();
             var locker = new Locker<T>(purpose, key);
             locker.itemLocker.Semaphore.Wait();
@@ -76,7 +76,7 @@ namespace Zerra.Threading
 
         public static async Task<Locker<T>> LockAsync(string purpose, T key)
         {
-            if (purpose == null)
+            if (purpose is null)
                 throw new ArgumentNullException(nameof(purpose));
             var locker = new Locker<T>(purpose, key);
             await locker.itemLocker.Semaphore.WaitAsync();

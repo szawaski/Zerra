@@ -39,7 +39,7 @@ namespace Zerra.Repository
         private ICollection<DataContext>? contexts = null;
         protected ICollection<DataContext> GetDataContexts()
         {
-            if (contexts == null)
+            if (contexts is null)
             {
                 lock (locker)
                 {

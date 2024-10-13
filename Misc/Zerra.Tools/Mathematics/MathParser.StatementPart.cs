@@ -13,15 +13,15 @@ namespace Zerra.Mathematics
             {
                 get
                 {
-                    if (UnaryOperator != null)
+                    if (UnaryOperator is not null)
                         return UnaryOperator.Token;
-                    if (BinaryOperator != null)
+                    if (BinaryOperator is not null)
                         return BinaryOperator.Token;
-                    if (MethodOperator != null)
+                    if (MethodOperator is not null)
                         return MethodOperator.Token;
-                    if (Number != null)
+                    if (Number is not null)
                         return Number;
-                    if (Variable != null)
+                    if (Variable is not null)
                         return Variable;
                     return null;
                 }
@@ -81,24 +81,24 @@ namespace Zerra.Mathematics
             }
             private void ToString(StringBuilder sb)
             {
-                if (Token != null)
+                if (Token is not null)
                     _ = sb.Append(Token);
                 else
                     _ = sb.Append('[');
-                if (SubParts != null)
+                if (SubParts is not null)
                 {
-                    if (Token != null)
+                    if (Token is not null)
                         _ = sb.Append(MethodOperator.ArgumentOpener);
                     for (var i = 0; i < SubParts.Count; i++)
                     {
-                        if (i > 0 && Token != null)
+                        if (i > 0 && Token is not null)
                             _ = sb.Append(MethodOperator.ArgumentSeperator);
                         SubParts[i].ToString(sb);
                     }
-                    if (Token != null)
+                    if (Token is not null)
                         _ = sb.Append(MethodOperator.ArgumentCloser);
                 }
-                if (Token == null)
+                if (Token is null)
                     _ = sb.Append(']');
             }
         }

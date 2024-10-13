@@ -44,19 +44,19 @@ namespace Zerra.Repository
             if (properties.Length == 0)
                 return model;
 
-            graph = graph == null ? null : new Graph<TModel>(graph);
+            graph = graph is null ? null : new Graph<TModel>(graph);
 
             if (newCopy)
                 model = Mapper.Map<TModel, TModel>(model, graph);
 
             foreach (var property in properties)
             {
-                if (graph == null || graph.HasMember(property.Name))
+                if (graph is null || graph.HasMember(property.Name))
                 {
                     if (property.TypeDetailBoxed.CoreType == CoreType.String)
                     {
                         var compressed = (string?)property.GetterBoxed(model);
-                        if (compressed != null)
+                        if (compressed is not null)
                         {
                             try
                             {
@@ -69,7 +69,7 @@ namespace Zerra.Repository
                     else if (property.Type == typeof(byte[]))
                     {
                         var compressed = (byte[]?)property.GetterBoxed(model);
-                        if (compressed != null)
+                        if (compressed is not null)
                         {
                             try
                             {
@@ -86,14 +86,14 @@ namespace Zerra.Repository
         }
         public ICollection<TModel> DecompressModels(ICollection<TModel> models, Graph<TModel>? graph, bool newCopy)
         {
-            if (!this.Enabled || graph == null)
+            if (!this.Enabled || graph is null)
                 return models;
 
             var properties = CompressionCommon.GetModelCompressableProperties(typeof(TModel), this.Properties);
             if (properties.Length == 0)
                 return models;
 
-            graph = graph == null ? null : new Graph<TModel>(graph);
+            graph = graph is null ? null : new Graph<TModel>(graph);
 
             if (newCopy)
                 models = Mapper.Map<ICollection<TModel>, TModel[]>(models, graph);
@@ -102,12 +102,12 @@ namespace Zerra.Repository
             {
                 foreach (var property in properties)
                 {
-                    if (graph == null || graph.HasMember(property.Name))
+                    if (graph is null || graph.HasMember(property.Name))
                     {
                         if (property.TypeDetailBoxed.CoreType == CoreType.String)
                         {
                             var compressed = (string?)property.GetterBoxed(model);
-                            if (compressed != null)
+                            if (compressed is not null)
                             {
                                 try
                                 {
@@ -120,7 +120,7 @@ namespace Zerra.Repository
                         else if (property.Type == typeof(byte[]))
                         {
                             var compressed = (byte[]?)property.GetterBoxed(model);
-                            if (compressed != null)
+                            if (compressed is not null)
                             {
                                 try
                                 {
@@ -145,7 +145,7 @@ namespace Zerra.Repository
         public override sealed ICollection<TModel> OnGetIncludingBase(ICollection<TModel> models, Graph<TModel>? graph)
         {
             var returnModels1 = DecompressModels(models, graph, false);
-            if (ProviderRelation == null)
+            if (ProviderRelation is null)
                 return returnModels1;
 
             var returnModels2 = ProviderRelation.OnGetIncludingBase(returnModels1, graph);
@@ -154,7 +154,7 @@ namespace Zerra.Repository
         public override sealed async Task<ICollection<TModel>> OnGetIncludingBaseAsync(ICollection<TModel> models, Graph<TModel>? graph)
         {
             var returnModels1 = DecompressModels(models, graph, false);
-            if (ProviderRelation == null)
+            if (ProviderRelation is null)
                 return returnModels1;
 
             var returnModels2 = await ProviderRelation.OnGetIncludingBaseAsync(returnModels1, graph);
@@ -189,7 +189,7 @@ namespace Zerra.Repository
 
             var compressedModels = (TModel?)NextProvider.Query(appenedQuery);
 
-            if (compressedModels == null)
+            if (compressedModels is null)
                 return null;
 
             var model = DecompressModel(compressedModels, query.Graph, true);
@@ -204,7 +204,7 @@ namespace Zerra.Repository
 
             var compressedModels = (TModel?)NextProvider.Query(appenedQuery);
 
-            if (compressedModels == null)
+            if (compressedModels is null)
                 return null;
 
             var model = DecompressModel(compressedModels, query.Graph, true);
@@ -284,7 +284,7 @@ namespace Zerra.Repository
 
             var compressedModels = (TModel?)await NextProvider.QueryAsync(appenedQuery);
 
-            if (compressedModels == null)
+            if (compressedModels is null)
                 return null;
 
             var model = DecompressModel(compressedModels, query.Graph, true);
@@ -299,7 +299,7 @@ namespace Zerra.Repository
 
             var compressedModels = (TModel?)await NextProvider.QueryAsync(appenedQuery);
 
-            if (compressedModels == null)
+            if (compressedModels is null)
                 return null;
 
             var model = DecompressModel(compressedModels, query.Graph, true);
@@ -360,7 +360,7 @@ namespace Zerra.Repository
             if (properties.Length == 0)
                 return models;
 
-            if (graph != null)
+            if (graph is not null)
             {
                 graph = new Graph<TModel>(graph);
 
@@ -375,12 +375,12 @@ namespace Zerra.Repository
             {
                 foreach (var property in properties)
                 {
-                    if (graph == null || graph.HasMember(property.Name))
+                    if (graph is null || graph.HasMember(property.Name))
                     {
                         if (property.TypeDetailBoxed.CoreType == CoreType.String)
                         {
                             var plain = (string?)property.GetterBoxed(model);
-                            if (plain != null)
+                            if (plain is not null)
                             {
                                 var compressed = CompressionCommon.CompressGZip(plain);
                                 property.SetterBoxed(model, compressed);
@@ -389,7 +389,7 @@ namespace Zerra.Repository
                         else if (property.Type == typeof(byte[]))
                         {
                             var plain = (byte[]?)property.GetterBoxed(model);
-                            if (plain != null)
+                            if (plain is not null)
                             {
                                 var compressed = CompressionCommon.CompressGZip(plain);
                                 property.SetterBoxed(model, compressed);
@@ -403,7 +403,7 @@ namespace Zerra.Repository
 
         public override sealed void Create(Persist<TModel> persist)
         {
-            if (persist.Models == null || persist.Models.Length == 0)
+            if (persist.Models is null || persist.Models.Length == 0)
                 return;
 
             var compressedModels = CompressModels(persist.Models, persist.Graph, true);
@@ -417,7 +417,7 @@ namespace Zerra.Repository
         }
         public override sealed void Update(Persist<TModel> persist)
         {
-            if (persist.Models == null || persist.Models.Length == 0)
+            if (persist.Models is null || persist.Models.Length == 0)
                 return;
 
             ICollection<TModel> compressedModels = CompressModels(persist.Models, persist.Graph, true);
@@ -430,7 +430,7 @@ namespace Zerra.Repository
 
         public override sealed async Task CreateAsync(Persist<TModel> persist)
         {
-            if (persist.Models == null || persist.Models.Length == 0)
+            if (persist.Models is null || persist.Models.Length == 0)
                 return;
 
             var compressedModels = CompressModels(persist.Models, persist.Graph, true);
@@ -444,7 +444,7 @@ namespace Zerra.Repository
         }
         public override sealed Task UpdateAsync(Persist<TModel> persist)
         {
-            if (persist.Models == null || persist.Models.Length == 0)
+            if (persist.Models is null || persist.Models.Length == 0)
                 return Task.CompletedTask;
 
             ICollection<TModel> compressedModels = CompressModels(persist.Models, persist.Graph, true);

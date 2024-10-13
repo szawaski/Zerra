@@ -92,7 +92,7 @@ namespace Zerra.Linq
                     }
                 }
 
-                if (elementType != null && typeDetails.HasIEnumerable)
+                if (elementType is not null && typeDetails.HasIEnumerable)
                 {
                     Expression memberExpression = member.MemberType == MemberTypes.Property ?
                         Expression.Property(parameter, propertyInfo!) :

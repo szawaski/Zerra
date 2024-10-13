@@ -113,7 +113,7 @@ namespace Zerra.Repository
             var queriedSet = set.Query(query);
 
             var selected = queriedSet.FirstOrDefault();
-            if (selected == null)
+            if (selected is null)
                 return null;
 
             var eventModelSelected = eventModels.FirstOrDefault(x => x.Model == selected);
@@ -131,7 +131,7 @@ namespace Zerra.Repository
             var queriedSet = set.Query(query);
 
             var selected = queriedSet.FirstOrDefault();
-            if (selected == null)
+            if (selected is null)
                 return null;
 
             var eventModelSelected = eventModels.SingleOrDefault(x => x.Model == selected);
@@ -254,7 +254,7 @@ namespace Zerra.Repository
             var queriedSet = set.Query(query);
 
             var selected = queriedSet.FirstOrDefault();
-            if (selected == null)
+            if (selected is null)
                 return null;
 
             var eventModelSelected = eventModels.FirstOrDefault(x => x.Model == selected);
@@ -272,7 +272,7 @@ namespace Zerra.Repository
             var queriedSet = set.Query(query);
 
             var selected = queriedSet.FirstOrDefault();
-            if (selected == null)
+            if (selected is null)
                 return null;
 
             var eventModelSelected = eventModels.SingleOrDefault(x => x.Model == selected);
@@ -392,7 +392,7 @@ namespace Zerra.Repository
 
         private static ICollection<TModel> LoadModelsFromEventDatas(EventStoreEventData[] eventDatas, TModel? modelState, bool many, Query<TModel> query)
         {
-            if (modelState == null && eventDatas.Length == 0)
+            if (modelState is null && eventDatas.Length == 0)
                 return Array.Empty<TModel>();
 
             modelState ??= Instantiator.Create<TModel>();
@@ -407,7 +407,7 @@ namespace Zerra.Repository
                             foreach (var eventData in eventDatas.Reverse())
                             {
                                 var eventModel = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
-                                if (eventModel == null)
+                                if (eventModel is null)
                                     throw new Exception("Failed to deserialize Model");
 
                                 Mapper.MapTo(eventModel.Model, modelState, eventModel.Graph);
@@ -450,10 +450,10 @@ namespace Zerra.Repository
                             foreach (var eventData in eventDatas.Reverse())
                             {
                                 var eventModel = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
-                                if (eventModel == null)
+                                if (eventModel is null)
                                     throw new Exception("Failed to deserialize Model");
 
-                                if (eventModel == null)
+                                if (eventModel is null)
                                     throw new Exception("Failed to deserialize Model");
 
                                 Mapper.MapTo(eventModel.Model, modelState, eventModel.Graph);
@@ -492,7 +492,7 @@ namespace Zerra.Repository
                             foreach (var eventData in eventDatas.Reverse())
                             {
                                 var eventModel = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
-                                if (eventModel == null)
+                                if (eventModel is null)
                                     throw new Exception("Failed to deserialize Model");
 
                                 Mapper.MapTo(eventModel.Model, modelState, eventModel.Graph);
@@ -509,7 +509,7 @@ namespace Zerra.Repository
                             foreach (var eventData in eventDatas.Reverse())
                             {
                                 var eventModel = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
-                                if (eventModel == null)
+                                if (eventModel is null)
                                     throw new Exception("Failed to deserialize Model");
 
                                 Mapper.MapTo(eventModel.Model, modelState, eventModel.Graph);
@@ -528,7 +528,7 @@ namespace Zerra.Repository
         }
         private static ICollection<EventModel<TModel>> LoadEventModelsFromEventDatas(EventStoreEventData[] eventDatas, TModel? modelState, bool many, Query<TModel> query)
         {
-            if (modelState == null && eventDatas.Length == 0)
+            if (modelState is null && eventDatas.Length == 0)
                 return Array.Empty<EventModel<TModel>>();
 
             modelState ??= Instantiator.Create<TModel>();
@@ -543,7 +543,7 @@ namespace Zerra.Repository
                             foreach (var eventData in eventDatas.Reverse())
                             {
                                 var eventModelData = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
-                                if (eventModelData == null)
+                                if (eventModelData is null)
                                     throw new Exception("Failed to deserialize Model");
 
                                 Mapper.MapTo(eventModelData.Model, modelState, eventModelData.Graph);
@@ -600,7 +600,7 @@ namespace Zerra.Repository
                             foreach (var eventData in eventDatas.Reverse())
                             {
                                 var eventModelData = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
-                                if (eventModelData == null)
+                                if (eventModelData is null)
                                     throw new Exception("Failed to deserialize Model");
 
                                 Mapper.MapTo(eventModelData.Model, modelState, eventModelData.Graph);
@@ -655,7 +655,7 @@ namespace Zerra.Repository
                             {
                                 thisEventData = eventData;
                                 eventModelData = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
-                                if (eventModelData == null)
+                                if (eventModelData is null)
                                     throw new Exception("Failed to deserialize Model");
 
                                 Mapper.MapTo(eventModelData.Model, modelState, eventModelData.Graph);
@@ -666,7 +666,7 @@ namespace Zerra.Repository
                                     break;
                             }
 
-                            if (thisEventData == null || eventModelData == null)
+                            if (thisEventData is null || eventModelData is null)
                                 return Array.Empty<EventModel<TModel>>();
 
                             var eventModel = new EventModel<TModel>()
@@ -694,7 +694,7 @@ namespace Zerra.Repository
                             {
                                 thisEventData = eventData;
                                 eventModelData = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
-                                if (eventModelData == null)
+                                if (eventModelData is null)
                                     throw new Exception("Failed to deserialize Model");
 
                                 Mapper.MapTo(eventModelData.Model, modelState, eventModelData.Graph);
@@ -705,7 +705,7 @@ namespace Zerra.Repository
                                     break;
                             }
 
-                            if (thisEventData == null || eventModelData == null)
+                            if (thisEventData is null || eventModelData is null)
                                 return Array.Empty<EventModel<TModel>>();
 
                             var eventModel = new EventModel<TModel>()
@@ -748,10 +748,10 @@ namespace Zerra.Repository
             if (temporalOrder == TemporalOrder.Newest || temporalDateFrom.HasValue || temporalNumberFrom.HasValue)
             {
                 var eventData = (Engine.ReadBackwards(streamName, null, count, temporalNumberFrom, null, temporalDateFrom)).LastOrDefault();
-                if (eventData != null)
+                if (eventData is not null)
                 {
                     var eventState = EventStoreCommon.Deserialize<EvenStoreStateData<TModel>>(eventData.Data.Span);
-                    if (eventState == null)
+                    if (eventState is null)
                         throw new Exception("Failed to deserialize Model");
 
                     modelEventNumber = eventState.Number;
@@ -778,10 +778,10 @@ namespace Zerra.Repository
             if (temporalOrder == TemporalOrder.Newest || temporalDateFrom.HasValue || temporalNumberFrom.HasValue)
             {
                 var eventData = (await Engine.ReadBackwardsAsync(streamName, null, count, temporalNumberFrom, null, temporalDateFrom)).LastOrDefault();
-                if (eventData != null)
+                if (eventData is not null)
                 {
                     var eventState = EventStoreCommon.Deserialize<EvenStoreStateData<TModel>>(eventData.Data.Span);
-                    if (eventState == null)
+                    if (eventState is null)
                         throw new Exception("Failed to deserialize Model");
 
                     modelEventNumber = eventState.Number;
@@ -794,7 +794,7 @@ namespace Zerra.Repository
 
         private static object[] GetIDs(Query<TModel> query)
         {
-            if (query.Where == null)
+            if (query.Where is null)
                 throw new NotSupportedException("No identity clauses found in the query. These are required for event stores.");
 
             var type = typeof(TModel);
@@ -805,7 +805,7 @@ namespace Zerra.Repository
             {
                 var propertyValues = LinqValueExtractor.Extract(query.Where, type, identityProperties[0]);
                 var idSingle = propertyValues[identityProperties[0]].ToArray();
-                if (idSingle.Any(x => x == null))
+                if (idSingle.Any(x => x is null))
                     throw new Exception($"Model {type.GetNiceName()} missing Identity");
                 ids = idSingle!;
             }
@@ -813,7 +813,7 @@ namespace Zerra.Repository
             {
                 var propertyValues = LinqValueExtractor.Extract(query.Where, type, identityProperties);
                 var idSets = propertyValues.Select(x => x.Value.ToArray()).ToArray();
-                if (idSets.Any(x => x.Any(y => y == null)))
+                if (idSets.Any(x => x.Any(y => y is null)))
                     throw new Exception($"Model {type.GetNiceName()} missing Identity");
                 ids = CalculatePermutations(idSets!);
             }
@@ -867,7 +867,7 @@ namespace Zerra.Repository
         protected override sealed void PersistModel(PersistEvent @event, TModel model, Graph<TModel>? graph, bool create)
         {
             var id = ModelAnalyzer.GetIdentity(model);
-            if (id == null)
+            if (id is null)
                 throw new NotSupportedException("No identity on model. These are required for event stores.");
 
             var streamName = EventStoreCommon.GetStreamName<TModel>(id);
@@ -957,7 +957,7 @@ namespace Zerra.Repository
             {
                 Model = model,
                 Number = eventNumber,
-                Deleted = model == null
+                Deleted = model is null
             };
             var data = EventStoreCommon.Serialize(eventState);
 
@@ -971,7 +971,7 @@ namespace Zerra.Repository
             {
                 Model = model,
                 Number = eventNumber,
-                Deleted = model == null
+                Deleted = model is null
             };
             var data = EventStoreCommon.Serialize(eventState);
 

@@ -79,7 +79,7 @@ namespace Zerra.CQRS.Network
                 beginAcceptWaiter.Dispose();
             }
 
-            if (error != null)
+            if (error is not null)
                 throw error;
         }
 
@@ -115,7 +115,7 @@ namespace Zerra.CQRS.Network
                     return;
                 disposed = true;
 
-                if (canceller != null)
+                if (canceller is not null)
                 {
                     canceller.Cancel();
                 }

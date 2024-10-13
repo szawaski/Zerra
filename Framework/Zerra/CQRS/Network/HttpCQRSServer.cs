@@ -31,7 +31,7 @@ namespace Zerra.CQRS.Network
             this.contentType = contentType;
             this.symmetricConfig = symmetricConfig;
             this.authorizer = authorizer;
-            if (allowOrigins != null && !allowOrigins.Contains("*"))
+            if (allowOrigins is not null && !allowOrigins.Contains("*"))
                 this.allowOrigins = allowOrigins.Select(x => x.ToLower()).ToArray();
             else
                 allowOrigins = null;
@@ -39,8 +39,8 @@ namespace Zerra.CQRS.Network
 
         protected override async Task Handle(Socket socket, CancellationToken cancellationToken)
         {
-            if (throttle == null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
-            if (commandCounter == null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
+            if (throttle is null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
+            if (commandCounter is null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
 
             try
             {
@@ -114,7 +114,7 @@ namespace Zerra.CQRS.Network
                             throw new CqrsNetworkException("Invalid Content Type");
                         }
 
-                        if (allowOrigins != null && allowOrigins.Length > 0)
+                        if (allowOrigins is not null && allowOrigins.Length > 0)
                         {
                             if (allowOrigins.Contains(requestHeader.Origin))
                             {
@@ -127,11 +127,11 @@ namespace Zerra.CQRS.Network
 
                         requestBodyStream = new HttpProtocolBodyStream(requestHeader.ContentLength, stream, requestHeader.BodyStartBuffer, true);
 
-                        if (symmetricConfig != null)
+                        if (symmetricConfig is not null)
                             requestBodyStream = SymmetricEncryptor.Decrypt(symmetricConfig, requestBodyStream, false);
 
                         var data = await ContentTypeSerializer.DeserializeAsync<CqrsRequestData>(requestHeader.ContentType.Value, requestBodyStream);
-                        if (data == null)
+                        if (data is null)
                             throw new CqrsNetworkException("Empty request body");
 
 #if NETSTANDARD2_0
@@ -143,14 +143,14 @@ namespace Zerra.CQRS.Network
 
                         //Authorize
                         //------------------------------------------------------------------------------------------------------------
-                        if (this.authorizer != null)
+                        if (this.authorizer is not null)
                         {
-                            if (requestHeader.Headers != null)
+                            if (requestHeader.Headers is not null)
                                 this.authorizer.Authorize(requestHeader.Headers);
                         }
                         else
                         {
-                            if (data.Claims != null)
+                            if (data.Claims is not null)
                             {
                                 var claimsIdentity = new ClaimsIdentity(data.Claims.Select(x => new Claim(x[0], x[1])), "CQRS");
                                 Thread.CurrentPrincipal = new ClaimsPrincipal(claimsIdentity);
@@ -165,10 +165,10 @@ namespace Zerra.CQRS.Network
                         //----------------------------------------------------------------------------------------------------
                         if (!String.IsNullOrWhiteSpace(data.ProviderType))
                         {
-                            if (providerHandlerAsync == null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
+                            if (providerHandlerAsync is null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
 
                             if (String.IsNullOrWhiteSpace(data.ProviderMethod)) throw new Exception("Invalid Request");
-                            if (data.ProviderArguments == null) throw new Exception("Invalid Request");
+                            if (data.ProviderArguments is null) throw new Exception("Invalid Request");
                             if (String.IsNullOrWhiteSpace(data.Source)) throw new Exception("Invalid Request");
                             if (requestHeader.ProviderType != data.ProviderType) throw new Exception("Invalid Request");
 
@@ -196,9 +196,9 @@ namespace Zerra.CQRS.Network
                             responseBodyStream = new HttpProtocolBodyStream(null, stream, null, false);
 
                             int bytesRead;
-                            if (result.Stream != null)
+                            if (result.Stream is not null)
                             {
-                                if (symmetricConfig != null)
+                                if (symmetricConfig is not null)
                                 {
                                     responseBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, responseBodyStream, true);
 
@@ -231,7 +231,7 @@ namespace Zerra.CQRS.Network
                             }
                             else
                             {
-                                if (symmetricConfig != null)
+                                if (symmetricConfig is not null)
                                 {
                                     responseBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, responseBodyStream, true);
 
@@ -253,7 +253,7 @@ namespace Zerra.CQRS.Network
                         }
                         else if (!String.IsNullOrWhiteSpace(data.MessageType))
                         {
-                            if (data.MessageData == null) throw new Exception("Invalid Request");
+                            if (data.MessageData is null) throw new Exception("Invalid Request");
                             if (String.IsNullOrWhiteSpace(data.Source)) throw new Exception("Invalid Request");
                             if (requestHeader.ProviderType != data.MessageType) throw new Exception("Invalid Request");
 
@@ -271,7 +271,7 @@ namespace Zerra.CQRS.Network
                                 throw new CqrsNetworkException($"Unhandled Command Type {commandType.FullName}");
 
                             var command = (ICommand?)ContentTypeSerializer.Deserialize(requestHeader.ContentType.Value, commandType, data.MessageData);
-                            if (command == null)
+                            if (command is null)
                                 throw new Exception($"Invalid {nameof(data.MessageData)}");
 
                             bool hasResult;
@@ -280,19 +280,19 @@ namespace Zerra.CQRS.Network
                             inHandlerContext = true;
                             if (data.MessageResult == true)
                             {
-                                if (handlerWithResultAwaitAsync == null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
+                                if (handlerWithResultAwaitAsync is null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
                                 result = await handlerWithResultAwaitAsync(command, data.Source, false);
                                 hasResult = true;
                             }
                             if (data.MessageAwait == true)
                             {
-                                if (handlerAwaitAsync == null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
+                                if (handlerAwaitAsync is null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
                                 await handlerAwaitAsync(command, data.Source, false);
                                 hasResult = false;
                             }
                             else
                             {
-                                if (handlerAsync == null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
+                                if (handlerAsync is null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
                                 await handlerAsync(command, data.Source, false);
                                 hasResult = false;
                             }
@@ -312,7 +312,7 @@ namespace Zerra.CQRS.Network
                             {
                                 //Response Body
                                 responseBodyStream = new HttpProtocolBodyStream(null, stream, null, false);
-                                if (symmetricConfig != null)
+                                if (symmetricConfig is not null)
                                 {
                                     responseBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, responseBodyStream, true);
 
@@ -348,7 +348,7 @@ namespace Zerra.CQRS.Network
                             return; //aborted or network error
                         }
 
-                        if (socket.Connected && !responseStarted && requestHeader != null && requestHeader.ContentType.HasValue)
+                        if (socket.Connected && !responseStarted && requestHeader is not null && requestHeader.ContentType.HasValue)
                         {
                             try
                             {
@@ -362,7 +362,7 @@ namespace Zerra.CQRS.Network
 
                                 //Response Body
                                 responseBodyStream = new HttpProtocolBodyStream(null, stream, null, false);
-                                if (symmetricConfig != null)
+                                if (symmetricConfig is not null)
                                 {
                                     responseBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, responseBodyStream, true);
 
@@ -386,7 +386,7 @@ namespace Zerra.CQRS.Network
                     }
                     finally
                     {
-                        if (responseBodyCryptoStream != null)
+                        if (responseBodyCryptoStream is not null)
                         {
 #if NETSTANDARD2_0
                             responseBodyCryptoStream.Dispose();
@@ -394,7 +394,7 @@ namespace Zerra.CQRS.Network
                             await responseBodyCryptoStream.DisposeAsync();
 #endif
                         }
-                        if (responseBodyStream != null)
+                        if (responseBodyStream is not null)
                         {
 #if NETSTANDARD2_0
                             responseBodyStream.Dispose();
@@ -402,7 +402,7 @@ namespace Zerra.CQRS.Network
                             await responseBodyStream.DisposeAsync();
 #endif
                         }
-                        if (requestBodyStream != null)
+                        if (requestBodyStream is not null)
                         {
 #if NETSTANDARD2_0
                             requestBodyStream.Dispose();
@@ -410,7 +410,7 @@ namespace Zerra.CQRS.Network
                             await requestBodyStream.DisposeAsync();
 #endif
                         }
-                        if (stream != null)
+                        if (stream is not null)
                         {
 #if NETSTANDARD2_0
                             stream.Dispose();

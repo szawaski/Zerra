@@ -65,7 +65,7 @@ namespace Zerra.Identity.OpenID.Bindings
             foreach (var queryValue in request.Query)
                 this.Document.Add(queryValue.Key, (string)queryValue.Value);
 
-            if (!this.Document.ContainsKey(nameof(JwtHeader.X509Thumbprint)) && jwtHeader.X509Thumbprint != null)
+            if (!this.Document.ContainsKey(nameof(JwtHeader.X509Thumbprint)) && jwtHeader.X509Thumbprint is not null)
                 this.Document.Add(nameof(JwtHeader.X509Thumbprint), JToken.FromObject(jwtHeader.X509Thumbprint));
 
             this.SignatureAlgorithm = Algorithms.GetSignatureAlgorithmFromJwt(jwtHeader.Algorithm);

@@ -45,7 +45,7 @@ namespace Zerra.Threading
 
         public void Run(Func<Task> taskFunc)
         {
-            if (taskFunc == null)
+            if (taskFunc is null)
                 throw new ArgumentNullException(nameof(taskFunc));
 
             if (canceller.IsCancellationRequested)

@@ -46,7 +46,7 @@ namespace Zerra.Identity.TokenManagers
             _ = nonces.TryRemove(nonce, out var nonceInfo);
 
             var valid = true;
-            if (nonceInfo == null)
+            if (nonceInfo is null)
                 valid = false;
             else if (serviceProvider != nonceInfo.ServiceProvider)
                 valid = false;

@@ -41,7 +41,7 @@ namespace Zerra.Identity.OpenID.Documents
 
             var json = binding.GetDocument();
 
-            if (json == null)
+            if (json is null)
                 return;
 
             foreach (var jsonObject in json)
@@ -93,21 +93,21 @@ namespace Zerra.Identity.OpenID.Documents
                 case BindingType.Stream: throw new IdentityProviderException("Binding Type content is not supported");
             }
 
-            if (this.ServiceProvider != null)
+            if (this.ServiceProvider is not null)
                 json.Add(OpenIDBinding.ClientFormName, JToken.FromObject(this.ServiceProvider));
-            if (this.RedirectUrl != null)
+            if (this.RedirectUrl is not null)
                 json.Add("redirect_uri", JToken.FromObject(this.RedirectUrl));
-            if (this.ResponseMode != null)
+            if (this.ResponseMode is not null)
                 json.Add("response_mode", JToken.FromObject(this.ResponseMode?.EnumName()));
-            if (this.ResponseType != null)
+            if (this.ResponseType is not null)
                 json.Add("response_type", JToken.FromObject(this.ResponseType?.EnumName()));
-            if (this.Scope != null)
+            if (this.Scope is not null)
                 json.Add("scope", JToken.FromObject(this.Scope));
-            if (this.State != null)
+            if (this.State is not null)
                 json.Add("state", JToken.FromObject(this.State));
-            if (this.Nonce != null)
+            if (this.Nonce is not null)
                 json.Add("nonce", JToken.FromObject(this.Nonce));
-            if (this.AcrValues != null)
+            if (this.AcrValues is not null)
                 json.Add("acr_values", JToken.FromObject(this.AcrValues));
 
             return json;

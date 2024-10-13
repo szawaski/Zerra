@@ -30,7 +30,7 @@ namespace Zerra.Linq
                 count = 0;
             }
 
-            if (buffer != null && count > 0)
+            if (buffer is not null && count > 0)
             {
                 Array.Resize(ref buffer, count);
                 yield return buffer;
@@ -66,7 +66,7 @@ namespace Zerra.Linq
                 count = 0;
             }
 
-            if (buffer != null && count > 0)
+            if (buffer is not null && count > 0)
             {
                 Array.Resize(ref buffer, count);
                 yield return buffer;
@@ -101,7 +101,7 @@ namespace Zerra.Linq
                 count = 0;
             }
 
-            if (buffer != null && count > 0)
+            if (buffer is not null && count > 0)
             {
                 Array.Resize(ref buffer, count);
                 yield return buffer;

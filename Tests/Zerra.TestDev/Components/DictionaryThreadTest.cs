@@ -247,7 +247,7 @@ namespace Zerra.TestDev
         {
             get
             {
-                if (key == null)
+                if (key is null)
                     throw new ArgumentNullException(nameof(key));
 
                 locker.EnterReadLock();

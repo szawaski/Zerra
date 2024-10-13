@@ -41,11 +41,11 @@ namespace Zerra.Serialization.Bytes.Converters
 
         internal static ByteConverter<TParent> GetDrainBytes()
         {
-            if (cacheByteConverterTypeInfo == null)
+            if (cacheByteConverterTypeInfo is null)
             {
                 lock (cache)
                 {
-                    if (cacheByteConverterTypeInfo == null)
+                    if (cacheByteConverterTypeInfo is null)
                     {
                         var newConverter = new ByteConverterTypeRequired<TParent>();
                         newConverter.Setup(objectTypeDetail, "Drain", null, null);
@@ -64,14 +64,14 @@ namespace Zerra.Serialization.Bytes.Converters
             var discoveredType = ByteConverterDiscovery.Discover(interfaceType);
 
             //Generic match
-            if (discoveredType == null && typeDetail.Type.IsGenericType && !typeDetail.IsNullable)
+            if (discoveredType is null && typeDetail.Type.IsGenericType && !typeDetail.IsNullable)
             {
                 var genericType = typeDetail.Type.GetGenericTypeDefinition();
                 interfaceType = byteConverterHandlesType.GetGenericType(genericType);
                 discoveredType = ByteConverterDiscovery.Discover(interfaceType);
             }
 
-            if (discoveredType != null)
+            if (discoveredType is not null)
             {
                 var discoveredTypeDetail = discoveredType.GetTypeDetail();
                 switch (discoveredTypeDetail.InnerTypes.Count)

@@ -28,7 +28,7 @@ namespace ZerraDemo.Domain.Ledger1
                 if (hasBalance)
                 {
                     var current = await Repo.QueryAsync(new QuerySingle<Ledger1DataModel>(x => x.AccountID == command.AccountID));
-                    if (current == null)
+                    if (current is null)
                         throw new Exception("Ledger not found");
                     currentBalance = current.Balance;
                 }
@@ -46,7 +46,7 @@ namespace ZerraDemo.Domain.Ledger1
                 if (!hasBalance)
                 {
                     await Repo.PersistAsync(new Create<Ledger1DataModel>("Initial Deposit", command, item));
-                    if (account == null)
+                    if (account is null)
                         Repo.Persist(new Create<Ledger1AccountDataModel>(new Ledger1AccountDataModel() { AccountID = command.AccountID, HasBalance = true }));
                     else
                         Repo.Persist(new Update<Ledger1AccountDataModel>(new Ledger1AccountDataModel() { AccountID = command.AccountID, HasBalance = true }));
@@ -76,7 +76,7 @@ namespace ZerraDemo.Domain.Ledger1
                 if (hasBalance)
                 {
                     var current = await Repo.QueryAsync(new QuerySingle<Ledger1DataModel>(x => x.AccountID == command.AccountID));
-                    if (current == null)
+                    if (current is null)
                         throw new Exception("Ledger not found");
                     currentBalance = current.Balance;
                 }
@@ -95,7 +95,7 @@ namespace ZerraDemo.Domain.Ledger1
                 if (!hasBalance)
                 {
                     await Repo.PersistAsync(new Create<Ledger1DataModel>("Initial Withdraw", command, item));
-                    if (account == null)
+                    if (account is null)
                         Repo.Persist(new Create<Ledger1AccountDataModel>(new Ledger1AccountDataModel() { AccountID = command.AccountID, HasBalance = true }));
                     else
                         Repo.Persist(new Update<Ledger1AccountDataModel>(new Ledger1AccountDataModel() { AccountID = command.AccountID, HasBalance = true }));
@@ -122,13 +122,13 @@ namespace ZerraDemo.Domain.Ledger1
             {
                 decimal fromCurrentBalance;
                 var fromAccount = await Repo.QueryAsync(new QuerySingle<Ledger1AccountDataModel>(x => x.AccountID == command.FromAccountID));
-                if (fromAccount == null)
+                if (fromAccount is null)
                     throw new Exception("Account not found");
                 var fromHasBalance = fromAccount.HasBalance == true;
                 if (fromHasBalance)
                 {
                     var current = await Repo.QueryAsync(new QuerySingle<Ledger1DataModel>(x => x.AccountID == command.FromAccountID));
-                    if (current == null)
+                    if (current is null)
                         throw new Exception("Ledger not found");
                     fromCurrentBalance = current.Balance;
                 }
@@ -139,13 +139,13 @@ namespace ZerraDemo.Domain.Ledger1
 
                 decimal toCurrentBalance;
                 var toAccount = await Repo.QueryAsync(new QuerySingle<Ledger1AccountDataModel>(x => x.AccountID == command.ToAccountID));
-                if (toAccount == null)
+                if (toAccount is null)
                     throw new Exception("Account not found");
                 var toHasBalance = fromAccount.HasBalance == true;
                 if (toHasBalance)
                 {
                     var current = await Repo.QueryAsync(new QuerySingle<Ledger1DataModel>(x => x.AccountID == command.ToAccountID));
-                    if (current == null)
+                    if (current is null)
                         throw new Exception("Ledger not found");
                     toCurrentBalance = current.Balance;
                 }
@@ -170,7 +170,7 @@ namespace ZerraDemo.Domain.Ledger1
                 if (!fromHasBalance)
                 {
                     await Repo.PersistAsync(new Create<Ledger1DataModel>("Initial Transfer Withdraw", command, itemFrom));
-                    if (fromAccount == null)
+                    if (fromAccount is null)
                         Repo.Persist(new Create<Ledger1AccountDataModel>(new Ledger1AccountDataModel() { AccountID = command.FromAccountID, HasBalance = true }));
                     else
                         Repo.Persist(new Update<Ledger1AccountDataModel>(new Ledger1AccountDataModel() { AccountID = command.FromAccountID, HasBalance = true }));
@@ -186,7 +186,7 @@ namespace ZerraDemo.Domain.Ledger1
                 if (!toHasBalance)
                 {
                     await Repo.PersistAsync(new Create<Ledger1DataModel>("Initial Transfer Deposit", command, itemTo));
-                    if (toAccount == null)
+                    if (toAccount is null)
                         Repo.Persist(new Create<Ledger1AccountDataModel>(new Ledger1AccountDataModel() { AccountID = command.ToAccountID, HasBalance = true }));
                     else
                         Repo.Persist(new Update<Ledger1AccountDataModel>(new Ledger1AccountDataModel() { AccountID = command.ToAccountID, HasBalance = true }));

@@ -26,7 +26,7 @@ namespace Zerra.Reflection.Runtime
         {
             get
             {
-                if (this.attributes == null)
+                if (this.attributes is null)
                 {
                     lock (locker)
                     {
@@ -54,7 +54,7 @@ namespace Zerra.Reflection.Runtime
             {
                 if (!getterBoxedLoaded)
                     LoadGetterBoxed();
-                return this.getterBoxed != null;
+                return this.getterBoxed is not null;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -69,7 +69,7 @@ namespace Zerra.Reflection.Runtime
                         var property = (PropertyInfo)MemberInfo;
                         if (!property.PropertyType.IsPointer)
                         {
-                            if (BackingFieldDetailBoxed == null)
+                            if (BackingFieldDetailBoxed is null)
                             {
                                 this.getterBoxed = AccessorGenerator.GenerateGetter(property);
                             }
@@ -109,7 +109,7 @@ namespace Zerra.Reflection.Runtime
             {
                 if (!setterBoxedLoaded)
                     LoadSetterBoxed();
-                return this.setterBoxed != null;
+                return this.setterBoxed is not null;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -124,7 +124,7 @@ namespace Zerra.Reflection.Runtime
                         var property = (PropertyInfo)MemberInfo;
                         if (!property.PropertyType.IsPointer)
                         {
-                            if (BackingFieldDetailBoxed == null)
+                            if (BackingFieldDetailBoxed is null)
                             {
                                 this.setterBoxed = AccessorGenerator.GenerateSetter(property);
                             }
@@ -152,7 +152,7 @@ namespace Zerra.Reflection.Runtime
         {
             get
             {
-                if (typeDetailBoxed == null)
+                if (typeDetailBoxed is null)
                 {
                     lock (locker)
                     {
@@ -189,7 +189,7 @@ namespace Zerra.Reflection.Runtime
                 throw new NotSupportedException($"{nameof(MemberDetail)} does not support {member.MemberType}");
             }
 
-            this.IsBacked = member.MemberType == MemberTypes.Field || backingFieldDetail != null;
+            this.IsBacked = member.MemberType == MemberTypes.Field || backingFieldDetail is not null;
         }
 
         internal override void SetMemberInfo(MemberInfo memberInfo, MemberInfo? backingField) => throw new NotSupportedException();

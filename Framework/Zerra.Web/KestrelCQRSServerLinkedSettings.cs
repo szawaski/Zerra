@@ -35,8 +35,8 @@ namespace Zerra.Web
             }
             set
             {
-                allowOrigins = value == null || value.Length == 0 ? null : value;
-                allowOriginsString = value == null || value.Length == 0 ? "*" : String.Join(", ", value);
+                allowOrigins = value is null || value.Length == 0 ? null : value;
+                allowOriginsString = value is null || value.Length == 0 ? "*" : String.Join(", ", value);
             }
         }
 

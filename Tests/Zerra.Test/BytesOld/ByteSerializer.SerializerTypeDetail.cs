@@ -30,7 +30,7 @@ namespace Zerra.Serialization.Bytes
             {
                 get
                 {
-                    if (innerTypeDetails == null)
+                    if (innerTypeDetails is null)
                     {
                         lock (this)
                         {
@@ -64,8 +64,8 @@ namespace Zerra.Serialization.Bytes
                     var memberSets = new List<Tuple<MemberDetail, SerializerIndexAttribute?, NonSerializedAttribute?>>();
                     foreach (var member in this.TypeDetail.SerializableMemberDetails)
                     {
-                        var indexAttribute = member.Attributes.Select(x => x as SerializerIndexAttribute).Where(x => x != null).FirstOrDefault();
-                        var nonSerializedAttribute = member.Attributes.Select(x => x as NonSerializedAttribute).Where(x => x != null).FirstOrDefault();
+                        var indexAttribute = member.Attributes.Select(x => x as SerializerIndexAttribute).Where(x => x is not null).FirstOrDefault();
+                        var nonSerializedAttribute = member.Attributes.Select(x => x as NonSerializedAttribute).Where(x => x is not null).FirstOrDefault();
                         memberSets.Add(new Tuple<MemberDetail, SerializerIndexAttribute?, NonSerializedAttribute?>(member, indexAttribute, nonSerializedAttribute));
                     }
 
@@ -74,7 +74,7 @@ namespace Zerra.Serialization.Bytes
 
                     if (!ignoreIndexAttribute)
                     {
-                        var membersWithIndexes = memberSets.Where(x => x.Item2 != null && x.Item3 == null).ToArray();
+                        var membersWithIndexes = memberSets.Where(x => x.Item2 is not null && x.Item3 is null).ToArray();
                         if (membersWithIndexes.Length > 0)
                         {
                             foreach (var member in membersWithIndexes)
@@ -104,7 +104,7 @@ namespace Zerra.Serialization.Bytes
                     if (propertiesByIndex.Count == 0)
                     {
                         var orderIndex = 0;
-                        foreach (var member in memberSets.Where(x => x.Item3 == null))
+                        foreach (var member in memberSets.Where(x => x.Item3 is null))
                         {
                             switch (indexSize)
                             {

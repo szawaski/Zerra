@@ -280,7 +280,7 @@ namespace Zerra.T4.CSharp
                             break;
                         case "(":
                             //method;
-                            if (statementType == null)
+                            if (statementType is null)
                             {
                                 SkipToToken(context, chars, ref index, ')');
                                 index++;
@@ -288,7 +288,7 @@ namespace Zerra.T4.CSharp
                             }
                             else
                             {
-                                if (statementName == null)
+                                if (statementName is null)
                                 {
                                     statementName = statementType;
                                     statementType = "void";
@@ -306,13 +306,13 @@ namespace Zerra.T4.CSharp
                                 currentKeywords.Add(keyword);
                                 break;
                             }
-                            if (statementType == null)
+                            if (statementType is null)
                                 statementType = keyword;
-                            else if (statementName == null)
+                            else if (statementName is null)
                                 statementName = keyword;
                             else
                                 throw new Exception($"Invalid token {keyword} at {index} in {context.FileName}");
-                            if (statementName != null && (statementName == "this" || statementName.EndsWith(".this")))
+                            if (statementName is not null && (statementName == "this" || statementName.EndsWith(".this")))
                             {
                                 //property;
                                 var csIndexProperty = ParseIndexProperty(solution, context, chars, ref index, statementType, currentKeywords);
@@ -490,7 +490,7 @@ namespace Zerra.T4.CSharp
                         break;
                     case "get":
                         hasGet = true;
-                        isGetPublic = firstKeyword == null || firstKeyword == "public";
+                        isGetPublic = firstKeyword is null || firstKeyword == "public";
                         firstKeyword = null;
                         var afterGetToken = ReadKeywordOrToken(context, chars, ref index);
                         switch (afterGetToken)
@@ -503,7 +503,7 @@ namespace Zerra.T4.CSharp
                         break;
                     case "set":
                         hasSet = true;
-                        isSetPublic = firstKeyword == null || firstKeyword == "public";
+                        isSetPublic = firstKeyword is null || firstKeyword == "public";
                         firstKeyword = null;
                         var afterSetToken = ReadKeywordOrToken(context, chars, ref index);
                         switch (afterSetToken)

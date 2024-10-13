@@ -68,13 +68,13 @@ namespace Zerra.Identity.OpenID
 
         public void Sign(RSA rsa, bool requiredSignature)
         {
-            if (requiredSignature && rsa == null)
+            if (requiredSignature && rsa is null)
                 throw new InvalidOperationException("OpenID Missing Cert for Required Signing");
 
-            if (this.Signature != null)
+            if (this.Signature is not null)
                 throw new InvalidOperationException("OpenID Document is Already Signed");
 
-            if (rsa == null)
+            if (rsa is null)
                 return;
 
             this.singingInput = BuildSigningInput();
@@ -84,16 +84,16 @@ namespace Zerra.Identity.OpenID
 
         public void ValidateSignature(RSA rsa, bool requiredSignature)
         {
-            if (requiredSignature && rsa == null)
+            if (requiredSignature && rsa is null)
                 throw new InvalidOperationException("OpenID Missing Cert for Validating Required Signature");
 
-            if (requiredSignature && this.Signature == null)
+            if (requiredSignature && this.Signature is null)
                 throw new IdentityProviderException("OpenID Document Missing Required Signature");
 
-            if (rsa == null)
+            if (rsa is null)
                 return;
 
-            if (this.Signature != null)
+            if (this.Signature is not null)
             {
                 var valid = TextSigner.Validate(this.singingInput, this.Signature, rsa, this.SignatureAlgorithm.Value, true);
                 if (!valid)
@@ -115,7 +115,7 @@ namespace Zerra.Identity.OpenID
                 throw new IdentityProviderException("OpenID Document Is Invalid Or Expired");
 
             var error = Error(this.Document);
-            if (error != null)
+            if (error is not null)
             {
                 var errorDescription = ErrorDescription(this.Document);
                 throw new IdentityProviderException(errorDescription);
@@ -124,7 +124,7 @@ namespace Zerra.Identity.OpenID
         private static DateTimeOffset? NotBefore(JObject json)
         {
             var value = json[nameof(JwtOpenIDPayload.NotBefore)]?.ToObject<string>();
-            if (value == null)
+            if (value is null)
                 return null;
             var date = DateTimeOffset.FromUnixTimeSeconds(Convert.ToInt64(value));
             return date;
@@ -132,7 +132,7 @@ namespace Zerra.Identity.OpenID
         private static DateTimeOffset? NotOnOrAfter(JObject json)
         {
             var value = json[nameof(JwtOpenIDPayload.Expiration)]?.ToObject<string>();
-            if (value == null)
+            if (value is null)
                 return null;
             var date = DateTimeOffset.FromUnixTimeSeconds(Convert.ToInt64(value));
             return date;
@@ -166,7 +166,7 @@ namespace Zerra.Identity.OpenID
             foreach (var property in typeof(JwtOpenIDPayload).GetProperties())
             {
                 var jToken = this.Document[property.Name];
-                if (jToken != null)
+                if (jToken is not null)
                 {
                     var value = jToken.ToObject(property.PropertyType);
                     property.SetValue(jwtPayload, value);
@@ -218,7 +218,7 @@ namespace Zerra.Identity.OpenID
             _ = sb.Append(jwtHeaderEncoded);
             _ = sb.Append(OpenIDJwtFormBinding.tokenDelimiter);
             _ = sb.Append(jwtPayloadEncoded);
-            if (this.Signature != null)
+            if (this.Signature is not null)
             {
                 _ = sb.Append(OpenIDJwtFormBinding.tokenDelimiter);
                 _ = sb.Append(this.Signature);
@@ -230,11 +230,11 @@ namespace Zerra.Identity.OpenID
         private static Dictionary<string, string> jwtPayloadPropertiesCache = null;
         private static Dictionary<string, string> GetJwtPayloadProperties()
         {
-            if (jwtPayloadPropertiesCache == null)
+            if (jwtPayloadPropertiesCache is null)
             {
                 lock (jwtPayloadPropertiesLock)
                 {
-                    if (jwtPayloadPropertiesCache == null)
+                    if (jwtPayloadPropertiesCache is null)
                     {
                         var cache = new Dictionary<string, string>();
                         var properties = typeof(JwtOpenIDPayload).GetProperties();

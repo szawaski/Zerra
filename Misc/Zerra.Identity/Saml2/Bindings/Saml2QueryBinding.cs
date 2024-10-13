@@ -47,7 +47,7 @@ namespace Zerra.Identity.Saml2.Bindings
 
             this.singingInput = request.QueryString.Substring(1, request.QueryString.IndexOf("&" + Saml2Names.SignatureParameterName + "=") - 1);
 
-            if (samlEncoded == null)
+            if (samlEncoded is null)
                 return;
 
             var samlRequestDecoded = DecodeSaml(samlEncoded);
@@ -59,10 +59,10 @@ namespace Zerra.Identity.Saml2.Bindings
 
         public override void Sign(X509Certificate2 cert, bool requiredSignature)
         {
-            if (requiredSignature && cert == null)
+            if (requiredSignature && cert is null)
                 throw new InvalidOperationException("Saml2 Missing Cert for Required Signing");
 
-            if (this.Signature != null)
+            if (this.Signature is not null)
                 throw new InvalidOperationException("Saml2 Document is Already Signed");
 
             this.SignatureAlgorithm ??= Cryptography.XmlSignatureAlgorithmType.RsaSha256;
@@ -74,13 +74,13 @@ namespace Zerra.Identity.Saml2.Bindings
 
         public override void ValidateSignature(X509Certificate2 cert, bool requiredSignature)
         {
-            if (requiredSignature && cert == null)
+            if (requiredSignature && cert is null)
                 throw new InvalidOperationException("Saml2 Missing Cert for Validating Required Signature");
 
-            if (requiredSignature && this.Signature == null)
+            if (requiredSignature && this.Signature is null)
                 throw new IdentityProviderException("Saml2 Document Missing Required Signature");
 
-            if (this.Signature != null)
+            if (this.Signature is not null)
             {
                 var valid = TextSigner.Validate(this.singingInput, this.Signature, cert.GetRSAPublicKey(), this.SignatureAlgorithm.Value, false);
                 if (!valid)
@@ -172,7 +172,7 @@ namespace Zerra.Identity.Saml2.Bindings
             var queryString = BuildSignatureQueryString(samlEncoded);
             _ = sb.Append(queryString);
 
-            if (this.Signature != null)
+            if (this.Signature is not null)
             {
                 _ = sb.Append('&').Append(Saml2Names.SignatureParameterName).Append('=').Append(WebUtility.UrlEncode(this.Signature));
             }

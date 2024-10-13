@@ -58,7 +58,7 @@ namespace Zerra.Web
                 data.AddProviderArguments(arguments);
 
                 IDictionary<string, IList<string?>>? authHeaders = null;
-                if (authorizer != null)
+                if (authorizer is not null)
                     authHeaders = authorizer.BuildAuthHeaders();
 
                 var request = new HttpRequestMessage(HttpMethod.Post, serviceUri);
@@ -68,7 +68,7 @@ namespace Zerra.Web
                 {
                     request.Content = new WriteStreamContent((requestBodyStream) =>
                     {
-                        if (symmetricConfig != null)
+                        if (symmetricConfig is not null)
                         {
                             CryptoFlushStream? requestBodyCryptoStream = null;
                             try
@@ -104,7 +104,7 @@ namespace Zerra.Web
                     request.Headers.Host = serviceUri.Authority;
                     request.Headers.Add(HttpCommon.OriginHeader, serviceUri.Host);
 
-                    if (authHeaders != null)
+                    if (authHeaders is not null)
                     {
                         foreach (var authHeader in authHeaders)
                         {
@@ -170,7 +170,7 @@ namespace Zerra.Web
                 data.AddProviderArguments(arguments);
 
                 IDictionary<string, IList<string?>>? authHeaders = null;
-                if (authorizer != null)
+                if (authorizer is not null)
                     authHeaders = authorizer.BuildAuthHeaders();
 
                 var request = new HttpRequestMessage(HttpMethod.Post, serviceUri);
@@ -180,7 +180,7 @@ namespace Zerra.Web
                 {
                     request.Content = new WriteStreamContent(async (requestBodyStream) =>
                     {
-                        if (symmetricConfig != null)
+                        if (symmetricConfig is not null)
                         {
                             CryptoFlushStream? requestBodyCryptoStream = null;
                             try
@@ -191,7 +191,7 @@ namespace Zerra.Web
                             }
                             finally
                             {
-                                if (requestBodyCryptoStream != null)
+                                if (requestBodyCryptoStream is not null)
                                 {
                                     await requestBodyCryptoStream.DisposeAsync();
                                 }
@@ -219,7 +219,7 @@ namespace Zerra.Web
                     request.Headers.Host = serviceUri.Authority;
                     request.Headers.Add(HttpCommon.OriginHeader, serviceUri.Host);
 
-                    if (authHeaders != null)
+                    if (authHeaders is not null)
                     {
                         foreach (var authHeader in authHeaders)
                         {
@@ -231,7 +231,7 @@ namespace Zerra.Web
                     response = await client.SendAsync(request);
                     responseBodyStream = await response.Content.ReadAsStreamAsync();
 
-                    if (symmetricConfig != null)
+                    if (symmetricConfig is not null)
                         responseBodyStream = SymmetricEncryptor.Decrypt(symmetricConfig, responseBodyStream, false);
 
                     if (!response.IsSuccessStatusCode)
@@ -254,7 +254,7 @@ namespace Zerra.Web
                 }
                 catch
                 {
-                    if (responseBodyStream != null)
+                    if (responseBodyStream is not null)
                     {
                         await responseBodyStream.DisposeAsync();
                     }
@@ -294,7 +294,7 @@ namespace Zerra.Web
                 };
 
                 IDictionary<string, IList<string?>>? authHeaders = null;
-                if (authorizer != null)
+                if (authorizer is not null)
                     authHeaders = authorizer.BuildAuthHeaders();
 
                 var request = new HttpRequestMessage(HttpMethod.Post, serviceUri);
@@ -304,7 +304,7 @@ namespace Zerra.Web
                 {
                     request.Content = new WriteStreamContent(async (requestBodyStream) =>
                     {
-                        if (symmetricConfig != null)
+                        if (symmetricConfig is not null)
                         {
                             CryptoFlushStream? requestBodyCryptoStream = null;
                             try
@@ -315,7 +315,7 @@ namespace Zerra.Web
                             }
                             finally
                             {
-                                if (requestBodyCryptoStream != null)
+                                if (requestBodyCryptoStream is not null)
                                 {
                                     await requestBodyCryptoStream.DisposeAsync();
                                 }
@@ -343,7 +343,7 @@ namespace Zerra.Web
                     request.Headers.Host = serviceUri.Authority;
                     request.Headers.Add(HttpCommon.OriginHeader, serviceUri.Host);
 
-                    if (authHeaders != null)
+                    if (authHeaders is not null)
                     {
                         foreach (var authHeader in authHeaders)
                         {
@@ -365,7 +365,7 @@ namespace Zerra.Web
                 }
                 catch
                 {
-                    if (responseBodyStream != null)
+                    if (responseBodyStream is not null)
                     {
                         await responseBodyStream.DisposeAsync();
                     }
@@ -405,7 +405,7 @@ namespace Zerra.Web
                 };
 
                 IDictionary<string, IList<string?>>? authHeaders = null;
-                if (authorizer != null)
+                if (authorizer is not null)
                     authHeaders = authorizer.BuildAuthHeaders();
 
                 var request = new HttpRequestMessage(HttpMethod.Post, serviceUri);
@@ -415,7 +415,7 @@ namespace Zerra.Web
                 {
                     request.Content = new WriteStreamContent(async (requestBodyStream) =>
                     {
-                        if (symmetricConfig != null)
+                        if (symmetricConfig is not null)
                         {
                             CryptoFlushStream? requestBodyCryptoStream = null;
                             try
@@ -426,7 +426,7 @@ namespace Zerra.Web
                             }
                             finally
                             {
-                                if (requestBodyCryptoStream != null)
+                                if (requestBodyCryptoStream is not null)
                                 {
                                     await requestBodyCryptoStream.DisposeAsync();
                                 }
@@ -454,7 +454,7 @@ namespace Zerra.Web
                     request.Headers.Host = serviceUri.Authority;
                     request.Headers.Add(HttpCommon.OriginHeader, serviceUri.Host);
 
-                    if (authHeaders != null)
+                    if (authHeaders is not null)
                     {
                         foreach (var authHeader in authHeaders)
                         {
@@ -486,7 +486,7 @@ namespace Zerra.Web
                 }
                 catch
                 {
-                    if (responseBodyStream != null)
+                    if (responseBodyStream is not null)
                     {
                         await responseBodyStream.DisposeAsync();
                     }

@@ -45,12 +45,12 @@ namespace Zerra.Serialization.Bytes.Converters.General
             {
                 if (member.Attributes.Any(x => x is NonSerializedAttribute))
                     continue;
-                var indexAttribute = member.Attributes.Select(x => x as SerializerIndexAttribute).Where(x => x != null).FirstOrDefault();
+                var indexAttribute = member.Attributes.Select(x => x as SerializerIndexAttribute).Where(x => x is not null).FirstOrDefault();
                 memberSets.Add(new Tuple<MemberDetail, SerializerIndexAttribute?>(member, indexAttribute));
             }
 
             //Members by Index with Attributes
-            foreach (var member in memberSets.Where(x => x.Item2 != null))
+            foreach (var member in memberSets.Where(x => x.Item2 is not null))
             {
                 var index = (ushort)(member.Item2!.Index + indexOffset);
 
@@ -93,7 +93,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     foreach (var parameter in constructor.ParameterDetails)
                     {
                         //cannot have argument of itself or a null name
-                        if (parameter.Type == typeDetail.Type || parameter.Name == null)
+                        if (parameter.Type == typeDetail.Type || parameter.Name is null)
                         {
                             skip = true;
                             break;
@@ -110,7 +110,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     parameterConstructor = constructor;
                     break;
                 }
-                collectValues = parameterConstructor != null;
+                collectValues = parameterConstructor is not null;
             }
         }
 
@@ -327,7 +327,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members for index size");
 
             IEnumerator<KeyValuePair<ushort, ByteConverterObjectMember>> enumerator;
-            if (state.Current.Enumerator == null)
+            if (state.Current.Enumerator is null)
             {
                 if (state.IgnoreIndexAttribute)
                     enumerator = membersByIndexIngoreAttributes.GetEnumerator();

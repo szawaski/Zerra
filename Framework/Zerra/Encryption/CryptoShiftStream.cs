@@ -82,14 +82,14 @@ namespace Zerra.Encryption
 
         protected override void Dispose(bool disposing)
         {
-            if (keyBufferOwner != null)
+            if (keyBufferOwner is not null)
             {
                 Array.Clear(keyBufferOwner, 0, keyBufferOwner.Length);
                 ArrayPoolHelper<byte>.Return(keyBufferOwner);
                 keyBufferOwner = null;
                 keyBuffer = null;
             }
-            if (workingBufferOwner != null)
+            if (workingBufferOwner is not null)
             {
                 Array.Clear(workingBufferOwner, 0, workingBufferOwner.Length);
                 ArrayPoolHelper<byte>.Return(workingBufferOwner);
@@ -101,14 +101,14 @@ namespace Zerra.Encryption
 #if !NETSTANDARD2_0
         public override ValueTask DisposeAsync()
         {
-            if (keyBufferOwner != null)
+            if (keyBufferOwner is not null)
             {
                 Array.Clear(keyBufferOwner, 0, keyBufferOwner.Length);
                 ArrayPoolHelper<byte>.Return(keyBufferOwner);
                 keyBufferOwner = null;
                 keyBuffer = null;
             }
-            if (workingBufferOwner != null)
+            if (workingBufferOwner is not null)
             {
                 Array.Clear(workingBufferOwner, 0, workingBufferOwner.Length);
                 ArrayPoolHelper<byte>.Return(workingBufferOwner);
@@ -121,14 +121,14 @@ namespace Zerra.Encryption
 
         public void FlushFinalBlock()
         {
-            if (cryptoStream != null)
+            if (cryptoStream is not null)
                 cryptoStream.FlushFinalBlock();
         }
 
 #if NET5_0_OR_GREATER
         public ValueTask FlushFinalBlockAsync()
         {
-            if (cryptoStream != null)
+            if (cryptoStream is not null)
                 return cryptoStream.FlushFinalBlockAsync();
             return ValueTask.CompletedTask;
         }
@@ -145,10 +145,8 @@ namespace Zerra.Encryption
 
         protected override int InternalRead(Span<byte> buffer)
         {
-            if (buffer == null)
-                throw new ArgumentNullException(nameof(buffer));
 #if NETSTANDARD2_0
-            if (!CanRead || workingBufferOwner == null)
+            if (!CanRead || workingBufferOwner is null)
 #else
             if (!CanRead)
 #endif
@@ -226,7 +224,7 @@ namespace Zerra.Encryption
         protected override async ValueTask<int> InternalReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
         {
 #if NETSTANDARD2_0
-            if (!CanRead || workingBufferOwner == null)
+            if (!CanRead || workingBufferOwner is null)
 #else
             if (!CanRead)
 #endif
@@ -304,8 +302,6 @@ namespace Zerra.Encryption
 
         protected override void InternalWrite(ReadOnlySpan<byte> buffer)
         {
-            if (buffer == null)
-                throw new ArgumentNullException(nameof(buffer));
             if (!CanWrite)
                 throw new InvalidOperationException($"Cannot read in {nameof(CryptoStreamMode)}.{mode}");
 

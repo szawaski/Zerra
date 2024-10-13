@@ -74,13 +74,13 @@ namespace Zerra.Identity.Saml2.Bindings
 
         public override void Sign(X509Certificate2 cert, bool requiredSignature)
         {
-            if (requiredSignature && cert == null)
+            if (requiredSignature && cert is null)
                 throw new InvalidOperationException("Saml2 Missing Cert for Required Signing");
 
             if (this.HasSignature)
                 throw new InvalidOperationException("Saml2 Document is Already Signed");
 
-            if (cert == null)
+            if (cert is null)
                 return;
 
             this.SignatureAlgorithm ??= Cryptography.XmlSignatureAlgorithmType.RsaSha256;
@@ -92,13 +92,13 @@ namespace Zerra.Identity.Saml2.Bindings
 
         public override void ValidateSignature(X509Certificate2 cert, bool requiredSignature)
         {
-            if (requiredSignature && cert == null)
+            if (requiredSignature && cert is null)
                 throw new InvalidOperationException("Saml2 Missing Cert for Validating Required Signature");
 
             if (requiredSignature && !this.HasSignature)
                 throw new IdentityProviderException("Saml2 Document Missing Required Signature");
 
-            if (cert == null)
+            if (cert is null)
                 return;
 
             if (this.HasSignature)
@@ -111,7 +111,7 @@ namespace Zerra.Identity.Saml2.Bindings
 
         public override void Encrypt(X509Certificate2 cert, bool requiredEncryption)
         {
-            if (requiredEncryption && cert == null)
+            if (requiredEncryption && cert is null)
                 throw new InvalidOperationException("Saml2 Missing Cert for Required Encryption");
 
             if (this.HasSignature)
@@ -127,7 +127,7 @@ namespace Zerra.Identity.Saml2.Bindings
 
         public override void Decrypt(X509Certificate2 cert, bool requiredEncryption)
         {
-            if (requiredEncryption && cert == null)
+            if (requiredEncryption && cert is null)
                 throw new IdentityProviderException("Saml2 Missing Cert for Decryption");
 
             if (requiredEncryption && !this.HasEncryption)
@@ -178,7 +178,7 @@ namespace Zerra.Identity.Saml2.Bindings
 
             _ = sb.Append("<html><head><title>Working...</title></head><body>");
             _ = sb.Append("<form method=\"POST\" name=\"name=\"hiddenform\" action=\"").Append(url).Append("\">");
-            if (inputs != null)
+            if (inputs is not null)
             {
                 foreach (var input in inputs)
                     _ = sb.Append(String.Format("<input type=\"hidden\" name=\"{0}\" value=\"{1}\">", WebUtility.HtmlEncode(input.Key), WebUtility.HtmlEncode(input.Value)));

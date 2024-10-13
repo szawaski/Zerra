@@ -22,13 +22,13 @@ namespace Zerra.T4.CSharp
         }
         public override string ToString()
         {
-            if (NativeType != null)
+            if (NativeType is not null)
             {
                 return NativeType.FullName;
             }
-            else if (SolutionType != null)
+            else if (SolutionType is not null)
             {
-                var nsText = SolutionType.Namespace == null ? "" : $"{SolutionType.Namespace}.";
+                var nsText = SolutionType.Namespace is null ? "" : $"{SolutionType.Namespace}.";
                 return $"{nsText}{SolutionType.Name}";
             }
             else

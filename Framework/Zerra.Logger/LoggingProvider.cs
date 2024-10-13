@@ -79,10 +79,10 @@ namespace Zerra.Logger
         {
             var sb = new StringBuilder();
             _ = sb.Append(errorCategory).Append(": ").Append(message).Append(Environment.NewLine);
-            if (exception != null)
+            if (exception is not null)
             {
                 var ex = exception;
-                while (ex != null)
+                while (ex is not null)
                 {
                     _ = sb.Append(exception.GetType().Name).Append(": ").Append(exception.Message).Append(Environment.NewLine);
                     _ = sb.Append(exception.StackTrace);
@@ -104,10 +104,10 @@ namespace Zerra.Logger
         {
             var sb = new StringBuilder();
             _ = sb.Append(criticalCategory).Append(": ").Append(message).Append(Environment.NewLine);
-            if (exception != null)
+            if (exception is not null)
             {
                 var ex = exception;
-                while (ex != null)
+                while (ex is not null)
                 {
                     _ = sb.Append(exception.GetType().Name).Append(": ").Append(exception.Message).Append(Environment.NewLine);
                     _ = sb.Append(exception.StackTrace);

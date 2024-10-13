@@ -29,7 +29,7 @@ namespace Zerra.Repository.MsSql
             if (lambda.Parameters.Count != 1)
                 throw new NotSupportedException("Can only parse a lambda with one parameter.");
             var parameter = lambda.Parameters[0];
-            if (parameter.Name == null)
+            if (parameter.Name is null)
                 throw new Exception($"Parameter has no name {parameter.Type.GetNiceName()}");
 
             var modelDetail = ModelAnalyzer.GetModel(parameter.Type);
@@ -84,7 +84,7 @@ namespace Zerra.Repository.MsSql
             {
                 ConvertToSqlEvaluate(exp, ref sb, context);
             }
-            else if (call.Method.DeclaringType != null)
+            else if (call.Method.DeclaringType is not null)
             {
                 if (call.Method.DeclaringType == typeof(Enumerable) || call.Method.DeclaringType == typeof(Queryable))
                 {
@@ -96,7 +96,7 @@ namespace Zerra.Repository.MsSql
                                     throw new NotSupportedException($"Cannot convert call expression {call.Method.Name}");
 
                                 var subMember = (MemberExpression)call.Arguments[0];
-                                if (subMember.Expression == null)
+                                if (subMember.Expression is null)
                                     throw new NotSupportedException($"Cannot convert call expression {call.Method.Name}");
 
                                 var subWhere = call.Arguments[1];
@@ -106,7 +106,7 @@ namespace Zerra.Repository.MsSql
 
                                 var subMemberModel = ModelAnalyzer.GetModel(subMember.Expression.Type);
                                 var propertyInfo = subMemberModel.GetProperty(subMember.Member.Name);
-                                if (propertyInfo.ForeignIdentity == null)
+                                if (propertyInfo.ForeignIdentity is null)
                                     throw new Exception($"{propertyInfo.Type.GetNiceName()} missing Foreign Identity");
 
                                 var subModelInfo = ModelAnalyzer.GetModel(propertyInfo.InnerType);
@@ -132,7 +132,7 @@ namespace Zerra.Repository.MsSql
                                     throw new NotSupportedException($"Cannot convert call expression {call.Method.Name}");
 
                                 var subMember = (MemberExpression)call.Arguments[0];
-                                if (subMember.Expression == null)
+                                if (subMember.Expression is null)
                                     throw new NotSupportedException($"Cannot convert call expression {call.Method.Name}");
 
                                 var subWhere = call.Arguments.Count > 1 ? call.Arguments[1] : null;
@@ -142,7 +142,7 @@ namespace Zerra.Repository.MsSql
 
                                 var subMemberModel = ModelAnalyzer.GetModel(subMember.Expression.Type);
                                 var propertyInfo = subMemberModel.GetProperty(subMember.Member.Name);
-                                if (propertyInfo.ForeignIdentity == null)
+                                if (propertyInfo.ForeignIdentity is null)
                                     throw new Exception($"{propertyInfo.Type.GetNiceName()} missing Foreign Identity");
 
                                 var subModelInfo = ModelAnalyzer.GetModel(propertyInfo.InnerType);
@@ -168,7 +168,7 @@ namespace Zerra.Repository.MsSql
                                     throw new NotSupportedException($"Cannot convert call expression {call.Method.Name}");
 
                                 var subMember = (MemberExpression)call.Arguments[0];
-                                if (subMember.Expression == null)
+                                if (subMember.Expression is null)
                                     throw new NotSupportedException($"Cannot convert call expression {call.Method.Name}");
 
                                 var subWhere = call.Arguments.Count > 1 ? call.Arguments[1] : null;
@@ -179,7 +179,7 @@ namespace Zerra.Repository.MsSql
 
                                 var subMemberModel = ModelAnalyzer.GetModel(subMember.Expression.Type);
                                 var propertyInfo = subMemberModel.GetProperty(subMember.Member.Name);
-                                if (propertyInfo.ForeignIdentity == null)
+                                if (propertyInfo.ForeignIdentity is null)
                                     throw new Exception($"{propertyInfo.Type.GetNiceName()} missing Foreign Identity");
 
                                 var subModelInfo = ModelAnalyzer.GetModel(propertyInfo.InnerType);
@@ -220,7 +220,7 @@ namespace Zerra.Repository.MsSql
                     {
                         case "Contains":
                             {
-                                if (call.Arguments.Count != 1 || call.Object == null)
+                                if (call.Arguments.Count != 1 || call.Object is null)
                                     throw new NotSupportedException($"Cannot convert call expression {call.Method.Name}");
 
                                 var callingObject = call.Object;
@@ -248,7 +248,7 @@ namespace Zerra.Repository.MsSql
                         {
                             case "Contains":
                                 {
-                                    if (call.Arguments.Count != 1 || call.Object == null)
+                                    if (call.Arguments.Count != 1 || call.Object is null)
                                         throw new NotSupportedException($"Cannot convert call expression {call.Method.Name}");
 
                                     var callingObject = call.Object;
@@ -501,7 +501,7 @@ namespace Zerra.Repository.MsSql
                         }
                         return false;
                     case CoreType.DateTime:
-                        if (memberProperty != null)
+                        if (memberProperty is not null)
                         {
                             switch (memberProperty.Member.Name)
                             {
@@ -557,7 +557,7 @@ namespace Zerra.Repository.MsSql
                         sb.Write('\'');
                         return false;
                     case CoreType.DateTimeOffset:
-                        if (memberProperty != null)
+                        if (memberProperty is not null)
                         {
                             switch (memberProperty.Member.Name)
                             {
@@ -613,7 +613,7 @@ namespace Zerra.Repository.MsSql
                         sb.Write('\'');
                         return false;
                     case CoreType.TimeSpan:
-                        if (memberProperty != null)
+                        if (memberProperty is not null)
                         {
                             switch (memberProperty.Member.Name)
                             {
@@ -664,7 +664,7 @@ namespace Zerra.Repository.MsSql
                         sb.Write('\'');
                         return false;
                     case CoreType.DateOnly:
-                        if (memberProperty != null)
+                        if (memberProperty is not null)
                         {
                             switch (memberProperty.Member.Name)
                             {
@@ -700,7 +700,7 @@ namespace Zerra.Repository.MsSql
                         sb.Write('\'');
                         return false;
                     case CoreType.TimeOnly:
-                        if (memberProperty != null)
+                        if (memberProperty is not null)
                         {
                             switch (memberProperty.Member.Name)
                             {
@@ -817,7 +817,7 @@ namespace Zerra.Repository.MsSql
 
         protected override void GenerateWhere(Expression? where, ref CharWriter sb, ParameterDependant rootDependant, MemberContext operationContext)
         {
-            if (where == null)
+            if (where is null)
                 return;
 
             sb.Write("WHERE");
@@ -892,7 +892,7 @@ namespace Zerra.Repository.MsSql
         protected override void GenerateSelectProperties(Graph? graph, ModelDetail modelDetail, ref CharWriter sb)
         {
             AppendLineBreak(ref sb);
-            if (graph == null || graph.IncludeAllMembers)
+            if (graph is null || graph.IncludeAllMembers)
             {
                 sb.Write('[');
                 sb.Write(modelDetail.DataSourceEntityName);
@@ -904,10 +904,10 @@ namespace Zerra.Repository.MsSql
                 var passedfirst = false;
                 foreach (var property in modelDetail.Properties)
                 {
-                    if (graph != null && !graph.HasMember(property.Name))
+                    if (graph is not null && !graph.HasMember(property.Name))
                         continue;
 
-                    if (property.PropertySourceName != null && property.ForeignIdentity == null)
+                    if (property.PropertySourceName is not null && property.ForeignIdentity is null)
                     {
                         if (passedfirst)
                             sb.Write(',');

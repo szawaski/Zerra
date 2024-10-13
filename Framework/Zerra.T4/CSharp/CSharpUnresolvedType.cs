@@ -117,32 +117,32 @@ namespace Zerra.T4.CSharp
 
             var nativeType = Type.GetType(genericName);
 
-            if (nativeType == null)
+            if (nativeType is null)
             {
                 nativeType = GetSystemType(genericName);
             }
 
-            if (nativeType == null)
+            if (nativeType is null)
             {
                 foreach (var use in usings)
                 {
                     nativeType = Type.GetType($"{use}.{genericName}");
-                    if (nativeType != null)
+                    if (nativeType is not null)
                         break;
                 }
             }
 
-            if (nativeType == null)
+            if (nativeType is null)
             {
                 nativeType = Type.GetType($"System.Collections.{genericName}");
             }
-            if (nativeType == null)
+            if (nativeType is null)
             {
                 nativeType = Type.GetType($"System.Collections.Generic.{genericName}");
             }
 
             CSharpObject solutionType = null;
-            if (nativeType == null)
+            if (nativeType is null)
             {
                 foreach (var item in solution.Classes.Concat(solution.Structs).Concat(solution.Interfaces).Concat(solution.Enums).Concat(solution.Delegates))
                 {
@@ -197,7 +197,7 @@ namespace Zerra.T4.CSharp
         }
         public override string ToString()
         {
-            var nsText = ns == null ? "" : $"{ns}.";
+            var nsText = ns is null ? "" : $"{ns}.";
             return $"{nsText}{Name}";
         }
     }

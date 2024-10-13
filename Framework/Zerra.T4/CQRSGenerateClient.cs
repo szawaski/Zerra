@@ -72,7 +72,7 @@ namespace Zerra.T4
                             _ = sb.Append(", ");
                         _ = sb.Append(method.Parameters[i].Name);
                     }
-                    _ = sb.Append("], ").Append(type == null || isJavaScriptType ? "null" : (hasMany ? type.Remove(type.Length - 2) : type) + "Type").Append(", ").Append(hasMany ? "true" : "false").Append(");").Append(Environment.NewLine);
+                    _ = sb.Append("], ").Append(type is null || isJavaScriptType ? "null" : (hasMany ? type.Remove(type.Length - 2) : type) + "Type").Append(", ").Append(hasMany ? "true" : "false").Append(");").Append(Environment.NewLine);
                     _ = sb.Append(spacing).Append("}").Append(Environment.NewLine);
                 }
                 _ = sb.Append("}").Append(Environment.NewLine).Append(Environment.NewLine);
@@ -88,8 +88,8 @@ namespace Zerra.T4
                 _ = sb.Append(spacing).Append(spacing).Append("Object.keys(props).forEach(key => self[key] = props[key]);").Append(Environment.NewLine);
                 _ = sb.Append(spacing).Append(spacing).Append("self[\"CommandType\"] = \"").Append(command.Name).Append("\";").Append(Environment.NewLine);
                 var commandWithResultType = command.Implements.FirstOrDefault(x => x.Name.StartsWith("ICommand<"));
-                _ = sb.Append(spacing).Append(spacing).Append("self[\"CommandWithResult\"] = ").Append(commandWithResultType != null ? "true" : "false").Append(";").Append(Environment.NewLine);
-                if (commandWithResultType != null)
+                _ = sb.Append(spacing).Append(spacing).Append("self[\"CommandWithResult\"] = ").Append(commandWithResultType is not null ? "true" : "false").Append(";").Append(Environment.NewLine);
+                if (commandWithResultType is not null)
                 {
                     var (isJavaScriptType, type, hasMany, nullable) = GetJavaScriptPropertyType(commandWithResultType.Resolved.GenericArguments[0], models);
                     _ = sb.Append(spacing).Append(spacing).Append("self[\"ResultType\"] = ").Append(type).Append("Type;").Append(Environment.NewLine);
@@ -163,7 +163,7 @@ namespace Zerra.T4
                             _ = sb.Append(", ");
                         _ = sb.Append(method.Parameters[i].Name);
                     }
-                    _ = sb.Append("], ").Append(type == null || isJavaScriptType ? "null" : (hasMany ? type.Remove(type.Length - 2) : type) + "Type").Append(", ").Append(hasMany ? "true" : "false").Append(", onComplete, onFail);").Append(Environment.NewLine);
+                    _ = sb.Append("], ").Append(type is null || isJavaScriptType ? "null" : (hasMany ? type.Remove(type.Length - 2) : type) + "Type").Append(", ").Append(hasMany ? "true" : "false").Append(", onComplete, onFail);").Append(Environment.NewLine);
                     _ = sb.Append(spacing).Append("},").Append(Environment.NewLine);
                 }
                 _ = sb.Append("}").Append(Environment.NewLine).Append(Environment.NewLine);
@@ -179,8 +179,8 @@ namespace Zerra.T4
                 }
                 _ = sb.Append(spacing).Append("this.CommandType = \"").Append(command.Name).Append("\";").Append(Environment.NewLine);
                 var commandWithResultType = command.Implements.FirstOrDefault(x => x.Name.StartsWith("ICommand<"));
-                _ = sb.Append(spacing).Append("this.CommandWithResult = ").Append(commandWithResultType != null ? "true" : "false").Append(";").Append(Environment.NewLine);
-                if (commandWithResultType != null)
+                _ = sb.Append(spacing).Append("this.CommandWithResult = ").Append(commandWithResultType is not null ? "true" : "false").Append(";").Append(Environment.NewLine);
+                if (commandWithResultType is not null)
                 {
                     var (isJavaScriptType, type, hasMany, nullable) = GetJavaScriptPropertyType(commandWithResultType.Resolved.GenericArguments[0], models);
                     _ = sb.Append(spacing).Append("this.ResultType = ").Append(type).Append("Type;").Append(Environment.NewLine);
@@ -262,7 +262,7 @@ namespace Zerra.T4
                     {
                         returnType = returnType.GenericArguments[0];
                     }
-                    if (returnType.SolutionType != null)
+                    if (returnType.SolutionType is not null)
                     {
                         if (!models.Contains(returnType.SolutionType))
                         {
@@ -274,7 +274,7 @@ namespace Zerra.T4
                     foreach (var parameter in method.Parameters)
                     {
                         var parameterType = parameter.Type.Resolved;
-                        if (parameterType.SolutionType != null)
+                        if (parameterType.SolutionType is not null)
                         {
                             if (!models.Contains(parameterType.SolutionType))
                             {
@@ -289,7 +289,7 @@ namespace Zerra.T4
             {
                 AddModels(command, models);
                 var commandWithResultType = command.Implements.FirstOrDefault(x => x.Name.StartsWith("ICommand<"));
-                if (commandWithResultType != null)
+                if (commandWithResultType is not null)
                 {
                     AddModels(commandWithResultType.Resolved.GenericArguments[0], models);
                 }
@@ -308,7 +308,7 @@ namespace Zerra.T4
         }
         private static void AddModels(CSharpType type, List<CSharpObject> models)
         {
-            if (type.SolutionType != null)
+            if (type.SolutionType is not null)
             {
                 if (!models.Contains(type.SolutionType))
                 {
@@ -322,7 +322,7 @@ namespace Zerra.T4
         {
             foreach (var generic in genericArguments)
             {
-                if (generic.SolutionType != null)
+                if (generic.SolutionType is not null)
                 {
                     if (!models.Contains(generic.SolutionType))
                     {
@@ -342,7 +342,7 @@ namespace Zerra.T4
             var genericLevel = 0;
             while (csharpType.GenericArguments.Count == 1)
             {
-                if (csharpType.Name == "Array`1" || csharpType.NativeType != null && (csharpType.NativeType.Name == "IEnumerable`1" || csharpType.NativeType.GetInterface(typeof(IEnumerable<>).Name) != null))
+                if (csharpType.Name == "Array`1" || csharpType.NativeType is not null && (csharpType.NativeType.Name == "IEnumerable`1" || csharpType.NativeType.GetInterface(typeof(IEnumerable<>).Name) is not null))
                     hasMany = true;
                 if (csharpType.Name == "Nullable`1")
                     nullable = true;
@@ -351,7 +351,7 @@ namespace Zerra.T4
             }
 
             string type;
-            var coreType = csharpType.NativeType != null && IsCoreType(csharpType.NativeType);
+            var coreType = csharpType.NativeType is not null && IsCoreType(csharpType.NativeType);
             if (coreType)
             {
                 type = ConvertCoreTypeToJavaScriptType(csharpType.NativeType);
@@ -362,7 +362,7 @@ namespace Zerra.T4
             else
             {
                 var modelReference = references.FirstOrDefault(x => x.Name == csharpType.Name);
-                if (modelReference != null)
+                if (modelReference is not null)
                 {
                     if (modelReference.ObjectType == CSharpObjectType.Enum)
                     {

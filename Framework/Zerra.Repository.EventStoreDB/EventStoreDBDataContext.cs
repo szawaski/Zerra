@@ -13,11 +13,11 @@ namespace Zerra.Repository.EventStoreDB
         private IDataStoreEngine? engine = null;
         protected override IDataStoreEngine GetEngine()
         {
-            if (engine == null)
+            if (engine is null)
             {
                 lock (locker)
                 {
-                    if (engine == null)
+                    if (engine is null)
                     {
                         engine = new EventStoreDBEngine(ConnectionString, Insecure);
                         return engine;

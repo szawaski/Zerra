@@ -21,7 +21,7 @@ namespace Zerra.Threading
         {
             get
             {
-                if (current == null)
+                if (current is null)
                 {
                     lock (currentLock)
                     {
@@ -77,7 +77,7 @@ namespace Zerra.Threading
             if (disposed)
                 throw new ObjectDisposedException("Thread pool has been disposed.");
 
-            if (principal == null)
+            if (principal is null)
             {
                 principal = Thread.CurrentPrincipal;
 
@@ -114,7 +114,7 @@ namespace Zerra.Threading
                 while (workerThreads.Count > maxThreadCount)
                 {
                     var availableThread = workerThreads.FirstOrDefault(x => x.IsAvailable);
-                    if (availableThread == null)
+                    if (availableThread is null)
                         break;
                     _ = workerThreads.Remove(availableThread);
                     availableThread.Dispose();
@@ -126,7 +126,7 @@ namespace Zerra.Threading
                         if (disposed)
                             return;
                         var availableThread = workerThreads.FirstOrDefault(x => x.IsAvailable);
-                        if (availableThread == null)
+                        if (availableThread is null)
                             break;
                         var workItem = workItems.Dequeue();
                         availableThread.ExecuteWorkItem(workItem);
@@ -259,7 +259,7 @@ namespace Zerra.Threading
                 if (disposed)
                     return;
                 disposed = true;
-                if (startNewWorkItem != null)
+                if (startNewWorkItem is not null)
                 {
                     _ = startNewWorkItem.Set();
                     (startNewWorkItem as IDisposable).Dispose();
@@ -298,7 +298,7 @@ namespace Zerra.Threading
                 {
                     lock (syncObject)
                     {
-                        return ex != null;
+                        return ex is not null;
                     }
                 }
             }
@@ -319,7 +319,7 @@ namespace Zerra.Threading
                     AsyncState = result;
                     isCompleted = true;
                     _ = waitHandle.Set();
-                    if (asyncCallback != null)
+                    if (asyncCallback is not null)
                     {
                         asyncCallback(this);
                     }

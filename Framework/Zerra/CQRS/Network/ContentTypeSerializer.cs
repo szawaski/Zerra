@@ -160,11 +160,11 @@ namespace Zerra.CQRS.Network
                 ContentType.JsonNameless => JsonSerializer.Deserialize<ExceptionContent>(stream, jsonSerializerNamelessOptions),
                 _ => throw new NotImplementedException(),
             };
-            if (content == null)
+            if (content is null)
                 throw new RemoteServiceException("Invalid Exception Content");
 
             Exception? ex = null;
-            if (content.ErrorType != null)
+            if (content.ErrorType is not null)
             {
                 try
                 {
@@ -172,7 +172,7 @@ namespace Zerra.CQRS.Network
                     switch (contentType)
                     {
                         case ContentType.Bytes:
-                            if (content.ErrorBytes != null && content.ErrorBytes.Length > 0)
+                            if (content.ErrorBytes is not null && content.ErrorBytes.Length > 0)
                                 ex = (Exception?)ByteSerializer.Deserialize(type, content.ErrorBytes, byteSerializerOptions);
                             break;
                         case ContentType.Json:
@@ -224,11 +224,11 @@ namespace Zerra.CQRS.Network
                 ContentType.JsonNameless => await JsonSerializer.DeserializeAsync<ExceptionContent>(stream, jsonSerializerNamelessOptions),
                 _ => throw new NotImplementedException(),
             };
-            if (content == null)
+            if (content is null)
                 throw new RemoteServiceException("Invalid Exception Content");
 
             Exception? ex = null;
-            if (content.ErrorType != null)
+            if (content.ErrorType is not null)
             {
                 try
                 {
@@ -236,7 +236,7 @@ namespace Zerra.CQRS.Network
                     switch (contentType)
                     {
                         case ContentType.Bytes:
-                            if (content.ErrorBytes != null && content.ErrorBytes.Length > 0)
+                            if (content.ErrorBytes is not null && content.ErrorBytes.Length > 0)
                                 ex = (Exception?)ByteSerializer.Deserialize(type, content.ErrorBytes, byteSerializerOptions);
                             break;
                         case ContentType.Json:

@@ -51,7 +51,7 @@ namespace Zerra.T4.CSharp
         public override string ToString()
         {
             var partialText = IsPartial ? "partial " : "";
-            var nsText = Namespace == null ? "" : $"{Namespace}.";
+            var nsText = Namespace is null ? "" : $"{Namespace}.";
             return $"{partialText}{ObjectType.ToString().ToLower()} {nsText}{Name}";
         }
     }

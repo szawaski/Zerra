@@ -93,7 +93,7 @@ namespace Zerra.CQRS.Network
                 }
                 holder.Socket.Dispose();
             }
-            if (stream != null)
+            if (stream is not null)
             {
                 try
                 {
@@ -144,7 +144,7 @@ namespace Zerra.CQRS.Network
                     lastex = ex;
                 }
             }
-            if (lastex != null)
+            if (lastex is not null)
                 throw new ConnectionFailedException(lastex);
             else
                 throw new ConnectionFailedException();
@@ -178,7 +178,7 @@ namespace Zerra.CQRS.Network
                 }
                 holder.Socket.Dispose();
             }
-            if (stream != null)
+            if (stream is not null)
             {
                 try
                 {
@@ -229,7 +229,7 @@ namespace Zerra.CQRS.Network
                     lastex = ex;
                 }
             }
-            if (lastex != null)
+            if (lastex is not null)
                 throw new ConnectionFailedException(lastex);
             else
                 throw new ConnectionFailedException();
@@ -264,7 +264,7 @@ namespace Zerra.CQRS.Network
                 }
                 holder.Socket.Dispose();
             }
-            if (stream != null)
+            if (stream is not null)
             {
                 try
                 {
@@ -333,7 +333,7 @@ namespace Zerra.CQRS.Network
                     lastex = ex;
                 }
             }
-            if (lastex != null)
+            if (lastex is not null)
                 throw new ConnectionFailedException(lastex);
             else
                 throw new ConnectionFailedException();
@@ -367,7 +367,7 @@ namespace Zerra.CQRS.Network
                 }
                 holder.Socket.Dispose();
             }
-            if (stream != null)
+            if (stream is not null)
             {
                 try
                 {
@@ -426,7 +426,7 @@ namespace Zerra.CQRS.Network
                     lastex = ex;
                 }
             }
-            if (lastex != null)
+            if (lastex is not null)
                 throw new ConnectionFailedException(lastex);
             else
                 throw new ConnectionFailedException();

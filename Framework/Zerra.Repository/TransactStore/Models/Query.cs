@@ -34,7 +34,7 @@ namespace Zerra.Repository
 
         public Query(Query<TModel> query)
         {
-            if (query != null)
+            if (query is not null)
             {
                 this.Operation = query.Operation;
                 this.TemporalOrder = query.TemporalOrder;
@@ -46,7 +46,7 @@ namespace Zerra.Repository
                 this.Order = query.Order;
                 this.Skip = query.Skip;
                 this.Take = query.Take;
-                this.Graph = query.Graph == null ? null : new Graph<TModel>(query.Graph);
+                this.Graph = query.Graph is null ? null : new Graph<TModel>(query.Graph);
             }
         }
     }

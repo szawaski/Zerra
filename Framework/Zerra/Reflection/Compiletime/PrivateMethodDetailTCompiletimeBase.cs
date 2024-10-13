@@ -43,7 +43,7 @@ namespace Zerra.Reflection.Compiletime
         {
             get
             {
-                if (returnType == null)
+                if (returnType is null)
                 {
                     lock (locker)
                     {
@@ -109,7 +109,7 @@ namespace Zerra.Reflection.Compiletime
             get
             {
                 LoadCallerBoxed();
-                return this.callerBoxed != null;
+                return this.callerBoxed is not null;
             }
         }
         public override sealed Func<object?, object?[]?, Task<object?>> CallerBoxedAsync
@@ -125,7 +125,7 @@ namespace Zerra.Reflection.Compiletime
             get
             {
                 LoadCallerBoxed();
-                return this.callerBoxedAsync != null;
+                return this.callerBoxedAsync is not null;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -147,7 +147,7 @@ namespace Zerra.Reflection.Compiletime
                             this.callerBoxedAsync = async (source, arguments) =>
                             {
                                 var caller = this.callerBoxed;
-                                if (caller == null)
+                                if (caller is null)
                                     return default;
                                 var returnTypeInfo = ReturnTypeDetailBoxed;
 
@@ -190,7 +190,7 @@ namespace Zerra.Reflection.Compiletime
             get
             {
                 LoadCaller();
-                return this.caller != null;
+                return this.caller is not null;
             }
         }
         public override sealed Func<T?, object?[]?, Task<object?>> CallerAsync
@@ -206,7 +206,7 @@ namespace Zerra.Reflection.Compiletime
             get
             {
                 LoadCaller();
-                return this.callerAsync != null;
+                return this.callerAsync is not null;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -228,7 +228,7 @@ namespace Zerra.Reflection.Compiletime
                             this.callerAsync = async (source, arguments) =>
                             {
                                 var caller = this.caller;
-                                if (caller == null)
+                                if (caller is null)
                                     return default;
                                 var returnTypeInfo = ReturnTypeDetailBoxed;
 
@@ -263,7 +263,7 @@ namespace Zerra.Reflection.Compiletime
             foreach (var parameterDetail in ParameterDetails)
             {
                 var parameter = parameters.FirstOrDefault(x => x.Name == parameterDetail.Name);
-                if (parameter == null)
+                if (parameter is null)
                     throw new InvalidOperationException($"Parameter not found for {parameterDetail.Name}");
 
                 var parameterBase = (ParameterDetailCompiletimeBase)parameterDetail;

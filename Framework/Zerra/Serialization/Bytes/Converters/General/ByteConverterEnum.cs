@@ -128,7 +128,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                             value = default;
                             return false;
                         }
-                        if (number == null)
+                        if (number is null)
                         {
                             value = default;
                             return true;
@@ -146,7 +146,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                             value = default;
                             return false;
                         }
-                        if (number == null)
+                        if (number is null)
                         {
                             value = default;
                             return true;
@@ -164,7 +164,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                             value = default;
                             return false;
                         }
-                        if (number == null)
+                        if (number is null)
                         {
                             value = default;
                             return true;
@@ -182,7 +182,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                             value = default;
                             return false;
                         }
-                        if (number == null)
+                        if (number is null)
                         {
                             value = default;
                             return true;
@@ -200,7 +200,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                             value = default;
                             return false;
                         }
-                        if (number == null)
+                        if (number is null)
                         {
                             value = default;
                             return true;
@@ -218,7 +218,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                             value = default;
                             return false;
                         }
-                        if (number == null)
+                        if (number is null)
                         {
                             value = default;
                             return true;
@@ -236,7 +236,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                             value = default;
                             return false;
                         }
-                        if (number == null)
+                        if (number is null)
                         {
                             value = default;
                             return true;
@@ -254,7 +254,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                             value = default;
                             return false;
                         }
-                        if (number == null)
+                        if (number is null)
                         {
                             value = default;
                             return true;

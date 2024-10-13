@@ -137,7 +137,7 @@ namespace Zerra.CQRS.AzureServiceBus
 
         void ICommandConsumer.RegisterCommandType(int maxConcurrent, string topic, Type type)
         {
-            if (commandCounter == null || commandHandlerAsync == null || commandHandlerAwaitAsync == null || commandHandlerWithResultAwaitAsync == null)
+            if (commandCounter is null || commandHandlerAsync is null || commandHandlerAwaitAsync is null || commandHandlerWithResultAwaitAsync is null)
                 throw new Exception($"{nameof(AzureServiceBusConsumer)} is not setup");
 
             lock (commandExchanges)
@@ -158,7 +158,7 @@ namespace Zerra.CQRS.AzureServiceBus
 
         void IEventConsumer.RegisterEventType(int maxConcurrent, string topic, Type type)
         {
-            if (eventHandlerAsync == null)
+            if (eventHandlerAsync is null)
                 throw new Exception($"{nameof(AzureServiceBusConsumer)} is not setup");
 
             lock (eventExchanges)

@@ -25,8 +25,6 @@ namespace Zerra.Serialization.Bytes.IO
 
         public ByteReaderOld(ReadOnlySpan<byte> bytes, Encoding? encoding = null)
         {
-            if (bytes == null)
-                throw new ArgumentNullException(nameof(bytes));
             this.buffer = bytes;
             this.encoding = encoding ?? defaultEncoding;
             this.position = 0;

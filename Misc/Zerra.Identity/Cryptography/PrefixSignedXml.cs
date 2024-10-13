@@ -30,10 +30,10 @@ namespace Zerra.Identity.Cryptography
             _ = buildDigestedReferencesMethod.Invoke(this, Array.Empty<object>());
 
             var signingKey = base.SigningKey;
-            if (signingKey == null)
+            if (signingKey is null)
                 throw new CryptographicException("Cryptography_Xml_LoadKeyFailed");
 
-            if (this.SignedInfo.SignatureMethod == null)
+            if (this.SignedInfo.SignatureMethod is null)
             {
                 if (signingKey is DSA)
                     base.SignedInfo.SignatureMethod = Algorithms.DsaSha1Url;
@@ -44,11 +44,11 @@ namespace Zerra.Identity.Cryptography
             }
 
             var signatureDescription = Algorithms.Create(Algorithms.GetSignatureAlgorithmFromUrl(this.SignedInfo.SignatureMethod));
-            if (signatureDescription == null)
+            if (signatureDescription is null)
                 throw new CryptographicException("Cryptography_Xml_SignatureDescriptionNotCreated");
 
             var hash = signatureDescription.CreateDigest();
-            if (hash == null)
+            if (hash is null)
                 throw new CryptographicException("Cryptography_Xml_CreateHashAlgorithmFailed");
 
             _ = this.GetC14NDigest(hash, prefix);

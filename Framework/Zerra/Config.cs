@@ -74,7 +74,7 @@ namespace Zerra
             entryAssemblyName = entryAssembly?.GetName().Name;
             var executingAssemblyName = executingAssembly.GetName().Name;
 
-            entryNameSpace = entryAssemblyName != null ? entryAssemblyName.Split('.')[0] + '.' : null;
+            entryNameSpace = entryAssemblyName is not null ? entryAssemblyName.Split('.')[0] + '.' : null;
             executingAssemblyPath = Path.GetDirectoryName(executingAssembly.Location);
 
             if (!String.IsNullOrWhiteSpace(entryNameSpace))
@@ -126,7 +126,7 @@ namespace Zerra
 
             _ = builder.AddEnvironmentVariables();
 
-            if (args != null && args.Length > 0)
+            if (args is not null && args.Length > 0)
                 _ = builder.AddCommandLine(args);
 
             build?.Invoke(builder);
@@ -166,7 +166,7 @@ namespace Zerra
         /// <exception cref="InvalidOperationException">Throw if the configuration was not loaded</exception>
         public static string? GetSetting(string name)
         {
-            if (configuration == null)
+            if (configuration is null)
                 throw new InvalidOperationException("Config not loaded");
 
             var value = configuration[name];
@@ -181,7 +181,7 @@ namespace Zerra
         {
             get
             {
-                if (configuration == null)
+                if (configuration is null)
                     throw new InvalidOperationException("Config not loaded");
                 return configuration;
             }
@@ -205,7 +205,7 @@ namespace Zerra
         {
             get
             {
-                if (applicationIdentifier == null)
+                if (applicationIdentifier is null)
                     throw new Exception("Config not loaded");
                 return applicationIdentifier;
             }
@@ -222,7 +222,7 @@ namespace Zerra
         /// <exception cref="InvalidOperationException">Throw if the configuration was not loaded</exception>
         public static T? Bind<T>(string? section = null)
         {
-            if (configuration == null)
+            if (configuration is null)
                 throw new InvalidOperationException("Config not loaded");
 
             var config = configuration;
@@ -308,7 +308,7 @@ namespace Zerra
         /// <exception cref="InvalidOperationException">Throws if discovery has already started.</exception>
         public static void AddDiscoveryAssemblyNameStartsWiths(params string[] assemblyNameStartsWiths)
         {
-            if (assemblyNameStartsWiths == null)
+            if (assemblyNameStartsWiths is null)
                 throw new ArgumentNullException(nameof(assemblyNameStartsWiths));
 
             lock (discoveryLock)
@@ -333,7 +333,7 @@ namespace Zerra
         /// <exception cref="InvalidOperationException">Throws if discovery has already started.</exception>
         public static void AddDiscoveryAssemblies(params Assembly[] assemblies)
         {
-            if (assemblies == null)
+            if (assemblies is null)
                 throw new ArgumentNullException(nameof(assemblies));
 
             lock (discoveryLock)
@@ -359,7 +359,7 @@ namespace Zerra
         /// <exception cref="InvalidOperationException">Throws if discovery has already started.</exception>
         public static void SetDiscoveryAssemblyNameStartsWiths(params string[] assemblyNameStartsWiths)
         {
-            if (assemblyNameStartsWiths == null)
+            if (assemblyNameStartsWiths is null)
                 throw new ArgumentNullException(nameof(assemblyNameStartsWiths));
 
             lock (discoveryLock)
@@ -385,7 +385,7 @@ namespace Zerra
         /// <exception cref="InvalidOperationException">Throws if discovery has already started.</exception>
         public static void SetDiscoveryAssemblies(params Assembly[] assemblies)
         {
-            if (assemblies == null)
+            if (assemblies is null)
                 throw new ArgumentNullException(nameof(assemblies));
 
             lock (discoveryLock)
@@ -393,7 +393,7 @@ namespace Zerra
                 if (discoveryStarted)
                     throw new InvalidOperationException("Discovery has already started");
 
-                string[] newNamespaces = assemblies.Select(x => x.GetName().Name).Where(x => x != null).ToArray()!;
+                string[] newNamespaces = assemblies.Select(x => x.GetName().Name).Where(x => x is not null).ToArray()!;
 
                 var newNamespacesToLoad = new string[newNamespaces.Length + 2];
                 newNamespacesToLoad[0] = "Zerra,";
@@ -428,7 +428,7 @@ namespace Zerra
         /// </summary>
         public static Assembly? EntryAssembly { get { return entryAssembly; } }
 
-        private static readonly Lazy<bool> isDebugEntryAssembly = new(() => entryAssembly != null && entryAssembly.GetCustomAttributes(false).OfType<DebuggableAttribute>().Any(x => x.IsJITTrackingEnabled));
+        private static readonly Lazy<bool> isDebugEntryAssembly = new(() => entryAssembly is not null && entryAssembly.GetCustomAttributes(false).OfType<DebuggableAttribute>().Any(x => x.IsJITTrackingEnabled));
         /// <summary>
         /// Indicates if the build is a debug by checking the DebuggableAttribute and if JIT Tracking is enabled.
         /// </summary>

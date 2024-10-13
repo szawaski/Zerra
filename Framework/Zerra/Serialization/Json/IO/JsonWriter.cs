@@ -66,7 +66,7 @@ namespace Zerra.Serialization.Json.IO
 
             if (useBytes)
             {
-                if (bufferBytesOwner == null)
+                if (bufferBytesOwner is null)
                     return false;
 
                 ArrayPoolHelper<byte>.Grow(ref bufferBytesOwner, Math.Max(bufferBytesOwner.Length * 2, bufferBytesOwner.Length + sizeNeeded));
@@ -75,7 +75,7 @@ namespace Zerra.Serialization.Json.IO
             }
             else
             {
-                if (bufferCharsOwner == null)
+                if (bufferCharsOwner is null)
                     return false;
 
                 ArrayPoolHelper<char>.Grow(ref bufferCharsOwner, Math.Max(bufferCharsOwner.Length * 2, bufferCharsOwner.Length + sizeNeeded));
@@ -111,14 +111,14 @@ namespace Zerra.Serialization.Json.IO
 
         public void Dispose()
         {
-            if (bufferCharsOwner != null)
+            if (bufferCharsOwner is not null)
             {
                 Array.Clear(bufferCharsOwner, 0, position);
                 ArrayPoolHelper<char>.Return(bufferCharsOwner);
                 bufferCharsOwner = null;
                 bufferChars = null;
             }
-            if (bufferBytesOwner != null)
+            if (bufferBytesOwner is not null)
             {
                 Array.Clear(bufferBytesOwner, 0, position);
                 ArrayPoolHelper<byte>.Return(bufferBytesOwner);

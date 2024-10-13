@@ -26,7 +26,7 @@ namespace Zerra.Repository
 
         protected void Convert(ref CharWriter sb, QueryOperation select, Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail, MemberContext operationContext)
         {
-            var hasWhere = where != null;
+            var hasWhere = where is not null;
             var hasOrderSkipTake = (select == QueryOperation.Many || select == QueryOperation.First) && (order?.OrderExpressions.Length > 0 || skip > 0 || take > 0);
 
             GenerateSelect(select, graph, modelDetail, ref sb);
@@ -278,7 +278,7 @@ namespace Zerra.Repository
 
             ConvertToSql(unary.Operand, ref sb, context);
 
-            //if (suffixOperation != null)
+            //if (suffixOperation is not null)
             //    sb.Write(suffixOperation);
 
             _ = context.MemberContext.OperatorStack.Pop();
@@ -313,7 +313,7 @@ namespace Zerra.Repository
 
             sb.Write(OperatorToString(operation));
 
-            if (binaryRight != null)
+            if (binaryRight is not null)
             {
                 sb.Write('(');
                 ConvertToSql(binaryRight, ref sb, context);
@@ -348,7 +348,7 @@ namespace Zerra.Repository
         {
             var member = (MemberExpression)exp;
 
-            if (member.Expression == null)
+            if (member.Expression is null)
             {
                 ConvertToSqlEvaluate(member, ref sb, context);
             }
@@ -370,7 +370,7 @@ namespace Zerra.Repository
             if (context.MemberContext.MemberAccessStack.Count > 0)
             {
                 var memberProperty = context.MemberContext.MemberAccessStack.Pop();
-                if (value == null)
+                if (value is null)
                 {
                     sb.Write("NULL");
                 }
@@ -388,7 +388,7 @@ namespace Zerra.Repository
                         case MemberTypes.Property:
                             {
                                 var property = (PropertyInfo)memberProperty.Member;
-                                if (property.GetMethod != null)
+                                if (property.GetMethod is not null)
                                 {
                                     var propertyValue = property.GetValue(value);
                                     ConvertToSqlConstantStack(property.PropertyType, propertyValue, ref sb, context);
@@ -434,7 +434,7 @@ namespace Zerra.Repository
         {
             var parameter = (ParameterExpression)exp;
 
-            if (parameter.Name == null)
+            if (parameter.Name is null)
                 throw new Exception($"Parameter has no name {parameter.Type.GetNiceName()}");
 
             var modelDetail = context.MemberContext.ModelContexts[parameter.Name];
@@ -464,7 +464,7 @@ namespace Zerra.Repository
 
             var memberPropertyHandled = ConvertToSqlValueRender(memberProperty, type, value, ref sb, context);
 
-            if (memberProperty != null)
+            if (memberProperty is not null)
             {
                 if (!memberPropertyHandled)
                     throw new NotSupportedException($"{type.FullName}.{memberProperty.Member.Name} not supported");
@@ -607,7 +607,7 @@ namespace Zerra.Repository
                     return false;
             }
 
-            if (call.Object != null)
+            if (call.Object is not null)
                 return IsEvaluatable(call.Object);
 
             return true;
@@ -615,7 +615,7 @@ namespace Zerra.Repository
         private bool IsEvaluatableMemberAccess(Expression exp)
         {
             var member = (MemberExpression)exp;
-            if (member.Expression == null)
+            if (member.Expression is null)
             {
                 return true;
             }
@@ -723,12 +723,12 @@ namespace Zerra.Repository
         private bool IsNullConstant(Expression exp)
         {
             var constant = (ConstantExpression)exp;
-            return constant.Value == null;
+            return constant.Value is null;
         }
         private bool IsNullCall(Expression exp)
         {
             var call = (MethodCallExpression)exp;
-            if (call.Object == null)
+            if (call.Object is null)
             {
                 var result = true;
                 foreach (var arg in call.Arguments)
@@ -760,14 +760,14 @@ namespace Zerra.Repository
                 value = member.GetValue(index);
             }
 
-            return value == null;
+            return value is null;
         }
         private bool IsNullMemberAccess(Expression exp)
         {
             var member = (MemberExpression)exp;
 
             object? value;
-            if (member.Expression == null)
+            if (member.Expression is null)
             {
                 value = Evaluate(member);
             }
@@ -777,20 +777,20 @@ namespace Zerra.Repository
                 if (!isEvaluatable)
                     return false;
 
-                var expressionValue = member.Expression == null ? null : Evaluate(member.Expression);
+                var expressionValue = member.Expression is null ? null : Evaluate(member.Expression);
                 switch (member.Member.MemberType)
                 {
                     case MemberTypes.Field:
                         var fieldInfo = (FieldInfo)member.Member;
-                        if (expressionValue == null && !fieldInfo.IsStatic)
+                        if (expressionValue is null && !fieldInfo.IsStatic)
                             return true;
                         value = fieldInfo.GetValue(expressionValue);
                         break;
                     case MemberTypes.Property:
                         var propertyInfo = (PropertyInfo)member.Member;
-                        if (propertyInfo.GetMethod == null)
+                        if (propertyInfo.GetMethod is null)
                             return true;
-                        if (expressionValue == null && !propertyInfo.GetMethod.IsStatic)
+                        if (expressionValue is null && !propertyInfo.GetMethod.IsStatic)
                             return true;
                         value = propertyInfo.GetValue(expressionValue);
                         break;
@@ -799,7 +799,7 @@ namespace Zerra.Repository
                 }
             }
 
-            return value == null;
+            return value is null;
         }
 
         private object? Evaluate(Expression exp)
@@ -820,22 +820,22 @@ namespace Zerra.Repository
         private object? EvaluateMemberAccess(Expression exp)
         {
             var member = (MemberExpression)exp;
-            var expressionValue = member.Expression == null ? null : Evaluate(member.Expression);
+            var expressionValue = member.Expression is null ? null : Evaluate(member.Expression);
 
             object? value;
             switch (member.Member.MemberType)
             {
                 case MemberTypes.Field:
                     var fieldInfo = (FieldInfo)member.Member;
-                    if (expressionValue == null && !fieldInfo.IsStatic)
+                    if (expressionValue is null && !fieldInfo.IsStatic)
                         return null;
                     value = fieldInfo.GetValue(expressionValue);
                     break;
                 case MemberTypes.Property:
                     var propertyInfo = (PropertyInfo)member.Member;
-                    if (propertyInfo.GetMethod == null)
+                    if (propertyInfo.GetMethod is null)
                         return null;
-                    if (expressionValue == null && !propertyInfo.GetMethod.IsStatic)
+                    if (expressionValue is null && !propertyInfo.GetMethod.IsStatic)
                         return null;
                     value = propertyInfo.GetValue(expressionValue);
                     break;

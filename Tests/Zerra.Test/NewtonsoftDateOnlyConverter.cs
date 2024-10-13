@@ -17,7 +17,7 @@ namespace Zerra.Test
         {
             if (objectType == typeof(DateOnly?))
             {
-                if (reader.Value == null)
+                if (reader.Value is null)
                     return null;
                 return DateOnly.Parse((string)reader.Value);
             }
@@ -29,7 +29,7 @@ namespace Zerra.Test
 
         public override void WriteJson(Newtonsoft.Json.JsonWriter writer, object value, Newtonsoft.Json.JsonSerializer serializer)
         {
-            if (value == null)
+            if (value is null)
             {
                 writer.WriteNull();
             }

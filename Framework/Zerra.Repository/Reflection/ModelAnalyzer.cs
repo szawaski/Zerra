@@ -35,7 +35,7 @@ namespace Zerra.Repository.Reflection
         private static Func<T, object?>? GetGetterFunctionByNameOrAttribute<T>(string? propertyNames, Type? attributeType)
         {
             TypeKey key;
-            if (attributeType != null)
+            if (attributeType is not null)
                 key = new TypeKey(propertyNames, typeof(T), attributeType);
             else
                 key = new TypeKey(propertyNames, typeof(T));
@@ -52,7 +52,7 @@ namespace Zerra.Repository.Reflection
         {
             var type = typeof(T);
 
-            var propertyNamesArray = propertyNames == null ? null : propertyNames.Split(',');
+            var propertyNamesArray = propertyNames is null ? null : propertyNames.Split(',');
 
             var sourceExpression = Expression.Parameter(type, "x");
 
@@ -60,15 +60,15 @@ namespace Zerra.Repository.Reflection
             var propertyExpressions = new List<Expression>();
             foreach (var typeProperty in typeProperties)
             {
-                if (propertyNamesArray != null && propertyNamesArray.Contains(typeProperty.Name))
+                if (propertyNamesArray is not null && propertyNamesArray.Contains(typeProperty.Name))
                 {
                     Expression propertyExpression = Expression.Property(sourceExpression, typeProperty);
                     propertyExpressions.Add(propertyExpression);
                 }
-                else if (attributeType != null)
+                else if (attributeType is not null)
                 {
                     var attribute = typeProperty.GetCustomAttribute(attributeType, true);
-                    if (attribute != null)
+                    if (attribute is not null)
                     {
                         Expression propertyExpression = Expression.Property(sourceExpression, typeProperty);
                         propertyExpressions.Add(propertyExpression);
@@ -99,7 +99,7 @@ namespace Zerra.Repository.Reflection
         private static Action<T, object?> GetSetterFunctionByNameOrAttribute<T>(string? propertyNames, Type? attributeType)
         {
             TypeKey key;
-            if (attributeType != null)
+            if (attributeType is not null)
                 key = new TypeKey(propertyNames, typeof(T), attributeType);
             else
                 key = new TypeKey(propertyNames, typeof(T));
@@ -116,7 +116,7 @@ namespace Zerra.Repository.Reflection
         {
             var type = typeof(T);
 
-            var propertyNamesArray = propertyNames == null ? null : propertyNames.Split(',');
+            var propertyNamesArray = propertyNames is null ? null : propertyNames.Split(',');
 
             var sourceExpression = Expression.Parameter(type, "x");
             var parameterValue = Expression.Parameter(typeof(object), "y");
@@ -125,15 +125,15 @@ namespace Zerra.Repository.Reflection
             var propertyExpressions = new List<Expression>();
             foreach (var typeProperty in typeProperties)
             {
-                if (propertyNamesArray != null && propertyNamesArray.Contains(typeProperty.Name))
+                if (propertyNamesArray is not null && propertyNamesArray.Contains(typeProperty.Name))
                 {
                     Expression propertyExpression = Expression.Property(sourceExpression, typeProperty);
                     propertyExpressions.Add(propertyExpression);
                 }
-                else if (attributeType != null)
+                else if (attributeType is not null)
                 {
                     var attribute = typeProperty.GetCustomAttribute(attributeType, true);
-                    if (attribute != null)
+                    if (attribute is not null)
                     {
                         Expression propertyExpression = Expression.Property(sourceExpression, typeProperty);
                         propertyExpressions.Add(propertyExpression);
@@ -186,7 +186,7 @@ namespace Zerra.Repository.Reflection
             foreach (var typeProperty in typeProperties)
             {
                 var attribute = typeProperty.GetCustomAttribute(typeof(IdentityAttribute), true);
-                if (attribute != null)
+                if (attribute is not null)
                 {
                     properties.Add(typeProperty);
                 }
@@ -198,10 +198,10 @@ namespace Zerra.Repository.Reflection
         public static object GetIdentity<TModel>(TModel model) where TModel : class, new()
         {
             var modelIdentityAccessor = GetGetterFunctionByNameOrAttribute<TModel>(null, typeof(IdentityAttribute));
-            if (modelIdentityAccessor == null)
+            if (modelIdentityAccessor is null)
                 throw new Exception($"Model {typeof(TModel).GetNiceName()} missing Identity");
             var id = modelIdentityAccessor.Invoke(model);
-            if (id == null)
+            if (id is null)
                 throw new Exception($"Model {typeof(TModel).GetNiceName()} missing Identity");
             return id;
         }
@@ -227,7 +227,7 @@ namespace Zerra.Repository.Reflection
         public static object? GetForeignIdentity<TModel>(string foreignIdentityNames, TModel model) where TModel : class, new()
         {
             var modelIdentityAccessor = GetGetterFunctionByNameOrAttribute<TModel>(foreignIdentityNames, null);
-            if (modelIdentityAccessor == null)
+            if (modelIdentityAccessor is null)
                 throw new Exception($"Model {typeof(TModel).GetNiceName()} missing Foreign Identity");
             var id = modelIdentityAccessor.Invoke(model);
             return id;
@@ -252,9 +252,9 @@ namespace Zerra.Repository.Reflection
 
         public static bool CompareIdentities(object? identity1, object? identity2)
         {
-            if (identity1 == null)
-                return identity2 == null;
-            if (identity2 == null)
+            if (identity1 is null)
+                return identity2 is null;
+            if (identity2 is null)
                 return false;
 
             if (identity1.Equals(identity2))
@@ -271,13 +271,13 @@ namespace Zerra.Repository.Reflection
                     var value1 = array1[i];
                     var value2 = array2[i];
 
-                    if (value1 == null)
+                    if (value1 is null)
                     {
-                        if (value2 == null)
+                        if (value2 is null)
                             continue;
                         return false;
                     }
-                    if (value2 == null)
+                    if (value2 is null)
                         return false;
                     if (!value1.Equals(value2))
                         return false;
@@ -310,7 +310,7 @@ namespace Zerra.Repository.Reflection
                 var id = ids[i];
 
                 Expression equals = Expression.Equal(Expression.MakeMemberAccess(queryExpressionParameter, identityProperty.MemberInfo), Expression.Constant(id, identityProperty.Type));
-                if (where == null)
+                if (where is null)
                 {
                     where = equals;
                 }
@@ -322,7 +322,7 @@ namespace Zerra.Repository.Reflection
                 i++;
             }
 
-            if (where == null)
+            if (where is null)
                 return null;
 
             var queryExpression = Expression.Lambda<Func<TModel, bool>>(where, queryExpressionParameter);

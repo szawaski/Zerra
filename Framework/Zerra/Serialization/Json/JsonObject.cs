@@ -180,7 +180,7 @@ namespace Zerra.Serialization.Json
         }
         private static void ToStringEncoded(string? value, StringBuilder sb)
         {
-            if (value == null)
+            if (value is null)
             {
                 _ = sb.Append("null");
                 return;
@@ -742,7 +742,7 @@ namespace Zerra.Serialization.Json
                 if (typeDetail.TryGetSerializableMemberCaseInsensitive(item.Key, out var member))
                 {
                     var value = item.Value.Bind(member.Type);
-                    if (value != null && obj != null)
+                    if (value is not null && obj is not null)
                         member.SetterBoxed(obj, value);
                 }
             }

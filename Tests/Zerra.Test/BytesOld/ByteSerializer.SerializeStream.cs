@@ -19,7 +19,7 @@ namespace Zerra.Serialization.Bytes
     {
         public static byte[] NewSerializeStackBased(object? obj, ByteSerializerOptions? options = null)
         {
-            if (obj == null)
+            if (obj is null)
                 return Array.Empty<byte>();
             return SerializeStackBased(obj, obj.GetType(), options);
         }
@@ -29,8 +29,8 @@ namespace Zerra.Serialization.Bytes
         }
         public static byte[] SerializeStackBased(object? obj, Type type, ByteSerializerOptions? options = null)
         {
-            if (type == null) throw new ArgumentNullException(nameof(type));
-            if (obj == null)
+            if (type is null) throw new ArgumentNullException(nameof(type));
+            if (obj is null)
                 return Array.Empty<byte>();
 
             options ??= defaultOptions;
@@ -84,9 +84,9 @@ namespace Zerra.Serialization.Bytes
 
         public static void Serialize(Stream stream, object? obj, ByteSerializerOptions? options = null)
         {
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
-            if (obj == null)
+            if (obj is null)
                 return;
             Serialize(stream, obj, obj.GetType());
         }
@@ -96,11 +96,11 @@ namespace Zerra.Serialization.Bytes
         }
         public static void Serialize(Stream stream, object? obj, Type type, ByteSerializerOptions? options = null)
         {
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
-            if (type == null)
+            if (type is null)
                 throw new ArgumentNullException(nameof(type));
-            if (obj == null)
+            if (obj is null)
                 return;
 
             options ??= defaultOptions;
@@ -154,9 +154,9 @@ namespace Zerra.Serialization.Bytes
 
         public static Task SerializeAsync(Stream stream, object? obj, ByteSerializerOptions? options = null)
         {
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
-            if (obj == null)
+            if (obj is null)
                 return Task.CompletedTask;
 
             var type = obj.GetType();
@@ -165,9 +165,9 @@ namespace Zerra.Serialization.Bytes
         }
         public static Task SerializeAsync<T>(Stream stream, T? obj, ByteSerializerOptions? options = null)
         {
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
-            if (obj == null)
+            if (obj is null)
                 return Task.CompletedTask;
 
             var type = typeof(T);
@@ -176,11 +176,11 @@ namespace Zerra.Serialization.Bytes
         }
         public static async Task SerializeAsync(Stream stream, object? obj, Type type, ByteSerializerOptions? options = null)
         {
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
-            if (type == null)
+            if (type is null)
                 throw new ArgumentNullException(nameof(type));
-            if (obj == null)
+            if (obj is null)
                 return;
 
             options ??= defaultOptions;
@@ -720,56 +720,56 @@ namespace Zerra.Serialization.Bytes
                     break;
 
                 case CoreEnumType.ByteNullable:
-                    if (!writer.TryWrite(state.CurrentFrame.Object == null ? null : (byte?)(byte)state.CurrentFrame.Object, state.CurrentFrame.NullFlags, out sizeNeeded))
+                    if (!writer.TryWrite(state.CurrentFrame.Object is null ? null : (byte?)(byte)state.CurrentFrame.Object, state.CurrentFrame.NullFlags, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
                 case CoreEnumType.SByteNullable:
-                    if (!writer.TryWrite(state.CurrentFrame.Object == null ? null : (sbyte?)(sbyte)state.CurrentFrame.Object, state.CurrentFrame.NullFlags, out sizeNeeded))
+                    if (!writer.TryWrite(state.CurrentFrame.Object is null ? null : (sbyte?)(sbyte)state.CurrentFrame.Object, state.CurrentFrame.NullFlags, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
                 case CoreEnumType.Int16Nullable:
-                    if (!writer.TryWrite(state.CurrentFrame.Object == null ? null : (short?)(short)state.CurrentFrame.Object, state.CurrentFrame.NullFlags, out sizeNeeded))
+                    if (!writer.TryWrite(state.CurrentFrame.Object is null ? null : (short?)(short)state.CurrentFrame.Object, state.CurrentFrame.NullFlags, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
                 case CoreEnumType.UInt16Nullable:
-                    if (!writer.TryWrite(state.CurrentFrame.Object == null ? null : (ushort?)(ushort)state.CurrentFrame.Object, state.CurrentFrame.NullFlags, out sizeNeeded))
+                    if (!writer.TryWrite(state.CurrentFrame.Object is null ? null : (ushort?)(ushort)state.CurrentFrame.Object, state.CurrentFrame.NullFlags, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
                 case CoreEnumType.Int32Nullable:
-                    if (!writer.TryWrite(state.CurrentFrame.Object == null ? null : (int?)(int)state.CurrentFrame.Object, state.CurrentFrame.NullFlags, out sizeNeeded))
+                    if (!writer.TryWrite(state.CurrentFrame.Object is null ? null : (int?)(int)state.CurrentFrame.Object, state.CurrentFrame.NullFlags, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
                 case CoreEnumType.UInt32Nullable:
-                    if (!writer.TryWrite(state.CurrentFrame.Object == null ? null : (uint?)(uint)state.CurrentFrame.Object, state.CurrentFrame.NullFlags, out sizeNeeded))
+                    if (!writer.TryWrite(state.CurrentFrame.Object is null ? null : (uint?)(uint)state.CurrentFrame.Object, state.CurrentFrame.NullFlags, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
                 case CoreEnumType.Int64Nullable:
-                    if (!writer.TryWrite(state.CurrentFrame.Object == null ? null : (long?)(long)state.CurrentFrame.Object, state.CurrentFrame.NullFlags, out sizeNeeded))
+                    if (!writer.TryWrite(state.CurrentFrame.Object is null ? null : (long?)(long)state.CurrentFrame.Object, state.CurrentFrame.NullFlags, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
                     }
                     break;
                 case CoreEnumType.UInt64Nullable:
-                    if (!writer.TryWrite(state.CurrentFrame.Object == null ? null : (ulong?)(ulong)state.CurrentFrame.Object, state.CurrentFrame.NullFlags, out sizeNeeded))
+                    if (!writer.TryWrite(state.CurrentFrame.Object is null ? null : (ulong?)(ulong)state.CurrentFrame.Object, state.CurrentFrame.NullFlags, out sizeNeeded))
                     {
                         state.BytesNeeded = sizeNeeded;
                         return;
@@ -791,7 +791,7 @@ namespace Zerra.Serialization.Bytes
             {
                 case SpecialType.Type:
                     {
-                        var valueType = state.CurrentFrame.Object == null ? null : (Type)state.CurrentFrame.Object;
+                        var valueType = state.CurrentFrame.Object is null ? null : (Type)state.CurrentFrame.Object;
                         if (!writer.TryWrite(valueType?.FullName, state.CurrentFrame.NullFlags, out var sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
@@ -804,7 +804,7 @@ namespace Zerra.Serialization.Bytes
                     {
                         if (!state.CurrentFrame.ObjectInProgress)
                         {
-                            if (state.CurrentFrame.Object != null)
+                            if (state.CurrentFrame.Object is not null)
                             {
                                 if (state.CurrentFrame.NullFlags)
                                 {
@@ -860,7 +860,7 @@ namespace Zerra.Serialization.Bytes
             {
                 if (nullFlags)
                 {
-                    if (value == null)
+                    if (value is null)
                     {
                         if (!writer.TryWriteNull(out sizeNeeded))
                         {
@@ -887,7 +887,7 @@ namespace Zerra.Serialization.Bytes
                 state.CurrentFrame.EnumeratorObjectInProgress = true;
 
                 var propertyValue = indexProperty.Value.Getter(value!);
-                if (propertyValue == null)
+                if (propertyValue is null)
                 {
                     state.CurrentFrame.EnumeratorObjectInProgress = false;
                     continue;
@@ -1514,7 +1514,7 @@ namespace Zerra.Serialization.Bytes
                     var value = state.CurrentFrame.ObjectEnumerator.Current;
                     state.CurrentFrame.EnumeratorObjectInProgress = true;
 
-                    if (value == null)
+                    if (value is null)
                     {
                         if (!writer.TryWriteNull(out sizeNeeded))
                         {

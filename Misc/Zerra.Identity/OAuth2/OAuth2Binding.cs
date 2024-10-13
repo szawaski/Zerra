@@ -65,7 +65,7 @@ namespace Zerra.Identity.OAuth2
         public void ValidateFields(string[] expectedUrls)
         {
             var redirect = Redirect(this.Document);
-            if (expectedUrls == null || (!String.IsNullOrWhiteSpace(redirect) && !expectedUrls.Contains(redirect)))
+            if (expectedUrls is null || (!String.IsNullOrWhiteSpace(redirect) && !expectedUrls.Contains(redirect)))
                 throw new IdentityProviderException("OAuth Document Invalid: Redirect");
         }
         private static string Redirect(JObject json)

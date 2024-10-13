@@ -418,7 +418,7 @@ namespace Zerra.TestDev
 
         private static byte[] Serialize(object obj)
         {
-            if (obj == null)
+            if (obj is null)
                 return null;
             var memoryStream = new MemoryStream();
 #pragma warning disable SYSLIB0011 // Type or member is obsolete
@@ -435,7 +435,7 @@ namespace Zerra.TestDev
 
         private static object Deserialize(byte[] bytes)
         {
-            if (bytes == null || bytes.Length == 0)
+            if (bytes is null || bytes.Length == 0)
                 return null;
             var memoryStream = new MemoryStream();
             memoryStream.Write(bytes, 0, bytes.Length);

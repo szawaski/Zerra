@@ -30,7 +30,7 @@ namespace Zerra.Identity.OAuth2.Documents
 
             var json = binding.GetDocument();
 
-            if (json == null)
+            if (json is null)
                 return;
 
             this.ServiceProvider = json[OAuth2Binding.ClientFormName]?.ToObject<string>();
@@ -42,13 +42,13 @@ namespace Zerra.Identity.OAuth2.Documents
         {
             var json = new JObject();
 
-            if (this.ServiceProvider != null)
+            if (this.ServiceProvider is not null)
                 json.Add(OAuth2Binding.ClientFormName, JToken.FromObject(this.ServiceProvider));
 
-            if (this.AccessCode != null)
+            if (this.AccessCode is not null)
                 json.Add("code", JToken.FromObject(this.AccessCode));
 
-            if (this.State != null)
+            if (this.State is not null)
                 json.Add("state", JToken.FromObject(this.State));
 
             return json;

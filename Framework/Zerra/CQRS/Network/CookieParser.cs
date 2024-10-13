@@ -26,7 +26,7 @@ namespace Zerra.CQRS.Network
                     switch (c)
                     {
                         case '=':
-                            if (key == null)
+                            if (key is null)
                             {
                                 key = chars.Slice(startIndex, indexLength).ToString();
                                 startIndex = index + 1;
@@ -38,7 +38,7 @@ namespace Zerra.CQRS.Network
                             }
                             break;
                         case ';':
-                            if (key != null)
+                            if (key is not null)
                             {
                                 var value = chars.Slice(startIndex, indexLength).ToString();
 #if NETSTANDARD2_0
@@ -66,7 +66,7 @@ namespace Zerra.CQRS.Network
                 }
             }
 
-            if (key != null)
+            if (key is not null)
             {
                 var value = chars.Slice(startIndex, indexLength).ToString();
 #if NETSTANDARD2_0

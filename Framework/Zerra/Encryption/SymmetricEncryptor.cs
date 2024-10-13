@@ -90,10 +90,10 @@ namespace Zerra.Encryption
 
         public static string? Encrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, string? plainData)
         {
-            if (key == null)
+            if (key is null)
                 throw new ArgumentNullException(nameof(key));
 
-            if (plainData == null)
+            if (plainData is null)
                 return null;
             var plainBytes = Encoding.UTF8.GetBytes(plainData);
             var encryptedBytes = Encrypt(symmetricAlgorithmType, key, plainBytes);
@@ -102,9 +102,9 @@ namespace Zerra.Encryption
         }
         public static byte[] Encrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, byte[] plainBytes)
         {
-            if (key == null)
+            if (key is null)
                 throw new ArgumentNullException(nameof(key));
-            if (plainBytes == null)
+            if (plainBytes is null)
                 throw new ArgumentNullException(nameof(plainBytes));
 
             if (plainBytes.Length == 0)
@@ -122,10 +122,8 @@ namespace Zerra.Encryption
 #if !NETSTANDARD2_0
         public static Span<byte> Encrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, ReadOnlySpan<byte> plainBytes)
         {
-            if (key == null)
+            if (key is null)
                 throw new ArgumentNullException(nameof(key));
-            if (plainBytes == null)
-                throw new ArgumentNullException(nameof(plainBytes));
 
             if (plainBytes.Length == 0)
                 return Span<byte>.Empty;
@@ -142,9 +140,9 @@ namespace Zerra.Encryption
 #endif
         public static CryptoFlushStream Encrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, Stream stream, bool write, bool leaveOpen = false)
         {
-            if (key == null)
+            if (key is null)
                 throw new ArgumentNullException(nameof(key));
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
 
             var (symmetricAlgorithm, shiftAlgorithm) = GetAlgorithm(symmetricAlgorithmType);
@@ -220,10 +218,10 @@ namespace Zerra.Encryption
 
         public static string? Decrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, string? encryptedData)
         {
-            if (key == null)
+            if (key is null)
                 throw new ArgumentNullException(nameof(key));
 
-            if (encryptedData == null)
+            if (encryptedData is null)
                 return null;
             var encryptedBytes = Convert.FromBase64String(encryptedData);
 
@@ -234,9 +232,9 @@ namespace Zerra.Encryption
         }
         public static byte[] Decrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, byte[] encryptedBytes)
         {
-            if (key == null)
+            if (key is null)
                 throw new ArgumentNullException(nameof(key));
-            if (encryptedBytes == null)
+            if (encryptedBytes is null)
                 throw new ArgumentNullException(nameof(encryptedBytes));
 
             if (encryptedBytes.Length == 0)
@@ -254,10 +252,8 @@ namespace Zerra.Encryption
 #if !NETSTANDARD2_0
         public static Span<byte> Decrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, ReadOnlySpan<byte> encryptedBytes)
         {
-            if (key == null)
+            if (key is null)
                 throw new ArgumentNullException(nameof(key));
-            if (encryptedBytes == null)
-                throw new ArgumentNullException(nameof(encryptedBytes));
 
             if (encryptedBytes.Length == 0)
                 return Span<byte>.Empty;
@@ -274,9 +270,9 @@ namespace Zerra.Encryption
 #endif
         public static CryptoFlushStream Decrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, Stream stream, bool write, bool leaveOpen = false)
         {
-            if (key == null)
+            if (key is null)
                 throw new ArgumentNullException(nameof(key));
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
 
             var (symmetricAlgorithm, shiftAlgorithm) = GetAlgorithm(symmetricAlgorithmType);

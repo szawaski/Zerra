@@ -17,7 +17,7 @@ namespace Zerra.Identity.OpenID.Documents
         public OpenIDTokenResponse(string code)
         {
             var token = AuthTokenManager.GetToken(nameof(OpenIDTokenResponse), code);
-            if (token == null)
+            if (token is null)
                 throw new IdentityProviderException("Invalid access code");
 
             this.Token = token;
@@ -30,7 +30,7 @@ namespace Zerra.Identity.OpenID.Documents
 
             var json = binding.GetDocument();
 
-            if (json == null)
+            if (json is null)
                 return;
 
             this.Token = json["access_token"]?.ToObject<string>();
@@ -40,7 +40,7 @@ namespace Zerra.Identity.OpenID.Documents
         {
             var json = new JObject();
 
-            if (this.Token != null)
+            if (this.Token is not null)
                 json.Add("access_token", JToken.FromObject(this.Token));
 
             return json;

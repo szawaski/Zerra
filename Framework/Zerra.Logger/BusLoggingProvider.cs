@@ -74,7 +74,7 @@ namespace Zerra.Logger
             var user = System.Threading.Thread.CurrentPrincipal?.Identity?.Name ?? anonymous;
 
             string message;
-            if (ex != null)
+            if (ex is not null)
                 message = $"{(handled ? "Handled " : "Sent ")}{commandCategory} Failed: {typeName} from {source} as {user} error {ex.GetType().Name}:{ex.Message} for {milliseconds}ms";
             else
                 message = $"{(handled ? "Handled " : "Sent ")}{commandCategory}: {typeName} from {source} as {user} for {milliseconds}ms";
@@ -92,7 +92,7 @@ namespace Zerra.Logger
             var user = System.Threading.Thread.CurrentPrincipal?.Identity?.Name ?? anonymous;
 
             string message;
-            if (ex != null)
+            if (ex is not null)
                 message = $"{(handled ? "Handled " : "Sent ")}{eventCategory} Failed: {typeName} from {source} as {user} error {ex.GetType().Name}:{ex.Message} for {milliseconds}ms";
             else
                 message = $"{(handled ? "Handled " : "Sent ")}{eventCategory}: {typeName} from {source} as {user} for {milliseconds}ms";
@@ -110,7 +110,7 @@ namespace Zerra.Logger
             var user = System.Threading.Thread.CurrentPrincipal?.Identity?.Name ?? anonymous;
 
             string message;
-            if (ex != null)
+            if (ex is not null)
                 message = $"{(handled ? "Handled " : "Sent ")}{callCategory} Failed: {interfaceName}.{methodName} from {source} as {user} error {ex.GetType().Name}:{ex.Message} for {milliseconds}ms";
             else
                 message = $"{(handled ? "Handled " : "Sent ")}{callCategory}: {interfaceName}.{methodName} from {source} as {user} for {milliseconds}ms";

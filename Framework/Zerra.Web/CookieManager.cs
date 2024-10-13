@@ -45,7 +45,7 @@ namespace Zerra.Web
         public string? GetSecure(string name)
         {
             var value = ReadCookie(name);
-            if (value != null)
+            if (value is not null)
             {
                 var decryptedValue = Decrypt(value);
                 return decryptedValue;
@@ -60,7 +60,7 @@ namespace Zerra.Web
 
         private string? Encrypt(string? value)
         {
-            if (dataProtectionProvider == null)
+            if (dataProtectionProvider is null)
                 throw new Exception("CookieManager created without an IDataProtectionProvider");
 
             if (String.IsNullOrWhiteSpace(value))
@@ -74,7 +74,7 @@ namespace Zerra.Web
         }
         private string? Decrypt(string? encryptedValue)
         {
-            if (dataProtectionProvider == null)
+            if (dataProtectionProvider is null)
                 throw new Exception("CookieManager created without an IDataProtectionProvider");
 
             if (String.IsNullOrWhiteSpace(encryptedValue))

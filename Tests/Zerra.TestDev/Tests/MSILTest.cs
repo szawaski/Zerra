@@ -34,7 +34,7 @@ namespace Zerra.TestDev
 
             public void Something(object[] args)
             {
-                var length = args == null ? 0 : args.Length;
+                var length = args is null ? 0 : args.Length;
             }
 
             public static int Other(int arg)

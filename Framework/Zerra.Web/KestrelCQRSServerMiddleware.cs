@@ -57,7 +57,7 @@ namespace Zerra.Web
 
             var requestContentType = context.Request.ContentType;
             ContentType? contentType;
-            if (requestContentType != null)
+            if (requestContentType is not null)
             {
                 if (requestContentType.StartsWith("application/octet-stream"))
                     contentType = ContentType.Bytes;
@@ -94,7 +94,7 @@ namespace Zerra.Web
             providerTypeRequestHeader = providerTypeRequestHeaderValue;
 
             string? originRequestHeader;
-            if (settings.AllowOrigins != null)
+            if (settings.AllowOrigins is not null)
             {
                 if (!context.Request.Headers.TryGetValue(HttpCommon.OriginHeader, out var originRequestHeaderValue))
                 {
@@ -124,12 +124,12 @@ namespace Zerra.Web
                 CqrsRequestData? data;
                 try
                 {
-                    if (symmetricConfig != null)
+                    if (symmetricConfig is not null)
                         body = SymmetricEncryptor.Decrypt(symmetricConfig, body, false);
 
                     data = await ContentTypeSerializer.DeserializeAsync<CqrsRequestData>(contentType.Value, body);
 
-                    if (data == null)
+                    if (data is null)
                         throw new Exception("Invalid Request");
                 }
                 finally
@@ -139,14 +139,14 @@ namespace Zerra.Web
 
                 //Authorize
                 //------------------------------------------------------------------------------------------------------------
-                if (settings.Authorizer != null)
+                if (settings.Authorizer is not null)
                 {
                     var headers = context.Request.Headers.ToDictionary<KeyValuePair<string, StringValues>, string, IList<string?>>(x => x.Key, x => x.Value.ToArray());
                     settings.Authorizer.Authorize(headers);
                 }
                 else
                 {
-                    if (data.Claims != null)
+                    if (data.Claims is not null)
                     {
                         var claimsIdentity = new ClaimsIdentity(data.Claims.Select(x => new Claim(x[0], x[1])), "CQRS");
                         Thread.CurrentPrincipal = new ClaimsPrincipal(claimsIdentity);
@@ -161,10 +161,10 @@ namespace Zerra.Web
                 //----------------------------------------------------------------------------------------------------
                 if (!String.IsNullOrWhiteSpace(data.ProviderType))
                 {
-                    if (settings.ProviderHandlerAsync == null) throw new InvalidOperationException($"{nameof(KestrelCQRSServerMiddleware)} is not setup");
+                    if (settings.ProviderHandlerAsync is null) throw new InvalidOperationException($"{nameof(KestrelCQRSServerMiddleware)} is not setup");
 
                     if (String.IsNullOrWhiteSpace(data.ProviderMethod)) throw new Exception("Invalid Request");
-                    if (data.ProviderArguments == null) throw new Exception("Invalid Request");
+                    if (data.ProviderArguments is null) throw new Exception("Invalid Request");
                     if (String.IsNullOrWhiteSpace(data.Source)) throw new Exception("Invalid Request");
 
                     var providerType = Discovery.GetTypeFromName(data.ProviderType);
@@ -200,14 +200,14 @@ namespace Zerra.Web
                     //Response Body
                     var responseBodyStream = context.Response.Body;
                     int bytesRead;
-                    if (result.Stream != null)
+                    if (result.Stream is not null)
                     {
                         var bufferOwner = ArrayPoolHelper<byte>.Rent(HttpCommon.BufferLength);
                         var buffer = bufferOwner.AsMemory();
 
                         try
                         {
-                            if (symmetricConfig != null)
+                            if (symmetricConfig is not null)
                             {
                                 CryptoFlushStream? responseBodyCryptoStream = null;
                                 try
@@ -220,7 +220,7 @@ namespace Zerra.Web
                                 }
                                 finally
                                 {
-                                    if (responseBodyCryptoStream != null)
+                                    if (responseBodyCryptoStream is not null)
                                     {
                                         await responseBodyCryptoStream.DisposeAsync();
                                     }
@@ -243,7 +243,7 @@ namespace Zerra.Web
                     }
                     else
                     {
-                        if (symmetricConfig != null)
+                        if (symmetricConfig is not null)
                         {
                             CryptoFlushStream? responseBodyCryptoStream = null;
                             try
@@ -256,7 +256,7 @@ namespace Zerra.Web
                             }
                             finally
                             {
-                                if (responseBodyCryptoStream != null)
+                                if (responseBodyCryptoStream is not null)
                                 {
                                     await responseBodyCryptoStream.DisposeAsync();
                                 }
@@ -272,8 +272,8 @@ namespace Zerra.Web
                 }
                 else if (!String.IsNullOrWhiteSpace(data.MessageType))
                 {
-                    if (settings.ReceiveCounter == null) throw new InvalidOperationException($"{nameof(KestrelCQRSServerMiddleware)} is not setup");
-                    if (data.MessageData == null) throw new Exception("Invalid Request");
+                    if (settings.ReceiveCounter is null) throw new InvalidOperationException($"{nameof(KestrelCQRSServerMiddleware)} is not setup");
+                    if (data.MessageData is null) throw new Exception("Invalid Request");
                     if (String.IsNullOrWhiteSpace(data.Source)) throw new Exception("Invalid Request");
 
                     isCommand = true;
@@ -290,7 +290,7 @@ namespace Zerra.Web
                     _ = settings.ReceiveCounter.BeginReceive();
 
                     var command = (ICommand?)JsonSerializer.Deserialize(messageType, data.MessageData);
-                    if (command == null)
+                    if (command is null)
                         throw new Exception("Invalid Request");
 
                     bool hasResult;
@@ -299,19 +299,19 @@ namespace Zerra.Web
                     inHandlerContext = true;
                     if (data.MessageResult == true)
                     {
-                        if (settings.HandlerWithResultAwaitAsync == null) throw new InvalidOperationException($"{nameof(KestrelCQRSServerMiddleware)} is not setup");
+                        if (settings.HandlerWithResultAwaitAsync is null) throw new InvalidOperationException($"{nameof(KestrelCQRSServerMiddleware)} is not setup");
                         result = await settings.HandlerWithResultAwaitAsync(command, data.Source, false);
                         hasResult = true;
                     }
                     else if (data.MessageAwait == true)
                     {
-                        if (settings.HandlerAwaitAsync == null) throw new InvalidOperationException($"{nameof(KestrelCQRSServerMiddleware)} is not setup");
+                        if (settings.HandlerAwaitAsync is null) throw new InvalidOperationException($"{nameof(KestrelCQRSServerMiddleware)} is not setup");
                         await settings.HandlerAwaitAsync(command, data.Source, false);
                         hasResult = false;
                     }
                     else
                     {
-                        if (settings.HandlerAsync == null) throw new InvalidOperationException($"{nameof(KestrelCQRSServerMiddleware)} is not setup");
+                        if (settings.HandlerAsync is null) throw new InvalidOperationException($"{nameof(KestrelCQRSServerMiddleware)} is not setup");
                         await settings.HandlerAsync(command, data.Source, false);
                         hasResult = false;
                     }
@@ -359,7 +359,7 @@ namespace Zerra.Web
                         }
 
                         var responseBodyStream = context.Response.Body;
-                        if (symmetricConfig != null)
+                        if (symmetricConfig is not null)
                         {
                             var responseBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, responseBodyStream, true);
                             await ContentTypeSerializer.SerializeAsync(contentType.Value, responseBodyCryptoStream, result);
@@ -407,7 +407,7 @@ namespace Zerra.Web
                 }
 
                 var responseBodyStream = context.Response.Body;
-                if (symmetricConfig != null)
+                if (symmetricConfig is not null)
                 {
                     var responseBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, responseBodyStream, true);
                     await ContentTypeSerializer.SerializeExceptionAsync(contentType.Value, responseBodyCryptoStream, ex);
@@ -422,7 +422,7 @@ namespace Zerra.Web
             }
             finally
             {
-                if (throttle != null)
+                if (throttle is not null)
                 {
                     if (isCommand)
                     {

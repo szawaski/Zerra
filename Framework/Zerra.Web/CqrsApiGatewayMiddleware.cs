@@ -41,7 +41,7 @@ namespace Zerra.Web
 
             var requestContentType = context.Request.ContentType;
             ContentType contentType;
-            if (requestContentType != null)
+            if (requestContentType is not null)
             {
                 if (requestContentType.StartsWith("application/octet-stream"))
                     contentType = ContentType.Bytes;
@@ -59,7 +59,7 @@ namespace Zerra.Web
 
             var accepts = (string?)context.Request.Headers.Accept;
             ContentType? acceptContentType;
-            if (accepts != null)
+            if (accepts is not null)
             {
                 if (accepts.StartsWith("application/octet-stream"))
                     acceptContentType = ContentType.Bytes;
@@ -79,14 +79,14 @@ namespace Zerra.Web
             try
             {
                 var data = await ContentTypeSerializer.DeserializeAsync<ApiRequestData>(contentType, context.Request.Body);
-                if (data == null)
+                if (data is null)
                     throw new Exception("Invalid Request");
 
                 inHandlerContext = true;
                 var response = await ApiServerHandler.HandleRequestAsync(acceptContentType, data);
                 inHandlerContext = false;
 
-                if (response == null)
+                if (response is null)
                 {
                     context.Response.StatusCode = 400;
                     return;
@@ -97,7 +97,7 @@ namespace Zerra.Web
                     return;
                 }
 
-                if (response.Bytes != null)
+                if (response.Bytes is not null)
                 {
                     context.Response.ContentType = acceptContentType switch
                     {
@@ -110,7 +110,7 @@ namespace Zerra.Web
                     context.Response.ContentLength = response.Bytes.Length;
                     await context.Response.Body.WriteAsync(response.Bytes.AsMemory(0, response.Bytes.Length));
                 }
-                else if (response.Stream != null)
+                else if (response.Stream is not null)
                 {
                     context.Response.ContentType = "application/octet-stream";
                     await response.Stream.CopyToAsync(context.Response.Body);

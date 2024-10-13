@@ -112,19 +112,19 @@ namespace Zerra.CQRS.Kafka
                     if (consumerResult.Message.Key == KafkaCommon.MessageKey)
                     {
                         var body = consumerResult.Message.Value;
-                        if (symmetricConfig != null)
+                        if (symmetricConfig is not null)
                             body = SymmetricEncryptor.Decrypt(symmetricConfig, body);
 
                         var message = KafkaCommon.Deserialize<KafkaMessage>(body);
 
-                        if (message == null || message.MessageType == null || message.MessageData == null || message.Source == null)
+                        if (message is null || message.MessageType is null || message.MessageData is null || message.Source is null)
                             throw new Exception("Invalid Message");
 
                         var @event = KafkaCommon.Deserialize(message.MessageType, message.MessageData) as IEvent;
-                        if (@event == null)
+                        if (@event is null)
                             throw new Exception("Invalid Message");
 
-                        if (message.Claims != null)
+                        if (message.Claims is not null)
                         {
                             var claimsIdentity = new ClaimsIdentity(message.Claims.Select(x => new Claim(x[0], x[1])), "CQRS");
                             Thread.CurrentPrincipal = new ClaimsPrincipal(claimsIdentity);

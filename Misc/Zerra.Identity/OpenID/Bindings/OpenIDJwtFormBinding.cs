@@ -74,9 +74,9 @@ namespace Zerra.Identity.OpenID.Bindings
             foreach (var formValue in request.Form)
                 this.Document.Add(formValue.Key, (string)formValue.Value);
 
-            if (!this.Document.ContainsKey(nameof(JwtHeader.X509Thumbprint)) && jwtHeader.X509Thumbprint != null)
+            if (!this.Document.ContainsKey(nameof(JwtHeader.X509Thumbprint)) && jwtHeader.X509Thumbprint is not null)
                 this.Document.Add(nameof(JwtHeader.X509Thumbprint), JToken.FromObject(jwtHeader.X509Thumbprint));
-            if (!this.Document.ContainsKey(nameof(JwtHeader.KeyID)) && jwtHeader.KeyID != null)
+            if (!this.Document.ContainsKey(nameof(JwtHeader.KeyID)) && jwtHeader.KeyID is not null)
                 this.Document.Add(nameof(JwtHeader.KeyID), JToken.FromObject(jwtHeader.KeyID));
 
             this.SignatureAlgorithm = Algorithms.GetSignatureAlgorithmFromJwt(jwtHeader.Algorithm);
@@ -102,7 +102,7 @@ namespace Zerra.Identity.OpenID.Bindings
 
             _ = sb.Append("<html><head><title>Working...</title></head><body>");
             _ = sb.Append("<form method=\"POST\" name=\"name=\"hiddenform\" action=\"").Append(url).Append("\">");
-            if (inputs != null)
+            if (inputs is not null)
             {
                 foreach (var input in inputs)
                     _ = sb.Append(String.Format("<input type=\"hidden\" name=\"{0}\" value=\"{1}\">", WebUtility.HtmlEncode(input.Key), WebUtility.HtmlEncode(input.Value)));

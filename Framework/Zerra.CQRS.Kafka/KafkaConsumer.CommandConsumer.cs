@@ -127,18 +127,18 @@ namespace Zerra.CQRS.Kafka
                     if (consumerResult.Message.Key == KafkaCommon.MessageKey || consumerResult.Message.Key == KafkaCommon.MessageWithAckKey)
                     {
                         var body = consumerResult.Message.Value;
-                        if (symmetricConfig != null)
+                        if (symmetricConfig is not null)
                             body = SymmetricEncryptor.Decrypt(symmetricConfig, body);
 
                         var message = KafkaCommon.Deserialize<KafkaMessage>(body);
-                        if (message == null || message.MessageType == null || message.MessageData == null || message.Source == null)
+                        if (message is null || message.MessageType is null || message.MessageData is null || message.Source is null)
                             throw new Exception("Invalid Message");
 
                         var command = KafkaCommon.Deserialize(message.MessageType, message.MessageData) as ICommand;
-                        if (command == null)
+                        if (command is null)
                             throw new Exception("Invalid Message");
 
-                        if (message.Claims != null)
+                        if (message.Claims is not null)
                         {
                             var claimsIdentity = new ClaimsIdentity(message.Claims.Select(x => new Claim(x[0], x[1])), "CQRS");
                             Thread.CurrentPrincipal = new ClaimsPrincipal(claimsIdentity);
@@ -180,7 +180,7 @@ namespace Zerra.CQRS.Kafka
 
                     var acknowledgement = new Acknowledgement(result, error);
                     var body = KafkaCommon.Serialize(acknowledgement);
-                    if (symmetricConfig != null)
+                    if (symmetricConfig is not null)
                         body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
 
                     var producerConfig = new ProducerConfig();

@@ -134,7 +134,7 @@ namespace Zerra.CQRS.Relay
                                 await incommingBodyStream.DisposeAsync();
                                 incommingBodyStream = null;
 
-                                if (serviceInfo != null)
+                                if (serviceInfo is not null)
                                 {
                                     if (header.RelayServiceAddRemove == true)
                                         RelayConnectedServicesManager.AddOrUpdate(serviceInfo);
@@ -155,13 +155,13 @@ namespace Zerra.CQRS.Relay
                     default: throw new NotImplementedException();
                 }
 
-                if (providerType == null)
+                if (providerType is null)
                     throw new Exception("ProviderType not supplied");
 
-                while (outgoingClient == null)
+                while (outgoingClient is null)
                 {
                     service = RelayConnectedServicesManager.GetBestService(providerType);
-                    if (service == null || String.IsNullOrWhiteSpace(service.Url))
+                    if (service is null || String.IsNullOrWhiteSpace(service.Url))
                         break;
 
                     try
@@ -169,7 +169,7 @@ namespace Zerra.CQRS.Relay
                         _ = Log.TraceAsync($"Relaying {providerType} to {service.Url}");
 
                         var outgoingEndpoint = IPResolver.GetIPEndPoints(service.Url).First();
-                        if (outgoingEndpoint != null)
+                        if (outgoingEndpoint is not null)
                         {
                             outgoingClient = new TcpClient(outgoingEndpoint.AddressFamily);
                             outgoingClient.NoDelay = true;
@@ -187,7 +187,7 @@ namespace Zerra.CQRS.Relay
                     }
                 }
 
-                if (outgoingClient == null || service == null)
+                if (outgoingClient is null || service is null)
                 {
                     _ = Log.WarnAsync($"Destination not found {providerType}");
                     switch (protocolType.Value)
@@ -310,7 +310,7 @@ namespace Zerra.CQRS.Relay
             {
                 if (ex is IOException ioException)
                 {
-                    if (ioException.InnerException != null && ioException.InnerException is SocketException socketException)
+                    if (ioException.InnerException is not null && ioException.InnerException is SocketException socketException)
                     {
                         if (socketException.SocketErrorCode == SocketError.ConnectionAborted)
                             return;
@@ -319,7 +319,7 @@ namespace Zerra.CQRS.Relay
 
                 _ = Log.ErrorAsync(ex);
 
-                if (!responseStarted && incommingStream != null && protocolType.HasValue)
+                if (!responseStarted && incommingStream is not null && protocolType.HasValue)
                 {
                     try
                     {
@@ -346,20 +346,20 @@ namespace Zerra.CQRS.Relay
                     }
                 }
 
-                if (outgoingWritingBodyStream != null)
+                if (outgoingWritingBodyStream is not null)
                     await outgoingWritingBodyStream.DisposeAsync();
-                if (outgoingBodyStream != null)
+                if (outgoingBodyStream is not null)
                     await outgoingBodyStream.DisposeAsync();
-                if (outgoingStream != null)
+                if (outgoingStream is not null)
                     await outgoingStream.DisposeAsync();
-                if (incommingWritingBodyStream != null)
+                if (incommingWritingBodyStream is not null)
                     await incommingWritingBodyStream.DisposeAsync();
-                if (incommingBodyStream != null)
+                if (incommingBodyStream is not null)
                     await incommingBodyStream.DisposeAsync();
-                if (incommingStream != null)
+                if (incommingStream is not null)
                     await incommingStream.DisposeAsync();
 
-                if (outgoingClient != null)
+                if (outgoingClient is not null)
                     outgoingClient.Dispose();
 
                 socket.Dispose();
@@ -368,7 +368,7 @@ namespace Zerra.CQRS.Relay
             {
                 ArrayPoolHelper<byte>.Return(bufferOwner);
 
-                if (service != null && stopwatch != null)
+                if (service is not null && stopwatch is not null)
                 {
                     service.EndRequestRunning(stopwatch);
                 }

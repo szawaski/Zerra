@@ -115,7 +115,7 @@ namespace Zerra.CQRS.Kafka
                 };
 
                 var body = KafkaCommon.Serialize(message);
-                if (symmetricConfig != null)
+                if (symmetricConfig is not null)
                     body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
 
                 if (requireAcknowledgement)
@@ -216,7 +216,7 @@ namespace Zerra.CQRS.Kafka
                 };
 
                 var body = KafkaCommon.Serialize(message);
-                if (symmetricConfig != null)
+                if (symmetricConfig is not null)
                     body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
 
                 var ackKey = Guid.NewGuid().ToString("N");
@@ -290,7 +290,7 @@ namespace Zerra.CQRS.Kafka
                 };
 
                 var body = KafkaCommon.Serialize(message);
-                if (symmetricConfig != null)
+                if (symmetricConfig is not null)
                     body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
 
                 var producerResult = await producer.ProduceAsync(topic, new Message<string, byte[]> { Key = KafkaCommon.MessageKey, Value = body });
@@ -331,7 +331,7 @@ namespace Zerra.CQRS.Kafka
                             try
                             {
                                 var response = consumerResult.Message.Value;
-                                if (symmetricConfig != null)
+                                if (symmetricConfig is not null)
                                     response = SymmetricEncryptor.Decrypt(symmetricConfig, response);
                                 acknowledgement = KafkaCommon.Deserialize<Acknowledgement>(response);
                                 acknowledgement ??= new Acknowledgement("Invalid Acknowledgement");

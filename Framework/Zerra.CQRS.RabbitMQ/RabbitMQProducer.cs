@@ -82,11 +82,11 @@ namespace Zerra.CQRS.RabbitMQ
 
                 try
                 {
-                    if (connection == null || connection!.IsOpen == false)
+                    if (connection is null || connection!.IsOpen == false)
                     {
                         lock (locker)
                         {
-                            if (connection == null || connection.IsOpen == false)
+                            if (connection is null || connection.IsOpen == false)
                             {
                                 this.connection?.Close();
                                 this.connection?.Dispose();
@@ -112,7 +112,7 @@ namespace Zerra.CQRS.RabbitMQ
                     };
 
                     var body = RabbitMQCommon.Serialize(rabbitMessage);
-                    if (symmetricConfig != null)
+                    if (symmetricConfig is not null)
                         body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
 
                     var properties = channel.CreateBasicProperties();
@@ -148,7 +148,7 @@ namespace Zerra.CQRS.RabbitMQ
                                 channel.BasicCancel(consumerTag);
 
                                 var acknowledgementBody = e.Body.Span;
-                                if (symmetricConfig != null)
+                                if (symmetricConfig is not null)
                                     acknowledgementBody = SymmetricEncryptor.Decrypt(symmetricConfig, acknowledgementBody);
 
                                 acknowledgement = RabbitMQCommon.Deserialize<Acknowledgement>(acknowledgementBody);
@@ -203,11 +203,11 @@ namespace Zerra.CQRS.RabbitMQ
 
                 try
                 {
-                    if (connection == null || connection!.IsOpen == false)
+                    if (connection is null || connection!.IsOpen == false)
                     {
                         lock (locker)
                         {
-                            if (connection == null || connection.IsOpen == false)
+                            if (connection is null || connection.IsOpen == false)
                             {
                                 this.connection?.Close();
                                 this.connection?.Dispose();
@@ -233,7 +233,7 @@ namespace Zerra.CQRS.RabbitMQ
                     };
 
                     var body = RabbitMQCommon.Serialize(rabbitMessage);
-                    if (symmetricConfig != null)
+                    if (symmetricConfig is not null)
                         body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
 
                     var properties = channel.CreateBasicProperties();
@@ -261,7 +261,7 @@ namespace Zerra.CQRS.RabbitMQ
                             channel.BasicCancel(consumerTag);
 
                             var acknowledgementBody = e.Body.Span;
-                            if (symmetricConfig != null)
+                            if (symmetricConfig is not null)
                                 acknowledgementBody = SymmetricEncryptor.Decrypt(symmetricConfig, acknowledgementBody);
 
                             acknowledgement = RabbitMQCommon.Deserialize<Acknowledgement>(acknowledgementBody);
@@ -316,11 +316,11 @@ namespace Zerra.CQRS.RabbitMQ
 
                 try
                 {
-                    if (connection == null || connection.IsOpen == false)
+                    if (connection is null || connection.IsOpen == false)
                     {
                         lock (locker)
                         {
-                            if (connection == null || connection.IsOpen == false)
+                            if (connection is null || connection.IsOpen == false)
                             {
                                 this.connection?.Close();
                                 this.connection?.Dispose();
@@ -346,7 +346,7 @@ namespace Zerra.CQRS.RabbitMQ
                     };
 
                     var body = RabbitMQCommon.Serialize(rabbitMessage);
-                    if (symmetricConfig != null)
+                    if (symmetricConfig is not null)
                         body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
 
                     var properties = channel.CreateBasicProperties();

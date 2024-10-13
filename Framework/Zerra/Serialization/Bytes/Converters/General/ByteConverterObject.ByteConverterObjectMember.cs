@@ -27,7 +27,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
             {
                 get
                 {
-                    if (converter == null)
+                    if (converter is null)
                     {
                         lock (this)
                         {

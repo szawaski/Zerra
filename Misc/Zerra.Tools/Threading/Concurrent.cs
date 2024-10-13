@@ -160,15 +160,15 @@ namespace Zerra.Threading
             {
                 var concurrentTValue = concurrentT.Value;
                 var thisValue = Value;
-                if (concurrentTValue == null)
+                if (concurrentTValue is null)
                 {
-                    if (thisValue == null)
+                    if (thisValue is null)
                         return true;
                     else
                         return false;
                 }
                 
-                if (thisValue == null)
+                if (thisValue is null)
                     return false;
                 return concurrentTValue.Equals(thisValue);
             }
@@ -176,14 +176,14 @@ namespace Zerra.Threading
             if (obj is T t)
             {
                 var thisValue = Value;
-                if (t == null)
+                if (t is null)
                 {
-                    if (thisValue == null)
+                    if (thisValue is null)
                         return true;
                     else
                         return false;
                 }
-                if (thisValue == null)
+                if (thisValue is null)
                     return false;
                 return t.Equals(thisValue);
             }
@@ -194,7 +194,7 @@ namespace Zerra.Threading
         public override int GetHashCode()
         {
             var thisValue = Value;
-            return thisValue == null ? base.GetHashCode() : thisValue.GetHashCode();
+            return thisValue is null ? base.GetHashCode() : thisValue.GetHashCode();
         }
     }
 }

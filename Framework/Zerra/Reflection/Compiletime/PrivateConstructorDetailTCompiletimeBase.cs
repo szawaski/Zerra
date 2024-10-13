@@ -60,7 +60,7 @@ namespace Zerra.Reflection.Compiletime
         {
             get
             {
-                if (this.parameterInfos == null)
+                if (this.parameterInfos is null)
                 {
                     lock (locker)
                     {
@@ -97,7 +97,7 @@ namespace Zerra.Reflection.Compiletime
             {
                 if (!creatorBoxedLoaded)
                     LoadCreatorBoxed();
-                return this.creatorBoxed != null;
+                return this.creatorBoxed is not null;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -107,7 +107,7 @@ namespace Zerra.Reflection.Compiletime
             {
                 if (!creatorBoxedLoaded)
                 {
-                    if (ConstructorInfo.DeclaringType != null && !ConstructorInfo.DeclaringType.IsAbstract && !ConstructorInfo.DeclaringType.IsGenericTypeDefinition)
+                    if (ConstructorInfo.DeclaringType is not null && !ConstructorInfo.DeclaringType.IsAbstract && !ConstructorInfo.DeclaringType.IsGenericTypeDefinition)
                     {
                         this.creatorBoxed = AccessorGenerator.GenerateCreatorNoArgs(ConstructorInfo);
                     }
@@ -133,7 +133,7 @@ namespace Zerra.Reflection.Compiletime
             {
                 if (!creatorWithArgsBoxedLoaded)
                     LoadCreatorWithArgsBoxed();
-                return this.creatorWithArgsBoxed != null;
+                return this.creatorWithArgsBoxed is not null;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -143,7 +143,7 @@ namespace Zerra.Reflection.Compiletime
             {
                 if (!creatorWithArgsBoxedLoaded)
                 {
-                    if (ConstructorInfo.DeclaringType != null && !ConstructorInfo.DeclaringType.IsAbstract && !ConstructorInfo.DeclaringType.IsGenericTypeDefinition)
+                    if (ConstructorInfo.DeclaringType is not null && !ConstructorInfo.DeclaringType.IsAbstract && !ConstructorInfo.DeclaringType.IsGenericTypeDefinition)
                     {
                         this.creatorWithArgsBoxed = AccessorGenerator.GenerateCreator(ConstructorInfo);
                     }
@@ -167,7 +167,7 @@ namespace Zerra.Reflection.Compiletime
             get
             {
                 LoadCreator();
-                return this.creator != null;
+                return this.creator is not null;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -179,7 +179,7 @@ namespace Zerra.Reflection.Compiletime
                 {
                     if (!creatorLoaded)
                     {
-                        if (ConstructorInfo.DeclaringType != null && !ConstructorInfo.DeclaringType.IsAbstract && !ConstructorInfo.DeclaringType.IsGenericTypeDefinition)
+                        if (ConstructorInfo.DeclaringType is not null && !ConstructorInfo.DeclaringType.IsAbstract && !ConstructorInfo.DeclaringType.IsGenericTypeDefinition)
                         {
                             this.creator = AccessorGenerator.GenerateCreatorNoArgs<T>(ConstructorInfo);
                         }
@@ -204,7 +204,7 @@ namespace Zerra.Reflection.Compiletime
             get
             {
                 LoadCreatorWithArgs();
-                return this.creatorWithArgs != null;
+                return this.creatorWithArgs is not null;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -216,7 +216,7 @@ namespace Zerra.Reflection.Compiletime
                 {
                     if (!creatorWithArgsLoaded)
                     {
-                        if (ConstructorInfo.DeclaringType != null && !ConstructorInfo.DeclaringType.IsAbstract && !ConstructorInfo.DeclaringType.IsGenericTypeDefinition)
+                        if (ConstructorInfo.DeclaringType is not null && !ConstructorInfo.DeclaringType.IsAbstract && !ConstructorInfo.DeclaringType.IsGenericTypeDefinition)
                         {
                             this.creatorWithArgs = AccessorGenerator.GenerateCreator<T>(ConstructorInfo);
                         }
@@ -232,7 +232,7 @@ namespace Zerra.Reflection.Compiletime
             foreach (var parameterDetail in ParameterDetails)
             {
                 var parameter = parameters.FirstOrDefault(x => x.Name == parameterDetail.Name);
-                if (parameter == null)
+                if (parameter is null)
                     throw new InvalidOperationException($"Parameter not found for {parameterDetail.Name}");
 
                 var parameterBase = (ParameterDetailCompiletimeBase)parameterDetail;

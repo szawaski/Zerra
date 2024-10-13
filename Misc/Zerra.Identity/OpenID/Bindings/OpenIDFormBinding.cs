@@ -51,7 +51,7 @@ namespace Zerra.Identity.OpenID.Bindings
 
             _ = sb.Append("<html><head><title>Working...</title></head><body>");
             _ = sb.Append("<form method=\"POST\" name=\"name=\"hiddenform\" action=\"").Append(url).Append("\">");
-            if (inputs != null)
+            if (inputs is not null)
             {
                 foreach (var input in inputs)
                     _ = sb.Append(String.Format("<input type=\"hidden\" name=\"{0}\" value=\"{1}\">", WebUtility.HtmlEncode(input.Key), WebUtility.HtmlEncode(input.Value)));

@@ -58,7 +58,7 @@ namespace Zerra.Identity.TokenManagers
         {
             _ = accessCodes.TryRemove(code, out var accessCode);
 
-            if (accessCode == null)
+            if (accessCode is null)
                 return null;
             if (serviceProvider != accessCode.ServiceProvider)
                 return null;
@@ -72,7 +72,7 @@ namespace Zerra.Identity.TokenManagers
         {
             _ = auths.TryGetValue(token, out var auth);
 
-            if (auth == null)
+            if (auth is null)
                 return null;
             if (serviceProvider != auth.ServiceProvider)
                 return null;

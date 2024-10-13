@@ -67,7 +67,7 @@ namespace Zerra.Buffers
         /// <exception cref="OverflowException">Throws when the array tries to exceede the maximum length.</exception>
         public static void Grow(ref T[] buffer, int minSize)
         {
-            if (buffer == null)
+            if (buffer is null)
                 throw new ArgumentNullException(nameof(buffer));
 
             if (minSize < buffer.Length)

@@ -16,11 +16,11 @@ namespace Zerra.Repository
         private static readonly object typeCacheLock = new();
         private Type GetAggregateType()
         {
-            if (typeCache == null)
+            if (typeCache is null)
             {
                 lock (typeCacheLock)
                 {
-                    if (typeCache == null)
+                    if (typeCache is null)
                     {
                         typeCache = this.GetType();
                     }
@@ -33,11 +33,11 @@ namespace Zerra.Repository
         private static readonly object engineCacheLock = new();
         private IEventStoreEngine GetEngine()
         {
-            if (engineCache == null)
+            if (engineCache is null)
             {
                 lock (engineCacheLock)
                 {
-                    if (engineCache == null)
+                    if (engineCache is null)
                     {
                         var aggregateType = GetAggregateType();
                         var iEventStoreContextProviderType = typeof(IAggregateRootContextProvider<>);
@@ -118,7 +118,7 @@ namespace Zerra.Repository
                 if (eventData.Deleted)
                     this.IsDeleted = true;
                 var eventModel = EventStoreCommon.Deserialize<IEvent>(eventData.Data.Span);
-                if (eventModel == null)
+                if (eventModel is null)
                     throw new Exception("Failed to deserialize Model");
                 await ApplyEvent(eventModel, eventModel.GetType());
             }
@@ -137,12 +137,12 @@ namespace Zerra.Repository
                 {
                     if (!method.MethodInfo.IsStatic && method.ParameterDetails.Count == 1 && method.ParameterDetails[0].Type == eventType)
                     {
-                        if (methodDetail != null)
+                        if (methodDetail is not null)
                             throw new Exception($"Multiple aggregate event methods found in {aggregateType.Name} to accept {eventType.Name}");
                         methodDetail = method;
                     }
                 }
-                if (methodDetail == null)
+                if (methodDetail is null)
                     throw new Exception($"No aggregate event methods found in {aggregateType.Name} to accept {eventType.Name}");
                 return methodDetail;
             });

@@ -21,7 +21,7 @@ namespace Zerra.Serialization.Json
 
         public static string? Serialize<T>(T? obj, JsonSerializerOptions? options = null, Graph? graph = null)
         {
-            if (obj == null)
+            if (obj is null)
                 return "null";
 
             options ??= defaultOptions;
@@ -46,7 +46,7 @@ namespace Zerra.Serialization.Json
         }
         public static string? Serialize(object? obj, JsonSerializerOptions? options = null, Graph? graph = null)
         {
-            if (obj == null)
+            if (obj is null)
                 return "null";
 
             options ??= defaultOptions;
@@ -72,9 +72,9 @@ namespace Zerra.Serialization.Json
         }
         public static string? Serialize(object? obj, Type type, JsonSerializerOptions? options = null, Graph? graph = null)
         {
-            if (type == null)
+            if (type is null)
                 throw new ArgumentNullException(nameof(type));
-            if (obj == null)
+            if (obj is null)
                 return "null";
 
             options ??= defaultOptions;
@@ -100,7 +100,7 @@ namespace Zerra.Serialization.Json
 
         public static byte[] SerializeBytes<T>(T? obj, JsonSerializerOptions? options = null, Graph? graph = null)
         {
-            if (obj == null)
+            if (obj is null)
                 return nullBytes.ToArray();
 
             options ??= defaultOptions;
@@ -125,7 +125,7 @@ namespace Zerra.Serialization.Json
         }
         public static byte[] SerializeBytes(object? obj, JsonSerializerOptions? options = null, Graph? graph = null)
         {
-            if (obj == null)
+            if (obj is null)
                 return nullBytes.ToArray();
 
             options ??= defaultOptions;
@@ -151,9 +151,9 @@ namespace Zerra.Serialization.Json
         }
         public static byte[] SerializeBytes(object? obj, Type type, JsonSerializerOptions? options = null, Graph? graph = null)
         {
-            if (type == null)
+            if (type is null)
                 throw new ArgumentNullException(nameof(type));
-            if (obj == null)
+            if (obj is null)
                 return nullBytes.ToArray();
 
             options ??= defaultOptions;
@@ -179,9 +179,9 @@ namespace Zerra.Serialization.Json
 
         public static void Serialize<T>(Stream stream, T? obj, JsonSerializerOptions? options = null, Graph? graph = null)
         {
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
-            if (obj == null)
+            if (obj is null)
                 return;
 
             options ??= defaultOptions;
@@ -228,9 +228,9 @@ namespace Zerra.Serialization.Json
         }
         public static void Serialize(Stream stream, object? obj, JsonSerializerOptions? options = null, Graph? graph = null)
         {
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
-            if (obj == null)
+            if (obj is null)
                 return;
 
             options ??= defaultOptions;
@@ -277,11 +277,11 @@ namespace Zerra.Serialization.Json
         }
         public static void Serialize(Stream stream, object? obj, Type type, JsonSerializerOptions? options = null, Graph? graph = null)
         {
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
-            if (type == null)
+            if (type is null)
                 throw new ArgumentNullException(nameof(type));
-            if (obj == null)
+            if (obj is null)
                 return;
 
             options ??= defaultOptions;
@@ -329,9 +329,9 @@ namespace Zerra.Serialization.Json
 
         public static async Task SerializeAsync<T>(Stream stream, T? obj, JsonSerializerOptions? options = null, Graph? graph = null)
         {
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
-            if (obj == null)
+            if (obj is null)
             {
 #if NETSTANDARD2_0
                 await stream.WriteAsync(nullBytes.ToArray(), 0, nullBytes.Length);
@@ -385,9 +385,9 @@ namespace Zerra.Serialization.Json
         }
         public static async Task SerializeAsync(Stream stream, object? obj, JsonSerializerOptions? options = null, Graph? graph = null)
         {
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
-            if (obj == null)
+            if (obj is null)
             {
 #if NETSTANDARD2_0
                 await stream.WriteAsync(nullBytes.ToArray(), 0, nullBytes.Length);
@@ -441,11 +441,11 @@ namespace Zerra.Serialization.Json
         }
         public static async Task SerializeAsync(Stream stream, object? obj, Type type, JsonSerializerOptions? options = null, Graph? graph = null)
         {
-            if (stream == null)
+            if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
-            if (type == null)
+            if (type is null)
                 throw new ArgumentNullException(nameof(type));
-            if (obj == null)
+            if (obj is null)
             {
 #if NETSTANDARD2_0
                 await stream.WriteAsync(nullBytes.ToArray(), 0, nullBytes.Length);

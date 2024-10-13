@@ -20,7 +20,7 @@ namespace Zerra.Reflection
         )
         {
             provider = GetSingle<TInterface>(false);
-            return provider != null;
+            return provider is not null;
         }
 
         public static TInterface GetSingle<TInterface>() { return GetSingle<TInterface>(true)!; }
@@ -28,7 +28,7 @@ namespace Zerra.Reflection
         public static bool TryGetSingle(Type type, out object provider)
         {
             provider = GetSingleGeneric(type, false);
-            return provider != null;
+            return provider is not null;
         }
 
         public static object GetSingle(Type type) { return GetSingleGeneric(type, true); }
@@ -42,7 +42,7 @@ namespace Zerra.Reflection
         )
         {
             provider = GetNew<TInterface>(false);
-            return provider != null;
+            return provider is not null;
         }
 
         public static TInterface GetNew<TInterface>() { return GetNew<TInterface>(true)!; }
@@ -50,7 +50,7 @@ namespace Zerra.Reflection
         public static bool TryGetNew(Type type, out object provider)
         {
             provider = GetNewGeneric(type, false);
-            return provider != null;
+            return provider is not null;
         }
 
         public static object GetNew(Type type) { return GetNewGeneric(type, true); }
@@ -82,11 +82,11 @@ namespace Zerra.Reflection
 
             var providerType = Discovery.GetClassByInterface(interfaceType, throwException);
 
-            if (providerType == null)
+            if (providerType is null)
                 return default;
 
             var provider = (InterfaceT)Instantiator.GetSingle(providerType);
-            if (provider == null)
+            if (provider is null)
                 return provider;
 
             return provider;
@@ -101,11 +101,11 @@ namespace Zerra.Reflection
 
             var providerType = Discovery.GetClassByInterface(interfaceType, throwException);
 
-            if (providerType == null)
+            if (providerType is null)
                 return default;
 
             var provider = (InterfaceT)Instantiator.Create(providerType);
-            if (provider == null)
+            if (provider is null)
                 return provider;
 
             return provider;

@@ -46,19 +46,19 @@ namespace Zerra.Repository
             if (properties.Length == 0)
                 return model;
 
-            graph = graph == null ? null : new Graph<TModel>(graph);
+            graph = graph is null ? null : new Graph<TModel>(graph);
 
             if (newCopy)
                 model = Mapper.Map<TModel, TModel>(model, graph);
 
             foreach (var property in properties)
             {
-                if (graph == null || graph.HasMember(property.Name))
+                if (graph is null || graph.HasMember(property.Name))
                 {
                     if (property.TypeDetailBoxed.CoreType == CoreType.String)
                     {
                         var encrypted = (string?)property.GetterBoxed(model);
-                        if (encrypted != null)
+                        if (encrypted is not null)
                         {
                             try
                             {
@@ -75,7 +75,7 @@ namespace Zerra.Repository
                     else if (property.Type == typeof(byte[]))
                     {
                         var encrypted = (byte[]?)property.GetterBoxed(model);
-                        if (encrypted != null)
+                        if (encrypted is not null)
                         {
                             try
                             {
@@ -99,7 +99,7 @@ namespace Zerra.Repository
             if (properties.Length == 0)
                 return models;
 
-            graph = graph == null ? null : new Graph<TModel>(graph);
+            graph = graph is null ? null : new Graph<TModel>(graph);
 
             if (newCopy)
                 models = Mapper.Map<ICollection<TModel>, TModel[]>(models, graph);
@@ -108,12 +108,12 @@ namespace Zerra.Repository
             {
                 foreach (var property in properties)
                 {
-                    if (graph == null || graph.HasMember(property.Name))
+                    if (graph is null || graph.HasMember(property.Name))
                     {
                         if (property.TypeDetailBoxed.CoreType == CoreType.String)
                         {
                             var encrypted = (string?)property.GetterBoxed(model);
-                            if (encrypted != null)
+                            if (encrypted is not null)
                             {
                                 try
                                 {
@@ -130,7 +130,7 @@ namespace Zerra.Repository
                         else if (property.Type == typeof(byte[]))
                         {
                             var encrypted = (byte[]?)property.GetterBoxed(model);
-                            if (encrypted != null)
+                            if (encrypted is not null)
                             {
                                 try
                                 {
@@ -154,7 +154,7 @@ namespace Zerra.Repository
         public override sealed ICollection<TModel> OnGetIncludingBase(ICollection<TModel> models, Graph<TModel>? graph)
         {
             var returnModels1 = DecryptModels(models, graph, false);
-            if (ProviderRelation == null)
+            if (ProviderRelation is null)
                 return returnModels1;
             var returnModels2 = ProviderRelation.OnGetIncludingBase(returnModels1, graph);
             return returnModels2;
@@ -162,7 +162,7 @@ namespace Zerra.Repository
         public override sealed async Task<ICollection<TModel>> OnGetIncludingBaseAsync(ICollection<TModel> models, Graph<TModel>? graph)
         {
             var returnModels1 = DecryptModels(models, graph, false);
-            if (ProviderRelation == null)
+            if (ProviderRelation is null)
                 return returnModels1;
             var returnModels2 = await ProviderRelation.OnGetIncludingBaseAsync(returnModels1, graph);
             return returnModels2;
@@ -196,7 +196,7 @@ namespace Zerra.Repository
 
             var encryptedModels = (TModel?)(NextProvider.Query(appenedQuery));
 
-            if (encryptedModels == null)
+            if (encryptedModels is null)
                 return null;
 
             var model = DecryptModel(encryptedModels, query.Graph, true);
@@ -211,7 +211,7 @@ namespace Zerra.Repository
 
             var encryptedModels = (TModel?)(NextProvider.Query(appenedQuery));
 
-            if (encryptedModels == null)
+            if (encryptedModels is null)
                 return null;
 
             var model = DecryptModel(encryptedModels, query.Graph, true);
@@ -291,7 +291,7 @@ namespace Zerra.Repository
 
             var encryptedModels = (TModel?)(await NextProvider.QueryAsync(appenedQuery));
 
-            if (encryptedModels == null)
+            if (encryptedModels is null)
                 return null;
 
             var model = DecryptModels(new TModel[] { encryptedModels }, query.Graph, true).FirstOrDefault();
@@ -306,7 +306,7 @@ namespace Zerra.Repository
 
             var encryptedModels = (TModel?)(await NextProvider.QueryAsync(appenedQuery));
 
-            if (encryptedModels == null)
+            if (encryptedModels is null)
                 return null;
 
             var model = DecryptModels(new TModel[] { encryptedModels }, query.Graph, true).FirstOrDefault();
@@ -367,7 +367,7 @@ namespace Zerra.Repository
             if (properties.Length == 0)
                 return models;
 
-            if (graph != null)
+            if (graph is not null)
             {
                 graph = new Graph<TModel>(graph);
 
@@ -382,12 +382,12 @@ namespace Zerra.Repository
             {
                 foreach (var property in properties)
                 {
-                    if (graph == null || graph.HasMember(property.Name))
+                    if (graph is null || graph.HasMember(property.Name))
                     {
                         if (property.TypeDetailBoxed.CoreType == CoreType.String)
                         {
                             var plain = (string?)property.GetterBoxed(model);
-                            if (plain != null)
+                            if (plain is not null)
                             {
                                 if (plain.Length <= encryptionPrefix.Length || plain.Substring(0, encryptionPrefix.Length) != encryptionPrefix)
                                 {
@@ -400,7 +400,7 @@ namespace Zerra.Repository
                         else if (property.Type == typeof(byte[]))
                         {
                             var plain = (byte[]?)property.GetterBoxed(model);
-                            if (plain != null)
+                            if (plain is not null)
                             {
                                 var encrypted = SymmetricEncryptor.Encrypt(encryptionAlgorithm, EncryptionKey, plain);
                                 property.SetterBoxed(model, encrypted);
@@ -414,7 +414,7 @@ namespace Zerra.Repository
 
         public override sealed void Create(Persist<TModel> persist)
         {
-            if (persist.Models == null || persist.Models.Length == 0)
+            if (persist.Models is null || persist.Models.Length == 0)
                 return;
 
             var encryptedModels = EncryptModels(persist.Models, persist.Graph, true);
@@ -428,7 +428,7 @@ namespace Zerra.Repository
         }
         public override sealed void Update(Persist<TModel> persist)
         {
-            if (persist.Models == null || persist.Models.Length == 0)
+            if (persist.Models is null || persist.Models.Length == 0)
                 return;
 
             ICollection<TModel> encryptedModels = EncryptModels(persist.Models, persist.Graph, true);
@@ -441,7 +441,7 @@ namespace Zerra.Repository
 
         public override sealed async Task CreateAsync(Persist<TModel> persist)
         {
-            if (persist.Models == null || persist.Models.Length == 0)
+            if (persist.Models is null || persist.Models.Length == 0)
                 return;
 
             var encryptedModels = EncryptModels(persist.Models, persist.Graph, true);
@@ -455,7 +455,7 @@ namespace Zerra.Repository
         }
         public override sealed Task UpdateAsync(Persist<TModel> persist)
         {
-            if (persist.Models == null || persist.Models.Length == 0)
+            if (persist.Models is null || persist.Models.Length == 0)
                 return Task.CompletedTask;
 
             ICollection<TModel> encryptedModels = EncryptModels(persist.Models, persist.Graph, true);
@@ -474,7 +474,7 @@ namespace Zerra.Repository
             {
                 var typeDetails = TypeAnalyzer.GetTypeDetail(type);
                 var propertyDetails = typeDetails.MemberDetails.Where(x => x.Type == typeof(string) || x.Type == typeof(byte[])).ToArray();
-                if (graph != null)
+                if (graph is not null)
                 {
                     propertyDetails = propertyDetails.Where(x => graph.HasMember(x.Name)).ToArray();
                 }
