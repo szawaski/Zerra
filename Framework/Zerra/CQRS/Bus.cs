@@ -77,12 +77,12 @@ namespace Zerra.CQRS
             object? model;
             if (methodDetail.ReturnTypeDetailBoxed.IsTask)
             {
-                isStream = methodDetail.ReturnTypeDetailBoxed.Type.IsGenericType && methodDetail.ReturnTypeDetailBoxed.InnerTypeDetail.BaseTypes.Contains(streamType);
+                isStream = methodDetail.ReturnTypeDetailBoxed.Type.IsGenericType && (methodDetail.ReturnTypeDetailBoxed.InnerType == streamType || methodDetail.ReturnTypeDetailBoxed.InnerTypeDetail.BaseTypes.Contains(streamType));
                 model = await methodDetail.CallerBoxedAsync(callerProvider, args)!;
             }
             else
             {
-                isStream = methodDetail.ReturnTypeDetailBoxed.BaseTypes.Contains(streamType);
+                isStream = methodDetail.ReturnTypeDetailBoxed.Type == streamType || methodDetail.ReturnTypeDetailBoxed.BaseTypes.Contains(streamType);
                 model = methodDetail.CallerBoxed(callerProvider, args);
             }
 

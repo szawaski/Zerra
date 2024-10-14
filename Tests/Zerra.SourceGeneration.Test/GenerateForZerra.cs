@@ -4,9 +4,8 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.IO;
 using System.Linq;
-using Zerra.SourceGeneration;
 
-namespace Zerra.Test
+namespace Zerra.SourceGeneration.Test
 {
     [TestClass]
     public class GenerateForZerra
@@ -37,7 +36,7 @@ namespace Zerra.Test
             };
             var references = referenceFiles.Select(x => MetadataReference.CreateFromFile(x)).ToArray();
 
-            var compilation = CSharpCompilation.Create("TestProject",
+            var compilation = CSharpCompilation.Create("ZerraSourceGenerationTestAssembly",
                 [SyntaxFactory.ParseSyntaxTree(TypesToGenerateCode.Code)],
                 references,
                 new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));

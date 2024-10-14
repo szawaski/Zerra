@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using Zerra.Reflection;
 
 namespace Zerra
 {
@@ -36,6 +37,27 @@ namespace Zerra
             lock (discoveryLock)
             {
                 discoveryStarted = true;
+            }
+        }
+
+        private static bool discoveryEnabled = true;
+        public static bool DiscoveryEnabled
+        {
+            get
+            {
+                lock (discoveryLock)
+                {
+                    return discoveryEnabled;
+                }
+            }
+            set
+            {
+                lock (discoveryLock)
+                {
+                    if (discoveryStarted)
+                        throw new InvalidOperationException("Discovery has already started");
+                    discoveryEnabled = value;
+                }
             }
         }
 
@@ -78,9 +100,9 @@ namespace Zerra
             executingAssemblyPath = Path.GetDirectoryName(executingAssembly.Location);
 
             if (!String.IsNullOrWhiteSpace(entryNameSpace))
-                DiscoveryAssemblyNameStartsWiths = ["Zerra.", entryNameSpace];
+                DiscoveryAssemblyNameStartsWiths = [entryNameSpace];
             else
-                DiscoveryAssemblyNameStartsWiths = ["Zerra."];
+                DiscoveryAssemblyNameStartsWiths = [];
 
             discoveryStarted = false;
         }
@@ -91,6 +113,7 @@ namespace Zerra
 
         /// <summary>
         /// Loads the application configuration starting with the environmental variable the then configuration files.
+        /// This initilizes the discovery process if not disabled.
         /// </summary>
         /// <param name="args">The program level arguments from the application Main method.</param>
         /// <param name="environmentName">The environment name, otherwise it will be searched for in environmental variables.</param>
@@ -132,6 +155,11 @@ namespace Zerra
             build?.Invoke(builder);
 
             configuration = builder.Build();
+
+            if (discoveryEnabled && !discoveryStarted)
+            {
+                Discovery.Discover();
+            }
         }
 
         /// <summary>
@@ -369,11 +397,7 @@ namespace Zerra
 
                 var newNamespaces = assemblyNameStartsWiths.Select(x => x + '.').ToArray();
 
-                var newNamespacesToLoad = new string[newNamespaces.Length + 2];
-                newNamespacesToLoad[0] = "Zerra,";
-                newNamespacesToLoad[1] = "Zerra.";
-                newNamespaces.CopyTo(newNamespacesToLoad, 2);
-                DiscoveryAssemblyNameStartsWiths = newNamespacesToLoad;
+                DiscoveryAssemblyNameStartsWiths = newNamespaces;
             }
         }
         /// <summary>
@@ -395,27 +419,7 @@ namespace Zerra
 
                 string[] newNamespaces = assemblies.Select(x => x.GetName().Name).Where(x => x is not null).ToArray()!;
 
-                var newNamespacesToLoad = new string[newNamespaces.Length + 2];
-                newNamespacesToLoad[0] = "Zerra,";
-                newNamespacesToLoad[1] = "Zerra.";
-                newNamespaces.CopyTo(newNamespacesToLoad, 2);
-                DiscoveryAssemblyNameStartsWiths = newNamespacesToLoad;
-            }
-        }
-
-        /// <summary>
-        /// The discovery service loads and searches assemblies for the application.
-        /// This indicates to search all assemblies discovery can find. This can cause slow startups and load unintentend assemblies.
-        /// </summary>
-        /// <exception cref="InvalidOperationException">Throws if discovery has already started.</exception>
-        public static void SetDiscoveryAllAssemblies()
-        {
-            lock (discoveryLock)
-            {
-                if (discoveryStarted)
-                    throw new InvalidOperationException("Discovery has already started");
-
-                DiscoveryAssemblyNameStartsWiths = Array.Empty<string>();
+                DiscoveryAssemblyNameStartsWiths = newNamespaces;
             }
         }
 

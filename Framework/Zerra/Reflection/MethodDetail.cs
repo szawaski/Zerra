@@ -16,6 +16,7 @@ namespace Zerra.Reflection
 
         public abstract MethodInfo MethodInfo { get; }
         public abstract string Name { get; }
+        public abstract bool IsStatic { get; }
 
         public abstract IReadOnlyList<ParameterDetail> ParameterDetails { get; }
 

@@ -9,6 +9,7 @@ using Zerra.Reflection;
 
 namespace Zerra.Repository
 {
+    [AttributeUsage(AttributeTargets.Class)]
     public sealed class EventStoreAggregateAttribute<T> : BaseGenerateAttribute
     {
         private static readonly Type aggregateRootType = typeof(AggregateRoot);

@@ -136,17 +136,20 @@ namespace Zerra.Serialization.Bytes.Converters
                 }
             }
 
-            //Array
-            if (typeDetail.Type.IsArray)
-            {
-                var converter = typeof(ByteConverterArrayT<,>).GetGenericTypeDetail(parentType, typeDetail.InnerType).CreatorBoxed();
-                return (ByteConverter<TParent>)converter;
-            }
+            if (typeDetail.CoreType.HasValue)
+                throw new NotSupportedException($"No ByteConverter found to support {typeDetail.Type.GetNiceName()}");
 
             //Enum
             if (typeDetail.Type.IsEnum || typeDetail.IsNullable && typeDetail.InnerType.IsEnum)
             {
                 var converter = typeof(ByteConverterEnum<,>).GetGenericTypeDetail(parentType, typeDetail.Type).CreatorBoxed();
+                return (ByteConverter<TParent>)converter;
+            }
+
+            //Array
+            if (typeDetail.Type.IsArray)
+            {
+                var converter = typeof(ByteConverterArrayT<,>).GetGenericTypeDetail(parentType, typeDetail.InnerType).CreatorBoxed();
                 return (ByteConverter<TParent>)converter;
             }
 

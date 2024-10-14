@@ -46,7 +46,7 @@ namespace Zerra.SourceGeneration
         {
             if (compilation.Assembly.Name == "Zerra"
 #if DEBUG
-                || compilation.Assembly.Name == "TestProject"
+                || compilation.Assembly.Name == "ZerraSourceGenerationTestAssembly"
 #endif
                 )
                 GenerateForZerra(context, symbols, compilation);
@@ -58,47 +58,63 @@ namespace Zerra.SourceGeneration
 
         private static void GenerateForZerra(SourceProductionContext context, ImmutableArray<ITypeSymbol> symbols, Compilation compilation)
         {
-            var classList = new List<Tuple<string, string>>();
-
+            var discoveryTypeOfList = new List<string>();
+            var typeDetailClassList = new List<Tuple<string, string>>();
 
             var helperClass = symbols.First(x => x.Name == "TypesToGenerate");
             foreach (var item in helperClass.GetMembers().Where(x => x.Kind == SymbolKind.Property).Cast<IPropertySymbol>())
             {
                 if (item.Name.EndsWith("MakeUnbounded"))
-                    TypeDetailSourceGenerator.GenerateType(context, ((INamedTypeSymbol)item.Type).ConstructUnboundGenericType(), symbols, classList, false);
+                    TypeDetailSourceGenerator.GenerateType(context, ((INamedTypeSymbol)item.Type).ConstructUnboundGenericType(), symbols, typeDetailClassList, false, true);
                 else
-                    TypeDetailSourceGenerator.GenerateType(context, item.Type, symbols, classList, false);
+                    TypeDetailSourceGenerator.GenerateType(context, item.Type, symbols, typeDetailClassList, false, true);
             }
 
             foreach (var symbol in symbols)
             {
-                if (symbol.GetAttributes().Any(x => x.AttributeClass?.Name == "GenerateTypeDetailAttribute"))
+                if (symbol.GetAttributes().Any(IsDiscoveryAttribute))
                 {
-                    TypeDetailSourceGenerator.GenerateType(context, symbol, symbols, classList, true);
+                    discoveryTypeOfList.Add(Helpers.GetTypeOfName(symbol));
+                }
+                if (symbol.GetAttributes().Any(IsGenerateTypeAttribute))
+                {
+                    TypeDetailSourceGenerator.GenerateType(context, symbol, symbols, typeDetailClassList, true, true);
                 }
             }
 
-            TypeDetailSourceGenerator.GenerateInitializer(context, compilation, classList);
+            if (discoveryTypeOfList.Count > 0)
+                DiscoverySourceGenerator.GenerateInitializer(context, compilation, discoveryTypeOfList);
+            if (typeDetailClassList.Count > 0)
+                TypeDetailSourceGenerator.GenerateInitializer(context, compilation, typeDetailClassList);
         }
 
         private static void GenerateForZerraExtensions(SourceProductionContext context, ImmutableArray<ITypeSymbol> symbols, Compilation compilation)
         {
-            var classList = new List<Tuple<string, string>>();
+            var discoveryTypeOfList = new List<string>();
+            var typeDetailClassList = new List<Tuple<string, string>>();
 
             foreach (var symbol in symbols)
             {
-                if (symbol.GetAttributes().Any(x => x.AttributeClass?.Name == "GenerateTypeDetailAttribute"))
+                if (symbol.GetAttributes().Any(IsDiscoveryAttribute))
                 {
-                    TypeDetailSourceGenerator.GenerateType(context, symbol, symbols, classList, true);
+                    discoveryTypeOfList.Add(Helpers.GetTypeOfName(symbol));
+                }
+                if (symbol.GetAttributes().Any(IsGenerateTypeAttribute))
+                {
+                    TypeDetailSourceGenerator.GenerateType(context, symbol, symbols, typeDetailClassList, true, true);
                 }
             }
 
-            TypeDetailSourceGenerator.GenerateInitializer(context, compilation, classList);
+            if (discoveryTypeOfList.Count > 0)
+                DiscoverySourceGenerator.GenerateInitializer(context, compilation, discoveryTypeOfList);
+            if (typeDetailClassList.Count > 0)
+                TypeDetailSourceGenerator.GenerateInitializer(context, compilation, typeDetailClassList);
         }
 
         private static void GenerateForRegular(SourceProductionContext context, ImmutableArray<ITypeSymbol> symbols, Compilation compilation)
         {
-            var classList = new List<Tuple<string, string>>();
+            var discoveryTypeOfList = new List<string>();
+            var typeDetailClassList = new List<Tuple<string, string>>();
 
             foreach (var symbol in symbols)
             {
@@ -107,7 +123,12 @@ namespace Zerra.SourceGeneration
                 if (namedTypeSymbol.TypeKind != TypeKind.Class && namedTypeSymbol.TypeKind != TypeKind.Struct && namedTypeSymbol.TypeKind != TypeKind.Enum)
                     continue;
 
-                if (!symbol.GetAttributes().Any(x => x.AttributeClass?.Name == "GenerateTypeDetailAttribute"))
+                if (symbol.GetAttributes().Any(IsDiscoveryAttribute))
+                {
+                    discoveryTypeOfList.Add(Helpers.GetTypeOfName(symbol));
+                }
+
+                if (symbol.GetAttributes().Any(IsGenerateTypeAttribute))
                 {
                     var members = namedTypeSymbol.GetMembers();
                     var methods = members.Where(x => x.Kind == SymbolKind.Method).Cast<IMethodSymbol>().ToArray();
@@ -126,11 +147,39 @@ namespace Zerra.SourceGeneration
                         continue;
                 }
 
-                TypeDetailSourceGenerator.GenerateType(context, symbol, symbols, classList, true);
+                TypeDetailSourceGenerator.GenerateType(context, symbol, symbols, typeDetailClassList, true, false);
             }
 
-            if (classList.Count > 0)
-                TypeDetailSourceGenerator.GenerateInitializer(context, compilation, classList);
+            if (discoveryTypeOfList.Count > 0)
+                DiscoverySourceGenerator.GenerateInitializer(context, compilation, discoveryTypeOfList);
+            if (typeDetailClassList.Count > 0)
+                TypeDetailSourceGenerator.GenerateInitializer(context, compilation, typeDetailClassList);
+        }
+
+        private static bool IsDiscoveryAttribute(AttributeData attribute)
+        {
+            if (attribute.AttributeClass is null)
+                return false;
+            if (attribute.AttributeClass.Name == "DiscoverAttribute" && attribute.AttributeClass.ContainingNamespace.ToString() == "Zerra.Reflection")
+                return true;
+            if (attribute.AttributeClass.Name == "EntityAttribute" && attribute.AttributeClass.ContainingNamespace.ToString() == "Zerra.Repository")
+                return true;
+            if (attribute.AttributeClass.Name == "EventStoreAggregateAttribute" && attribute.AttributeClass.ContainingNamespace.ToString() == "Zerra.Repository")
+                return true;
+            if (attribute.AttributeClass.Name == "EventStoreEntityAttribute" && attribute.AttributeClass.ContainingNamespace.ToString() == "Zerra.Repository")
+                return true;
+            if (attribute.AttributeClass.Name == "EventStoreEntityAttribute" && attribute.AttributeClass.ContainingNamespace.ToString() == "Zerra.Repository")
+                return true;
+            return false;
+        }
+
+        private static bool IsGenerateTypeAttribute(AttributeData attribute)
+        {
+            if (attribute.AttributeClass is null)
+                return false;
+            if (attribute.AttributeClass.Name == "GenerateTypeDetailAttribute" && attribute.AttributeClass.ContainingNamespace.ToString() == "Zerra.Reflection")
+                return true;
+            return false;
         }
     }
 }

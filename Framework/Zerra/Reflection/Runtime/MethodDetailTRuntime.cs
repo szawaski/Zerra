@@ -17,6 +17,7 @@ namespace Zerra.Reflection.Runtime
 
         public override MethodInfo MethodInfo { get; }
         public override string Name { get; }
+        public override bool IsStatic { get; }
 
         private ParameterDetail[]? parameterInfos = null;
         public override IReadOnlyList<ParameterDetail> ParameterDetails
@@ -239,6 +240,7 @@ namespace Zerra.Reflection.Runtime
             this.locker = locker;
             this.MethodInfo = method;
             this.Name = name;
+            this.IsStatic = method.IsStatic;
         }
 
         private static readonly Type typeDetailT = typeof(MethodDetailRuntime<>);

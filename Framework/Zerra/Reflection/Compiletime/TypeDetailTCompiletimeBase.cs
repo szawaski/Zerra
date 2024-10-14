@@ -242,7 +242,7 @@ namespace Zerra.Reflection.Compiletime
             var constructorParameters = constructors.ToDictionary(x => x, x => x.GetParameters());
             foreach (var constructorDetail in ConstructorDetails)
             {
-                var constructor = constructors.FirstOrDefault(x => SignatureCompare(constructorParameters[x], constructorDetail));
+                var constructor = constructors.FirstOrDefault(x => SignatureCompareForLoadConstructorInfo(constructorParameters[x], constructorDetail));
                 if (constructor is null)
                     throw new InvalidOperationException($"ConstructorInfo not found for generated constructor new({String.Join(", ", constructorDetail.ParameterDetails.Select(x => x.Type.GetNiceName()))})");
 
@@ -260,7 +260,7 @@ namespace Zerra.Reflection.Compiletime
             var methodParameters = methods.ToDictionary(x => x, x => x.GetParameters());
             foreach (var methodDetail in MethodDetails)
             {
-                var method = methods.FirstOrDefault(x => SignatureCompare(x.Name, methodParameters[x], methodDetail));
+                var method = methods.FirstOrDefault(x => SignatureCompareForLoadMethodInfo(x.Name, methodParameters[x], methodDetail));
                 if (method is null)
                     throw new InvalidOperationException($"MethodInfo not found for generated method {methodDetail.Name}({String.Join(", ", methodDetail.ParameterDetails.Select(x => x.Type.GetNiceName()))})");
 

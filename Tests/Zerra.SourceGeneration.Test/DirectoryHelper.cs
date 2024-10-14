@@ -3,7 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 
-namespace Zerra.Test
+namespace Zerra.SourceGeneration.Test
 {
     public static class DirectoryHelper
     {

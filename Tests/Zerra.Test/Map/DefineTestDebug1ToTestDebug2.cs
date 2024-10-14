@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using Zerra.Map;
+using Zerra.Reflection;
 
 namespace Zerra.Test.Map
 {

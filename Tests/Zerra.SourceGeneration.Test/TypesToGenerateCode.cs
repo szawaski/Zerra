@@ -1,6 +1,6 @@
 ﻿using System.IO;
 
-namespace Zerra.Test
+namespace Zerra.SourceGeneration.Test
 {
     public static class TypesToGenerateCode
     {

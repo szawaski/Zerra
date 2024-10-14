@@ -20,8 +20,8 @@ namespace Zerra.Reflection
         private static readonly ConcurrentDictionary<string, List<Type>> typeByInterfaceName = new();
         private static readonly ConcurrentDictionary<Type, List<Type>> classByInterface = new();
         private static readonly ConcurrentDictionary<string, List<Type>> classByInterfaceName = new();
-        private static readonly ConcurrentDictionary<Type, List<Type>> classByBase = new();
-        private static readonly ConcurrentDictionary<string, List<Type>> classByBaseName = new();
+        private static readonly ConcurrentDictionary<Type, List<Type>> classByBaseType = new();
+        private static readonly ConcurrentDictionary<string, List<Type>> classByBaseTypeName = new();
         private static readonly ConcurrentDictionary<Type, List<Type>> typeByAttribute = new();
 
         private static readonly ConcurrentDictionary<Type, List<Type>> interfaceByType = new();
@@ -32,21 +32,28 @@ namespace Zerra.Reflection
         private static readonly ConcurrentFactoryDictionary<Type, string> niceFullNames = new();
 
         private static readonly HashSet<string> discoveredAssemblies = new();
+        private static readonly HashSet<Type> discoveredTypes = new();
 
-        static Discovery()
+        internal static void Discover()
         {
+            if (!Config.DiscoveryEnabled)
+                return;
+
             Config.SetDiscoveryStarted();
 
             if (Config.AssemblyLoaderEnabled)
             {
                 LoadAssemblies();
             }
-            Discover();
-            Generate();
+
+            DiscoverAssemblies();
         }
 
         private static void LoadAssemblies()
         {
+            if (Config.DiscoveryAssemblyNameStartsWiths.Length == 0)
+                return;
+
             var loadedAssemblies = new HashSet<string>();
             foreach (var currentAssembly in AppDomain.CurrentDomain.GetAssemblies())
             {
@@ -69,7 +76,7 @@ namespace Zerra.Reflection
 #else
                     var assemblyFileName = assemblyFilePath.Split(System.IO.Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries).Last();
 #endif
-                    if (Config.DiscoveryAssemblyNameStartsWiths.Length > 0 && !Config.DiscoveryAssemblyNameStartsWiths.Any(x => assemblyFileName.StartsWith(x)))
+                    if (!Config.DiscoveryAssemblyNameStartsWiths.Any(x => assemblyFileName.StartsWith(x)))
                         continue;
 
                     var assemblyName = AssemblyName.GetAssemblyName(assemblyFilePath);
@@ -103,25 +110,30 @@ namespace Zerra.Reflection
                 catch { }
             }
         }
-        private static void Discover()
+        private static void DiscoverAssemblies()
         {
+            if (Config.DiscoveryAssemblyNameStartsWiths.Length == 0)
+                return;
+
             foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
                 if (assembly.IsDynamic)
                     continue;
                 if (assembly.FullName is null)
                     continue;
-                if (Config.DiscoveryAssemblyNameStartsWiths.Length > 0 && !Config.DiscoveryAssemblyNameStartsWiths.Any(y => assembly.FullName is not null && assembly.FullName.StartsWith(y)))
+                if (!Config.DiscoveryAssemblyNameStartsWiths.Any(y => assembly.FullName is not null && assembly.FullName.StartsWith(y)))
                     continue;
                 if (discoveredAssemblies.Contains(assembly.FullName))
                     continue;
-                if (assembly.FullName.StartsWith("Zerra,")/* || assembly.FullName.StartsWith("Zerra.")*/)
+                if (assembly.FullName.StartsWith("System."))
+                    continue;
+                if (assembly.FullName.StartsWith("Zerra,") || assembly.FullName.StartsWith("Zerra.Repository,"))
                     continue;
 
                 DiscoverAssembly(assembly);
             }
         }
-        private static void DiscoverAssembly(Assembly assembly)
+        public static void DiscoverAssembly(Assembly assembly)
         {
             if (assembly.FullName is null) throw new ArgumentNullException(nameof(Assembly.FullName));
 
@@ -145,13 +157,16 @@ namespace Zerra.Reflection
                 DiscoverType(typeInAssembly);
             }
         }
-        private static void DiscoverType(Type typeInAssembly)
+        public static void DiscoverType(Type typeInAssembly)
         {
-            var typeList1 = typeByName.GetOrAdd(typeInAssembly.Name, (key) => { return new(); });
+            if (!discoveredTypes.Add(typeInAssembly))
+                return;
+
+            var typeList1 = typeByName.GetOrAdd(typeInAssembly.Name, (key) => new());
             typeList1.Add(typeInAssembly);
             if (typeInAssembly.FullName is not null && typeInAssembly.Name != typeInAssembly.FullName)
             {
-                var typeList2 = typeByName.GetOrAdd(typeInAssembly.FullName, (key) => { return new(); });
+                var typeList2 = typeByName.GetOrAdd(typeInAssembly.FullName, (key) => new());
                 typeList2.Add(typeInAssembly);
             }
 
@@ -159,31 +174,31 @@ namespace Zerra.Reflection
             var test = typeInAssembly.Name;
             if (interfaceTypes.Length > 0)
             {
-                var interfaceByTypeList = interfaceByType.GetOrAdd(typeInAssembly, (key) => { return new(); });
+                var interfaceByTypeList = interfaceByType.GetOrAdd(typeInAssembly, (key) => new());
 
                 foreach (var interfaceType in interfaceTypes)
                 {
                     interfaceByTypeList.Add(interfaceType);
 
-                    var typeByInterfaceList = typeByInterface.GetOrAdd(interfaceType, (key) => { return new(); });
+                    var typeByInterfaceList = typeByInterface.GetOrAdd(interfaceType, (key) => new());
                     typeByInterfaceList.Add(typeInAssembly);
 
                     string? interfaceTypeName = null;
                     if (interfaceType.ContainsGenericParameters)
                     {
                         interfaceTypeName = GetNiceFullName(interfaceType);
-                        var typeByInterfaceNameList = typeByInterfaceName.GetOrAdd(interfaceTypeName, (key) => { return new(); });
+                        var typeByInterfaceNameList = typeByInterfaceName.GetOrAdd(interfaceTypeName, (key) => new());
                         typeByInterfaceNameList.Add(typeInAssembly);
                     }
 
                     if (!typeInAssembly.IsAbstract && typeInAssembly.IsClass)
                     {
-                        var classByInterfaceList = classByInterface.GetOrAdd(interfaceType, (key) => { return new(); });
+                        var classByInterfaceList = classByInterface.GetOrAdd(interfaceType, (key) => new());
                         classByInterfaceList.Add(typeInAssembly);
 
                         if (interfaceType.ContainsGenericParameters)
                         {
-                            var classByInterfaceNameList = classByInterfaceName.GetOrAdd(interfaceTypeName!, (key) => { return new(); });
+                            var classByInterfaceNameList = classByInterfaceName.GetOrAdd(interfaceTypeName!, (key) => new());
                             classByInterfaceNameList.Add(typeInAssembly);
                         }
                     }
@@ -193,44 +208,35 @@ namespace Zerra.Reflection
             Type? baseType = typeInAssembly.BaseType;
             while (baseType is not null)
             {
-                var classByBaseList = classByBase.GetOrAdd(baseType, (key) => { return new(); });
+                var classByBaseList = classByBaseType.GetOrAdd(baseType, (key) => new());
                 classByBaseList.Add(typeInAssembly);
 
                 if (baseType.ContainsGenericParameters)
                 {
                     var baseTypeName = GetNiceFullName(baseType);
-                    var classByBaseNameList = classByBaseName.GetOrAdd(baseTypeName, (key) => { return new(); });
+                    var classByBaseNameList = classByBaseTypeName.GetOrAdd(baseTypeName, (key) => new());
                     classByBaseNameList.Add(typeInAssembly);
                 }
 
                 baseType = baseType.BaseType;
             }
 
-            var attributeTypes = typeInAssembly.GetCustomAttributes().Select(x => x.GetType()).Distinct().ToArray();
-            foreach (var attributeType in attributeTypes)
+            var attributes = typeInAssembly.GetCustomAttributes();
+            var attributeTypes = attributes.Select(x => x.GetType()).Distinct().ToArray();
+            foreach (var attribute in attributes)
             {
-                var thisAttributeType = attributeType;
+                var thisAttributeType = attribute.GetType();
                 while (thisAttributeType is not null && thisAttributeType != typeof(Attribute))
                 {
-                    var list = typeByAttribute.GetOrAdd(thisAttributeType, (key) => { return new(); });
+                    var list = typeByAttribute.GetOrAdd(thisAttributeType, (key) => new());
                     list.Add(typeInAssembly);
                     thisAttributeType = thisAttributeType.BaseType;
                 }
-            }
-        }
-        private static void Generate()
-        {
-            var generationTypes = GetTypesFromAttribute(typeof(BaseGenerateAttribute));
-            foreach (var generationType in generationTypes.Distinct())
-            {
-                var typeDetail = TypeAnalyzer.GetTypeDetail(generationType);
-                foreach (var attribute in typeDetail.Attributes)
+
+                if (attribute is BaseGenerateAttribute generateAttribute)
                 {
-                    if (attribute is BaseGenerateAttribute generateAttribute)
-                    {
-                        var newType = generateAttribute.Generate(generationType);
-                        DiscoverType(newType);
-                    }
+                    var newType = generateAttribute.Generate(typeInAssembly);
+                    DiscoverType(newType);
                 }
             }
         }
@@ -252,7 +258,7 @@ namespace Zerra.Reflection
                 return typeByInterface.ContainsKey(interfaceType);
             }
         }
-        public static bool HasClassByBase(Type baseType)
+        public static bool HasClassByBaseType(Type baseType)
         {
             if (baseType is null)
                 throw new ArgumentNullException(nameof(baseType));
@@ -260,11 +266,11 @@ namespace Zerra.Reflection
             if (baseType.ContainsGenericParameters)
             {
                 var name = GetNiceFullName(baseType);
-                return classByBaseName.ContainsKey(name);
+                return classByBaseTypeName.ContainsKey(name);
             }
             else
             {
-                return classByBase.ContainsKey(baseType);
+                return classByBaseType.ContainsKey(baseType);
             }
         }
         public static bool HasClassByInterface(Type interfaceType)
@@ -466,7 +472,7 @@ namespace Zerra.Reflection
 
             return typeList[0];
         }
-        public static Type? GetClassByBase(Type baseType, bool throwException = true)
+        public static Type? GetClassByBaseType(Type baseType, bool throwException = true)
         {
             if (baseType is null)
                 throw new ArgumentNullException(nameof(baseType));
@@ -475,7 +481,7 @@ namespace Zerra.Reflection
             if (baseType.ContainsGenericParameters)
             {
                 var name = GetNiceFullName(baseType);
-                if (!classByBaseName.TryGetValue(name, out classList))
+                if (!classByBaseTypeName.TryGetValue(name, out classList))
                 {
                     if (throwException)
                         throw new Exception($"No implementations found for {GetNiceName(baseType)}");
@@ -485,7 +491,7 @@ namespace Zerra.Reflection
             }
             else
             {
-                if (!classByBase.TryGetValue(baseType, out classList))
+                if (!classByBaseType.TryGetValue(baseType, out classList))
                 {
                     if (throwException)
                         throw new Exception($"No implementations found for {GetNiceName(baseType)}");
@@ -764,7 +770,7 @@ namespace Zerra.Reflection
 
             return typeList;
         }
-        public static IReadOnlyList<Type> GetClassesByBase(Type baseType)
+        public static IReadOnlyList<Type> GetClassesByBaseType(Type baseType)
         {
             if (baseType is null)
                 throw new ArgumentNullException(nameof(baseType));
@@ -773,12 +779,12 @@ namespace Zerra.Reflection
             if (baseType.ContainsGenericParameters)
             {
                 var name = GetNiceFullName(baseType);
-                if (!classByBaseName.TryGetValue(name, out typeList))
+                if (!classByBaseTypeName.TryGetValue(name, out typeList))
                     return Type.EmptyTypes;
             }
             else
             {
-                if (!classByBase.TryGetValue(baseType, out typeList))
+                if (!classByBaseType.TryGetValue(baseType, out typeList))
                     return Type.EmptyTypes;
             }
 
@@ -960,7 +966,7 @@ namespace Zerra.Reflection
             if (!TypeAnalyzer.GetTypeDetail(implementationType).Interfaces.Contains(interfaceType))
                 throw new ArgumentException($"Type {GetNiceName(implementationType)} does not implement {GetNiceName(interfaceType)}");
 
-            _ = classByInterface.AddOrUpdate(interfaceType, (key) => { return new() { implementationType }; }, (key, old) => { return new() { implementationType }; });
+            _ = classByInterface.AddOrUpdate(interfaceType, (key) => [implementationType], (key, old) => [implementationType]);
         }
 
         public static IEnumerable<Type> GetTypesFromAttribute(Type attribute)
@@ -982,7 +988,7 @@ namespace Zerra.Reflection
                 var type = Type.GetType(name);
                 if (type is null)
                     type = ParseType(name);
-                matches = typeByName.GetOrAdd(name, (key) => { return new ConcurrentReadWriteList<Type>(); });
+                matches = typeByName.GetOrAdd(name, (key) => new ConcurrentReadWriteList<Type>());
                 lock (matches)
                 {
                     if (!matches.Contains(type))
@@ -1233,7 +1239,7 @@ namespace Zerra.Reflection
                     throw new Exception($"Could not find type {name}.  Remember discovery finds assemblies with the same first namespace segment.  Additional assemblies must be added with Config class.");
                 }
 
-                matches = typeByName.GetOrAdd(name, (key) => { return new ConcurrentReadWriteList<Type>(); });
+                matches = typeByName.GetOrAdd(name, (key) => new ConcurrentReadWriteList<Type>());
                 lock (matches)
                 {
                     if (!matches.Contains(type))
@@ -1283,6 +1289,7 @@ namespace Zerra.Reflection
 
                 var name = span.Slice(0, i).ToString();
 
+                //Have to inspect or inner generics or partially constructed generics won't work
                 var parameters = type.GetGenericArguments();
 
                 var sb = new StringBuilder();
@@ -1291,31 +1298,19 @@ namespace Zerra.Reflection
                     sb.Append(type.Namespace).Append('.');
                 sb.Append(name).Append('<');
 
-                if (i < span.Length)
+                for (var j = 0; j < parameters.Length; j++)
                 {
-                    var genericCount = Int32.Parse(span.Slice(i + 1, span.Length - i - 1).ToString());
-                    for (var j = 0; j < genericCount; j++)
-                    {
-                        if (j > 0)
-                            sb.Append(',');
+                    if (j > 0)
+                        sb.Append(',');
+                    var parameter = parameters[j];
+                    if (parameter.IsGenericParameter)
                         sb.Append('T');
-                    }
+                    else if (includeNamespace)
+                        sb.Append(GetNiceFullName(parameter));
+                    else
+                        sb.Append(GetNiceName(parameter));
                 }
-                else
-                {
-                    for (var j = 0; j < parameters.Length; j++)
-                    {
-                        if (j > 0)
-                            sb.Append(',');
-                        var parameter = parameters[j];
-                        if (parameter.IsGenericParameter)
-                            sb.Append('T');
-                        else if (includeNamespace)
-                            sb.Append(GetNiceFullName(parameter));
-                        else
-                            sb.Append(GetNiceName(parameter));
-                    }
-                }
+
                 sb.Append('>');
                 return sb.ToString();
             }

@@ -11,6 +11,7 @@ using Zerra.Serialization.Bytes.Converters.Collections.Enumerables;
 using Zerra.Serialization.Bytes.Converters.Collections.Lists;
 using Zerra.Serialization.Bytes.Converters.Collections.Sets;
 using Zerra.Serialization.Bytes.Converters.CoreTypes.Values;
+using Zerra.Serialization.Bytes.Converters.General;
 
 namespace Zerra.Serialization.Bytes.Converters
 {
@@ -56,48 +57,50 @@ namespace Zerra.Serialization.Bytes.Converters
                 #endregion
 
                 #region CoreTypeValues
-                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<bool>", typeof(ByteConverterBoolean<>) },
-                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<bool?>", typeof(ByteConverterBooleanNullable<>) },
-                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<byte>", typeof(ByteConverterByte<>) },
-                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<byte?>", typeof(ByteConverterByteNullable<>) },
-                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<sbyte>", typeof(ByteConverterSByte<>) },
-                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<sbyte?>", typeof(ByteConverterSByteNullable<>) },
-                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<short>", typeof(ByteConverterInt16<>) },
-                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<short?>", typeof(ByteConverterInt16Nullable<>) },
-                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<ushort>", typeof(ByteConverterUInt16<>) },
-                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<ushort?>", typeof(ByteConverterUInt16Nullable<>) },
-                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<int>", typeof(ByteConverterInt32<>) },
-                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<int?>", typeof(ByteConverterInt32Nullable<>) },
-                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<uint>", typeof(ByteConverterUInt32<>) },
-                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<uint?>", typeof(ByteConverterUInt32Nullable<>) },
-                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<long>", typeof(ByteConverterInt64<>) },
-                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<long?>", typeof(ByteConverterInt64Nullable<>) },
-                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<ulong>", typeof(ByteConverterUInt64<>) },
-                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<ulong?>", typeof(ByteConverterUInt64Nullable<>) },
-                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<float>", typeof(ByteConverterSingle<>) },
-                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<float?>", typeof(ByteConverterSingleNullable<>) },
-                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<double>", typeof(ByteConverterDouble<>) },
-                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<double?>", typeof(ByteConverterDoubleNullable<>) },
-                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<decimal>", typeof(ByteConverterDecimal<>) },
-                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<decimal?>", typeof(ByteConverterDecimalNullable<>) },
-                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<char>", typeof(ByteConverterChar<>) },
-                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<char?>", typeof(ByteConverterCharNullable<>) },
+                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.Boolean>", typeof(ByteConverterBoolean<>) },
+                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.Nullable<System.Boolean>>", typeof(ByteConverterBooleanNullable<>) },
+                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.Byte>", typeof(ByteConverterByte<>) },
+                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.Nullable<System.Byte>>", typeof(ByteConverterByteNullable<>) },
+                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.SByte>", typeof(ByteConverterSByte<>) },
+                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.Nullable<System.SByte>>", typeof(ByteConverterSByteNullable<>) },
+                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.Int16>", typeof(ByteConverterInt16<>) },
+                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.Nullable<System.Int16>>", typeof(ByteConverterInt16Nullable<>) },
+                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.UInt16>", typeof(ByteConverterUInt16<>) },
+                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.Nullable<System.UInt16>>", typeof(ByteConverterUInt16Nullable<>) },
+                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.Int32>", typeof(ByteConverterInt32<>) },
+                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.Nullable<System.Int32>>", typeof(ByteConverterInt32Nullable<>) },
+                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.UInt32>", typeof(ByteConverterUInt32<>) },
+                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.Nullable<System.UInt32>>", typeof(ByteConverterUInt32Nullable<>) },
+                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.Int64>", typeof(ByteConverterInt64<>) },
+                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.Nullable<System.Int64>>", typeof(ByteConverterInt64Nullable<>) },
+                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.UInt64>", typeof(ByteConverterUInt64<>) },
+                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.Nullable<System.UInt64>>", typeof(ByteConverterUInt64Nullable<>) },
+                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.Single>", typeof(ByteConverterSingle<>) },
+                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.Nullable<System.Single>>", typeof(ByteConverterSingleNullable<>) },
+                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.Double>", typeof(ByteConverterDouble<>) },
+                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.Nullable<System.Double>>", typeof(ByteConverterDoubleNullable<>) },
+                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.Decimal>", typeof(ByteConverterDecimal<>) },
+                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.Nullable<System.Decimal>>", typeof(ByteConverterDecimalNullable<>) },
+                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.Char>", typeof(ByteConverterChar<>) },
+                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.Nullable<System.Char>>", typeof(ByteConverterCharNullable<>) },
                 { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.DateTime>", typeof(ByteConverterDateTime<>) },
-                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.DateTime?>", typeof(ByteConverterDateTimeNullable<>) },
+                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.Nullable<System.DateTime>>", typeof(ByteConverterDateTimeNullable<>) },
                 { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.DateTimeOffset>", typeof(ByteConverterDateTimeOffset<>) },
-                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.DateTimeOffset?>", typeof(ByteConverterDateTimeOffsetNullable<>) },
+                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.Nullable<System.DateTimeOffset>>", typeof(ByteConverterDateTimeOffsetNullable<>) },
                 { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.TimeSpan>", typeof(ByteConverterTimeSpan<>) },
-                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.TimeSpan?>", typeof(ByteConverterTimeSpanNullable<>) },
+                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.Nullable<System.TimeSpan>>", typeof(ByteConverterTimeSpanNullable<>) },
 #if NET5_0_OR_GREATER
                 { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.DateOnly>", typeof(ByteConverterDateOnly<>) },
-                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.DateOnly?>", typeof(ByteConverterDateOnlyNullable<>) },
+                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.Nullable<System.DateOnly>>", typeof(ByteConverterDateOnlyNullable<>) },
                 { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.TimeOnly>", typeof(ByteConverterTimeOnly<>) },
-                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.TimeOnly?>", typeof(ByteConverterTimeOnlyNullable<>) },
+                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.Nullable<System.TimeOnly>>", typeof(ByteConverterTimeOnlyNullable<>) },
 #endif
                 { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.Guid>", typeof(ByteConverterGuid<>) },
-                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.Guid?>", typeof(ByteConverterGuidNullable<>) },
-                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.String>", typeof(ByteConverterString<>) }
+                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.Nullable<System.Guid>>", typeof(ByteConverterGuidNullable<>) },
+                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.String>", typeof(ByteConverterString<>) },
                 #endregion
+
+                { "Zerra.Serialization.Bytes.Converters.IByteConverterHandles<System.Type>", typeof(ByteConverterType<>) },
             };
         }
 

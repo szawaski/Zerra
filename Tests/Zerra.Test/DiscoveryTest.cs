@@ -24,6 +24,24 @@ namespace Zerra.Test
     public class TestDuplicate1Provider : ITestDuplicateProvider { }
     public class TestDuplicate2Provider : ITestDuplicateProvider { }
 
+    internal static class DiscoveryInitializer
+    {
+#pragma warning disable CA2255
+        [System.Runtime.CompilerServices.ModuleInitializer]
+#pragma warning restore CA2255
+        public static void Initialize()
+        {
+            Zerra.Reflection.Discovery.DiscoverType(typeof(Zerra.Test.TestRuleProvider));
+            Zerra.Reflection.Discovery.DiscoverType(typeof(Zerra.Test.TestCacheProvider));
+            Zerra.Reflection.Discovery.DiscoverType(typeof(Zerra.Test.TestCompressionProvider));
+            Zerra.Reflection.Discovery.DiscoverType(typeof(Zerra.Test.TestDualBaseProvider));
+            Zerra.Reflection.Discovery.DiscoverType(typeof(Zerra.Test.TestProvider));
+            Zerra.Reflection.Discovery.DiscoverType(typeof(Zerra.Test.TestBusCacheProvider));
+            Zerra.Reflection.Discovery.DiscoverType(typeof(Zerra.Test.TestDuplicate1Provider));
+            Zerra.Reflection.Discovery.DiscoverType(typeof(Zerra.Test.TestDuplicate2Provider));
+        }
+    }
+
     [TestClass]
     public class DiscoveryTest
     {

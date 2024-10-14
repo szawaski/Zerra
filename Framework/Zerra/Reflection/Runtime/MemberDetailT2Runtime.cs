@@ -20,6 +20,7 @@ namespace Zerra.Reflection.Runtime
         public override string Name { get; }
         public override Type Type { get; }
         public override bool IsBacked { get; }
+        public override bool IsStatic { get; }
 
         private Attribute[]? attributes = null;
         public override IReadOnlyList<Attribute> Attributes
@@ -303,11 +304,13 @@ namespace Zerra.Reflection.Runtime
             {
                 var property = (PropertyInfo)MemberInfo;
                 this.Type = property.PropertyType;
+                this.IsStatic = property.GetMethod?.IsStatic ?? property.SetMethod?.IsStatic ?? false;
             }
             else if (member.MemberType == MemberTypes.Field)
             {
                 var field = (FieldInfo)MemberInfo;
                 this.Type = field.FieldType;
+                this.IsStatic = field.IsStatic;
             }
             else
             {

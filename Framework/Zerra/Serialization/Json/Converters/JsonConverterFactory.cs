@@ -120,17 +120,20 @@ namespace Zerra.Serialization.Json.Converters
                 }
             }
 
-            //Array
-            if (typeDetail.Type.IsArray)
-            {
-                var converter = typeof(JsonConverterArrayT<,>).GetGenericTypeDetail(parentType, typeDetail.InnerType).CreatorBoxed();
-                return (JsonConverter<TParent>)converter;
-            }
+            if (typeDetail.CoreType.HasValue)
+                throw new NotSupportedException($"No JsonConverter found to support {typeDetail.Type.GetNiceName()}");
 
             //Enum
             if (typeDetail.Type.IsEnum || typeDetail.IsNullable && typeDetail.InnerType.IsEnum)
             {
                 var converter = typeof(JsonConverterEnum<,>).GetGenericTypeDetail(parentType, typeDetail.Type).CreatorBoxed();
+                return (JsonConverter<TParent>)converter;
+            }
+
+            //Array
+            if (typeDetail.Type.IsArray)
+            {
+                var converter = typeof(JsonConverterArrayT<,>).GetGenericTypeDetail(parentType, typeDetail.InnerType).CreatorBoxed();
                 return (JsonConverter<TParent>)converter;
             }
 

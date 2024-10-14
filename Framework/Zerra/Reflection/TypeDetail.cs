@@ -98,7 +98,7 @@ namespace Zerra.Reflection
                 {
                     lock (locker)
                     {
-                        serializableMemberDetails ??= MemberDetails.Where(x => x.IsBacked && IsSerializableType(x.TypeDetailBoxed)).ToArray();
+                        serializableMemberDetails ??= MemberDetails.Where(x => !x.IsStatic && x.IsBacked && IsSerializableType(x.TypeDetailBoxed)).ToArray();
                     }
                 }
                 return serializableMemberDetails;
@@ -376,7 +376,9 @@ namespace Zerra.Reflection
                     return false;
                 for (var i = 0; i < parameters1.Length; i++)
                 {
-                    if (parameters1[i] != methodDetail2.ParameterDetails[i].Type)
+                    var type1 = parameters1[i];
+                    var type2 = methodDetail2.ParameterDetails[i].Type;
+                    if (type1 != type2)
                         return false;
                 }
             }
@@ -405,7 +407,7 @@ namespace Zerra.Reflection
             return true;
         }
 
-        protected static bool SignatureCompare(string name1, ParameterInfo[] parameters1, MethodDetail methodDetail2)
+        protected static bool SignatureCompareForLoadMethodInfo(string name1, ParameterInfo[] parameters1, MethodDetail methodDetail2)
         {
             if (name1 != methodDetail2.Name)
                 return false;
@@ -414,19 +416,38 @@ namespace Zerra.Reflection
                 return false;
             for (var i = 0; i < parameters1.Length; i++)
             {
-                if (parameters1[i].ParameterType != methodDetail2.ParameterDetails[i].Type)
+                var parameter1 = parameters1[i];
+                var parameter2 = methodDetail2.ParameterDetails[i];
+                if (parameter1.Name != parameter2.Name)
+                    return false;
+
+                var type1 = parameter1.ParameterType;
+                var type2 = parameter2.Type;
+                if (type2 is null)
+                    continue; //could not generate typeof statement, allow it to pass
+                if (type1.IsGenericType && !type1.IsGenericTypeDefinition)
+                    type1 = type1.GetGenericTypeDefinition();
+                if (type2.IsGenericType && !type2.IsGenericTypeDefinition)
+                    type2 = type2.GetGenericTypeDefinition();
+                if (type1 != type2)
                     return false;
             }
 
             return true;
         }
-        protected static bool SignatureCompare(ParameterInfo[] parameters1, ConstructorDetail constructorDetail2)
+        protected static bool SignatureCompareForLoadConstructorInfo(ParameterInfo[] parameters1, ConstructorDetail constructorDetail2)
         {
             if (parameters1.Length != constructorDetail2.ParameterDetails.Count)
                 return false;
             for (var i = 0; i < parameters1.Length; i++)
             {
-                if (parameters1[i].ParameterType != constructorDetail2.ParameterDetails[i].Type)
+                var parameter1 = parameters1[i];
+                var parameter2 = constructorDetail2.ParameterDetails[i];
+                if (parameter1.Name != parameter2.Name)
+                    return false;
+
+                //constructors won't have generic arguments like methods
+                if (parameter1.ParameterType != parameter2.Type)
                     return false;
             }
 

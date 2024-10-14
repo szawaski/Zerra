@@ -11,6 +11,7 @@ using Zerra.Reflection;
 
 namespace Zerra.Repository
 {
+    [AttributeUsage(AttributeTargets.Class)]
     public sealed class EventStoreEntityAttribute<T> : BaseGenerateAttribute
     {
         private readonly bool? eventLinking;

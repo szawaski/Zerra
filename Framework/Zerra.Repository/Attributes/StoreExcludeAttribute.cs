@@ -6,7 +6,7 @@ using System;
 
 namespace Zerra.Repository
 {
-    [AttributeUsage(AttributeTargets.Property)]
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
     public sealed class StoreExcludeAttribute : Attribute
     {
         public StoreExcludeAttribute()

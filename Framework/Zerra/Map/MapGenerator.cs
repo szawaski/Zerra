@@ -500,7 +500,7 @@ namespace Zerra.Map
                     var enumeratorGeneric = TypeAnalyzer.GetGenericTypeDetail(genericEnumeratorType, sourceType.IEnumerableGenericInnerType);
                     var getEnumeratorMethod = enumerableGeneric.GetMethodBoxed("GetEnumerator");
                     var moveNextMethod = enumeratorTypeDetail.GetMethodBoxed("MoveNext");
-                    var currentMethod = enumeratorGeneric.GetMethodBoxed("get_Current");
+                    var currentMember = enumeratorGeneric.GetMember("Current");
                     var addMethod = targetType.GetMethodBoxed("Add");
 
                     var enumerable = Expression.Convert(source, enumerableGeneric.Type);
@@ -512,7 +512,7 @@ namespace Zerra.Map
                     var loopBreakTarget = Expression.Label();
                     var moveNextOrBreak = Expression.IfThen(Expression.Not(Expression.Call(enumerator, moveNextMethod.MethodInfo)), Expression.Break(loopBreakTarget));
 
-                    var sourceElement = Expression.Convert(Expression.Call(enumerator, currentMethod.MethodInfo), sourceType.IEnumerableGenericInnerType);
+                    var sourceElement = Expression.Convert(Expression.MakeMemberAccess(enumerator, currentMember.MemberInfo), sourceType.IEnumerableGenericInnerType);
                     var targetElement = listItem;
                     var newElementBlock = GenerateMapAssignTarget(graph, sourceElement, targetElement, recursionDictionary, ref depth);
                     var addElementToList = Expression.Call(target, addMethod.MethodInfo, listItem);
@@ -543,7 +543,7 @@ namespace Zerra.Map
                     var enumeratorGeneric = TypeAnalyzer.GetGenericTypeDetail(genericEnumeratorType, sourceType.IEnumerableGenericInnerType);
                     var getEnumeratorMethod = enumerableGeneric.GetMethodBoxed("GetEnumerator");
                     var moveNextMethod = enumeratorTypeDetail.GetMethodBoxed("MoveNext");
-                    var currentMethod = enumeratorGeneric.GetMethodBoxed("get_Current");
+                    var currentMember = enumeratorGeneric.GetMember("Current");
                     var addMethod = targetType.GetMethodBoxed("Add");
 
                     var enumerable = Expression.Convert(source, enumerableGeneric.Type);
@@ -556,7 +556,7 @@ namespace Zerra.Map
                     var loopBreakTarget = Expression.Label();
                     var moveNextOrBreak = Expression.IfThen(Expression.Not(Expression.Call(enumerator, moveNextMethod.MethodInfo)), Expression.Break(loopBreakTarget));
 
-                    var sourceElement = Expression.Convert(Expression.Call(enumerator, currentMethod.MethodInfo), sourceType.IEnumerableGenericInnerType);
+                    var sourceElement = Expression.Convert(Expression.MakeMemberAccess(enumerator, currentMember.MemberInfo), sourceType.IEnumerableGenericInnerType);
 
                     var sourceKey = Expression.MakeMemberAccess(sourceElement, targetType.DictionaryInnerTypeDetail.GetMember("Key").MemberInfo);
                     var sourceValue = Expression.MakeMemberAccess(sourceElement, targetType.DictionaryInnerTypeDetail.GetMember("Value").MemberInfo);
@@ -588,12 +588,12 @@ namespace Zerra.Map
                 else if (sourceType.HasICollection)
                 {
                     //source enumerable, target array but needs casted
-                    var arrayType = Discovery.GetTypeFromName(targetType.InnerType + "[]");
+                    var arrayType = targetType.InnerType.MakeArrayType();
                     var enumerableGeneric = TypeAnalyzer.GetGenericTypeDetail(genericEnumerableType, sourceType.IEnumerableGenericInnerType);
                     var enumeratorGeneric = TypeAnalyzer.GetGenericTypeDetail(genericEnumeratorType, sourceType.IEnumerableGenericInnerType);
                     var getEnumeratorMethod = enumerableGeneric.GetMethodBoxed("GetEnumerator");
                     var moveNextMethod = enumeratorTypeDetail.GetMethodBoxed("MoveNext");
-                    var currentMethod = enumeratorGeneric.GetMethodBoxed("get_Current");
+                    var currentMember = enumeratorGeneric.GetMember("Current");
 
                     var collectionTypeDetails = TypeAnalyzer.GetTypeDetail(collectionType);
                     var countMember = collectionTypeDetails.GetMember("Count");
@@ -616,7 +616,7 @@ namespace Zerra.Map
                     var loopBreakTarget = Expression.Label();
                     var moveNextOrBreak = Expression.IfThen(Expression.Not(Expression.Call(enumerator, moveNextMethod.MethodInfo)), Expression.Break(loopBreakTarget));
 
-                    var sourceElement = Expression.Convert(Expression.Call(enumerator, currentMethod.MethodInfo), sourceType.IEnumerableGenericInnerType);
+                    var sourceElement = Expression.Convert(Expression.MakeMemberAccess(enumerator, currentMember.MemberInfo), sourceType.IEnumerableGenericInnerType);
                     var castedElement = Expression.ArrayAccess(casted, loopIndex);
                     var newElementBlock = GenerateMapAssignTarget(graph, sourceElement, castedElement, recursionDictionary, ref depth);
 
@@ -644,12 +644,12 @@ namespace Zerra.Map
                 else if (sourceType.HasICollectionGeneric || sourceType.HasIReadOnlyCollectionGeneric)
                 {
                     //source enumerable, target array but needs casted
-                    var arrayType = Discovery.GetTypeFromName(targetType.InnerType + "[]");
+                    var arrayType = targetType.InnerType.MakeArrayType();
                     var enumerableGeneric = TypeAnalyzer.GetGenericTypeDetail(genericEnumerableType, sourceType.IEnumerableGenericInnerType);
                     var enumeratorGeneric = TypeAnalyzer.GetGenericTypeDetail(genericEnumeratorType, sourceType.IEnumerableGenericInnerType);
                     var getEnumeratorMethod = enumerableGeneric.GetMethodBoxed("GetEnumerator");
                     var moveNextMethod = enumeratorTypeDetail.GetMethodBoxed("MoveNext");
-                    var currentMethod = enumeratorGeneric.GetMethodBoxed("get_Current");
+                    var currentMember = enumeratorGeneric.GetMember("Current");
 
                     var collectionGenericTypeDetails = TypeAnalyzer.GetGenericTypeDetail(collectionGenericType, sourceType.IEnumerableGenericInnerType);
                     var countMember = collectionGenericTypeDetails.GetMember("Count");
@@ -672,7 +672,7 @@ namespace Zerra.Map
                     var loopBreakTarget = Expression.Label();
                     var moveNextOrBreak = Expression.IfThen(Expression.Not(Expression.Call(enumerator, moveNextMethod.MethodInfo)), Expression.Break(loopBreakTarget));
 
-                    var sourceElement = Expression.Convert(Expression.Call(enumerator, currentMethod.MethodInfo), sourceType.IEnumerableGenericInnerType);
+                    var sourceElement = Expression.Convert(Expression.MakeMemberAccess(enumerator, currentMember.MemberInfo), sourceType.IEnumerableGenericInnerType);
                     var castedElement = Expression.ArrayAccess(casted, loopIndex);
                     var newElementBlock = GenerateMapAssignTarget(graph, sourceElement, castedElement, recursionDictionary, ref depth);
 
@@ -705,7 +705,7 @@ namespace Zerra.Map
                     var enumeratorGeneric = TypeAnalyzer.GetGenericTypeDetail(genericEnumeratorType, sourceType.IEnumerableGenericInnerType);
                     var getEnumeratorMethod = enumerableGeneric.GetMethodBoxed("GetEnumerator");
                     var moveNextMethod = enumeratorTypeDetail.GetMethodBoxed("MoveNext");
-                    var currentMethod = enumeratorGeneric.GetMethodBoxed("get_Current");
+                    var currentMember = enumeratorGeneric.GetMember("Current");
                     var addMethod = listType.GetMethodBoxed("Add");
 
                     var list = Expression.Convert(target, listType.Type);
@@ -721,7 +721,7 @@ namespace Zerra.Map
                     var loopBreakTarget = Expression.Label();
                     var moveNextOrBreak = Expression.IfThen(Expression.Not(Expression.Call(enumerator, moveNextMethod.MethodInfo)), Expression.Break(loopBreakTarget));
 
-                    var sourceElement = Expression.Convert(Expression.Call(enumerator, currentMethod.MethodInfo), sourceType.IEnumerableGenericInnerType);
+                    var sourceElement = Expression.Convert(Expression.MakeMemberAccess(enumerator, currentMember.MemberInfo), sourceType.IEnumerableGenericInnerType);
                     var targetElement = listItem;
                     var newElementBlock = GenerateMapAssignTarget(graph, sourceElement, targetElement, recursionDictionary, ref depth);
                     var addElementToList = Expression.Call(casted, addMethod.MethodInfo, listItem);
@@ -845,7 +845,7 @@ namespace Zerra.Map
                     if (sourceType.Type.IsArray && targetType.Type.IsArray)
                     {
                         //source array, target array
-                        var arrayType = Discovery.GetTypeFromName(targetType.InnerType + "[]");
+                        var arrayType = targetType.InnerType.MakeArrayType();
                         newTarget = Expression.Variable(arrayType, "newTarget");
                         assignNewTarget = Expression.Assign(newTarget, Expression.NewArrayBounds(targetType.InnerType, Expression.ArrayLength(source)));
                     }
@@ -854,7 +854,7 @@ namespace Zerra.Map
                         //source enumerable, target array
                         if (sourceType.HasICollection)
                         {
-                            var arrayType = Discovery.GetTypeFromName(targetType.InnerType + "[]");
+                            var arrayType = targetType.InnerType.MakeArrayType();
                             newTarget = Expression.Variable(arrayType, "newTarget");
 
                             var countMember = TypeAnalyzer.GetTypeDetail(collectionType).GetMember("Count");
@@ -865,7 +865,7 @@ namespace Zerra.Map
                         }
                         else if (sourceType.HasICollectionGeneric)
                         {
-                            var arrayType = Discovery.GetTypeFromName(targetType.InnerType + "[]");
+                            var arrayType = targetType.InnerType.MakeArrayType();
                             newTarget = Expression.Variable(arrayType, "newTarget");
 
                             var collectionGenericTypeDetails = TypeAnalyzer.GetGenericTypeDetail(collectionGenericType, sourceType.IEnumerableGenericInnerType);
@@ -877,7 +877,7 @@ namespace Zerra.Map
                         }
                         else if (sourceType.HasIReadOnlyCollectionGeneric)
                         {
-                            var arrayType = Discovery.GetTypeFromName(targetType.InnerType + "[]");
+                            var arrayType = targetType.InnerType.MakeArrayType();
                             newTarget = Expression.Variable(arrayType, "newTarget");
 
                             var readOnlyCollectionGenericTypeDetails = TypeAnalyzer.GetGenericTypeDetail(readOnlyCollectionGenericType, sourceType.IEnumerableGenericInnerType);
@@ -889,7 +889,7 @@ namespace Zerra.Map
                         }
                         else //must enumerate to get count
                         {
-                            var arrayType = Discovery.GetTypeFromName(targetType.InnerType + "[]");
+                            var arrayType = targetType.InnerType.MakeArrayType();
                             newTarget = Expression.Variable(arrayType, "newTarget");
                             var enumerableGeneric = TypeAnalyzer.GetGenericTypeDetail(genericEnumerableType, sourceType.IEnumerableGenericInnerType);
                             var enumeratorGeneric = TypeAnalyzer.GetGenericTypeDetail(genericEnumeratorType, sourceType.IEnumerableGenericInnerType);

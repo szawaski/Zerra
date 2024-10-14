@@ -80,13 +80,13 @@ namespace Zerra.CQRS.Network
 
                 if (returnTypeDetails.IsTask)
                 {
-                    var isStream = returnTypeDetails.InnerTypeDetail.BaseTypes.Contains(streamType);
+                    var isStream = returnTypeDetails.InnerType == streamType || returnTypeDetails.InnerTypeDetail.BaseTypes.Contains(streamType);
                     var callRequestMethodGeneric = TypeAnalyzer.GetGenericMethodDetail(callRequestAsyncMethod, returnTypeDetails.InnerTypes.ToArray());
                     return (TReturn?)callRequestMethodGeneric.CallerBoxed(this, [throttle, isStream, interfaceType, methodName, arguments, source])!;
                 }
                 else
                 {
-                    var isStream = returnTypeDetails.BaseTypes.Contains(streamType);
+                    var isStream = returnTypeDetails.InnerType == streamType || returnTypeDetails.InnerTypeDetail.BaseTypes.Contains(streamType);
                     var model = CallInternal<TReturn>(throttle, isStream, interfaceType, methodName, arguments, source);
                     return model;
                 }
@@ -146,7 +146,7 @@ namespace Zerra.CQRS.Network
                 throw new Exception($"{commandType.GetNiceName()} is not registered with {this.GetType().GetNiceName()}");
 
             var resultTypeDetails = TypeAnalyzer<TResult>.GetTypeDetail();
-            var isStream = resultTypeDetails.BaseTypes.Contains(streamType);
+            var isStream = resultTypeDetails.Type == streamType || resultTypeDetails.BaseTypes.Contains(streamType);
 
             try
             {
