@@ -80,6 +80,13 @@ namespace Zerra.Test
                 }
             }
 
+            if (type1.Type.Name == "RuntimeType")
+            {
+                if (type2.Type.Name != "RuntimeType")
+                    return false;
+                return model1.Equals(model2);
+            }
+
             if (type1.HasIEnumerable)
             {
                 if (!type2.HasIEnumerable)

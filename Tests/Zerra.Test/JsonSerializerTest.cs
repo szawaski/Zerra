@@ -2,13 +2,10 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Microsoft.VisualStudio.TestPlatform.PlatformAbstractions.Interfaces;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Zerra.Serialization.Json;
@@ -796,6 +793,15 @@ namespace Zerra.Test
             var model1 = jsonObject.Bind<TypesAllModel>();
 
             AssertHelper.AreEqual(baseModel, model1);
+        }
+
+        [TestMethod]
+        public void StringType()
+        {
+            var model1 = TypeModel.Create();
+            var json = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TypeModel>(json);
+            AssertHelper.AreEqual(model1, model2);
         }
 
         [TestMethod]
@@ -1775,6 +1781,17 @@ namespace Zerra.Test
             var model1 = jsonObject.Bind<TypesAllModel>();
 
             AssertHelper.AreEqual(baseModel, model1);
+        }
+
+        [TestMethod]
+        public async Task StreamType()
+        {
+            var model1 = TypeModel.Create();
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, model1);
+            stream.Position = 0;
+            var model2 = await JsonSerializer.DeserializeAsync<TypeModel>(stream);
+            AssertHelper.AreEqual(model1, model2);
         }
     }
 }

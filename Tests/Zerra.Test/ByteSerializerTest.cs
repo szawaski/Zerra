@@ -323,6 +323,16 @@ namespace Zerra.Test
         }
 
         [TestMethod]
+        public void TypesType()
+        {
+            var model1 = TypeModel.Create();
+            var bytes = ByteSerializer.Serialize(model1);
+            Assert.AreEqual(185, bytes.Length);
+            var model2 = ByteSerializer.Deserialize<TypeModel>(bytes);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
         public void TypesCore()
         {
             var model1 = TypesCoreModel.Create();
