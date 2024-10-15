@@ -10,7 +10,6 @@ using Zerra.Map;
 
 namespace ZerraDemo.Domain.Pets
 {
-
     public class PetsQueryProvider : IPetsQueryProvider
     {
         public PetsQueryProvider()

@@ -35,7 +35,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\Framework\Zerra.SourceGeneration\Zerra.SourceGeneration.csproj" />
+      <ProjectReference Include="..\..\Framework\Zerra.SourceGeneration.Discovery\Zerra.SourceGeneration.Discovery.csproj" />
+      <ProjectReference Include="..\..\Framework\Zerra.SourceGeneration.Types\Zerra.SourceGeneration.Types.csproj" />
     </ItemGroup>
 
 </Project>

@@ -8,7 +8,7 @@ using System.Linq;
 namespace Zerra.SourceGeneration.Test
 {
     [TestClass]
-    public class GenerateForZerra
+    public class TypeGeneration
     {
         //[TestMethod]
         public void Test()

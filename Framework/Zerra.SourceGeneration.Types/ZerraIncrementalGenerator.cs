@@ -72,18 +72,12 @@ namespace Zerra.SourceGeneration
 
             foreach (var symbol in symbols)
             {
-                if (symbol.GetAttributes().Any(IsDiscoveryAttribute))
-                {
-                    discoveryTypeOfList.Add(Helpers.GetTypeOfName(symbol));
-                }
                 if (symbol.GetAttributes().Any(IsGenerateTypeAttribute))
                 {
                     TypeDetailSourceGenerator.GenerateType(context, symbol, symbols, typeDetailClassList, true, true);
                 }
             }
 
-            if (discoveryTypeOfList.Count > 0)
-                DiscoverySourceGenerator.GenerateInitializer(context, compilation, discoveryTypeOfList);
             if (typeDetailClassList.Count > 0)
                 TypeDetailSourceGenerator.GenerateInitializer(context, compilation, typeDetailClassList);
         }
@@ -95,25 +89,18 @@ namespace Zerra.SourceGeneration
 
             foreach (var symbol in symbols)
             {
-                if (symbol.GetAttributes().Any(IsDiscoveryAttribute))
-                {
-                    discoveryTypeOfList.Add(Helpers.GetTypeOfName(symbol));
-                }
                 if (symbol.GetAttributes().Any(IsGenerateTypeAttribute))
                 {
                     TypeDetailSourceGenerator.GenerateType(context, symbol, symbols, typeDetailClassList, true, true);
                 }
             }
 
-            if (discoveryTypeOfList.Count > 0)
-                DiscoverySourceGenerator.GenerateInitializer(context, compilation, discoveryTypeOfList);
             if (typeDetailClassList.Count > 0)
                 TypeDetailSourceGenerator.GenerateInitializer(context, compilation, typeDetailClassList);
         }
 
         private static void GenerateForRegular(SourceProductionContext context, ImmutableArray<ITypeSymbol> symbols, Compilation compilation)
         {
-            var discoveryTypeOfList = new List<string>();
             var typeDetailClassList = new List<Tuple<string, string>>();
 
             foreach (var symbol in symbols)
@@ -122,11 +109,6 @@ namespace Zerra.SourceGeneration
                     continue;
                 if (namedTypeSymbol.TypeKind != TypeKind.Class && namedTypeSymbol.TypeKind != TypeKind.Struct && namedTypeSymbol.TypeKind != TypeKind.Enum)
                     continue;
-
-                if (symbol.GetAttributes().Any(IsDiscoveryAttribute))
-                {
-                    discoveryTypeOfList.Add(Helpers.GetTypeOfName(symbol));
-                }
 
                 if (symbol.GetAttributes().Any(IsGenerateTypeAttribute))
                 {
@@ -150,27 +132,8 @@ namespace Zerra.SourceGeneration
                 TypeDetailSourceGenerator.GenerateType(context, symbol, symbols, typeDetailClassList, true, false);
             }
 
-            if (discoveryTypeOfList.Count > 0)
-                DiscoverySourceGenerator.GenerateInitializer(context, compilation, discoveryTypeOfList);
             if (typeDetailClassList.Count > 0)
                 TypeDetailSourceGenerator.GenerateInitializer(context, compilation, typeDetailClassList);
-        }
-
-        private static bool IsDiscoveryAttribute(AttributeData attribute)
-        {
-            if (attribute.AttributeClass is null)
-                return false;
-            if (attribute.AttributeClass.Name == "DiscoverAttribute" && attribute.AttributeClass.ContainingNamespace.ToString() == "Zerra.Reflection")
-                return true;
-            if (attribute.AttributeClass.Name == "EntityAttribute" && attribute.AttributeClass.ContainingNamespace.ToString() == "Zerra.Repository")
-                return true;
-            if (attribute.AttributeClass.Name == "EventStoreAggregateAttribute" && attribute.AttributeClass.ContainingNamespace.ToString() == "Zerra.Repository")
-                return true;
-            if (attribute.AttributeClass.Name == "EventStoreEntityAttribute" && attribute.AttributeClass.ContainingNamespace.ToString() == "Zerra.Repository")
-                return true;
-            if (attribute.AttributeClass.Name == "EventStoreEntityAttribute" && attribute.AttributeClass.ContainingNamespace.ToString() == "Zerra.Repository")
-                return true;
-            return false;
         }
 
         private static bool IsGenerateTypeAttribute(AttributeData attribute)

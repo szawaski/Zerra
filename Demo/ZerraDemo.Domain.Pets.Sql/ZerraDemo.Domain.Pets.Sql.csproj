@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
@@ -13,5 +13,13 @@
         <ProjectReference Include="..\..\Framework\Zerra\Zerra.csproj" />
         <ProjectReference Include="..\ZerraDemo.Domain.Pets\ZerraDemo.Domain.Pets.csproj" />
     </ItemGroup>
+
+    <!--<ItemGroup>
+        <ProjectReference Include="..\..\Framework\Zerra.SourceGeneration.Discovery\Zerra.SourceGeneration.Discovery.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"  />
+    </ItemGroup>-->
+    <!--<PropertyGroup>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+        <CompilerGeneratedFilesOutputPath>Generated</CompilerGeneratedFilesOutputPath>
+    </PropertyGroup>-->
 
 </Project>

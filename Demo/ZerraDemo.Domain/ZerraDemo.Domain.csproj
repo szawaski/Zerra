@@ -24,7 +24,10 @@
     </ItemGroup>
 
     <!--<ItemGroup>
-        <ProjectReference Include="..\..\Framework\Zerra.SourceGeneration\Zerra.SourceGeneration.csproj"  OutputItemType="Analyzer" ReferenceOutputAssembly="false"  />
+        <ProjectReference Include="..\..\Framework\Zerra.SourceGeneration.Types\Zerra.SourceGeneration.Types.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    </ItemGroup>-->
+    <!--<ItemGroup>
+        <ProjectReference Include="..\..\Framework\Zerra.SourceGeneration.Discovery\Zerra.SourceGeneration.Discovery.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     </ItemGroup>-->
     <!--<PropertyGroup>
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>

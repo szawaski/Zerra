@@ -8,11 +8,11 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Zerra.SourceGeneration
+namespace Zerra.SourceGeneration.Discovery
 {
     public static class DiscoverySourceGenerator
     {
-        public static void GenerateInitializer(SourceProductionContext context, Compilation compilation, List<string> discoverTypeOfList)
+        public static void GenerateInitializer(SourceProductionContext context, string ns, List<string> discoverTypeOfList)
         {
             var sb = new StringBuilder();
             foreach (var fullTypeOf in discoverTypeOfList)
@@ -27,7 +27,7 @@ namespace Zerra.SourceGeneration
                 //Zerra Generated File
                 #if NET5_0_OR_GREATER
 
-                namespace {{compilation.AssemblyName}}.SourceGeneration
+                namespace {{ns}}.SourceGeneration
                 {
                     internal static class DiscoveryInitializer
                     {
