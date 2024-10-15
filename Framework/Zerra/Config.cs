@@ -41,6 +41,9 @@ namespace Zerra
         }
 
         private static bool discoveryEnabled = true;
+        /// <summary>
+        /// Indicates if Discovery will search all the loaded assemblies. Default is True.
+        /// </summary>
         public static bool DiscoveryEnabled
         {
             get
@@ -62,6 +65,9 @@ namespace Zerra
         }
 
         private static bool assemblyLoaderEnabled = true;
+        /// <summary>
+        /// Indicates if Discovery will load all the assemblies. Default is True.
+        /// </summary>
         public static bool AssemblyLoaderEnabled
         {
             get
