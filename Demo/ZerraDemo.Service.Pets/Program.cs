@@ -14,6 +14,7 @@ namespace ZerraDemo.Service.Pets
                 var assemblyLoader1 = typeof(ZerraDemo.Domain.Pets.IPetsQueryProvider);
                 var assemblyLoader2 = typeof(ZerraDemo.Domain.Pets.PetsQueryProvider);
                 var assemblyLoader3 = typeof(ZerraDemo.Domain.Pets.Sql.PetsDataContext);
+
                 Config.AssemblyLoaderEnabled = false;
 
                 Config.LoadConfiguration(args);

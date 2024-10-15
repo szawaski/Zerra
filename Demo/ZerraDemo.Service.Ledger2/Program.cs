@@ -8,8 +8,16 @@ namespace ZerraDemo.Service.Ledger
     {
         static void Main(string[] args)
         {
-            Config.LoadConfiguration(args);
-            ServiceManager.StartServices();
+            ServiceManager.StartServices(() =>
+            {
+                var assemblyLoader1 = typeof(ZerraDemo.Domain.Ledger2.ILedger2QueryProvider);
+                var assemblyLoader2 = typeof(ZerraDemo.Domain.Ledger2.Ledger2QueryProvider);
+                var assemblyLoader3 = typeof(ZerraDemo.Domain.Ledger2.EventStore.Ledger2EventStoreDataContext);
+
+                Config.AssemblyLoaderEnabled = false;
+
+                Config.LoadConfiguration(args);
+            });
             Bus.WaitForExit();
         }
     }

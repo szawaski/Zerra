@@ -8,8 +8,15 @@ namespace ZerraDemo.Service.Weather
     {
         static void Main(string[] args)
         {
-            Config.LoadConfiguration(args);
-            ServiceManager.StartServices();
+            ServiceManager.StartServices(() =>
+            {
+                var assemblyLoader1 = typeof(ZerraDemo.Domain.WeatherCached.IWeatherCachedQueryProvider);
+                var assemblyLoader2 = typeof(ZerraDemo.Domain.WeatherCached.WeatherCachedQueryProvider);
+
+                Config.AssemblyLoaderEnabled = false;
+
+                Config.LoadConfiguration(args);
+            });
             Bus.WaitForExit();
         }
     }
