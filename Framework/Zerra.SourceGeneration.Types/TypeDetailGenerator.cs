@@ -13,7 +13,7 @@ using System.Text;
 
 namespace Zerra.SourceGeneration
 {
-    public static class TypeDetailSourceGenerator
+    public static class TypeDetailGenerator
     {
         private static readonly string nullaleTypeName = typeof(Nullable<>).Name;
         private static readonly string enumberableTypeName = nameof(IEnumerable);

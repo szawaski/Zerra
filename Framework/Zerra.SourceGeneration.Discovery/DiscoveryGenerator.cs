@@ -9,7 +9,7 @@ using System.Text;
 
 namespace Zerra.SourceGeneration.Discovery
 {
-    public static class DiscoverySourceGenerator
+    public static class DiscoveryGenerator
     {
         public static void Generate(SourceProductionContext context, string ns, StringBuilder sbInitializer, List<ITypeSymbol> discoverySymbols)
         {

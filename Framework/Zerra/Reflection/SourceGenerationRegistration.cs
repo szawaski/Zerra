@@ -10,5 +10,6 @@ namespace Zerra.Reflection
         public static void DiscoverType(Type typeInAssembly, Type[] interfaceTypes) => Discovery.DiscoverType(typeInAssembly, interfaceTypes, false);
         public static void RegisterEmptyImplementation(Type interfaceType, Type type) => EmptyImplementations.RegisterEmptyImplementation(interfaceType, type);
         public static void RegisterCaller(Type interfaceType, Type type) => BusRouters.RegisterCaller(interfaceType, type);
+        public static void RegisterDispatcher(Type interfaceType, Type type) => BusRouters.RegisterDispatcher(interfaceType, type);
     }
 }

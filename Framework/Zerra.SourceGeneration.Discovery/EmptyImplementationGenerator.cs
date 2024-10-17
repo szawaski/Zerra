@@ -11,7 +11,7 @@ using System.Text;
 
 namespace Zerra.SourceGeneration.Discovery
 {
-    public static class BusRouterSourceGenerator
+    public static class EmptyImplementationGenerator
     {
         public static void Generate(SourceProductionContext context, string ns, StringBuilder sbInitializer, List<ITypeSymbol> discoverySymbols)
         {
@@ -22,16 +22,14 @@ namespace Zerra.SourceGeneration.Discovery
                     continue;
                 if (symbol is not INamedTypeSymbol namedTypeSymbol)
                     continue;
-                if (namedTypeSymbol.AllInterfaces.Any(x => x.Name == "ICommandHandler"))
-                    continue;
 
                 var typeNameForClass = Helpers.GetNameForClass(symbol);
-                var className = $"Caller_{typeNameForClass}";
+                var className = $"Empty_{typeNameForClass}";
 
-                WriteMembers(namedTypeSymbol, namedTypeSymbol, sb);
+                WriteMembers(namedTypeSymbol, sb);
 
                 foreach (var i in namedTypeSymbol.AllInterfaces)
-                    WriteMembers(namedTypeSymbol, i, sb);
+                    WriteMembers(i, sb);
 
                 var membersLines = sb.ToString();
                 sb.Clear();
@@ -44,14 +42,6 @@ namespace Zerra.SourceGeneration.Discovery
                 {
                     public class {{className}} : {{symbol.ToString()}}
                     {
-                        private readonly Zerra.CQRS.NetworkType networkType;
-                        private readonly string source;
-                        public {{className}}(Zerra.CQRS.NetworkType networkType, string source)
-                        {
-                            this.networkType = networkType;
-                            this.source = source;
-                        }
-
                         {{membersLines}}
                     }
                 }
@@ -65,15 +55,14 @@ namespace Zerra.SourceGeneration.Discovery
                 var interfacefullTypeOf = Helpers.GetTypeOfName(symbol);
                 var classFullTypeOf = $"typeof({className})";
                 _ = sbInitializer.Append(Environment.NewLine).Append("            ");
-                _ = sbInitializer.Append("Zerra.Reflection.SourceGenerationRegistration.RegisterCaller(").Append(interfacefullTypeOf).Append(", ").Append(classFullTypeOf).Append(");");
+                _ = sbInitializer.Append("Zerra.Reflection.SourceGenerationRegistration.RegisterEmptyImplementation(").Append(interfacefullTypeOf).Append(", ").Append(classFullTypeOf).Append(");");
             }
         }
 
-        private static void WriteMembers(INamedTypeSymbol parent, INamedTypeSymbol namedTypeSymbol, StringBuilder sb)
+        private static void WriteMembers(INamedTypeSymbol namedTypeSymbol, StringBuilder sb)
         {
             var members = namedTypeSymbol.GetMembers();
 
-            var parentTypeOf = Helpers.GetTypeOfName(parent);
             foreach (IMethodSymbol method in members.Where(x => x.Kind == SymbolKind.Method))
             {
                 if (method.MethodKind != MethodKind.Ordinary)
@@ -90,23 +79,32 @@ namespace Zerra.SourceGeneration.Discovery
                         _ = sb.Append(", ");
                     else
                         firstPassed = true;
+
                     _ = sb.Append(parameter.Type.ToString()).Append(" @").Append(parameter.Name);
                 }
-                _ = sb.Append(") => ");
-
-
-                _ = sb.Append("Zerra.CQRS.Bus._CallMethod<").Append(method.ReturnType.ToString()).Append(">(")
-                    .Append(parentTypeOf).Append(", \"").Append(method.Name).Append("\", [");
-                firstPassed = false;
-                foreach (var parameter in method.Parameters)
+                _ = sb.Append(')');
+                if (method.ReturnsVoid)
                 {
-                    if (firstPassed)
-                        _ = sb.Append(", ");
-                    else
-                        firstPassed = true;
-                    sb.Append('@').Append(parameter.Name);
+                    sb.Append(" { }");
                 }
-                _ = sb.Append("], this.networkType, this.source);");
+                else
+                {
+                    string returnValue;
+                    if (method.ReturnType.Name == "Task")
+                    {
+                        var namedReturnType = (INamedTypeSymbol)method.ReturnType;
+                        if (namedReturnType.TypeParameters.Length > 0)
+                            returnValue = $"System.Threading.Tasks.Task.FromResult(default({namedReturnType.TypeArguments[0].ToString()}))";
+                        else
+                            returnValue = "System.Threading.Tasks.Task.CompletedTask";
+                    }
+                    else
+                    {
+                        returnValue = $"default({method.ReturnType.ToString()})";
+                    }
+
+                    sb.Append(" => ").Append(returnValue).Append("!;");
+                }
             }
 
             foreach (IPropertySymbol property in members.Where(x => x.Kind == SymbolKind.Property))
@@ -116,9 +114,9 @@ namespace Zerra.SourceGeneration.Discovery
 
                 _ = sb.Append("public ").Append(property.Type.ToString()).Append(" @").Append(property.Name).Append(" {");
                 if (property.GetMethod is not null)
-                    _ = sb.Append(" get => throw new System.NotSupportedException();");
+                    _ = sb.Append(" get;");
                 if (property.SetMethod is not null)
-                    _ = sb.Append(" set => throw new System.NotSupportedException();");
+                    _ = sb.Append(" set;");
                 _ = sb.Append(" }");
             }
         }

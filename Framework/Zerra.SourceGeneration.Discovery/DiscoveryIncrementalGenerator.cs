@@ -45,9 +45,10 @@ namespace Zerra.SourceGeneration.Discovery
             var ns = symbols.Where(x => x.ContainingNamespace is not null).Select(x => x.ContainingNamespace.ToString()).OrderBy(x => x.Length).FirstOrDefault() ?? "Unknown";
 
             var sbInitializer = new StringBuilder();
-            DiscoverySourceGenerator.Generate(context, ns, sbInitializer, discoverySymbols);
-            EmptyImplementationSourceGenerator.Generate(context, ns, sbInitializer, discoverySymbols);
-            BusRouterSourceGenerator.Generate(context, ns, sbInitializer, discoverySymbols);
+            DiscoveryGenerator.Generate(context, ns, sbInitializer, discoverySymbols);
+            EmptyImplementationGenerator.Generate(context, ns, sbInitializer, discoverySymbols);
+            BusRouterCallerGenerator.Generate(context, ns, sbInitializer, discoverySymbols);
+            BusRouterDispatcherGenerator.Generate(context, ns, sbInitializer, discoverySymbols);
             GenerateInitializer(context, ns, sbInitializer);
         }
 

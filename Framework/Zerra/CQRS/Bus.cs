@@ -179,7 +179,7 @@ namespace Zerra.CQRS
                 var methodGetProviderInterfaceType = busCacheTypeDetail.GetMethodBoxed(nameof(LayerProvider<object>.GetProviderInterfaceType));
                 var interfaceType = (Type)methodGetProviderInterfaceType.CallerBoxed(cacheInstance, null)!;
 
-                var messageHandlerToDispatchProvider = BusRouters.GetCommandHandlerToDispatchInternalInstance(interfaceType, requireAffirmation, networkType, source, metadata.BusLogging);
+                var messageHandlerToDispatchProvider = BusRouters.GetHandlerToDispatchInternalInstance(interfaceType, requireAffirmation, networkType, source, metadata.BusLogging);
                 _ = methodSetNextProvider.CallerBoxed(cacheInstance, [messageHandlerToDispatchProvider]);
 
                 var method = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(ICommandHandler<ICommand>.Handle), [commandType]);
@@ -249,7 +249,7 @@ namespace Zerra.CQRS
                 var methodGetProviderInterfaceType = busCacheTypeDetail.GetMethodBoxed(nameof(LayerProvider<object>.GetProviderInterfaceType));
                 var interfaceType = (Type)methodGetProviderInterfaceType.CallerBoxed(cacheInstance, null)!;
 
-                var messageHandlerToDispatchProvider = BusRouters.GetCommandWithResultHandlerToDispatchInternalInstance(interfaceType, networkType, source, metadata.BusLogging);
+                var messageHandlerToDispatchProvider = BusRouters.GetHandlerToDispatchInternalInstance(interfaceType, true, networkType, source, metadata.BusLogging);
                 _ = methodSetNextProvider.CallerBoxed(cacheInstance, [messageHandlerToDispatchProvider]);
 
                 var method = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(ICommandHandler<ICommand<TResult>, TResult>.Handle), [commandType, typeof(TResult)]);
@@ -322,7 +322,7 @@ namespace Zerra.CQRS
                 var methodGetProviderInterfaceType = busCacheTypeDetail.GetMethodBoxed(nameof(LayerProvider<object>.GetProviderInterfaceType));
                 var interfaceType = (Type)methodGetProviderInterfaceType.CallerBoxed(cacheInstance, null)!;
 
-                var messageHandlerToDispatchProvider = BusRouters.GetEventHandlerToDispatchInternalInstance(interfaceType, networkType, source, metadata.BusLogging);
+                var messageHandlerToDispatchProvider = BusRouters.GetHandlerToDispatchInternalInstance(interfaceType, false, networkType, source, metadata.BusLogging);
                 _ = methodSetNextProvider.CallerBoxed(cacheInstance, [messageHandlerToDispatchProvider]);
 
                 var method = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(IEventHandler<IEvent>.Handle), [eventType]);
@@ -341,6 +341,7 @@ namespace Zerra.CQRS
             return _DispatchEventInternalAsync(@event, eventType, networkType, source, metadata.BusLogging);
         }
 
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         public static Task _DispatchCommandInternalAsync(ICommand command, Type commandType, bool requireAffirmation, NetworkType networkType, string source, BusLogging busLogging)
         {
             if (networkType == NetworkType.Local || !handledCommandTypes.Contains(commandType))
@@ -383,6 +384,7 @@ namespace Zerra.CQRS
                 return Task.CompletedTask;
             }
         }
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         public static Task<TResult?> _DispatchCommandWithResultInternalAsync<TResult>(ICommand<TResult> command, Type commandType, NetworkType networkType, string source, BusLogging busLogging)
         {
             if (networkType == NetworkType.Local || !handledCommandTypes.Contains(commandType))
@@ -411,6 +413,7 @@ namespace Zerra.CQRS
             else
                 return HandleCommandWithResultLoggedAsync((ICommand<TResult>)command, commandType, source);
         }
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         public static Task _DispatchEventInternalAsync(IEvent @event, Type eventType, NetworkType networkType, string source, BusLogging busLogging)
         {
             if (networkType == NetworkType.Local || !handledEventTypes.Contains(eventType))
@@ -694,6 +697,7 @@ namespace Zerra.CQRS
             return callerProvider;
         }
 
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         public static TReturn _CallMethod<TReturn>(Type interfaceType, string methodName, object[] arguments, NetworkType networkType, string source)
         {
             var methodDetail = TypeAnalyzer.GetMethodDetail(interfaceType, methodName);
