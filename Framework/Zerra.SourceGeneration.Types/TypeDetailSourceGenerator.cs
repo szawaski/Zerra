@@ -117,14 +117,7 @@ namespace Zerra.SourceGeneration
 
             var fullTypeName = Helpers.GetFullName(typeSymbol);
 
-            var typeNameForClass = typeSymbol.ToString();
-            if (ns is not null && typeNameForClass.StartsWith(ns))
-                typeNameForClass = typeNameForClass.Substring(ns.Length + 1);
-            typeNameForClass = typeNameForClass.Replace('<', '_').Replace('>', '_').Replace(',', '_').Replace('.', '_').Replace("[]", "Array");
-            if (typeNameForClass.EndsWith("?") && !typeSymbol.IsValueType)
-                typeNameForClass = typeNameForClass.Substring(0, typeNameForClass.Length - 1);
-            typeNameForClass = typeNameForClass.Replace("?", "Nullable");
-
+            var typeNameForClass = Helpers.GetNameForClass(typeSymbol);
             var className = $"{typeNameForClass}TypeDetail";
             var fileName = ns is null ? $"{typeNameForClass}TypeDetail.cs" : $"{ns}.{typeNameForClass}TypeDetail.cs";
 

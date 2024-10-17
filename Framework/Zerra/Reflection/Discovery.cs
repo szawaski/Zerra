@@ -6,7 +6,6 @@ using System;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -162,6 +161,13 @@ namespace Zerra.Reflection
             if (!discoveredTypes.Add(typeInAssembly))
                 return;
 
+            DiscoverType(typeInAssembly, typeInAssembly.GetInterfaces(), true);
+        }
+        internal static void DiscoverType(Type typeInAssembly, Type[] interfaceTypes, bool skipDiscoveredCheck)
+        {
+            if (!skipDiscoveredCheck && !discoveredTypes.Add(typeInAssembly))
+                return;
+
             var typeList1 = typeByName.GetOrAdd(typeInAssembly.Name, (key) => new());
             typeList1.Add(typeInAssembly);
             if (typeInAssembly.FullName is not null && typeInAssembly.Name != typeInAssembly.FullName)
@@ -170,7 +176,6 @@ namespace Zerra.Reflection
                 typeList2.Add(typeInAssembly);
             }
 
-            var interfaceTypes = typeInAssembly.GetInterfaces();
             var test = typeInAssembly.Name;
             if (interfaceTypes.Length > 0)
             {
@@ -239,6 +244,12 @@ namespace Zerra.Reflection
                     DiscoverType(newType);
                 }
             }
+        }
+
+        internal static void MarkAssemblyAsDiscovered(Assembly assembly)
+        {
+            if (assembly.FullName is null) throw new ArgumentNullException(nameof(Assembly.FullName));
+            _ = discoveredAssemblies.Add(assembly.FullName);
         }
 
         public static bool HasTypeByInterface(Type interfaceType)

@@ -45,7 +45,8 @@ namespace Zerra.CQRS
                 methods.AddRange(@interface.GetMethods());
             }
 
-            var typeSignature = interfaceType.Name + "_Caller";
+
+            var typeSignature = "Caller_" + interfaceType.FullName;
 
             var moduleBuilder = GeneratedAssembly.GetModuleBuilder();
             var typeBuilder = moduleBuilder.DefineType(typeSignature, TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.AutoClass | TypeAttributes.AnsiClass | TypeAttributes.BeforeFieldInit | TypeAttributes.AutoLayout | TypeAttributes.Sealed, null);
@@ -106,7 +107,7 @@ namespace Zerra.CQRS
 
                 il.Emit(OpCodes.Nop);
 
-                //_CallInternal<TReturn>(Type interfaceType, string methodName, object[] arguments, string externallyReceived, string source)
+                //_CallInternal<TReturn>(Type interfaceType, string methodName, object[] arguments, NetworkType networkType, string source)
 
                 il.Emit(OpCodes.Ldtoken, interfaceType);
                 il.Emit(OpCodes.Call, typeofMethod); //typeof(TInterface)
@@ -126,7 +127,7 @@ namespace Zerra.CQRS
                 }
 
                 il.Emit(OpCodes.Ldarg_0);
-                il.Emit(OpCodes.Ldfld, networkTypeField); //externallyReceived
+                il.Emit(OpCodes.Ldfld, networkTypeField); //networkType
 
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldfld, sourceField); //source
@@ -181,6 +182,14 @@ namespace Zerra.CQRS
             return objectType;
         }
 
+        public static void RegisterCaller(Type interfaceType, Type type)
+        {
+            if (!interfaceType.IsInterface)
+                throw new ArgumentException($"Type {interfaceType.GetNiceName()} is not an interface");
+            if (!callerClasses.TryAdd(interfaceType, type))
+                throw new InvalidOperationException($"Caller for {interfaceType.GetNiceName()} is already registered");
+        }
+
         private static readonly Type commandHandlerType = typeof(ICommandHandler<>);
         private static readonly MethodInfo dispatchCommandInternalAsyncMethod = typeof(Bus).GetMethod(nameof(Bus._DispatchCommandInternalAsync), BindingFlags.Static | BindingFlags.Public) ?? throw new Exception($"{nameof(Bus)}.{nameof(Bus._DispatchCommandInternalAsync)} not found");
         private static readonly ConcurrentFactoryDictionary<Type, Type> commandDispatcherClasses = new();
@@ -205,7 +214,7 @@ namespace Zerra.CQRS
                 methods.AddRange(@interface.GetMethods());
             }
 
-            var typeSignature = interfaceType.Name + "_CommandDispatcher";
+            var typeSignature = "CommandDispatcher_" + interfaceType.FullName;
 
             var moduleBuilder = GeneratedAssembly.GetModuleBuilder();
             var typeBuilder = moduleBuilder.DefineType(typeSignature, TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.AutoClass | TypeAttributes.AnsiClass | TypeAttributes.BeforeFieldInit | TypeAttributes.AutoLayout | TypeAttributes.Sealed, null);
@@ -342,7 +351,7 @@ namespace Zerra.CQRS
                 methods.AddRange(@interface.GetMethods());
             }
 
-            var typeSignature = interfaceType.Name + "_CommandDispatcher";
+            var typeSignature = "CommandDispatcher_" + interfaceType.FullName;
 
             var moduleBuilder = GeneratedAssembly.GetModuleBuilder();
             var typeBuilder = moduleBuilder.DefineType(typeSignature, TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.AutoClass | TypeAttributes.AnsiClass | TypeAttributes.BeforeFieldInit | TypeAttributes.AutoLayout | TypeAttributes.Sealed, null);
@@ -479,7 +488,7 @@ namespace Zerra.CQRS
                 methods.AddRange(@interface.GetMethods());
             }
 
-            var typeSignature = interfaceType.Name + "_EventDispatcher";
+            var typeSignature = "EventDispatcher_" + interfaceType.FullName;
 
             var moduleBuilder = GeneratedAssembly.GetModuleBuilder();
             var typeBuilder = moduleBuilder.DefineType(typeSignature, TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.AutoClass | TypeAttributes.AnsiClass | TypeAttributes.BeforeFieldInit | TypeAttributes.AutoLayout | TypeAttributes.Sealed, null);

@@ -15,11 +15,9 @@ namespace Zerra.Reflection
     {
         private static readonly Type taskType = typeof(Task);
         private static readonly Type taskGenericType = typeof(Task<>);
+
         private static readonly ConcurrentFactoryDictionary<Type, Type> emptyImplementations = new();
-        public static Type GetEmptyImplementationType<TInterface>()
-        {
-            return GetEmptyImplementationType(typeof(TInterface));
-        }
+        public static Type GetEmptyImplementationType<TInterface>() => GetEmptyImplementationType(typeof(TInterface));
         public static Type GetEmptyImplementationType(Type interfaceType)
         {
             var classType = emptyImplementations.GetOrAdd(interfaceType, (interfaceType) =>
@@ -28,25 +26,24 @@ namespace Zerra.Reflection
             });
             return classType;
         }
-        public static TInterface GetEmptyImplementation<TInterface>()
-        {
-            return (TInterface)GetEmptyImplementation(typeof(TInterface));
-        }
+
+        public static TInterface GetEmptyImplementation<TInterface>() => (TInterface)GetEmptyImplementation(typeof(TInterface));
         public static object GetEmptyImplementation(Type interfaceType)
         {
             var classType = emptyImplementations.GetOrAdd(interfaceType, (interfaceType) =>
             {
                 return GenerateEmptyImplementation(interfaceType);
             });
-            var instance = Instantiator.Create(classType);
+            var instance = Instantiator.GetSingle(classType);
             return instance;
         }
+
         private static Type GenerateEmptyImplementation(Type interfaceType)
         {
             if (!interfaceType.IsInterface)
                 throw new ArgumentException($"Type {interfaceType.GetNiceName()} is not an interface");
 
-            var typeSignature = interfaceType.FullName + "_EmptyImplementation";
+            var typeSignature = "Empty_" + interfaceType.FullName;
 
             var moduleBuilder = GeneratedAssembly.GetModuleBuilder();
             var typeBuilder = moduleBuilder.DefineType(typeSignature, TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.AutoClass | TypeAttributes.AnsiClass | TypeAttributes.BeforeFieldInit | TypeAttributes.AutoLayout, null);
@@ -222,6 +219,14 @@ namespace Zerra.Reflection
             }
 
             il.Emit(OpCodes.Ldnull);
+        }
+
+        internal static void RegisterEmptyImplementation(Type interfaceType, Type type)
+        {
+            if (!interfaceType.IsInterface)
+                throw new ArgumentException($"Type {interfaceType.GetNiceName()} is not an interface");
+            if (!emptyImplementations.TryAdd(interfaceType, type))
+                throw new InvalidOperationException($"Empty Implementation for {interfaceType.GetNiceName()} is already registered");
         }
     }
 }

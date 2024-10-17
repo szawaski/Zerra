@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Text;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -12,40 +11,33 @@ namespace Zerra.SourceGeneration.Discovery
 {
     public static class DiscoverySourceGenerator
     {
-        public static void GenerateInitializer(SourceProductionContext context, string ns, List<string> discoverTypeOfList)
+        public static void Generate(SourceProductionContext context, string ns, StringBuilder sbInitializer, List<ITypeSymbol> discoverySymbols)
         {
-            var sb = new StringBuilder();
-            foreach (var fullTypeOf in discoverTypeOfList)
+            var passFirst = false;
+            foreach (var symbol in discoverySymbols)
             {
-                if (sb.Length > 0)
-                    sb.Append(Environment.NewLine).Append("            ");
-                sb.Append("Zerra.Reflection.Discovery.DiscoverType(").Append(fullTypeOf).Append(");");
-            }
-            var lines = sb.ToString();
-
-            var code = $$"""
-                //Zerra Generated File
-                #if NET5_0_OR_GREATER
-
-                namespace {{ns}}.SourceGeneration
+                var fullTypeOf = Helpers.GetTypeOfName(symbol);
+                if (!passFirst)
                 {
-                    internal static class DiscoveryInitializer
-                    {
-                #pragma warning disable CA2255
-                        [System.Runtime.CompilerServices.ModuleInitializer]
-                #pragma warning restore CA2255
-                        public static void Initialize()
-                        {
-                            {{lines}}
-                        }
-                    }
+                    _ = sbInitializer.Append(Environment.NewLine).Append("            ");
+                    _ = sbInitializer.Append("Zerra.Reflection.SourceGenerationRegistration.MarkAssemblyAsDiscovered(").Append(fullTypeOf).Append(".Assembly);");
+                    passFirst = true;
+                }
+                _ = sbInitializer.Append(Environment.NewLine).Append("            ");
+                _ = sbInitializer.Append("Zerra.Reflection.SourceGenerationRegistration.DiscoverType(").Append(fullTypeOf).Append(", [");
+                var firstPassed = false;
+                foreach(var i in symbol.AllInterfaces)
+                {
+                    if (firstPassed)
+                        _ = sbInitializer.Append(", ");
+                    else
+                        firstPassed = true;
+                    var iFullTypeOf = Helpers.GetTypeOfName(i);
+                    _ = sbInitializer.Append(iFullTypeOf);
                 }
 
-                #endif
-            
-                """;
-
-            context.AddSource("DiscoveryInitializer.cs", SourceText.From(code, Encoding.UTF8));
+                _ = sbInitializer.Append("]);");
+            }
         }
     }
 }

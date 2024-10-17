@@ -65,7 +65,7 @@ namespace Zerra.SourceGeneration.Discovery
             else
                 return $"typeof({typeSymbol.Name}){(isByRef ? ".MakeByRefType()" : null)}";
         }
-        public static void GetTypeOfNameRecursive(ITypeSymbol typeSymbol, StringBuilder sb)
+        private static void GetTypeOfNameRecursive(ITypeSymbol typeSymbol, StringBuilder sb)
         {
             if (String.IsNullOrEmpty(typeSymbol.Name))
             {
@@ -137,6 +137,20 @@ namespace Zerra.SourceGeneration.Discovery
             if (!typeSymbol.IsValueType && fullTypeName.EndsWith("?"))
                 fullTypeName = fullTypeName.Substring(0, fullTypeName.Length - 1);
             return fullTypeName;
+        }
+
+        public static string GetNameForClass(ITypeSymbol typeSymbol)
+        {
+            var ns = typeSymbol.ContainingNamespace is null || typeSymbol.ContainingNamespace.ToString().Contains("<global namespace>") ? null : typeSymbol.ContainingNamespace.ToString();
+
+            var name = typeSymbol.ToString();
+            if (ns is not null && name.StartsWith(ns))
+                name = name.Substring(ns.Length + 1);
+            name = name.Replace('<', '_').Replace('>', '_').Replace(',', '_').Replace('.', '_').Replace("[]", "Array");
+            if (name.EndsWith("?") && !typeSymbol.IsValueType)
+                name = name.Substring(0, name.Length - 1);
+            name = name.Replace("?", "Nullable");
+            return name;
         }
     }
 }
