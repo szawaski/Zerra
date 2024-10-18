@@ -14,11 +14,6 @@ namespace Zerra.CQRS
 {
     internal static class BusRouters
     {
-        private static readonly ConstructorInfo notSupportedExceptionConstructor = typeof(NotSupportedException).GetConstructor([typeof(string)]) ?? throw new Exception($"{nameof(NotSupportedException)} constructor not found");
-        private static readonly ConstructorInfo objectConstructor = typeof(object).GetConstructor(Array.Empty<Type>()) ?? throw new Exception($"{nameof(Object)} constructor not found");
-        private static readonly MethodInfo typeOfMethod = typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle)) ?? throw new Exception($"{nameof(Type)}.{nameof(Type.GetTypeFromHandle)} not found");
-        
-        private static readonly MethodInfo callInternalMethodNonGeneric = typeof(Bus).GetMethod(nameof(Bus._CallMethod), BindingFlags.Static | BindingFlags.Public) ?? throw new Exception($"{nameof(Bus)}.{nameof(Bus._CallMethod)} not found");
         private static readonly ConcurrentFactoryDictionary<Type, Type> callerClasses = new();
         public static object GetProviderToCallMethodInternalInstance(Type interfaceType, NetworkType networkType, string source)
         {
@@ -53,7 +48,7 @@ namespace Zerra.CQRS
 
                 var il = constructorBuilder.GetILGenerator();
                 il.Emit(OpCodes.Ldarg_0);
-                il.Emit(OpCodes.Call, objectConstructor);
+                il.Emit(OpCodes.Call, BusRouterMethods.ObjectConstructor);
                 il.Emit(OpCodes.Nop);
                 il.Emit(OpCodes.Nop);
 
@@ -80,7 +75,7 @@ namespace Zerra.CQRS
                     voidMethod = true;
                 }
 
-                var callMethod = callInternalMethodNonGeneric.MakeGenericMethod(returnType);
+                var callMethod = BusRouterMethods.CallInternalMethodNonGeneric.MakeGenericMethod(returnType);
 
                 var methodBuilder = typeBuilder.DefineMethod(
                     method.Name,
@@ -99,7 +94,7 @@ namespace Zerra.CQRS
                 //_CallInternal<TReturn>(Type interfaceType, string methodName, object[] arguments, NetworkType networkType, string source)
 
                 il.Emit(OpCodes.Ldtoken, interfaceType);
-                il.Emit(OpCodes.Call, typeOfMethod); //typeof(TInterface)
+                il.Emit(OpCodes.Call, BusRouterMethods.TypeOfMethod); //typeof(TInterface)
 
                 il.Emit(OpCodes.Ldstr, method.Name); //methodName
 
@@ -148,12 +143,6 @@ namespace Zerra.CQRS
                 throw new InvalidOperationException($"Caller for {interfaceType.GetNiceName()} is already registered");
         }
 
-        private static readonly Type commandHandlerType = typeof(ICommandHandler<>);
-        private static readonly Type commandHandlerWithResultType = typeof(ICommandHandler<,>);
-        private static readonly Type eventHandlerType = typeof(IEventHandler<>);
-        private static readonly MethodInfo dispatchCommandInternalAsyncMethod = typeof(Bus).GetMethod(nameof(Bus._DispatchCommandInternalAsync), BindingFlags.Static | BindingFlags.Public) ?? throw new Exception($"{nameof(Bus)}.{nameof(Bus._DispatchCommandInternalAsync)} not found");
-        private static readonly MethodInfo dispatchCommandWithResultInternalAsyncMethod = typeof(Bus).GetMethod(nameof(Bus._DispatchCommandWithResultInternalAsync), BindingFlags.Static | BindingFlags.Public) ?? throw new Exception($"{nameof(Bus)}.{nameof(Bus._DispatchCommandInternalAsync)} not found");
-        private static readonly MethodInfo dispatchEventInternalAsyncMethod = typeof(Bus).GetMethod(nameof(Bus._DispatchEventInternalAsync), BindingFlags.Static | BindingFlags.Public) ?? throw new Exception($"{nameof(Bus)}.{nameof(Bus._DispatchEventInternalAsync)} not found");
         private static readonly ConcurrentFactoryDictionary<Type, Type> dispatcherClasses = new();
         public static object GetHandlerToDispatchInternalInstance(Type interfaceType, bool requireAffirmation, NetworkType networkType, string source, BusLogging busLogging)
         {
@@ -192,7 +181,7 @@ namespace Zerra.CQRS
 
                 var il = constructorBuilder.GetILGenerator();
                 il.Emit(OpCodes.Ldarg_0);
-                il.Emit(OpCodes.Call, objectConstructor);
+                il.Emit(OpCodes.Call, BusRouterMethods.ObjectConstructor);
                 il.Emit(OpCodes.Nop);
                 il.Emit(OpCodes.Nop);
 
@@ -227,14 +216,14 @@ namespace Zerra.CQRS
 
                 var genericInterface = method.DeclaringType?.IsGenericType == true ? method.DeclaringType.GetGenericTypeDefinition() : null;
 
-                if (genericInterface == commandHandlerType)
+                if (genericInterface == BusRouterMethods.CommandHandlerType)
                 {
                     // Bus._DispatchCommandInternalAsync(command, commandType, requireAffirmation, networkType, source, busLogging)
 
                     il.Emit(OpCodes.Ldarg_1); //command
 
                     il.Emit(OpCodes.Ldtoken, parameterTypes[0]);
-                    il.Emit(OpCodes.Call, typeOfMethod); //commandType
+                    il.Emit(OpCodes.Call, BusRouterMethods.TypeOfMethod); //commandType
 
                     il.Emit(OpCodes.Ldarg_0);
                     il.Emit(OpCodes.Ldfld, networkTypeField); //requireAffirmation
@@ -248,19 +237,19 @@ namespace Zerra.CQRS
                     il.Emit(OpCodes.Ldarg_0);
                     il.Emit(OpCodes.Ldfld, busLoggingField); //busLogging
 
-                    il.Emit(OpCodes.Call, dispatchCommandInternalAsyncMethod);
+                    il.Emit(OpCodes.Call, BusRouterMethods.DispatchCommandInternalAsyncMethod);
                     il.Emit(OpCodes.Ret);
 
                     typeBuilder.DefineMethodOverride(methodBuilder, method);
                 }
-                else if (genericInterface == commandHandlerWithResultType)
+                else if (genericInterface == BusRouterMethods.CommandHandlerWithResultType)
                 {
                     // Bus._DispatchCommandWithResultInternalAsync<>(command, commandType, networkType, source, busLogging)
 
                     il.Emit(OpCodes.Ldarg_1); //command
 
                     il.Emit(OpCodes.Ldtoken, parameterTypes[0]);
-                    il.Emit(OpCodes.Call, typeOfMethod); //commandType
+                    il.Emit(OpCodes.Call, BusRouterMethods.TypeOfMethod); //commandType
 
                     il.Emit(OpCodes.Ldarg_0);
                     il.Emit(OpCodes.Ldfld, networkTypeField); //networkType
@@ -271,19 +260,19 @@ namespace Zerra.CQRS
                     il.Emit(OpCodes.Ldarg_0);
                     il.Emit(OpCodes.Ldfld, busLoggingField); //busLogging
 
-                    il.Emit(OpCodes.Call, dispatchCommandInternalAsyncMethod);
+                    il.Emit(OpCodes.Call, BusRouterMethods.DispatchCommandInternalAsyncMethod);
                     il.Emit(OpCodes.Ret);
 
                     typeBuilder.DefineMethodOverride(methodBuilder, method);
                 }
-                else if (genericInterface == eventHandlerType)
+                else if (genericInterface == BusRouterMethods.EventHandlerType)
                 {
                     // Bus._DispatchEventInternalAsync(@event, eventType, networkType, source, busLogging)
 
                     il.Emit(OpCodes.Ldarg_1); //@event
 
                     il.Emit(OpCodes.Ldtoken, parameterTypes[0]);
-                    il.Emit(OpCodes.Call, typeOfMethod); //eventType
+                    il.Emit(OpCodes.Call, BusRouterMethods.TypeOfMethod); //eventType
 
                     il.Emit(OpCodes.Ldarg_0);
                     il.Emit(OpCodes.Ldfld, networkTypeField); //networkType
@@ -294,15 +283,15 @@ namespace Zerra.CQRS
                     il.Emit(OpCodes.Ldarg_0);
                     il.Emit(OpCodes.Ldfld, busLoggingField); //busLogging
 
-                    il.Emit(OpCodes.Call, dispatchCommandInternalAsyncMethod);
+                    il.Emit(OpCodes.Call, BusRouterMethods.DispatchCommandInternalAsyncMethod);
                     il.Emit(OpCodes.Ret);
 
                     typeBuilder.DefineMethodOverride(methodBuilder, method);
                 }
                 else
                 {
-                    il.Emit(OpCodes.Ldstr, $"Interface method does not inherit {commandHandlerType.Name} or {commandHandlerWithResultType.Name} or {eventHandlerType.Name}");
-                    il.Emit(OpCodes.Newobj, notSupportedExceptionConstructor);
+                    il.Emit(OpCodes.Ldstr, $"Interface method does not inherit {BusRouterMethods.CommandHandlerType.Name} or {BusRouterMethods.CommandHandlerWithResultType.Name} or {BusRouterMethods.EventHandlerType.Name}");
+                    il.Emit(OpCodes.Newobj, BusRouterMethods.NotSupportedExceptionConstructor);
                     il.Emit(OpCodes.Throw);
 
                     typeBuilder.DefineMethodOverride(methodBuilder, method);

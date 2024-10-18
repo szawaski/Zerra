@@ -241,7 +241,8 @@ namespace Zerra.Reflection
                 if (attribute is BaseGenerateAttribute generateAttribute)
                 {
                     var newType = generateAttribute.Generate(typeInAssembly);
-                    DiscoverType(newType);
+                    if (newType is not null)
+                        DiscoverType(newType);
                 }
             }
         }
