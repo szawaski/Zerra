@@ -294,9 +294,9 @@ namespace Zerra.Mathematics
             operatorStringsMaxLength = Math.Max(methodOperators.Max(x => x.Token.Length), Math.Max(unaryOperators.Max(x => x.Token.Length), binaryOperators.Max(x => x.Token.Length)));
         }
 
-        private readonly CompiledExpression mathExpression = null;
+        private readonly CompiledExpression mathExpression;
 
-        public IEnumerable<string> Parameters { get { return mathExpression.Parameters.Select(x => x.Name); } }
+        public IEnumerable<string> Parameters { get { return mathExpression.Parameters.Select(x => x.Name ?? throw new InvalidOperationException("Parameter does not have a name")); } }
         public string Equation { get { return mathExpression.ExpressionString; } }
 
         public MathParser(string expression)
@@ -310,11 +310,14 @@ namespace Zerra.Mathematics
             var args = new object[mathExpression.Parameters.Length];
             for (var i = 0; i < mathExpression.Parameters.Length; i++)
             {
-                if (!variables.TryGetValue(mathExpression.Parameters[i].Name, out var arg))
-                    throw new MathParserException($"Missing parameter {mathExpression.Parameters[i].Name}");
+                var name = mathExpression.Parameters[i].Name;
+                if (name is null)
+                    throw new MathParserException($"Parameter has no name");
+                if (!variables.TryGetValue(name, out var arg))
+                    throw new MathParserException($"Missing parameter {name}");
                 args[i] = arg;
             }
-            var result = (double)mathExpression.Expression.DynamicInvoke(args);
+            var result = (double)mathExpression.Expression.DynamicInvoke(args)!;
             return result;
         }
 
@@ -326,7 +329,7 @@ namespace Zerra.Mathematics
             var args = new object[mathExpression.Parameters.Length];
             for (var i = 0; i < mathExpression.Parameters.Length; i++)
                 args[i] = variables[i];
-            var result = (double)mathExpression.Expression.DynamicInvoke(args);
+            var result = (double)mathExpression.Expression.DynamicInvoke(args)!;
             return result;
         }
 
@@ -388,12 +391,12 @@ namespace Zerra.Mathematics
             var part = new StatementPart(startIndex, subparts);
             return part;
         }
-        private StatementPart ParseOperators(ref ParserContext context)
+        private StatementPart? ParseOperators(ref ParserContext context)
         {
             var startIndex = context.Index;
-            MethodOperator methodFound = null;
-            UnaryOperator unaryFound = null;
-            BinaryOperator binaryFound = null;
+            MethodOperator? methodFound = null;
+            UnaryOperator? unaryFound = null;
+            BinaryOperator? binaryFound = null;
             while (context.Index < context.Chars.Length)
             {
                 context.Next();
@@ -478,7 +481,7 @@ namespace Zerra.Mathematics
             context.Reset(startIndex);
             return ParseGroupOpen(ref context);
         }
-        private StatementPart ParseGroupOpen(ref ParserContext context)
+        private StatementPart? ParseGroupOpen(ref ParserContext context)
         {
             if (groupOpeners.Contains(context.Current))
             {
@@ -488,7 +491,7 @@ namespace Zerra.Mathematics
             }
             return ParseGroupClose(ref context);
         }
-        private StatementPart ParseGroupClose(ref ParserContext context)
+        private StatementPart? ParseGroupClose(ref ParserContext context)
         {
             if (groupClosers.Contains(context.Current) && context.GroupStack.Count > 0)
             {
@@ -501,7 +504,7 @@ namespace Zerra.Mathematics
             }
             return MathParser.ParseNumbersAndVariables(ref context);
         }
-        private static StatementPart ParseNumbersAndVariables(ref ParserContext context)
+        private static StatementPart? ParseNumbersAndVariables(ref ParserContext context)
         {
             if (numbersAndLetters.Contains(context.Current))
             {
@@ -613,28 +616,28 @@ namespace Zerra.Mathematics
             }
 
             {
-                var i = 0;
                 foreach (var part in parts)
                 {
-                    if (part.MethodOperator is not null)
+                    if (part.SubParts is null || part.MethodOperator is null)
+                        continue;
+
+                    var replacements = new Dictionary<string, Expression>();
+
+                    for (var j = 0; j < part.SubParts.Count; j++)
                     {
-                        var replacements = new Dictionary<string, Expression>();
-                        for (var j = 0; j < part.SubParts.Count; j++)
-                        {
-                            var operand = BuildLinqExpression(ref context, part.SubParts[j]);
-                            var expressionString = Expression.ArrayIndex(part.MethodOperator.Operation.Parameters[0], Expression.Constant(j, typeof(int))).ToString();
-                            replacements.Add(expressionString, operand);
-                        };
-                        foreach (var parameter in part.MethodOperator.Operation.Parameters)
-                        {
-                            replacements.Add(parameter.ToString(), Expression.Constant(Array.Empty<double>(), typeof(double[])));
-                        }
-                        var expressionArrayLengthString = Expression.ArrayLength(part.MethodOperator.Operation.Parameters[0]).ToString();
-                        replacements.Add(expressionArrayLengthString, Expression.Constant(part.SubParts.Count, typeof(int)));
-                        var expression = LinqRebinder.Rebind(part.MethodOperator.Operation.Body, replacements);
-                        return expression;
+                        var operand = BuildLinqExpression(ref context, part.SubParts[j]);
+                        var expressionString = Expression.ArrayIndex(part.MethodOperator.Operation.Parameters[0], Expression.Constant(j, typeof(int))).ToString();
+                        replacements.Add(expressionString, operand);
+                    };
+
+                    foreach (var parameter in part.MethodOperator.Operation.Parameters)
+                    {
+                        replacements.Add(parameter.ToString(), Expression.Constant(Array.Empty<double>(), typeof(double[])));
                     }
-                    i++;
+                    var expressionArrayLengthString = Expression.ArrayLength(part.MethodOperator.Operation.Parameters[0]).ToString();
+                    replacements.Add(expressionArrayLengthString, Expression.Constant(part.SubParts.Count, typeof(int)));
+                    var expression = LinqRebinder.Rebind(part.MethodOperator.Operation.Body, replacements);
+                    return expression;
                 }
             }
 

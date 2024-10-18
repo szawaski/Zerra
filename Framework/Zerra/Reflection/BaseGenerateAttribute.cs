@@ -9,6 +9,6 @@ namespace Zerra.Reflection
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
     public abstract class BaseGenerateAttribute : Attribute
     {
-        public abstract Type Generate(Type type);
+        public abstract Type? Generate(Type type);
     }
 }

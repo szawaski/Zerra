@@ -9,7 +9,7 @@ namespace Zerra.Mathematics
         private sealed class StatementPart
         {
             public int Index { get; }
-            public string Token
+            public string? Token
             {
                 get
                 {
@@ -26,13 +26,14 @@ namespace Zerra.Mathematics
                     return null;
                 }
             }
-            public UnaryOperator UnaryOperator { get; }
-            public BinaryOperator BinaryOperator { get; }
-            public MethodOperator MethodOperator { get; }
-            public string Number { get; set; }
-            public string Variable { get; set; }
+            public UnaryOperator? UnaryOperator { get; }
+            public BinaryOperator? BinaryOperator { get; }
+            public MethodOperator? MethodOperator { get; }
+            public string? Number { get; set; }
+            public string? Variable { get; set; }
 
-            public IReadOnlyList<StatementPart> SubParts { get; }
+            public IReadOnlyList<StatementPart>? SubParts { get; }
+
             public StatementPart(int index, UnaryOperator unaryOperator)
             {
                 this.Index = index;

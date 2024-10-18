@@ -87,14 +87,6 @@
         <PackageReference Include="System.Reflection.Emit.Lightweight" Version="4.7.0" />
     </ItemGroup>
 
-    <!--<ItemGroup>
-        <ProjectReference Include="..\Zerra.SourceGeneration.Types\Zerra.SourceGeneration.Types.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-    </ItemGroup>-->
-    <!--<PropertyGroup>
-        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
-        <CompilerGeneratedFilesOutputPath>Generated</CompilerGeneratedFilesOutputPath>
-    </PropertyGroup>-->
-
     <ItemGroup>
         <None Include="..\..\LICENSE">
             <Pack>True</Pack>
@@ -105,5 +97,13 @@
     <PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
         <NoWarn>CS8600;CS8601;CS8602;CS8603;CS8604;CS8625</NoWarn>
     </PropertyGroup>
+
+    <!--<ItemGroup>
+        <ProjectReference Include="..\Zerra.SourceGeneration.Types\Zerra.SourceGeneration.Types.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    </ItemGroup>-->
+    <!--<PropertyGroup>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+        <CompilerGeneratedFilesOutputPath>Generated</CompilerGeneratedFilesOutputPath>
+    </PropertyGroup>-->
 
 </Project>

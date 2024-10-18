@@ -60,7 +60,7 @@ namespace Zerra.Reflection.Runtime
             get
             {
                 LoadCallerBoxed();
-                return this.callerBoxed ?? throw new NotSupportedException($"{nameof(MethodDetail)} {Name} does not have a {nameof(Caller)}");
+                return this.callerBoxed ?? throw new NotSupportedException($"{nameof(MethodDetail)} {Name} does not have a {nameof(CallerBoxed)}");
             }
         }
         public override bool HasCallerBoxed
@@ -76,7 +76,7 @@ namespace Zerra.Reflection.Runtime
             get
             {
                 LoadCallerBoxed();
-                return this.callerBoxedAsync ?? throw new NotSupportedException($"{nameof(MethodDetail)} {Name} does not have a {nameof(CallerAsync)}");
+                return this.callerBoxedAsync ?? throw new NotSupportedException($"{nameof(MethodDetail)} {Name} does not have a {nameof(CallerBoxedAsync)}");
             }
         }
         public override bool HasCallerBoxedAsync

@@ -13,30 +13,28 @@ namespace Zerra.SourceGeneration.Discovery
 {
     public static class BusRouterDispatcherGenerator
     {
-        public static void Generate(SourceProductionContext context, string ns, StringBuilder sbInitializer, List<ITypeSymbol> discoverySymbols)
+        public static void Generate(SourceProductionContext context, string ns, StringBuilder sbInitializer, ITypeSymbol symbol)
         {
+            if (symbol.TypeKind != TypeKind.Interface)
+                return;
+            if (symbol is not INamedTypeSymbol namedTypeSymbol)
+                return;
+            if (!namedTypeSymbol.AllInterfaces.Any(x => x.Name == "ICommandHandler" || x.Name == "IEventHandler"))
+                return;
+
+            var typeNameForClass = Helpers.GetNameForClass(symbol);
+            var className = $"Dispatcher_{typeNameForClass}";
+
             var sb = new StringBuilder();
-            foreach (var symbol in discoverySymbols)
-            {
-                if (symbol.TypeKind != TypeKind.Interface)
-                    continue;
-                if (symbol is not INamedTypeSymbol namedTypeSymbol)
-                    continue;
-                if (!namedTypeSymbol.AllInterfaces.Any(x => x.Name == "ICommandHandler" || x.Name == "IEventHandler"))
-                    continue;
 
-                var typeNameForClass = Helpers.GetNameForClass(symbol);
-                var className = $"Dispatcher_{typeNameForClass}";
+            WriteMembers(namedTypeSymbol, namedTypeSymbol, sb);
 
-                WriteMembers(namedTypeSymbol, namedTypeSymbol, sb);
+            foreach (var i in namedTypeSymbol.AllInterfaces)
+                WriteMembers(namedTypeSymbol, i, sb);
 
-                foreach (var i in namedTypeSymbol.AllInterfaces)
-                    WriteMembers(namedTypeSymbol, i, sb);
+            var membersLines = sb.ToString();
 
-                var membersLines = sb.ToString();
-                sb.Clear();
-
-                var code = $$"""
+            var code = $$"""
                 //Zerra Generated File
                 #if NET5_0_OR_GREATER
 
@@ -64,13 +62,12 @@ namespace Zerra.SourceGeneration.Discovery
             
                 """;
 
-                context.AddSource($"{className}.cs", SourceText.From(code, Encoding.UTF8));
+            context.AddSource($"{className}.cs", SourceText.From(code, Encoding.UTF8));
 
-                var interfacefullTypeOf = Helpers.GetTypeOfName(symbol);
-                var classFullTypeOf = $"typeof({className})";
-                _ = sbInitializer.Append(Environment.NewLine).Append("            ");
-                _ = sbInitializer.Append("Zerra.Reflection.SourceGenerationRegistration.RegisterDispatcher(").Append(interfacefullTypeOf).Append(", ").Append(classFullTypeOf).Append(");");
-            }
+            var interfacefullTypeOf = Helpers.GetTypeOfName(symbol);
+            var classFullTypeOf = $"typeof({ns}.SourceGeneration.{className})";
+            _ = sbInitializer.Append(Environment.NewLine).Append("            ");
+            _ = sbInitializer.Append("Zerra.Reflection.SourceGenerationRegistration.RegisterDispatcher(").Append(interfacefullTypeOf).Append(", ").Append(classFullTypeOf).Append(");");
         }
 
         private static void WriteMembers(INamedTypeSymbol parent, INamedTypeSymbol namedTypeSymbol, StringBuilder sb)

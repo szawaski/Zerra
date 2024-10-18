@@ -28,6 +28,7 @@ using Zerra.Serialization.Json;
 
 namespace Zerra.CQRS
 {
+    [Zerra.Reflection.GenerateTypeDetail]
     public static partial class Bus
     {
         private const SymmetricAlgorithmType encryptionAlgoritm = SymmetricAlgorithmType.AESwithShift;

@@ -12,4 +12,12 @@
         <ProjectReference Include="..\ZerraDemo.Common\ZerraDemo.Common.csproj" />
     </ItemGroup>
 
+    <!--<ItemGroup>
+        <ProjectReference Include="..\..\Framework\Zerra.SourceGeneration\Zerra.SourceGeneration.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"  />
+    </ItemGroup>-->
+    <!--<PropertyGroup>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+        <CompilerGeneratedFilesOutputPath>Generated</CompilerGeneratedFilesOutputPath>
+    </PropertyGroup>-->
+
 </Project>

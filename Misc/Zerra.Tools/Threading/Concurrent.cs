@@ -29,7 +29,10 @@ namespace Zerra.Threading
             }
         }
 
-        public Concurrent() { }
+        public Concurrent()
+        {
+            this.value = default!;
+        }
         public Concurrent(T value)
         {
             this.value = value;
@@ -70,7 +73,7 @@ namespace Zerra.Threading
             }
             else
             {
-                return a.Value.Equals(b.Value);
+                return a.Value!.Equals(b.Value!);
             }
         }
         public static bool operator !=(Concurrent<T> a, Concurrent<T> b)
@@ -88,7 +91,7 @@ namespace Zerra.Threading
             }
             else
             {
-                return !a.Value.Equals(b.Value);
+                return !a.Value!.Equals(b.Value!);
             }
         }
 
@@ -111,7 +114,7 @@ namespace Zerra.Threading
             }
             else
             {
-                return a.Value.Equals(b);
+                return a.Value!.Equals(b!);
             }
         }
         public static bool operator !=(Concurrent<T> a, T b)
@@ -133,14 +136,14 @@ namespace Zerra.Threading
             }
             else
             {
-                return !a.Value.Equals(b);
+                return !a.Value!.Equals(b!);
             }
         }
 
         public static implicit operator T(Concurrent<T> it)
         {
             if (ReferenceEquals(it, null))
-                return default;
+                return default!;
             return it.Value;
         }
         public static implicit operator Concurrent<T>(T it)
@@ -148,7 +151,7 @@ namespace Zerra.Threading
             return new Concurrent<T>(it);
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (ReferenceEquals(this, obj))
                 return true;
@@ -167,7 +170,7 @@ namespace Zerra.Threading
                     else
                         return false;
                 }
-                
+
                 if (thisValue is null)
                     return false;
                 return concurrentTValue.Equals(thisValue);

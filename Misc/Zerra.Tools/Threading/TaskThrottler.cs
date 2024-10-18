@@ -116,7 +116,7 @@ namespace Zerra.Threading
                             if (active == 0)
                             {
                                 //SetResult will continue the waiter in this thread and could case a threadlock
-                                waiters.ForEach(x => Task.Run(() => x.SetResult(null)));
+                                waiters.ForEach(x => Task.Run(() => x.SetResult(null!)));
                                 waiters.Clear();
                             }
                         }
@@ -187,7 +187,7 @@ namespace Zerra.Threading
                       {
                           runningCount--;
                           if (loopCompleted && runningCount == 0)
-                              waiter.SetResult(null);
+                              waiter.SetResult(null!);
                       }
                   }, cancellationToken);
                 }
@@ -226,7 +226,7 @@ namespace Zerra.Threading
                         {
                             runningCount--;
                             if (loopCompleted && runningCount == 0)
-                                waiter.SetResult(null);
+                                waiter.SetResult(null!);
                         }
                     }, cancellationToken);
                 }

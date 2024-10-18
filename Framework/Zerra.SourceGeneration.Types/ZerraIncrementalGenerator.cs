@@ -74,7 +74,7 @@ namespace Zerra.SourceGeneration
             {
                 if (symbol.GetAttributes().Any(IsGenerateTypeAttribute))
                 {
-                    TypeDetailGenerator.GenerateType(context, symbol, symbols, typeDetailClassList, true, true);
+                    TypeDetailGenerator.GenerateType(context, symbol, symbols, typeDetailClassList, true, false);
                 }
             }
 
@@ -91,7 +91,7 @@ namespace Zerra.SourceGeneration
             {
                 if (symbol.GetAttributes().Any(IsGenerateTypeAttribute))
                 {
-                    TypeDetailGenerator.GenerateType(context, symbol, symbols, typeDetailClassList, true, true);
+                    TypeDetailGenerator.GenerateType(context, symbol, symbols, typeDetailClassList, true, false);
                 }
             }
 
@@ -107,16 +107,15 @@ namespace Zerra.SourceGeneration
             {
                 if (symbol.Kind != SymbolKind.NamedType || symbol is not INamedTypeSymbol namedTypeSymbol)
                     continue;
-                if (namedTypeSymbol.TypeKind != TypeKind.Class && namedTypeSymbol.TypeKind != TypeKind.Struct && namedTypeSymbol.TypeKind != TypeKind.Enum)
+                if (namedTypeSymbol.TypeKind != TypeKind.Class && namedTypeSymbol.TypeKind != TypeKind.Interface && namedTypeSymbol.TypeKind != TypeKind.Struct && namedTypeSymbol.TypeKind != TypeKind.Enum)
                     continue;
 
-                if (symbol.GetAttributes().Any(IsGenerateTypeAttribute))
+                if (namedTypeSymbol.TypeKind == TypeKind.Class)
                 {
+                    //For classes we only want data objects (DTO/POCO/etc)
                     var members = namedTypeSymbol.GetMembers();
                     var methods = members.Where(x => x.Kind == SymbolKind.Method).Cast<IMethodSymbol>().ToArray();
                     var constructors = methods.Where(x => x.MethodKind == MethodKind.Constructor).ToArray();
-
-                    //We will pickup data objects only (DTO/POCO/etc)
 
                     //only types, properties, fields, methods
                     if (members.Count(x => x.Kind != SymbolKind.NamedType && x.Kind != SymbolKind.Property && x.Kind != SymbolKind.Field && x.Kind != SymbolKind.Method) > 0)

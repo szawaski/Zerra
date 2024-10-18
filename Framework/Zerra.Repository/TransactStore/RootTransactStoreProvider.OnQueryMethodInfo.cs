@@ -6,7 +6,7 @@ using System;
 
 namespace Zerra.Repository
 {
-    public abstract partial class RootTransactStoreProvider<TModel> where TModel : class, new()
+    public abstract partial class RootTransactStoreProvider<TModel>
     {
         private sealed class OnQueryMethodInfo
         {

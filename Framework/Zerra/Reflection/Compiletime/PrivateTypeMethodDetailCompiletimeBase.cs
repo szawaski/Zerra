@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 
 namespace Zerra.Reflection.Compiletime
 {
-    public abstract class PrivateMethodDetailCompiletimeBase<T> : MethodDetail<T>
+    public abstract class PrivateTypeMethodDetailCompiletimeBase : MethodDetail
     {
         protected readonly object locker;
         private readonly Action loadMethodInfo;
-        public PrivateMethodDetailCompiletimeBase(object locker, Action loadMethodInfo)
+        public PrivateTypeMethodDetailCompiletimeBase(object locker, Action loadMethodInfo)
         {
             this.locker = locker;
             this.loadMethodInfo = loadMethodInfo;
@@ -174,88 +174,7 @@ namespace Zerra.Reflection.Compiletime
             }
         }
 
-        private bool callerLoaded = false;
-        private Func<T?, object?[]?, object?>? caller = null;
-        private Func<T?, object?[]?, Task<object?>>? callerAsync = null;
-        public override sealed Func<T?, object?[]?, object?> Caller
-        {
-            get
-            {
-                LoadCaller();
-                return this.caller ?? throw new NotSupportedException($"{nameof(MethodDetail)} {Name} does not have a {nameof(Caller)}");
-            }
-        }
-        public override sealed bool HasCaller
-        {
-            get
-            {
-                LoadCaller();
-                return this.caller is not null;
-            }
-        }
-        public override sealed Func<T?, object?[]?, Task<object?>> CallerAsync
-        {
-            get
-            {
-                LoadCaller();
-                return this.callerAsync ?? throw new NotSupportedException($"{nameof(MethodDetail)} {Name} does not have a {nameof(CallerAsync)}");
-            }
-        }
-        public override sealed bool HasCallerAsync
-        {
-            get
-            {
-                LoadCaller();
-                return this.callerAsync is not null;
-            }
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void LoadCaller()
-        {
-            if (!callerLoaded)
-            {
-                lock (locker)
-                {
-                    if (!callerLoaded)
-                    {
-#if NETSTANDARD2_0
-                        if (!MethodInfo.IsGenericMethodDefinition && !MethodInfo.ReturnType.IsByRef)
-#else
-                        if (!MethodInfo.IsGenericMethodDefinition && !MethodInfo.ReturnType.IsByRef && !MethodInfo.ReturnType.IsByRefLike)
-#endif
-                        {
-                            this.caller = AccessorGenerator.GenerateCaller<T>(MethodInfo);
-                            this.callerAsync = async (source, arguments) =>
-                            {
-                                var caller = this.caller;
-                                if (caller is null)
-                                    return default;
-                                var returnTypeInfo = ReturnTypeDetailBoxed;
-
-                                if (returnTypeInfo.IsTask)
-                                {
-                                    var result = caller(source, arguments)!;
-                                    var task = (Task)result;
-                                    await task;
-                                    if (returnTypeInfo.Type.IsGenericType)
-                                        return returnTypeInfo.TaskResultGetter(result);
-                                    else
-                                        return default;
-                                }
-                                else
-                                {
-                                    return caller(source, arguments);
-                                }
-                            };
-                        }
-
-                        callerLoaded = true;
-                    }
-                }
-            }
-        }
-
-        public override Delegate? CallerTyped => Caller;
+        public override Delegate? CallerTyped => throw new NotSupportedException();
 
         protected void LoadParameterInfo()
         {

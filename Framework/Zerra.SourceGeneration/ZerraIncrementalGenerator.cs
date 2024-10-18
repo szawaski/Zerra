@@ -6,6 +6,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -14,7 +15,7 @@ using System.Text;
 namespace Zerra.SourceGeneration.Discovery
 {
     [Generator]
-    public class DiscoveryIncrementalGenerator : IIncrementalGenerator
+    public class ZerraIncrementalGenerator : IIncrementalGenerator
     {
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
@@ -36,7 +37,7 @@ namespace Zerra.SourceGeneration.Discovery
                 {
                     discoverySymbols.Add(symbol);
                 }
-                else if (symbol.Interfaces.Length > 0)
+                else if (symbol.TypeKind == TypeKind.Interface || symbol.Interfaces.Length > 0)
                 {
                     discoverySymbols.Add(symbol);
                 }
@@ -45,10 +46,29 @@ namespace Zerra.SourceGeneration.Discovery
             var ns = symbols.Where(x => x.ContainingNamespace is not null).Select(x => x.ContainingNamespace.ToString()).OrderBy(x => x.Length).FirstOrDefault() ?? "Unknown";
 
             var sbInitializer = new StringBuilder();
-            DiscoveryGenerator.Generate(context, ns, sbInitializer, discoverySymbols);
-            EmptyImplementationGenerator.Generate(context, ns, sbInitializer, discoverySymbols);
-            BusRouterCallerGenerator.Generate(context, ns, sbInitializer, discoverySymbols);
-            BusRouterDispatcherGenerator.Generate(context, ns, sbInitializer, discoverySymbols);
+            var firstPass = false;
+            foreach (var symbol in discoverySymbols)
+            {
+                if (!firstPass)
+                {
+                    var fullTypeOf = Helpers.GetTypeOfName(symbol);
+                    _ = sbInitializer.Append(Environment.NewLine).Append("            ");
+                    _ = sbInitializer.Append("Zerra.Reflection.SourceGenerationRegistration.MarkAssemblyAsDiscovered(").Append(fullTypeOf).Append(".Assembly);");
+                    firstPass = true;
+                }
+
+                DiscoveryGenerator.Generate(context, ns, sbInitializer, symbol);
+                EmptyImplementationGenerator.Generate(context, ns, sbInitializer, symbol);
+                BusRouterCallerGenerator.Generate(context, ns, sbInitializer, symbol);
+                BusRouterDispatcherGenerator.Generate(context, ns, sbInitializer, symbol);
+                TransactStoreGenerator.Generate(context, ns, sbInitializer, symbol);
+                EventStoreAsTransactStoreGenerator.Generate(context, ns, sbInitializer, symbol);
+                EventStoreGenerator.Generate(context, ns, sbInitializer, symbol);
+            }
+
+            _ = sbInitializer.Append(Environment.NewLine).Append("            ");
+            _ = sbInitializer.Append("Zerra.Reflection.SourceGenerationRegistration.RunGenerationsFromAttributes();");
+
             GenerateInitializer(context, ns, sbInitializer);
         }
 

@@ -656,10 +656,12 @@ namespace Zerra.SourceGeneration
                     continue;
 
                 var isPublicReturn = Helpers.IsPublic(method.ReturnType);
-                if (isPublic && isPublicReturn && method.MethodKind != MethodKind.PropertyGet && method.MethodKind != MethodKind.PropertySet)
+                if (isPublic && isPublicReturn && !method.ContainingType.IsStatic && method.MethodKind != MethodKind.PropertyGet && method.MethodKind != MethodKind.PropertySet)
                     GeneratePublicMethod(explicitDeclaration, method, fullTypeName, ++methodNumber, membersToInitialize, sbChildClasses);
-                else if (isPublicReturn)
+                else if (isPublicReturn && !method.ContainingType.IsStatic)
                     GeneratePrivateMethod(explicitDeclaration, method, fullTypeName, ++methodNumber, membersToInitialize, sbChildClasses);
+                else
+                    GeneratePrivateTypeMethod(explicitDeclaration, method, fullTypeName, ++methodNumber, membersToInitialize, sbChildClasses);
 
                 if (recursive)
                 {
@@ -887,6 +889,36 @@ namespace Zerra.SourceGeneration
             membersToInitialize.Add(className);
             _ = sbChildClasses.Append(code);
         }
+        private static void GeneratePrivateTypeMethod(string memberName, IMethodSymbol methodSymbol, string parentTypeName, int methodNumber, List<string> membersToInitialize, StringBuilder sbChildClasses)
+        {
+            var className = $"MethodDetail_{methodNumber}";
+            var isInterface = methodSymbol.ContainingType.TypeKind == TypeKind.Interface;
+
+            var attributes = GenerateAttributes(methodSymbol);
+
+            var parameters = GenerateParameters(methodSymbol, $"m{methodNumber}", sbChildClasses);
+
+            var code = $$""""
+
+                        public sealed class {{className}} : PrivateTypeMethodDetailCompiletimeBase
+                        {
+                            public {{className}}(object locker, Action loadMethodInfo) : base(locker, loadMethodInfo) { }
+                
+                            private Type? returnType = {{Helpers.GetTypeOfName(methodSymbol.ReturnType)}};
+                            public override Type ReturnType => returnType!;
+
+                            public override string Name => "{{memberName}}";
+                            public override bool IsStatic => {{(methodSymbol.IsStatic ? "true" : "false")}};
+
+                            protected override Func<ParameterDetail[]> CreateParameterDetails => () => {{parameters}};
+                
+                            protected override Func<Attribute[]> CreateAttributes => () => {{attributes}};
+                        }
+                """";
+
+            membersToInitialize.Add(className);
+            _ = sbChildClasses.Append(code);
+        }
 
         private static bool SignatureCompare(IMethodSymbol methodSymbol1, IMethodSymbol methodSymbol2)
         {
@@ -963,9 +995,9 @@ namespace Zerra.SourceGeneration
                     continue;
 
                 var canBeReferencedAsCode = Helpers.CanBeReferencedAsCode(property.Type);
-                if (isPublic && canBeReferencedAsCode)
+                if (isPublic && canBeReferencedAsCode && !property.ContainingType.IsStatic)
                     GeneratePublicMember(explicitDeclaration, property, propertyCount, fields, backingFields, fullTypeName, ++memberNumber, membersToInitialize, sbChildClasses);
-                else if (canBeReferencedAsCode)
+                else if (canBeReferencedAsCode && !property.ContainingType.IsStatic)
                     GeneratePrivateMember(explicitDeclaration, property, propertyCount, fields, backingFields, fullTypeName, ++memberNumber, membersToInitialize, sbChildClasses);
                 else
                     GeneratePrivateTypeMember(explicitDeclaration, property, propertyCount, fields, backingFields, fullTypeName, ++memberNumber, membersToInitialize, sbChildClasses);
@@ -986,9 +1018,9 @@ namespace Zerra.SourceGeneration
                     continue;
 
                 var canBeReferencedAsCode = Helpers.CanBeReferencedAsCode(field.Type);
-                if (isPublic && canBeReferencedAsCode)
+                if (isPublic && canBeReferencedAsCode && !field.ContainingType.IsStatic)
                     GeneratePublicMember(field, fullTypeName, backingFields, ++memberNumber, membersToInitialize, sbChildClasses);
-                else if (canBeReferencedAsCode)
+                else if (canBeReferencedAsCode && !field.ContainingType.IsStatic)
                     GeneratePrivateMember(field, fullTypeName, backingFields, ++memberNumber, membersToInitialize, sbChildClasses);
                 else
                     GeneratePrivateTypeMember(field, fullTypeName, backingFields, ++memberNumber, membersToInitialize, sbChildClasses);

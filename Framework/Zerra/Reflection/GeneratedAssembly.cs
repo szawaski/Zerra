@@ -7,7 +7,7 @@ using System.Reflection.Emit;
 
 namespace Zerra.Reflection
 {
-    public static class GeneratedAssembly
+    internal static class GeneratedAssembly
     {
         private static readonly object moduleBuilderLock = new();
         private static ModuleBuilder? moduleBuilderCache = null;

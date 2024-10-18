@@ -99,7 +99,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zerra.SourceGeneration.Type
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zerra.SourceGeneration.Test", "Tests\Zerra.SourceGeneration.Test\Zerra.SourceGeneration.Test.csproj", "{728C37F4-9F0F-4EF5-8240-FEDFFA8F0EAA}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zerra.SourceGeneration.Discovery", "Framework\Zerra.SourceGeneration.Discovery\Zerra.SourceGeneration.Discovery.csproj", "{26936658-B61B-4563-8D8C-A53F6C2BC073}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zerra.SourceGeneration", "Framework\Zerra.SourceGeneration\Zerra.SourceGeneration.csproj", "{26936658-B61B-4563-8D8C-A53F6C2BC073}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

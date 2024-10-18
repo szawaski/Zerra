@@ -6,7 +6,8 @@ using System;
 
 namespace Zerra.Reflection
 {
-    public sealed class GenerateTypeDetailAttribute : Attribute
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Struct | AttributeTargets.Enum)]
+    internal sealed class GenerateTypeDetailAttribute : Attribute
     {
 
     }

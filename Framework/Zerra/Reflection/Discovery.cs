@@ -33,6 +33,8 @@ namespace Zerra.Reflection
         private static readonly HashSet<string> discoveredAssemblies = new();
         private static readonly HashSet<Type> discoveredTypes = new();
 
+        private static readonly Queue<Func<Type?>> generationFunctionFromAttributes = new();
+
         internal static void Discover()
         {
             if (!Config.DiscoveryEnabled)
@@ -46,6 +48,8 @@ namespace Zerra.Reflection
             }
 
             DiscoverAssemblies();
+
+            RunGenerationsFromAttributes();
         }
 
         private static void LoadAssemblies()
@@ -240,10 +244,29 @@ namespace Zerra.Reflection
 
                 if (attribute is BaseGenerateAttribute generateAttribute)
                 {
-                    var newType = generateAttribute.Generate(typeInAssembly);
-                    DiscoverType(newType);
+                    generationFunctionFromAttributes.Enqueue(() => generateAttribute.Generate(typeInAssembly));
                 }
             }
+        }
+
+        internal static void RunGenerationsFromAttributes()
+        {
+#if NETSTANDARD2_0
+            while (generationFunctionFromAttributes.Count > 0)
+            {
+                var func = generationFunctionFromAttributes.Dequeue();
+                var newType = func();
+                if (newType is not null)
+                    DiscoverType(newType);
+            }
+#else
+            while (generationFunctionFromAttributes.TryDequeue(out var func))
+            {
+                var newType = func();
+                if (newType is not null)
+                    DiscoverType(newType);
+            }
+#endif
         }
 
         internal static void MarkAssemblyAsDiscovered(Assembly assembly)

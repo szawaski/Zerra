@@ -2,11 +2,9 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Zerra.Reflection;
-
 namespace Zerra.CQRS.Settings
 {
-    [GenerateTypeDetail]
+    [Zerra.Reflection.GenerateTypeDetail]
     public sealed class ServiceQuerySetting
     {
         public string? Service { get; internal set; }

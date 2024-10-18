@@ -7,9 +7,9 @@ namespace Zerra.Mathematics
     {
         private sealed class CompiledExpression
         {
-            public string ExpressionString { get; set; }
-            public Delegate Expression { get; set; }
-            public ParameterExpression[] Parameters { get; set; }
+            public string ExpressionString { get; set; } = null!;
+            public Delegate Expression { get; set; } = null!;
+            public ParameterExpression[] Parameters { get; set; } = null!;
         }
     }
 }

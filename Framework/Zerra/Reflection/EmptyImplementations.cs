@@ -11,7 +11,7 @@ using Zerra.Collections;
 
 namespace Zerra.Reflection
 {
-    public static class EmptyImplementations
+    internal static class EmptyImplementations
     {
         private static readonly Type taskType = typeof(Task);
         private static readonly Type taskGenericType = typeof(Task<>);
@@ -90,7 +90,7 @@ namespace Zerra.Reflection
                     methodBuilderIL.Emit(OpCodes.Call, getCompletedTaskMethod);
                     methodBuilderIL.Emit(OpCodes.Ret);
                 }
-                else if (method.ReturnType.Name == taskGenericType.Name)
+                else if (method.ReturnType.IsGenericType && method.ReturnType.GetGenericTypeDefinition() == taskGenericType)
                 {
                     var taskInnerType = method.ReturnType.GetGenericArguments()[0];
                     var getFromResultsTaskMethod = taskType.GetMethod(nameof(Task.FromResult))!.MakeGenericMethod(taskInnerType);

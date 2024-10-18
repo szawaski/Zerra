@@ -21,7 +21,7 @@ namespace Zerra.Mathematics
                 this.Token = token;
                 this.TokenWithOpener = token + ArgumentOpener;
                 this.Operation = operation;
-                this.InvokeMethod = operation.GetType().GetMethod("Invoke");
+                this.InvokeMethod = operation.GetType().GetMethod("Invoke")!;
             }
             public MethodOperator(string token, LambdaExpression operation)
             {
@@ -30,7 +30,7 @@ namespace Zerra.Mathematics
                 this.Token = token;
                 this.TokenWithOpener = token + ArgumentOpener;
                 this.Operation = operation;
-                this.InvokeMethod = operation.GetType().GetMethod("Invoke");
+                this.InvokeMethod = operation.GetType().GetMethod("Invoke")!;
             }
 
             public override string ToString()

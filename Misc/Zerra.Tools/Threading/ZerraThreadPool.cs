@@ -16,7 +16,7 @@ namespace Zerra.Threading
         private const int defaultMaxThreadCount = 25;
 
         private static readonly object currentLock = new();
-        private static ZerraThreadPool current = null;
+        private static ZerraThreadPool? current = null;
         public static ZerraThreadPool Current
         {
             get
@@ -59,7 +59,7 @@ namespace Zerra.Threading
             new Thread(MainExecutionThread).Start();
         }
 
-        public void Run(Action work, IPrincipal principal = null)
+        public void Run(Action work, IPrincipal? principal = null)
         {
             if (disposed)
                 throw new ObjectDisposedException("Thread pool has been disposed.");
@@ -72,7 +72,7 @@ namespace Zerra.Threading
             _ = checkQueuedWorkItems.Set();
         }
 
-        public IAsyncResult Run<TResult>(Func<TResult> work, AsyncCallback asyncCallback, IPrincipal principal = null)
+        public IAsyncResult Run<TResult>(Func<TResult> work, AsyncCallback asyncCallback, IPrincipal? principal = null)
         {
             if (disposed)
                 throw new ObjectDisposedException("Thread pool has been disposed.");
@@ -167,10 +167,10 @@ namespace Zerra.Threading
         private sealed class WorkItem
         {
             public MulticastDelegate Delegate { get; }
-            public ZerraAsyncResult AsyncResult { get; }
-            public IPrincipal Principal { get; }
+            public ZerraAsyncResult? AsyncResult { get; }
+            public IPrincipal? Principal { get; }
 
-            public WorkItem(MulticastDelegate del, ZerraAsyncResult asyncResult, IPrincipal princical)
+            public WorkItem(MulticastDelegate del, ZerraAsyncResult? asyncResult, IPrincipal? princical)
             {
                 this.Delegate = del;
                 this.AsyncResult = asyncResult;
@@ -180,13 +180,13 @@ namespace Zerra.Threading
 
         private sealed class WorkerThread : IDisposable
         {
-            private readonly Thread thread = null;
-            private IPrincipal principal = null;
+            private readonly Thread? thread = null;
+            private IPrincipal? principal = null;
             private readonly AutoResetEvent startNewWorkItem = new(false);
             private readonly AutoResetEvent workItemComplete;
             private volatile bool isAvailable = true;
-            private MulticastDelegate task = null;
-            private ZerraAsyncResult asyncResult = null;
+            private MulticastDelegate? task = null;
+            private ZerraAsyncResult? asyncResult = null;
             private volatile bool disposed = false;
             public WorkerThread(AutoResetEvent workItemComplete)
             {
@@ -217,8 +217,9 @@ namespace Zerra.Threading
                     try
                     {
                         Thread.CurrentPrincipal = principal;
-                        var result = task.DynamicInvoke(null);
-                        asyncResult?.SetCompleted(result);
+                        var result = task?.DynamicInvoke(null);
+                        if (result is not null)
+                            asyncResult?.SetCompleted(result);
                     }
                     catch (Exception ex)
                     {
@@ -272,7 +273,7 @@ namespace Zerra.Threading
             private bool isCompleted = false;
             private readonly ManualResetEvent waitHandle;
             private readonly AsyncCallback asyncCallback;
-            private Exception ex = null;
+            private Exception? ex = null;
             private readonly object syncObject = new();
 
             public ZerraAsyncResult(AsyncCallback asyncCallback)
@@ -281,14 +282,17 @@ namespace Zerra.Threading
                 this.asyncCallback = asyncCallback;
             }
 
-            public object AsyncState { get; set; }
+            public object? AsyncState { get; set; }
             WaitHandle IAsyncResult.AsyncWaitHandle { get { return waitHandle; } }
             bool IAsyncResult.CompletedSynchronously { get { return false; } }
-            bool IAsyncResult.IsCompleted { get
+            bool IAsyncResult.IsCompleted
+            {
+                get
                 {
                     lock (syncObject)
                     {
-                        return isCompleted; }
+                        return isCompleted;
+                    }
                 }
             }
 
@@ -302,7 +306,7 @@ namespace Zerra.Threading
                     }
                 }
             }
-            public Exception Exception
+            public Exception? Exception
             {
                 get
                 {
