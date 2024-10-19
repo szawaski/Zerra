@@ -501,7 +501,10 @@ namespace Zerra.SourceGeneration
                     foreach (var arg in constructor.Parameters)
                     {
                         if (ShouldGenerateType(arg.Type, allTypeSymbol))
-                            GenerateType(context, arg.Type, allTypeSymbol, classList, false, publicAndImplicitOnly);
+                        {
+                            var continueRecursive = arg.Type.GetAttributes().Any(Helpers.IsGenerateTypeAttribute);
+                            GenerateType(context, arg.Type, allTypeSymbol, classList, continueRecursive, publicAndImplicitOnly);
+                        }
                     }
                 }
             }
@@ -665,13 +668,15 @@ namespace Zerra.SourceGeneration
 
                 if (recursive)
                 {
+                    var continueRecursive = method.ReturnType.GetAttributes().Any(Helpers.IsGenerateTypeAttribute);
                     if (ShouldGenerateType(method.ReturnType, allTypeSymbol))
-                        GenerateType(context, method.ReturnType, allTypeSymbol, classList, false, publicAndImplicitOnly);
+                        GenerateType(context, method.ReturnType, allTypeSymbol, classList, continueRecursive, publicAndImplicitOnly);
 
                     foreach (var arg in method.Parameters)
                     {
+                        continueRecursive = arg.Type.GetAttributes().Any(Helpers.IsGenerateTypeAttribute);
                         if (ShouldGenerateType(arg.Type, allTypeSymbol))
-                            GenerateType(context, arg.Type, allTypeSymbol, classList, false, publicAndImplicitOnly);
+                            GenerateType(context, arg.Type, allTypeSymbol, classList, continueRecursive, publicAndImplicitOnly);
                     }
                 }
             }
@@ -1005,7 +1010,10 @@ namespace Zerra.SourceGeneration
                 if (recursive)
                 {
                     if (ShouldGenerateType(property.Type, allTypeSymbol))
-                        GenerateType(context, property.Type, allTypeSymbol, classList, false, publicAndImplicitOnly);
+                    {
+                        var continueRecursive = property.Type.GetAttributes().Any(Helpers.IsGenerateTypeAttribute);
+                        GenerateType(context, property.Type, allTypeSymbol, classList, continueRecursive, publicAndImplicitOnly);
+                    }
                 }
             }
             foreach (var field in fields)
@@ -1028,7 +1036,10 @@ namespace Zerra.SourceGeneration
                 if (recursive)
                 {
                     if (ShouldGenerateType(field.Type, allTypeSymbol))
-                        GenerateType(context, field.Type, allTypeSymbol, classList, false, publicAndImplicitOnly);
+                    {
+                        var continueRecursive = field.Type.GetAttributes().Any(Helpers.IsGenerateTypeAttribute);
+                        GenerateType(context, field.Type, allTypeSymbol, classList, continueRecursive, publicAndImplicitOnly);
+                    }
                 }
             }
 

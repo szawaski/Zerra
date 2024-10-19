@@ -10,6 +10,15 @@ namespace Zerra.SourceGeneration
 {
     internal static class Helpers
     {
+        public static bool IsGenerateTypeAttribute(AttributeData attribute)
+        {
+            if (attribute.AttributeClass is null)
+                return false;
+            if (attribute.AttributeClass.Name == "GenerateTypeDetailAttribute" && attribute.AttributeClass.ContainingNamespace.ToString() == "Zerra.Reflection")
+                return true;
+            return false;
+        }
+
         public static void TypedConstantToString(TypedConstant constant, StringBuilder sb)
         {
             switch (constant.Kind)

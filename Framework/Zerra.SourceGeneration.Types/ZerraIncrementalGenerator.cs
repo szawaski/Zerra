@@ -72,7 +72,7 @@ namespace Zerra.SourceGeneration
 
             foreach (var symbol in symbols)
             {
-                if (symbol.GetAttributes().Any(IsGenerateTypeAttribute))
+                if (symbol.GetAttributes().Any(Helpers.IsGenerateTypeAttribute))
                 {
                     TypeDetailGenerator.GenerateType(context, symbol, symbols, typeDetailClassList, true, false);
                 }
@@ -89,7 +89,7 @@ namespace Zerra.SourceGeneration
 
             foreach (var symbol in symbols)
             {
-                if (symbol.GetAttributes().Any(IsGenerateTypeAttribute))
+                if (symbol.GetAttributes().Any(Helpers.IsGenerateTypeAttribute))
                 {
                     TypeDetailGenerator.GenerateType(context, symbol, symbols, typeDetailClassList, true, false);
                 }
@@ -133,15 +133,6 @@ namespace Zerra.SourceGeneration
 
             if (typeDetailClassList.Count > 0)
                 TypeDetailGenerator.GenerateInitializer(context, compilation, typeDetailClassList);
-        }
-
-        private static bool IsGenerateTypeAttribute(AttributeData attribute)
-        {
-            if (attribute.AttributeClass is null)
-                return false;
-            if (attribute.AttributeClass.Name == "GenerateTypeDetailAttribute" && attribute.AttributeClass.ContainingNamespace.ToString() == "Zerra.Reflection")
-                return true;
-            return false;
         }
     }
 }
