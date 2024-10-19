@@ -25,94 +25,94 @@ namespace Zerra.Serialization.Json.Converters
             typeByInterfaceName = new()
             {
                 #region Collections
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Collections.ICollection>", typeof(JsonConverterICollection<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Collections.Generic.ICollection<T>>", typeof(JsonConverterICollectionT<,>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Collections.Generic.IReadOnlyCollection<T>>", typeof(JsonConverterIReadOnlyCollectionT<,>) },
+                { "System.Collections.ICollection", typeof(JsonConverterICollection<>) },
+                { "System.Collections.Generic.ICollection<T>", typeof(JsonConverterICollectionT<,>) },
+                { "System.Collections.Generic.IReadOnlyCollection<T>", typeof(JsonConverterIReadOnlyCollectionT<,>) },
                 #endregion
 
                 #region Dictionaries
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Collections.Generic.Dictionary<T,T>>", typeof(JsonConverterDictionaryT<,,>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Collections.IDictionary>", typeof(JsonConverterIDictionary<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Collections.Generic.IDictionary<T,T>>", typeof(JsonConverterIDictionaryT<,,>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Collections.Generic.IReadOnlyDictionary<T,T>>", typeof(JsonConverterIReadOnlyDictionaryT<,,>) },
+                { "System.Collections.Generic.Dictionary<T,T>", typeof(JsonConverterDictionaryT<,,>) },
+                { "System.Collections.IDictionary", typeof(JsonConverterIDictionary<>) },
+                { "System.Collections.Generic.IDictionary<T,T>", typeof(JsonConverterIDictionaryT<,,>) },
+                { "System.Collections.Generic.IReadOnlyDictionary<T,T>", typeof(JsonConverterIReadOnlyDictionaryT<,,>) },
                 #endregion
 
                 #region Enumerables
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Collections.IEnumerable>", typeof(JsonConverterIEnumerable<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Collections.Generic.IEnumerable<T>>", typeof(JsonConverterIEnumerableT<,>) },
+                { "System.Collections.IEnumerable", typeof(JsonConverterIEnumerable<>) },
+                { "System.Collections.Generic.IEnumerable<T>", typeof(JsonConverterIEnumerableT<,>) },
                 #endregion
 
                 #region Lists
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Collections.IList>", typeof(JsonConverterIList<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Collections.Generic.IList<T>>", typeof(JsonConverterIListT<,>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Collections.Generic.IReadOnlyList<T>>", typeof(JsonConverterIReadOnlyListT<,>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Collections.Generic.List<T>>", typeof(JsonConverterListT<,>) },
+                { "System.Collections.IList", typeof(JsonConverterIList<>) },
+                { "System.Collections.Generic.IList<T>", typeof(JsonConverterIListT<,>) },
+                { "System.Collections.Generic.IReadOnlyList<T>", typeof(JsonConverterIReadOnlyListT<,>) },
+                { "System.Collections.Generic.List<T>", typeof(JsonConverterListT<,>) },
                 #endregion
 
                 #region Sets
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Collections.Generic.HashSet<T>>", typeof(JsonConverterHashSetT<,>) },
+                { "System.Collections.Generic.HashSet<T>", typeof(JsonConverterHashSetT<,>) },
 #if NET5_0_OR_GREATER
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Collections.Generic.IReadOnlySet<T>>", typeof(JsonConverterIReadOnlySetT<,>) },
+                { "System.Collections.Generic.IReadOnlySet<T>", typeof(JsonConverterIReadOnlySetT<,>) },
 #endif
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Collections.Generic.ISet<T>>", typeof(JsonConverterISetT<,>) },
+                { "System.Collections.Generic.ISet<T>", typeof(JsonConverterISetT<,>) },
                 #endregion
 
                 #region CoreTypeValues
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Boolean>", typeof(JsonConverterBoolean<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Nullable<System.Boolean>>", typeof(JsonConverterBooleanNullable<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Byte>", typeof(JsonConverterByte<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Nullable<System.Byte>>", typeof(JsonConverterByteNullable<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.SByte>", typeof(JsonConverterSByte<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Nullable<System.SByte>>", typeof(JsonConverterSByteNullable<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Int16>", typeof(JsonConverterInt16<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Nullable<System.Int16>>", typeof(JsonConverterInt16Nullable<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.UInt16>", typeof(JsonConverterUInt16<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Nullable<System.UInt16>>", typeof(JsonConverterUInt16Nullable<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Int32>", typeof(JsonConverterInt32<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Nullable<System.Int32>>", typeof(JsonConverterInt32Nullable<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.UInt32>", typeof(JsonConverterUInt32<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Nullable<System.UInt32>>", typeof(JsonConverterUInt32Nullable<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Int64>", typeof(JsonConverterInt64<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Nullable<System.Int64>>", typeof(JsonConverterInt64Nullable<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.UInt64>", typeof(JsonConverterUInt64<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Nullable<System.UInt64>>", typeof(JsonConverterUInt64Nullable<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Single>", typeof(JsonConverterSingle<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Nullable<System.Single>>", typeof(JsonConverterSingleNullable<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Double>", typeof(JsonConverterDouble<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Nullable<System.Double>>", typeof(JsonConverterDoubleNullable<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Decimal>", typeof(JsonConverterDecimal<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Nullable<System.Decimal>>", typeof(JsonConverterDecimalNullable<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Char>", typeof(JsonConverterChar<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Nullable<System.Char>>", typeof(JsonConverterCharNullable<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.DateTime>", typeof(JsonConverterDateTime<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Nullable<System.DateTime>>", typeof(JsonConverterDateTimeNullable<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.DateTimeOffset>", typeof(JsonConverterDateTimeOffset<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Nullable<System.DateTimeOffset>>", typeof(JsonConverterDateTimeOffsetNullable<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.TimeSpan>", typeof(JsonConverterTimeSpan<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Nullable<System.TimeSpan>>", typeof(JsonConverterTimeSpanNullable<>) },
+                { "System.Boolean", typeof(JsonConverterBoolean<>) },
+                { "System.Nullable<System.Boolean>", typeof(JsonConverterBooleanNullable<>) },
+                { "System.Byte", typeof(JsonConverterByte<>) },
+                { "System.Nullable<System.Byte>", typeof(JsonConverterByteNullable<>) },
+                { "System.SByte", typeof(JsonConverterSByte<>) },
+                { "System.Nullable<System.SByte>", typeof(JsonConverterSByteNullable<>) },
+                { "System.Int16", typeof(JsonConverterInt16<>) },
+                { "System.Nullable<System.Int16>", typeof(JsonConverterInt16Nullable<>) },
+                { "System.UInt16", typeof(JsonConverterUInt16<>) },
+                { "System.Nullable<System.UInt16>", typeof(JsonConverterUInt16Nullable<>) },
+                { "System.Int32", typeof(JsonConverterInt32<>) },
+                { "System.Nullable<System.Int32>", typeof(JsonConverterInt32Nullable<>) },
+                { "System.UInt32", typeof(JsonConverterUInt32<>) },
+                { "System.Nullable<System.UInt32>", typeof(JsonConverterUInt32Nullable<>) },
+                { "System.Int64", typeof(JsonConverterInt64<>) },
+                { "System.Nullable<System.Int64>", typeof(JsonConverterInt64Nullable<>) },
+                { "System.UInt64", typeof(JsonConverterUInt64<>) },
+                { "System.Nullable<System.UInt64>", typeof(JsonConverterUInt64Nullable<>) },
+                { "System.Single", typeof(JsonConverterSingle<>) },
+                { "System.Nullable<System.Single>", typeof(JsonConverterSingleNullable<>) },
+                { "System.Double", typeof(JsonConverterDouble<>) },
+                { "System.Nullable<System.Double>", typeof(JsonConverterDoubleNullable<>) },
+                { "System.Decimal", typeof(JsonConverterDecimal<>) },
+                { "System.Nullable<System.Decimal>", typeof(JsonConverterDecimalNullable<>) },
+                { "System.Char", typeof(JsonConverterChar<>) },
+                { "System.Nullable<System.Char>", typeof(JsonConverterCharNullable<>) },
+                { "System.DateTime", typeof(JsonConverterDateTime<>) },
+                { "System.Nullable<System.DateTime>", typeof(JsonConverterDateTimeNullable<>) },
+                { "System.DateTimeOffset", typeof(JsonConverterDateTimeOffset<>) },
+                { "System.Nullable<System.DateTimeOffset>", typeof(JsonConverterDateTimeOffsetNullable<>) },
+                { "System.TimeSpan", typeof(JsonConverterTimeSpan<>) },
+                { "System.Nullable<System.TimeSpan>", typeof(JsonConverterTimeSpanNullable<>) },
 #if NET5_0_OR_GREATER
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.DateOnly>", typeof(JsonConverterDateOnly<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Nullable<System.DateOnly>>", typeof(JsonConverterDateOnlyNullable<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.TimeOnly>", typeof(JsonConverterTimeOnly<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Nullable<System.TimeOnly>>", typeof(JsonConverterTimeOnlyNullable<>) },
+                { "System.DateOnly", typeof(JsonConverterDateOnly<>) },
+                { "System.Nullable<System.DateOnly>", typeof(JsonConverterDateOnlyNullable<>) },
+                { "System.TimeOnly", typeof(JsonConverterTimeOnly<>) },
+                { "System.Nullable<System.TimeOnly>", typeof(JsonConverterTimeOnlyNullable<>) },
 #endif
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Guid>", typeof(JsonConverterGuid<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Nullable<System.Guid>>", typeof(JsonConverterGuidNullable<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.String>", typeof(JsonConverterString<>) },
+                { "System.Guid", typeof(JsonConverterGuid<>) },
+                { "System.Nullable<System.Guid>", typeof(JsonConverterGuidNullable<>) },
+                { "System.String", typeof(JsonConverterString<>) },
                 #endregion
 
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Byte[]>", typeof(JsonConverterByteArray<>) },
-                { "Zerra.Serialization.Json.Converters.IJsonConverterHandles<System.Type>", typeof(JsonConverterType<>) },
+                { "System.Byte[]", typeof(JsonConverterByteArray<>) },
+                { "System.Type", typeof(JsonConverterType<>) },
             };
 
         }
 
-        public static Type? Discover(Type interfaceType)
+        public static Type? Discover(Type type)
         {
-            var name = Discovery.GetNiceFullName(interfaceType);
-            if (!typeByInterfaceName.TryGetValue(name, out var type))
+            var name = Discovery.GetNiceFullName(type);
+            if (!typeByInterfaceName.TryGetValue(name, out var converterType))
                 return null;
-            return type;
+            return converterType;
         }
     }
 }

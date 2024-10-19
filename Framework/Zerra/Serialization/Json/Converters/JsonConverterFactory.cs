@@ -40,20 +40,14 @@ namespace Zerra.Serialization.Json.Converters
             return converter;
         }
 
-        private static readonly Type byteConverterHandlesType = typeof(IJsonConverterHandles<>);
         private static JsonConverter<TParent> Create(TypeDetail typeDetail)
         {
             //Exact match
-            var interfaceType = byteConverterHandlesType.GetGenericType(typeDetail.Type);
-            var discoveredType = JsonConverterDiscovery.Discover(interfaceType);
+            var discoveredType = JsonConverterDiscovery.Discover(typeDetail.Type);
 
             //Generic match
             if (discoveredType is null && typeDetail.Type.IsGenericType && !typeDetail.IsNullable)
-            {
-                var genericType = typeDetail.Type.GetGenericTypeDefinition();
-                interfaceType = byteConverterHandlesType.GetGenericType(genericType);
-                discoveredType = JsonConverterDiscovery.Discover(interfaceType);
-            }
+                discoveredType = JsonConverterDiscovery.Discover(typeDetail.Type.GetGenericTypeDefinition());
 
             if (discoveredType is not null)
             {

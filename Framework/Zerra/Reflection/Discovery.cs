@@ -1348,7 +1348,7 @@ namespace Zerra.Reflection
                 sb.Append('>');
                 return sb.ToString();
             }
-            else if (type.IsGenericType && type.FullName is not null)
+            else if ((type.IsGenericType || type.IsArray) && type.FullName is not null)
             {
                 var sb = new StringBuilder();
 

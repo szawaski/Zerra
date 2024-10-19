@@ -56,20 +56,14 @@ namespace Zerra.Serialization.Bytes.Converters
             return cacheByteConverterTypeInfo;
         }
 
-        private static readonly Type byteConverterHandlesType = typeof(IByteConverterHandles<>);
         private static ByteConverter<TParent> Create(TypeDetail typeDetail)
         {
             //Exact match
-            var interfaceType = byteConverterHandlesType.GetGenericType(typeDetail.Type);
-            var discoveredType = ByteConverterDiscovery.Discover(interfaceType);
+            var discoveredType = ByteConverterDiscovery.Discover(typeDetail.Type);
 
             //Generic match
             if (discoveredType is null && typeDetail.Type.IsGenericType && !typeDetail.IsNullable)
-            {
-                var genericType = typeDetail.Type.GetGenericTypeDefinition();
-                interfaceType = byteConverterHandlesType.GetGenericType(genericType);
-                discoveredType = ByteConverterDiscovery.Discover(interfaceType);
-            }
+                discoveredType = ByteConverterDiscovery.Discover(typeDetail.Type.GetGenericTypeDefinition());
 
             if (discoveredType is not null)
             {
