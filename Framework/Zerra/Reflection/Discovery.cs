@@ -1475,5 +1475,42 @@ namespace Zerra.Reflection
                 }
             }
         }
+
+        public static string MakeNiceNameGeneric(string typeName)
+        {
+            var sb = new StringBuilder();
+
+            var chars = typeName.AsSpan();
+            var start = 0;
+            var depth = 0;
+            for (var i = 0; i < chars.Length; i++)
+            {
+                var c = chars[i];
+                switch (c)
+                {
+                    case '<':
+                        depth++;
+                        if (depth == 1)
+                            sb.Append(chars.Slice(start, i + 1 - start).ToString());
+                        break;
+                    case ',':
+                        if (depth == 1)
+                            sb.Append("T,");
+                        break;
+                    case '>':
+                        depth--;
+                        if (depth == 0)
+                        {
+                            sb.Append('T');
+                            start = i;
+                        }
+                        break;
+                }
+            }
+
+            sb.Append(chars.Slice(start, chars.Length - start).ToString());
+
+            return sb.ToString();
+        }
     }
 }

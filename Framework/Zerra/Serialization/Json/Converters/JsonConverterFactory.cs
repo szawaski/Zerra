@@ -42,12 +42,7 @@ namespace Zerra.Serialization.Json.Converters
 
         private static JsonConverter<TParent> Create(TypeDetail typeDetail)
         {
-            //Exact match
             var discoveredType = JsonConverterDiscovery.Discover(typeDetail.Type);
-
-            //Generic match
-            if (discoveredType is null && typeDetail.Type.IsGenericType && !typeDetail.IsNullable)
-                discoveredType = JsonConverterDiscovery.Discover(typeDetail.Type.GetGenericTypeDefinition());
 
             if (discoveredType is not null)
             {

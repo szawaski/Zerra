@@ -111,7 +111,13 @@ namespace Zerra.Serialization.Json.Converters
         {
             var name = Discovery.GetNiceFullName(type);
             if (!typeByInterfaceName.TryGetValue(name, out var converterType))
-                return null;
+            {
+                if (!type.IsGenericType || type.Name == "Nullable`1")
+                    return null;
+                name = Discovery.MakeNiceNameGeneric(name);
+                if (!typeByInterfaceName.TryGetValue(name, out converterType))
+                    return null;
+            }
             return converterType;
         }
     }

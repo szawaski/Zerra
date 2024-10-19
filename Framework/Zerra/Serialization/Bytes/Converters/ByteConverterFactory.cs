@@ -58,12 +58,7 @@ namespace Zerra.Serialization.Bytes.Converters
 
         private static ByteConverter<TParent> Create(TypeDetail typeDetail)
         {
-            //Exact match
             var discoveredType = ByteConverterDiscovery.Discover(typeDetail.Type);
-
-            //Generic match
-            if (discoveredType is null && typeDetail.Type.IsGenericType && !typeDetail.IsNullable)
-                discoveredType = ByteConverterDiscovery.Discover(typeDetail.Type.GetGenericTypeDefinition());
 
             if (discoveredType is not null)
             {
