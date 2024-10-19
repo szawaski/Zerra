@@ -35,6 +35,10 @@ namespace Zerra.Repository
                 {
                     validated = true;
                     isValid = engine.ValidateDataSource();
+                    if (isValid)
+                        Log.InfoAsync($"{this.GetType().GetNiceName()} connected");
+                    else
+                        Log.InfoAsync($"{this.GetType().GetNiceName()} failed to connect");
                 }
 
                 if (!isValid)
@@ -61,12 +65,14 @@ namespace Zerra.Repository
                 {
                     validated = true;
                     isValid = engine.ValidateDataSource();
+                    if (isValid)
+                        Log.InfoAsync($"{this.GetType().GetNiceName()} connected");
+                    else
+                        Log.InfoAsync($"{this.GetType().GetNiceName()} failed to connect");
                 }
                 if (!isValid)
                     throw new Exception($"{this.GetType().GetNiceName()} could not validate");
             }
-
-            Log.InfoAsync($"{this.GetType().GetNiceName()} connected");
 
             lock (initializedLock)
             {
@@ -76,6 +82,8 @@ namespace Zerra.Repository
 
                     if (dataStoreGenerationType.HasFlag(DataStoreGenerationType.CodeFirst))
                     {
+                        Log.InfoAsync($"{this.GetType().GetNiceName()} Initializing {dataStoreGenerationType.EnumName()}");
+
                         var thisType = this.GetType();
                         var allModelTypes = Discovery.GetTypesFromAttribute(typeof(EntityAttribute));
                         var modelTypesWithThisDataContext = new HashSet<Type>();
@@ -133,6 +141,6 @@ namespace Zerra.Repository
             return (GetEngine() as T, DataStoreGenerationType);
         }
         protected abstract IDataStoreEngine GetEngine();
-        protected virtual DataStoreGenerationType DataStoreGenerationType => DataStoreGenerationType.CodeFirst;
+        protected abstract DataStoreGenerationType DataStoreGenerationType { get; }
     }
 }

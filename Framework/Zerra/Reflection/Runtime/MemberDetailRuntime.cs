@@ -21,6 +21,7 @@ namespace Zerra.Reflection.Runtime
         public override Type Type { get; }
         public override bool IsBacked { get; }
         public override bool IsStatic { get; }
+        public override bool IsExplicitFromInterface { get; }
 
         private Attribute[]? attributes = null;
         public override IReadOnlyList<Attribute> Attributes
@@ -168,12 +169,13 @@ namespace Zerra.Reflection.Runtime
         public override Delegate SetterTyped => throw new NotSupportedException();
 
         private readonly object locker;
-        internal MemberDetailRuntime(string name, MemberInfo member, MemberDetail? backingFieldDetail, object locker)
+        internal MemberDetailRuntime(string name, MemberInfo member, MemberDetail? backingFieldDetail, bool isExplicitFromInterface, object locker)
         {
             this.locker = locker;
             this.BackingFieldDetailBoxed = backingFieldDetail;
             this.MemberInfo = member;
             this.Name = name;
+            this.IsExplicitFromInterface = isExplicitFromInterface;
 
             if (member.MemberType == MemberTypes.Property)
             {

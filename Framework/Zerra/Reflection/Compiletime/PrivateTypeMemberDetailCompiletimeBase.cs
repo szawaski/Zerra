@@ -117,7 +117,7 @@ namespace Zerra.Reflection.Compiletime
         {
             this.memberInfo = memberInfo;
             if (backingField is not null)
-                this.backingFieldDetailBoxed = new MemberDetailRuntime(memberInfo.Name, backingField, null, locker);
+                this.backingFieldDetailBoxed = new MemberDetailRuntime(memberInfo.Name, backingField, null, false, locker);
         }
 
         private bool getterBoxedLoaded = false;

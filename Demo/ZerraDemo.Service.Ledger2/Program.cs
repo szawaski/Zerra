@@ -1,4 +1,5 @@
-﻿using Zerra;
+﻿using System;
+using Zerra;
 using Zerra.CQRS;
 using ZerraDemo.Common;
 
@@ -10,9 +11,9 @@ namespace ZerraDemo.Service.Ledger
         {
             ServiceManager.StartServices(() =>
             {
-                var assemblyLoader1 = typeof(ZerraDemo.Domain.Ledger2.ILedger2QueryProvider);
-                var assemblyLoader2 = typeof(ZerraDemo.Domain.Ledger2.Ledger2QueryProvider);
-                var assemblyLoader3 = typeof(ZerraDemo.Domain.Ledger2.EventStore.Ledger2EventStoreDataContext);
+                Console.WriteLine(typeof(ZerraDemo.Domain.Ledger2.ILedger2QueryProvider).Assembly.ToString());
+                Console.WriteLine(typeof(ZerraDemo.Domain.Ledger2.Ledger2QueryProvider).Assembly.ToString());
+                Console.WriteLine(typeof(ZerraDemo.Domain.Ledger2.EventStore.Ledger2EventStoreDataContext).Assembly.ToString());
 
                 Config.AssemblyLoaderEnabled = false;
 

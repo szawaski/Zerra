@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Xml;
 
 namespace Zerra.Reflection.Runtime
 {
@@ -21,6 +22,7 @@ namespace Zerra.Reflection.Runtime
         public override Type Type { get; }
         public override bool IsBacked { get; }
         public override bool IsStatic { get; }
+        public override bool IsExplicitFromInterface { get; }
 
         private Attribute[]? attributes = null;
         public override IReadOnlyList<Attribute> Attributes
@@ -292,13 +294,14 @@ namespace Zerra.Reflection.Runtime
         }
 
         private readonly object locker;
-        internal MemberDetailRuntime(string name, MemberInfo member, MemberDetail<T, V>? backingFieldDetail, object locker)
+        internal MemberDetailRuntime(string name, MemberInfo member, MemberDetail<T, V>? backingFieldDetail, bool isExplicitFromInterface, object locker)
         {
             this.locker = locker;
             this.BackingFieldDetail = backingFieldDetail;
             this.BackingFieldDetailBoxed = backingFieldDetail;
             this.MemberInfo = member;
             this.Name = name;
+            this.IsExplicitFromInterface = isExplicitFromInterface;
 
             if (member.MemberType == MemberTypes.Property)
             {
@@ -321,7 +324,7 @@ namespace Zerra.Reflection.Runtime
         }
 
         private static readonly Type typeDetailT = typeof(MemberDetailRuntime<,>);
-        internal static MemberDetail New(Type type, Type valueType, string name, MemberInfo member, MemberDetail? backingFieldDetail, object locker)
+        internal static MemberDetail New(Type type, Type valueType, string name, MemberInfo member, MemberDetail? backingFieldDetail, bool isExplicitFromInterface, object locker)
         {
             if (!valueType.ContainsGenericParameters && !type.IsPointer && !type.IsByRef
 #if !NETSTANDARD2_0
@@ -330,12 +333,12 @@ namespace Zerra.Reflection.Runtime
             )
             {
                 var typeDetailGeneric = typeDetailT.MakeGenericType(type, valueType);
-                var obj = typeDetailGeneric.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)[0].Invoke([name, member, backingFieldDetail, locker]);
+                var obj = typeDetailGeneric.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)[0].Invoke([name, member, backingFieldDetail, isExplicitFromInterface, locker]);
                 return (MemberDetail)obj;
             }
             else
             {
-                return new MemberDetailRuntime(name, member, backingFieldDetail, locker);
+                return new MemberDetailRuntime(name, member, backingFieldDetail, isExplicitFromInterface, locker);
             }
         }
 

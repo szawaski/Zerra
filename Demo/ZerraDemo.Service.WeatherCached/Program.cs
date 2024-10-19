@@ -1,4 +1,5 @@
-﻿using Zerra;
+﻿using System;
+using Zerra;
 using Zerra.CQRS;
 using ZerraDemo.Common;
 
@@ -10,8 +11,8 @@ namespace ZerraDemo.Service.Weather
         {
             ServiceManager.StartServices(() =>
             {
-                var assemblyLoader1 = typeof(ZerraDemo.Domain.WeatherCached.IWeatherCachedQueryProvider);
-                var assemblyLoader2 = typeof(ZerraDemo.Domain.WeatherCached.WeatherCachedQueryProvider);
+                Console.WriteLine(typeof(ZerraDemo.Domain.WeatherCached.IWeatherCachedQueryProvider).Assembly.ToString());
+                Console.WriteLine(typeof(ZerraDemo.Domain.WeatherCached.WeatherCachedQueryProvider).Assembly.ToString());
 
                 Config.AssemblyLoaderEnabled = false;
 

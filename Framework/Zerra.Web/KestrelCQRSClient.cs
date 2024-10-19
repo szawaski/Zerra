@@ -12,7 +12,6 @@ using Zerra.CQRS;
 using Zerra.CQRS.Network;
 using System.Net.Http.Headers;
 using Zerra.Encryption;
-using Zerra.Serialization.Json;
 using System.Security.Claims;
 using System.Threading;
 using System.Linq;

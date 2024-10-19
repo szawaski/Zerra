@@ -57,7 +57,6 @@ namespace Zerra.Repository.Reflection
             StoreNameAttribute? sourcePropertyAttribute = null;
             IdentityAttribute? identityAttribute = null;
             RelationAttribute? foreignIdentityAttribute = null;
-            EntityAttribute? entityAttribute = null;
             StorePropertiesAttribute? storePropertyAttribute = null;
             foreach (var attribute in memberDetail.Attributes)
             {
@@ -79,15 +78,20 @@ namespace Zerra.Repository.Reflection
                         continue;
                     }
                 }
-                if (attribute is EntityAttribute entityAttributeFound)
-                {
-                    entityAttribute = entityAttributeFound;
-                    continue;
-                }
                 if (attribute is StorePropertiesAttribute storePropertyAttributeFound)
                 {
                     storePropertyAttribute = storePropertyAttributeFound;
                     continue;
+                }
+            }
+
+            EntityAttribute? entityAttribute = null;
+            foreach (var attribute in memberDetail.TypeDetailBoxed.Attributes)
+            {
+                if (attribute is EntityAttribute entityAttributeFound)
+                {
+                    entityAttribute = entityAttributeFound;
+                        break;
                 }
             }
 

@@ -18,6 +18,7 @@ namespace Zerra.Reflection.Runtime
         public override MethodInfo MethodInfo { get; }
         public override string Name { get; }
         public override bool IsStatic { get; }
+        public override bool IsExplicitFromInterface { get; }
 
         private ParameterDetail[]? parameterInfos = null;
         public override IReadOnlyList<ParameterDetail> ParameterDetails
@@ -235,19 +236,20 @@ namespace Zerra.Reflection.Runtime
         public override Delegate? CallerTyped => Caller;
 
         private readonly object locker;
-        internal MethodDetailRuntime(string name, MethodInfo method, object locker)
+        internal MethodDetailRuntime(string name, MethodInfo method, bool isExplicitFromInterface, object locker)
         {
             this.locker = locker;
             this.MethodInfo = method;
             this.Name = name;
             this.IsStatic = method.IsStatic;
+            this.IsExplicitFromInterface = isExplicitFromInterface;
         }
 
         private static readonly Type typeDetailT = typeof(MethodDetailRuntime<>);
-        internal static MethodDetail New(Type type, string name, MethodInfo method, object locker)
+        internal static MethodDetail New(Type type, string name, MethodInfo method, bool isExplicitFromInterface, object locker)
         {
             var typeDetailGeneric = typeDetailT.MakeGenericType(type);
-            var obj = typeDetailGeneric.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)[0].Invoke([name, method, locker]);
+            var obj = typeDetailGeneric.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)[0].Invoke([name, method, isExplicitFromInterface, locker]);
             return (MethodDetail)obj;
         }
 

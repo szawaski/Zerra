@@ -98,7 +98,7 @@ namespace Zerra.Reflection
                 {
                     lock (locker)
                     {
-                        serializableMemberDetails ??= MemberDetails.Where(x => !x.IsStatic && x.IsBacked && IsSerializableType(x.TypeDetailBoxed)).ToArray();
+                        serializableMemberDetails ??= MemberDetails.Where(x => !x.IsStatic && x.IsBacked && !x.IsExplicitFromInterface && IsSerializableType(x.TypeDetailBoxed)).ToArray();
                     }
                 }
                 return serializableMemberDetails;

@@ -545,7 +545,7 @@ namespace Zerra.Serialization.Json.Converters
         protected abstract bool TryWriteValue(ref JsonWriter writer, ref WriteState state, in TValue value);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override void CollectedValuesSetter(TParent? parent, in object? value)
+        public override sealed void CollectedValuesSetter(TParent? parent, in object? value)
         {
             if (setter is not null && parent is not null && value is not null)
                 setter(parent, (TValue)value);

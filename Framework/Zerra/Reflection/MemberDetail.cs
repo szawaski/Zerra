@@ -21,6 +21,7 @@ namespace Zerra.Reflection
         public abstract Type Type { get; }
         public abstract bool IsBacked { get; }
         public abstract bool IsStatic { get; }
+        public abstract bool IsExplicitFromInterface { get; }
 
         public abstract IReadOnlyList<Attribute> Attributes { get; }
 

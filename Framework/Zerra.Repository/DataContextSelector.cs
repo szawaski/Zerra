@@ -4,13 +4,12 @@
 
 using System;
 using System.Collections.Generic;
-using Zerra.Logging;
 
 namespace Zerra.Repository
 {
     public abstract class DataContextSelector : DataContext
     {
-        protected sealed override DataStoreGenerationType DataStoreGenerationType => base.DataStoreGenerationType; //does nothing
+        protected sealed override DataStoreGenerationType DataStoreGenerationType => DataStoreGenerationType.None; //does nothing
 
         protected override sealed (T?, DataStoreGenerationType) GetEngine<T>() where T : class
         {
@@ -18,13 +17,8 @@ namespace Zerra.Repository
             foreach (var context in contexts)
             {
                 var contextName = context.GetType().GetNiceName();
-                Log.InfoAsync($"{nameof(DataContextSelector)} trying {contextName}");
                 if (!context.TryGetEngine<T>(out var engine, out var dataStoreGenerationType))
-                {
-                    Log.InfoAsync($"{nameof(DataContextSelector)} could not validate {contextName}");
                     continue;
-                }
-                Log.InfoAsync($"{nameof(DataContextSelector)} found {contextName}");
                 return (engine, dataStoreGenerationType);
             }
             return (null, default);

@@ -93,12 +93,14 @@ namespace Zerra.Reflection
                     try
                     {
                         var assembly = Assembly.Load(assemblyName);
+                        Console.WriteLine($"Discovery Loaded: {assembly.ToString()}");
                     }
                     catch (System.IO.FileNotFoundException)
                     {
                         try
                         {
                             var assembly = Assembly.LoadFrom(assemblyFileName);
+                            Console.WriteLine($"Discovery Loaded: {assembly.ToString()}");
                         }
                         catch (Exception)
                         {

@@ -614,7 +614,7 @@ namespace Zerra.SourceGeneration
 
             var membersToInitialize = new List<string>();
 
-            var methods = symbolMembers.Where(x => x.Kind == SymbolKind.Method).Cast<IMethodSymbol>().Where(x => x.MethodKind == MethodKind.Ordinary || x.MethodKind == MethodKind.Destructor || x.MethodKind == MethodKind.PropertyGet || x.MethodKind == MethodKind.PropertySet || x.MethodKind == MethodKind.ExplicitInterfaceImplementation).Select(x => new Tuple<IMethodSymbol, string>(x, x.Name)).ToList();
+            var methods = symbolMembers.Where(x => x.Kind == SymbolKind.Method).Cast<IMethodSymbol>().Where(x => x.MethodKind == MethodKind.Ordinary || x.MethodKind == MethodKind.Destructor || x.MethodKind == MethodKind.PropertyGet || x.MethodKind == MethodKind.PropertySet || x.MethodKind == MethodKind.ExplicitInterfaceImplementation).Select(x => new Tuple<IMethodSymbol, string, bool>(x, x.Name, false)).ToList();
 
             if (!publicAndImplicitOnly && typeSymbol.AllInterfaces.Length > 0)
             {
@@ -628,14 +628,21 @@ namespace Zerra.SourceGeneration
                     foreach (var iMethod in iMethods)
                     {
                         string name;
+                        bool isExplicitFromInterface;
                         if (typeSymbol.TypeKind == TypeKind.Interface && !names.Contains(iMethod.Name))
+                        {
                             name = iMethod.Name;
+                            isExplicitFromInterface = false;
+                        }
                         else
+                        {
                             name = $"{Helpers.AdjustName(iMethod.ContainingType.ToString(), false)}.{Helpers.AdjustName(iMethod.Name, true)}";
+                            isExplicitFromInterface = true;
+                        }
 
                         if (!names.Contains(name))
                         {
-                            methods.Add(new Tuple<IMethodSymbol, string>(iMethod, name));
+                            methods.Add(new Tuple<IMethodSymbol, string, bool>(iMethod, name, isExplicitFromInterface));
                             names.Add(name);
                         }
                     }
@@ -646,7 +653,8 @@ namespace Zerra.SourceGeneration
             foreach (var methodTuple in methods)
             {
                 var method = methodTuple.Item1;
-                var explicitDeclaration = methodTuple.Item2;
+                var methodName = methodTuple.Item2;
+                var isExplicitFromInterface = methodTuple.Item3;
 
                 if (method.ContainingType.TypeKind == TypeKind.Interface && method.IsStatic)
                     continue;
@@ -660,11 +668,11 @@ namespace Zerra.SourceGeneration
 
                 var isPublicReturn = Helpers.IsPublic(method.ReturnType);
                 if (isPublic && isPublicReturn && !method.ContainingType.IsStatic && method.MethodKind != MethodKind.PropertyGet && method.MethodKind != MethodKind.PropertySet)
-                    GeneratePublicMethod(explicitDeclaration, method, fullTypeName, ++methodNumber, membersToInitialize, sbChildClasses);
+                    GeneratePublicMethod(methodName, isExplicitFromInterface, method, fullTypeName, ++methodNumber, membersToInitialize, sbChildClasses);
                 else if (isPublicReturn && !method.ContainingType.IsStatic)
-                    GeneratePrivateMethod(explicitDeclaration, method, fullTypeName, ++methodNumber, membersToInitialize, sbChildClasses);
+                    GeneratePrivateMethod(methodName, isExplicitFromInterface, method, fullTypeName, ++methodNumber, membersToInitialize, sbChildClasses);
                 else
-                    GeneratePrivateTypeMethod(explicitDeclaration, method, fullTypeName, ++methodNumber, membersToInitialize, sbChildClasses);
+                    GeneratePrivateTypeMethod(methodName, isExplicitFromInterface, method, fullTypeName, ++methodNumber, membersToInitialize, sbChildClasses);
 
                 if (recursive)
                 {
@@ -693,7 +701,7 @@ namespace Zerra.SourceGeneration
             var members = sbMembers.ToString();
             return members;
         }
-        private static void GeneratePublicMethod(string memberName, IMethodSymbol methodSymbol, string parentTypeName, int methodNumber, List<string> membersToInitialize, StringBuilder sbChildClasses)
+        private static void GeneratePublicMethod(string memberName, bool isExplicitFromInterface, IMethodSymbol methodSymbol, string parentTypeName, int methodNumber, List<string> membersToInitialize, StringBuilder sbChildClasses)
         {
             var className = $"MethodDetail_{methodNumber}";
             var isInterface = methodSymbol.ContainingType.TypeKind == TypeKind.Interface;
@@ -851,6 +859,7 @@ namespace Zerra.SourceGeneration
 
                             public override string Name => "{{memberName}}";
                             public override bool IsStatic => {{(methodSymbol.IsStatic ? "true" : "false")}};
+                            public override bool IsExplicitFromInterface => {{(isExplicitFromInterface ? "true" : "false")}};
 
                             protected override Func<ParameterDetail[]> CreateParameterDetails => () => {{parameters}};
 
@@ -864,7 +873,7 @@ namespace Zerra.SourceGeneration
             membersToInitialize.Add(className);
             _ = sbChildClasses.Append(code);
         }
-        private static void GeneratePrivateMethod(string memberName, IMethodSymbol methodSymbol, string parentTypeName, int methodNumber, List<string> membersToInitialize, StringBuilder sbChildClasses)
+        private static void GeneratePrivateMethod(string memberName, bool isExplicitFromInterface, IMethodSymbol methodSymbol, string parentTypeName, int methodNumber, List<string> membersToInitialize, StringBuilder sbChildClasses)
         {
             var className = $"MethodDetail_{methodNumber}";
             var isInterface = methodSymbol.ContainingType.TypeKind == TypeKind.Interface;
@@ -884,6 +893,7 @@ namespace Zerra.SourceGeneration
 
                             public override string Name => "{{memberName}}";
                             public override bool IsStatic => {{(methodSymbol.IsStatic ? "true" : "false")}};
+                            public override bool IsExplicitFromInterface => {{(isExplicitFromInterface ? "true" : "false")}};
 
                             protected override Func<ParameterDetail[]> CreateParameterDetails => () => {{parameters}};
                 
@@ -894,7 +904,7 @@ namespace Zerra.SourceGeneration
             membersToInitialize.Add(className);
             _ = sbChildClasses.Append(code);
         }
-        private static void GeneratePrivateTypeMethod(string memberName, IMethodSymbol methodSymbol, string parentTypeName, int methodNumber, List<string> membersToInitialize, StringBuilder sbChildClasses)
+        private static void GeneratePrivateTypeMethod(string memberName, bool isExplicitFromInterface, IMethodSymbol methodSymbol, string parentTypeName, int methodNumber, List<string> membersToInitialize, StringBuilder sbChildClasses)
         {
             var className = $"MethodDetail_{methodNumber}";
             var isInterface = methodSymbol.ContainingType.TypeKind == TypeKind.Interface;
@@ -914,6 +924,7 @@ namespace Zerra.SourceGeneration
 
                             public override string Name => "{{memberName}}";
                             public override bool IsStatic => {{(methodSymbol.IsStatic ? "true" : "false")}};
+                            public override bool IsExplicitFromInterface => {{(isExplicitFromInterface ? "true" : "false")}};
 
                             protected override Func<ParameterDetail[]> CreateParameterDetails => () => {{parameters}};
                 
@@ -944,7 +955,7 @@ namespace Zerra.SourceGeneration
             var symbolMembers = typeSymbol.GetMembers();
             var fullTypeName = Helpers.GetFullName(typeSymbol);
 
-            var properties = symbolMembers.Where(x => x.Kind == SymbolKind.Property).Cast<IPropertySymbol>().Where(x => !x.IsStatic || x.ExplicitInterfaceImplementations.Length == 0).Select(x => new Tuple<IPropertySymbol, string>(x, x.Name)).ToList();
+            var properties = symbolMembers.Where(x => x.Kind == SymbolKind.Property).Cast<IPropertySymbol>().Where(x => !x.IsStatic || x.ExplicitInterfaceImplementations.Length == 0).Select(x => new Tuple<IPropertySymbol, string, bool>(x, x.Name, false)).ToList();
             var fields = symbolMembers.Where(x => x.Kind == SymbolKind.Field).Cast<IFieldSymbol>().ToList();
 
             if (!publicAndImplicitOnly && typeSymbol.AllInterfaces.Length > 0)
@@ -964,14 +975,21 @@ namespace Zerra.SourceGeneration
                     foreach (var iProperty in iMembers.Where(x => x.Kind == SymbolKind.Property && !x.IsStatic).Cast<IPropertySymbol>())
                     {
                         string name;
+                        bool isExplicitFromInterface;
                         if (typeSymbol.TypeKind == TypeKind.Interface && !names.Contains(iProperty.Name))
+                        {
                             name = iProperty.Name;
+                            isExplicitFromInterface = false;
+                        }
                         else
+                        {
                             name = $"{iProperty.ContainingType.ToString()}.{iProperty.Name}";
+                            isExplicitFromInterface = true;
+                        }
 
                         if (!names.Contains(name))
                         {
-                            properties.Add(new Tuple<IPropertySymbol, string>(iProperty, name));
+                            properties.Add(new Tuple<IPropertySymbol, string, bool>(iProperty, name, isExplicitFromInterface));
                             names.Add(name);
                         }
                     }
@@ -988,7 +1006,8 @@ namespace Zerra.SourceGeneration
             foreach (var propertyTuple in properties)
             {
                 var property = propertyTuple.Item1;
-                var explicitDeclaration = propertyTuple.Item2;
+                var memberName = propertyTuple.Item2;
+                var isExplicitFromInterface = propertyTuple.Item3;
 
                 if (property.IsIndexer)
                     continue;
@@ -1001,11 +1020,11 @@ namespace Zerra.SourceGeneration
 
                 var canBeReferencedAsCode = Helpers.CanBeReferencedAsCode(property.Type);
                 if (isPublic && canBeReferencedAsCode && !property.ContainingType.IsStatic)
-                    GeneratePublicMember(explicitDeclaration, property, propertyCount, fields, backingFields, fullTypeName, ++memberNumber, membersToInitialize, sbChildClasses);
+                    GeneratePublicMember(memberName, isExplicitFromInterface, property, propertyCount, fields, backingFields, fullTypeName, ++memberNumber, membersToInitialize, sbChildClasses);
                 else if (canBeReferencedAsCode && !property.ContainingType.IsStatic)
-                    GeneratePrivateMember(explicitDeclaration, property, propertyCount, fields, backingFields, fullTypeName, ++memberNumber, membersToInitialize, sbChildClasses);
+                    GeneratePrivateMember(memberName, isExplicitFromInterface, property, propertyCount, fields, backingFields, fullTypeName, ++memberNumber, membersToInitialize, sbChildClasses);
                 else
-                    GeneratePrivateTypeMember(explicitDeclaration, property, propertyCount, fields, backingFields, fullTypeName, ++memberNumber, membersToInitialize, sbChildClasses);
+                    GeneratePrivateTypeMember(memberName, isExplicitFromInterface, property, propertyCount, fields, backingFields, fullTypeName, ++memberNumber, membersToInitialize, sbChildClasses);
 
                 if (recursive)
                 {
@@ -1055,7 +1074,7 @@ namespace Zerra.SourceGeneration
             var members = sbMembers.ToString();
             return members;
         }
-        private static void GeneratePublicMember(string memberName, IPropertySymbol propertySymbol, int propertyTotal, IEnumerable<IFieldSymbol> fieldSymbols, HashSet<IFieldSymbol> backingFields, string parentTypeName, int methodNumber, List<string> membersToInitialize, StringBuilder sbChildClasses)
+        private static void GeneratePublicMember(string memberName, bool isExplicitFromInterface, IPropertySymbol propertySymbol, int propertyTotal, IEnumerable<IFieldSymbol> fieldSymbols, HashSet<IFieldSymbol> backingFields, string parentTypeName, int methodNumber, List<string> membersToInitialize, StringBuilder sbChildClasses)
         {
             var className = $"MemberDetail_{methodNumber}";
             var typeName = propertySymbol.Type.ToString();
@@ -1174,6 +1193,7 @@ namespace Zerra.SourceGeneration
 
                             public override string Name => "{{memberName}}";
                             public override bool IsStatic => {{(propertySymbol.IsStatic ? "true" : "false")}};
+                            public override bool IsExplicitFromInterface => {{(isExplicitFromInterface ? "true" : "false")}};
 
                             private readonly Type type = {{Helpers.GetTypeOfName(propertySymbol.Type)}};
                             public override Type Type => type;
@@ -1201,7 +1221,7 @@ namespace Zerra.SourceGeneration
             membersToInitialize.Add(className);
             _ = sbChildClasses.Append(code);
         }
-        private static void GeneratePrivateMember(string memberName, IPropertySymbol propertySymbol, int propertyTotal, IEnumerable<IFieldSymbol> fieldSymbols, HashSet<IFieldSymbol> backingFields, string parentTypeName, int methodNumber, List<string> membersToInitialize, StringBuilder sbChildClasses)
+        private static void GeneratePrivateMember(string memberName, bool isExplicitFromInterface, IPropertySymbol propertySymbol, int propertyTotal, IEnumerable<IFieldSymbol> fieldSymbols, HashSet<IFieldSymbol> backingFields, string parentTypeName, int methodNumber, List<string> membersToInitialize, StringBuilder sbChildClasses)
         {
             var className = $"MemberDetail_{methodNumber}";
             var typeName = propertySymbol.Type.ToString();
@@ -1240,6 +1260,7 @@ namespace Zerra.SourceGeneration
 
                             public override string Name => "{{memberName}}";
                             public override bool IsStatic => {{(propertySymbol.IsStatic ? "true" : "false")}};
+                            public override bool IsExplicitFromInterface => {{(isExplicitFromInterface ? "true" : "false")}};
 
                             public override bool IsBacked => {{(isBacked ? "true" : "false")}};
 
@@ -1252,7 +1273,7 @@ namespace Zerra.SourceGeneration
             membersToInitialize.Add(className);
             _ = sbChildClasses.Append(code);
         }
-        private static void GeneratePrivateTypeMember(string memberName, IPropertySymbol propertySymbol, int propertyTotal, IEnumerable<IFieldSymbol> fieldSymbols, HashSet<IFieldSymbol> backingFields, string parentTypeName, int methodNumber, List<string> membersToInitialize, StringBuilder sbChildClasses)
+        private static void GeneratePrivateTypeMember(string memberName, bool isExplicitFromInterface, IPropertySymbol propertySymbol, int propertyTotal, IEnumerable<IFieldSymbol> fieldSymbols, HashSet<IFieldSymbol> backingFields, string parentTypeName, int methodNumber, List<string> membersToInitialize, StringBuilder sbChildClasses)
         {
             var className = $"MemberDetail_{methodNumber}";
             var typeName = propertySymbol.Type.ToString();
@@ -1289,6 +1310,7 @@ namespace Zerra.SourceGeneration
 
                             public override string Name => "{{memberName}}";
                             public override bool IsStatic => {{(propertySymbol.IsStatic ? "true" : "false")}};
+                            public override bool IsExplicitFromInterface => {{(isExplicitFromInterface ? "true" : "false")}};
 
                             public override bool IsBacked => {{(isBacked ? "true" : "false")}};
 
@@ -1317,6 +1339,7 @@ namespace Zerra.SourceGeneration
 
                             public override string Name => "{{memberName}}";
                             public override bool IsStatic => {{(fieldSymbol.IsStatic ? "true" : "false")}};
+                            public override bool IsExplicitFromInterface => false;
 
                             private readonly Type type = {{Helpers.GetTypeOfName(fieldSymbol.Type)}};
                             public override Type Type => type;
@@ -1361,6 +1384,7 @@ namespace Zerra.SourceGeneration
 
                             public override string Name => "{{memberName}}";
                             public override bool IsStatic => {{(fieldSymbol.IsStatic ? "true" : "false")}};
+                            public override bool IsExplicitFromInterface => false;
 
                             public override bool IsBacked => true;
 
@@ -1390,6 +1414,7 @@ namespace Zerra.SourceGeneration
 
                             public override string Name => "{{memberName}}";
                             public override bool IsStatic => {{(fieldSymbol.IsStatic ? "true" : "false")}};
+                            public override bool IsExplicitFromInterface => false;
 
                             public override bool IsBacked => true;
 

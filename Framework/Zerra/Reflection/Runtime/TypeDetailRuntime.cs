@@ -592,9 +592,9 @@ namespace Zerra.Reflection.Runtime
                                     var backingName = $"<{property.Name}>";
                                     var backingField = fields.FirstOrDefault(x => x.Name.StartsWith(backingName));
                                     if (backingField is not null)
-                                        backingMember = MemberDetailRuntime<object, object>.New(Type, property.PropertyType, property.Name, backingField, null, locker);
+                                        backingMember = MemberDetailRuntime<object, object>.New(Type, property.PropertyType, property.Name, backingField, null, false, locker);
 
-                                    items.Add(MemberDetailRuntime<object, object>.New(Type, property.PropertyType, property.Name, property, backingMember, locker));
+                                    items.Add(MemberDetailRuntime<object, object>.New(Type, property.PropertyType, property.Name, property, backingMember, false, locker));
                                     if (hasInterfaces)
                                         names!.Add(property.Name);
                                 }
@@ -612,27 +612,34 @@ namespace Zerra.Reflection.Runtime
                                         {
                                             if (property.GetIndexParameters().Length > 0)
                                                 continue;
-                                            MemberDetail? backingMember = null;
+                                            //MemberDetail? backingMember = null;
 
-                                            //<{property.Name}>k__BackingField
-                                            //<{property.Name}>i__Field
-                                            var backingName = $"<{property.Name}>";
-                                            var backingField = fields.FirstOrDefault(x => x.Name.StartsWith(backingName));
-                                            if (backingField is not null)
-                                            {
-                                                var backingMemberName = $"{property.DeclaringType?.Namespace}.{property.DeclaringType?.Name}.{property.Name.Split('.').Last()}";
-                                                backingMember = MemberDetailRuntime<object, object>.New(Type, property.PropertyType, backingMemberName, backingField, null, locker);
-                                            }
+                                            ////<{property.Name}>k__BackingField
+                                            ////<{property.Name}>i__Field
+                                            //var backingName = $"<{property.Name}>";
+                                            //var backingField = fields.FirstOrDefault(x => x.Name.StartsWith(backingName));
+                                            //if (backingField is not null)
+                                            //{
+                                            //    var backingMemberName = $"{property.DeclaringType?.Namespace}.{property.DeclaringType?.Name}.{property.Name.Split('.').Last()}";
+                                            //    backingMember = MemberDetailRuntime<object, object>.New(Type, property.PropertyType, backingMemberName, backingField, null, locker);
+                                            //}
 
                                             string name;
+                                            bool isExplicitFromInterface;
                                             if (Type.IsInterface && !names!.Contains(property.Name))
+                                            {
                                                 name = property.Name;
+                                                isExplicitFromInterface = false;
+                                            }
                                             else
+                                            {
                                                 name = $"{property.DeclaringType?.Namespace}.{property.DeclaringType?.Name}.{property.Name.Split('.').Last()}";
+                                                isExplicitFromInterface = true;
+                                            }
 
                                             if (!names!.Contains(name))
                                             {
-                                                items.Add(MemberDetailRuntime<object, object>.New(Type, property.PropertyType, name, property, backingMember, locker));
+                                                items.Add(MemberDetailRuntime<object, object>.New(Type, property.PropertyType, name, property, null, isExplicitFromInterface, locker));
                                                 names!.Add(name);
                                             }
                                         }
@@ -643,7 +650,7 @@ namespace Zerra.Reflection.Runtime
                                 {
                                     if (field.IsLiteral)
                                         continue;
-                                    items.Add(MemberDetailRuntime<object, object>.New(Type, field.FieldType, field.Name, field, null, locker));
+                                    items.Add(MemberDetailRuntime<object, object>.New(Type, field.FieldType, field.Name, field, null, false, locker));
                                 }
                             }
 
@@ -674,7 +681,7 @@ namespace Zerra.Reflection.Runtime
                                 var methods = Type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
                                 foreach (var method in methods)
                                 {
-                                    items.Add(MethodDetailRuntime<object>.New(Type, method.Name, method, locker));
+                                    items.Add(MethodDetailRuntime<object>.New(Type, method.Name, method, false, locker));
                                     if (hasInterfaces)
                                         names!.Add(method.Name);
                                 }
@@ -687,14 +694,21 @@ namespace Zerra.Reflection.Runtime
                                         foreach (var method in iMethods)
                                         {
                                             string name;
+                                            bool isExplicitFromInterface;
                                             if (Type.IsInterface && !names!.Contains(method.Name))
+                                            {
                                                 name = method.Name;
+                                                isExplicitFromInterface = false;
+                                            }
                                             else
+                                            {
                                                 name = $"{method.DeclaringType?.Namespace}.{method.DeclaringType?.Name}.{method.Name.Split('.').Last()}";
+                                                isExplicitFromInterface = true;
+                                            }
 
                                             if (!names!.Contains(name))
                                             {
-                                                items.Add(MethodDetailRuntime<object>.New(Type, name, method, locker));
+                                                items.Add(MethodDetailRuntime<object>.New(Type, name, method, isExplicitFromInterface, locker));
                                                 names!.Add(name);
                                             }
                                         }

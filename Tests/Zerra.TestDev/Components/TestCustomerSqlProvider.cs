@@ -36,6 +36,7 @@ namespace Zerra.TestDev
 
     public class TestSqlDataContext : MsSqlDataContext
     {
+        protected override DataStoreGenerationType DataStoreGenerationType => DataStoreGenerationType.CodeFirst;
         public override string ConnectionString => "data source=.;initial catalog=Test;integrated security=True;MultipleActiveResultSets=True;";
     }
 

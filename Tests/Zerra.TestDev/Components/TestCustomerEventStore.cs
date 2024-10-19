@@ -33,6 +33,7 @@ namespace Zerra.TestDev
 
     public class TestEventStoreDataContext : EventStoreDBDataContext
     {
+        protected override DataStoreGenerationType DataStoreGenerationType => DataStoreGenerationType.CodeFirst;
         public override string ConnectionString => connectionString;
         public override bool Insecure => true;
         private readonly string connectionString;
