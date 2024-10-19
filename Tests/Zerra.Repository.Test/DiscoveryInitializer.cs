@@ -10,18 +10,20 @@ namespace Zerra.Repository.Test
 #pragma warning restore CA2255
         public static void Initialize()
         {
-            Zerra.Reflection.Discovery.DiscoverType(typeof(Zerra.Repository.Test.MsSqlTestSqlDataContext));
-            Zerra.Reflection.Discovery.DiscoverType(typeof(Zerra.Repository.Test.MySqlTestSqlDataContext));
-            Zerra.Reflection.Discovery.DiscoverType(typeof(Zerra.Repository.Test.PostgreSqlTestSqlDataContext));
+            Zerra.Reflection.SourceGenerationRegistration.DiscoverType(typeof(Zerra.Repository.Test.MsSqlTestSqlDataContext), []);
+            Zerra.Reflection.SourceGenerationRegistration.DiscoverType(typeof(Zerra.Repository.Test.MySqlTestSqlDataContext), []);
+            Zerra.Reflection.SourceGenerationRegistration.DiscoverType(typeof(Zerra.Repository.Test.PostgreSqlTestSqlDataContext), []);
 
-            Zerra.Reflection.Discovery.DiscoverType(typeof(Zerra.Repository.Test.MsSqlTestRelationsModel));
-            Zerra.Reflection.Discovery.DiscoverType(typeof(Zerra.Repository.Test.MsSqlTestTypesModel));
+            Zerra.Reflection.SourceGenerationRegistration.DiscoverType(typeof(Zerra.Repository.Test.MsSqlTestRelationsModel), []);
+            Zerra.Reflection.SourceGenerationRegistration.DiscoverType(typeof(Zerra.Repository.Test.MsSqlTestTypesModel), []);
 
-            Zerra.Reflection.Discovery.DiscoverType(typeof(Zerra.Repository.Test.MySqlTestRelationsModel));
-            Zerra.Reflection.Discovery.DiscoverType(typeof(Zerra.Repository.Test.MySqlTestTypesModel));
+            Zerra.Reflection.SourceGenerationRegistration.DiscoverType(typeof(Zerra.Repository.Test.MySqlTestRelationsModel), []);
+            Zerra.Reflection.SourceGenerationRegistration.DiscoverType(typeof(Zerra.Repository.Test.MySqlTestTypesModel), []);
 
-            Zerra.Reflection.Discovery.DiscoverType(typeof(Zerra.Repository.Test.PostgreSqlTestRelationsModel));
-            Zerra.Reflection.Discovery.DiscoverType(typeof(Zerra.Repository.Test.PostgreSqlTestTypesModel));
+            Zerra.Reflection.SourceGenerationRegistration.DiscoverType(typeof(Zerra.Repository.Test.PostgreSqlTestRelationsModel), []);
+            Zerra.Reflection.SourceGenerationRegistration.DiscoverType(typeof(Zerra.Repository.Test.PostgreSqlTestTypesModel), []);
+
+            Zerra.Reflection.SourceGenerationRegistration.RunGenerationsFromAttributes();
         }
     }
 }
