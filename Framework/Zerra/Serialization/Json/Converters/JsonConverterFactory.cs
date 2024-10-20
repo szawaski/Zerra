@@ -3,9 +3,6 @@
 // Licensed to you under the MIT license
 
 using System;
-using System.Diagnostics;
-using System.Linq;
-using System.Runtime.CompilerServices;
 using Zerra.Collections;
 using Zerra.Reflection;
 using Zerra.Serialization.Json.Converters.Collections;
@@ -29,10 +26,12 @@ namespace Zerra.Serialization.Json.Converters
 
         public static JsonConverter<TParent> Get(TypeDetail typeDetail, string memberKey, Delegate? getter, Delegate? setter)
         {
+            var key = new TypeKey(memberKey, typeDetail.Type);
             var cache2 = cache.GetOrAdd(typeDetail.Type, static () => new());
             var converter = cache2.GetOrAdd(memberKey, typeDetail, memberKey, getter, setter, static (typeDetail, memberKey, getter, setter) =>
             {
-                var newConverter = Create(typeDetail);
+                var newConverterType = GetConverterType(typeDetail);
+                var newConverter = (JsonConverter<TParent>)newConverterType.CreatorBoxed();
                 //Debug.WriteLine($"{typeDetail.Type.GetNiceName()} - {newConverter.GetType().GetNiceName()}");
                 newConverter.Setup(typeDetail, memberKey, getter, setter);
                 return newConverter;
@@ -40,7 +39,7 @@ namespace Zerra.Serialization.Json.Converters
             return converter;
         }
 
-        private static JsonConverter<TParent> Create(TypeDetail typeDetail)
+        private static TypeDetail GetConverterType(TypeDetail typeDetail)
         {
             var discoveredType = JsonConverterDiscovery.Discover(typeDetail.Type);
 
@@ -50,62 +49,26 @@ namespace Zerra.Serialization.Json.Converters
                 switch (discoveredTypeDetail.InnerTypes.Count)
                 {
                     case 1:
-                        {
-                            var discoveredTypeDetailGeneric = discoveredTypeDetail.GetGenericTypeDetail(parentType);
-                            var converter = discoveredTypeDetailGeneric.CreatorBoxed();
-                            return (JsonConverter<TParent>)converter;
-                        }
+                        return discoveredTypeDetail.GetGenericTypeDetail(parentType);
                     case 2:
                         if (typeDetail.InnerTypes.Count == 1)
-                        {
-                            var discoveredTypeDetailGeneric = discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.InnerTypes[0]);
-                            var converter = discoveredTypeDetailGeneric.CreatorBoxed();
-                            return (JsonConverter<TParent>)converter;
-                        }
+                            return discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.InnerTypes[0]);
                         else
-                        {
-                            var discoveredTypeDetailGeneric = discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.Type);
-                            var converter = discoveredTypeDetailGeneric.CreatorBoxed();
-                            return (JsonConverter<TParent>)converter;
-                        }
+                            return discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.Type);
                     case 3:
                         if (typeDetail.InnerTypes.Count == 1)
-                        {
-                            var discoveredTypeDetailGeneric = discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0]);
-                            var converter = discoveredTypeDetailGeneric.CreatorBoxed();
-                            return (JsonConverter<TParent>)converter;
-                        }
+                            return discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0]);
                         else if (typeDetail.InnerTypes.Count == 2)
-                        {
-                            var discoveredTypeDetailGeneric = discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.InnerTypes[0], typeDetail.InnerTypes[1]);
-                            var converter = discoveredTypeDetailGeneric.CreatorBoxed();
-                            return (JsonConverter<TParent>)converter;
-                        }
+                            return discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.InnerTypes[0], typeDetail.InnerTypes[1]);
                         else
-                        {
-                            var discoveredTypeDetailGeneric = discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.Type, objectType);
-                            var converter = discoveredTypeDetailGeneric.CreatorBoxed();
-                            return (JsonConverter<TParent>)converter;
-                        }
+                            return discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.Type, objectType);
                     case 4:
                         if (typeDetail.InnerTypes.Count == 1)
-                        {
-                            var discoveredTypeDetailGeneric = discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0], objectType);
-                            var converter = discoveredTypeDetailGeneric.CreatorBoxed();
-                            return (JsonConverter<TParent>)converter;
-                        }
+                            return discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0], objectType);
                         else if (typeDetail.InnerTypes.Count == 2)
-                        {
-                            var discoveredTypeDetailGeneric = discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0], typeDetail.InnerTypes[1]);
-                            var converter = discoveredTypeDetailGeneric.CreatorBoxed();
-                            return (JsonConverter<TParent>)converter;
-                        }
+                            return discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0], typeDetail.InnerTypes[1]);
                         else
-                        {
-                            var discoveredTypeDetailGeneric = discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.Type, objectType, objectType);
-                            var converter = discoveredTypeDetailGeneric.CreatorBoxed();
-                            return (JsonConverter<TParent>)converter;
-                        }
+                            return discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.Type, objectType, objectType);
                 }
             }
 
@@ -114,77 +77,46 @@ namespace Zerra.Serialization.Json.Converters
 
             //Enum
             if (typeDetail.Type.IsEnum || typeDetail.IsNullable && typeDetail.InnerType.IsEnum)
-            {
-                var converter = typeof(JsonConverterEnum<,>).GetGenericTypeDetail(parentType, typeDetail.Type).CreatorBoxed();
-                return (JsonConverter<TParent>)converter;
-            }
+                return typeof(JsonConverterEnum<,>).GetGenericTypeDetail(parentType, typeDetail.Type);
 
             //Array
             if (typeDetail.Type.IsArray)
-            {
-                var converter = typeof(JsonConverterArrayT<,>).GetGenericTypeDetail(parentType, typeDetail.InnerType).CreatorBoxed();
-                return (JsonConverter<TParent>)converter;
-            }
+                return typeof(JsonConverterArrayT<,>).GetGenericTypeDetail(parentType, typeDetail.InnerType);
 
             //IList<T> of type - specific types that inherit this
             if (typeDetail.HasIListGeneric)
-            {
-                var converter = typeof(JsonConverterIListTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerType).CreatorBoxed();
-                return (JsonConverter<TParent>)converter;
-            }
+                return typeof(JsonConverterIListTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerType);
 
             //IList of type - specific types that inherit this
             if (typeDetail.HasIList)
-            {
-                var converter = typeof(JsonConverterIListOfT<,>).GetGenericTypeDetail(parentType, typeDetail.Type).CreatorBoxed();
-                return (JsonConverter<TParent>)converter;
-            }
+                return typeof(JsonConverterIListOfT<,>).GetGenericTypeDetail(parentType, typeDetail.Type);
 
             //ISet<T> of type - specific types that inherit this
             if (typeDetail.HasISetGeneric)
-            {
-                var converter = typeof(JsonConverterISetTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerType).CreatorBoxed();
-                return (JsonConverter<TParent>)converter;
-            }
+                return typeof(JsonConverterISetTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerType);
 
             //IDictionary<,> of type - specific types that inherit this
             if (typeDetail.HasIDictionaryGeneric)
-            {
-                var converter = typeof(JsonConverterIDictionaryTOfT<,,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0], typeDetail.InnerTypes[1]).CreatorBoxed();
-                return (JsonConverter<TParent>)converter;
-            }
+                return typeof(JsonConverterIDictionaryTOfT<,,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0], typeDetail.InnerTypes[1]);
 
             //IDictionary of type - specific types that inherit this
             if (typeDetail.HasIDictionary)
-            {
-                var converter = typeof(JsonConverterIDictionaryOfT<,>).GetGenericTypeDetail(parentType, typeDetail.Type).CreatorBoxed();
-                return (JsonConverter<TParent>)converter;
-            }
+                return typeof(JsonConverterIDictionaryOfT<,>).GetGenericTypeDetail(parentType, typeDetail.Type);
 
             //ICollection<T> of type - specific types that inherit this
             if (typeDetail.HasICollectionGeneric)
-            {
-                var converter = typeof(JsonConverterICollectionTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerType).CreatorBoxed();
-                return (JsonConverter<TParent>)converter;
-            }
+                return typeof(JsonConverterICollectionTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerType);
 
             //IEnumerable<T> of type  - specific types that inherit this (This cannot read because we have no interface to populate the collection)
             if (typeDetail.HasIEnumerableGeneric)
-            {
-                var converter = typeof(JsonConverterIEnumerableTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.IEnumerableGenericInnerType).CreatorBoxed();
-                return (JsonConverter<TParent>)converter;
-            }
+                return typeof(JsonConverterIEnumerableTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.IEnumerableGenericInnerType);
 
             //IEnumerable - specific types that inherit this (This cannot read because we have no interface to populate the collection)
             if (typeDetail.HasIEnumerable)
-            {
-                var converter = typeof(JsonConverterIEnumerableOfT<,>).GetGenericTypeDetail(parentType, typeDetail.Type).CreatorBoxed();
-                return (JsonConverter<TParent>)converter;
-            }
+                return typeof(JsonConverterIEnumerableOfT<,>).GetGenericTypeDetail(parentType, typeDetail.Type);
 
             //Object
-            var converterObject = typeof(JsonConverterObject<,>).GetGenericTypeDetail(parentType, typeDetail.Type).CreatorBoxed();
-            return (JsonConverter<TParent>)converterObject;
+            return typeof(JsonConverterObject<,>).GetGenericTypeDetail(parentType, typeDetail.Type);
         }
     }
 }

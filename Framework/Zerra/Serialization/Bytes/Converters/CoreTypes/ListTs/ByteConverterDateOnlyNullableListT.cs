@@ -9,7 +9,7 @@ using System.Collections.Generic;
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;
 
-namespace Zerra.Serialization.Bytes.Converters.Lists
+namespace Zerra.Serialization.Bytes.Converters.CoreTypes.ListTs
 {
     internal sealed class ByteConverterDateOnlyNullableList<TParent> : ByteConverter<TParent, List<DateOnly?>>
     {

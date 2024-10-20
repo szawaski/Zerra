@@ -317,7 +317,7 @@ namespace Zerra.Serialization.Json.Converters.General
                             throw reader.CreateException("Unexpected character");
 
                         member = null;
-                        if (membersByName!.TryGetValue(name!, out member) == true)
+                        if (membersByName!.TryGetValue(name!, out member))
                         {
                             if (state.Current.Graph is not null && !state.Current.Graph.HasMember(name))
                             {

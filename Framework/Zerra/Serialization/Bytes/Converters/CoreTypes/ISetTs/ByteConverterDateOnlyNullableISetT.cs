@@ -9,7 +9,7 @@ using System.Collections.Generic;
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;
 
-namespace Zerra.Serialization.Bytes.Converters.ISets
+namespace Zerra.Serialization.Bytes.Converters.CoreTypes.ISetTs
 {
     internal sealed class ByteConverterDateOnlyNullableISet<TParent> : ByteConverter<TParent, ISet<DateOnly?>>
     {

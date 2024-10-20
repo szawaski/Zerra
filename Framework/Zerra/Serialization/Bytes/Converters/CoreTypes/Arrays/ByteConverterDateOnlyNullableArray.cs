@@ -5,11 +5,10 @@
 #if NET6_0_OR_GREATER
 
 using System;
-using System.Collections.Generic;
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;
 
-namespace Zerra.Serialization.Bytes.Converters.HashSets
+namespace Zerra.Serialization.Bytes.Converters.CoreTypes.Arrays
 {
     internal sealed class ByteConverterDateOnlyNullableArray<TParent> : ByteConverter<TParent, DateOnly?[]>
     {

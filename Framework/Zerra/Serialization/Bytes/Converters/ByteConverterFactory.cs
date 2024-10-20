@@ -31,7 +31,8 @@ namespace Zerra.Serialization.Bytes.Converters
             var cache2 = cache.GetOrAdd(typeDetail.Type, static () => new());
             var converter = cache2.GetOrAdd(memberKey, typeDetail, memberKey, getter, setter, static (typeDetail, memberKey, getter, setter) =>
             {
-                var newConverter = Create(typeDetail);
+                var newConverterType = GetConverterType(typeDetail);
+                var newConverter = (ByteConverter<TParent>)newConverterType.CreatorBoxed();
                 //Debug.WriteLine($"{typeDetail.Type.GetNiceName()} - {newConverter.GetType().GetNiceName()}");
                 newConverter.Setup(typeDetail, memberKey, getter, setter);
                 return newConverter;
@@ -56,7 +57,7 @@ namespace Zerra.Serialization.Bytes.Converters
             return cacheByteConverterTypeInfo;
         }
 
-        private static ByteConverter<TParent> Create(TypeDetail typeDetail)
+        private static TypeDetail GetConverterType(TypeDetail typeDetail)
         {
             var discoveredType = ByteConverterDiscovery.Discover(typeDetail.Type);
 
@@ -66,62 +67,27 @@ namespace Zerra.Serialization.Bytes.Converters
                 switch (discoveredTypeDetail.InnerTypes.Count)
                 {
                     case 1:
-                        {
-                            var discoveredTypeDetailGeneric = discoveredTypeDetail.GetGenericTypeDetail(parentType);
-                            var converter = discoveredTypeDetailGeneric.CreatorBoxed();
-                            return (ByteConverter<TParent>)converter;
-                        }
+                            return discoveredTypeDetail.GetGenericTypeDetail(parentType);
                     case 2:
                         if (typeDetail.InnerTypes.Count == 1)
-                        {
-                            var discoveredTypeDetailGeneric = discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.InnerTypes[0]);
-                            var converter = discoveredTypeDetailGeneric.CreatorBoxed();
-                            return (ByteConverter<TParent>)converter;
-                        }
+                            return discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.InnerTypes[0]);
                         else
-                        {
-                            var discoveredTypeDetailGeneric = discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.Type);
-                            var converter = discoveredTypeDetailGeneric.CreatorBoxed();
-                            return (ByteConverter<TParent>)converter;
-                        }
+                            return discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.Type);
+ 
                     case 3:
                         if (typeDetail.InnerTypes.Count == 1)
-                        {
-                            var discoveredTypeDetailGeneric = discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0]);
-                            var converter = discoveredTypeDetailGeneric.CreatorBoxed();
-                            return (ByteConverter<TParent>)converter;
-                        }
+                            return discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0]);
                         else if (typeDetail.InnerTypes.Count == 2)
-                        {
-                            var discoveredTypeDetailGeneric = discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.InnerTypes[0], typeDetail.InnerTypes[1]);
-                            var converter = discoveredTypeDetailGeneric.CreatorBoxed();
-                            return (ByteConverter<TParent>)converter;
-                        }
+                            return discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.InnerTypes[0], typeDetail.InnerTypes[1]);
                         else
-                        {
-                            var discoveredTypeDetailGeneric = discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.Type, objectTypeDetail.Type);
-                            var converter = discoveredTypeDetailGeneric.CreatorBoxed();
-                            return (ByteConverter<TParent>)converter;
-                        }
+                            return discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.Type, objectTypeDetail.Type);
                     case 4:
                         if (typeDetail.InnerTypes.Count == 1)
-                        {
-                            var discoveredTypeDetailGeneric = discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0], objectTypeDetail.Type);
-                            var converter = discoveredTypeDetailGeneric.CreatorBoxed();
-                            return (ByteConverter<TParent>)converter;
-                        }
+                            return discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0], objectTypeDetail.Type);
                         else if (typeDetail.InnerTypes.Count == 2)
-                        {
-                            var discoveredTypeDetailGeneric = discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0], typeDetail.InnerTypes[1]);
-                            var converter = discoveredTypeDetailGeneric.CreatorBoxed();
-                            return (ByteConverter<TParent>)converter;
-                        }
+                            return discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0], typeDetail.InnerTypes[1]);
                         else
-                        {
-                            var discoveredTypeDetailGeneric = discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.Type, objectTypeDetail.Type, objectTypeDetail.Type);
-                            var converter = discoveredTypeDetailGeneric.CreatorBoxed();
-                            return (ByteConverter<TParent>)converter;
-                        }
+                            return discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.Type, objectTypeDetail.Type, objectTypeDetail.Type);
                 }
             }
 
@@ -130,77 +96,46 @@ namespace Zerra.Serialization.Bytes.Converters
 
             //Enum
             if (typeDetail.Type.IsEnum || typeDetail.IsNullable && typeDetail.InnerType.IsEnum)
-            {
-                var converter = typeof(ByteConverterEnum<,>).GetGenericTypeDetail(parentType, typeDetail.Type).CreatorBoxed();
-                return (ByteConverter<TParent>)converter;
-            }
+                return typeof(ByteConverterEnum<,>).GetGenericTypeDetail(parentType, typeDetail.Type);
 
             //Array
             if (typeDetail.Type.IsArray)
-            {
-                var converter = typeof(ByteConverterArrayT<,>).GetGenericTypeDetail(parentType, typeDetail.InnerType).CreatorBoxed();
-                return (ByteConverter<TParent>)converter;
-            }
+                return typeof(ByteConverterArrayT<,>).GetGenericTypeDetail(parentType, typeDetail.InnerType);
 
             //IList<T> of type - specific types that inherit this
             if (typeDetail.HasIListGeneric)
-            {
-                var converter = typeof(ByteConverterIListTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerType).CreatorBoxed();
-                return (ByteConverter<TParent>)converter;
-            }
+                return typeof(ByteConverterIListTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerType);
 
             //IList of type - specific types that inherit this
             if (typeDetail.HasIList)
-            {
-                var converter = typeof(ByteConverterIListOfT<,>).GetGenericTypeDetail(parentType, typeDetail.Type).CreatorBoxed();
-                return (ByteConverter<TParent>)converter;
-            }
+                return typeof(ByteConverterIListOfT<,>).GetGenericTypeDetail(parentType, typeDetail.Type);
 
             //ISet<T> of type - specific types that inherit this
             if (typeDetail.HasISetGeneric)
-            {
-                var converter = typeof(ByteConverterISetTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerType).CreatorBoxed();
-                return (ByteConverter<TParent>)converter;
-            }
+                return typeof(ByteConverterISetTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerType);
 
             //IDictionary<,> of type - specific types that inherit this
             if (typeDetail.HasIDictionaryGeneric)
-            {
-                var converter = typeof(ByteConverterIDictionaryTOfT<,,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0], typeDetail.InnerTypes[1]).CreatorBoxed();
-                return (ByteConverter<TParent>)converter;
-            }
+                return typeof(ByteConverterIDictionaryTOfT<,,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0], typeDetail.InnerTypes[1]);
 
             //IDictionary of type - specific types that inherit this
             if (typeDetail.HasIDictionary)
-            {
-                var converter = typeof(ByteConverterIDictionaryOfT<,>).GetGenericTypeDetail(parentType, typeDetail.Type).CreatorBoxed();
-                return (ByteConverter<TParent>)converter;
-            }
+                return typeof(ByteConverterIDictionaryOfT<,>).GetGenericTypeDetail(parentType, typeDetail.Type);
 
             //ICollection<T> of type - specific types that inherit this
             if (typeDetail.HasICollectionGeneric)
-            {
-                var converter = typeof(ByteConverterICollectionTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerType).CreatorBoxed();
-                return (ByteConverter<TParent>)converter;
-            }
+                return typeof(ByteConverterICollectionTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerType);
 
             //IEnumerable<T> of type  - specific types that inherit this (This cannot read because we have no interface to populate the collection)
             if (typeDetail.HasIEnumerableGeneric)
-            {
-                var converter = typeof(ByteConverterIEnumerableTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.IEnumerableGenericInnerType).CreatorBoxed();
-                return (ByteConverter<TParent>)converter;
-            }
+                return typeof(ByteConverterIEnumerableTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.IEnumerableGenericInnerType);
 
             //IEnumerable - specific types that inherit this (This cannot read because we have no interface to populate the collection)
             if (typeDetail.HasIEnumerable)
-            {
-                var converter = typeof(ByteConverterIEnumerableOfT<,>).GetGenericTypeDetail(parentType, typeDetail.Type).CreatorBoxed();
-                return (ByteConverter<TParent>)converter;
-            }
+                return typeof(ByteConverterIEnumerableOfT<,>).GetGenericTypeDetail(parentType, typeDetail.Type);
 
             //Object
-            var converterObject = typeof(ByteConverterObject<,>).GetGenericTypeDetail(parentType, typeDetail.Type).CreatorBoxed();
-            return (ByteConverter<TParent>)converterObject;
+            return typeof(ByteConverterObject<,>).GetGenericTypeDetail(parentType, typeDetail.Type);
         }
     }
 }

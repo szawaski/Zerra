@@ -9,7 +9,7 @@ using System.Collections.Generic;
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;
 
-namespace Zerra.Serialization.Bytes.Converters.ICollections
+namespace Zerra.Serialization.Bytes.Converters.CoreTypes.ICollectionTs
 {
     internal sealed class ByteConverterTimeOnlyICollection<TParent> : ByteConverter<TParent, ICollection<TimeOnly>>
     {

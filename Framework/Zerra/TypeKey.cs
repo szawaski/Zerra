@@ -10,7 +10,7 @@ namespace Zerra
     //This appeard to slow things down as a struct
 
     /// <summary>
-    /// A class to use a combination of a string and/or multiple types as a hash key.
+    /// A class to use a combination of a string, number and/or multiple types as a hash key.
     /// </summary>
     public class TypeKey
     {
