@@ -20,6 +20,12 @@ namespace Zerra
         private readonly Type? type2;
         private readonly Type[]? typeArray;
 
+        public string? Str => str;
+        public int? Number => number;
+        public Type? Type1 => type1;
+        public Type? Type2 => type2;
+        public Type[]? TypeArray => typeArray;
+
         /// <summary>
         /// Creates a new TypeKey.
         /// </summary>

@@ -89,10 +89,11 @@ namespace Zerra.Repository
                         var modelTypesWithThisDataContext = new HashSet<Type>();
                         foreach (var modelType in allModelTypes.Where(x => !x.IsAbstract))
                         {
-                            var providerType = typeof(ITransactStoreProvider<>).MakeGenericType(modelType);
-                            if (!Resolver.TryGetSingle(providerType, out var provider))
+                            var interfaceType = typeof(ITransactStoreProvider<>).MakeGenericType(modelType);
+                            var providerType = Discovery.GetClassByInterface(interfaceType);
+                            if (providerType is null)
                                 continue;
-                            var typeDetails = TypeAnalyzer.GetTypeDetail(provider.GetType());
+                            var typeDetails = TypeAnalyzer.GetTypeDetail(providerType);
                             if (typeDetails.InnerTypes.Contains(thisType))
                             {
                                 _ = modelTypesWithThisDataContext.Add(modelType);

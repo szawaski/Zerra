@@ -23,7 +23,7 @@ namespace Zerra.Reflection
             return provider is not null;
         }
 
-        public static TInterface GetSingle<TInterface>() { return GetSingle<TInterface>(true)!; }
+        public static TInterface GetSingle<TInterface>() => GetSingle<TInterface>(true)!;
 
         public static bool TryGetSingle(Type type, out object provider)
         {
@@ -31,7 +31,7 @@ namespace Zerra.Reflection
             return provider is not null;
         }
 
-        public static object GetSingle(Type type) { return GetSingleGeneric(type, true); }
+        public static object GetSingle(Type type) => GetSingleGeneric(type, true);
 
         public static bool TryGetNew<TInterface>(
 #if !NETSTANDARD2_0
@@ -45,7 +45,7 @@ namespace Zerra.Reflection
             return provider is not null;
         }
 
-        public static TInterface GetNew<TInterface>() { return GetNew<TInterface>(true)!; }
+        public static TInterface GetNew<TInterface>() => GetNew<TInterface>(true)!;
 
         public static bool TryGetNew(Type type, out object provider)
         {
@@ -53,7 +53,7 @@ namespace Zerra.Reflection
             return provider is not null;
         }
 
-        public static object GetNew(Type type) { return GetNewGeneric(type, true); }
+        public static object GetNew(Type type) => GetNewGeneric(type, true);
 
         private static readonly MethodInfo methodProviderManagerGetSingle = typeof(Resolver).GetMethod(nameof(Resolver.GetSingle), BindingFlags.Static | BindingFlags.NonPublic) ?? throw new Exception($"{nameof(Resolver)}.{nameof(Resolver.GetSingle)} method not found");
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
