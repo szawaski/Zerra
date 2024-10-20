@@ -72,8 +72,8 @@ namespace Zerra.CQRS.Network
 
             var hostAndPort = new HostAndPort(host, port);
 
-            var throttle = throttleByHostAndPort.GetOrAdd(hostAndPort, (_) => new(maxConnectionsPerHost, maxConnectionsPerHost));
-            var pool = poolByHostAndPort.GetOrAdd(hostAndPort, (_) => new());
+            var throttle = throttleByHostAndPort.GetOrAdd(hostAndPort, maxConnectionsPerHost, static (maxConnectionsPerHost) => new(maxConnectionsPerHost, maxConnectionsPerHost));
+            var pool = poolByHostAndPort.GetOrAdd(hostAndPort, static () => new());
 
         getstream:
             throttle.Wait(canceller.Token); //disposing releases throttle so we enter again
@@ -157,8 +157,8 @@ namespace Zerra.CQRS.Network
 
             var hostAndPort = new HostAndPort(host, port);
 
-            var throttle = throttleByHostAndPort.GetOrAdd(hostAndPort, (_) => new(maxConnectionsPerHost, maxConnectionsPerHost));
-            var pool = poolByHostAndPort.GetOrAdd(hostAndPort, (_) => new());
+            var throttle = throttleByHostAndPort.GetOrAdd(hostAndPort, maxConnectionsPerHost, static (maxConnectionsPerHost) => new(maxConnectionsPerHost, maxConnectionsPerHost));
+            var pool = poolByHostAndPort.GetOrAdd(hostAndPort, static () => new());
 
         getstream:
             throttle.Wait(canceller.Token); //disposing releases throttle so we enter again
@@ -243,8 +243,8 @@ namespace Zerra.CQRS.Network
 
             var hostAndPort = new HostAndPort(host, port);
 
-            var throttle = throttleByHostAndPort.GetOrAdd(hostAndPort, (_) => new(maxConnectionsPerHost, maxConnectionsPerHost));
-            var pool = poolByHostAndPort.GetOrAdd(hostAndPort, (_) => new());
+            var throttle = throttleByHostAndPort.GetOrAdd(hostAndPort, maxConnectionsPerHost, static (maxConnectionsPerHost) => new(maxConnectionsPerHost, maxConnectionsPerHost));
+            var pool = poolByHostAndPort.GetOrAdd(hostAndPort, static () => new());
 
         getstream:
             await throttle.WaitAsync(canceller.Token); //disposing releases throttle so we enter again
@@ -346,8 +346,8 @@ namespace Zerra.CQRS.Network
 
             var hostAndPort = new HostAndPort(host, port);
 
-            var throttle = throttleByHostAndPort.GetOrAdd(hostAndPort, (_) => new(maxConnectionsPerHost, maxConnectionsPerHost));
-            var pool = poolByHostAndPort.GetOrAdd(hostAndPort, (_) => new());
+            var throttle = throttleByHostAndPort.GetOrAdd(hostAndPort, maxConnectionsPerHost, static (maxConnectionsPerHost) => new(maxConnectionsPerHost, maxConnectionsPerHost));
+            var pool = poolByHostAndPort.GetOrAdd(hostAndPort, static (maxConnectionsPerHost) => new());
 
         getstream:
             await throttle.WaitAsync(canceller.Token); //disposing releases throttle so we enter again

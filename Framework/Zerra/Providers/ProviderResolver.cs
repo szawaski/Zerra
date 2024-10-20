@@ -44,7 +44,7 @@ namespace Zerra.Providers
             if (!interfaceType.IsInterface)
                 throw new ArgumentException("Generic parameter must be an interface");
 
-            var highestInterfaceType = highestProviderInterfaceTypes.GetOrAdd(providerType, (providerType) =>
+            var highestInterfaceType = highestProviderInterfaceTypes.GetOrAdd(providerType, static (providerType) =>
             {
                 Type? highest = null;
                 var providerTypeDetail = TypeAnalyzer.GetTypeDetail(providerType);

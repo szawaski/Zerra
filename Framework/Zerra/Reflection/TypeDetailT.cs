@@ -26,10 +26,10 @@ namespace Zerra.Reflection
         private MethodDetail<T>? GetMethodInternal(string name, int? parameterCount, Type[]? parameterTypes)
         {
             var key = new TypeKey(name, parameterTypes);
-            MethodDetail<T>? found = null;
             methodLookups ??= new();
-            var method = methodLookups.GetOrAdd(key, (_) =>
+            var method = methodLookups.GetOrAdd(key, MethodDetails, name, parameterCount, parameterTypes, static (MethodDetails, name, parameterCount, parameterTypes) =>
             {
+                MethodDetail<T>? found = null;
                 foreach (var methodDetail in MethodDetails)
                 {
                     if (SignatureCompare(name, parameterCount, parameterTypes, methodDetail))
@@ -97,7 +97,7 @@ namespace Zerra.Reflection
         {
             var key = new TypeKey(parameterTypes);
             constructorLookups ??= new();
-            var constructor = constructorLookups.GetOrAdd(key, (_) =>
+            var constructor = constructorLookups.GetOrAdd(key, ConstructorDetails, parameterTypes, static (ConstructorDetails, parameterTypes) =>
             {
                 foreach (var constructorDetail in ConstructorDetails)
                 {

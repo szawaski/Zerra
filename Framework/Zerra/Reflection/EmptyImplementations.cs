@@ -20,20 +20,14 @@ namespace Zerra.Reflection
         public static Type GetEmptyImplementationType<TInterface>() => GetEmptyImplementationType(typeof(TInterface));
         public static Type GetEmptyImplementationType(Type interfaceType)
         {
-            var classType = emptyImplementations.GetOrAdd(interfaceType, (interfaceType) =>
-            {
-                return GenerateEmptyImplementation(interfaceType);
-            });
+            var classType = emptyImplementations.GetOrAdd(interfaceType, GenerateEmptyImplementation);
             return classType;
         }
 
         public static TInterface GetEmptyImplementation<TInterface>() => (TInterface)GetEmptyImplementation(typeof(TInterface));
         public static object GetEmptyImplementation(Type interfaceType)
         {
-            var classType = emptyImplementations.GetOrAdd(interfaceType, (interfaceType) =>
-            {
-                return GenerateEmptyImplementation(interfaceType);
-            });
+            var classType = emptyImplementations.GetOrAdd(interfaceType, GenerateEmptyImplementation);
             var instance = Instantiator.GetSingle(classType);
             return instance;
         }

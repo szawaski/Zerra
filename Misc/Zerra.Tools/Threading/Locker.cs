@@ -30,7 +30,7 @@ namespace Zerra.Threading
 
         private Locker(string purpose, T key)
         {
-            this.itemLockers = lockerPools.GetOrAdd(purpose, (_) => { return new Dictionary<T, ItemLocker>(); });
+            this.itemLockers = lockerPools.GetOrAdd(purpose, static () => new Dictionary<T, ItemLocker>());
             lock (itemLockers)
             {
                 if (!itemLockers.TryGetValue(key, out var itemLocker))

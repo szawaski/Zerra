@@ -16,10 +16,7 @@ namespace Zerra.Repository.Reflection
         private static readonly ConcurrentFactoryDictionary<MemberInfo, Type> generatedTypes = new();
         public static object Get(MemberInfo memberInfo, CoreType? coreType, bool isByteArray)
         {
-            var generatedType = generatedTypes.GetOrAdd(memberInfo, (memberInfo) =>
-            {
-                return Generate(memberInfo, coreType, isByteArray);
-            });
+            var generatedType = generatedTypes.GetOrAdd(memberInfo, coreType, isByteArray, static (memberInfo, coreType, isByteArray) => Generate(memberInfo, coreType, isByteArray));
             var instance = Instantiator.Create(generatedType);
             return instance;
         }

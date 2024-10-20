@@ -23,7 +23,7 @@ namespace Zerra.Repository.Reflection
         }
         public static ModelDetail GetModel(Type type)
         {
-            var modelInfo = modelInfos.GetOrAdd(type, (type) =>
+            var modelInfo = modelInfos.GetOrAdd(type, static (type) =>
             {
                 var typeDetails = TypeAnalyzer.GetTypeDetail(type);
                 return new ModelDetail(typeDetails);
@@ -40,10 +40,7 @@ namespace Zerra.Repository.Reflection
             else
                 key = new TypeKey(propertyNames, typeof(T));
 
-            var getter = getterFunctionsByAttribute.GetOrAdd(key, (_) =>
-            {
-                return GenerateGetterFunctionByNameOrAttribute<T>(propertyNames, attributeType);
-            });
+            var getter = getterFunctionsByAttribute.GetOrAdd(key, propertyNames, attributeType, static (propertyNames, attributeType) => GenerateGetterFunctionByNameOrAttribute<T>(propertyNames, attributeType));
 
             var expression = (Func<T, object>?)getter;
             return expression;
@@ -104,10 +101,7 @@ namespace Zerra.Repository.Reflection
             else
                 key = new TypeKey(propertyNames, typeof(T));
 
-            var setter = setterFunctionsByAttribute.GetOrAdd(key, (_) =>
-            {
-                return GenerateSetterFunctionByNameOrAttribute<T>(propertyNames, attributeType);
-            });
+            var setter = setterFunctionsByAttribute.GetOrAdd(key, propertyNames, attributeType, static (propertyNames, attributeType) => GenerateSetterFunctionByNameOrAttribute<T>(propertyNames, attributeType));
 
             var expression = (Action<T, object?>)setter;
             return expression;
@@ -171,10 +165,7 @@ namespace Zerra.Repository.Reflection
         private static readonly ConcurrentFactoryDictionary<Type, string[]> identityPropertyNames = new();
         public static string[] GetIdentityPropertyNames(Type type)
         {
-            var names = identityPropertyNames.GetOrAdd(type, (type) =>
-            {
-                return GenerateIdentityPropertyNames(type);
-            });
+            var names = identityPropertyNames.GetOrAdd(type, GenerateIdentityPropertyNames);
             if (names.Length == 0)
                 throw new Exception($"Model {type} missing Identity");
             return names;

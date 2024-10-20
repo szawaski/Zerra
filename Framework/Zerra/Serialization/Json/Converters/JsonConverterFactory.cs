@@ -29,8 +29,8 @@ namespace Zerra.Serialization.Json.Converters
 
         public static JsonConverter<TParent> Get(TypeDetail typeDetail, string memberKey, Delegate? getter, Delegate? setter)
         {
-            var cache2 = cache.GetOrAdd(typeDetail.Type, x => new());
-            var converter = cache2.GetOrAdd(memberKey, x =>
+            var cache2 = cache.GetOrAdd(typeDetail.Type, static () => new());
+            var converter = cache2.GetOrAdd(memberKey, typeDetail, memberKey, getter, setter, static (typeDetail, memberKey, getter, setter) =>
             {
                 var newConverter = Create(typeDetail);
                 //Debug.WriteLine($"{typeDetail.Type.GetNiceName()} - {newConverter.GetType().GetNiceName()}");

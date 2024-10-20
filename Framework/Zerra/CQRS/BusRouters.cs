@@ -17,8 +17,8 @@ namespace Zerra.CQRS
         private static readonly ConcurrentFactoryDictionary<Type, Type> callerClasses = new();
         public static object GetProviderToCallMethodInternalInstance(Type interfaceType, NetworkType networkType, string source)
         {
-            var callerClassType = callerClasses.GetOrAdd(interfaceType, (interfaceType) => GenerateProviderToCallMethodInternalClass(interfaceType));
-            var instance = Instantiator.GetSingle(interfaceType.Name + ((byte)networkType) + source, () => Instantiator.Create(callerClassType, [typeof(NetworkType), typeof(string)], networkType, source));
+            var callerClassType = callerClasses.GetOrAdd(interfaceType, GenerateProviderToCallMethodInternalClass);
+            var instance = Instantiator.GetSingle(interfaceType.Name + ((byte)networkType) + source, callerClassType, networkType, source, static (callerClassType, networkType, source) => Instantiator.Create(callerClassType, [typeof(NetworkType), typeof(string)], networkType, source));
             return instance;
         }
         private static Type GenerateProviderToCallMethodInternalClass(Type interfaceType)
@@ -146,8 +146,8 @@ namespace Zerra.CQRS
         private static readonly ConcurrentFactoryDictionary<Type, Type> dispatcherClasses = new();
         public static object GetHandlerToDispatchInternalInstance(Type interfaceType, bool requireAffirmation, NetworkType networkType, string source, BusLogging busLogging)
         {
-            var dispatcherClassType = dispatcherClasses.GetOrAdd(interfaceType, (interfaceType) => GenerateHandlerToDispatchInternalClass(interfaceType));
-            var instance = Instantiator.GetSingle(interfaceType.Name + (requireAffirmation ? 1 : 0) + (byte)networkType + source, () => Instantiator.Create(dispatcherClassType, [typeof(bool), typeof(NetworkType), typeof(string), typeof(BusLogging)], requireAffirmation, networkType, source, busLogging));
+            var dispatcherClassType = dispatcherClasses.GetOrAdd(interfaceType, GenerateHandlerToDispatchInternalClass);
+            var instance = Instantiator.GetSingle(interfaceType.Name + (requireAffirmation ? 1 : 0) + (byte)networkType + source, dispatcherClassType, requireAffirmation, networkType, source, busLogging, static (dispatcherClassType, requireAffirmation, networkType, source, busLogging) => Instantiator.Create(dispatcherClassType, [typeof(bool), typeof(NetworkType), typeof(string), typeof(BusLogging)], requireAffirmation, networkType, source, busLogging));
             return instance;
         }
         private static Type GenerateHandlerToDispatchInternalClass(Type interfaceType)

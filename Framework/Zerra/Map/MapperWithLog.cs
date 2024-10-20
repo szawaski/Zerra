@@ -48,7 +48,7 @@ namespace Zerra.Map
             var targetType = typeof(TTarget);
 
             var key = new TypeKey(sourceType, targetType);
-            var copyFunc = copyFuncs.GetOrAdd(key, (key) =>
+            var copyFunc = copyFuncs.GetOrAdd(key, sourceType, targetType, static (sourceType, targetType) =>
             {
                 var genericMapType = TypeAnalyzer.GetGenericTypeDetail(mapType, sourceType, targetType);
                 var map = genericMapType.GetMethodBoxed("GetMap").CallerBoxed(null, null);
@@ -68,7 +68,7 @@ namespace Zerra.Map
             var targetType = typeof(TTarget);
 
             var key = new TypeKey(sourceType, targetType);
-            var copyFunc = copyFuncs.GetOrAdd(key, (key) =>
+            var copyFunc = copyFuncs.GetOrAdd(key, sourceType, targetType, static (sourceType, targetType) =>
             {
                 var genericMapType = TypeAnalyzer.GetGenericTypeDetail(mapType, sourceType, targetType);
                 var map = genericMapType.GetMethodBoxed("GetMap").CallerBoxed(null, null);
@@ -90,7 +90,7 @@ namespace Zerra.Map
             var targetType = typeof(TTarget);
 
             var key = new TypeKey(sourceType, targetType);
-            var copyToFunc = copyToFuncs.GetOrAdd(key, (key) =>
+            var copyToFunc = copyToFuncs.GetOrAdd(key, sourceType, targetType, static (sourceType, targetType) =>
             {
                 var genericMapType = TypeAnalyzer.GetGenericTypeDetail(mapType, sourceType, targetType);
                 var map = genericMapType.GetMethodBoxed("GetMap").CallerBoxed(null, null);

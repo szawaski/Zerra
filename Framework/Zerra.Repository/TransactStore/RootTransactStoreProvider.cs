@@ -38,7 +38,7 @@ namespace Zerra.Repository
         private static readonly ConcurrentFactoryDictionary<Type, Type[]> queryManyParameterTypes = new();
         private static Type[] GetQueryManyParameterTypes(Type type)
         {
-            var types = queryManyParameterTypes.GetOrAdd(type, (type) =>
+            var types = queryManyParameterTypes.GetOrAdd(type, static (type) =>
             {
                 var funcGeneric = TypeAnalyzer.GetGenericType(funcType, type, boolType);
                 var expressionGeneric = TypeAnalyzer.GetGenericType(expressionType, funcGeneric);
@@ -51,10 +51,7 @@ namespace Zerra.Repository
         private static readonly ConcurrentFactoryDictionary<Type, GetWhereExpressionMethodInfo?> relatedPropertyGetWhereExpressionMethods = new();
         private static GetWhereExpressionMethodInfo? GetRelatedPropertyGetWhereExpressionMethod(Type type)
         {
-            var relatedPropertyGetWhereExpressionMethod = relatedPropertyGetWhereExpressionMethods.GetOrAdd(type, (type) =>
-            {
-                return GenerateRelatedPropertyGetWhereExpressionMethod(type);
-            });
+            var relatedPropertyGetWhereExpressionMethod = relatedPropertyGetWhereExpressionMethods.GetOrAdd(type, GenerateRelatedPropertyGetWhereExpressionMethod);
             return relatedPropertyGetWhereExpressionMethod;
         }
         private static GetWhereExpressionMethodInfo? GenerateRelatedPropertyGetWhereExpressionMethod(Type type)
@@ -124,10 +121,7 @@ namespace Zerra.Repository
         private static readonly ConcurrentFactoryDictionary<Type, OnQueryMethodInfo?> relatedPropertyOnQueryMethods = new();
         private static OnQueryMethodInfo? GetRelatedPropertyOnQueryMethod(Type type)
         {
-            var relatedPropertyOnQueryMethod = relatedPropertyOnQueryMethods.GetOrAdd(type, (type) =>
-            {
-                return GenerateRelatedPropertyOnQueryMethod(type);
-            });
+            var relatedPropertyOnQueryMethod = relatedPropertyOnQueryMethods.GetOrAdd(type, GenerateRelatedPropertyOnQueryMethod);
             return relatedPropertyOnQueryMethod;
         }
         private static OnQueryMethodInfo? GenerateRelatedPropertyOnQueryMethod(Type type)
@@ -188,10 +182,7 @@ namespace Zerra.Repository
         private static readonly ConcurrentFactoryDictionary<Type, OnGetMethodInfo?> relatedPropertyOnGetMethods = new();
         private static OnGetMethodInfo? GetRelatedPropertyOnGetMethod(Type type)
         {
-            var relatedPropertyOnGetMethod = relatedPropertyOnGetMethods.GetOrAdd(type, (type) =>
-            {
-                return GenerateRelatedPropertyOnGetMethod(type);
-            });
+            var relatedPropertyOnGetMethod = relatedPropertyOnGetMethods.GetOrAdd(type, GenerateRelatedPropertyOnGetMethod);
             return relatedPropertyOnGetMethod;
         }
         private static OnGetMethodInfo? GenerateRelatedPropertyOnGetMethod(Type type)
@@ -1086,7 +1077,7 @@ namespace Zerra.Repository
         private static readonly ConcurrentFactoryDictionary<Type, Type[]> persistEnumerableParameterTypes = new();
         private static Type[] GetPersistEnumerableParameterTypes(Type type)
         {
-            var types = persistEnumerableParameterTypes.GetOrAdd(type, (type) =>
+            var types = persistEnumerableParameterTypes.GetOrAdd(type, static (type) =>
             {
                 var enumerableType = TypeAnalyzer.GetGenericType(RootTransactStoreProvider<TModel>.collectionType, type);
                 var graphGeneric = TypeAnalyzer.GetGenericType(graphType, type);

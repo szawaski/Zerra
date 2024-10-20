@@ -60,7 +60,7 @@ namespace Zerra.Map
         public static MapGeneratorWithLog<TSource, TTarget> GetMap()
         {
             var key = new TypeKey(tType, uType);
-            var map = (MapGeneratorWithLog<TSource, TTarget>)mapsStore.GetOrAdd(key, (_) => { return new MapGeneratorWithLog<TSource, TTarget>(); });
+            var map = (MapGeneratorWithLog<TSource, TTarget>)mapsStore.GetOrAdd(key, static () => new MapGeneratorWithLog<TSource, TTarget>());
             return map;
         }
 
@@ -214,7 +214,7 @@ namespace Zerra.Map
             }
             else
             {
-                var map = compiledGraphMaps.GetOrAdd(graph, (key) => { return CompileMap(graph); });
+                var map = compiledGraphMaps.GetOrAdd(graph, CompileMap);
                 return map(source, target, logger, new Dictionary<MapRecursionKey, object>());
             }
         }
@@ -244,7 +244,7 @@ namespace Zerra.Map
             }
             else
             {
-                var map = compiledGraphMaps.GetOrAdd(graph, (key) => { return CompileMap(graph); });
+                var map = compiledGraphMaps.GetOrAdd(graph, CompileMap);
                 return map(source, target, logger, recursionDictionary);
             }
         }

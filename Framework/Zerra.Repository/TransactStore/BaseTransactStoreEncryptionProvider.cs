@@ -470,7 +470,7 @@ namespace Zerra.Repository
         public static MemberDetail[] GetEncryptableProperties(Type type, Graph? graph)
         {
             var key = new TypeKey(graph?.Signature, type);
-            var props = encryptableProperties.GetOrAdd(key, (_) =>
+            var props = encryptableProperties.GetOrAdd(key, type, graph, static (type, graph) =>
             {
                 var typeDetails = TypeAnalyzer.GetTypeDetail(type);
                 var propertyDetails = typeDetails.MemberDetails.Where(x => x.Type == typeof(string) || x.Type == typeof(byte[])).ToArray();

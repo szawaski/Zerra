@@ -35,7 +35,7 @@ namespace Zerra.CQRS
         {
             if (String.IsNullOrWhiteSpace(messageHost))
                 return null;
-            return servers.GetOrAdd(messageHost, (url) => HttpCqrsServer.CreateDefault(url, symmetricConfig, authorizer, allowOrigins));
+            return servers.GetOrAdd(messageHost, symmetricConfig, authorizer, allowOrigins, static (messageHost, symmetricConfig, authorizer, allowOrigins) => HttpCqrsServer.CreateDefault(messageHost, symmetricConfig, authorizer, allowOrigins));
         }
 
         public IEventProducer? CreateEventProducer(string messageHost, SymmetricConfig? symmetricConfig)
@@ -59,7 +59,7 @@ namespace Zerra.CQRS
         {
             if (String.IsNullOrWhiteSpace(serviceUrl))
                 return null;
-            return servers.GetOrAdd(serviceUrl, (url) => HttpCqrsServer.CreateDefault(url, symmetricConfig, authorizer, allowOrigins));
+            return servers.GetOrAdd(serviceUrl, symmetricConfig, authorizer, allowOrigins, static (serviceUrl, symmetricConfig, authorizer, allowOrigins) => HttpCqrsServer.CreateDefault(serviceUrl, symmetricConfig, authorizer, allowOrigins));
         }
     }
 }

@@ -29,7 +29,7 @@ namespace Zerra.Reflection
         public static MethodDetail<T> GetMethodDetail(string name, Type[]? parameterTypes = null)
         {
             var key = new TypeKey(name, parameterTypes);
-            var method = methodDetailsByType.GetOrAdd(key, (_) => (MethodDetail<T>)TypeAnalyzer.GetMethodDetail(typeof(T), name, parameterTypes));
+            var method = methodDetailsByType.GetOrAdd(key, name, parameterTypes, static (name, parameterTypes) => (MethodDetail<T>)TypeAnalyzer.GetMethodDetail(typeof(T), name, parameterTypes));
             return method ?? throw new ArgumentException($"{typeof(T).GetNiceName()}.{name} method not found");
         }
 
@@ -37,7 +37,7 @@ namespace Zerra.Reflection
         public static ConstructorDetail<T> GetConstructorDetail(Type[]? parameterTypes = null)
         {
             var key = new TypeKey(parameterTypes);
-            var constructor = constructorDetailsByType.GetOrAdd(key, (_) => (ConstructorDetail<T>)TypeAnalyzer.GetConstructorDetail(typeof(T), parameterTypes));
+            var constructor = constructorDetailsByType.GetOrAdd(key, parameterTypes, static (parameterTypes) => (ConstructorDetail<T>)TypeAnalyzer.GetConstructorDetail(typeof(T), parameterTypes));
             return constructor ?? throw new ArgumentException($"{typeof(T).GetNiceName()} constructor not found");
         }
 
@@ -45,7 +45,7 @@ namespace Zerra.Reflection
         public static MethodDetail<T> GetGenericMethodDetail(MethodDetail<T> methodDetail, params Type[] types)
         {
             var key = new TypeKey(methodDetail.MethodInfo.ToString(), types);
-            var genericMethod = genericMethodDetails.GetOrAdd(key, (_) => (MethodDetail<T>)TypeAnalyzer.GetGenericMethodDetail(methodDetail, types));
+            var genericMethod = genericMethodDetails.GetOrAdd(key, methodDetail, types, static (methodDetail, types) => (MethodDetail<T>)TypeAnalyzer.GetGenericMethodDetail(methodDetail, types));
             return genericMethod;
         }
 
@@ -53,7 +53,7 @@ namespace Zerra.Reflection
         public static TypeDetail<T> GetGenericTypeDetail(params Type[] types)
         {
             var key = new TypeKey(types);
-            var genericTypeDetail = genericTypeDetailsByType.GetOrAdd(key, (_) => (TypeDetail<T>)TypeAnalyzer.GetGenericTypeDetail(typeof(T), types));
+            var genericTypeDetail = genericTypeDetailsByType.GetOrAdd(key, types, static (types) => (TypeDetail<T>)TypeAnalyzer.GetGenericTypeDetail(typeof(T), types));
             return genericTypeDetail;
         }
     }

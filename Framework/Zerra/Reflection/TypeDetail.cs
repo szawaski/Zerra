@@ -142,10 +142,10 @@ namespace Zerra.Reflection
                 throw new InvalidOperationException($"Number of parameters does not match the specified count");
 
             var key = new TypeKey(name, parameterCount, parameterTypes);
-            MethodDetail? found = null;
             methodLookupsBoxed ??= new();
-            var method = methodLookupsBoxed.GetOrAdd(key, (_) =>
+            var method = methodLookupsBoxed.GetOrAdd(key, MethodDetailsBoxed, name, parameterCount, parameterTypes, static (MethodDetailsBoxed, name, parameterCount, parameterTypes) =>
             {
+                MethodDetail? found = null;
                 foreach (var methodDetail in MethodDetailsBoxed)
                 {
                     if (SignatureCompare(name, parameterCount, parameterTypes, methodDetail))
@@ -212,10 +212,10 @@ namespace Zerra.Reflection
         private ConstructorDetail? GetConstructorBoxedInternal(int? parameterCount, Type[]? parameterTypes)
         {
             var key = new TypeKey(parameterTypes);
-            ConstructorDetail? found = null;
             constructorLookups ??= new();
-            var constructor = constructorLookups.GetOrAdd(key, (_) =>
+            var constructor = constructorLookups.GetOrAdd(key, ConstructorDetailsBoxed, parameterCount, parameterTypes, static (ConstructorDetailsBoxed, parameterCount, parameterTypes) =>
             {
+                ConstructorDetail? found = null;
                 foreach (var constructorDetail in ConstructorDetailsBoxed)
                 {
                     if (SignatureCompare(parameterCount, parameterTypes, constructorDetail))

@@ -25,7 +25,7 @@ namespace Zerra.CQRS
         {
             if (String.IsNullOrWhiteSpace(messageHost))
                 return null;
-            return servers.GetOrAdd(messageHost, (url) => TcpRawCqrsServer.CreateDefault(url, symmetricConfig));
+            return servers.GetOrAdd(messageHost, symmetricConfig, static (messageHost, symmetricConfig) => TcpRawCqrsServer.CreateDefault(messageHost, symmetricConfig));
         }
 
         public IEventProducer? CreateEventProducer(string messageHost, SymmetricConfig? symmetricConfig)
@@ -49,7 +49,7 @@ namespace Zerra.CQRS
         {
             if (String.IsNullOrWhiteSpace(serviceUrl))
                 return null;
-            return servers.GetOrAdd(serviceUrl, (url) => TcpRawCqrsServer.CreateDefault(url, symmetricConfig));
+            return servers.GetOrAdd(serviceUrl, symmetricConfig, static (serviceUrl, symmetricConfig) => TcpRawCqrsServer.CreateDefault(serviceUrl, symmetricConfig));
         }
     }
 }

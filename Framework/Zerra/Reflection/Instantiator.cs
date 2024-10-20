@@ -12,31 +12,128 @@ namespace Zerra.Reflection
     {
         private static readonly ConcurrentFactoryDictionary<Type, object> singleInstancesByType = new();
         private static readonly ConcurrentFactoryDictionary<string, object> singleInstancesByKey = new();
-        public static T GetSingle<T>(Func<T>? factory = null)
+
+        public static T GetSingle<T>()
             where T : class
         {
             var type = typeof(T);
-            T instance;
-            if (factory is null)
-                instance = (T)singleInstancesByType.GetOrAdd(type, Create);
-            else
-                instance = (T)singleInstancesByType.GetOrAdd(type, factory);
+            var instance = (T)singleInstancesByType.GetOrAdd(type, Create);
             return instance;
         }
-        public static object GetSingle(Type type, Func<object>? factory = null)
+        public static T GetSingle<T>(Func<T> factory)
+            where T : class
+        {
+            var type = typeof(T);
+            var instance = (T)singleInstancesByType.GetOrAdd(type, factory);
+            return instance;
+        }
+        public static T GetSingle<T, TArg1>(TArg1 arg1, Func<TArg1, T> factory)
+            where T : class
+        {
+            var type = typeof(T);
+            var instance = (T)singleInstancesByType.GetOrAdd(type, arg1, factory);
+            return instance;
+        }
+        public static T GetSingle<T, TArg1, TArg2>(TArg1 arg1, TArg2 arg2, Func<TArg1, TArg2, T> factory)
+            where T : class
+        {
+            var type = typeof(T);
+            var instance = (T)singleInstancesByType.GetOrAdd(type, arg1, arg2, factory);
+            return instance;
+        }
+        public static T GetSingle<T, TArg1, TArg2, TArg3>(TArg1 arg1, TArg2 arg2, TArg3 arg3, Func<TArg1, TArg2, TArg3, T> factory)
+            where T : class
+        {
+            var type = typeof(T);
+            var instance = (T)singleInstancesByType.GetOrAdd(type, arg1, arg2, arg3, factory);
+            return instance;
+        }
+        public static T GetSingle<T, TArg1, TArg2, TArg3, TArg4>(TArg1 arg1, TArg2 arg2, TArg3 arg3, TArg4 arg4, Func<TArg1, TArg2, TArg3, TArg4, T> factory)
+            where T : class
+        {
+            var type = typeof(T);
+            var instance = (T)singleInstancesByType.GetOrAdd(type, arg1, arg2, arg3, arg4, factory);
+            return instance;
+        }
+        public static T GetSingle<T, TArg1, TArg2, TArg3, TArg4, TArg5>(TArg1 arg1, TArg2 arg2, TArg3 arg3, TArg4 arg4, TArg5 arg5, Func<TArg1, TArg2, TArg3, TArg4, TArg5, T> factory)
+            where T : class
+        {
+            var type = typeof(T);
+            var instance = (T)singleInstancesByType.GetOrAdd(type, arg1, arg2, arg3, arg4, arg5, factory);
+            return instance;
+        }
+
+        public static object GetSingle(Type type)
         {
             if (!type.IsClass)
                 throw new ArgumentException("Must be a class", nameof(type));
-            object instance;
-            if (factory is null)
-                instance = singleInstancesByType.GetOrAdd(type, Create);
-            else
-                instance = singleInstancesByType.GetOrAdd(type, factory);
+            var instance = singleInstancesByType.GetOrAdd(type, Create);
             return instance;
         }
+        public static object GetSingle<TArg1>(Type type, TArg1 arg1, Func<TArg1, object> factory)
+        {
+            if (!type.IsClass)
+                throw new ArgumentException("Must be a class", nameof(type));
+            var instance = singleInstancesByType.GetOrAdd(type, arg1, factory);
+            return instance;
+        }
+        public static object GetSingle<TArg1, TArg2>(Type type, TArg1 arg1, TArg2 arg2, Func<TArg1, TArg2, object> factory)
+        {
+            if (!type.IsClass)
+                throw new ArgumentException("Must be a class", nameof(type));
+            var instance = singleInstancesByType.GetOrAdd(type, arg1, arg2, factory);
+            return instance;
+        }
+        public static object GetSingle<TArg1, TArg2, TArg3>(Type type, TArg1 arg1, TArg2 arg2, TArg3 arg3, Func<TArg1, TArg2, TArg3, object> factory)
+        {
+            if (!type.IsClass)
+                throw new ArgumentException("Must be a class", nameof(type));
+            var instance = singleInstancesByType.GetOrAdd(type, arg1, arg2, arg3, factory);
+            return instance;
+        }
+        public static object GetSingle<TArg1, TArg2, TArg3, TArg4>(Type type, TArg1 arg1, TArg2 arg2, TArg3 arg3, TArg4 arg4, Func<TArg1, TArg2, TArg3, TArg4, object> factory)
+        {
+            if (!type.IsClass)
+                throw new ArgumentException("Must be a class", nameof(type));
+            var instance = singleInstancesByType.GetOrAdd(type, arg1, arg2, arg3, arg4, factory);
+            return instance;
+        }
+        public static object GetSingle<TArg1, TArg2, TArg3, TArg4, TArg5>(Type type, TArg1 arg1, TArg2 arg2, TArg3 arg3, TArg4 arg4, TArg5 arg5, Func<TArg1, TArg2, TArg3, TArg4, TArg5, object> factory)
+        {
+            if (!type.IsClass)
+                throw new ArgumentException("Must be a class", nameof(type));
+            var instance = singleInstancesByType.GetOrAdd(type, arg1, arg2, arg3, arg4, arg5, factory);
+            return instance;
+        }
+
         public static object GetSingle(string key, Func<object> factory)
         {
             var instance = singleInstancesByKey.GetOrAdd(key, factory);
+            return instance;
+        }
+        public static object GetSingle<TArg1>(string key, TArg1 arg1, Func<TArg1, object> factory)
+        {
+            var instance = singleInstancesByKey.GetOrAdd(key, arg1, factory);
+            return instance;
+        }
+        public static object GetSingle<TArg1, TArg2>(string key, TArg1 arg1, TArg2 arg2, Func<TArg1, TArg2, object> factory)
+        {
+            var instance = singleInstancesByKey.GetOrAdd(key, arg1, arg2, factory);
+            return instance;
+        }
+        public static object GetSingle<TArg1, TArg2, TArg3>(string key, TArg1 arg1, TArg2 arg2, TArg3 arg3, Func<TArg1, TArg2, TArg3, object> factory)
+        {
+            var instance = singleInstancesByKey.GetOrAdd(key, arg1, arg2, arg3, factory);
+            return instance;
+        }
+        public static object GetSingle<TArg1, TArg2, TArg3, TArg4>(string key, TArg1 arg1, TArg2 arg2, TArg3 arg3, TArg4 arg4, Func<TArg1, TArg2, TArg3, TArg4, object> factory)
+        {
+            var instance = singleInstancesByKey.GetOrAdd(key, arg1, arg2, arg3, arg4, factory);
+            return instance;
+        }
+        public static object GetSingle<TArg1, TArg2, TArg3, TArg4, TArg5>(string key, TArg1 arg1, TArg2 arg2, TArg3 arg3, TArg4 arg4, TArg5 arg5, Func<TArg1, TArg2, TArg3, TArg4, TArg5, object> factory)
+        {
+            var instance = singleInstancesByKey.GetOrAdd(key, arg1, arg2, arg3, arg4, arg5, factory);
             return instance;
         }
 

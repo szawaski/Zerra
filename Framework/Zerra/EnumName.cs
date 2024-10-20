@@ -34,16 +34,13 @@ public sealed class EnumName : Attribute
     private static readonly ConcurrentFactoryDictionary<Type, bool> hasFlags = new();
     private static bool HasFlagsAttribute(Type type)
     {
-        return hasFlags.GetOrAdd(type, (type) =>
-        {
-            return type.GetCustomAttribute<FlagsAttribute>() is not null;
-        });
+        return hasFlags.GetOrAdd(type, static (type) => type.GetCustomAttribute<FlagsAttribute>() is not null);
     }
 
     private static readonly ConcurrentFactoryDictionary<Type, CoreType> underlyingTypes = new();
     private static CoreType GetUnderlyingType(Type type)
     {
-        return underlyingTypes.GetOrAdd(type, (type) =>
+        return underlyingTypes.GetOrAdd(type, static (type) =>
         {
             if (!TypeLookup.CoreTypeLookup(Enum.GetUnderlyingType(type), out var underlyingType))
                 throw new NotImplementedException("Should not happen");
@@ -54,7 +51,7 @@ public sealed class EnumName : Attribute
     private static readonly ConcurrentFactoryDictionary<Type, Dictionary<long, string>> nameCache = new();
     private static Dictionary<long, string> GetNamesForType(Type type)
     {
-        var nameLookup = nameCache.GetOrAdd(type, (type) =>
+        var nameLookup = nameCache.GetOrAdd(type, static (type) =>
         {
             var items = new Dictionary<long, string>();
             var fields = type.GetFields();
@@ -310,7 +307,7 @@ public sealed class EnumName : Attribute
     private static readonly ConcurrentFactoryDictionary<Type, Dictionary<string, object>> valueLookups = new();
     private static Dictionary<string, object> GetValuesForType(Type type)
     {
-        var valueLookup = valueLookups.GetOrAdd(type, (type) =>
+        var valueLookup = valueLookups.GetOrAdd(type, static (type) =>
         {
             var items = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             var fields = type.GetFields();

@@ -53,6 +53,27 @@ namespace Zerra.CQRS
         private static int maxConcurrentEventsPerTopic = Environment.ProcessorCount * 16;
         private static CommandCounter commandCounter = new();
 
+
+        private static readonly ConcurrentFactoryDictionary<Type, MessageMetadata> commandMetadata = new();
+        private static readonly ConcurrentFactoryDictionary<Type, Func<ICommand, Task>?> commandCacheProviders = new();
+        private static readonly ConcurrentFactoryDictionary<Type, Delegate?> commandWithResultCacheProviders = new();
+        private static readonly ConcurrentFactoryDictionary<Type, MessageMetadata> eventMetadata = new();
+        private static readonly ConcurrentFactoryDictionary<Type, Func<IEvent, Task>?> eventCacheProviders = new();
+        private static readonly ConcurrentFactoryDictionary<Type, CallMetadata> callMetadata = new();
+        private static readonly ConcurrentFactoryDictionary<Type, object?> callCacheProviders = new();
+        private static readonly ConcurrentDictionary<Type, ICommandProducer> commandProducers = new();
+        private static readonly ConcurrentReadWriteHashSet<ICommandConsumer> commandConsumers = new();
+        private static readonly HashSet<Type> handledCommandTypes = new();
+        private static readonly ConcurrentDictionary<Type, IEventProducer> eventProducers = new();
+        private static readonly ConcurrentReadWriteHashSet<IEventConsumer> eventConsumers = new();
+        private static readonly HashSet<Type> handledEventTypes = new();
+        private static readonly ConcurrentDictionary<Type, IQueryClient> queryClients = new();
+        private static readonly ConcurrentReadWriteHashSet<IQueryServer> queryServers = new();
+        private static readonly HashSet<Type> handledQueryTypes = new();
+        private static IBusLogger? busLogger = null;
+
+
+
         public static async Task<RemoteQueryCallResponse> HandleRemoteQueryCallAsync(Type interfaceType, string methodName, string?[] arguments, string source, bool isApi)
         {
             var networkType = isApi ? NetworkType.Api : NetworkType.Internal;
@@ -125,14 +146,11 @@ namespace Zerra.CQRS
         public static Task DispatchAsync(IEvent @event) => DispatchEventInternalAsync(@event, NetworkType.Local, Config.ApplicationIdentifier);
         public static Task<TResult?> DispatchAwaitAsync<TResult>(ICommand<TResult> command) => DispatchCommandWithResultInternalAsync(command, NetworkType.Local, Config.ApplicationIdentifier);
 
-        private static readonly ConcurrentFactoryDictionary<Type, MessageMetadata> commandMetadata = new();
-        private static readonly ConcurrentFactoryDictionary<Type, Func<ICommand, Task>?> commandCacheProviders = new();
-        private static readonly ConcurrentFactoryDictionary<Type, Delegate?> commandWithResultCacheProviders = new();
         private static Task DispatchCommandInternalAsync(ICommand command, bool requireAffirmation, NetworkType networkType, string source)
         {
             var commandType = command.GetType();
 
-            var metadata = commandMetadata.GetOrAdd(commandType, (commandType) =>
+            var metadata = commandMetadata.GetOrAdd(commandType, networkType, static (commandType, networkType) =>
             {
                 var exposed = false;
                 var busLogging = BusLogging.Logged;
@@ -162,7 +180,7 @@ namespace Zerra.CQRS
             if (metadata.Authenticate)
                 Authenticate(Thread.CurrentPrincipal, metadata.Roles, () => $"Access Denied for Command {commandType.GetNiceName()}");
 
-            var cacheProviderDispatchAsync = commandCacheProviders.GetOrAdd(commandType, (commandType) =>
+            var cacheProviderDispatchAsync = commandCacheProviders.GetOrAdd(commandType, requireAffirmation, networkType, source, metadata, static (commandType, requireAffirmation, networkType, source, metadata) =>
             {
                 var handlerTypeDetail = TypeAnalyzer.GetGenericTypeDetail(iCommandHandlerType, commandType);
 
@@ -202,7 +220,7 @@ namespace Zerra.CQRS
         {
             var commandType = command.GetType();
 
-            var metadata = commandMetadata.GetOrAdd(commandType, (commandType) =>
+            var metadata = commandMetadata.GetOrAdd(commandType, networkType, static (commandType, networkType) =>
             {
                 var exposed = false;
                 var busLogging = BusLogging.Logged;
@@ -232,7 +250,7 @@ namespace Zerra.CQRS
             if (metadata.Authenticate)
                 Authenticate(Thread.CurrentPrincipal, metadata.Roles, () => $"Access Denied for Command {commandType.GetNiceName()}");
 
-            var cacheProviderDispatchAsync = (Func<ICommand<TResult>, Task<TResult?>>?)commandWithResultCacheProviders.GetOrAdd(commandType, (commandType) =>
+            var cacheProviderDispatchAsync = (Func<ICommand<TResult>, Task<TResult?>>?)commandWithResultCacheProviders.GetOrAdd(commandType, networkType, source, metadata, static (commandType, networkType, source, metadata) =>
             {
                 var handlerTypeDetail = TypeAnalyzer.GetGenericTypeDetail(iCommandHandlerWithResultType, commandType, typeof(TResult));
 
@@ -269,13 +287,11 @@ namespace Zerra.CQRS
             return _DispatchCommandWithResultInternalAsync(command, commandType, networkType, source, metadata.BusLogging);
         }
 
-        private static readonly ConcurrentFactoryDictionary<Type, MessageMetadata> eventMetadata = new();
-        private static readonly ConcurrentFactoryDictionary<Type, Func<IEvent, Task>?> eventCacheProviders = new();
         private static Task DispatchEventInternalAsync(IEvent @event, NetworkType networkType, string source)
         {
             var eventType = @event.GetType();
 
-            var metadata = eventMetadata.GetOrAdd(eventType, (eventType) =>
+            var metadata = eventMetadata.GetOrAdd(eventType, networkType, static (eventType, networkType) =>
             {
                 var exposed = false;
                 var busLogging = BusLogging.Logged;
@@ -305,7 +321,7 @@ namespace Zerra.CQRS
             if (metadata.Authenticate)
                 Authenticate(Thread.CurrentPrincipal, metadata.Roles, () => $"Access Denied for Event {eventType.GetNiceName()}");
 
-            var cacheProviderDispatchAsync = eventCacheProviders.GetOrAdd(eventType, (eventType) =>
+            var cacheProviderDispatchAsync = eventCacheProviders.GetOrAdd(eventType, networkType, source, metadata, static (eventType, networkType, source, metadata) =>
             {
                 var handlerTypeDetail = TypeAnalyzer.GetGenericTypeDetail(iEventHandlerType, eventType);
 
@@ -640,11 +656,9 @@ namespace Zerra.CQRS
         public static TInterface Call<TInterface>() => (TInterface)CallInternal(typeof(TInterface), NetworkType.Local, Config.ApplicationIdentifier);
         public static object Call(Type interfaceType) => CallInternal(interfaceType, NetworkType.Local, Config.ApplicationIdentifier);
 
-        private static readonly ConcurrentFactoryDictionary<Type, CallMetadata> callMetadata = new();
-        private static readonly ConcurrentFactoryDictionary<Type, object?> callCacheProviders = new();
         private static object CallInternal(Type interfaceType, NetworkType networkType, string source)
         {
-            var metadata = callMetadata.GetOrAdd(interfaceType, (interfaceType) =>
+            var metadata = callMetadata.GetOrAdd(interfaceType, networkType, static (interfaceType, networkType) =>
             {
                 var exposed = false;
                 var busLogging = BusLogging.Logged;
@@ -676,7 +690,7 @@ namespace Zerra.CQRS
 
             var callerProvider = BusRouters.GetProviderToCallMethodInternalInstance(interfaceType, networkType, source);
 
-            var cacheCallProvider = callCacheProviders.GetOrAdd(interfaceType, (t) =>
+            var cacheCallProvider = callCacheProviders.GetOrAdd(interfaceType, callerProvider, static (interfaceType, callerProvider) =>
             {
                 var busCacheType = Discovery.GetClassByInterface(interfaceType, iBusCacheType, false);
                 if (busCacheType is null)
@@ -705,7 +719,7 @@ namespace Zerra.CQRS
             if (methodDetail.ParameterDetails.Count != arguments.Length)
                 throw new ArgumentException($"{interfaceType.GetNiceName()}.{methodName} invalid number of arguments");
 
-            var metadata = callMetadata.GetOrAdd(interfaceType, (interfaceType) =>
+            var metadata = callMetadata.GetOrAdd(interfaceType, networkType, static (interfaceType, networkType) =>
             {
                 var exposed = false;
                 var busLogging = BusLogging.Logged;
@@ -731,7 +745,7 @@ namespace Zerra.CQRS
                 return new CallMetadata(exposed, busLogging, authenticate, roles);
             });
 
-            var methodMetadata = metadata.MethodMetadata.GetOrAdd(methodDetail, (methodDetail) =>
+            var methodMetadata = metadata.MethodMetadata.GetOrAdd(methodDetail, networkType, metadata, static (methodDetail, networkType, metadata) =>
             {
                 var blocked = false;
                 var busLogging = metadata.BusLogging;
@@ -1014,7 +1028,6 @@ namespace Zerra.CQRS
             }
         }
 
-        private static readonly ConcurrentDictionary<Type, ICommandProducer> commandProducers = new();
         public static void AddCommandProducer<TInterface>(ICommandProducer commandProducer)
         {
             setupLock.Wait();
@@ -1046,8 +1059,6 @@ namespace Zerra.CQRS
             }
         }
 
-        private static readonly ConcurrentReadWriteHashSet<ICommandConsumer> commandConsumers = new();
-        private static readonly HashSet<Type> handledCommandTypes = new();
         public static void AddCommandConsumer(ICommandConsumer commandConsumer)
         {
             setupLock.Wait();
@@ -1091,8 +1102,7 @@ namespace Zerra.CQRS
                 setupLock.Release();
             }
         }
-
-        private static readonly ConcurrentDictionary<Type, IEventProducer> eventProducers = new();
+        
         public static void AddEventProducer<TInterface>(IEventProducer eventProducer)
         {
             setupLock.Wait();
@@ -1119,8 +1129,6 @@ namespace Zerra.CQRS
             }
         }
 
-        private static readonly ConcurrentReadWriteHashSet<IEventConsumer> eventConsumers = new();
-        private static readonly HashSet<Type> handledEventTypes = new();
         public static void AddEventConsumer(IEventConsumer eventConsumer)
         {
             setupLock.Wait();
@@ -1160,7 +1168,6 @@ namespace Zerra.CQRS
             }
         }
 
-        private static readonly ConcurrentDictionary<Type, IQueryClient> queryClients = new();
         public static void AddQueryClient<TInterface>(IQueryClient queryClient)
         {
             setupLock.Wait();
@@ -1187,8 +1194,6 @@ namespace Zerra.CQRS
             }
         }
 
-        private static readonly ConcurrentReadWriteHashSet<IQueryServer> queryServers = new();
-        private static readonly HashSet<Type> handledQueryTypes = new();
         public static void AddQueryServer(IQueryServer queryServer)
         {
             setupLock.Wait();
@@ -1229,7 +1234,6 @@ namespace Zerra.CQRS
             }
         }
 
-        private static IBusLogger? busLogger = null;
         public static void AddLogger(IBusLogger busLogger)
         {
             setupLock.Wait();

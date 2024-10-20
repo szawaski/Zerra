@@ -33,11 +33,7 @@ namespace Zerra.CQRS.Relay
 
             lock (servicesByUrl)
             {
-                var service = servicesByUrl.GetOrAdd(info.Url,
-                (Func<string, RelayConnectedService>)((id) =>
-                {
-                    return new RelayConnectedService() { Url = info.Url };
-                }));
+                var service = servicesByUrl.GetOrAdd(info.Url, static (id, info) => new RelayConnectedService() { Url = info.Url }, info);
 
                 foreach (var serviceByProviderType in servicesByProviderType)
                 {
@@ -48,7 +44,7 @@ namespace Zerra.CQRS.Relay
                 }
                 foreach (var providerType in info.ProviderTypes)
                 {
-                    var servicesForProvider = servicesByProviderType.GetOrAdd(providerType, (key) => { return new ConcurrentDictionary<string, RelayConnectedService>(); });
+                    var servicesForProvider = servicesByProviderType.GetOrAdd(providerType, static (key) => new ConcurrentDictionary<string, RelayConnectedService>());
                     _ = servicesForProvider.TryAdd(info.Url, service);
                     _ = Log.InfoAsync($"Service Added {providerType} {service.Url}");
                 }
