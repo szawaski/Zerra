@@ -17,7 +17,7 @@ namespace Zerra.Reflection
 
         public override string ToString()
         {
-            return $"{Type.Name} {Name}";
+            return $"{(IsGenerated ? "Generated" : "Runtime")} {Type.Name} {Name}";
         }
     }
 }

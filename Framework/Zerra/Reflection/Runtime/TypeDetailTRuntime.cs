@@ -5,6 +5,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -517,38 +518,36 @@ namespace Zerra.Reflection.Runtime
             {
                 if (!hasIsInterfaceLoaded)
                 {
-                    //if (!TypeLookup.CoreTypes.Contains(Type))
-                    //{
-                        var interfaces = new HashSet<string>(Interfaces.Select(x => x.Name));
+                    var interfaces = new HashSet<string>(Interfaces.Select(x => x.Name));
 
-                        hasIEnumerable = Type.IsArray || Type.Name == enumberableTypeName || interfaces.Contains(enumberableTypeName);
-                        hasIEnumerableGeneric = Type.IsArray || Type.Name == enumberableGenericTypeName || interfaces.Contains(enumberableGenericTypeName);
-                        hasICollection = Type.Name == collectionTypeName || interfaces.Contains(collectionTypeName);
-                        hasICollectionGeneric = Type.Name == collectionGenericTypeName || interfaces.Contains(collectionGenericTypeName);
-                        hasIReadOnlyCollectionGeneric = Type.Name == readOnlyCollectionGenericTypeName || interfaces.Contains(readOnlyCollectionGenericTypeName);
-                        hasIList = Type.Name == listTypeName || interfaces.Contains(listTypeName);
-                        hasIListGeneric = Type.Name == listGenericTypeName || interfaces.Contains(listGenericTypeName);
-                        hasIReadOnlyListGeneric = Type.Name == readOnlyListTypeName || interfaces.Contains(readOnlyListTypeName);
-                        hasISetGeneric = Type.Name == setGenericTypeName || interfaces.Contains(setGenericTypeName);
-                        hasIReadOnlySetGeneric = Type.Name == readOnlySetGenericTypeName || interfaces.Contains(readOnlySetGenericTypeName);
-                        hasIDictionary = Type.Name == dictionaryTypeName || interfaces.Contains(dictionaryTypeName);
-                        hasIDictionaryGeneric = Type.Name == dictionaryGenericTypeName || interfaces.Contains(dictionaryGenericTypeName);
-                        hasIReadOnlyDictionaryGeneric = Type.Name == readOnlyDictionaryGenericTypeName || interfaces.Contains(readOnlyDictionaryGenericTypeName);
+                    hasIEnumerable = Type.IsArray || Type.Name == enumberableTypeName || interfaces.Contains(enumberableTypeName);
+                    hasIEnumerableGeneric = Type.IsArray || Type.Name == enumberableGenericTypeName || interfaces.Contains(enumberableGenericTypeName);
+                    hasICollection = Type.Name == collectionTypeName || interfaces.Contains(collectionTypeName);
+                    hasICollectionGeneric = Type.Name == collectionGenericTypeName || interfaces.Contains(collectionGenericTypeName);
+                    hasIReadOnlyCollectionGeneric = Type.Name == readOnlyCollectionGenericTypeName || interfaces.Contains(readOnlyCollectionGenericTypeName);
+                    hasIList = Type.Name == listTypeName || interfaces.Contains(listTypeName);
+                    hasIListGeneric = Type.Name == listGenericTypeName || interfaces.Contains(listGenericTypeName);
+                    hasIReadOnlyListGeneric = Type.Name == readOnlyListTypeName || interfaces.Contains(readOnlyListTypeName);
+                    hasISetGeneric = Type.Name == setGenericTypeName || interfaces.Contains(setGenericTypeName);
+                    hasIReadOnlySetGeneric = Type.Name == readOnlySetGenericTypeName || interfaces.Contains(readOnlySetGenericTypeName);
+                    hasIDictionary = Type.Name == dictionaryTypeName || interfaces.Contains(dictionaryTypeName);
+                    hasIDictionaryGeneric = Type.Name == dictionaryGenericTypeName || interfaces.Contains(dictionaryGenericTypeName);
+                    hasIReadOnlyDictionaryGeneric = Type.Name == readOnlyDictionaryGenericTypeName || interfaces.Contains(readOnlyDictionaryGenericTypeName);
 
-                        isIEnumerable = Type.Name == enumberableTypeName;
-                        isIEnumerableGeneric = Type.Name == enumberableGenericTypeName;
-                        isICollection = Type.Name == collectionTypeName;
-                        isICollectionGeneric = Type.Name == collectionGenericTypeName;
-                        isIReadOnlyCollectionGeneric = Type.Name == readOnlyCollectionGenericTypeName;
-                        isIList = Type.Name == listTypeName;
-                        isIListGeneric = Type.Name == listGenericTypeName;
-                        isIReadOnlyListGeneric = Type.Name == readOnlyListTypeName;
-                        isISetGeneric = Type.Name == setGenericTypeName;
-                        isIReadOnlySetGeneric = Type.Name == readOnlySetGenericTypeName;
-                        isIDictionary = Type.Name == dictionaryTypeName;
-                        isIDictionaryGeneric = Type.Name == dictionaryGenericTypeName;
-                        isIReadOnlyDictionaryGeneric = Type.Name == readOnlyDictionaryGenericTypeName;
-                    //}
+                    isIEnumerable = Type.Name == enumberableTypeName;
+                    isIEnumerableGeneric = Type.Name == enumberableGenericTypeName;
+                    isICollection = Type.Name == collectionTypeName;
+                    isICollectionGeneric = Type.Name == collectionGenericTypeName;
+                    isIReadOnlyCollectionGeneric = Type.Name == readOnlyCollectionGenericTypeName;
+                    isIList = Type.Name == listTypeName;
+                    isIListGeneric = Type.Name == listGenericTypeName;
+                    isIReadOnlyListGeneric = Type.Name == readOnlyListTypeName;
+                    isISetGeneric = Type.Name == setGenericTypeName;
+                    isIReadOnlySetGeneric = Type.Name == readOnlySetGenericTypeName;
+                    isIDictionary = Type.Name == dictionaryTypeName;
+                    isIDictionaryGeneric = Type.Name == dictionaryGenericTypeName;
+                    isIReadOnlyDictionaryGeneric = Type.Name == readOnlyDictionaryGenericTypeName;
+
                     hasIsInterfaceLoaded = true;
                 }
             }
@@ -652,6 +651,140 @@ namespace Zerra.Reflection.Runtime
                 }
                 return memberDetails;
             }
+        }
+
+        private Dictionary<string, MemberDetail>? membersByName = null;
+        private bool membersByNameLoadedAll = false;
+        public override MemberDetail GetMember(string name)
+        {
+            if (membersByName is null)
+            {
+                lock (locker)
+                {
+                    if (membersByName is null)
+                    {
+                        if (memberDetails is not null)
+                        {
+                            membersByName = memberDetails.ToDictionary(x => x.Name);
+                            membersByNameLoadedAll = true;
+                        }
+                        else
+                        {
+                            membersByName = new Dictionary<string, MemberDetail>();
+                        }
+                    }
+                }
+            }
+            if (this.membersByName.TryGetValue(name, out var member))
+                return member;
+
+            if (!membersByNameLoadedAll)
+            {
+                if (TryLoadMembersByName(name, out member))
+                    return member;
+            }
+
+            throw new Exception($"{Type.Name} does not contain member {name}");
+        }
+        public override bool TryGetMember(string name,
+#if !NETSTANDARD2_0
+            [MaybeNullWhen(false)]
+#endif
+        out MemberDetail member)
+        {
+            if (membersByName is null)
+            {
+                lock (locker)
+                {
+                    if (membersByName is null)
+                    {
+                        if (memberDetails is not null)
+                        {
+                            membersByName = memberDetails.ToDictionary(x => x.Name);
+                            membersByNameLoadedAll = true;
+                        }
+                        else
+                        {
+                            membersByName = new Dictionary<string, MemberDetail>();
+                        }
+                    }
+                }
+            }
+            if (this.membersByName.TryGetValue(name, out member))
+                return true;
+
+            if (!membersByNameLoadedAll)
+            {
+                if (TryLoadMembersByName(name, out member))
+                    return true;
+            }
+
+            return false;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool TryLoadMembersByName(string name,
+#if !NETSTANDARD2_0
+            [MaybeNullWhen(false)]
+#endif
+        out MemberDetail member)
+        {
+            lock (locker)
+            {
+                //256 is about where the number of members where performance drops off for individual loading
+                if (memberDetails is not null || membersByName!.Count >= 256)
+                {
+                    foreach (var memberDetail in MemberDetails)
+                    {
+#if NETSTANDARD2_0
+                        if (membersByName!.ContainsKey(memberDetail.Name))
+                            membersByName!.Add(memberDetail.Name, memberDetail);
+#else
+                        _ = membersByName!.TryAdd(memberDetail.Name, memberDetail);
+#endif
+                    }
+                    membersByNameLoadedAll = true;
+                    if (this.membersByName!.TryGetValue(name, out member))
+                        return true;
+                    return false;
+                }
+
+                var property = Type.GetProperty(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+                if (property is not null && property.GetIndexParameters().Length == 0)
+                {
+                    MemberDetail? backingMember = null;
+                    //<{property.Name}>k__BackingField    
+                    //<{property.Name}>i__Field
+                    var backingName = $"<{property.Name}>";
+                    var backingField = Type.GetField(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+                    if (backingField is not null)
+                        backingMember = MemberDetailRuntime<object, object>.New(Type, property.PropertyType, property.Name, backingField, null, false, locker);
+
+                    member = MemberDetailRuntime<object, object>.New(Type, property.PropertyType, property.Name, property, backingMember, false, locker);
+                    membersByName!.Add(member.Name, member);
+                    return true;
+                }
+                var field = Type.GetField(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+                if (field is not null && !field.IsLiteral)
+                {
+                    member = MemberDetailRuntime<object, object>.New(Type, field.FieldType, field.Name, field, null, false, locker);
+                    membersByName!.Add(member.Name, member);
+                    return true;
+                }
+
+                foreach (var memberDetail in MemberDetails)
+                {
+#if NETSTANDARD2_0
+                    if (membersByName!.ContainsKey(memberDetail.Name))
+                        membersByName!.Add(memberDetail.Name, memberDetail);
+#else
+                    _ = membersByName!.TryAdd(memberDetail.Name, memberDetail);
+#endif
+                }
+                membersByNameLoadedAll = true;
+                if (this.membersByName!.TryGetValue(name, out member))
+                    return true;
+            }
+            return false;
         }
 
         private MethodDetail[]? methodDetailsBoxed = null;

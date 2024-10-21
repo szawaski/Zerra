@@ -106,34 +106,12 @@ namespace Zerra.Reflection
         }
 
         private Dictionary<string, MemberDetail>? membersByName = null;
-        public MemberDetail GetMember(string name)
-        {
-            if (membersByName is null)
-            {
-                lock (locker)
-                {
-                    membersByName ??= this.MemberDetails.ToDictionary(x => x.Name);
-                }
-            }
-            if (!this.membersByName.TryGetValue(name, out var member))
-                throw new Exception($"{Type.Name} does not contain member {name}");
-            return member;
-        }
-        public bool TryGetMember(string name,
+        public abstract MemberDetail GetMember(string name);
+        public abstract bool TryGetMember(string name,
 #if !NETSTANDARD2_0
             [MaybeNullWhen(false)]
 #endif
-        out MemberDetail member)
-        {
-            if (membersByName is null)
-            {
-                lock (locker)
-                {
-                    membersByName ??= this.MemberDetails.ToDictionary(x => x.Name);
-                }
-            }
-            return this.membersByName.TryGetValue(name, out member);
-        }
+        out MemberDetail member);
 
         private ConcurrentFactoryDictionary<TypeKey, MethodDetail?>? methodLookupsBoxed = null;
         private MethodDetail? GetMethodBoxedInternal(string name, int? parameterCount, Type[]? parameterTypes)
@@ -347,7 +325,7 @@ namespace Zerra.Reflection
 
         public override string ToString()
         {
-            return $"{Type.Name}";
+            return $"{(IsGenerated ? "Generated" : "Runtime")} {Type.Name}";
         }
 
         public TypeDetail GetRuntimeTypeDetailBoxed()

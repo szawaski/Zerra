@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 
@@ -216,6 +217,36 @@ namespace Zerra.Reflection.Compiletime
             }
         }
 
+        private Dictionary<string, MemberDetail>? membersByName = null;
+        public override sealed MemberDetail GetMember(string name)
+        {
+            if (membersByName is null)
+            {
+                lock (locker)
+                {
+                    membersByName ??= this.MemberDetails.ToDictionary(x => x.Name);
+                }
+            }
+            if (!this.membersByName.TryGetValue(name, out var member))
+                throw new Exception($"{Type.Name} does not contain member {name}");
+            return member;
+        }
+        public override sealed bool TryGetMember(string name,
+#if !NETSTANDARD2_0
+            [MaybeNullWhen(false)]
+#endif
+        out MemberDetail member)
+        {
+            if (membersByName is null)
+            {
+                lock (locker)
+                {
+                    membersByName ??= this.MemberDetails.ToDictionary(x => x.Name);
+                }
+            }
+            return this.membersByName.TryGetValue(name, out member);
+        }
+
         protected abstract Func<Attribute[]> CreateAttributes { get; }
         private Attribute[]? attributes = null;
         public override sealed IReadOnlyList<Attribute> Attributes
@@ -280,7 +311,7 @@ namespace Zerra.Reflection.Compiletime
             {
                 var property = properties.FirstOrDefault(x => x.Name == memberDetail.Name);
                 if (property is not null)
-                {                    
+                {
                     //<{property.Name}>k__BackingField
                     //<{property.Name}>i__Field
                     var backingName = $"<{property.Name}>";

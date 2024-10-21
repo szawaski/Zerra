@@ -33,7 +33,7 @@ namespace Zerra.Reflection
 
         public override string ToString()
         {
-            return $"{Name}({String.Join(",", ParameterDetails.Select(x => x.Type.Name))})";
+            return $"{(IsGenerated ? "Generated" : "Runtime")} {Name}({String.Join(",", ParameterDetails.Select(x => x.Type.Name))})";
         }
     }
 }
