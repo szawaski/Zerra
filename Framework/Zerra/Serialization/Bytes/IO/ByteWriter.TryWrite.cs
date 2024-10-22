@@ -37,15 +37,15 @@ namespace Zerra.Serialization.Bytes.IO
         public unsafe bool TryWriteRaw(byte[] bytes, out int sizeNeeded)
         {
             sizeNeeded = bytes.Length;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             fixed (byte* pBuffer = &buffer[position], pBytes = bytes)
             {
@@ -59,15 +59,15 @@ namespace Zerra.Serialization.Bytes.IO
         public unsafe bool TryWriteEncodedString(ReadOnlySpan<byte> bytes, out int sizeNeeded)
         {
             sizeNeeded = bytes.Length + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             var byteLength = bytes.Length;
 
@@ -91,15 +91,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWriteNull(out int sizeNeeded)
         {
             sizeNeeded = 1;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = nullByte;
             return true;
@@ -108,15 +108,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWriteNotNull(out int sizeNeeded)
         {
             sizeNeeded = 1;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = notNullByte;
             return true;
@@ -126,15 +126,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(bool value, out int sizeNeeded)
         {
             sizeNeeded = 1;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)(value ? 1 : 0);
             return true;
@@ -143,15 +143,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<bool> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -168,15 +168,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<bool?> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength * 2 + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -202,15 +202,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(byte value, out int sizeNeeded)
         {
             sizeNeeded = 1;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = value;
             return true;
@@ -219,15 +219,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<byte> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -244,15 +244,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<byte?> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength * 2 + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -278,15 +278,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(sbyte value, out int sizeNeeded)
         {
             sizeNeeded = 1;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)value;
             return true;
@@ -295,15 +295,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<sbyte> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -320,15 +320,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<sbyte?> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength * 2 + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -354,15 +354,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(short value, out int sizeNeeded)
         {
             sizeNeeded = 2;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)value;
             buffer[position++] = (byte)(value >> 8);
@@ -372,15 +372,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<short> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength * 2 + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -398,15 +398,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<short?> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength * 3 + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -433,15 +433,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(ushort value, out int sizeNeeded)
         {
             sizeNeeded = 2;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)value;
             buffer[position++] = (byte)(value >> 8);
@@ -451,15 +451,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<ushort> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength * 2 + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -477,15 +477,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<ushort?> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength * 3 + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -512,15 +512,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(int value, out int sizeNeeded)
         {
             sizeNeeded = 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)value;
             buffer[position++] = (byte)(value >> 8);
@@ -532,15 +532,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<int> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength * 4 + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -560,15 +560,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<int?> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength * 5 + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -597,15 +597,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(uint value, out int sizeNeeded)
         {
             sizeNeeded = 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)value;
             buffer[position++] = (byte)(value >> 8);
@@ -617,15 +617,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<uint> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength * 4 + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -645,15 +645,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<uint?> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength * 5 + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -682,15 +682,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(long value, out int sizeNeeded)
         {
             sizeNeeded = 8;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)value;
             buffer[position++] = (byte)(value >> 8);
@@ -706,15 +706,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<long> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength * 8 + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -738,15 +738,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<long?> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength * 9 + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -779,15 +779,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(ulong value, out int sizeNeeded)
         {
             sizeNeeded = 8;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)value;
             buffer[position++] = (byte)(value >> 8);
@@ -803,15 +803,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<ulong> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength * 8 + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -835,15 +835,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<ulong?> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength * 9 + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -876,15 +876,15 @@ namespace Zerra.Serialization.Bytes.IO
         public unsafe bool TryWrite(float value, out int sizeNeeded)
         {
             sizeNeeded = 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             var tmpValue = *(uint*)&value;
             buffer[position++] = (byte)tmpValue;
@@ -897,15 +897,15 @@ namespace Zerra.Serialization.Bytes.IO
         public unsafe bool TryWrite(IEnumerable<float> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength * 4 + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -926,15 +926,15 @@ namespace Zerra.Serialization.Bytes.IO
         public unsafe bool TryWrite(IEnumerable<float?> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength * 5 + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -965,15 +965,15 @@ namespace Zerra.Serialization.Bytes.IO
         public unsafe bool TryWrite(double value, out int sizeNeeded)
         {
             sizeNeeded = 8;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             var tmpValue = *(ulong*)&value;
             buffer[position++] = (byte)tmpValue;
@@ -990,15 +990,15 @@ namespace Zerra.Serialization.Bytes.IO
         public unsafe bool TryWrite(IEnumerable<double> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength * 8 + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -1023,15 +1023,15 @@ namespace Zerra.Serialization.Bytes.IO
         public unsafe bool TryWrite(IEnumerable<double?> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength * 9 + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -1066,15 +1066,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(decimal value, out int sizeNeeded)
         {
             sizeNeeded = 16;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             var bits = Decimal.GetBits(value);
             var lo = bits[0];
@@ -1103,15 +1103,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<decimal> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength * 16 + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -1148,15 +1148,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<decimal?> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength * 17 + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -1202,15 +1202,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(DateTime value, out int sizeNeeded)
         {
             sizeNeeded = 8;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)value.Ticks;
             buffer[position++] = (byte)(value.Ticks >> 8);
@@ -1226,15 +1226,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<DateTime> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength * 8 + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -1258,15 +1258,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<DateTime?> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength * 9 + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -1299,15 +1299,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(DateTimeOffset value, out int sizeNeeded)
         {
             sizeNeeded = 10;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)value.Ticks;
             buffer[position++] = (byte)(value.Ticks >> 8);
@@ -1326,15 +1326,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<DateTimeOffset> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength * 10 + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -1361,15 +1361,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<DateTimeOffset?> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength * 11 + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -1405,15 +1405,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(TimeSpan value, out int sizeNeeded)
         {
             sizeNeeded = 8;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)value.Ticks;
             buffer[position++] = (byte)(value.Ticks >> 8);
@@ -1429,15 +1429,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<TimeSpan> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength * 8 + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -1461,15 +1461,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<TimeSpan?> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength * 9 + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -1503,15 +1503,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(DateOnly value, out int sizeNeeded)
         {
             sizeNeeded = 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)value.DayNumber;
             buffer[position++] = (byte)(value.DayNumber >> 8);
@@ -1523,15 +1523,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<DateOnly> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength * 4 + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -1551,15 +1551,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<DateOnly?> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength * 5 + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -1588,15 +1588,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(TimeOnly value, out int sizeNeeded)
         {
             sizeNeeded = 8;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)value.Ticks;
             buffer[position++] = (byte)(value.Ticks >> 8);
@@ -1612,15 +1612,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<TimeOnly> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength * 8 + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -1644,15 +1644,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<TimeOnly?> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength * 9 + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -1686,15 +1686,15 @@ namespace Zerra.Serialization.Bytes.IO
         public unsafe bool TryWrite(Guid value, out int sizeNeeded)
         {
             sizeNeeded = 16;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             var bytes = value.ToByteArray();
             fixed (byte* pBuffer = &buffer[position], pBytes = &bytes[0])
@@ -1711,15 +1711,15 @@ namespace Zerra.Serialization.Bytes.IO
         public unsafe bool TryWrite(IEnumerable<Guid> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength * 16 + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -1744,15 +1744,15 @@ namespace Zerra.Serialization.Bytes.IO
         public unsafe bool TryWrite(IEnumerable<Guid?> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength * 17 + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -1786,15 +1786,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(char value, out int sizeNeeded)
         {
             sizeNeeded = 2;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             Unsafe.As<byte, char>(ref buffer[position]) = value;
             position += 2;
@@ -1804,15 +1804,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<char> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength * 2 + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -1830,15 +1830,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<char?> values, int collectionLength, out int sizeNeeded)
         {
             sizeNeeded = collectionLength * 3 + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             buffer[position++] = (byte)collectionLength;
             buffer[position++] = (byte)(collectionLength >> 8);
@@ -1865,15 +1865,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(string value, out int sizeNeeded)
         {
             sizeNeeded = encoding.GetMaxByteCount(value.Length) + 4;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
 #if NETSTANDARD2_0
             var charBytes = encoding.GetBytes(value);
@@ -1899,15 +1899,15 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 0;
             foreach (var value in values)
                 sizeNeeded += value is null ? 1 : encoding.GetMaxByteCount(value.Length) + 5;
-#if DEBUG
-            if (Skip())
-                return false;
-#endif
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
                     return false;
             }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
 
             foreach (var value in values)
             {
