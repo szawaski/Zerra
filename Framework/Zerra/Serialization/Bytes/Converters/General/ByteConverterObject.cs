@@ -343,7 +343,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
             {
                 //Base will write the property name or index if the value is not null.
                 //Done this way so we don't have to extract the value twice due to null checking.
-                if (!enumerator.Current.Value.Converter.TryWriteFromParent(ref writer, ref state, value, false, enumerator.Current.Key, enumerator.Current.Value.Member.Name))
+                if (!enumerator.Current.Value.Converter.TryWriteFromParent(ref writer, ref state, value, false, enumerator.Current.Key, state.UsePropertyNames ? enumerator.Current.Value.Name : null))
                 {
                     state.Current.Enumerator = enumerator;
                     state.Current.EnumeratorInProgress = true;
@@ -366,7 +366,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
             {
                 if (state.IndexSizeUInt16)
                 {
-                    if (!writer.TryWrite(endObjectFlagUInt16, out state.BytesNeeded))
+                    if (!writer.TryWriteRaw(endObjectFlagUInt16, out state.BytesNeeded))
                     {
                         state.Current.Enumerator = enumerator;
                         return false;

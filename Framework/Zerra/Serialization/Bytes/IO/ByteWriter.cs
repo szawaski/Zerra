@@ -11,6 +11,8 @@ namespace Zerra.Serialization.Bytes.IO
 {
     public ref partial struct ByteWriter
     {
+        internal static readonly Encoding encoding = Encoding.UTF8;
+
         private const byte nullByte = 0;
         private const byte notNullByte = 1;
 
@@ -20,8 +22,6 @@ namespace Zerra.Serialization.Bytes.IO
         private int position;
         private int length;
 
-        private readonly Encoding encoding;
-
         public readonly int Position => position;
         public readonly int Length => length;
 
@@ -30,20 +30,18 @@ namespace Zerra.Serialization.Bytes.IO
             throw new NotSupportedException($"{nameof(ByteWriter)} cannot use default constructor");
         }
 
-        public ByteWriter(Span<byte> buffer, Encoding encoding)
+        public ByteWriter(Span<byte> buffer)
         {
             this.bufferOwner = null;
             this.buffer = buffer;
-            this.encoding = encoding;
             this.position = 0;
             this.length = buffer.Length;
         }
 
-        public ByteWriter(int initialSize, Encoding encoding)
+        public ByteWriter(int initialSize)
         {
             this.bufferOwner = ArrayPoolHelper<byte>.Rent(initialSize);
             this.buffer = bufferOwner;
-            this.encoding = encoding;
             this.position = 0;
             this.length = buffer.Length;
         }

@@ -24,9 +24,5 @@ namespace Zerra.Serialization.Bytes
         /// Size of the property indexes when member names are not used. Use Byte unless the number of properties in an object exceeds 254. Default Byte.
         /// </summary>
         public ByteSerializerIndexSize IndexSize { get; set; } = ByteSerializerIndexSize.Byte;
-        /// <summary>
-        /// The text encoder used for string.  Default System.Text.Encoding.UTF8.
-        /// </summary>
-        public Encoding Encoding { get; set; } = Encoding.UTF8;
     }
 }

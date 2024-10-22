@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using Zerra.Reflection;
+using Zerra.Serialization.Bytes.IO;
 
 namespace Zerra.Serialization.Bytes.Converters.General
 {
@@ -15,6 +16,16 @@ namespace Zerra.Serialization.Bytes.Converters.General
             protected readonly string memberKey;
 
             public readonly MemberDetail Member;
+
+            private byte[]? name = null;
+            public byte[] Name
+            {
+                get
+                {
+                    name ??= ByteWriter.encoding.GetBytes(Member.Name);
+                    return name;
+                }
+            }
 
             public ByteConverterObjectMember(TypeDetail parentTypeDetail, MemberDetail member)
             {

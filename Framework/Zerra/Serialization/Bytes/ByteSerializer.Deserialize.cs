@@ -36,7 +36,7 @@ namespace Zerra.Serialization.Bytes
             };
             T? result;
 
-            Read(converter, bytes, ref state, options.Encoding, out result);
+            Read(converter, bytes, ref state, out result);
 
             if (state.BytesNeeded > 0)
                 throw new EndOfStreamException();
@@ -61,7 +61,7 @@ namespace Zerra.Serialization.Bytes
             };
             object? result;
 
-            ReadBoxed(converter, bytes, ref state, options.Encoding, out result);
+            ReadBoxed(converter, bytes, ref state, out result);
 
             if (state.BytesNeeded > 0)
                 throw new EndOfStreamException();
@@ -117,7 +117,7 @@ namespace Zerra.Serialization.Bytes
 
                 for (; ; )
                 {
-                    var bytesUsed = Read(converter, buffer.AsSpan().Slice(0, length), ref state, options.Encoding, out result);
+                    var bytesUsed = Read(converter, buffer.AsSpan().Slice(0, length), ref state, out result);
 
                     if (state.BytesNeeded == 0)
                     {
@@ -215,7 +215,7 @@ namespace Zerra.Serialization.Bytes
 
                 for (; ; )
                 {
-                    var bytesUsed = ReadBoxed(converter, buffer.AsSpan().Slice(0, length), ref state, options.Encoding, out result);
+                    var bytesUsed = ReadBoxed(converter, buffer.AsSpan().Slice(0, length), ref state, out result);
 
                     if (state.BytesNeeded == 0)
                     {
@@ -312,7 +312,7 @@ namespace Zerra.Serialization.Bytes
 
                 for (; ; )
                 {
-                    var usedBytes = Read(converter, buffer.AsSpan().Slice(0, length), ref state, options.Encoding, out result);
+                    var usedBytes = Read(converter, buffer.AsSpan().Slice(0, length), ref state, out result);
 
                     if (state.BytesNeeded == 0)
                     {
@@ -410,7 +410,7 @@ namespace Zerra.Serialization.Bytes
 
                 for (; ; )
                 {
-                    var bytesUsed = ReadBoxed(converter, buffer.AsSpan().Slice(0, length), ref state, options.Encoding, out result);
+                    var bytesUsed = ReadBoxed(converter, buffer.AsSpan().Slice(0, length), ref state, out result);
 
                     if (state.BytesNeeded == 0)
                     {
@@ -460,9 +460,9 @@ namespace Zerra.Serialization.Bytes
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int Read<T>(ByteConverter<object, T> converter, ReadOnlySpan<byte> buffer, ref ReadState state, Encoding encoding, out T? result)
+        private static int Read<T>(ByteConverter<object, T> converter, ReadOnlySpan<byte> buffer, ref ReadState state, out T? result)
         {
-            var reader = new ByteReader(buffer, encoding);
+            var reader = new ByteReader(buffer);
 #if DEBUG
         again:
 #endif
@@ -487,9 +487,9 @@ namespace Zerra.Serialization.Bytes
             return reader.Position;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int ReadBoxed(ByteConverter converter, ReadOnlySpan<byte> buffer, ref ReadState state, Encoding encoding, out object? result)
+        private static int ReadBoxed(ByteConverter converter, ReadOnlySpan<byte> buffer, ref ReadState state, out object? result)
         {
-            var reader = new ByteReader(buffer, encoding);
+            var reader = new ByteReader(buffer);
 #if DEBUG
         again:
 #endif

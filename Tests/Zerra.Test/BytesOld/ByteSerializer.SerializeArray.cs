@@ -6,6 +6,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Text;
 using Zerra.Reflection;
 using Zerra.Serialization.Bytes.IO;
 
@@ -40,7 +41,7 @@ namespace Zerra.Serialization.Bytes
             var typeDetail = GetTypeInformation(type, options.IndexSize, options.IgnoreIndexAttribute);
 
 #if DEBUG
-            var writer = new ByteWriterOld(Testing ? 1 : defaultBufferSize, options.Encoding);
+            var writer = new ByteWriterOld(Testing ? 1 : defaultBufferSize, Encoding.UTF8);
 #else
             var writer = new ByteWriterOld(defaultBufferSize, options.Encoding);
 #endif

@@ -56,7 +56,7 @@ namespace Zerra.Serialization.Bytes
 
                 for (; ; )
                 {
-                    var usedBytes = Write(buffer.AsSpan().Slice(position), ref state, options.Encoding);
+                    var usedBytes = Write(buffer.AsSpan().Slice(position), ref state, Encoding.UTF8);
 
                     position += usedBytes;
 
@@ -125,7 +125,7 @@ namespace Zerra.Serialization.Bytes
 
                 for (; ; )
                 {
-                    var usedBytes = Write(buffer, ref state, options.Encoding);
+                    var usedBytes = Write(buffer, ref state, Encoding.UTF8);
 
 #if NETSTANDARD2_0
                     stream.Write(buffer, 0, usedBytes);
@@ -205,7 +205,7 @@ namespace Zerra.Serialization.Bytes
 
                 for (; ; )
                 {
-                    var usedBytes = Write(buffer, ref state, options.Encoding);
+                    var usedBytes = Write(buffer, ref state, Encoding.UTF8);
 
 #if NETSTANDARD2_0
                     await stream.WriteAsync(buffer, 0, usedBytes);

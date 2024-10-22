@@ -7,6 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text;
 using Zerra.Reflection;
 using Zerra.Serialization.Bytes.IO;
 
@@ -31,7 +32,7 @@ namespace Zerra.Serialization.Bytes
 
             var typeDetail = GetTypeInformation(type, options.IndexSize, options.IgnoreIndexAttribute);
 
-            var reader = new ByteReaderOld(bytes, options.Encoding);
+            var reader = new ByteReaderOld(bytes, Encoding.UTF8);
             var obj = FromBytes(ref reader, typeDetail, true, false, ref optionsStruct);
             return obj;
         }

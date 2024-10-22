@@ -588,13 +588,13 @@ namespace Zerra.Serialization.Bytes.Converters
             state.Current.ChildHasNullChecked = false;
             return true;
         }
-        public override sealed bool TryWriteFromParent(ref ByteWriter writer, ref WriteState state, TParent parent, bool nullFlags, ushort indexProperty, string? indexPropertyName)
+        public override sealed bool TryWriteFromParent(ref ByteWriter writer, ref WriteState state, TParent parent, bool nullFlags, ushort indexProperty, ReadOnlySpan<byte> indexPropertyName)
         {
             if (getter is null)
                 return true;
             var value = getter(parent);
 
-            var writeProperty = (!state.UsePropertyNames && indexProperty > 0) || (state.UsePropertyNames && indexPropertyName is not null);
+            var writeProperty = (!state.UsePropertyNames && indexProperty > 0) || (state.UsePropertyNames && indexPropertyName.Length>0);
 
             if (writeProperty)
             {
@@ -620,7 +620,7 @@ namespace Zerra.Serialization.Bytes.Converters
                 {
                     if (state.UsePropertyNames)
                     {
-                        if (!writer.TryWrite(indexPropertyName!, out state.BytesNeeded))
+                        if (!writer.TryWriteEncodedString(indexPropertyName, out state.BytesNeeded))
                         {
                             state.Current.ChildHasWrittenIsNull = true;
                             return false;

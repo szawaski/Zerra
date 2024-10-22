@@ -35,7 +35,7 @@ namespace Zerra.Serialization.Bytes
                 IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,
             };
 
-            var result = Write(converter, defaultBufferSize, ref state, options.Encoding, obj);
+            var result = Write(converter, defaultBufferSize, ref state, obj);
 
             if (state.BytesNeeded > 0)
                 throw new EndOfStreamException();
@@ -60,7 +60,7 @@ namespace Zerra.Serialization.Bytes
                 IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,
             };
 
-            var result = WriteBoxed(converter, defaultBufferSize, ref state, options.Encoding, obj);
+            var result = WriteBoxed(converter, defaultBufferSize, ref state, obj);
 
             if (state.BytesNeeded > 0)
                 throw new EndOfStreamException();
@@ -88,7 +88,7 @@ namespace Zerra.Serialization.Bytes
                 IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
             };
 
-            var result = WriteBoxed(converter, defaultBufferSize, ref state, options.Encoding, obj);
+            var result = WriteBoxed(converter, defaultBufferSize, ref state, obj);
 
             if (state.BytesNeeded > 0)
                 throw new EndOfStreamException();
@@ -122,7 +122,7 @@ namespace Zerra.Serialization.Bytes
 
                 for (; ; )
                 {
-                    var usedBytes = Write(converter, buffer, ref state, options.Encoding, obj);
+                    var usedBytes = Write(converter, buffer, ref state, obj);
 
 #if NETSTANDARD2_0
                     stream.Write(buffer, 0, usedBytes);
@@ -171,7 +171,7 @@ namespace Zerra.Serialization.Bytes
 
                 for (; ; )
                 {
-                    var usedBytes = WriteBoxed(converter, buffer, ref state, options.Encoding, obj);
+                    var usedBytes = WriteBoxed(converter, buffer, ref state, obj);
 
 #if NETSTANDARD2_0
                     stream.Write(buffer, 0, usedBytes);
@@ -222,7 +222,7 @@ namespace Zerra.Serialization.Bytes
 
                 for (; ; )
                 {
-                    var usedBytes = WriteBoxed(converter, buffer, ref state, options.Encoding, obj);
+                    var usedBytes = WriteBoxed(converter, buffer, ref state, obj);
 
 #if NETSTANDARD2_0
                     stream.Write(buffer, 0, usedBytes);
@@ -272,7 +272,7 @@ namespace Zerra.Serialization.Bytes
 
                 for (; ; )
                 {
-                    var usedBytes = Write(converter, buffer, ref state, options.Encoding, obj);
+                    var usedBytes = Write(converter, buffer, ref state, obj);
 
 #if NETSTANDARD2_0
                     await stream.WriteAsync(buffer, 0, usedBytes);
@@ -326,7 +326,7 @@ namespace Zerra.Serialization.Bytes
 
                 for (; ; )
                 {
-                    var usedBytes = WriteBoxed(converter, buffer, ref state, options.Encoding, obj);
+                    var usedBytes = WriteBoxed(converter, buffer, ref state, obj);
 
 #if NETSTANDARD2_0
                     await stream.WriteAsync(buffer, 0, usedBytes);
@@ -382,7 +382,7 @@ namespace Zerra.Serialization.Bytes
 
                 for (; ; )
                 {
-                    var usedBytes = WriteBoxed(converter, buffer, ref state, options.Encoding, obj);
+                    var usedBytes = WriteBoxed(converter, buffer, ref state, obj);
 
 #if NETSTANDARD2_0
                     await stream.WriteAsync(buffer, 0, usedBytes);
@@ -407,9 +407,9 @@ namespace Zerra.Serialization.Bytes
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static byte[] Write<T>(ByteConverter<object, T> converter, int initialSize, ref WriteState state, Encoding encoding, T value)
+        private static byte[] Write<T>(ByteConverter<object, T> converter, int initialSize, ref WriteState state, T value)
         {
-            var writer = new ByteWriter(initialSize, encoding);
+            var writer = new ByteWriter(initialSize);
             try
             {
 #if DEBUG
@@ -442,9 +442,9 @@ namespace Zerra.Serialization.Bytes
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static byte[] WriteBoxed(ByteConverter<object> converter, int initialSize, ref WriteState state, Encoding encoding, object value)
+        private static byte[] WriteBoxed(ByteConverter<object> converter, int initialSize, ref WriteState state, object value)
         {
-            var writer = new ByteWriter(initialSize, encoding);
+            var writer = new ByteWriter(initialSize);
             try
             {
 #if DEBUG
@@ -478,9 +478,9 @@ namespace Zerra.Serialization.Bytes
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int Write<T>(ByteConverter<object, T> converter, Span<byte> buffer, ref WriteState state, Encoding encoding, T value)
+        private static int Write<T>(ByteConverter<object, T> converter, Span<byte> buffer, ref WriteState state, T value)
         {
-            var writer = new ByteWriter(buffer, encoding);
+            var writer = new ByteWriter(buffer);
 #if DEBUG
         again:
 #endif
@@ -505,9 +505,9 @@ namespace Zerra.Serialization.Bytes
             return writer.Position;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int WriteBoxed(ByteConverter<object> converter, Span<byte> buffer, ref WriteState state, Encoding encoding, object value)
+        private static int WriteBoxed(ByteConverter<object> converter, Span<byte> buffer, ref WriteState state, object value)
         {
-            var writer = new ByteWriter(buffer, encoding);
+            var writer = new ByteWriter(buffer);
 #if DEBUG
         again:
 #endif

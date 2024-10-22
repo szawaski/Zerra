@@ -10,14 +10,14 @@ namespace Zerra.Serialization.Bytes.IO
 {
     public ref partial struct ByteReader
     {
+        internal static readonly Encoding encoding = Encoding.UTF8;
+
         private const byte nullByte = 0;
 
         private readonly ReadOnlySpan<byte> buffer;
 
         private int position;
         private readonly int length;
-
-        private readonly Encoding encoding;
 
         public readonly int Position => position;
         public readonly int Length => length;
@@ -27,10 +27,9 @@ namespace Zerra.Serialization.Bytes.IO
             throw new NotSupportedException($"{nameof(ByteReader)} cannot use default constructor");
         }
 
-        public ByteReader(ReadOnlySpan<byte> bytes, Encoding encoding)
+        public ByteReader(ReadOnlySpan<byte> bytes)
         {
             this.buffer = bytes;
-            this.encoding = encoding;
             this.position = 0;
             this.length = bytes.Length;
         }

@@ -15,7 +15,6 @@ namespace Zerra.Serialization.Bytes
     -Option UsePropertyTypes - Include object types to record and instanciate the exact instance type which is useful when properties are boxed/interfaced/polymorphic. Significant data size and performance penalty.
     -Option IgnoreIndexAttribute - Disreguard all SerializerIndex attributes and rely on ordering.
     -Option IndexSize - Increase property index size from byte to ushort to allow indexes of 0 to 65534. Some data size increase.
-    -Option Encoding - Change the default string encoder from UTF8.  Does not affect char or collections of char.
 
     Object:
         CoreType: {bool-notNull}{TypeInfo?}{Segment-TypeData}
@@ -35,9 +34,7 @@ namespace Zerra.Serialization.Bytes
     /// </summary>
     public static partial class ByteSerializer
     {
-        private const int defaultBufferSize = 8 * 1024;
-
-        private static readonly Encoding defaultEncoding = Encoding.UTF8;
+        private const int defaultBufferSize = 8 * 1024;        
 
         private static readonly ByteSerializerOptions defaultOptions = new();
     }

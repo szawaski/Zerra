@@ -38,7 +38,7 @@ namespace Zerra.Serialization.Bytes
             };
             state.CurrentFrame = ReadFrameFromType(ref state, typeDetail, false, true);
 
-            Read(bytes, ref state, options.Encoding);
+            Read(bytes, ref state, Encoding.UTF8);
 
             if (!state.Ended || state.BytesNeeded > 0)
                 throw new EndOfStreamException();
@@ -105,7 +105,7 @@ namespace Zerra.Serialization.Bytes
 
                 for (; ; )
                 {
-                    var bytesUsed = Read(buffer.AsSpan().Slice(0, read), ref state, options.Encoding);
+                    var bytesUsed = Read(buffer.AsSpan().Slice(0, read), ref state, Encoding.UTF8);
 
                     if (state.Ended)
                         break;
@@ -209,7 +209,7 @@ namespace Zerra.Serialization.Bytes
 
                 for (; ; )
                 {
-                    var usedBytes = Read(buffer.AsSpan().Slice(0, length), ref state, options.Encoding);
+                    var usedBytes = Read(buffer.AsSpan().Slice(0, length), ref state, Encoding.UTF8);
 
                     if (state.Ended)
                         break;
@@ -312,7 +312,7 @@ namespace Zerra.Serialization.Bytes
 
                 for (; ; )
                 {
-                    var bytesUsed = Read(buffer.AsSpan().Slice(0, read), ref state, options.Encoding);
+                    var bytesUsed = Read(buffer.AsSpan().Slice(0, read), ref state, Encoding.UTF8);
 
                     if (state.Ended)
                         break;
