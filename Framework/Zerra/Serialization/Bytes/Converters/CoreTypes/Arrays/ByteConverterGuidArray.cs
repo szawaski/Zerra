@@ -11,23 +11,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.Arrays
     internal sealed class ByteConverterGuidArray<TParent> : ByteConverter<TParent, Guid[]>
     {
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out Guid[]? value)
-        {
-            if (!state.Current.EnumerableLength.HasValue)
-            {
-                if (!reader.TryRead(out state.Current.EnumerableLength, out state.BytesNeeded))
-                {
-                    value = default;
-                    return false;
-                }
-            }
-
-            if (!reader.TryRead(state.Current.EnumerableLength!.Value, out value, out state.BytesNeeded))
-            {
-                return false;
-            }
-
-            return true;
-        }
+            => reader.TryRead(out value, out state.BytesNeeded);
 
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in Guid[] value)
             => writer.TryWrite(value, value.Length, out state.BytesNeeded);

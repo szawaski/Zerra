@@ -12,16 +12,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.IListTs
     {
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out IList<decimal?>? value)
         {
-            if (!state.Current.EnumerableLength.HasValue)
-            {
-                if (!reader.TryRead(out state.Current.EnumerableLength, out state.BytesNeeded))
-                {
-                    value = default;
-                    return false;
-                }
-            }
-
-            if (!reader.TryRead(state.Current.EnumerableLength!.Value, out List<decimal?>? valueTyped, out state.BytesNeeded))
+            if (!reader.TryRead(out List<decimal?>? valueTyped, out state.BytesNeeded))
             {
                 value = default;
                 return false;

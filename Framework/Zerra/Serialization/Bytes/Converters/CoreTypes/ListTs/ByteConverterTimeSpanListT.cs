@@ -12,23 +12,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.ListTs
     internal sealed class ByteConverterTimeSpanList<TParent> : ByteConverter<TParent, List<TimeSpan>>
     {
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out List<TimeSpan>? value)
-        {
-            if (!state.Current.EnumerableLength.HasValue)
-            {
-                if (!reader.TryRead(out state.Current.EnumerableLength, out state.BytesNeeded))
-                {
-                    value = default;
-                    return false;
-                }
-            }
-
-            if (!reader.TryRead(state.Current.EnumerableLength!.Value, out value, out state.BytesNeeded))
-            {
-                return false;
-            }
-
-            return true;
-        }
+            => reader.TryRead(out value, out state.BytesNeeded);
 
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in List<TimeSpan> value)
             => writer.TryWrite(value, value.Count, out state.BytesNeeded);

@@ -35,29 +35,24 @@ namespace Zerra.Serialization.Bytes.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool SeekNullableSizeNeeded(int length, int sizePerElement, out int sizeNeeded)
+        public unsafe bool SeekNullableSizeNeeded(int collectionLength, int sizePerElement, ref int sizeNeeded)
         {
-            if (length == 0)
-            {
-                sizeNeeded = 0;
-                return true;
-            }
-
-            sizeNeeded = 0;
             var tempPosition = position;
-
-            for (var i = 0; i < length; i++)
+            fixed (byte* pBuffer = buffer)
             {
-                sizeNeeded += 1;
-                if (this.length - position < sizeNeeded)
-                    return false;
-                if (buffer[tempPosition++] is not nullByte)
+                for (var i = 0; i < collectionLength; i++)
                 {
-                    sizeNeeded += sizePerElement;
-                    tempPosition += sizePerElement;
-                    if (this.length - position < sizeNeeded)
+                    sizeNeeded += 1;
+                    if (length - position < sizeNeeded)
                         return false;
-                }    
+                    if (pBuffer[tempPosition++] is not nullByte)
+                    {
+                        sizeNeeded += sizePerElement;
+                        tempPosition += sizePerElement;
+                        if (length - position < sizeNeeded)
+                            return false;
+                    }
+                }
             }
 
             return true;

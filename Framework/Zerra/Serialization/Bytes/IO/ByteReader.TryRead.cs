@@ -6,6 +6,8 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
+#pragma warning disable IDE0028 // Simplify collection initialization
+
 namespace Zerra.Serialization.Bytes.IO
 {
     public partial struct ByteReader
@@ -37,7 +39,7 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryReadIsNull(out bool value, out int sizeNeeded)
         {
             sizeNeeded = 1;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -56,7 +58,7 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryRead(out bool value, out int sizeNeeded)
         {
             sizeNeeded = 1;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -88,67 +90,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out bool[]? value, out int sizeNeeded)
+        public bool TryRead(out bool[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new bool[length];
-            for (var i = 0; i < length; i++)
-            {
-                var item = buffer[position++] != 0;
-                value[i] = item;
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out List<bool>? value, out int sizeNeeded)
-        {
-            sizeNeeded = length;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<bool>(length);
-            for (var i = 0; i < length; i++)
-            {
-                var item = buffer[position++] != 0;
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out HashSet<bool>? value, out int sizeNeeded)
-        {
-            sizeNeeded = length;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-#if NETSTANDARD2_0
-            value = new HashSet<bool>();
-#else
-            value = new HashSet<bool>(length);
-#endif
-            for (var i = 0; i < length; i++)
-            {
-                var item = buffer[position++] != 0;
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out bool?[]? value, out int sizeNeeded)
-        {
-            if (!SeekNullableSizeNeeded(length, 1, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -158,8 +103,144 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new bool?[length];
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<bool>();
+                return true;
+            }
+
+            sizeNeeded = collectionLength;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new bool[collectionLength];
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var item = buffer[position++] != 0;
+                value[i] = item;
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out List<bool>? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<bool>(0);
+                return true;
+            }
+
+            sizeNeeded = collectionLength;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<bool>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var item = buffer[position++] != 0;
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out HashSet<bool>? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+#if NETSTANDARD2_0
+                value = new HashSet<bool>();
+#else
+                value = new HashSet<bool>(0);
+#endif
+                return true;
+            }
+
+            sizeNeeded = collectionLength;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+#if NETSTANDARD2_0
+            value = new HashSet<bool>();
+#else
+            value = new HashSet<bool>(collectionLength);
+#endif
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var item = buffer[position++] != 0;
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out bool?[]? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<bool?>();
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 1, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new bool?[collectionLength];
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -170,9 +251,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out List<bool?>? value, out int sizeNeeded)
+        public bool TryRead(out List<bool?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 1, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -182,8 +264,22 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new List<bool?>(length);
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<bool?>(0);
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 1, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<bool?>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -198,9 +294,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out HashSet<bool?>? value, out int sizeNeeded)
+        public bool TryRead(out HashSet<bool?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 1, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -210,12 +307,30 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+#if NETSTANDARD2_0
+                value = new HashSet<bool?>();
+#else
+                value = new HashSet<bool?>(0);
+#endif
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 1, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
 #if NETSTANDARD2_0
             value = new HashSet<bool?>();
 #else
-            value = new HashSet<bool?>(length);
+            value = new HashSet<bool?>(collectionLength);
 #endif
-            for (var i = 0; i < length; i++)
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -234,7 +349,7 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryRead(out byte value, out int sizeNeeded)
         {
             sizeNeeded = 1;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -251,7 +366,7 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryRead(out byte? value, out int sizeNeeded)
         {
             sizeNeeded = 1;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -265,69 +380,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryRead(int length, out byte[]? value, out int sizeNeeded)
+        public unsafe bool TryRead(out byte[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new byte[length];
-            fixed (byte* pArray = value)
-            {
-                for (var i = 0; i < length; i++)
-                {
-                    pArray[i] = buffer[position++];
-                }
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out List<byte>? value, out int sizeNeeded)
-        {
-            sizeNeeded = length;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<byte>(length);
-            for (var i = 0; i < length; i++)
-            {
-                var item = buffer[position++];
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out HashSet<byte>? value, out int sizeNeeded)
-        {
-            sizeNeeded = length;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-#if NETSTANDARD2_0
-            value = new HashSet<byte>();
-#else
-            value = new HashSet<byte>(length);
-#endif
-            for (var i = 0; i < length; i++)
-            {
-                var item = buffer[position++];
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out byte?[]? value, out int sizeNeeded)
-        {
-            if (!SeekNullableSizeNeeded(length, 1, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -337,8 +393,146 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new byte?[length];
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<byte>();
+                return true;
+            }
+
+            sizeNeeded = collectionLength;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new byte[collectionLength];
+            fixed (byte* pArray = value)
+            {
+                for (var i = 0; i < collectionLength; i++)
+                {
+                    pArray[i] = buffer[position++];
+                }
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out List<byte>? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<byte>(0);
+                return true;
+            }
+
+            sizeNeeded = collectionLength;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<byte>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var item = buffer[position++];
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out HashSet<byte>? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+#if NETSTANDARD2_0
+                value = new HashSet<byte>();
+#else
+                value = new HashSet<byte>(0);
+#endif
+                return true;
+            }
+
+            sizeNeeded = collectionLength;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+#if NETSTANDARD2_0
+            value = new HashSet<byte>();
+#else
+            value = new HashSet<byte>(collectionLength);
+#endif
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var item = buffer[position++];
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out byte?[]? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<byte?>();
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 1, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new byte?[collectionLength];
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -349,9 +543,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out List<byte?>? value, out int sizeNeeded)
+        public bool TryRead(out List<byte?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 1, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -361,8 +556,22 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new List<byte?>(length);
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<byte?>(0);
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 1, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<byte?>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -377,9 +586,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out HashSet<byte?>? value, out int sizeNeeded)
+        public bool TryRead(out HashSet<byte?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 1, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -389,12 +599,30 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+#if NETSTANDARD2_0
+                value = new HashSet<byte?>();
+#else
+                value = new HashSet<byte?>(0);
+#endif
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 1, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
 #if NETSTANDARD2_0
             value = new HashSet<byte?>();
 #else
-            value = new HashSet<byte?>(length);
+            value = new HashSet<byte?>(collectionLength);
 #endif
-            for (var i = 0; i < length; i++)
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -413,7 +641,7 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryRead(out sbyte value, out int sizeNeeded)
         {
             sizeNeeded = 1;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -430,7 +658,7 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryRead(out sbyte? value, out int sizeNeeded)
         {
             sizeNeeded = 1;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -444,67 +672,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out sbyte[]? value, out int sizeNeeded)
+        public bool TryRead(out sbyte[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new sbyte[length];
-            for (var i = 0; i < length; i++)
-            {
-                var item = (sbyte)buffer[position++];
-                value[i] = item;
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out List<sbyte>? value, out int sizeNeeded)
-        {
-            sizeNeeded = length;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<sbyte>(length);
-            for (var i = 0; i < length; i++)
-            {
-                var item = (sbyte)buffer[position++];
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out HashSet<sbyte>? value, out int sizeNeeded)
-        {
-            sizeNeeded = length;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-#if NETSTANDARD2_0
-            value = new HashSet<sbyte>();
-#else
-            value = new HashSet<sbyte>(length);
-#endif
-            for (var i = 0; i < length; i++)
-            {
-                var item = (sbyte)buffer[position++];
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out sbyte?[]? value, out int sizeNeeded)
-        {
-            if (!SeekNullableSizeNeeded(length, 1, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -514,8 +685,144 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new sbyte?[length];
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<sbyte>();
+                return true;
+            }
+
+            sizeNeeded = collectionLength;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new sbyte[collectionLength];
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var item = (sbyte)buffer[position++];
+                value[i] = item;
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out List<sbyte>? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<sbyte>(0);
+                return true;
+            }
+
+            sizeNeeded = collectionLength;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<sbyte>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var item = (sbyte)buffer[position++];
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out HashSet<sbyte>? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+#if NETSTANDARD2_0
+                value = new HashSet<sbyte>();
+#else
+                value = new HashSet<sbyte>(0);
+#endif
+                return true;
+            }
+
+            sizeNeeded = collectionLength;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+#if NETSTANDARD2_0
+            value = new HashSet<sbyte>();
+#else
+            value = new HashSet<sbyte>(collectionLength);
+#endif
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var item = (sbyte)buffer[position++];
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out sbyte?[]? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<sbyte?>();
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 1, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new sbyte?[collectionLength];
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -526,9 +833,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out List<sbyte?>? value, out int sizeNeeded)
+        public bool TryRead(out List<sbyte?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 1, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -538,8 +846,22 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new List<sbyte?>(length);
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<sbyte?>(0);
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 1, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<sbyte?>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -554,9 +876,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out HashSet<sbyte?>? value, out int sizeNeeded)
+        public bool TryRead(out HashSet<sbyte?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 1, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -566,12 +889,30 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+#if NETSTANDARD2_0
+                value = new HashSet<sbyte?>();
+#else
+                value = new HashSet<sbyte?>(0);
+#endif
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 1, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
 #if NETSTANDARD2_0
             value = new HashSet<sbyte?>();
 #else
-            value = new HashSet<sbyte?>(length);
+            value = new HashSet<sbyte?>(collectionLength);
 #endif
-            for (var i = 0; i < length; i++)
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -590,7 +931,7 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryRead(out short value, out int sizeNeeded)
         {
             sizeNeeded = 2;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -607,7 +948,7 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryRead(out short? value, out int sizeNeeded)
         {
             sizeNeeded = 2;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -621,67 +962,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out short[]? value, out int sizeNeeded)
+        public bool TryRead(out short[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 2;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new short[length];
-            for (var i = 0; i < length; i++)
-            {
-                var item = (short)(buffer[position++] | buffer[position++] << 8);
-                value[i] = item;
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out List<short>? value, out int sizeNeeded)
-        {
-            sizeNeeded = length * 2;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<short>(length);
-            for (var i = 0; i < length; i++)
-            {
-                var item = (short)(buffer[position++] | buffer[position++] << 8);
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out HashSet<short>? value, out int sizeNeeded)
-        {
-            sizeNeeded = length * 2;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-#if NETSTANDARD2_0
-            value = new HashSet<short>();
-#else
-            value = new HashSet<short>(length);
-#endif
-            for (var i = 0; i < length; i++)
-            {
-                var item = (short)(buffer[position++] | buffer[position++] << 8);
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out short?[]? value, out int sizeNeeded)
-        {
-            if (!SeekNullableSizeNeeded(length, 2, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -691,8 +975,145 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new short?[length];
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<short>();
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 2;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new short[collectionLength];
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var item = (short)(buffer[position++] | buffer[position++] << 8);
+                value[i] = item;
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out List<short>? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<short>(0);
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 2;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<short>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var item = (short)(buffer[position++] | buffer[position++] << 8);
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out HashSet<short>? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+
+#if NETSTANDARD2_0
+                value = new HashSet<short>();
+#else
+                value = new HashSet<short>(0);
+#endif
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 2;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+#if NETSTANDARD2_0
+            value = new HashSet<short>();
+#else
+            value = new HashSet<short>(collectionLength);
+#endif
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var item = (short)(buffer[position++] | buffer[position++] << 8);
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out short?[]? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<short?>();
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 2, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new short?[collectionLength];
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -703,9 +1124,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out List<short?>? value, out int sizeNeeded)
+        public bool TryRead(out List<short?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 2, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -715,8 +1137,22 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new List<short?>(length);
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<short?>(0);
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 2, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<short?>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -731,9 +1167,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out HashSet<short?>? value, out int sizeNeeded)
+        public bool TryRead(out HashSet<short?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 2, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -743,12 +1180,30 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+#if NETSTANDARD2_0
+                value = new HashSet<short?>();
+#else
+                value = new HashSet<short?>(0);
+#endif
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 2, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
 #if NETSTANDARD2_0
             value = new HashSet<short?>();
 #else
-            value = new HashSet<short?>(length);
+            value = new HashSet<short?>(collectionLength);
 #endif
-            for (var i = 0; i < length; i++)
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -767,7 +1222,7 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryRead(out ushort value, out int sizeNeeded)
         {
             sizeNeeded = 2;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -784,7 +1239,7 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryRead(out ushort? value, out int sizeNeeded)
         {
             sizeNeeded = 2;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -798,67 +1253,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out ushort[]? value, out int sizeNeeded)
+        public bool TryRead(out ushort[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 2;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new ushort[length];
-            for (var i = 0; i < length; i++)
-            {
-                var item = (ushort)(buffer[position++] | buffer[position++] << 8);
-                value[i] = item;
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out List<ushort>? value, out int sizeNeeded)
-        {
-            sizeNeeded = length * 2;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<ushort>(length);
-            for (var i = 0; i < length; i++)
-            {
-                var item = (ushort)(buffer[position++] | buffer[position++] << 8);
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out HashSet<ushort>? value, out int sizeNeeded)
-        {
-            sizeNeeded = length * 2;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-#if NETSTANDARD2_0
-            value = new HashSet<ushort>();
-#else
-            value = new HashSet<ushort>(length);
-#endif
-            for (var i = 0; i < length; i++)
-            {
-                var item = (ushort)(buffer[position++] | buffer[position++] << 8);
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out ushort?[]? value, out int sizeNeeded)
-        {
-            if (!SeekNullableSizeNeeded(length, 2, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -868,8 +1266,144 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new ushort?[length];
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<ushort>();
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 2;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new ushort[collectionLength];
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var item = (ushort)(buffer[position++] | buffer[position++] << 8);
+                value[i] = item;
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out List<ushort>? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<ushort>(0);
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 2;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<ushort>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var item = (ushort)(buffer[position++] | buffer[position++] << 8);
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out HashSet<ushort>? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+#if NETSTANDARD2_0
+                value = new HashSet<ushort>();
+#else
+                value = new HashSet<ushort>(0);
+#endif
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 2;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+#if NETSTANDARD2_0
+            value = new HashSet<ushort>();
+#else
+            value = new HashSet<ushort>(collectionLength);
+#endif
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var item = (ushort)(buffer[position++] | buffer[position++] << 8);
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out ushort?[]? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<ushort?>();
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 2, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new ushort?[collectionLength];
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -880,9 +1414,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out List<ushort?>? value, out int sizeNeeded)
+        public bool TryRead(out List<ushort?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 2, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -892,8 +1427,22 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new List<ushort?>(length);
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<ushort?>(0);
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 2, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<ushort?>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -908,9 +1457,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out HashSet<ushort?>? value, out int sizeNeeded)
+        public bool TryRead(out HashSet<ushort?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 2, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -920,12 +1470,30 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+#if NETSTANDARD2_0
+                value = new HashSet<ushort?>();
+#else
+                value = new HashSet<ushort?>(0);
+#endif
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 2, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
 #if NETSTANDARD2_0
             value = new HashSet<ushort?>();
 #else
-            value = new HashSet<ushort?>(length);
+            value = new HashSet<ushort?>(collectionLength);
 #endif
-            for (var i = 0; i < length; i++)
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -944,7 +1512,7 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryRead(out int value, out int sizeNeeded)
         {
             sizeNeeded = 4;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -961,7 +1529,7 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryRead(out int? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -975,67 +1543,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out int[]? value, out int sizeNeeded)
+        public bool TryRead(out int[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 4;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new int[length];
-            for (var i = 0; i < length; i++)
-            {
-                var item = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                value[i] = item;
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out List<int>? value, out int sizeNeeded)
-        {
-            sizeNeeded = length * 4;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<int>(length);
-            for (var i = 0; i < length; i++)
-            {
-                var item = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out HashSet<int>? value, out int sizeNeeded)
-        {
-            sizeNeeded = length * 4;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-#if NETSTANDARD2_0
-            value = new HashSet<int>();
-#else
-            value = new HashSet<int>(length);
-#endif
-            for (var i = 0; i < length; i++)
-            {
-                var item = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out int?[]? value, out int sizeNeeded)
-        {
-            if (!SeekNullableSizeNeeded(length, 4, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -1045,8 +1556,144 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new int?[length];
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<int>();
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 4;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new int[collectionLength];
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var item = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                value[i] = item;
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out List<int>? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<int>(0);
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 4;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<int>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var item = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out HashSet<int>? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+#if NETSTANDARD2_0
+                value = new HashSet<int>();
+#else
+                value = new HashSet<int>(0);
+#endif
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 4;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+#if NETSTANDARD2_0
+            value = new HashSet<int>();
+#else
+            value = new HashSet<int>(collectionLength);
+#endif
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var item = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out int?[]? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<int?>();
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 4, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new int?[collectionLength];
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -1057,9 +1704,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out List<int?>? value, out int sizeNeeded)
+        public bool TryRead(out List<int?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 4, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -1069,8 +1717,22 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new List<int?>(length);
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<int?>(0);
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 4, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<int?>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -1085,9 +1747,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out HashSet<int?>? value, out int sizeNeeded)
+        public bool TryRead(out HashSet<int?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 4, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -1097,12 +1760,30 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+#if NETSTANDARD2_0
+                value = new HashSet<int?>();
+#else
+                value = new HashSet<int?>(0);
+#endif
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 4, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
 #if NETSTANDARD2_0
             value = new HashSet<int?>();
 #else
-            value = new HashSet<int?>(length);
+            value = new HashSet<int?>(collectionLength);
 #endif
-            for (var i = 0; i < length; i++)
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -1121,7 +1802,7 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryRead(out uint value, out int sizeNeeded)
         {
             sizeNeeded = 4;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -1138,7 +1819,7 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryRead(out uint? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -1152,67 +1833,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out uint[]? value, out int sizeNeeded)
+        public bool TryRead(out uint[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 4;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new uint[length];
-            for (var i = 0; i < length; i++)
-            {
-                var item = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                value[i] = item;
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out List<uint>? value, out int sizeNeeded)
-        {
-            sizeNeeded = length * 4;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<uint>(length);
-            for (var i = 0; i < length; i++)
-            {
-                var item = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out HashSet<uint>? value, out int sizeNeeded)
-        {
-            sizeNeeded = length * 4;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-#if NETSTANDARD2_0
-            value = new HashSet<uint>();
-#else
-            value = new HashSet<uint>(length);
-#endif
-            for (var i = 0; i < length; i++)
-            {
-                var item = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out uint?[]? value, out int sizeNeeded)
-        {
-            if (!SeekNullableSizeNeeded(length, 4, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -1222,8 +1846,145 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new uint?[length];
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<uint>();
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 4;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new uint[collectionLength];
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var item = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                value[i] = item;
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out List<uint>? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<uint>(0);
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 4;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<uint>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var item = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out HashSet<uint>? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+
+#if NETSTANDARD2_0
+                value = new HashSet<uint>();
+#else
+                value = new HashSet<uint>(0);
+#endif
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 4;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+#if NETSTANDARD2_0
+            value = new HashSet<uint>();
+#else
+            value = new HashSet<uint>(collectionLength);
+#endif
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var item = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out uint?[]? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<uint?>();
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 4, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new uint?[collectionLength];
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -1234,9 +1995,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out List<uint?>? value, out int sizeNeeded)
+        public bool TryRead(out List<uint?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 4, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -1246,8 +2008,22 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new List<uint?>(length);
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<uint?>(0);
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 4, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<uint?>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -1262,9 +2038,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out HashSet<uint?>? value, out int sizeNeeded)
+        public bool TryRead(out HashSet<uint?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 4, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -1274,12 +2051,30 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+#if NETSTANDARD2_0
+                value = new HashSet<uint?>();
+#else
+                value = new HashSet<uint?>(0);
+#endif
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 4, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
 #if NETSTANDARD2_0
             value = new HashSet<uint?>();
 #else
-            value = new HashSet<uint?>(length);
+            value = new HashSet<uint?>(collectionLength);
 #endif
-            for (var i = 0; i < length; i++)
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -1298,7 +2093,7 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryRead(out long value, out int sizeNeeded)
         {
             sizeNeeded = 8;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -1317,7 +2112,7 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryRead(out long? value, out int sizeNeeded)
         {
             sizeNeeded = 8;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -1333,73 +2128,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out long[]? value, out int sizeNeeded)
+        public bool TryRead(out long[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 8;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new long[length];
-            for (var i = 0; i < length; i++)
-            {
-                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var item = (long)((ulong)hi) << 32 | lo;
-                value[i] = item;
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out List<long>? value, out int sizeNeeded)
-        {
-            sizeNeeded = length * 8;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<long>(length);
-            for (var i = 0; i < length; i++)
-            {
-                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var item = (long)((ulong)hi) << 32 | lo;
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out HashSet<long>? value, out int sizeNeeded)
-        {
-            sizeNeeded = length * 8;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-#if NETSTANDARD2_0
-            value = new HashSet<long>();
-#else
-            value = new HashSet<long>(length);
-#endif
-            for (var i = 0; i < length; i++)
-            {
-                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var item = (long)((ulong)hi) << 32 | lo;
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out long?[]? value, out int sizeNeeded)
-        {
-            if (!SeekNullableSizeNeeded(length, 8, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -1409,8 +2141,150 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new long?[length];
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<long>();
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 8;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new long[collectionLength];
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var item = (long)((ulong)hi) << 32 | lo;
+                value[i] = item;
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out List<long>? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<long>(0);
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 8;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<long>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var item = (long)((ulong)hi) << 32 | lo;
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out HashSet<long>? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+#if NETSTANDARD2_0
+                value = new HashSet<long>();
+#else
+                value = new HashSet<long>(0);
+#endif
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 8;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+#if NETSTANDARD2_0
+            value = new HashSet<long>();
+#else
+            value = new HashSet<long>(collectionLength);
+#endif
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var item = (long)((ulong)hi) << 32 | lo;
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out long?[]? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<long?>();
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 8, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new long?[collectionLength];
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -1423,9 +2297,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out List<long?>? value, out int sizeNeeded)
+        public bool TryRead(out List<long?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 8, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -1435,8 +2310,22 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new List<long?>(length);
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<long?>(0);
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 8, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<long?>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -1453,9 +2342,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out HashSet<long?>? value, out int sizeNeeded)
+        public bool TryRead(out HashSet<long?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 8, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -1465,12 +2355,30 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+#if NETSTANDARD2_0
+                value = new HashSet<long?>();
+#else
+                value = new HashSet<long?>(0);
+#endif
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 8, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
 #if NETSTANDARD2_0
             value = new HashSet<long?>();
 #else
-            value = new HashSet<long?>(length);
+            value = new HashSet<long?>(collectionLength);
 #endif
-            for (var i = 0; i < length; i++)
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -1491,7 +2399,7 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryRead(out ulong value, out int sizeNeeded)
         {
             sizeNeeded = 8;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -1510,7 +2418,7 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryRead(out ulong? value, out int sizeNeeded)
         {
             sizeNeeded = 8;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -1526,73 +2434,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out ulong[]? value, out int sizeNeeded)
+        public bool TryRead(out ulong[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 8;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new ulong[length];
-            for (var i = 0; i < length; i++)
-            {
-                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var item = ((ulong)hi) << 32 | lo;
-                value[i] = item;
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out List<ulong>? value, out int sizeNeeded)
-        {
-            sizeNeeded = length * 8;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<ulong>(length);
-            for (var i = 0; i < length; i++)
-            {
-                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var item = ((ulong)hi) << 32 | lo;
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out HashSet<ulong>? value, out int sizeNeeded)
-        {
-            sizeNeeded = length * 8;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-#if NETSTANDARD2_0
-            value = new HashSet<ulong>();
-#else
-            value = new HashSet<ulong>(length);
-#endif
-            for (var i = 0; i < length; i++)
-            {
-                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var item = ((ulong)hi) << 32 | lo;
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out ulong?[]? value, out int sizeNeeded)
-        {
-            if (!SeekNullableSizeNeeded(length, 8, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -1602,8 +2447,150 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new ulong?[length];
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<ulong>();
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 8;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new ulong[collectionLength];
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var item = ((ulong)hi) << 32 | lo;
+                value[i] = item;
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out List<ulong>? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<ulong>(0);
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 8;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<ulong>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var item = ((ulong)hi) << 32 | lo;
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out HashSet<ulong>? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+#if NETSTANDARD2_0
+                value = new HashSet<ulong>();
+#else
+                value = new HashSet<ulong>(0);
+#endif
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 8;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+#if NETSTANDARD2_0
+            value = new HashSet<ulong>();
+#else
+            value = new HashSet<ulong>(collectionLength);
+#endif
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var item = ((ulong)hi) << 32 | lo;
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out ulong?[]? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<ulong?>();
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 8, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new ulong?[collectionLength];
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -1616,9 +2603,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out List<ulong?>? value, out int sizeNeeded)
+        public bool TryRead(out List<ulong?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 8, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -1628,8 +2616,22 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new List<ulong?>(length);
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<ulong?>(0);
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 8, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<ulong?>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -1646,9 +2648,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out HashSet<ulong?>? value, out int sizeNeeded)
+        public bool TryRead(out HashSet<ulong?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 8, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -1658,12 +2661,30 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+#if NETSTANDARD2_0
+                value = new HashSet<ulong?>();
+#else
+                value = new HashSet<ulong?>(0);
+#endif
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 8, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
 #if NETSTANDARD2_0
             value = new HashSet<ulong?>();
 #else
-            value = new HashSet<ulong?>(length);
+            value = new HashSet<ulong?>(collectionLength);
 #endif
-            for (var i = 0; i < length; i++)
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -1684,7 +2705,7 @@ namespace Zerra.Serialization.Bytes.IO
         public unsafe bool TryRead(out float value, out int sizeNeeded)
         {
             sizeNeeded = 4;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -1702,7 +2723,7 @@ namespace Zerra.Serialization.Bytes.IO
         public unsafe bool TryRead(out float? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -1717,70 +2738,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryRead(int length, out float[]? value, out int sizeNeeded)
+        public unsafe bool TryRead(out float[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 4;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new float[length];
-            for (var i = 0; i < length; i++)
-            {
-                var tmpBuffer = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var item = *((float*)&tmpBuffer);
-                value[i] = item;
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryRead(int length, out List<float>? value, out int sizeNeeded)
-        {
-            sizeNeeded = length * 4;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<float>(length);
-            for (var i = 0; i < length; i++)
-            {
-                var tmpBuffer = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var item = *((float*)&tmpBuffer);
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryRead(int length, out HashSet<float>? value, out int sizeNeeded)
-        {
-            sizeNeeded = length * 4;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-#if NETSTANDARD2_0
-            value = new HashSet<float>();
-#else
-            value = new HashSet<float>(length);
-#endif
-            for (var i = 0; i < length; i++)
-            {
-                var tmpBuffer = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var item = *((float*)&tmpBuffer);
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryRead(int length, out float?[]? value, out int sizeNeeded)
-        {
-            if (!SeekNullableSizeNeeded(length, 4, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -1790,8 +2751,147 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new float?[length];
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<float>();
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 4;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new float[collectionLength];
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var tmpBuffer = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var item = *((float*)&tmpBuffer);
+                value[i] = item;
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe bool TryRead(out List<float>? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<float>(0);
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 4;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<float>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var tmpBuffer = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var item = *((float*)&tmpBuffer);
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe bool TryRead(out HashSet<float>? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+#if NETSTANDARD2_0
+                value = new HashSet<float>();
+#else
+                value = new HashSet<float>(0);
+#endif
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 4;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+#if NETSTANDARD2_0
+            value = new HashSet<float>();
+#else
+            value = new HashSet<float>(collectionLength);
+#endif
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var tmpBuffer = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var item = *((float*)&tmpBuffer);
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe bool TryRead(out float?[]? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<float?>();
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 4, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new float?[collectionLength];
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -1803,9 +2903,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryRead(int length, out List<float?>? value, out int sizeNeeded)
+        public unsafe bool TryRead(out List<float?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 4, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -1815,8 +2916,22 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new List<float?>(length);
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<float?>(0);
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 4, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<float?>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -1832,9 +2947,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryRead(int length, out HashSet<float?>? value, out int sizeNeeded)
+        public unsafe bool TryRead(out HashSet<float?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 4, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -1844,12 +2960,30 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+#if NETSTANDARD2_0
+                value = new HashSet<float?>();
+#else
+                value = new HashSet<float?>(0);
+#endif
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 4, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
 #if NETSTANDARD2_0
             value = new HashSet<float?>();
 #else
-            value = new HashSet<float?>(length);
+            value = new HashSet<float?>(collectionLength);
 #endif
-            for (var i = 0; i < length; i++)
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -1869,7 +3003,7 @@ namespace Zerra.Serialization.Bytes.IO
         public unsafe bool TryRead(out double value, out int sizeNeeded)
         {
             sizeNeeded = 8;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -1889,7 +3023,7 @@ namespace Zerra.Serialization.Bytes.IO
         public unsafe bool TryRead(out double? value, out int sizeNeeded)
         {
             sizeNeeded = 8;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -1906,17 +3040,37 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryRead(int length, out double[]? value, out int sizeNeeded)
+        public unsafe bool TryRead(out double[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 8;
-            if (this.length - position < sizeNeeded)
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
             {
                 value = default;
                 return false;
             }
 
-            value = new double[length];
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<double>();
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 8;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new double[collectionLength];
+            for (var i = 0; i < collectionLength; i++)
             {
                 var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
@@ -1927,55 +3081,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryRead(int length, out List<double>? value, out int sizeNeeded)
+        public unsafe bool TryRead(out List<double>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 8;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<double>(length);
-            for (var i = 0; i < length; i++)
-            {
-                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var tmpBuffer = ((ulong)hi) << 32 | lo;
-                var item = *((double*)&tmpBuffer);
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryRead(int length, out HashSet<double>? value, out int sizeNeeded)
-        {
-            sizeNeeded = length * 8;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-#if NETSTANDARD2_0
-            value = new HashSet<double>();
-#else
-            value = new HashSet<double>(length);
-#endif
-            for (var i = 0; i < length; i++)
-            {
-                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var tmpBuffer = ((ulong)hi) << 32 | lo;
-                var item = *((double*)&tmpBuffer);
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryRead(int length, out double?[]? value, out int sizeNeeded)
-        {
-            if (!SeekNullableSizeNeeded(length, 8, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -1985,8 +3094,112 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new double?[length];
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<double>(0);
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 8;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<double>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var tmpBuffer = ((ulong)hi) << 32 | lo;
+                var item = *((double*)&tmpBuffer);
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe bool TryRead(out HashSet<double>? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+#if NETSTANDARD2_0
+                value = new HashSet<double>();
+#else
+                value = new HashSet<double>(0);
+#endif
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 8;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+#if NETSTANDARD2_0
+            value = new HashSet<double>();
+#else
+            value = new HashSet<double>(collectionLength);
+#endif
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var tmpBuffer = ((ulong)hi) << 32 | lo;
+                var item = *((double*)&tmpBuffer);
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe bool TryRead(out double?[]? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<double?>();
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 8, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new double?[collectionLength];
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -2000,9 +3213,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryRead(int length, out List<double?>? value, out int sizeNeeded)
+        public unsafe bool TryRead(out List<double?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 8, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -2012,8 +3226,22 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new List<double?>(length);
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<double?>(0);
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 8, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<double?>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -2031,9 +3259,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryRead(int length, out HashSet<double?>? value, out int sizeNeeded)
+        public unsafe bool TryRead(out HashSet<double?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 8, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -2043,12 +3272,30 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+#if NETSTANDARD2_0
+                value = new HashSet<double?>();
+#else
+                value = new HashSet<double?>(0);
+#endif
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 8, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
 #if NETSTANDARD2_0
             value = new HashSet<double?>();
 #else
-            value = new HashSet<double?>(length);
+            value = new HashSet<double?>(collectionLength);
 #endif
-            for (var i = 0; i < length; i++)
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -2070,7 +3317,7 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryRead(out decimal value, out int sizeNeeded)
         {
             sizeNeeded = 16;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -2091,7 +3338,7 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryRead(out decimal? value, out int sizeNeeded)
         {
             sizeNeeded = 16;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -2109,17 +3356,37 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out decimal[]? value, out int sizeNeeded)
+        public bool TryRead(out decimal[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 16;
-            if (this.length - position < sizeNeeded)
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
             {
                 value = default;
                 return false;
             }
 
-            value = new decimal[length];
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<decimal>();
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 16;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new decimal[collectionLength];
+            for (var i = 0; i < collectionLength; i++)
             {
                 var lo = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
                 var mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
@@ -2131,57 +3398,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out List<decimal>? value, out int sizeNeeded)
+        public bool TryRead(out List<decimal>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 16;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<decimal>(length);
-            for (var i = 0; i < length; i++)
-            {
-                var lo = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-                var mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-                var hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-                var flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-                var item = new decimal([lo, mid, hi, flags]);
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out HashSet<decimal>? value, out int sizeNeeded)
-        {
-            sizeNeeded = length * 16;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-#if NETSTANDARD2_0
-            value = new HashSet<decimal>();
-#else
-            value = new HashSet<decimal>(length);
-#endif
-            for (var i = 0; i < length; i++)
-            {
-                var lo = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-                var mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-                var hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-                var flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
-                var item = new decimal([lo, mid, hi, flags]);
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out decimal?[]? value, out int sizeNeeded)
-        {
-            if (!SeekNullableSizeNeeded(length, 16, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -2191,8 +3411,114 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new decimal?[length];
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<decimal>(0);
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 16;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<decimal>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var lo = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
+                var mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
+                var hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
+                var flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
+                var item = new decimal([lo, mid, hi, flags]);
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out HashSet<decimal>? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+#if NETSTANDARD2_0
+                value = new HashSet<decimal>();
+#else
+                value = new HashSet<decimal>(0);
+#endif
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 16;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+#if NETSTANDARD2_0
+            value = new HashSet<decimal>();
+#else
+            value = new HashSet<decimal>(collectionLength);
+#endif
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var lo = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
+                var mid = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
+                var hi = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
+                var flags = ((int)buffer[position++]) | ((int)buffer[position++] << 8) | ((int)buffer[position++] << 16) | ((int)buffer[position++] << 24);
+                var item = new decimal([lo, mid, hi, flags]);
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out decimal?[]? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<decimal?>();
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 16, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new decimal?[collectionLength];
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -2207,9 +3533,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out List<decimal?>? value, out int sizeNeeded)
+        public bool TryRead(out List<decimal?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 16, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -2219,8 +3546,22 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new List<decimal?>(length);
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<decimal?>(0);
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 16, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<decimal?>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -2239,9 +3580,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out HashSet<decimal?>? value, out int sizeNeeded)
+        public bool TryRead(out HashSet<decimal?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 16, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -2251,12 +3593,30 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+#if NETSTANDARD2_0
+                value = new HashSet<decimal?>();
+#else
+                value = new HashSet<decimal?>(0);
+#endif
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 16, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
 #if NETSTANDARD2_0
             value = new HashSet<decimal?>();
 #else
-            value = new HashSet<decimal?>(length);
+            value = new HashSet<decimal?>(collectionLength);
 #endif
-            for (var i = 0; i < length; i++)
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -2279,7 +3639,7 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryRead(out DateTime value, out int sizeNeeded)
         {
             sizeNeeded = 8;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -2299,7 +3659,7 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryRead(out DateTime? value, out int sizeNeeded)
         {
             sizeNeeded = 8;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -2316,17 +3676,37 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out DateTime[]? value, out int sizeNeeded)
+        public bool TryRead(out DateTime[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 8;
-            if (this.length - position < sizeNeeded)
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
             {
                 value = default;
                 return false;
             }
 
-            value = new DateTime[length];
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<DateTime>();
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 8;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new DateTime[collectionLength];
+            for (var i = 0; i < collectionLength; i++)
             {
                 var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
@@ -2337,55 +3717,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out List<DateTime>? value, out int sizeNeeded)
+        public bool TryRead(out List<DateTime>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 8;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<DateTime>(length);
-            for (var i = 0; i < length; i++)
-            {
-                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var ticks = (long)((ulong)hi) << 32 | lo;
-                var item = new DateTime(ticks);
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out HashSet<DateTime>? value, out int sizeNeeded)
-        {
-            sizeNeeded = length * 8;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-#if NETSTANDARD2_0
-            value = new HashSet<DateTime>();
-#else
-            value = new HashSet<DateTime>(length);
-#endif
-            for (var i = 0; i < length; i++)
-            {
-                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var ticks = (long)((ulong)hi) << 32 | lo;
-                var item = new DateTime(ticks);
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out DateTime?[]? value, out int sizeNeeded)
-        {
-            if (!SeekNullableSizeNeeded(length, 8, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -2395,8 +3730,112 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new DateTime?[length];
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<DateTime>(0);
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 8;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<DateTime>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var ticks = (long)((ulong)hi) << 32 | lo;
+                var item = new DateTime(ticks);
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out HashSet<DateTime>? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+#if NETSTANDARD2_0
+                value = new HashSet<DateTime>();
+#else
+                value = new HashSet<DateTime>(0);
+#endif
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 8;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+#if NETSTANDARD2_0
+            value = new HashSet<DateTime>();
+#else
+            value = new HashSet<DateTime>(collectionLength);
+#endif
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var ticks = (long)((ulong)hi) << 32 | lo;
+                var item = new DateTime(ticks);
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out DateTime?[]? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<DateTime?>();
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 8, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new DateTime?[collectionLength];
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -2410,9 +3849,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out List<DateTime?>? value, out int sizeNeeded)
+        public bool TryRead(out List<DateTime?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 8, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -2422,8 +3862,22 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new List<DateTime?>(length);
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<DateTime?>(collectionLength);
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 8, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<DateTime?>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -2441,9 +3895,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out HashSet<DateTime?>? value, out int sizeNeeded)
+        public bool TryRead(out HashSet<DateTime?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 8, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -2453,12 +3908,30 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+#if NETSTANDARD2_0
+                value = new HashSet<DateTime?>();
+#else
+                value = new HashSet<DateTime?>(0);
+#endif
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 8, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
 #if NETSTANDARD2_0
             value = new HashSet<DateTime?>();
 #else
-            value = new HashSet<DateTime?>(length);
+            value = new HashSet<DateTime?>(collectionLength);
 #endif
-            for (var i = 0; i < length; i++)
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -2480,7 +3953,7 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryRead(out DateTimeOffset value, out int sizeNeeded)
         {
             sizeNeeded = 10;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -2501,7 +3974,7 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryRead(out DateTimeOffset? value, out int sizeNeeded)
         {
             sizeNeeded = 10;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -2519,17 +3992,37 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out DateTimeOffset[]? value, out int sizeNeeded)
+        public bool TryRead(out DateTimeOffset[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 10;
-            if (this.length - position < sizeNeeded)
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
             {
                 value = default;
                 return false;
             }
 
-            value = new DateTimeOffset[length];
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<DateTimeOffset>();
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 10;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new DateTimeOffset[collectionLength];
+            for (var i = 0; i < collectionLength; i++)
             {
                 var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
@@ -2541,57 +4034,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out List<DateTimeOffset>? value, out int sizeNeeded)
+        public bool TryRead(out List<DateTimeOffset>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 10;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<DateTimeOffset>(length);
-            for (var i = 0; i < length; i++)
-            {
-                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var ticks = (long)((ulong)hi) << 32 | lo;
-                var offset = (short)(buffer[position++] | buffer[position++] << 8);
-                var item = new DateTimeOffset(ticks, TimeSpan.FromMinutes(offset));
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out HashSet<DateTimeOffset>? value, out int sizeNeeded)
-        {
-            sizeNeeded = length * 10;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-#if NETSTANDARD2_0
-            value = new HashSet<DateTimeOffset>();
-#else
-            value = new HashSet<DateTimeOffset>(length);
-#endif
-            for (var i = 0; i < length; i++)
-            {
-                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var ticks = (long)((ulong)hi) << 32 | lo;
-                var offset = (short)(buffer[position++] | buffer[position++] << 8);
-                var item = new DateTimeOffset(ticks, TimeSpan.FromMinutes(offset));
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out DateTimeOffset?[]? value, out int sizeNeeded)
-        {
-            if (!SeekNullableSizeNeeded(length, 10, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -2601,8 +4047,114 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new DateTimeOffset?[length];
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<DateTimeOffset>(0);
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 10;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<DateTimeOffset>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var ticks = (long)((ulong)hi) << 32 | lo;
+                var offset = (short)(buffer[position++] | buffer[position++] << 8);
+                var item = new DateTimeOffset(ticks, TimeSpan.FromMinutes(offset));
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out HashSet<DateTimeOffset>? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+#if NETSTANDARD2_0
+                value = new HashSet<DateTimeOffset>();
+#else
+                value = new HashSet<DateTimeOffset>(0);
+#endif
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 10;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+#if NETSTANDARD2_0
+            value = new HashSet<DateTimeOffset>();
+#else
+            value = new HashSet<DateTimeOffset>(collectionLength);
+#endif
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var ticks = (long)((ulong)hi) << 32 | lo;
+                var offset = (short)(buffer[position++] | buffer[position++] << 8);
+                var item = new DateTimeOffset(ticks, TimeSpan.FromMinutes(offset));
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out DateTimeOffset?[]? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<DateTimeOffset?>();
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 10, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new DateTimeOffset?[collectionLength];
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -2617,9 +4169,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out List<DateTimeOffset?>? value, out int sizeNeeded)
+        public bool TryRead(out List<DateTimeOffset?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 10, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -2629,8 +4182,22 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new List<DateTimeOffset?>(length);
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<DateTimeOffset?>(0);
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 10, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<DateTimeOffset?>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -2649,9 +4216,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out HashSet<DateTimeOffset?>? value, out int sizeNeeded)
+        public bool TryRead(out HashSet<DateTimeOffset?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 10, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -2661,12 +4229,30 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+#if NETSTANDARD2_0
+                value = new HashSet<DateTimeOffset?>();
+#else
+                value = new HashSet<DateTimeOffset?>(0);
+#endif
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 10, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
 #if NETSTANDARD2_0
             value = new HashSet<DateTimeOffset?>();
 #else
-            value = new HashSet<DateTimeOffset?>(length);
+            value = new HashSet<DateTimeOffset?>(collectionLength);
 #endif
-            for (var i = 0; i < length; i++)
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -2689,7 +4275,7 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryRead(out TimeSpan value, out int sizeNeeded)
         {
             sizeNeeded = 8;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -2709,7 +4295,7 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryRead(out TimeSpan? value, out int sizeNeeded)
         {
             sizeNeeded = 8;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -2726,17 +4312,37 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out TimeSpan[]? value, out int sizeNeeded)
+        public bool TryRead(out TimeSpan[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 8;
-            if (this.length - position < sizeNeeded)
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
             {
                 value = default;
                 return false;
             }
 
-            value = new TimeSpan[length];
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<TimeSpan>();
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 8;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new TimeSpan[collectionLength];
+            for (var i = 0; i < collectionLength; i++)
             {
                 var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
@@ -2747,55 +4353,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out List<TimeSpan>? value, out int sizeNeeded)
+        public bool TryRead(out List<TimeSpan>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 8;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<TimeSpan>(length);
-            for (var i = 0; i < length; i++)
-            {
-                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var ticks = (long)((ulong)hi) << 32 | lo;
-                var item = new TimeSpan(ticks);
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out HashSet<TimeSpan>? value, out int sizeNeeded)
-        {
-            sizeNeeded = length * 8;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-#if NETSTANDARD2_0
-            value = new HashSet<TimeSpan>();
-#else
-            value = new HashSet<TimeSpan>(length);
-#endif
-            for (var i = 0; i < length; i++)
-            {
-                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var ticks = (long)((ulong)hi) << 32 | lo;
-                var item = new TimeSpan(ticks);
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out TimeSpan?[]? value, out int sizeNeeded)
-        {
-            if (!SeekNullableSizeNeeded(length, 8, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -2805,8 +4366,112 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new TimeSpan?[length];
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<TimeSpan>(0);
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 8;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<TimeSpan>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var ticks = (long)((ulong)hi) << 32 | lo;
+                var item = new TimeSpan(ticks);
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out HashSet<TimeSpan>? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+#if NETSTANDARD2_0
+                value = new HashSet<TimeSpan>();
+#else
+                value = new HashSet<TimeSpan>(0);
+#endif
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 8;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+#if NETSTANDARD2_0
+            value = new HashSet<TimeSpan>();
+#else
+            value = new HashSet<TimeSpan>(collectionLength);
+#endif
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var ticks = (long)((ulong)hi) << 32 | lo;
+                var item = new TimeSpan(ticks);
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out TimeSpan?[]? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<TimeSpan?>();
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 8, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new TimeSpan?[collectionLength];
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -2820,9 +4485,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out List<TimeSpan?>? value, out int sizeNeeded)
+        public bool TryRead(out List<TimeSpan?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 8, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -2832,8 +4498,22 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new List<TimeSpan?>(length);
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<TimeSpan?>(0);
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 8, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<TimeSpan?>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -2851,9 +4531,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out HashSet<TimeSpan?>? value, out int sizeNeeded)
+        public bool TryRead(out HashSet<TimeSpan?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 8, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -2863,12 +4544,30 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+#if NETSTANDARD2_0
+                value = new HashSet<TimeSpan?>();
+#else
+                value = new HashSet<TimeSpan?>(0);
+#endif
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 8, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
 #if NETSTANDARD2_0
             value = new HashSet<TimeSpan?>();
 #else
-            value = new HashSet<TimeSpan?>(length);
+            value = new HashSet<TimeSpan?>(collectionLength);
 #endif
-            for (var i = 0; i < length; i++)
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -2891,7 +4590,7 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryRead(out DateOnly value, out int sizeNeeded)
         {
             sizeNeeded = 4;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -2909,7 +4608,7 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryRead(out DateOnly? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -2924,70 +4623,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out DateOnly[]? value, out int sizeNeeded)
+        public bool TryRead(out DateOnly[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 4;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new DateOnly[length];
-            for (var i = 0; i < length; i++)
-            {
-                var dayNumber = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var item = DateOnly.FromDayNumber(dayNumber);
-                value[i] = item;
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out List<DateOnly>? value, out int sizeNeeded)
-        {
-            sizeNeeded = length * 4;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<DateOnly>(length);
-            for (var i = 0; i < length; i++)
-            {
-                var dayNumber = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var item = DateOnly.FromDayNumber(dayNumber);
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out HashSet<DateOnly>? value, out int sizeNeeded)
-        {
-            sizeNeeded = length * 4;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-#if NETSTANDARD2_0
-            value = new HashSet<DateOnly>();
-#else
-            value = new HashSet<DateOnly>(length);
-#endif
-            for (var i = 0; i < length; i++)
-            {
-                var dayNumber = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var item = DateOnly.FromDayNumber(dayNumber);
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out DateOnly?[]? value, out int sizeNeeded)
-        {
-            if (!SeekNullableSizeNeeded(length, 4, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -2997,8 +4636,147 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new DateOnly?[length];
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<DateOnly>();
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 4;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new DateOnly[collectionLength];
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var dayNumber = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var item = DateOnly.FromDayNumber(dayNumber);
+                value[i] = item;
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out List<DateOnly>? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<DateOnly>(0);
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 4;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<DateOnly>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var dayNumber = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var item = DateOnly.FromDayNumber(dayNumber);
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out HashSet<DateOnly>? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+#if NETSTANDARD2_0
+            value = new HashSet<DateOnly>();
+#else
+                value = new HashSet<DateOnly>(0);
+#endif
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 4;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+#if NETSTANDARD2_0
+            value = new HashSet<DateOnly>();
+#else
+            value = new HashSet<DateOnly>(collectionLength);
+#endif
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var dayNumber = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var item = DateOnly.FromDayNumber(dayNumber);
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out DateOnly?[]? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<DateOnly?>();
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 4, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new DateOnly?[collectionLength];
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -3010,9 +4788,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out List<DateOnly?>? value, out int sizeNeeded)
+        public bool TryRead(out List<DateOnly?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 4, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -3022,8 +4801,22 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new List<DateOnly?>(length);
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<DateOnly?>(0);
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 4, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<DateOnly?>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -3039,9 +4832,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out HashSet<DateOnly?>? value, out int sizeNeeded)
+        public bool TryRead(out HashSet<DateOnly?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 4, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -3051,12 +4845,30 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
 #if NETSTANDARD2_0
             value = new HashSet<DateOnly?>();
 #else
-            value = new HashSet<DateOnly?>(length);
+                value = new HashSet<DateOnly?>(0);
 #endif
-            for (var i = 0; i < length; i++)
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 4, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+#if NETSTANDARD2_0
+            value = new HashSet<DateOnly?>();
+#else
+            value = new HashSet<DateOnly?>(collectionLength);
+#endif
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -3076,7 +4888,7 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryRead(out TimeOnly value, out int sizeNeeded)
         {
             sizeNeeded = 8;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -3096,7 +4908,7 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryRead(out TimeOnly? value, out int sizeNeeded)
         {
             sizeNeeded = 8;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -3113,17 +4925,37 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out TimeOnly[]? value, out int sizeNeeded)
+        public bool TryRead(out TimeOnly[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 8;
-            if (this.length - position < sizeNeeded)
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
             {
                 value = default;
                 return false;
             }
 
-            value = new TimeOnly[length];
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<TimeOnly>();
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 8;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new TimeOnly[collectionLength];
+            for (var i = 0; i < collectionLength; i++)
             {
                 var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
@@ -3134,55 +4966,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out List<TimeOnly>? value, out int sizeNeeded)
+        public bool TryRead(out List<TimeOnly>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 8;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<TimeOnly>(length);
-            for (var i = 0; i < length; i++)
-            {
-                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var ticks = (long)((ulong)hi) << 32 | lo;
-                var item = new TimeOnly(ticks);
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out HashSet<TimeOnly>? value, out int sizeNeeded)
-        {
-            sizeNeeded = length * 8;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-#if NETSTANDARD2_0
-            value = new HashSet<TimeOnly>();
-#else
-            value = new HashSet<TimeOnly>(length);
-#endif
-            for (var i = 0; i < length; i++)
-            {
-                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-                var ticks = (long)((ulong)hi) << 32 | lo;
-                var item = new TimeOnly(ticks);
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out TimeOnly?[]? value, out int sizeNeeded)
-        {
-            if (!SeekNullableSizeNeeded(length, 8, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -3192,8 +4979,112 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new TimeOnly?[length];
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<TimeOnly>(0);
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 8;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<TimeOnly>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var ticks = (long)((ulong)hi) << 32 | lo;
+                var item = new TimeOnly(ticks);
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out HashSet<TimeOnly>? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+#if NETSTANDARD2_0
+            value = new HashSet<TimeOnly>();
+#else
+                value = new HashSet<TimeOnly>(0);
+#endif
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 8;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+#if NETSTANDARD2_0
+            value = new HashSet<TimeOnly>();
+#else
+            value = new HashSet<TimeOnly>(collectionLength);
+#endif
+            for (var i = 0; i < collectionLength; i++)
+            {
+                var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+                var ticks = (long)((ulong)hi) << 32 | lo;
+                var item = new TimeOnly(ticks);
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out TimeOnly?[]? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<TimeOnly?>();
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 8, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new TimeOnly?[collectionLength];
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -3207,9 +5098,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out List<TimeOnly?>? value, out int sizeNeeded)
+        public bool TryRead(out List<TimeOnly?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 8, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -3219,8 +5111,22 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new List<TimeOnly?>(length);
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<TimeOnly?>(0);
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 8, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<TimeOnly?>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -3238,9 +5144,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out HashSet<TimeOnly?>? value, out int sizeNeeded)
+        public bool TryRead(out HashSet<TimeOnly?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 8, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -3250,12 +5157,30 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
 #if NETSTANDARD2_0
             value = new HashSet<TimeOnly?>();
 #else
-            value = new HashSet<TimeOnly?>(length);
+                value = new HashSet<TimeOnly?>(0);
 #endif
-            for (var i = 0; i < length; i++)
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 8, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+#if NETSTANDARD2_0
+            value = new HashSet<TimeOnly?>();
+#else
+            value = new HashSet<TimeOnly?>(collectionLength);
+#endif
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -3278,7 +5203,7 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryRead(out Guid value, out int sizeNeeded)
         {
             sizeNeeded = 16;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -3300,7 +5225,7 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryRead(out Guid? value, out int sizeNeeded)
         {
             sizeNeeded = 16;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -3320,17 +5245,37 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out Guid[]? value, out int sizeNeeded)
+        public bool TryRead(out Guid[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 16;
-            if (this.length - position < sizeNeeded)
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
             {
                 value = default;
                 return false;
             }
 
-            value = new Guid[length];
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<Guid>();
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 16;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new Guid[collectionLength];
+            for (var i = 0; i < collectionLength; i++)
             {
 #if NETSTANDARD2_0
                 var item = new Guid(buffer.Slice(position, 16).ToArray());
@@ -3343,59 +5288,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out List<Guid>? value, out int sizeNeeded)
+        public bool TryRead(out List<Guid>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 16;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<Guid>(length);
-            for (var i = 0; i < length; i++)
-            {
-#if NETSTANDARD2_0
-                var item = new Guid(buffer.Slice(position, 16).ToArray());
-#else
-                var item = new Guid(buffer.Slice(position, 16));
-#endif
-                position += 16;
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out HashSet<Guid>? value, out int sizeNeeded)
-        {
-            sizeNeeded = length * 16;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-#if NETSTANDARD2_0
-            value = new HashSet<Guid>();
-#else
-            value = new HashSet<Guid>(length);
-#endif
-            for (var i = 0; i < length; i++)
-            {
-#if NETSTANDARD2_0
-                var item = new Guid(buffer.Slice(position, 16).ToArray());
-#else
-                var item = new Guid(buffer.Slice(position, 16));
-#endif
-                position += 16;
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out Guid?[]? value, out int sizeNeeded)
-        {
-            if (!SeekNullableSizeNeeded(length, 16, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -3405,8 +5301,116 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new Guid?[length];
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<Guid>(0);
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 16;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<Guid>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
+            {
+#if NETSTANDARD2_0
+                var item = new Guid(buffer.Slice(position, 16).ToArray());
+#else
+                var item = new Guid(buffer.Slice(position, 16));
+#endif
+                position += 16;
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out HashSet<Guid>? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+#if NETSTANDARD2_0
+                value = new HashSet<Guid>();
+#else
+                value = new HashSet<Guid>(0);
+#endif
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 16;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+#if NETSTANDARD2_0
+            value = new HashSet<Guid>();
+#else
+            value = new HashSet<Guid>(collectionLength);
+#endif
+            for (var i = 0; i < collectionLength; i++)
+            {
+#if NETSTANDARD2_0
+                var item = new Guid(buffer.Slice(position, 16).ToArray());
+#else
+                var item = new Guid(buffer.Slice(position, 16));
+#endif
+                position += 16;
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out Guid?[]? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<Guid?>();
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 16, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new Guid?[collectionLength];
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -3422,9 +5426,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out List<Guid?>? value, out int sizeNeeded)
+        public bool TryRead(out List<Guid?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 16, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -3434,8 +5439,22 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new List<Guid?>(length);
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<Guid?>(0);
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 16, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<Guid?>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -3455,9 +5474,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(int length, out HashSet<Guid?>? value, out int sizeNeeded)
+        public bool TryRead(out HashSet<Guid?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 16, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -3467,12 +5487,30 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+#if NETSTANDARD2_0
+                value = new HashSet<Guid?>();
+#else
+                value = new HashSet<Guid?>(0);
+#endif
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 16, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
 #if NETSTANDARD2_0
             value = new HashSet<Guid?>();
 #else
-            value = new HashSet<Guid?>(length);
+            value = new HashSet<Guid?>(collectionLength);
 #endif
-            for (var i = 0; i < length; i++)
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -3496,7 +5534,7 @@ namespace Zerra.Serialization.Bytes.IO
         public unsafe bool TryRead(out char value, out int sizeNeeded)
         {
             sizeNeeded = 2;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -3517,7 +5555,7 @@ namespace Zerra.Serialization.Bytes.IO
         public unsafe bool TryRead(out char? value, out int sizeNeeded)
         {
             sizeNeeded = 2;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -3535,19 +5573,39 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryRead(int length, out char[]? value, out int sizeNeeded)
+        public unsafe bool TryRead(out char[]? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 2;
-            if (this.length - position < sizeNeeded)
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
             {
                 value = default;
                 return false;
             }
 
-            value = new char[length];
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<char>();
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 2;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new char[collectionLength];
             fixed (char* pArray = value)
             {
-                for (var i = 0; i < length; i++)
+                for (var i = 0; i < collectionLength; i++)
                 {
                     fixed (byte* pBuffer = &buffer[position])
                     {
@@ -3559,59 +5617,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryRead(int length, out List<char>? value, out int sizeNeeded)
+        public unsafe bool TryRead(out List<char>? value, out int sizeNeeded)
         {
-            sizeNeeded = length * 2;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-            value = new List<char>(length);
-            for (var i = 0; i < length; i++)
-            {
-                char item;
-                fixed (byte* pBuffer = &buffer[position])
-                {
-                    item = (char)*(short*)pBuffer;
-                }
-                position += 2;
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryRead(int length, out HashSet<char>? value, out int sizeNeeded)
-        {
-            sizeNeeded = length * 2;
-            if (this.length - position < sizeNeeded)
-            {
-                value = default;
-                return false;
-            }
-
-#if NETSTANDARD2_0
-            value = new HashSet<char>();
-#else
-            value = new HashSet<char>(length);
-#endif
-            for (var i = 0; i < length; i++)
-            {
-                char item;
-                fixed (byte* pBuffer = &buffer[position])
-                {
-                    item = (char)*(short*)pBuffer;
-                }
-                position += 2;
-                value.Add(item);
-            }
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryRead(int length, out char?[]? value, out int sizeNeeded)
-        {
-            if (!SeekNullableSizeNeeded(length, 2, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -3621,8 +5630,117 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new char?[length];
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<char>(0);
+                return true;
+            }
+
+            sizeNeeded = collectionLength * 2;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<char>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
+            {
+                char item;
+                fixed (byte* pBuffer = &buffer[position])
+                {
+                    item = (char)*(short*)pBuffer;
+                }
+                position += 2;
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe bool TryRead(out HashSet<char>? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+#if NETSTANDARD2_0
+                value = new HashSet<char>();
+#else
+                value = new HashSet<char>(0);
+#endif
+                return true;
+            }
+
+
+            sizeNeeded = collectionLength * 2;
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+#if NETSTANDARD2_0
+            value = new HashSet<char>();
+#else
+            value = new HashSet<char>(collectionLength);
+#endif
+            for (var i = 0; i < collectionLength; i++)
+            {
+                char item;
+                fixed (byte* pBuffer = &buffer[position])
+                {
+                    item = (char)*(short*)pBuffer;
+                }
+                position += 2;
+                value.Add(item);
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe bool TryRead(out char?[]? value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = Array.Empty<char?>();
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 2, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new char?[collectionLength];
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -3639,9 +5757,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryRead(int length, out List<char?>? value, out int sizeNeeded)
+        public unsafe bool TryRead(out List<char?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 2, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -3651,8 +5770,22 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            value = new List<char?>(length);
-            for (var i = 0; i < length; i++)
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+                value = new List<char?>(0);
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 2, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = new List<char?>(collectionLength);
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -3672,9 +5805,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryRead(int length, out HashSet<char?>? value, out int sizeNeeded)
+        public unsafe bool TryRead(out HashSet<char?>? value, out int sizeNeeded)
         {
-            if (!SeekNullableSizeNeeded(length, 2, out sizeNeeded) 
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -3684,12 +5818,30 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
+            var collectionLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (collectionLength == 0)
+            {
+#if NETSTANDARD2_0
+                value = new HashSet<char?>();
+#else
+                value = new HashSet<char?>(0);
+#endif
+                return true;
+            }
+
+            if (!SeekNullableSizeNeeded(collectionLength, 2, ref sizeNeeded))
+            {
+                position -= 4;
+                value = default;
+                return false;
+            }
+
 #if NETSTANDARD2_0
             value = new HashSet<char?>();
 #else
-            value = new HashSet<char?>(length);
+            value = new HashSet<char?>(collectionLength);
 #endif
-            for (var i = 0; i < length; i++)
+            for (var i = 0; i < collectionLength; i++)
             {
                 if (buffer[position++] is not nullByte)
                 {
@@ -3713,7 +5865,7 @@ namespace Zerra.Serialization.Bytes.IO
         public unsafe bool TryRead(out string? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
-            if (length - position < sizeNeeded 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -3723,27 +5875,27 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
             }
 
-            var byteLength = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
-            if (byteLength == 0)
+            sizeNeeded = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (sizeNeeded == 0)
             {
                 value = String.Empty;
                 return true;
             }
 
-            if (length - position < byteLength)
+            if (length - position < sizeNeeded)
             {
-                sizeNeeded = byteLength + 4;
+                sizeNeeded += 4;
                 position -= 4;
                 value = default;
                 return false;
             }
 
-            var bytesForString = buffer.Slice(position, byteLength);
+            var bytesForString = buffer.Slice(position, sizeNeeded);
             fixed (byte* p = bytesForString)
             {
-                value = encoding.GetString(p, byteLength);
+                value = encoding.GetString(p, sizeNeeded);
             }
-            position += byteLength;
+            position += sizeNeeded;
             return true;
         }
     }
