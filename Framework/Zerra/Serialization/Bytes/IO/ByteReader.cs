@@ -43,13 +43,13 @@ namespace Zerra.Serialization.Bytes.IO
                 for (var i = 0; i < collectionLength; i++)
                 {
                     sizeNeeded += 1;
-                    if (length - position < sizeNeeded)
+                    if (length - tempPosition < sizeNeeded)
                         return false;
                     if (pBuffer[tempPosition++] is not nullByte)
                     {
                         sizeNeeded += sizePerElement;
                         tempPosition += sizePerElement;
-                        if (length - position < sizeNeeded)
+                        if (length - tempPosition < sizeNeeded)
                             return false;
                     }
                 }
