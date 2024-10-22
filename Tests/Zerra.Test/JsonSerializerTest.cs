@@ -846,8 +846,8 @@ namespace Zerra.Test
 
             using var stream2 = new MemoryStream();
             await System.Text.Json.JsonSerializer.SerializeAsync(stream2, baseModel, options);
-            stream1.Position = 0;
-            using var sr2 = new StreamReader(stream1, Encoding.UTF8);
+            stream2.Position = 0;
+            using var sr2 = new StreamReader(stream2, Encoding.UTF8);
             var json2 = await sr2.ReadToEndAsync();
 
             Assert.IsTrue(json1 == json2);
