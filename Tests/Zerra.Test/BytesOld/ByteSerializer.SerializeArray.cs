@@ -43,7 +43,7 @@ namespace Zerra.Serialization.Bytes
 #if DEBUG
             var writer = new ByteWriterOld(Testing ? 1 : defaultBufferSize, Encoding.UTF8);
 #else
-            var writer = new ByteWriterOld(defaultBufferSize, options.Encoding);
+            var writer = new ByteWriterOld(defaultBufferSize, Encoding.UTF8);
 #endif
 
             try

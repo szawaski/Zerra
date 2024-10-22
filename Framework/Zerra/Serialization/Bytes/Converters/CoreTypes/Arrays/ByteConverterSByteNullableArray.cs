@@ -29,22 +29,6 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.Arrays
         }
 
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in sbyte?[] value)
-        {
-            if (!state.Current.HasWrittenLength)
-            {
-                if (!writer.TryWrite(value.Length, out state.BytesNeeded))
-                {
-                    return false;
-                }
-            }
-
-            if (!writer.TryWrite(value, value.Length, out state.BytesNeeded))
-            {
-                state.Current.HasWrittenLength = true;
-                return false;
-            }
-
-            return true;
-        }
+            => writer.TryWrite(value, value.Length, out state.BytesNeeded);
     }
 }

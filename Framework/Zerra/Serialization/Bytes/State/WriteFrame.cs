@@ -15,8 +15,6 @@ namespace Zerra.Serialization.Bytes.State
 
         public bool ChildHasWrittenIsNull;
 
-        public bool HasWrittenLength;
-
         public object? Enumerator;
         public bool EnumeratorInProgress;
 

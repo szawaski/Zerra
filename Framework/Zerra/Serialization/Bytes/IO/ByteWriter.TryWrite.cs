@@ -142,7 +142,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<bool> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength;
+            sizeNeeded = collectionLength + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -153,6 +153,11 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
+
             foreach (var value in values)
             {
                 buffer[position++] = (byte)(value ? 1 : 0);
@@ -162,7 +167,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<bool?> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength * 2;
+            sizeNeeded = collectionLength * 2 + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -172,6 +177,11 @@ namespace Zerra.Serialization.Bytes.IO
                 if (!Grow(sizeNeeded))
                     return false;
             }
+
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
 
             foreach (var value in values)
             {
@@ -208,7 +218,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<byte> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength;
+            sizeNeeded = collectionLength + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -219,6 +229,11 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
+
             foreach (var value in values)
             {
                 buffer[position++] = value;
@@ -228,7 +243,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<byte?> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength * 2;
+            sizeNeeded = collectionLength * 2 + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -238,6 +253,11 @@ namespace Zerra.Serialization.Bytes.IO
                 if (!Grow(sizeNeeded))
                     return false;
             }
+
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
 
             foreach (var value in values)
             {
@@ -274,7 +294,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<sbyte> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength;
+            sizeNeeded = collectionLength + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -285,6 +305,11 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
+
             foreach (var value in values)
             {
                 buffer[position++] = (byte)value;
@@ -294,7 +319,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<sbyte?> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength * 2;
+            sizeNeeded = collectionLength * 2 + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -304,6 +329,11 @@ namespace Zerra.Serialization.Bytes.IO
                 if (!Grow(sizeNeeded))
                     return false;
             }
+
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
 
             foreach (var value in values)
             {
@@ -341,7 +371,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<short> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength * 2;
+            sizeNeeded = collectionLength * 2 + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -351,6 +381,11 @@ namespace Zerra.Serialization.Bytes.IO
                 if (!Grow(sizeNeeded))
                     return false;
             }
+
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
 
             foreach (var value in values)
             {
@@ -362,7 +397,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<short?> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength * 3;
+            sizeNeeded = collectionLength * 3 + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -372,6 +407,11 @@ namespace Zerra.Serialization.Bytes.IO
                 if (!Grow(sizeNeeded))
                     return false;
             }
+
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
 
             foreach (var value in values)
             {
@@ -410,7 +450,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<ushort> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength * 2;
+            sizeNeeded = collectionLength * 2 + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -420,6 +460,11 @@ namespace Zerra.Serialization.Bytes.IO
                 if (!Grow(sizeNeeded))
                     return false;
             }
+
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
 
             foreach (var value in values)
             {
@@ -431,7 +476,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<ushort?> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength * 3;
+            sizeNeeded = collectionLength * 3 + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -441,6 +486,11 @@ namespace Zerra.Serialization.Bytes.IO
                 if (!Grow(sizeNeeded))
                     return false;
             }
+
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
 
             foreach (var value in values)
             {
@@ -481,7 +531,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<int> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength * 4;
+            sizeNeeded = collectionLength * 4 + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -491,6 +541,11 @@ namespace Zerra.Serialization.Bytes.IO
                 if (!Grow(sizeNeeded))
                     return false;
             }
+
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
 
             foreach (var value in values)
             {
@@ -504,7 +559,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<int?> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength * 5;
+            sizeNeeded = collectionLength * 5 + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -514,6 +569,11 @@ namespace Zerra.Serialization.Bytes.IO
                 if (!Grow(sizeNeeded))
                     return false;
             }
+
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
 
             foreach (var value in values)
             {
@@ -556,7 +616,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<uint> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength * 4;
+            sizeNeeded = collectionLength * 4 + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -566,6 +626,11 @@ namespace Zerra.Serialization.Bytes.IO
                 if (!Grow(sizeNeeded))
                     return false;
             }
+
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
 
             foreach (var value in values)
             {
@@ -579,7 +644,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<uint?> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength * 5;
+            sizeNeeded = collectionLength * 5 + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -589,6 +654,11 @@ namespace Zerra.Serialization.Bytes.IO
                 if (!Grow(sizeNeeded))
                     return false;
             }
+
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
 
             foreach (var value in values)
             {
@@ -635,7 +705,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<long> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength * 8;
+            sizeNeeded = collectionLength * 8 + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -645,6 +715,11 @@ namespace Zerra.Serialization.Bytes.IO
                 if (!Grow(sizeNeeded))
                     return false;
             }
+
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
 
             foreach (var value in values)
             {
@@ -662,7 +737,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<long?> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength * 9;
+            sizeNeeded = collectionLength * 9 + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -672,6 +747,11 @@ namespace Zerra.Serialization.Bytes.IO
                 if (!Grow(sizeNeeded))
                     return false;
             }
+
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
 
             foreach (var value in values)
             {
@@ -722,7 +802,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<ulong> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength * 8;
+            sizeNeeded = collectionLength * 8 + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -732,6 +812,11 @@ namespace Zerra.Serialization.Bytes.IO
                 if (!Grow(sizeNeeded))
                     return false;
             }
+
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
 
             foreach (var value in values)
             {
@@ -749,7 +834,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<ulong?> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength * 9;
+            sizeNeeded = collectionLength * 9 + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -759,6 +844,11 @@ namespace Zerra.Serialization.Bytes.IO
                 if (!Grow(sizeNeeded))
                     return false;
             }
+
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
 
             foreach (var value in values)
             {
@@ -806,7 +896,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryWrite(IEnumerable<float> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength * 4;
+            sizeNeeded = collectionLength * 4 + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -816,6 +906,11 @@ namespace Zerra.Serialization.Bytes.IO
                 if (!Grow(sizeNeeded))
                     return false;
             }
+
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
 
             foreach (var value in values)
             {
@@ -830,7 +925,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryWrite(IEnumerable<float?> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength * 5;
+            sizeNeeded = collectionLength * 5 + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -840,6 +935,11 @@ namespace Zerra.Serialization.Bytes.IO
                 if (!Grow(sizeNeeded))
                     return false;
             }
+
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
 
             foreach (var value in values)
             {
@@ -889,7 +989,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryWrite(IEnumerable<double> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength * 8;
+            sizeNeeded = collectionLength * 8 + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -899,6 +999,11 @@ namespace Zerra.Serialization.Bytes.IO
                 if (!Grow(sizeNeeded))
                     return false;
             }
+
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
 
             foreach (var value in values)
             {
@@ -917,7 +1022,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryWrite(IEnumerable<double?> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength * 9;
+            sizeNeeded = collectionLength * 9 + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -927,6 +1032,11 @@ namespace Zerra.Serialization.Bytes.IO
                 if (!Grow(sizeNeeded))
                     return false;
             }
+
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
 
             foreach (var value in values)
             {
@@ -992,7 +1102,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<decimal> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength * 16;
+            sizeNeeded = collectionLength * 16 + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -1002,6 +1112,11 @@ namespace Zerra.Serialization.Bytes.IO
                 if (!Grow(sizeNeeded))
                     return false;
             }
+
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
 
             foreach (var value in values)
             {
@@ -1032,7 +1147,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<decimal?> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength * 17;
+            sizeNeeded = collectionLength * 17 + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -1042,6 +1157,11 @@ namespace Zerra.Serialization.Bytes.IO
                 if (!Grow(sizeNeeded))
                     return false;
             }
+
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
 
             foreach (var value in values)
             {
@@ -1105,7 +1225,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<DateTime> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength * 8;
+            sizeNeeded = collectionLength * 8 + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -1115,6 +1235,11 @@ namespace Zerra.Serialization.Bytes.IO
                 if (!Grow(sizeNeeded))
                     return false;
             }
+
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
 
             foreach (var value in values)
             {
@@ -1132,7 +1257,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<DateTime?> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength * 9;
+            sizeNeeded = collectionLength * 9 + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -1142,6 +1267,11 @@ namespace Zerra.Serialization.Bytes.IO
                 if (!Grow(sizeNeeded))
                     return false;
             }
+
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
 
             foreach (var value in values)
             {
@@ -1195,7 +1325,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<DateTimeOffset> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength * 10;
+            sizeNeeded = collectionLength * 10 + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -1205,6 +1335,11 @@ namespace Zerra.Serialization.Bytes.IO
                 if (!Grow(sizeNeeded))
                     return false;
             }
+
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
 
             foreach (var value in values)
             {
@@ -1225,7 +1360,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<DateTimeOffset?> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength * 11;
+            sizeNeeded = collectionLength * 11 + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -1235,6 +1370,11 @@ namespace Zerra.Serialization.Bytes.IO
                 if (!Grow(sizeNeeded))
                     return false;
             }
+
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
 
             foreach (var value in values)
             {
@@ -1288,7 +1428,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<TimeSpan> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength * 8;
+            sizeNeeded = collectionLength * 8 + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -1298,6 +1438,11 @@ namespace Zerra.Serialization.Bytes.IO
                 if (!Grow(sizeNeeded))
                     return false;
             }
+
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
 
             foreach (var value in values)
             {
@@ -1315,7 +1460,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<TimeSpan?> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength * 9;
+            sizeNeeded = collectionLength * 9 + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -1325,6 +1470,11 @@ namespace Zerra.Serialization.Bytes.IO
                 if (!Grow(sizeNeeded))
                     return false;
             }
+
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
 
             foreach (var value in values)
             {
@@ -1372,7 +1522,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<DateOnly> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength * 4;
+            sizeNeeded = collectionLength * 4 + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -1382,6 +1532,11 @@ namespace Zerra.Serialization.Bytes.IO
                 if (!Grow(sizeNeeded))
                     return false;
             }
+
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
 
             foreach (var value in values)
             {
@@ -1395,7 +1550,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<DateOnly?> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength * 5;
+            sizeNeeded = collectionLength * 5 + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -1405,6 +1560,11 @@ namespace Zerra.Serialization.Bytes.IO
                 if (!Grow(sizeNeeded))
                     return false;
             }
+
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
 
             foreach (var value in values)
             {
@@ -1451,7 +1611,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<TimeOnly> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength * 8;
+            sizeNeeded = collectionLength * 8 + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -1461,6 +1621,11 @@ namespace Zerra.Serialization.Bytes.IO
                 if (!Grow(sizeNeeded))
                     return false;
             }
+
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
 
             foreach (var value in values)
             {
@@ -1478,7 +1643,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<TimeOnly?> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength * 9;
+            sizeNeeded = collectionLength * 9 + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -1488,6 +1653,11 @@ namespace Zerra.Serialization.Bytes.IO
                 if (!Grow(sizeNeeded))
                     return false;
             }
+
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
 
             foreach (var value in values)
             {
@@ -1540,7 +1710,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryWrite(IEnumerable<Guid> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength * 16;
+            sizeNeeded = collectionLength * 16 + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -1550,6 +1720,11 @@ namespace Zerra.Serialization.Bytes.IO
                 if (!Grow(sizeNeeded))
                     return false;
             }
+
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
 
             foreach (var value in values)
             {
@@ -1568,7 +1743,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryWrite(IEnumerable<Guid?> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength * 17;
+            sizeNeeded = collectionLength * 17 + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -1578,6 +1753,11 @@ namespace Zerra.Serialization.Bytes.IO
                 if (!Grow(sizeNeeded))
                     return false;
             }
+
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
 
             foreach (var value in values)
             {
@@ -1623,7 +1803,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<char> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength * 2;
+            sizeNeeded = collectionLength * 2 + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -1633,6 +1813,11 @@ namespace Zerra.Serialization.Bytes.IO
                 if (!Grow(sizeNeeded))
                     return false;
             }
+
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
 
             foreach (var value in values)
             {
@@ -1644,7 +1829,7 @@ namespace Zerra.Serialization.Bytes.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<char?> values, int collectionLength, out int sizeNeeded)
         {
-            sizeNeeded = collectionLength * 3;
+            sizeNeeded = collectionLength * 3 + 4;
             if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
@@ -1654,6 +1839,11 @@ namespace Zerra.Serialization.Bytes.IO
                 if (!Grow(sizeNeeded))
                     return false;
             }
+
+            buffer[position++] = (byte)collectionLength;
+            buffer[position++] = (byte)(collectionLength >> 8);
+            buffer[position++] = (byte)(collectionLength >> 16);
+            buffer[position++] = (byte)(collectionLength >> 24);
 
             foreach (var value in values)
             {
