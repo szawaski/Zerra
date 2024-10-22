@@ -10,7 +10,7 @@ namespace Zerra.Serialization.Bytes.IO
 {
     public ref partial struct ByteReader
     {
-        internal static readonly Encoding encoding = Encoding.UTF8;
+        private static readonly Encoding encoding = Encoding.UTF8;
 
         private const byte nullByte = 0;
 
