@@ -11,8 +11,6 @@ namespace Zerra.Serialization.Bytes.IO
 {
     public ref partial struct ByteWriter
     {
-        private const int defaultBufferSize = 1024;
-
         private const byte nullByte = 0;
         private const byte notNullByte = 1;
 
@@ -51,10 +49,12 @@ namespace Zerra.Serialization.Bytes.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool EnsureSize(int sizeNeeded)
+        private bool Grow(int sizeNeeded)
         {
+#if DEBUG
             if (length - position >= sizeNeeded)
                 return true;
+#endif
 
             if (bufferOwner is null)
                 return false;
@@ -66,10 +66,6 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
-        public readonly Span<byte> ToSpan()
-        {
-            return buffer.Slice(0, position);
-        }
         public readonly byte[] ToArray()
         {
             return buffer.Slice(0, position).ToArray();

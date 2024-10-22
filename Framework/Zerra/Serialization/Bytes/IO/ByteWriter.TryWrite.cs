@@ -38,12 +38,15 @@ namespace Zerra.Serialization.Bytes.IO
         public unsafe bool TryWrite(byte[] bytes, out int sizeNeeded)
         {
             sizeNeeded = bytes.Length;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
 
             if (bytes.Length == 0)
                 return true;
@@ -63,12 +66,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWriteNull(out int sizeNeeded)
         {
             sizeNeeded = 1;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
 
             buffer[position++] = nullByte;
             return true;
@@ -77,12 +83,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWriteNotNull(out int sizeNeeded)
         {
             sizeNeeded = 1;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
 
             buffer[position++] = notNullByte;
             return true;
@@ -92,12 +101,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(bool value, out int sizeNeeded)
         {
             sizeNeeded = 1;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
 
             buffer[position++] = (byte)(value ? 1 : 0);
             return true;
@@ -106,12 +118,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<bool> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 buffer[position++] = (byte)(value ? 1 : 0);
@@ -122,12 +138,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<bool?> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 2;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 if (value.HasValue)
@@ -146,12 +166,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWriteBoolCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = (bool)value;
@@ -163,12 +187,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWriteBoolNullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 2;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = (bool?)value;
@@ -189,12 +217,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(byte value, out int sizeNeeded)
         {
             sizeNeeded = 1;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             buffer[position++] = value;
             return true;
         }
@@ -202,12 +234,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<byte> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 buffer[position++] = value;
@@ -218,12 +254,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<byte?> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 2;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 if (value.HasValue)
@@ -242,12 +282,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWriteByteCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = (byte)value;
@@ -259,12 +303,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWriteByteNullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 2;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = value is null ? null : (byte?)(byte)value;
@@ -285,12 +333,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(sbyte value, out int sizeNeeded)
         {
             sizeNeeded = 1;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             buffer[position++] = (byte)value;
             return true;
         }
@@ -298,12 +350,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<sbyte> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 buffer[position++] = (byte)value;
@@ -314,12 +370,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<sbyte?> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 2;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 if (value.HasValue)
@@ -338,12 +398,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWriteSByteCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = (sbyte)value;
@@ -355,12 +419,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWriteSByteNullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 2;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = value is null ? null : (sbyte?)(sbyte)value;
@@ -381,12 +449,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(short value, out int sizeNeeded)
         {
             sizeNeeded = 2;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             buffer[position++] = (byte)value;
             buffer[position++] = (byte)(value >> 8);
             return true;
@@ -395,12 +467,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<short> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 2;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 buffer[position++] = (byte)value;
@@ -412,12 +488,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<short?> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 3;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 if (value.HasValue)
@@ -437,12 +517,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWriteInt16Cast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 2;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = (short)value;
@@ -455,12 +539,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWriteInt16NullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 3;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = value is null ? null : (short?)(short)value;
@@ -482,12 +570,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(ushort value, out int sizeNeeded)
         {
             sizeNeeded = 2;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             buffer[position++] = (byte)value;
             buffer[position++] = (byte)(value >> 8);
             return true;
@@ -496,12 +588,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<ushort> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 2;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 buffer[position++] = (byte)value;
@@ -513,12 +609,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<ushort?> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 3;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 if (value.HasValue)
@@ -538,12 +638,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWriteUInt16Cast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 2;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = (ushort)value;
@@ -556,12 +660,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWriteUInt16NullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 3;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = value is null ? null : (ushort?)(ushort)value;
@@ -583,12 +691,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(int value, out int sizeNeeded)
         {
             sizeNeeded = 4;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             buffer[position++] = (byte)value;
             buffer[position++] = (byte)(value >> 8);
             buffer[position++] = (byte)(value >> 16);
@@ -599,12 +711,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<int> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 4;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 buffer[position++] = (byte)value;
@@ -618,12 +734,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<int?> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 5;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 if (value.HasValue)
@@ -645,12 +765,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWriteInt32Cast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 4;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = (int)value;
@@ -665,12 +789,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWriteInt32NullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 5;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = value is null ? null : (int?)(int)value;
@@ -694,12 +822,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(uint value, out int sizeNeeded)
         {
             sizeNeeded = 4;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             buffer[position++] = (byte)value;
             buffer[position++] = (byte)(value >> 8);
             buffer[position++] = (byte)(value >> 16);
@@ -710,12 +842,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<uint> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 4;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 buffer[position++] = (byte)value;
@@ -729,12 +865,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<uint?> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 5;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 if (value.HasValue)
@@ -756,12 +896,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWriteUInt32Cast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 4;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = (uint)value;
@@ -776,12 +920,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWriteUInt32NullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 5;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = value is null ? null : (uint?)(uint)value;
@@ -805,12 +953,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(long value, out int sizeNeeded)
         {
             sizeNeeded = 8;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             buffer[position++] = (byte)value;
             buffer[position++] = (byte)(value >> 8);
             buffer[position++] = (byte)(value >> 16);
@@ -825,12 +977,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<long> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 8;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 buffer[position++] = (byte)value;
@@ -848,12 +1004,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<long?> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 9;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 if (value.HasValue)
@@ -879,12 +1039,17 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWriteInt64Cast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 8;
-            if (!EnsureSize(sizeNeeded) 
+
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = (long)value;
@@ -903,12 +1068,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWriteInt64NullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 9;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = value is null ? null : (long?)(long)value;
@@ -936,12 +1105,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(ulong value, out int sizeNeeded)
         {
             sizeNeeded = 8;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             buffer[position++] = (byte)value;
             buffer[position++] = (byte)(value >> 8);
             buffer[position++] = (byte)(value >> 16);
@@ -956,12 +1129,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<ulong> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 8;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 buffer[position++] = (byte)value;
@@ -979,12 +1156,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<ulong?> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 9;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 if (value.HasValue)
@@ -1010,12 +1191,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWriteUInt64Cast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 8;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = (ulong)value;
@@ -1034,12 +1219,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWriteUInt64NullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 9;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = value is null ? null : (ulong?)(ulong)value;
@@ -1067,12 +1256,16 @@ namespace Zerra.Serialization.Bytes.IO
         public unsafe bool TryWrite(float value, out int sizeNeeded)
         {
             sizeNeeded = 4;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             var tmpValue = *(uint*)&value;
             buffer[position++] = (byte)tmpValue;
             buffer[position++] = (byte)(tmpValue >> 8);
@@ -1084,14 +1277,16 @@ namespace Zerra.Serialization.Bytes.IO
         public unsafe bool TryWrite(IEnumerable<float> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 4;
-            if (!EnsureSize(sizeNeeded)
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
+)
             {
-                return false;
+                if (!Grow(sizeNeeded))
+                    return false;
             }
+
             foreach (var value in values)
             {
                 var tmpValue = *(uint*)&value;
@@ -1106,12 +1301,16 @@ namespace Zerra.Serialization.Bytes.IO
         public unsafe bool TryWrite(IEnumerable<float?> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 5;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 if (value.HasValue)
@@ -1135,12 +1334,16 @@ namespace Zerra.Serialization.Bytes.IO
         public unsafe bool TryWriteSingleCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 4;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = (float)value;
@@ -1156,12 +1359,16 @@ namespace Zerra.Serialization.Bytes.IO
         public unsafe bool TryWriteSingleNullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 5;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = value is null ? null : (float?)(float)value;
@@ -1187,12 +1394,16 @@ namespace Zerra.Serialization.Bytes.IO
         public unsafe bool TryWrite(double value, out int sizeNeeded)
         {
             sizeNeeded = 8;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             var tmpValue = *(ulong*)&value;
             buffer[position++] = (byte)tmpValue;
             buffer[position++] = (byte)(tmpValue >> 8);
@@ -1208,12 +1419,16 @@ namespace Zerra.Serialization.Bytes.IO
         public unsafe bool TryWrite(IEnumerable<double> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 8;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var tmpValue = *(ulong*)&value;
@@ -1232,12 +1447,16 @@ namespace Zerra.Serialization.Bytes.IO
         public unsafe bool TryWrite(IEnumerable<double?> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 9;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 if (value.HasValue)
@@ -1265,12 +1484,16 @@ namespace Zerra.Serialization.Bytes.IO
         public unsafe bool TryWriteDoubleCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 8;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = (double)value;
@@ -1290,12 +1513,16 @@ namespace Zerra.Serialization.Bytes.IO
         public unsafe bool TryWriteDoubleNullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 9;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = value is null ? null : (double?)(double)value;
@@ -1325,12 +1552,15 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(decimal value, out int sizeNeeded)
         {
             sizeNeeded = 16;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
 
             var bits = Decimal.GetBits(value);
             var lo = bits[0];
@@ -1359,12 +1589,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<decimal> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 16;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var bits = Decimal.GetBits(value);
@@ -1395,12 +1629,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<decimal?> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 17;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 if (value.HasValue)
@@ -1439,12 +1677,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWriteDecimalCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 16;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = (decimal)value;
@@ -1476,12 +1718,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWriteDecimalNullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 17;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = value is null ? null : (decimal?)(decimal)value;
@@ -1522,12 +1768,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(DateTime value, out int sizeNeeded)
         {
             sizeNeeded = 8;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             buffer[position++] = (byte)value.Ticks;
             buffer[position++] = (byte)(value.Ticks >> 8);
             buffer[position++] = (byte)(value.Ticks >> 16);
@@ -1542,12 +1792,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<DateTime> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 8;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 buffer[position++] = (byte)value.Ticks;
@@ -1565,12 +1819,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<DateTime?> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 9;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 if (value.HasValue)
@@ -1596,12 +1854,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWriteDateTimeCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 8;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = (DateTime)value;
@@ -1620,12 +1882,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWriteDateTimeNullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 9;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = value is null ? null : (DateTime?)(DateTime)value;
@@ -1653,12 +1919,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(DateTimeOffset value, out int sizeNeeded)
         {
             sizeNeeded = 10;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             buffer[position++] = (byte)value.Ticks;
             buffer[position++] = (byte)(value.Ticks >> 8);
             buffer[position++] = (byte)(value.Ticks >> 16);
@@ -1676,12 +1946,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<DateTimeOffset> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 10;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 buffer[position++] = (byte)value.Ticks;
@@ -1702,12 +1976,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<DateTimeOffset?> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 11;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 if (value.HasValue)
@@ -1736,12 +2014,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWriteDateTimeOffsetCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 10;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = (DateTimeOffset)value;
@@ -1763,12 +2045,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWriteDateTimeOffsetNullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 11;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = value is null ? null : (DateTimeOffset?)(DateTimeOffset)value;
@@ -1799,12 +2085,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(TimeSpan value, out int sizeNeeded)
         {
             sizeNeeded = 8;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             buffer[position++] = (byte)value.Ticks;
             buffer[position++] = (byte)(value.Ticks >> 8);
             buffer[position++] = (byte)(value.Ticks >> 16);
@@ -1819,12 +2109,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<TimeSpan> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 8;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 buffer[position++] = (byte)value.Ticks;
@@ -1842,12 +2136,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<TimeSpan?> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 9;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 if (value.HasValue)
@@ -1873,12 +2171,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWriteTimeSpanCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 8;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = (TimeSpan)value;
@@ -1897,12 +2199,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWriteTimeSpanNullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 9;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = value is null ? null : (TimeSpan?)(TimeSpan)value;
@@ -1931,12 +2237,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(DateOnly value, out int sizeNeeded)
         {
             sizeNeeded = 4;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             buffer[position++] = (byte)value.DayNumber;
             buffer[position++] = (byte)(value.DayNumber >> 8);
             buffer[position++] = (byte)(value.DayNumber >> 16);
@@ -1947,12 +2257,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<DateOnly> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 4;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 buffer[position++] = (byte)value.DayNumber;
@@ -1966,12 +2280,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<DateOnly?> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 5;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 if (value.HasValue)
@@ -1993,12 +2311,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWriteDateOnlyCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 4;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = (DateOnly)value;
@@ -2013,12 +2335,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWriteDateOnlyNullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 9;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = value is null ? null : (DateOnly?)(DateOnly)value;
@@ -2042,12 +2368,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(TimeOnly value, out int sizeNeeded)
         {
             sizeNeeded = 8;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             buffer[position++] = (byte)value.Ticks;
             buffer[position++] = (byte)(value.Ticks >> 8);
             buffer[position++] = (byte)(value.Ticks >> 16);
@@ -2062,12 +2392,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<TimeOnly> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 8;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 buffer[position++] = (byte)value.Ticks;
@@ -2085,12 +2419,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<TimeOnly?> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 9;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 if (value.HasValue)
@@ -2116,12 +2454,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWriteTimeOnlyCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 8;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = (TimeOnly)value;
@@ -2140,12 +2482,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWriteTimeOnlyNullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 9;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = value is null ? null : (TimeOnly?)(TimeOnly)value;
@@ -2174,12 +2520,16 @@ namespace Zerra.Serialization.Bytes.IO
         public unsafe bool TryWrite(Guid value, out int sizeNeeded)
         {
             sizeNeeded = 16;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             var bytes = value.ToByteArray();
             fixed (byte* pBuffer = &buffer[position], pBytes = &bytes[0])
             {
@@ -2195,12 +2545,16 @@ namespace Zerra.Serialization.Bytes.IO
         public unsafe bool TryWrite(IEnumerable<Guid> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 16;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var bytes = value.ToByteArray();
@@ -2219,12 +2573,16 @@ namespace Zerra.Serialization.Bytes.IO
         public unsafe bool TryWrite(IEnumerable<Guid?> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 17;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 if (value.HasValue)
@@ -2251,12 +2609,16 @@ namespace Zerra.Serialization.Bytes.IO
         public unsafe bool TryWriteGuidCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 16;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = (Guid)value;
@@ -2276,12 +2638,16 @@ namespace Zerra.Serialization.Bytes.IO
         public unsafe bool TryWriteGuidNullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 17;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = value is null ? null : (Guid?)(Guid)value;
@@ -2310,12 +2676,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(char value, out int sizeNeeded)
         {
             sizeNeeded = 2;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             Unsafe.As<byte, char>(ref buffer[position]) = value;
             position += 2;
             return true;
@@ -2324,12 +2694,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<char> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 2;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 Unsafe.As<byte, char>(ref buffer[position]) = value;
@@ -2341,12 +2715,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(IEnumerable<char?> values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 3;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 if (value.HasValue)
@@ -2366,12 +2744,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWriteCharCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 2;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = (char)value;
@@ -2384,12 +2766,16 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWriteCharNullableCast(IEnumerable values, int maxLength, out int sizeNeeded)
         {
             sizeNeeded = maxLength * 3;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+
             foreach (var value in values)
             {
                 var cast = value is null ? null : (char?)(char)value;
@@ -2411,17 +2797,20 @@ namespace Zerra.Serialization.Bytes.IO
         public bool TryWrite(string value, out int sizeNeeded)
         {
             sizeNeeded = encoding.GetMaxByteCount(value.Length) + 4;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
 
 #if NETSTANDARD2_0
-                var charBytes = encoding.GetBytes(value);
-                charBytes.AsSpan().CopyTo(buffer.Slice(position + 4));
-                var byteLength = charBytes.Length;
+            var charBytes = encoding.GetBytes(value);
+            charBytes.AsSpan().CopyTo(buffer.Slice(position + 4));
+            var byteLength = charBytes.Length;
 #else
 
             var byteLength = encoding.GetBytes(value.AsSpan(), buffer.Slice(position + 4));
@@ -2442,12 +2831,15 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 0;
             foreach (var value in values)
                 sizeNeeded += value is null ? 1 : encoding.GetMaxByteCount(value.Length) + 5;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
 
             foreach (var value in values)
             {
@@ -2481,12 +2873,15 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 0;
             foreach (string value in values)
                 sizeNeeded += encoding.GetMaxByteCount(value.Length) + 5;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
-            )
-                return false;
+)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
 
             foreach (string value in values)
             {
