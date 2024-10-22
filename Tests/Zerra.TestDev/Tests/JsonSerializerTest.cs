@@ -16,6 +16,7 @@ using Zerra.Test;
 
 namespace Zerra.TestDev
 {
+
     [MemoryDiagnoser]
     public class JsonSerializerTest
     {
@@ -42,11 +43,30 @@ namespace Zerra.TestDev
 
         public static Task TempTestSpeed()
         {
-            var item = TypesAllModel.Create();
-            var data = System.Text.Json.JsonSerializer.Serialize(item);
+            var item = NormalJsonModel.Create();
+
+            var timer = Stopwatch.StartNew();
+            var data1 = System.Text.Json.JsonSerializer.Serialize(item);
+            timer.Stop();
+            Console.WriteLine($"System.Text.Json Serialize: {timer.ElapsedMilliseconds}");
+
+            timer = Stopwatch.StartNew();
+            var item1 = System.Text.Json.JsonSerializer.Deserialize<NormalJsonModel>(data1);
+            timer.Stop();
+            Console.WriteLine($"System.Text.Json Deserialize: {timer.ElapsedMilliseconds}");
+
+            timer = Stopwatch.StartNew();
+            var data2 = JsonSerializer.Serialize(item);
+            timer.Stop();
+            Console.WriteLine($"Zerra Serialize: {timer.ElapsedMilliseconds}");
+
+            timer = Stopwatch.StartNew();
+            var item2 = JsonSerializer.Deserialize<NormalJsonModel>(data2);
+            timer.Stop();
+            Console.WriteLine($"Zerra Deserialize: {timer.ElapsedMilliseconds}");
 
             var method = typeof(JsonSerializerTest).GetMethod(nameof(TempTestSpeed2), BindingFlags.Static | BindingFlags.NonPublic).MakeGenericMethod(item.GetType());
-            return (Task)method.Invoke(null, [item, data, 5000, 5]);
+            return (Task)method.Invoke(null, [item, data1, 5000, 5]);
         }
 
         private static async Task TempTestSpeed2<T>(T item, string data, int iterations, int loops)
@@ -226,14 +246,14 @@ namespace Zerra.TestDev
             foreach (var total in totals.OrderBy(x => x.Key))
             {
                 var totalOld = totalsOld[total.Key];
-                Console.WriteLine($"{total.Key} {total.Value / loops}/{totalOld / loops} {Math.Round((((decimal)total.Value / loops) / ((decimal)totalOld / loops)) * 100, 2)}%");
+                Console.WriteLine($"Old {total.Key} {total.Value / loops}/{totalOld / loops} {Math.Round((((decimal)total.Value / loops) / ((decimal)totalOld / loops)) * 100, 2)}%");
             }
 
             Console.WriteLine();
             foreach (var total in totals.OrderBy(x => x.Key))
             {
                 var totalMs = totalsMs[total.Key];
-                Console.WriteLine($"{total.Key} {total.Value / loops}/{totalMs / loops} {Math.Round((((decimal)total.Value / loops) / ((decimal)totalMs / loops)) * 100, 2)}%");
+                Console.WriteLine($"System.Text.Json {total.Key} {total.Value / loops}/{totalMs / loops} {Math.Round((((decimal)total.Value / loops) / ((decimal)totalMs / loops)) * 100, 2)}%");
             }
 
             Console.WriteLine();
@@ -241,7 +261,7 @@ namespace Zerra.TestDev
 
         public static async Task TestSpeed()
         {
-  
+
             Console.WriteLine("Note: Run in Release Mode!");
 
 #if DEBUG
