@@ -2901,7 +2901,7 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     return false;
                 }
-                if (!lowUnicodeHexToChar.TryGetValue(unicodeSpan.ToString(), out var unicodeChar))
+                if (!StringHelper.LowUnicodeHexToChar.TryGetValue(unicodeSpan.ToString(), out var unicodeChar))
                     throw reader.CreateException("Incomplete escape sequence");
 
                 state.ReadStringEscape = false;
@@ -3271,7 +3271,7 @@ namespace Zerra.Serialization.Json.Converters
                     value = default;
                     return false;
                 }
-                if (!lowUnicodeHexToChar.TryGetValue(unicodeSpan.ToString(), out var unicodeChar))
+                if (!StringHelper.LowUnicodeHexToChar.TryGetValue(unicodeSpan.ToString(), out var unicodeChar))
                     throw reader.CreateException("Incomplete escape sequence");
 
                 //length checked in earlier state
@@ -3281,195 +3281,7 @@ namespace Zerra.Serialization.Json.Converters
                 state.ReadStringEscapeUnicode = false;
             }
         }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static bool WriteString(ref JsonWriter writer, ref WriteState state, string? value)
-        {
-            if (value is null)
-            {
-                if (!writer.TryWriteNull(out state.CharsNeeded))
-                    return false;
-                return true;
-            }
-
-            if (state.WorkingStringStage == 0)
-            {
-                if (!writer.TryWriteQuote(out state.CharsNeeded))
-                    return false;
-                state.WorkingStringStage = 1;
-            }
-
-            if (state.WorkingStringStage == 1)
-            {
-                if (value.Length == 0)
-                {
-                    if (!writer.TryWriteQuote(out state.CharsNeeded))
-                        return false;
-                    state.WorkingStringStage = 0;
-                    return true;
-                }
-                state.WorkingString = value.AsMemory();
-                state.WorkingStringStage = 2;
-            }
-
-            var chars = state.WorkingString.Span;
-            for (; state.WorkingStringIndex < chars.Length; state.WorkingStringIndex++)
-            {
-                var c = chars[state.WorkingStringIndex];
-                char escapedChar;
-                switch (c)
-                {
-                    case '"':
-                        escapedChar = '"';
-                        break;
-                    case '\\':
-                        escapedChar = '\\';
-                        break;
-                    case '\b':
-                        escapedChar = 'b';
-                        break;
-                    case '\f':
-                        escapedChar = 'f';
-                        break;
-                    case '\n':
-                        escapedChar = 'n';
-                        break;
-                    case '\r':
-                        escapedChar = 'r';
-                        break;
-                    case '\t':
-                        escapedChar = 't';
-                        break;
-                    default:
-                        if (c >= ' ') //32
-                            continue;
-
-                        if (state.WorkingStringStage == 2)
-                        {
-                            var slice = chars.Slice(state.WorkingStringStart, state.WorkingStringIndex - state.WorkingStringStart);
-                            if (!writer.TryWrite(slice, out state.CharsNeeded))
-                                return false;
-                            state.WorkingStringStage = 3;
-                        }
-
-                        var code = lowUnicodeIntToEncodedHex[c];
-                        if (!writer.TryWriteRaw(code, out state.CharsNeeded))
-                            return false;
-                        state.WorkingStringStage = 2;
-                        state.WorkingStringStart = state.WorkingStringIndex + 1;
-                        continue;
-                }
-
-                if (state.WorkingStringStage == 2)
-                {
-                    var slice = chars.Slice(state.WorkingStringStart, state.WorkingStringIndex - state.WorkingStringStart);
-                    if (!writer.TryWrite(slice, out state.CharsNeeded))
-                        return false;
-                    state.WorkingStringStage = 3;
-                }
-                if (state.WorkingStringStage == 3)
-                {
-                    if (!writer.TryWriteEscape(out state.CharsNeeded))
-                        return false;
-                    state.WorkingStringStage = 4;
-                }
-                if (!writer.TryWriteRaw(escapedChar, out state.CharsNeeded))
-                    return false;
-                state.WorkingStringStage = 2;
-                state.WorkingStringStart = state.WorkingStringIndex + 1;
-            }
-
-            if (state.WorkingStringStage == 2)
-            {
-                if (chars.Length < state.WorkingStringStart)
-                {
-                    state.CharsNeeded = state.WorkingStringStart;
-                    return false;
-                }
-                else if (chars.Length > state.WorkingStringStart)
-                {
-                    var slice = chars.Slice(state.WorkingStringStart, chars.Length - state.WorkingStringStart);
-                    if (!writer.TryWrite(slice, out state.CharsNeeded))
-                        return false;
-                }
-                state.WorkingStringStage = 3;
-            }
-
-            if (!writer.TryWriteQuote(out state.CharsNeeded))
-                return false;
-
-            state.WorkingStringStage = 0;
-            state.WorkingStringIndex = 0;
-            state.WorkingStringStart = 0;
-            state.WorkingString = null;
-            return true;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static bool WriteChar(ref JsonWriter writer, ref WriteState state, char? value)
-        {
-            if (value is null)
-            {
-                if (!writer.TryWriteNull(out state.CharsNeeded))
-                    return false;
-                return true;
-            }
-
-            switch (value.Value)
-            {
-                case '\\':
-                    if (!writer.TryWriteQuoted("\\\\", out state.CharsNeeded))
-                        return false;
-                    state.WorkingStringStage = 0;
-                    return true;
-                case '"':
-                    if (!writer.TryWriteQuoted("\\\"", out state.CharsNeeded))
-                        return false;
-                    state.WorkingStringStage = 0;
-                    return true;
-                case '/':
-                    if (!writer.TryWriteQuoted("\\/", out state.CharsNeeded))
-                        return false;
-                    state.WorkingStringStage = 0;
-                    return true;
-                case '\b':
-                    if (!writer.TryWriteQuoted("\\b", out state.CharsNeeded))
-                        return false;
-                    state.WorkingStringStage = 0;
-                    return true;
-                case '\t':
-                    if (!writer.TryWriteQuoted("\\t", out state.CharsNeeded))
-                        return false;
-                    state.WorkingStringStage = 0;
-                    return true;
-                case '\n':
-                    if (!writer.TryWriteQuoted("\\n", out state.CharsNeeded))
-                        return false;
-                    state.WorkingStringStage = 0;
-                    return true;
-                case '\f':
-                    if (!writer.TryWriteQuoted("\\f", out state.CharsNeeded))
-                        return false;
-                    state.WorkingStringStage = 0;
-                    return true;
-                case '\r':
-                    if (!writer.TryWriteQuoted("\\r", out state.CharsNeeded))
-                        return false;
-                    state.WorkingStringStage = 0;
-                    return true;
-            }
-
-            if (value < ' ') //32
-            {
-                var code = lowUnicodeIntToEncodedHex[value.Value];
-                if (!writer.TryWriteQuoted(code, out state.CharsNeeded))
-                    return false;
-                return true;
-            }
-
-            if (!writer.TryWriteQuoted(value.Value, out state.CharsNeeded))
-                return false;
-            return true;
-        }
-
+       
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool TryReadJsonObject(ref JsonReader reader, ref ReadState state, out JsonObject? value)
         {

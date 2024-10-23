@@ -4,11 +4,12 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using Zerra.Buffers;
 
 namespace Zerra.Serialization.Json.IO
 {
     public ref partial struct JsonWriter
-    {        
+    {
         //https://www.rfc-editor.org/rfc/rfc4627
 
         //last byte 128 to 191
@@ -79,16 +80,25 @@ namespace Zerra.Serialization.Json.IO
         public bool TryWrite(byte value, out int sizeNeeded)
         {
             sizeNeeded = 4;
-            if (!EnsureSize(sizeNeeded)
+            if (length - position < sizeNeeded)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
 #if DEBUG
-            || Skip()
-#endif
-            )
+            if (Skip())
                 return false;
+#endif
+
             if (useBytes)
-                WriteUInt64Bytes(value);
+            {
+                _ = System.Buffers.Text.Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
+                position += written;
+            }
             else
+            {
                 WriteUInt64Chars(value);
+            }
             return true;
         }
 
@@ -96,16 +106,25 @@ namespace Zerra.Serialization.Json.IO
         public bool TryWrite(sbyte value, out int sizeNeeded)
         {
             sizeNeeded = 3;
-            if (!EnsureSize(sizeNeeded)
+            if (length - position < sizeNeeded)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
 #if DEBUG
-            || Skip()
-#endif
-            )
+            if (Skip())
                 return false;
+#endif
+
             if (useBytes)
-                WriteInt64Bytes(value);
+            {
+                _ = System.Buffers.Text.Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
+                position += written;
+            }
             else
+            {
                 WriteInt64Chars(value);
+            }
             return true;
         }
 
@@ -113,16 +132,25 @@ namespace Zerra.Serialization.Json.IO
         public bool TryWrite(short value, out int sizeNeeded)
         {
             sizeNeeded = 6;
-            if (!EnsureSize(sizeNeeded)
+            if (length - position < sizeNeeded)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
 #if DEBUG
-            || Skip()
-#endif
-            )
+            if (Skip())
                 return false;
+#endif
+
             if (useBytes)
-                WriteInt64Bytes(value);
+            {
+                _ = System.Buffers.Text.Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
+                position += written;
+            }
             else
+            {
                 WriteInt64Chars(value);
+            }
             return true;
         }
 
@@ -130,16 +158,25 @@ namespace Zerra.Serialization.Json.IO
         public bool TryWrite(ushort value, out int sizeNeeded)
         {
             sizeNeeded = 5;
-            if (!EnsureSize(sizeNeeded)
+            if (length - position < sizeNeeded)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
 #if DEBUG
-            || Skip()
-#endif
-            )
+            if (Skip())
                 return false;
+#endif
+
             if (useBytes)
-                WriteUInt64Bytes(value);
+            {
+                _ = System.Buffers.Text.Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
+                position += written;
+            }
             else
+            {
                 WriteUInt64Chars(value);
+            }
             return true;
         }
 
@@ -147,16 +184,25 @@ namespace Zerra.Serialization.Json.IO
         public bool TryWrite(int value, out int sizeNeeded)
         {
             sizeNeeded = 11;
-            if (!EnsureSize(sizeNeeded)
+            if (length - position < sizeNeeded)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
 #if DEBUG
-            || Skip()
-#endif
-            )
+            if (Skip())
                 return false;
+#endif
+
             if (useBytes)
-                WriteInt64Bytes(value);
+            {
+                _ = System.Buffers.Text.Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
+                position += written;
+            }
             else
+            {
                 WriteInt64Chars(value);
+            }
             return true;
         }
 
@@ -164,16 +210,25 @@ namespace Zerra.Serialization.Json.IO
         public bool TryWrite(uint value, out int sizeNeeded)
         {
             sizeNeeded = 10;
-            if (!EnsureSize(sizeNeeded)
+            if (length - position < sizeNeeded)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
 #if DEBUG
-            || Skip()
-#endif
-            )
+            if (Skip())
                 return false;
+#endif
+
             if (useBytes)
-                WriteUInt64Bytes(value);
+            {
+                _ = System.Buffers.Text.Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
+                position += written;
+            }
             else
+            {
                 WriteUInt64Chars(value);
+            }
             return true;
         }
 
@@ -181,16 +236,18 @@ namespace Zerra.Serialization.Json.IO
         public bool TryWrite(long value, out int sizeNeeded)
         {
             sizeNeeded = 20;
-            if (!EnsureSize(sizeNeeded)
-#if DEBUG
-            || Skip()
-#endif
-            )
+            if (length - position < sizeNeeded && !Grow(sizeNeeded))
                 return false;
+
             if (useBytes)
-                WriteInt64Bytes(value);
+            {
+                _ = System.Buffers.Text.Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
+                position += written;
+            }
             else
+            {
                 WriteInt64Chars(value);
+            }
             return true;
         }
 
@@ -198,16 +255,25 @@ namespace Zerra.Serialization.Json.IO
         public bool TryWrite(ulong value, out int sizeNeeded)
         {
             sizeNeeded = 20;
-            if (!EnsureSize(sizeNeeded)
+            if (length - position < sizeNeeded)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
 #if DEBUG
-            || Skip()
-#endif
-            )
+            if (Skip())
                 return false;
+#endif
+
             if (useBytes)
-                WriteUInt64Bytes(value);
+            {
+                _ = System.Buffers.Text.Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
+                position += written;
+            }
             else
+            {
                 WriteUInt64Chars(value);
+            }
             return true;
         }
 
@@ -215,14 +281,25 @@ namespace Zerra.Serialization.Json.IO
         public bool TryWrite(float value, out int sizeNeeded)
         {
             sizeNeeded = 16; //min
-            if (!EnsureSize(sizeNeeded)
+            if (length - position < sizeNeeded)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
 #if DEBUG
-            || Skip()
-#endif
-            )
+            if (Skip())
                 return false;
+#endif
 
-            WriteLowerChars(value.ToString());
+            if (useBytes)
+            {
+                _ = System.Buffers.Text.Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
+                position += written;
+            }
+            else
+            {
+                WriteLowerChars(value.ToString());
+            }
 
             return true;
         }
@@ -231,14 +308,25 @@ namespace Zerra.Serialization.Json.IO
         public bool TryWrite(double value, out int sizeNeeded)
         {
             sizeNeeded = 32; //min
-            if (!EnsureSize(sizeNeeded)
+            if (length - position < sizeNeeded)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
 #if DEBUG
-            || Skip()
-#endif
-            )
+            if (Skip())
                 return false;
+#endif
 
-            WriteLowerChars(value.ToString());
+            if (useBytes)
+            {
+                _ = System.Buffers.Text.Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
+                position += written;
+            }
+            else
+            {
+                WriteLowerChars(value.ToString());
+            }
 
             return true;
         }
@@ -247,176 +335,27 @@ namespace Zerra.Serialization.Json.IO
         public bool TryWrite(decimal value, out int sizeNeeded)
         {
             sizeNeeded = 31;
-            if (!EnsureSize(sizeNeeded)
+            if (length - position < sizeNeeded)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
 #if DEBUG
-            || Skip()
-#endif
-            )
+            if (Skip())
                 return false;
+#endif
 
-            WriteLowerChars(value.ToString());
+            if (useBytes)
+            {
+                _ = System.Buffers.Text.Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
+                position += written;
+            }
+            else
+            {
+                WriteLowerChars(value.ToString());
+            }
 
             return true;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryWriteRaw(char value, out int sizeNeeded)
-        {
-            if (useBytes)
-            {
-                if (value < 192)
-                {
-                    sizeNeeded = 1;
-                    if (!EnsureSize(sizeNeeded)
-#if DEBUG
-            || Skip()
-#endif
-            )
-                        return false;
-                    bufferBytes[position++] = (byte)value;
-                    return true;
-                }
-                else
-                {
-                    sizeNeeded = 4;
-                    if (!EnsureSize(sizeNeeded)
-#if DEBUG
-            || Skip()
-#endif
-            )
-                        return false;
-                    var valueArray = stackalloc char[] { value };
-                    fixed (byte* pBuffer = &bufferBytes[position])
-                    {
-                        position += encoding.GetBytes(valueArray, 1, pBuffer, bufferBytes.Length - position);
-                    }
-                    return true;
-                }
-            }
-            else
-            {
-                sizeNeeded = 1;
-                if (!EnsureSize(sizeNeeded)
-#if DEBUG
-            || Skip()
-#endif
-            )
-                    return false;
-                bufferChars[position++] = value;
-                return true;
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryWriteQuoted(char value, out int sizeNeeded)
-        {
-            if (useBytes)
-            {
-                if (value < 128)
-                {
-                    sizeNeeded = 3;
-                    if (!EnsureSize(sizeNeeded)
-#if DEBUG
-            || Skip()
-#endif
-            )
-                        return false;
-                    bufferBytes[position++] = quoteByte;
-                    bufferBytes[position++] = (byte)value;
-                    bufferBytes[position++] = quoteByte;
-                    return true;
-                }
-                else
-                {
-                    sizeNeeded = 6;
-                    if (!EnsureSize(sizeNeeded)
-#if DEBUG
-            || Skip()
-#endif
-            )
-                        return false;
-
-                    bufferBytes[position++] = quoteByte;
-                    var valueArray = stackalloc char[] { value };
-                    fixed (byte* pBuffer = &bufferBytes[position])
-                    {
-                        position += encoding.GetBytes(valueArray, 1, pBuffer, bufferBytes.Length - position);
-                    }
-                    bufferBytes[position++] = quoteByte;
-
-                    return true;
-                }
-            }
-            else
-            {
-                sizeNeeded = 3;
-                if (!EnsureSize(sizeNeeded)
-#if DEBUG
-            || Skip()
-#endif
-            )
-                    return false;
-
-                bufferChars[position++] = '"';
-                bufferChars[position++] = value;
-                bufferChars[position++] = '"';
-
-                return true;
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryWriteRaw(string? value, out int sizeNeeded)
-        {
-            if (value is null)
-            {
-                sizeNeeded = 0;
-                return true;
-            }
-            if (value.Length == 0)
-            {
-                sizeNeeded = 0;
-                return true;
-            }
-
-            if (useBytes)
-            {
-                sizeNeeded = encoding.GetMaxByteCount(value.Length);
-                if (!EnsureSize(sizeNeeded)
-#if DEBUG
-            || Skip()
-#endif
-            )
-                    return false;
-
-                fixed (char* pSource = value)
-                fixed (byte* pBuffer = &bufferBytes[position])
-                {
-                    position += encoding.GetBytes(pSource, value.Length, pBuffer, bufferBytes.Length - position);
-                }
-                return true;
-            }
-            else
-            {
-                sizeNeeded = value.Length;
-                if (!EnsureSize(sizeNeeded)
-#if DEBUG
-            || Skip()
-#endif
-            )
-                    return false;
-
-                var pCount = value.Length;
-                fixed (char* pSource = value, pBuffer = &bufferChars[position])
-                {
-                    for (var p = 0; p < pCount; p++)
-                    {
-                        pBuffer[p] = pSource[p];
-                    }
-                }
-                position += pCount;
-                return true;
-            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -430,12 +369,16 @@ namespace Zerra.Serialization.Json.IO
             if (value.Length == 0)
             {
                 sizeNeeded = 2;
-                if (!EnsureSize(sizeNeeded)
+                if (length - position < sizeNeeded)
+                {
+                    if (!Grow(sizeNeeded))
+                        return false;
+                }
 #if DEBUG
-            || Skip()
-#endif
-            )
+                if (Skip())
                     return false;
+#endif
+
                 if (useBytes)
                 {
                     bufferBytes[position++] = quoteByte;
@@ -452,12 +395,15 @@ namespace Zerra.Serialization.Json.IO
             if (useBytes)
             {
                 sizeNeeded = encoding.GetMaxByteCount(value.Length) + 2;
-                if (!EnsureSize(sizeNeeded)
+                if (length - position < sizeNeeded)
+                {
+                    if (!Grow(sizeNeeded))
+                        return false;
+                }
 #if DEBUG
-            || Skip()
-#endif
-            )
+                if (Skip())
                     return false;
+#endif
 
                 bufferBytes[position++] = quoteByte;
                 fixed (char* pSource = value)
@@ -472,23 +418,22 @@ namespace Zerra.Serialization.Json.IO
             else
             {
                 sizeNeeded = value.Length + 2;
-                if (!EnsureSize(sizeNeeded)
+                if (length - position < sizeNeeded)
+                {
+                    if (!Grow(sizeNeeded))
+                        return false;
+                }
 #if DEBUG
-            || Skip()
-#endif
-            )
+                if (Skip())
                     return false;
+#endif
 
                 bufferChars[position++] = '"';
-                var pCount = value.Length;
                 fixed (char* pSource = value, pBuffer = &bufferChars[position])
                 {
-                    for (var p = 0; p < pCount; p++)
-                    {
-                        pBuffer[p] = pSource[p];
-                    }
+                    Buffer.MemoryCopy(pSource, pBuffer, (bufferChars.Length - position) * 2, value.Length * 2);
                 }
-                position += pCount;
+                position += value.Length;
                 bufferChars[position++] = '"';
 
                 return true;
@@ -509,15 +454,11 @@ namespace Zerra.Serialization.Json.IO
             }
             else
             {
-                var pCount = value.Length;
                 fixed (char* pSource = value, pBuffer = &bufferChars[position])
                 {
-                    for (var p = 0; p < pCount; p++)
-                    {
-                        pBuffer[p] = pSource[p];
-                    }
+                    Buffer.MemoryCopy(pSource, pBuffer, (bufferChars.Length - position) * 2, value.Length * 2);
                 }
-                position += pCount;
+                position += value.Length;
             }
         }
 
@@ -527,12 +468,15 @@ namespace Zerra.Serialization.Json.IO
             //ISO8601
             //"yyyy-MM-ddTHH:mm:ss.fffffff+00:00"
             sizeNeeded = 35;
-            if (!EnsureSize(sizeNeeded)
+            if (length - position < sizeNeeded)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
 #if DEBUG
-            || Skip()
-#endif
-            )
+            if (Skip())
                 return false;
+#endif
 
             if (useBytes)
             {
@@ -544,33 +488,39 @@ namespace Zerra.Serialization.Json.IO
                     bufferBytes[position++] = zeroByte;
                 if (value.Year < 1000)
                     bufferBytes[position++] = zeroByte;
-                WriteInt64Bytes(value.Year);
+                _ = System.Buffers.Text.Utf8Formatter.TryFormat(value.Year, bufferBytes.Slice(position), out var written);
+                position += written;
                 bufferBytes[position++] = minusByte;
 
                 if (value.Month < 10)
                     bufferBytes[position++] = zeroByte;
-                WriteInt64Bytes(value.Month);
+                _ = System.Buffers.Text.Utf8Formatter.TryFormat(value.Month, bufferBytes.Slice(position), out written);
+                position += written;
                 bufferBytes[position++] = minusByte;
 
                 if (value.Day < 10)
                     bufferBytes[position++] = zeroByte;
-                WriteInt64Bytes(value.Day);
+                _ = System.Buffers.Text.Utf8Formatter.TryFormat(value.Day, bufferBytes.Slice(position), out written);
+                position += written;
 
                 bufferBytes[position++] = tUpperByte;
 
                 if (value.Hour < 10)
                     bufferBytes[position++] = zeroByte;
-                WriteInt64Bytes(value.Hour);
+                _ = System.Buffers.Text.Utf8Formatter.TryFormat(value.Hour, bufferBytes.Slice(position), out written);
+                position += written;
                 bufferBytes[position++] = colonByte;
 
                 if (value.Minute < 10)
                     bufferBytes[position++] = zeroByte;
-                WriteInt64Bytes(value.Minute);
+                _ = System.Buffers.Text.Utf8Formatter.TryFormat(value.Minute, bufferBytes.Slice(position), out written);
+                position += written;
                 bufferBytes[position++] = colonByte;
 
                 if (value.Second < 10)
                     bufferBytes[position++] = zeroByte;
-                WriteInt64Bytes(value.Second);
+                _ = System.Buffers.Text.Utf8Formatter.TryFormat(value.Second, bufferBytes.Slice(position), out written);
+                position += written;
 
                 var fraction = value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / 10000000) * 10000000;
                 if (fraction > 0)
@@ -590,7 +540,8 @@ namespace Zerra.Serialization.Json.IO
                         bufferBytes[position++] = zeroByte;
                     while (fraction % 10 == 0)
                         fraction /= 10;
-                    WriteInt64Bytes(fraction);
+                    _ = System.Buffers.Text.Utf8Formatter.TryFormat(fraction, bufferBytes.Slice(position), out written);
+                    position += written;
                 }
 
                 switch (value.Kind)
@@ -609,12 +560,14 @@ namespace Zerra.Serialization.Json.IO
                                 bufferBytes[position++] = plusByte;
                             if (offset.Offset.Hours < 10)
                                 bufferBytes[position++] = zeroByte;
-                            WriteInt64Bytes(offset.Offset.Hours < 0 ? -offset.Offset.Hours : offset.Offset.Hours);
+                            _ = System.Buffers.Text.Utf8Formatter.TryFormat(offset.Offset.Hours < 0 ? -offset.Offset.Hours : offset.Offset.Hours, bufferBytes.Slice(position), out written);
+                            position += written;
                             bufferBytes[position++] = colonByte;
 
                             if (offset.Offset.Minutes < 10)
                                 bufferBytes[position++] = zeroByte;
-                            WriteInt64Bytes(offset.Offset.Minutes);
+                            _ = System.Buffers.Text.Utf8Formatter.TryFormat(offset.Offset.Minutes, bufferBytes.Slice(position), out written);
+                            position += written;
                             break;
                         }
                     case DateTimeKind.Unspecified:
@@ -731,12 +684,15 @@ namespace Zerra.Serialization.Json.IO
             //ISO8601
             //"yyyy-MM-ddTHH:mm:ss.fffffff+00:00"
             sizeNeeded = 35;
-            if (!EnsureSize(sizeNeeded)
+            if (length - position < sizeNeeded)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
 #if DEBUG
-            || Skip()
-#endif
-            )
+            if (Skip())
                 return false;
+#endif
 
             if (useBytes)
             {
@@ -748,33 +704,39 @@ namespace Zerra.Serialization.Json.IO
                     bufferBytes[position++] = zeroByte;
                 if (value.Year < 1000)
                     bufferBytes[position++] = zeroByte;
-                WriteInt64Bytes(value.Year);
+                _ = System.Buffers.Text.Utf8Formatter.TryFormat(value.Year, bufferBytes.Slice(position), out var written);
+                position += written;
                 bufferBytes[position++] = minusByte;
 
                 if (value.Month < 10)
                     bufferBytes[position++] = zeroByte;
-                WriteInt64Bytes(value.Month);
+                _ = System.Buffers.Text.Utf8Formatter.TryFormat(value.Month, bufferBytes.Slice(position), out written);
+                position += written;
                 bufferBytes[position++] = minusByte;
 
                 if (value.Day < 10)
                     bufferBytes[position++] = zeroByte;
-                WriteInt64Bytes(value.Day);
+                _ = System.Buffers.Text.Utf8Formatter.TryFormat(value.Day, bufferBytes.Slice(position), out written);
+                position += written;
 
                 bufferBytes[position++] = tUpperByte;
 
                 if (value.Hour < 10)
                     bufferBytes[position++] = zeroByte;
-                WriteInt64Bytes(value.Hour);
+                _ = System.Buffers.Text.Utf8Formatter.TryFormat(value.Hour, bufferBytes.Slice(position), out written);
+                position += written;
                 bufferBytes[position++] = colonByte;
 
                 if (value.Minute < 10)
                     bufferBytes[position++] = zeroByte;
-                WriteInt64Bytes(value.Minute);
+                _ = System.Buffers.Text.Utf8Formatter.TryFormat(value.Minute, bufferBytes.Slice(position), out written);
+                position += written;
                 bufferBytes[position++] = colonByte;
 
                 if (value.Second < 10)
                     bufferBytes[position++] = zeroByte;
-                WriteInt64Bytes(value.Second);
+                _ = System.Buffers.Text.Utf8Formatter.TryFormat(value.Second, bufferBytes.Slice(position), out written);
+                position += written;
 
                 var fraction = value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / 10000000) * 10000000;
                 if (fraction > 0)
@@ -794,7 +756,8 @@ namespace Zerra.Serialization.Json.IO
                         bufferBytes[position++] = zeroByte;
                     while (fraction % 10 == 0)
                         fraction /= 10;
-                    WriteInt64Bytes(fraction);
+                    _ = System.Buffers.Text.Utf8Formatter.TryFormat(fraction, bufferBytes.Slice(position), out written);
+                    position += written;
                 }
 
                 if (value.Offset.Hours < 0)
@@ -803,12 +766,14 @@ namespace Zerra.Serialization.Json.IO
                     bufferBytes[position++] = plusByte;
                 if (value.Offset.Hours < 10)
                     bufferBytes[position++] = zeroByte;
-                WriteInt64Bytes(value.Offset.Hours < 0 ? -value.Offset.Hours : value.Offset.Hours);
+                _ = System.Buffers.Text.Utf8Formatter.TryFormat(value.Offset.Hours < 0 ? -value.Offset.Hours : value.Offset.Hours, bufferBytes.Slice(position), out written);
+                position += written;
                 bufferBytes[position++] = colonByte;
 
                 if (value.Offset.Minutes < 10)
                     bufferBytes[position++] = zeroByte;
-                WriteInt64Bytes(value.Offset.Minutes);
+                _ = System.Buffers.Text.Utf8Formatter.TryFormat(value.Offset.Minutes, bufferBytes.Slice(position), out written);
+                position += written;
 
                 bufferBytes[position++] = quoteByte;
 
@@ -898,12 +863,15 @@ namespace Zerra.Serialization.Json.IO
             //ISO8601
             //(-)dddddddd.HH:mm:ss.fffffff
             sizeNeeded = 28;
-            if (!EnsureSize(sizeNeeded)
+            if (length - position < sizeNeeded)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
 #if DEBUG
-            || Skip()
-#endif
-            )
+            if (Skip())
                 return false;
+#endif
 
             if (useBytes)
             {
@@ -914,12 +882,14 @@ namespace Zerra.Serialization.Json.IO
 
                 if (value.Days > 0)
                 {
-                    WriteInt64Bytes(value.Days);
+                    _ = System.Buffers.Text.Utf8Formatter.TryFormat(value.Days, bufferBytes.Slice(position), out var written);
+                    position += written;
                     bufferBytes[position++] = dotByte;
                 }
                 else if (value.Days < 0)
                 {
-                    WriteInt64Bytes(-value.Days);
+                    _ = System.Buffers.Text.Utf8Formatter.TryFormat(-value.Days, bufferBytes.Slice(position), out var written);
+                    position += written;
                     bufferBytes[position++] = dotByte;
                 }
 
@@ -927,14 +897,16 @@ namespace Zerra.Serialization.Json.IO
                 {
                     if (value.Hours < 10)
                         bufferBytes[position++] = zeroByte;
-                    WriteInt64Bytes(value.Hours);
+                    _ = System.Buffers.Text.Utf8Formatter.TryFormat(value.Hours, bufferBytes.Slice(position), out var written);
+                    position += written;
                     bufferBytes[position++] = colonByte;
                 }
                 else
                 {
                     if (-value.Hours < 10)
                         bufferBytes[position++] = zeroByte;
-                    WriteInt64Bytes(-value.Hours);
+                    _ = System.Buffers.Text.Utf8Formatter.TryFormat(-value.Hours, bufferBytes.Slice(position), out var written);
+                    position += written;
                     bufferBytes[position++] = colonByte;
                 }
 
@@ -942,14 +914,16 @@ namespace Zerra.Serialization.Json.IO
                 {
                     if (value.Minutes < 10)
                         bufferBytes[position++] = zeroByte;
-                    WriteInt64Bytes(value.Minutes);
+                    _ = System.Buffers.Text.Utf8Formatter.TryFormat(value.Minutes, bufferBytes.Slice(position), out var written);
+                    position += written;
                     bufferBytes[position++] = colonByte;
                 }
                 else
                 {
                     if (-value.Minutes < 10)
                         bufferBytes[position++] = zeroByte;
-                    WriteInt64Bytes(-value.Minutes);
+                    _ = System.Buffers.Text.Utf8Formatter.TryFormat(-value.Minutes, bufferBytes.Slice(position), out var written);
+                    position += written;
                     bufferBytes[position++] = colonByte;
                 }
 
@@ -957,13 +931,15 @@ namespace Zerra.Serialization.Json.IO
                 {
                     if (value.Seconds < 10)
                         bufferBytes[position++] = zeroByte;
-                    WriteInt64Bytes(value.Seconds);
+                    _ = System.Buffers.Text.Utf8Formatter.TryFormat(value.Seconds, bufferBytes.Slice(position), out var written);
+                    position += written;
                 }
                 else
                 {
                     if (-value.Seconds < 10)
                         bufferBytes[position++] = zeroByte;
-                    WriteInt64Bytes(-value.Seconds);
+                    _ = System.Buffers.Text.Utf8Formatter.TryFormat(-value.Seconds, bufferBytes.Slice(position), out var written);
+                    position += written;
                 }
 
                 long fraction;
@@ -986,7 +962,8 @@ namespace Zerra.Serialization.Json.IO
                         bufferBytes[position++] = zeroByte;
                     if (fraction < 1000000)
                         bufferBytes[position++] = zeroByte;
-                    WriteInt64Bytes(fraction);
+                    _ = System.Buffers.Text.Utf8Formatter.TryFormat(fraction, bufferBytes.Slice(position), out var written);
+                    position += written;
                 }
 
                 bufferBytes[position++] = quoteByte;
@@ -1090,12 +1067,16 @@ namespace Zerra.Serialization.Json.IO
             //ISO8601
             //"yyyy-MM-dd"
             sizeNeeded = 12;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
 #if DEBUG
-            || Skip()
-#endif
-            )
+            if (Skip())
                 return false;
+#endif
+
 
             if (useBytes)
             {
@@ -1107,17 +1088,20 @@ namespace Zerra.Serialization.Json.IO
                     bufferBytes[position++] = zeroByte;
                 if (value.Year < 1000)
                     bufferBytes[position++] = zeroByte;
-                WriteInt64Bytes(value.Year);
+                _ = System.Buffers.Text.Utf8Formatter.TryFormat(value.Year, bufferBytes.Slice(position), out var written);
+                position += written;
                 bufferBytes[position++] = minusByte;
 
                 if (value.Month < 10)
                     bufferBytes[position++] = zeroByte;
-                WriteInt64Bytes(value.Month);
+                _ = System.Buffers.Text.Utf8Formatter.TryFormat(value.Month, bufferBytes.Slice(position), out written);
+                position += written;
                 bufferBytes[position++] = minusByte;
 
                 if (value.Day < 10)
                     bufferBytes[position++] = zeroByte;
-                WriteInt64Bytes(value.Day);
+                _ = System.Buffers.Text.Utf8Formatter.TryFormat(value.Day, bufferBytes.Slice(position), out written);
+                position += written;
 
                 bufferBytes[position++] = quoteByte;
 
@@ -1157,12 +1141,16 @@ namespace Zerra.Serialization.Json.IO
             //ISO8601
             //"HH:mm:ss.fffffff"
             sizeNeeded = 18;
-            if (!EnsureSize(sizeNeeded) 
+            if (length - position < sizeNeeded)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
 #if DEBUG
-            || Skip()
-#endif
-            )
+            if (Skip())
                 return false;
+#endif
+
 
             if (useBytes)
             {
@@ -1170,17 +1158,20 @@ namespace Zerra.Serialization.Json.IO
 
                 if (value.Hour < 10)
                     bufferBytes[position++] = zeroByte;
-                WriteInt64Bytes(value.Hour);
+                _ = System.Buffers.Text.Utf8Formatter.TryFormat(value.Hour, bufferBytes.Slice(position), out var written);
+                position += written;
                 bufferBytes[position++] = colonByte;
 
                 if (value.Minute < 10)
                     bufferBytes[position++] = zeroByte;
-                WriteInt64Bytes(value.Minute);
+                _ = System.Buffers.Text.Utf8Formatter.TryFormat(value.Minute, bufferBytes.Slice(position), out written);
+                position += written;
                 bufferBytes[position++] = colonByte;
 
                 if (value.Second < 10)
                     bufferBytes[position++] = zeroByte;
-                WriteInt64Bytes(value.Second);
+                _ = System.Buffers.Text.Utf8Formatter.TryFormat(value.Second, bufferBytes.Slice(position), out written);
+                position += written;
 
                 var fraction = value.Ticks - (value.Ticks / 10000000) * 10000000;
                 if (fraction > 0)
@@ -1200,7 +1191,8 @@ namespace Zerra.Serialization.Json.IO
                         bufferBytes[position++] = zeroByte;
                     //while (fraction % 10 == 0)  System.Text.Json does all figures
                     //    fraction /= 10;
-                    WriteInt64Bytes(fraction);
+                    _ = System.Buffers.Text.Utf8Formatter.TryFormat(fraction, bufferBytes.Slice(position), out written);
+                    position += written;
                 }
 
                 bufferBytes[position++] = quoteByte;
@@ -1257,19 +1249,30 @@ namespace Zerra.Serialization.Json.IO
         public bool TryWrite(Guid value, out int sizeNeeded)
         {
             sizeNeeded = 38;
-            if (!EnsureSize(sizeNeeded)
+            if (length - position < sizeNeeded)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
 #if DEBUG
-            || Skip()
-#endif
-            )
+            if (Skip())
                 return false;
+#endif
 
             if (useBytes)
                 bufferBytes[position++] = quoteByte;
             else
                 bufferChars[position++] = '"';
 
-            WriteLowerChars(value.ToString());
+            if (useBytes)
+            {
+                _ = System.Buffers.Text.Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
+                position += written;
+            }
+            else
+            {
+                WriteLowerChars(value.ToString());
+            }
 
             if (useBytes)
                 bufferBytes[position++] = quoteByte;
@@ -1291,12 +1294,15 @@ namespace Zerra.Serialization.Json.IO
             if (useBytes)
             {
                 sizeNeeded = encoding.GetMaxByteCount(value.Length);
-                if (!EnsureSize(sizeNeeded)
+                if (length - position < sizeNeeded)
+                {
+                    if (!Grow(sizeNeeded))
+                        return false;
+                }
 #if DEBUG
-            || Skip()
-#endif
-            )
+                if (Skip())
                     return false;
+#endif
 
                 fixed (char* pSource = value)
                 fixed (byte* pBuffer = &bufferBytes[position])
@@ -1308,22 +1314,21 @@ namespace Zerra.Serialization.Json.IO
             else
             {
                 sizeNeeded = value.Length;
-                if (!EnsureSize(sizeNeeded)
+                if (length - position < sizeNeeded)
+                {
+                    if (!Grow(sizeNeeded))
+                        return false;
+                }
 #if DEBUG
-            || Skip()
-#endif
-            )
+                if (Skip())
                     return false;
+#endif
 
-                var pCount = value.Length;
                 fixed (char* pSource = value, pBuffer = &bufferChars[position])
                 {
-                    for (var p = 0; p < pCount; p++)
-                    {
-                        pBuffer[p] = pSource[p];
-                    }
+                    Buffer.MemoryCopy(pSource, pBuffer, (bufferChars.Length - position) * 2, value.Length * 2);
                 }
-                position += pCount;
+                position += value.Length;
                 return true;
             }
         }
@@ -1338,7 +1343,6 @@ namespace Zerra.Serialization.Json.IO
                 if (value == Int64.MinValue)
                 {
                     //Min value is one less than max, can't invert signs
-                    EnsureSize(20);
                     bufferChars[position++] = '-';
                     bufferChars[position++] = '9';
                     bufferChars[position++] = '2';
@@ -1369,20 +1373,16 @@ namespace Zerra.Serialization.Json.IO
             {
                 if (num1 < 10)
                 {
-                    EnsureSize(1);
                     goto L1;
                 }
                 if (num1 < 100)
                 {
-                    EnsureSize(2);
                     goto L2;
                 }
                 if (num1 < 1000)
                 {
-                    EnsureSize(3);
                     goto L3;
                 }
-                EnsureSize(4);
                 goto L4;
             }
             else
@@ -1393,20 +1393,16 @@ namespace Zerra.Serialization.Json.IO
                 {
                     if (num2 < 10)
                     {
-                        EnsureSize(5);
                         goto L5;
                     }
                     if (num2 < 100)
                     {
-                        EnsureSize(6);
                         goto L6;
                     }
                     if (num2 < 1000)
                     {
-                        EnsureSize(7);
                         goto L7;
                     }
-                    EnsureSize(8);
                     goto L8;
                 }
                 else
@@ -1417,20 +1413,16 @@ namespace Zerra.Serialization.Json.IO
                     {
                         if (num3 < 10)
                         {
-                            EnsureSize(9);
                             goto L9;
                         }
                         if (num3 < 100)
                         {
-                            EnsureSize(10);
                             goto L10;
                         }
                         if (num3 < 1000)
                         {
-                            EnsureSize(11);
                             goto L11;
                         }
-                        EnsureSize(12);
                         goto L12;
                     }
                     else
@@ -1441,20 +1433,16 @@ namespace Zerra.Serialization.Json.IO
                         {
                             if (num4 < 10)
                             {
-                                EnsureSize(13);
                                 goto L13;
                             }
                             if (num4 < 100)
                             {
-                                EnsureSize(14);
                                 goto L14;
                             }
                             if (num4 < 1000)
                             {
-                                EnsureSize(15);
                                 goto L15;
                             }
-                            EnsureSize(16);
                             goto L16;
                         }
                         else
@@ -1465,20 +1453,16 @@ namespace Zerra.Serialization.Json.IO
                             {
                                 if (num5 < 10)
                                 {
-                                    EnsureSize(17);
                                     goto L17;
                                 }
                                 if (num5 < 100)
                                 {
-                                    EnsureSize(18);
                                     goto L18;
                                 }
                                 if (num5 < 1000)
                                 {
-                                    EnsureSize(19);
                                     goto L19;
                                 }
-                                EnsureSize(20);
                                 goto L20;
                             }
                         L20:
@@ -1550,20 +1534,16 @@ namespace Zerra.Serialization.Json.IO
             {
                 if (num1 < 10)
                 {
-                    EnsureSize(1);
                     goto L1;
                 }
                 if (num1 < 100)
                 {
-                    EnsureSize(2);
                     goto L2;
                 }
                 if (num1 < 1000)
                 {
-                    EnsureSize(3);
                     goto L3;
                 }
-                EnsureSize(4);
                 goto L4;
             }
             else
@@ -1574,20 +1554,16 @@ namespace Zerra.Serialization.Json.IO
                 {
                     if (num2 < 10)
                     {
-                        EnsureSize(5);
                         goto L5;
                     }
                     if (num2 < 100)
                     {
-                        EnsureSize(6);
                         goto L6;
                     }
                     if (num2 < 1000)
                     {
-                        EnsureSize(7);
                         goto L7;
                     }
-                    EnsureSize(8);
                     goto L8;
                 }
                 else
@@ -1598,20 +1574,16 @@ namespace Zerra.Serialization.Json.IO
                     {
                         if (num3 < 10)
                         {
-                            EnsureSize(9);
                             goto L9;
                         }
                         if (num3 < 100)
                         {
-                            EnsureSize(10);
                             goto L10;
                         }
                         if (num3 < 1000)
                         {
-                            EnsureSize(11);
                             goto L11;
                         }
-                        EnsureSize(12);
                         goto L12;
                     }
                     else
@@ -1622,20 +1594,16 @@ namespace Zerra.Serialization.Json.IO
                         {
                             if (num4 < 10)
                             {
-                                EnsureSize(13);
                                 goto L13;
                             }
                             if (num4 < 100)
                             {
-                                EnsureSize(14);
                                 goto L14;
                             }
                             if (num4 < 1000)
                             {
-                                EnsureSize(15);
                                 goto L15;
                             }
-                            EnsureSize(16);
                             goto L16;
                         }
                         else
@@ -1646,20 +1614,16 @@ namespace Zerra.Serialization.Json.IO
                             {
                                 if (num5 < 10)
                                 {
-                                    EnsureSize(17);
                                     goto L17;
                                 }
                                 if (num5 < 100)
                                 {
-                                    EnsureSize(18);
                                     goto L18;
                                 }
                                 if (num5 < 1000)
                                 {
-                                    EnsureSize(19);
                                     goto L19;
                                 }
-                                EnsureSize(20);
                                 goto L20;
                             }
                         L20:
@@ -1724,479 +1688,18 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void WriteInt64Bytes(long value)
-        {
-            long num1 = value, num2, num3, num4, num5, div;
-
-            if (value < 0)
-            {
-                if (value == Int64.MinValue)
-                {
-                    //Min value is one less than max, can't invert signs
-                    EnsureSize(20);
-                    bufferBytes[position++] = minusByte;
-                    bufferBytes[position++] = nineByte;
-                    bufferBytes[position++] = twoByte;
-                    bufferBytes[position++] = twoByte;
-                    bufferBytes[position++] = threeByte;
-                    bufferBytes[position++] = threeByte;
-                    bufferBytes[position++] = sevenByte;
-                    bufferBytes[position++] = twoByte;
-                    bufferBytes[position++] = zeroByte;
-                    bufferBytes[position++] = threeByte;
-                    bufferBytes[position++] = sixByte;
-                    bufferBytes[position++] = eightByte;
-                    bufferBytes[position++] = fiveByte;
-                    bufferBytes[position++] = fourByte;
-                    bufferBytes[position++] = sevenByte;
-                    bufferBytes[position++] = sevenByte;
-                    bufferBytes[position++] = fiveByte;
-                    bufferBytes[position++] = eightByte;
-                    bufferBytes[position++] = zeroByte;
-                    bufferBytes[position++] = eightByte;
-                    return;
-                }
-                bufferBytes[position++] = minusByte;
-                num1 = unchecked(-value);
-            }
-
-            if (num1 < 10000)
-            {
-                if (num1 < 10)
-                {
-                    EnsureSize(1);
-                    goto L1;
-                }
-                if (num1 < 100)
-                {
-                    EnsureSize(2);
-                    goto L2;
-                }
-                if (num1 < 1000)
-                {
-                    EnsureSize(3);
-                    goto L3;
-                }
-                EnsureSize(4);
-                goto L4;
-            }
-            else
-            {
-                num2 = num1 / 10000;
-                num1 -= num2 * 10000;
-                if (num2 < 10000)
-                {
-                    if (num2 < 10)
-                    {
-                        EnsureSize(5);
-                        goto L5;
-                    }
-                    if (num2 < 100)
-                    {
-                        EnsureSize(6);
-                        goto L6;
-                    }
-                    if (num2 < 1000)
-                    {
-                        EnsureSize(7);
-                        goto L7;
-                    }
-                    EnsureSize(8);
-                    goto L8;
-                }
-                else
-                {
-                    num3 = num2 / 10000;
-                    num2 -= num3 * 10000;
-                    if (num3 < 10000)
-                    {
-                        if (num3 < 10)
-                        {
-                            EnsureSize(9);
-                            goto L9;
-                        }
-                        if (num3 < 100)
-                        {
-                            EnsureSize(10);
-                            goto L10;
-                        }
-                        if (num3 < 1000)
-                        {
-                            EnsureSize(11);
-                            goto L11;
-                        }
-                        EnsureSize(12);
-                        goto L12;
-                    }
-                    else
-                    {
-                        num4 = num3 / 10000;
-                        num3 -= num4 * 10000;
-                        if (num4 < 10000)
-                        {
-                            if (num4 < 10)
-                            {
-                                EnsureSize(13);
-                                goto L13;
-                            }
-                            if (num4 < 100)
-                            {
-                                EnsureSize(14);
-                                goto L14;
-                            }
-                            if (num4 < 1000)
-                            {
-                                EnsureSize(15);
-                                goto L15;
-                            }
-                            EnsureSize(16);
-                            goto L16;
-                        }
-                        else
-                        {
-                            num5 = num4 / 10000;
-                            num4 -= num5 * 10000;
-                            if (num5 < 10000)
-                            {
-                                if (num5 < 10)
-                                {
-                                    EnsureSize(17);
-                                    goto L17;
-                                }
-                                if (num5 < 100)
-                                {
-                                    EnsureSize(18);
-                                    goto L18;
-                                }
-                                if (num5 < 1000)
-                                {
-                                    EnsureSize(19);
-                                    goto L19;
-                                }
-                                EnsureSize(20);
-                                goto L20;
-                            }
-                        L20:
-                            bufferBytes[position++] = (byte)(zeroByte + (div = (num5 * 8389L) >> 23));
-                            num5 -= div * 1000;
-                        L19:
-                            bufferBytes[position++] = (byte)(zeroByte + (div = (num5 * 5243L) >> 19));
-                            num5 -= div * 100;
-                        L18:
-                            bufferBytes[position++] = (byte)(zeroByte + (div = (num5 * 6554L) >> 16));
-                            num5 -= div * 10;
-                        L17:
-                            bufferBytes[position++] = (byte)(zeroByte + (num5));
-                        }
-                    L16:
-                        bufferBytes[position++] = (byte)(zeroByte + (div = (num4 * 8389L) >> 23));
-                        num4 -= div * 1000;
-                    L15:
-                        bufferBytes[position++] = (byte)(zeroByte + (div = (num4 * 5243L) >> 19));
-                        num4 -= div * 100;
-                    L14:
-                        bufferBytes[position++] = (byte)(zeroByte + (div = (num4 * 6554L) >> 16));
-                        num4 -= div * 10;
-                    L13:
-                        bufferBytes[position++] = (byte)(zeroByte + (num4));
-                    }
-                L12:
-                    bufferBytes[position++] = (byte)(zeroByte + (div = (num3 * 8389L) >> 23));
-                    num3 -= div * 1000;
-                L11:
-                    bufferBytes[position++] = (byte)(zeroByte + (div = (num3 * 5243L) >> 19));
-                    num3 -= div * 100;
-                L10:
-                    bufferBytes[position++] = (byte)(zeroByte + (div = (num3 * 6554L) >> 16));
-                    num3 -= div * 10;
-                L9:
-                    bufferBytes[position++] = (byte)(zeroByte + (num3));
-                }
-            L8:
-                bufferBytes[position++] = (byte)(zeroByte + (div = (num2 * 8389L) >> 23));
-                num2 -= div * 1000;
-            L7:
-                bufferBytes[position++] = (byte)(zeroByte + (div = (num2 * 5243L) >> 19));
-                num2 -= div * 100;
-            L6:
-                bufferBytes[position++] = (byte)(zeroByte + (div = (num2 * 6554L) >> 16));
-                num2 -= div * 10;
-            L5:
-                bufferBytes[position++] = (byte)(zeroByte + (num2));
-            }
-        L4:
-            bufferBytes[position++] = (byte)(zeroByte + (div = (num1 * 8389L) >> 23));
-            num1 -= div * 1000;
-        L3:
-            bufferBytes[position++] = (byte)(zeroByte + (div = (num1 * 5243L) >> 19));
-            num1 -= div * 100;
-        L2:
-            bufferBytes[position++] = (byte)(zeroByte + (div = (num1 * 6554L) >> 16));
-            num1 -= div * 10;
-        L1:
-            bufferBytes[position++] = (byte)(zeroByte + (num1));
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void WriteUInt64Bytes(ulong value)
-        {
-            ulong num1 = value, num2, num3, num4, num5, div;
-
-            if (num1 < 10000)
-            {
-                if (num1 < 10)
-                {
-                    EnsureSize(1);
-                    goto L1;
-                }
-                if (num1 < 100)
-                {
-                    EnsureSize(2);
-                    goto L2;
-                }
-                if (num1 < 1000)
-                {
-                    EnsureSize(3);
-                    goto L3;
-                }
-                EnsureSize(4);
-                goto L4;
-            }
-            else
-            {
-                num2 = num1 / 10000;
-                num1 -= num2 * 10000;
-                if (num2 < 10000)
-                {
-                    if (num2 < 10)
-                    {
-                        EnsureSize(5);
-                        goto L5;
-                    }
-                    if (num2 < 100)
-                    {
-                        EnsureSize(6);
-                        goto L6;
-                    }
-                    if (num2 < 1000)
-                    {
-                        EnsureSize(7);
-                        goto L7;
-                    }
-                    EnsureSize(8);
-                    goto L8;
-                }
-                else
-                {
-                    num3 = num2 / 10000;
-                    num2 -= num3 * 10000;
-                    if (num3 < 10000)
-                    {
-                        if (num3 < 10)
-                        {
-                            EnsureSize(9);
-                            goto L9;
-                        }
-                        if (num3 < 100)
-                        {
-                            EnsureSize(10);
-                            goto L10;
-                        }
-                        if (num3 < 1000)
-                        {
-                            EnsureSize(11);
-                            goto L11;
-                        }
-                        EnsureSize(12);
-                        goto L12;
-                    }
-                    else
-                    {
-                        num4 = num3 / 10000;
-                        num3 -= num4 * 10000;
-                        if (num4 < 10000)
-                        {
-                            if (num4 < 10)
-                            {
-                                EnsureSize(13);
-                                goto L13;
-                            }
-                            if (num4 < 100)
-                            {
-                                EnsureSize(14);
-                                goto L14;
-                            }
-                            if (num4 < 1000)
-                            {
-                                EnsureSize(15);
-                                goto L15;
-                            }
-                            EnsureSize(16);
-                            goto L16;
-                        }
-                        else
-                        {
-                            num5 = num4 / 10000;
-                            num4 -= num5 * 10000;
-                            if (num5 < 10000)
-                            {
-                                if (num5 < 10)
-                                {
-                                    EnsureSize(17);
-                                    goto L17;
-                                }
-                                if (num5 < 100)
-                                {
-                                    EnsureSize(18);
-                                    goto L18;
-                                }
-                                if (num5 < 1000)
-                                {
-                                    EnsureSize(19);
-                                    goto L19;
-                                }
-                                EnsureSize(20);
-                                goto L20;
-                            }
-                        L20:
-                            bufferBytes[position++] = (byte)(zeroByte + (div = (num5 * 8389UL) >> 23));
-                            num5 -= div * 1000;
-                        L19:
-                            bufferBytes[position++] = (byte)(zeroByte + (div = (num5 * 5243UL) >> 19));
-                            num5 -= div * 100;
-                        L18:
-                            bufferBytes[position++] = (byte)(zeroByte + (div = (num5 * 6554UL) >> 16));
-                            num5 -= div * 10;
-                        L17:
-                            bufferBytes[position++] = (byte)(zeroByte + (num5));
-                        }
-                    L16:
-                        bufferBytes[position++] = (byte)(zeroByte + (div = (num4 * 8389UL) >> 23));
-                        num4 -= div * 1000;
-                    L15:
-                        bufferBytes[position++] = (byte)(zeroByte + (div = (num4 * 5243UL) >> 19));
-                        num4 -= div * 100;
-                    L14:
-                        bufferBytes[position++] = (byte)(zeroByte + (div = (num4 * 6554UL) >> 16));
-                        num4 -= div * 10;
-                    L13:
-                        bufferBytes[position++] = (byte)(zeroByte + (num4));
-                    }
-                L12:
-                    bufferBytes[position++] = (byte)(zeroByte + (div = (num3 * 8389UL) >> 23));
-                    num3 -= div * 1000;
-                L11:
-                    bufferBytes[position++] = (byte)(zeroByte + (div = (num3 * 5243UL) >> 19));
-                    num3 -= div * 100;
-                L10:
-                    bufferBytes[position++] = (byte)(zeroByte + (div = (num3 * 6554UL) >> 16));
-                    num3 -= div * 10;
-                L9:
-                    bufferBytes[position++] = (byte)(zeroByte + (num3));
-                }
-            L8:
-                bufferBytes[position++] = (byte)(zeroByte + (div = (num2 * 8389UL) >> 23));
-                num2 -= div * 1000;
-            L7:
-                bufferBytes[position++] = (byte)(zeroByte + (div = (num2 * 5243UL) >> 19));
-                num2 -= div * 100;
-            L6:
-                bufferBytes[position++] = (byte)(zeroByte + (div = (num2 * 6554UL) >> 16));
-                num2 -= div * 10;
-            L5:
-                bufferBytes[position++] = (byte)(zeroByte + (num2));
-            }
-        L4:
-            bufferBytes[position++] = (byte)(zeroByte + (div = (num1 * 8389UL) >> 23));
-            num1 -= div * 1000;
-        L3:
-            bufferBytes[position++] = (byte)(zeroByte + (div = (num1 * 5243UL) >> 19));
-            num1 -= div * 100;
-        L2:
-            bufferBytes[position++] = (byte)(zeroByte + (div = (num1 * 6554UL) >> 16));
-            num1 -= div * 10;
-        L1:
-            bufferBytes[position++] = (byte)(zeroByte + (num1));
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryWriteQuote(out int sizeNeeded)
-        {
-            sizeNeeded = 1;
-            if (!EnsureSize(sizeNeeded)
-#if DEBUG
-            || Skip()
-#endif
-            )
-                return false;
-
-            if (useBytes)
-            {
-                bufferBytes[position++] = quoteByte;
-                return true;
-            }
-            else
-            {
-                bufferChars[position++] = '"';
-                return true;
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryWriteColon(out int sizeNeeded)
-        {
-            sizeNeeded = 1;
-            if (!EnsureSize(sizeNeeded)
-#if DEBUG
-            || Skip()
-#endif
-            )
-                return false;
-
-            if (useBytes)
-            {
-                bufferBytes[position++] = colonByte;
-                return true;
-            }
-            else
-            {
-                bufferChars[position++] = ':';
-                return true;
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryWriteEscape(out int sizeNeeded)
-        {
-            sizeNeeded = 1;
-            if (!EnsureSize(sizeNeeded)
-#if DEBUG
-            || Skip()
-#endif
-            )
-                return false;
-
-            if (useBytes)
-            {
-                bufferBytes[position++] = escapeByte;
-                return true;
-            }
-            else
-            {
-                bufferChars[position++] = '\\';
-                return true;
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryWriteNull(out int sizeNeeded)
         {
             sizeNeeded = 4;
-            if (!EnsureSize(sizeNeeded)
+            if (length - position < sizeNeeded)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
 #if DEBUG
-            || Skip()
-#endif
-            )
+            if (Skip())
                 return false;
+#endif
 
             if (useBytes)
             {
@@ -2220,12 +1723,15 @@ namespace Zerra.Serialization.Json.IO
         public unsafe bool TryWriteTrue(out int sizeNeeded)
         {
             sizeNeeded = 4;
-            if (!EnsureSize(sizeNeeded)
+            if (length - position < sizeNeeded)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
 #if DEBUG
-            || Skip()
-#endif
-            )
+            if (Skip())
                 return false;
+#endif
 
             if (useBytes)
             {
@@ -2249,12 +1755,15 @@ namespace Zerra.Serialization.Json.IO
         public unsafe bool TryWriteFalse(out int sizeNeeded)
         {
             sizeNeeded = 5;
-            if (!EnsureSize(sizeNeeded)
+            if (length - position < sizeNeeded)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
 #if DEBUG
-            || Skip()
-#endif
-            )
+            if (Skip())
                 return false;
+#endif
 
             if (useBytes)
             {
@@ -2279,86 +1788,93 @@ namespace Zerra.Serialization.Json.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryWritePropertyName(string? value, bool startWithComma, out int sizeNeeded)
         {
-            if (value is null)
-            {
-                sizeNeeded = startWithComma ? 4 : 3;
+            sizeNeeded = startWithComma ? 4 : 3;
+            if (value is null || value.Length == 0)
                 return true;
-            }
-            if (value.Length == 0)
-            {
-                sizeNeeded = startWithComma ? 4 : 3;
-                return true;
-            }
 
             if (useBytes)
+                throw new InvalidOperationException($"{nameof(TryWritePropertyName)} {nameof(useBytes)} is the wrong setting for this call");
+
+            sizeNeeded = value.Length + (startWithComma ? 4 : 3);
+            if (length - position < sizeNeeded)
             {
-                sizeNeeded = encoding.GetMaxByteCount(value.Length) + (startWithComma ? 4 : 3);
-                if (!EnsureSize(sizeNeeded)
-#if DEBUG
-            || Skip()
-#endif
-            )
+                if (!Grow(sizeNeeded))
                     return false;
-
-                if (startWithComma)
-                    bufferBytes[position++] = commaByte;
-
-                bufferBytes[position++] = quoteByte;
-
-                fixed (char* pSource = value)
-                fixed (byte* pBuffer = &bufferBytes[position])
-                {
-                    position += encoding.GetBytes(pSource, value.Length, pBuffer, bufferBytes.Length - position);
-                }
-
-                bufferBytes[position++] = quoteByte;
-                bufferBytes[position++] = colonByte;
-
-                return true;
             }
-            else
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
+
+            fixed (char* pSource = value, pBuffer = bufferChars)
             {
-                sizeNeeded = value.Length + (startWithComma ? 4 : 3);
-                if (!EnsureSize(sizeNeeded)
-#if DEBUG
-            || Skip()
-#endif
-            )
-                    return false;
-
                 if (startWithComma)
-                    bufferChars[position++] = ',';
+                    pBuffer[position++] = ',';
 
-                bufferChars[position++] = '"';
+                pBuffer[position++] = '"';
 
-                var pCount = value.Length;
-                fixed (char* pSource = value, pBuffer = &bufferChars[position])
-                {
-                    for (var p = 0; p < pCount; p++)
-                    {
-                        pBuffer[p] = pSource[p];
-                    }
-                }
+                Buffer.MemoryCopy(pSource, &pBuffer[position], (bufferChars.Length - position) * 2, value.Length * 2);
+                position += value.Length;
 
-                position += pCount;
-
-                bufferChars[position++] = '"';
-                bufferChars[position++] = ':';
-
-                return true;
+                pBuffer[position++] = '"';
+                pBuffer[position++] = ':';
             }
+
+            return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe bool TryWritePropertyName(ReadOnlySpan<byte> value, bool startWithComma, out int sizeNeeded)
+        {
+            sizeNeeded = startWithComma ? 4 : 3;
+            if (value.Length == 0)
+                return true;
+
+            if (!useBytes)
+                throw new InvalidOperationException($"{nameof(TryWritePropertyName)} {nameof(useBytes)} is the wrong setting for this call");
+
+            sizeNeeded = encoding.GetMaxByteCount(value.Length) + (startWithComma ? 4 : 3);
+            if (length - position < sizeNeeded)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
+#if DEBUG
+            if (Skip())
+                return false;
+#endif
+
+            fixed (byte* pSource = value)
+            fixed (byte* pBuffer = bufferBytes)
+            {
+                if (startWithComma)
+                    pBuffer[position++] = commaByte;
+
+                pBuffer[position++] = quoteByte;
+
+                Buffer.MemoryCopy(pSource, &pBuffer[position], bufferBytes.Length - position, value.Length);
+                position += value.Length;
+
+                pBuffer[position++] = quoteByte;
+                pBuffer[position++] = colonByte;
+            }
+
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryWriteComma(out int sizeNeeded)
         {
             sizeNeeded = 1;
-            if (!EnsureSize(sizeNeeded)
+            if (length - position < sizeNeeded)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
 #if DEBUG
-            || Skip()
-#endif
-            )
+            if (Skip())
                 return false;
+#endif
 
             if (useBytes)
             {
@@ -2376,12 +1892,15 @@ namespace Zerra.Serialization.Json.IO
         public unsafe bool TryWriteOpenBracket(out int sizeNeeded)
         {
             sizeNeeded = 1;
-            if (!EnsureSize(sizeNeeded)
+            if (length - position < sizeNeeded)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
 #if DEBUG
-            || Skip()
-#endif
-            )
+            if (Skip())
                 return false;
+#endif
 
             if (useBytes)
             {
@@ -2399,12 +1918,15 @@ namespace Zerra.Serialization.Json.IO
         public unsafe bool TryWriteCloseBracket(out int sizeNeeded)
         {
             sizeNeeded = 1;
-            if (!EnsureSize(sizeNeeded)
+            if (length - position < sizeNeeded)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
 #if DEBUG
-            || Skip()
-#endif
-            )
+            if (Skip())
                 return false;
+#endif
 
             if (useBytes)
             {
@@ -2422,12 +1944,15 @@ namespace Zerra.Serialization.Json.IO
         public unsafe bool TryWriteEmptyBracket(out int sizeNeeded)
         {
             sizeNeeded = 2;
-            if (!EnsureSize(sizeNeeded)
+            if (length - position < sizeNeeded)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
 #if DEBUG
-            || Skip()
-#endif
-            )
+            if (Skip())
                 return false;
+#endif
 
             if (useBytes)
             {
@@ -2447,12 +1972,15 @@ namespace Zerra.Serialization.Json.IO
         public unsafe bool TryWriteOpenBrace(out int sizeNeeded)
         {
             sizeNeeded = 1;
-            if (!EnsureSize(sizeNeeded)
+            if (length - position < sizeNeeded)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
 #if DEBUG
-            || Skip()
-#endif
-            )
+            if (Skip())
                 return false;
+#endif
 
             if (useBytes)
             {
@@ -2470,12 +1998,15 @@ namespace Zerra.Serialization.Json.IO
         public unsafe bool TryWriteCloseBrace(out int sizeNeeded)
         {
             sizeNeeded = 1;
-            if (!EnsureSize(sizeNeeded)
+            if (length - position < sizeNeeded)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
 #if DEBUG
-            || Skip()
-#endif
-            )
+            if (Skip())
                 return false;
+#endif
 
             if (useBytes)
             {
@@ -2493,12 +2024,15 @@ namespace Zerra.Serialization.Json.IO
         public unsafe bool TryWriteEmptyBrace(out int sizeNeeded)
         {
             sizeNeeded = 2;
-            if (!EnsureSize(sizeNeeded)
+            if (length - position < sizeNeeded)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
 #if DEBUG
-            || Skip()
-#endif
-            )
+            if (Skip())
                 return false;
+#endif
 
             if (useBytes)
             {
@@ -2518,12 +2052,16 @@ namespace Zerra.Serialization.Json.IO
         public unsafe bool TryWriteEmptyString(out int sizeNeeded)
         {
             sizeNeeded = 2;
-            if (!EnsureSize(sizeNeeded)
+            if (length - position < sizeNeeded)
+            {
+                if (!Grow(sizeNeeded))
+                    return false;
+            }
 #if DEBUG
-            || Skip()
-#endif
-            )
+            if (Skip())
                 return false;
+#endif
+
             if (useBytes)
             {
                 bufferBytes[position++] = quoteByte;
@@ -2535,6 +2073,497 @@ namespace Zerra.Serialization.Json.IO
                 bufferChars[position++] = '"';
             }
             return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe bool TryWriteEscapedQuoted(string? value, out int sizeNeeded)
+        {
+            const int maxEscapeCharacterSize = 6;
+
+            if (value is null)
+            {
+                sizeNeeded = 0;
+                return true;
+            }
+            if (value.Length == 0)
+            {
+                sizeNeeded = 2;
+                if (length - position < sizeNeeded)
+                {
+                    if (!Grow(sizeNeeded))
+                        return false;
+                }
+#if DEBUG
+                if (Skip())
+                    return false;
+#endif
+                if (useBytes)
+                {
+                    bufferBytes[position++] = quoteByte;
+                    bufferBytes[position++] = quoteByte;
+                }
+                else
+                {
+                    bufferChars[position++] = '"';
+                    bufferChars[position++] = '"';
+                }
+                return true;
+            }
+
+            if (useBytes)
+            {
+                fixed (char* pValue = value)
+                {
+                    bool needsEscaped = false;
+                    var i = 0;
+                    for (; i < value.Length; i++)
+                    {
+                        var c = pValue[i];
+                        if (c < ' ' || c == '"' || c == '\\')
+                        {
+                            needsEscaped = true;
+                            break;
+                        }
+                    }
+
+                    if (needsEscaped)
+                    {
+                        sizeNeeded = encoding.GetMaxByteCount((i + ((value.Length - i) * maxEscapeCharacterSize)) + 2);
+                        if (length - position < sizeNeeded)
+                        {
+                            if (!Grow(sizeNeeded))
+                                return false;
+                        }
+#if DEBUG
+                        if (Skip())
+                            return false;
+#endif
+
+                        var escapeBufferOwner = ArrayPoolHelper<char>.Rent(sizeNeeded);
+
+                        fixed (char* pEscapeBuffer = escapeBufferOwner)
+                        {
+                            var start = 0;
+                            var escapeBufferIndex = 0;
+
+                            for (; i < value.Length; i++)
+                            {
+                                var c = pValue[i];
+                                char escapedChar;
+                                switch (c)
+                                {
+                                    case '"':
+                                        escapedChar = '"';
+                                        break;
+                                    case '\\':
+                                        escapedChar = '\\';
+                                        break;
+                                    case >= ' ': //32
+                                        continue;
+                                    case '\b':
+                                        escapedChar = 'b';
+                                        break;
+                                    case '\f':
+                                        escapedChar = 'f';
+                                        break;
+                                    case '\n':
+                                        escapedChar = 'n';
+                                        break;
+                                    case '\r':
+                                        escapedChar = 'r';
+                                        break;
+                                    case '\t':
+                                        escapedChar = 't';
+                                        break;
+                                    default:
+
+                                        Buffer.MemoryCopy(&pValue[start], &pEscapeBuffer[escapeBufferIndex], (escapeBufferOwner.Length - escapeBufferIndex) * 2, (i - start) * 2);
+                                        escapeBufferIndex += i - start;
+
+                                        var code = StringHelper.LowUnicodeIntToEncodedHex[c];
+                                        fixed (char* pCode = code)
+                                        {
+                                            Buffer.MemoryCopy(pCode, &pEscapeBuffer[escapeBufferIndex], (escapeBufferOwner.Length - escapeBufferIndex) * 2, code.Length * 2);
+                                        }
+                                        escapeBufferIndex += code.Length;
+
+                                        start = i + 1;
+                                        continue;
+                                }
+
+                                Buffer.MemoryCopy(&pValue[start], &pEscapeBuffer[escapeBufferIndex], (escapeBufferOwner.Length - escapeBufferIndex) * 2, (i - start) * 2);
+                                escapeBufferIndex += i - start;
+
+                                pEscapeBuffer[escapeBufferIndex++] = '\\';
+                                pEscapeBuffer[escapeBufferIndex++] = escapedChar;
+                                start = i + 1;
+                            }
+
+                            if (value.Length > start)
+                            {
+                                Buffer.MemoryCopy(&pValue[start], &pEscapeBuffer[escapeBufferIndex], (escapeBufferOwner.Length - escapeBufferIndex) * 2, (value.Length - start) * 2);
+                                escapeBufferIndex += value.Length - start;
+                            }
+
+                            fixed (byte* pBuffer = bufferBytes)
+                            {
+                                pBuffer[position++] = quoteByte;
+                                position += encoding.GetBytes(pEscapeBuffer, escapeBufferIndex, &pBuffer[position], length - position);
+                                pBuffer[position++] = quoteByte;
+                            }
+                        }
+                        ArrayPoolHelper<char>.Return(escapeBufferOwner);
+                    }
+                    else
+                    {
+                        sizeNeeded = encoding.GetMaxByteCount(value.Length + 2);
+                        if (length - position < sizeNeeded)
+                        {
+                            if (!Grow(sizeNeeded))
+                                return false;
+                        }
+#if DEBUG
+                        if (Skip())
+                            return false;
+#endif
+
+                        fixed (byte* pBuffer = bufferBytes)
+                        {
+                            pBuffer[position++] = quoteByte;
+                            position += encoding.GetBytes(pValue, value.Length, &pBuffer[position], length - position);
+                            pBuffer[position++] = quoteByte;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                fixed (char* pValue = value)
+                {
+                    bool needsEscaped = false;
+                    var i = 0;
+                    for (; i < value.Length; i++)
+                    {
+                        var c = pValue[i];
+                        if (c < ' ' || c == '"' || c == '\\')
+                        {
+                            needsEscaped = true;
+                            break;
+                        }
+                    }
+
+                    if (needsEscaped)
+                    {
+                        sizeNeeded = i + ((value.Length - i) * maxEscapeCharacterSize) + 2;
+                        if (length - position < sizeNeeded)
+                        {
+                            if (!Grow(sizeNeeded))
+                                return false;
+                        }
+#if DEBUG
+                        if (Skip())
+                            return false;
+#endif
+
+                        fixed (char* pBuffer = bufferChars)
+                        {
+                            pBuffer[position++] = '\"';
+
+                            var start = 0;
+
+                            for (; i < value.Length; i++)
+                            {
+                                var c = pValue[i];
+                                char escapedChar;
+                                switch (c)
+                                {
+                                    case '"':
+                                        escapedChar = '"';
+                                        break;
+                                    case '\\':
+                                        escapedChar = '\\';
+                                        break;
+                                    case >= ' ': //32
+                                        continue;
+                                    case '\b':
+                                        escapedChar = 'b';
+                                        break;
+                                    case '\f':
+                                        escapedChar = 'f';
+                                        break;
+                                    case '\n':
+                                        escapedChar = 'n';
+                                        break;
+                                    case '\r':
+                                        escapedChar = 'r';
+                                        break;
+                                    case '\t':
+                                        escapedChar = 't';
+                                        break;
+                                    default:
+
+                                        Buffer.MemoryCopy(&pValue[start], &pBuffer[position], (length - position) * 2, (i - start) * 2);
+                                        position += i - start;
+
+                                        var code = StringHelper.LowUnicodeIntToEncodedHex[c];
+                                        fixed (char* pCode = code)
+                                        {
+                                            Buffer.MemoryCopy(pCode, &pBuffer[position], (length - position) * 2, code.Length * 2);
+                                        }
+                                        position += code.Length;
+
+                                        start = i + 1;
+                                        continue;
+                                }
+
+                                Buffer.MemoryCopy(&pValue[start], &pBuffer[position], (length - position) * 2, (i - start) * 2);
+                                position += i - start;
+
+                                pBuffer[position++] = '\\';
+                                pBuffer[position++] = escapedChar;
+                                start = i + 1;
+                            }
+
+                            if (value.Length > start)
+                            {
+                                Buffer.MemoryCopy(&pValue[start], &pBuffer[position], (length - position) * 2, (value.Length - start) * 2);
+                                position += value.Length - start;
+                            }
+
+                            pBuffer[position++] = '\"';
+                        }
+                    }
+                    else
+                    {
+                        sizeNeeded = value.Length + 2;
+                        if (length - position < sizeNeeded)
+                        {
+                            if (!Grow(sizeNeeded))
+                                return false;
+                        }
+#if DEBUG
+                        if (Skip())
+                            return false;
+#endif
+
+                        fixed (char* pBuffer = bufferChars)
+                        {
+                            pBuffer[position++] = '\"';
+                            Buffer.MemoryCopy(pValue, &pBuffer[position], (length - position) * 2, value.Length * 2);
+                            position += value.Length;
+                            pBuffer[position++] = '\"';
+                        }
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe bool TryWriteEscapedQuoted(char value, out int sizeNeeded)
+        {
+            if (useBytes)
+            {
+                if (value < 128)
+                {
+                    char escapedChar;
+                    switch (value)
+                    {
+                        case '"':
+                            escapedChar = '"';
+                            break;
+                        case '\\':
+                            escapedChar = '\\';
+                            break;
+                        case >= ' ': //32
+
+                            sizeNeeded = 3;
+                            if (length - position < sizeNeeded)
+                            {
+                                if (!Grow(sizeNeeded))
+                                    return false;
+                            }
+#if DEBUG
+                            if (Skip())
+                                return false;
+#endif
+
+                            bufferBytes[position++] = quoteByte;
+                            bufferBytes[position++] = (byte)value;
+                            bufferBytes[position++] = quoteByte;
+                            return true;
+
+                        case '\b':
+                            escapedChar = 'b';
+                            break;
+                        case '\f':
+                            escapedChar = 'f';
+                            break;
+                        case '\n':
+                            escapedChar = 'n';
+                            break;
+                        case '\r':
+                            escapedChar = 'r';
+                            break;
+                        case '\t':
+                            escapedChar = 't';
+                            break;
+                        default:
+                            var code = StringHelper.LowUnicodeIntToEncodedHex[value];
+
+                            sizeNeeded = code.Length + 2;
+                            if (length - position < sizeNeeded)
+                            {
+                                if (!Grow(sizeNeeded))
+                                    return false;
+                            }
+#if DEBUG
+                            if (Skip())
+                                return false;
+#endif
+                            fixed (char* pCode = code)
+                            fixed (byte* pBuffer = bufferBytes)
+                            {
+                                pBuffer[position++] = quoteByte;
+
+                                //chars are 2 bytes but we want the 1 byte encoding
+                                for (var i = 0; i < code.Length; i++)
+                                    pBuffer[position++] = (byte)pCode[i];
+
+                                pBuffer[position++] = quoteByte;
+                            }
+                            return true;
+                    }
+
+                    sizeNeeded = 4;
+                    if (length - position < sizeNeeded)
+                    {
+                        if (!Grow(sizeNeeded))
+                            return false;
+                    }
+#if DEBUG
+                    if (Skip())
+                        return false;
+#endif
+
+                    bufferBytes[position++] = quoteByte;
+                    bufferBytes[position++] = escapeByte;
+                    bufferBytes[position++] = (byte)escapedChar;
+                    bufferBytes[position++] = quoteByte;
+                    return true;
+                }
+                else
+                {
+                    sizeNeeded = 6;
+                    if (length - position < sizeNeeded)
+                    {
+                        if (!Grow(sizeNeeded))
+                            return false;
+                    }
+#if DEBUG
+                    if (Skip())
+                        return false;
+#endif
+
+                    bufferBytes[position++] = quoteByte;
+                    var valueArray = stackalloc char[] { value };
+                    fixed (byte* pBuffer = &bufferBytes[position])
+                    {
+                        position += encoding.GetBytes(valueArray, 1, pBuffer, length - position);
+                    }
+                    bufferBytes[position++] = quoteByte;
+
+                    return true;
+                }
+            }
+            else
+            {
+                char escapedChar;
+                switch (value)
+                {
+                    case '"':
+                        escapedChar = '"';
+                        break;
+                    case '\\':
+                        escapedChar = '\\';
+                        break;
+                    case >= ' ': //32
+
+                        sizeNeeded = 3;
+                        if (length - position < sizeNeeded)
+                        {
+                            if (!Grow(sizeNeeded))
+                                return false;
+                        }
+#if DEBUG
+                        if (Skip())
+                            return false;
+#endif
+
+                        bufferChars[position++] = '"';
+                        bufferChars[position++] = value;
+                        bufferChars[position++] = '"';
+
+                        return true;
+
+                    case '\b':
+                        escapedChar = 'b';
+                        break;
+                    case '\f':
+                        escapedChar = 'f';
+                        break;
+                    case '\n':
+                        escapedChar = 'n';
+                        break;
+                    case '\r':
+                        escapedChar = 'r';
+                        break;
+                    case '\t':
+                        escapedChar = 't';
+                        break;
+                    default:
+                        var code = StringHelper.LowUnicodeIntToEncodedHex[value];
+
+                        sizeNeeded = code.Length + 2;
+                        if (length - position < sizeNeeded)
+                        {
+                            if (!Grow(sizeNeeded))
+                                return false;
+                        }
+#if DEBUG
+                        if (Skip())
+                            return false;
+#endif
+
+                        fixed (char* pCode = code, pBuffer = bufferChars)
+                        {
+                            pBuffer[position++] = '"';
+                            Buffer.MemoryCopy(pCode, &pBuffer[position], (length - position) * 2, code.Length * 2);
+                            position += code.Length;
+                            pBuffer[position++] = '"';
+                        }
+                        return true;
+                }
+
+                sizeNeeded = 4;
+                if (length - position < sizeNeeded)
+                {
+                    if (!Grow(sizeNeeded))
+                        return false;
+                }
+#if DEBUG
+                if (Skip())
+                    return false;
+#endif
+
+                bufferChars[position++] = '"';
+                bufferChars[position++] = '\\';
+                bufferChars[position++] = escapedChar;
+                bufferChars[position++] = '"';
+
+                return true;
+            }
         }
     }
 }

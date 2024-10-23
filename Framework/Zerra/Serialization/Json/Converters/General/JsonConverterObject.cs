@@ -39,18 +39,19 @@ namespace Zerra.Serialization.Json.Converters.General
         {
             foreach (var member in typeDetail.SerializableMemberDetails)
             {
-                var detail = JsonConverterObjectMember.New(typeDetail, member);
                 var found = false;
                 foreach (var attribute in member.Attributes)
                 {
                     if (attribute is JsonPropertyNameAttribute jsonPropertyName)
                     {
+                        var detail = JsonConverterObjectMember.New(typeDetail, member, jsonPropertyName.Name);
                         membersByName.Add(jsonPropertyName.Name, detail);
                         found = true;
                         break;
                     }
                     else if (attribute is System.Text.Json.Serialization.JsonPropertyNameAttribute jsonPropertyName2)
                     {
+                        var detail = JsonConverterObjectMember.New(typeDetail, member, jsonPropertyName2.Name);
                         membersByName.Add(jsonPropertyName2.Name, detail);
                         found = true;
                         break;
@@ -58,6 +59,7 @@ namespace Zerra.Serialization.Json.Converters.General
                 }
                 if (!found)
                 {
+                    var detail = JsonConverterObjectMember.New(typeDetail, member, member.Name);
                     membersByName.Add(member.Name, detail);
                 }
             }
@@ -562,7 +564,7 @@ namespace Zerra.Serialization.Json.Converters.General
                         continue;
                     }
 
-                    if (!enumerator.Current.Value.Converter.TryWriteFromParent(ref writer, ref state, value, enumerator.Current.Key, false))
+                    if (!enumerator.Current.Value.Converter.TryWriteFromParent(ref writer, ref state, value, enumerator.Current.Key, enumerator.Current.Value.NameAsBytes, false))
                     {
                         state.Current.HasWrittenStart = true;
                         state.Current.Enumerator = enumerator;

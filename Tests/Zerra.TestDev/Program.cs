@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Zerra.Reflection;
 
 namespace Zerra.TestDev
 {
@@ -22,14 +23,9 @@ namespace Zerra.TestDev
             //UtfTest();
 
             //TestMe();
-            //JsonSerializerTest.TempTestSpeed();
-            ByteSerializerTest.TempTestSpeed();
-
-            //var tester = new EncryptionTest();
-            //tester.RandomShiftStreamRead();
-            //tester.RandomShiftStreamWrite();
-            //tester.RandomShiftEncryption();
-            //tester.RandomShiftStreamReadMode();
+            //TestMe2();
+            JsonSerializerTest.TempTestSpeed();
+            //ByteSerializerTest.TempTestSpeed();
 
             //TestMemory.TryFinallyOrDisposed();
             //InlineTest.Test();
@@ -46,31 +42,12 @@ namespace Zerra.TestDev
             //T4JavaScriptTest.Test();
             //T4TypeScriptTest.Test();
 
-            ////TestCopy.Test();
             ////TestDiscovery.Test();
             ////TestLinqValueExtract.TestGetIDs();
             ////TestLinq.Test();
 
             //TestRepoSpeed.Test();
 
-            //TestSpeed.Test();
-            //TestSpeed.TestAsync().GetAwaiter().GetResult();
-
-            //var length = 1000000;
-            //var data = new byte[length];
-            //Span<byte> span = stackalloc byte[length];
-
-            //var goob = new GooberClass(length, data, span);
-
-            //goob.GoobInternal();
-            //Console.WriteLine();
-            //GooberClass.Goob(length, data, span);
-            //Console.WriteLine();
-
-            //goob.GoobInternal();
-            //Console.WriteLine();
-            //GooberClass.Goob(length, data, span);
-            //Console.WriteLine();
 
             Console.WriteLine($"Done {timer.ElapsedMilliseconds:n0}ms");
             _ = Console.ReadLine();
@@ -118,121 +95,270 @@ namespace Zerra.TestDev
         private static void TestMe()
         {
             Stopwatch timer;
-            var iterations = 50000000;
-            var loops = 10;
-            var totals = new Dictionary<string, long>();
+            var type1 = typeof(Zerra.Test.TypesAllModel);
+            var typeDetail1 = TypeAnalyzer<Zerra.Test.TypesAllModel>.GetTypeDetail();
+            var type2 = typeof(Zerra.Test.TypesAllAsStringsModel);
+            var typeDetail2 = TypeAnalyzer<Zerra.Test.TypesAllAsStringsModel>.GetTypeDetail();
 
-            totals["Baseline"] = 0;
-            totals["Plain Prop"] = 0;
-            totals["Plain Meth"] = 0;
-            totals["Instance Prop"] = 0;
-            totals["Instance Meth"] = 0;
-            totals["Base1 Prop"] = 0;
-            totals["Base2 Prop"] = 0;
-            totals["Base2 Meth"] = 0;
-
-            var plain = new Plain();
-            var asdfInstance = new AsdfInstance();
-            var asdfBase1 = (AsdfBase1)asdfInstance;
-            var asdfBase2 = (AsdfBase2)asdfInstance;
-
-            for (var j = 0; j < loops; j++)
+            timer = Stopwatch.StartNew();
+            foreach (var member in type1.GetProperties())
             {
-                Console.Write('.');
-
-                var baselineValue = 0;
-                timer = Stopwatch.StartNew();
-                for (var i = 0; i < iterations; i++)
-                {
-                    var value = baselineValue++;
-                }
-                timer.Stop();
-                totals["Baseline"] += timer.ElapsedMilliseconds;
-
-                timer = Stopwatch.StartNew();
-                for (var i = 0; i < iterations; i++)
-                {
-                    var value = plain.Prop;
-                }
-                timer.Stop();
-                totals["Plain Prop"] += timer.ElapsedMilliseconds;
-
-                timer = Stopwatch.StartNew();
-                for (var i = 0; i < iterations; i++)
-                {
-                    var value = plain.Meth();
-                }
-                timer.Stop();
-                totals["Plain Meth"] += timer.ElapsedMilliseconds;
-
-                timer = Stopwatch.StartNew();
-                for (var i = 0; i < iterations; i++)
-                {
-                    var value = asdfInstance.Prop;
-                }
-                timer.Stop();
-                totals["Instance Prop"] += timer.ElapsedMilliseconds;
-
-                timer = Stopwatch.StartNew();
-                for (var i = 0; i < iterations; i++)
-                {
-                    var value = asdfInstance.Meth();
-                }
-                timer.Stop();
-                totals["Instance Meth"] += timer.ElapsedMilliseconds;
-
-                timer = Stopwatch.StartNew();
-                for (var i = 0; i < iterations; i++)
-                {
-                    var value = asdfBase1.Prop;
-                }
-                timer.Stop();
-                totals["Base1 Prop"] += timer.ElapsedMilliseconds;
-
-                timer = Stopwatch.StartNew();
-                for (var i = 0; i < iterations; i++)
-                {
-                    var value = asdfBase2.Prop;
-                }
-                timer.Stop();
-                totals["Base2 Prop"] += timer.ElapsedMilliseconds;
-
-                timer = Stopwatch.StartNew();
-                for (var i = 0; i < iterations; i++)
-                {
-                    var value = asdfBase2.Meth();
-                }
-                timer.Stop();
-                totals["Base2 Meth"] += timer.ElapsedMilliseconds;
+                var memberDetail = typeDetail1.GetMember(member.Name);
             }
+            timer.Stop();
+            Console.WriteLine($"Individual {timer.ElapsedMilliseconds}ms");
 
-            Console.WriteLine();
-            foreach (var total in totals.OrderBy(x => x.Key))
-                Console.WriteLine($"{total.Key} {total.Value / loops}ms");
+            timer = Stopwatch.StartNew();
+            var all = typeDetail2.MemberDetails;
+            foreach (var member in type2.GetProperties())
+            {
+                var memberDetail = typeDetail2.GetMember(member.Name);
+            }
+            timer.Stop();
+            Console.WriteLine($"Bulk Load {timer.ElapsedMilliseconds}ms");
         }
 
-        private abstract class AsdfBase1
+        private static unsafe void TestMe2()
         {
-            public abstract long Prop { get; }
-        }
+            const byte tByte = (byte)'t';
+            const byte rByte = (byte)'r';
+            const byte uByte = (byte)'u';
+            const byte eByte = (byte)'e';
+            var trueBytes = Encoding.UTF8.GetBytes("trueeee");
 
-        private abstract class AsdfBase2 : AsdfBase1
-        {
-            public abstract long Meth();
-        }
+            Stopwatch timer;
+            var testerString = "I am a string of things for strings. The string's chars are here.I am a string of things for strings. The string's chars are here.I am a string of things for strings. The string's chars are here.I am a string of things for strings. The string's chars are here.I am a string of things for strings. The string's chars are here.I am a string of things for strings. The string's chars are here.I am a string of things for strings. The string's chars are here.I am a string of things for strings. The string's chars are here.I am a string of things for strings. The string's chars are here.I am a string of things for strings. The string's chars are here.I am a string of things for strings. The string's chars are here.I am a string of things for strings. The string's chars are here.I am a string of things for strings. The string's chars are here.";
+            var testerCharsArray = testerString.ToCharArray();
+            var testerCharsSpan = testerString.AsSpan();
+            var testerBytesArray = Encoding.UTF8.GetBytes(testerString);
+            var testerBytesSpan = Encoding.UTF8.GetBytes(testerString).AsSpan();
 
-        private sealed class AsdfInstance : AsdfBase2
-        {
-            private long value = 0;
-            public override sealed long Prop => value++;
-            public override sealed long Meth() => value++;
-        }
+            Span<char> charBuffer = new char[8192];
+            Span<byte> byteBuffer = new byte[8192 * 2];
 
-        private sealed class Plain
-        {
-            private long value = 0;
-            public long Prop => value++;
-            public long Meth() => value++;
+            var itterations = 10000000;
+            string result;
+
+            timer = Stopwatch.StartNew();
+            for (var i = 0; i < itterations; i++)
+            {
+                fixed (char* pSource = testerString)
+                fixed (char* pBuffer = charBuffer)
+                {
+                    for (var p = 0; p < testerString.Length; p++)
+                    {
+                        pBuffer[p] = pSource[p];
+                    }
+                }
+            }
+            result = charBuffer[..testerString.Length].ToString();
+            timer.Stop();
+            Console.WriteLine($"String Fixed {timer.ElapsedMilliseconds}ms");
+
+            timer = Stopwatch.StartNew();
+            for (var i = 0; i < itterations; i++)
+            {
+                fixed (char* pSource = testerString)
+                fixed (char* pBuffer = charBuffer)
+                {
+                    Buffer.MemoryCopy(pSource, pBuffer, byteBuffer.Length, testerString.Length * 2);
+                }
+            }
+            result = charBuffer[..testerString.Length].ToString();
+            timer.Stop();
+            Console.WriteLine($"String MemoryCopy {timer.ElapsedMilliseconds}ms");
+
+
+            timer = Stopwatch.StartNew();
+            for (var i = 0; i < itterations; i++)
+            {
+                fixed (char* pSource = testerCharsArray)
+                fixed (char* pBuffer = charBuffer)
+                {
+                    for (var p = 0; p < testerCharsArray.Length; p++)
+                    {
+                        pBuffer[p] = pSource[p];
+                    }
+                }
+            }
+            result = charBuffer[..testerCharsArray.Length].ToString();
+            timer.Stop();
+            Console.WriteLine($"CharsArray Fixed {timer.ElapsedMilliseconds}ms");
+
+            timer = Stopwatch.StartNew();
+            for (var i = 0; i < itterations; i++)
+            {
+                fixed (char* pSource = testerCharsArray)
+                fixed (char* pBuffer = charBuffer)
+                {
+                    Buffer.MemoryCopy(pSource, pBuffer, byteBuffer.Length, testerCharsArray.Length * 2);
+                }
+            }
+            result = charBuffer[..testerCharsArray.Length].ToString();
+            timer.Stop();
+            Console.WriteLine($"CharsArray MemoryCopy {timer.ElapsedMilliseconds}ms");
+
+
+            timer = Stopwatch.StartNew();
+            for (var i = 0; i < itterations; i++)
+            {
+                fixed (char* pSource = testerCharsSpan)
+                fixed (char* pBuffer = charBuffer)
+                {
+                    for (var p = 0; p < testerCharsSpan.Length; p++)
+                    {
+                        pBuffer[p] = pSource[p];
+                    }
+                }
+            }
+            result = charBuffer[..testerCharsSpan.Length].ToString();
+            timer.Stop();
+            Console.WriteLine($"CharsSpan Fixed {timer.ElapsedMilliseconds}ms");
+
+            timer = Stopwatch.StartNew();
+            for (var i = 0; i < itterations; i++)
+            {
+                fixed (char* pSource = testerCharsSpan)
+                fixed (char* pBuffer = charBuffer)
+                {
+                    Buffer.MemoryCopy(pSource, pBuffer, byteBuffer.Length, testerCharsSpan.Length * 2);
+                }
+            }
+            result = charBuffer[..testerCharsSpan.Length].ToString();
+            timer.Stop();
+            Console.WriteLine($"CharsSpan MemoryCopy {timer.ElapsedMilliseconds}ms");
+
+
+            timer = Stopwatch.StartNew();
+            for (var i = 0; i < itterations; i++)
+            {
+                fixed (byte* pSource = testerBytesArray)
+                fixed (byte* pBuffer = byteBuffer)
+                {
+                    Buffer.MemoryCopy(pSource, pBuffer, byteBuffer.Length, testerBytesArray.Length);
+                }
+            }
+            result = Encoding.UTF8.GetString(byteBuffer[..testerBytesArray.Length]);
+            timer.Stop();
+            Console.WriteLine($"BytesArray MemoryCopy {timer.ElapsedMilliseconds}ms");
+
+            timer = Stopwatch.StartNew();
+            for (var i = 0; i < itterations; i++)
+            {
+                fixed (byte* pSource = testerBytesArray)
+                fixed (byte* pBuffer = byteBuffer)
+                {
+                    for (var p = 0; p < testerBytesArray.Length; p++)
+                    {
+                        pBuffer[p] = pSource[p];
+                    }
+                }
+            }
+            result = Encoding.UTF8.GetString(byteBuffer[..testerBytesArray.Length]);
+            timer.Stop();
+            Console.WriteLine($"BytesArray Fixed {timer.ElapsedMilliseconds}ms");
+
+            timer = Stopwatch.StartNew();
+            for (var i = 0; i < itterations; i++)
+            {
+                for (var p = 0; p < testerBytesArray.Length; p++)
+                {
+                    byteBuffer[p] = testerBytesArray[p];
+                }
+            }
+            result = Encoding.UTF8.GetString(byteBuffer[..testerBytesArray.Length]);
+            timer.Stop();
+            Console.WriteLine($"BytesArray Regular {timer.ElapsedMilliseconds}ms");
+
+
+            timer = Stopwatch.StartNew();
+            for (var i = 0; i < itterations; i++)
+            {
+                fixed (byte* pSource = testerBytesSpan)
+                fixed (byte* pBuffer = byteBuffer)
+                {
+                    Buffer.MemoryCopy(pSource, pBuffer, byteBuffer.Length, testerBytesSpan.Length);
+                }
+            }
+            result = Encoding.UTF8.GetString(byteBuffer[..testerBytesSpan.Length]);
+            timer.Stop();
+            Console.WriteLine($"BytesSpan MemoryCopy {timer.ElapsedMilliseconds}ms");
+
+            timer = Stopwatch.StartNew();
+            for (var i = 0; i < itterations; i++)
+            {
+                fixed (byte* pSource = testerBytesSpan)
+                fixed (byte* pBuffer = byteBuffer)
+                {
+                    for (var p = 0; p < testerBytesSpan.Length; p++)
+                    {
+                        pBuffer[p] = pSource[p];
+                    }
+                }
+            }
+            result = Encoding.UTF8.GetString(byteBuffer[..testerBytesSpan.Length]);
+            timer.Stop();
+            Console.WriteLine($"BytesSpan Fixed {timer.ElapsedMilliseconds}ms");
+
+            timer = Stopwatch.StartNew();
+            for (var i = 0; i < itterations; i++)
+            {
+                for (var p = 0; p < testerBytesSpan.Length; p++)
+                {
+                    byteBuffer[p] = testerBytesSpan[p];
+                }
+            }
+            result = Encoding.UTF8.GetString(byteBuffer[..testerBytesSpan.Length]);
+            timer.Stop();
+            Console.WriteLine($"BytesSpan Regular {timer.ElapsedMilliseconds}ms");
+
+
+            timer = Stopwatch.StartNew();
+            for (var i = 0; i < itterations; i++)
+            {
+                fixed (byte* pSource = trueBytes)
+                fixed (byte* pBuffer = byteBuffer)
+                {
+                    Buffer.MemoryCopy(pSource, pBuffer, byteBuffer.Length, trueBytes.Length);
+                }
+            }
+            timer.Stop();
+            Console.WriteLine($"True MemoryCopy {timer.ElapsedMilliseconds}ms");
+
+            timer = Stopwatch.StartNew();
+            for (var i = 0; i < itterations; i++)
+            {
+                var position = 0;
+                fixed (byte* pBuffer = byteBuffer)
+                {
+                    pBuffer[position++] = tByte;
+                    pBuffer[position++] = rByte;
+                    pBuffer[position++] = uByte;
+                    pBuffer[position++] = eByte;
+                    pBuffer[position++] = eByte;
+                    pBuffer[position++] = eByte;
+                    pBuffer[position++] = eByte;
+                    pBuffer[position++] = eByte;
+                }
+            }
+            timer.Stop();
+            Console.WriteLine($"True Fixed {timer.ElapsedMilliseconds}ms");
+
+            timer = Stopwatch.StartNew();
+            for (var i = 0; i < itterations; i++)
+            {
+                var position = 0;
+                byteBuffer[position++] = tByte;
+                byteBuffer[position++] = rByte;
+                byteBuffer[position++] = uByte;
+                byteBuffer[position++] = eByte;
+                byteBuffer[position++] = eByte;
+                byteBuffer[position++] = eByte;
+                byteBuffer[position++] = eByte;
+                byteBuffer[position++] = eByte;
+            }
+            timer.Stop();
+            Console.WriteLine($"True Span {timer.ElapsedMilliseconds}ms");
         }
     }
 }

@@ -2,13 +2,131 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System;
+using Zerra.Buffers;
+using System.Text;
 using System.Collections.Generic;
 
-namespace Zerra.Serialization.Json.Converters
+namespace Zerra.Serialization.Json
 {
-    public abstract partial class JsonConverter
+    internal static class StringHelper
     {
-        internal static readonly string[] lowUnicodeIntToEncodedHex =
+        private static readonly Encoding encoding = Encoding.UTF8;
+
+        public unsafe static byte[]? EscapeAndEncodeString(string? value)
+        {
+            const int maxEscapeCharacterSize = 6;
+
+            if (value is null)
+                return null;
+            if (value.Length == 0)
+                return Array.Empty<byte>();
+
+            byte[] bytes;
+            fixed (char* pValue = value)
+            {
+                bool needsEscaped = false;
+                var i = 0;
+                for (; i < value.Length; i++)
+                {
+                    var c = pValue[i];
+                    if (c < ' ' || c == '"' || c == '\\')
+                    {
+                        needsEscaped = true;
+                        break;
+                    }
+                }
+
+                if (needsEscaped)
+                {
+                    var bufferOwner = ArrayPoolHelper<char>.Rent(i + (value.Length - i) * maxEscapeCharacterSize);
+
+                    fixed (char* pBuffer = bufferOwner)
+                    {
+                        var start = 0;
+                        var bufferIndex = 0;
+
+                        for (; i < value.Length; i++)
+                        {
+                            var c = pValue[i];
+                            char escapedChar;
+                            switch (c)
+                            {
+                                case '"':
+                                    escapedChar = '"';
+                                    break;
+                                case '\\':
+                                    escapedChar = '\\';
+                                    break;
+                                case >= ' ': //32
+                                    continue;
+                                case '\b':
+                                    escapedChar = 'b';
+                                    break;
+                                case '\f':
+                                    escapedChar = 'f';
+                                    break;
+                                case '\n':
+                                    escapedChar = 'n';
+                                    break;
+                                case '\r':
+                                    escapedChar = 'r';
+                                    break;
+                                case '\t':
+                                    escapedChar = 't';
+                                    break;
+                                default:
+
+                                    Buffer.MemoryCopy(&pValue[start], &pBuffer[bufferIndex], (bufferOwner.Length - bufferIndex) * 2, (i - start) * 2);
+                                    bufferIndex += i - start;
+
+                                    var code = LowUnicodeIntToEncodedHex[c];
+                                    fixed (char* pCode = code)
+                                    {
+                                        Buffer.MemoryCopy(pCode, &pBuffer[bufferIndex], (bufferOwner.Length - bufferIndex) * 2, code.Length * 2);
+                                    }
+                                    bufferIndex += code.Length;
+
+                                    start = i + 1;
+                                    continue;
+                            }
+
+                            Buffer.MemoryCopy(&pValue[start], &pBuffer[bufferIndex], (bufferOwner.Length - bufferIndex) * 2, (i - start) * 2);
+                            bufferIndex += i - start;
+
+                            pValue[bufferIndex++] = '\\';
+                            pValue[bufferIndex++] = escapedChar;
+                            start = i + 1;
+                        }
+
+                        if (value.Length > start)
+                        {
+                            Buffer.MemoryCopy(&pValue[start], &pBuffer[bufferIndex], (bufferOwner.Length - bufferIndex) * 2, (value.Length - start) * 2);
+                            bufferIndex += value.Length - start;
+                        }
+
+                        bytes = new byte[encoding.GetByteCount(pBuffer, bufferIndex)];
+                        fixed (byte* pBytes = bytes)
+                        {
+                            _ = encoding.GetBytes(pBuffer, bufferIndex, pBytes, bytes.Length);
+                        }
+                    }
+                    ArrayPoolHelper<char>.Return(bufferOwner);
+                }
+                else
+                {
+                    bytes = new byte[encoding.GetByteCount(pValue, value.Length)];
+                    fixed (byte* pBytes = bytes)
+                    {
+                        _ = encoding.GetBytes(pValue, value.Length, pBytes, bytes.Length);
+                    }
+                }
+            }
+
+            return bytes;
+        }
+
+        internal static readonly string[] LowUnicodeIntToEncodedHex =
         [
             "\\u0000","\\u0001","\\u0002","\\u0003","\\u0004","\\u0005","\\u0006","\\u0007","\\u0008","\\u0009","\\u000A","\\u000B","\\u000C","\\u000D","\\u000E","\\u000F",
             "\\u0010","\\u0011","\\u0012","\\u0013","\\u0014","\\u0015","\\u0016","\\u0017","\\u0018","\\u0019","\\u001A","\\u001B","\\u001C","\\u001D","\\u001E","\\u001F",
@@ -27,7 +145,7 @@ namespace Zerra.Serialization.Json.Converters
             "\\u00E0","\\u00E1","\\u00E2","\\u00E3","\\u00E4","\\u00E5","\\u00E6","\\u00E7","\\u00E8","\\u00E9","\\u00EA","\\u00EB","\\u00EC","\\u00ED","\\u00EE","\\u00EF",
             "\\u00F0","\\u00F1","\\u00F2","\\u00F3","\\u00F4","\\u00F5","\\u00F6","\\u00F7","\\u00F8","\\u00F9","\\u00FA","\\u00FB","\\u00FC","\\u00FD","\\u00FE","\\u00FF"
         ];
-        private static readonly Dictionary<string, char> lowUnicodeHexToChar = new()
+        internal static readonly Dictionary<string, char> LowUnicodeHexToChar = new()
         {
             //upper case hex
             {"0000",(char)0},{"0001",(char)1},{"0002",(char)2},{"0003",(char)3},{"0004",(char)4},{"0005",(char)5},{"0006",(char)6},{"0007",(char)7},{"0008",(char)8},{"0009",(char)9},{"000A",(char)10},{"000B",(char)11},{"000C",(char)12},{"000D",(char)13},{"000E",(char)14},{"000F",(char)15},

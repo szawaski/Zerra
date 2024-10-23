@@ -423,7 +423,7 @@ namespace Zerra.Serialization.Json.Converters
             state.Current.ChildValueType = JsonValueType.NotDetermined;
             return true;
         }
-        public override sealed bool TryWriteFromParent(ref JsonWriter writer, ref WriteState state, TParent parent, string? propertyName, bool ignoreDoNotWriteNullProperties)
+        public override sealed bool TryWriteFromParent(ref JsonWriter writer, ref WriteState state, TParent parent, string? propertyName, ReadOnlySpan<byte> propertyNameAsBytes, bool ignoreDoNotWriteNullProperties)
         {
             if (getter is null)
                 return true;
@@ -440,9 +440,19 @@ namespace Zerra.Serialization.Json.Converters
 
                     if (!state.Current.HasWrittenPropertyName)
                     {
-                        if (!writer.TryWritePropertyName(propertyName, state.Current.HasWrittenFirst, out state.CharsNeeded))
+                        if (writer.UseBytes)
                         {
-                            return false;
+                            if (!writer.TryWritePropertyName(propertyNameAsBytes, state.Current.HasWrittenFirst, out state.CharsNeeded))
+                            {
+                                return false;
+                            }
+                        }
+                        else
+                        {
+                            if (!writer.TryWritePropertyName(propertyName, state.Current.HasWrittenFirst, out state.CharsNeeded))
+                            {
+                                return false;
+                            }
                         }
                         if (!state.Current.HasWrittenFirst)
                             state.Current.HasWrittenFirst = true;
@@ -460,9 +470,19 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (!state.Current.HasWrittenPropertyName)
                     {
-                        if (!writer.TryWritePropertyName(propertyName, state.Current.HasWrittenFirst, out state.CharsNeeded))
+                        if (writer.UseBytes)
                         {
-                            return false;
+                            if (!writer.TryWritePropertyName(propertyNameAsBytes, state.Current.HasWrittenFirst, out state.CharsNeeded))
+                            {
+                                return false;
+                            }
+                        }
+                        else
+                        {
+                            if (!writer.TryWritePropertyName(propertyName, state.Current.HasWrittenFirst, out state.CharsNeeded))
+                            {
+                                return false;
+                            }
                         }
                         if (!state.Current.HasWrittenFirst)
                             state.Current.HasWrittenFirst = true;

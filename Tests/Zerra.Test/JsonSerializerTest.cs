@@ -558,7 +558,7 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void StringEscaping()
+        public void StringCharEscaping()
         {
             for (var i = 0; i < (int)byte.MaxValue; i++)
             {
@@ -571,7 +571,6 @@ namespace Zerra.Test
                 {
                     case '\\':
                     case '"':
-                    case '/':
                     case '\b':
                     case '\t':
                     case '\n':
@@ -581,6 +580,35 @@ namespace Zerra.Test
                         break;
                     default:
                         if (c < ' ')
+                            Assert.AreEqual(8, json.Length);
+                        break;
+                }
+            }
+        }
+
+        [TestMethod]
+        public void StringStringEscaping()
+        {
+            for (var i = 0; i < (int)byte.MaxValue; i++)
+            {
+                var str = new string((char)i, 1);
+                var json = JsonSerializer.Serialize(str);
+                var result = JsonSerializer.Deserialize<string>(json);
+                Assert.AreEqual(str, result);
+
+                switch (str)
+                {
+                    case "\\":
+                    case "\"":
+                    case "\b":
+                    case "\t":
+                    case "\n":
+                    case "\f":
+                    case "\r":
+                        Assert.AreEqual(4, json.Length);
+                        break;
+                    default:
+                        if (str[0] < ' ')
                             Assert.AreEqual(8, json.Length);
                         break;
                 }
@@ -1491,7 +1519,7 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public async Task StreamEscaping()
+        public async Task StreamCharEscaping()
         {
             for (var i = 0; i < (int)byte.MaxValue; i++)
             {
@@ -1509,7 +1537,6 @@ namespace Zerra.Test
                 {
                     case '\\':
                     case '"':
-                    case '/':
                     case '\b':
                     case '\t':
                     case '\n':
@@ -1519,6 +1546,39 @@ namespace Zerra.Test
                         break;
                     default:
                         if (c < ' ')
+                            Assert.AreEqual(8, json.Length);
+                        break;
+                }
+            }
+        }
+
+        public async Task StreamStringEscaping()
+        {
+            for (var i = 0; i < (int)byte.MaxValue; i++)
+            {
+                var str = new string((char)i, 1);
+                using var stream = new MemoryStream();
+                await JsonSerializer.SerializeAsync(stream, str);
+                using var sr = new StreamReader(stream, Encoding.UTF8);
+                stream.Position = 0;
+                var json = await sr.ReadToEndAsync();
+                stream.Position = 0;
+                var result = await JsonSerializer.DeserializeAsync<string>(stream);
+                Assert.AreEqual(str, result);
+
+                switch (str)
+                {
+                    case "\\":
+                    case "\"":
+                    case "\b":
+                    case "\t":
+                    case "\n":
+                    case "\f":
+                    case "\r":
+                        Assert.AreEqual(4, json.Length);
+                        break;
+                    default:
+                        if (str[0] < ' ')
                             Assert.AreEqual(8, json.Length);
                         break;
                 }

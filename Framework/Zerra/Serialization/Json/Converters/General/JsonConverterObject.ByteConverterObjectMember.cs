@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using Zerra.Reflection;
+using Zerra.Serialization.Json.IO;
 
 namespace Zerra.Serialization.Json.Converters.General
 {
@@ -16,10 +17,23 @@ namespace Zerra.Serialization.Json.Converters.General
 
             public readonly MemberDetail Member;
 
-            public JsonConverterObjectMember(TypeDetail parentTypeDetail, MemberDetail member)
+            private readonly string name;
+
+            private byte[]? nameAsBytes = null;
+            public ReadOnlySpan<byte> NameAsBytes
+            {
+                get
+                {
+                    nameAsBytes ??= StringHelper.EscapeAndEncodeString(name);
+                    return nameAsBytes;
+                }
+            }
+
+            public JsonConverterObjectMember(TypeDetail parentTypeDetail, MemberDetail member, string name)
             {
                 this.memberKey = $"{parentTypeDetail.Type.FullName}.{member.Name}";
                 this.Member = member;
+                this.name = name;
             }
 
             private JsonConverter<TValue>? converter = null;
@@ -47,10 +61,10 @@ namespace Zerra.Serialization.Json.Converters.General
             }
 
             private static readonly Type byteConverterObjectMemberT = typeof(JsonConverterObjectMember<>);
-            public static JsonConverterObjectMember New(TypeDetail parentTypeDetail, MemberDetail member)
+            public static JsonConverterObjectMember New(TypeDetail parentTypeDetail, MemberDetail member, string name)
             {
                 var generic = byteConverterObjectMemberT.GetGenericTypeDetail(typeof(TParent), typeof(TValue), member.Type);
-                var obj = generic.ConstructorDetailsBoxed[0].CreatorWithArgsBoxed([parentTypeDetail, member]);
+                var obj = generic.ConstructorDetailsBoxed[0].CreatorWithArgsBoxed([parentTypeDetail, member, name]);
                 return (JsonConverterObjectMember)obj;
             }
         }

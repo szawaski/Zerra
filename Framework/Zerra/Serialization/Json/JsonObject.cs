@@ -8,7 +8,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using Zerra.Reflection;
-using Zerra.Serialization.Json.Converters;
 
 namespace Zerra.Serialization.Json
 {
@@ -232,7 +231,7 @@ namespace Zerra.Serialization.Json
                         _ = sb.Append(chars.Slice(start, i - start));
 #endif
                         start = i + 1;
-                        var code = JsonConverter.lowUnicodeIntToEncodedHex[c];
+                        var code = StringHelper.LowUnicodeIntToEncodedHex[c];
                         _ = sb.Append(code);
                         continue;
                 }

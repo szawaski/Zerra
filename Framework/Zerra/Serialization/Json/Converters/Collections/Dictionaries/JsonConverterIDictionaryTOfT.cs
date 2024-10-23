@@ -252,7 +252,9 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
 
                 while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
                 {
-                    if (!writeValueConverter.TryWriteFromParent(ref writer, ref state, enumerator, enumerator.Current.Key.ToString(), true))
+                    var name = enumerator.Current.Key.ToString();
+                    var nameAsBytes = writer.UseBytes ? StringHelper.EscapeAndEncodeString(name) : null;
+                    if (!writeValueConverter.TryWriteFromParent(ref writer, ref state, enumerator, name, nameAsBytes, true))
                     {
                         state.Current.HasWrittenStart = true;
                         state.Current.Enumerator = enumerator;

@@ -21,6 +21,7 @@ namespace Zerra.Serialization.Json.IO
         private Span<byte> bufferBytes;
 
         private bool useBytes;
+        public bool UseBytes => useBytes;
 
         private int position;
         private int length;
@@ -59,10 +60,12 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool EnsureSize(int sizeNeeded)
+        private bool Grow(int sizeNeeded)
         {
+#if DEBUG
             if (length - position >= sizeNeeded)
                 return true;
+#endif
 
             if (useBytes)
             {
@@ -85,18 +88,6 @@ namespace Zerra.Serialization.Json.IO
             return true;
         }
 
-        public readonly Span<char> ToCharSpan()
-        {
-            return bufferChars.Slice(0, position);
-        }
-        public readonly char[] ToCharArray()
-        {
-            return bufferChars.Slice(0, position).ToArray();
-        }
-        public readonly Span<byte> ToByteSpan()
-        {
-            return bufferBytes.Slice(0, position);
-        }
         public readonly byte[] ToByteArray()
         {
             return bufferBytes.Slice(0, position).ToArray();
