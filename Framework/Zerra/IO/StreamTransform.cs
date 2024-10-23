@@ -32,8 +32,8 @@ namespace Zerra.IO
         public override sealed int ReadTimeout { get => stream.ReadTimeout; set => stream.ReadTimeout = value; }
         public override sealed int WriteTimeout { get => stream.WriteTimeout; set => stream.WriteTimeout = value; }
 
-        public override void Flush() { stream.Flush(); }
-        public override Task FlushAsync(CancellationToken cancellationToken) { return stream.FlushAsync(cancellationToken); }
+        public override void Flush() => stream.Flush();
+        public override Task FlushAsync(CancellationToken cancellationToken) => stream.FlushAsync(cancellationToken);
 
         public override abstract long Seek(long offset, SeekOrigin origin);
         public override abstract void SetLength(long value);
@@ -49,17 +49,17 @@ namespace Zerra.IO
             InternalWrite(buffer);
         }
 
-        public override sealed IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback? callback, object? state) { throw new NotSupportedException(); }
-        public override sealed int EndRead(IAsyncResult asyncResult) { throw new NotSupportedException(); }
+        public override sealed IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback? callback, object? state) => throw new NotSupportedException();
+        public override sealed int EndRead(IAsyncResult asyncResult) => throw new NotSupportedException();
 
-        public override sealed IAsyncResult BeginWrite(byte[] buffer, int offset, int count, AsyncCallback? callback, object? state) { throw new NotSupportedException(); }
-        public override sealed void EndWrite(IAsyncResult asyncResult) { throw new NotSupportedException(); }
+        public override sealed IAsyncResult BeginWrite(byte[] buffer, int offset, int count, AsyncCallback? callback, object? state) => throw new NotSupportedException();
+        public override sealed void EndWrite(IAsyncResult asyncResult) => throw new NotSupportedException();
 
-        public override sealed int Read(byte[] buffer, int offset, int count) { return InternalRead(buffer.AsSpan().Slice(offset, count)); }
-        public override sealed void Write(byte[] buffer, int offset, int count) { InternalWrite(buffer.AsSpan().Slice(offset, count)); }
+        public override sealed int Read(byte[] buffer, int offset, int count) => InternalRead(buffer.AsSpan().Slice(offset, count));
+        public override sealed void Write(byte[] buffer, int offset, int count) => InternalWrite(buffer.AsSpan().Slice(offset, count));
 
-        public override sealed Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) { return InternalReadAsync(buffer.AsMemory().Slice(offset, count), cancellationToken).AsTask(); }
-        public override sealed Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) { return InternalWriteAsync(buffer.AsMemory().Slice(offset, count), cancellationToken).AsTask(); }
+        public override sealed Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) => InternalReadAsync(buffer.AsMemory().Slice(offset, count), cancellationToken).AsTask();
+        public override sealed Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) => InternalWriteAsync(buffer.AsMemory().Slice(offset, count), cancellationToken).AsTask();
 
 #if NETSTANDARD2_0
         public override sealed async Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
@@ -122,11 +122,11 @@ namespace Zerra.IO
         }
 
 #if !NETSTANDARD2_0
-        public override sealed int Read(Span<byte> buffer) { return InternalRead(buffer); }
-        public override sealed ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default) { return InternalReadAsync(buffer, cancellationToken); }
+        public override sealed int Read(Span<byte> buffer) => InternalRead(buffer);
+        public override sealed ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default) => InternalReadAsync(buffer, cancellationToken);
 
-        public override sealed void Write(ReadOnlySpan<byte> buffer) { InternalWrite(buffer); }
-        public override sealed ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default) { return InternalWriteAsync(buffer, cancellationToken); }
+        public override sealed void Write(ReadOnlySpan<byte> buffer) => InternalWrite(buffer);
+        public override sealed ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default) => InternalWriteAsync(buffer, cancellationToken);
 
         public override sealed void CopyTo(Stream destination, int bufferSize)
         {
