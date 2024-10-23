@@ -17,13 +17,13 @@ namespace Zerra.Serialization.Bytes.Converters.General
 
             public readonly MemberDetail Member;
 
-            private byte[]? name = null;
-            public byte[] Name
+            private byte[]? nameAsBytes = null;
+            public ReadOnlySpan<byte> NameAsBytes
             {
                 get
                 {
-                    name ??= ByteWriter.encoding.GetBytes(Member.Name);
-                    return name;
+                    nameAsBytes ??= ByteWriter.encoding.GetBytes(Member.Name);
+                    return nameAsBytes;
                 }
             }
 
