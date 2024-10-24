@@ -1786,16 +1786,12 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryWritePropertyName(string? value, bool startWithComma, out int sizeNeeded)
+        public unsafe bool TryWriteNameSegment(ReadOnlySpan<char> value, bool startWithComma, out int sizeNeeded)
         {
-            sizeNeeded = startWithComma ? 4 : 3;
-            if (value is null || value.Length == 0)
-                return true;
-
             if (useBytes)
-                throw new InvalidOperationException($"{nameof(TryWritePropertyName)} {nameof(useBytes)} is the wrong setting for this call");
+                throw new InvalidOperationException($"{nameof(TryWriteNameSegment)} {nameof(useBytes)} is the wrong setting for this call");
 
-            sizeNeeded = value.Length + (startWithComma ? 4 : 3);
+            sizeNeeded = value.Length + (startWithComma ? 1 : 0);
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
@@ -1811,29 +1807,20 @@ namespace Zerra.Serialization.Json.IO
                 if (startWithComma)
                     pBuffer[position++] = ',';
 
-                pBuffer[position++] = '"';
-
                 Buffer.MemoryCopy(pSource, &pBuffer[position], (bufferChars.Length - position) * 2, value.Length * 2);
                 position += value.Length;
-
-                pBuffer[position++] = '"';
-                pBuffer[position++] = ':';
             }
 
             return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryWritePropertyName(ReadOnlySpan<byte> value, bool startWithComma, out int sizeNeeded)
+        public unsafe bool TryWriteNameSegment(ReadOnlySpan<byte> value, bool startWithComma, out int sizeNeeded)
         {
-            sizeNeeded = startWithComma ? 4 : 3;
-            if (value.Length == 0)
-                return true;
-
             if (!useBytes)
-                throw new InvalidOperationException($"{nameof(TryWritePropertyName)} {nameof(useBytes)} is the wrong setting for this call");
+                throw new InvalidOperationException($"{nameof(TryWriteNameSegment)} {nameof(useBytes)} is the wrong setting for this call");
 
-            sizeNeeded = encoding.GetMaxByteCount(value.Length) + (startWithComma ? 4 : 3);
+            sizeNeeded = value.Length + (startWithComma ? 1 : 0);
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))
@@ -1850,13 +1837,8 @@ namespace Zerra.Serialization.Json.IO
                 if (startWithComma)
                     pBuffer[position++] = commaByte;
 
-                pBuffer[position++] = quoteByte;
-
                 Buffer.MemoryCopy(pSource, &pBuffer[position], bufferBytes.Length - position, value.Length);
                 position += value.Length;
-
-                pBuffer[position++] = quoteByte;
-                pBuffer[position++] = colonByte;
             }
 
             return true;

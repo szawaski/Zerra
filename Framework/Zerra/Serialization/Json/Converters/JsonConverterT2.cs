@@ -423,7 +423,7 @@ namespace Zerra.Serialization.Json.Converters
             state.Current.ChildValueType = JsonValueType.NotDetermined;
             return true;
         }
-        public override sealed bool TryWriteFromParent(ref JsonWriter writer, ref WriteState state, TParent parent, string? propertyName, ReadOnlySpan<byte> propertyNameAsBytes, bool ignoreDoNotWriteNullProperties)
+        public override sealed bool TryWriteFromParent(ref JsonWriter writer, ref WriteState state, TParent parent, string? propertyName, ReadOnlySpan<char> jsonNameSegmentChars, ReadOnlySpan<byte> jsonNameSegmentBytes, bool ignoreDoNotWriteNullProperties)
         {
             if (getter is null)
                 return true;
@@ -442,14 +442,14 @@ namespace Zerra.Serialization.Json.Converters
                     {
                         if (writer.UseBytes)
                         {
-                            if (!writer.TryWritePropertyName(propertyNameAsBytes, state.Current.HasWrittenFirst, out state.CharsNeeded))
+                            if (!writer.TryWriteNameSegment(jsonNameSegmentBytes, state.Current.HasWrittenFirst, out state.CharsNeeded))
                             {
                                 return false;
                             }
                         }
                         else
                         {
-                            if (!writer.TryWritePropertyName(propertyName, state.Current.HasWrittenFirst, out state.CharsNeeded))
+                            if (!writer.TryWriteNameSegment(jsonNameSegmentChars, state.Current.HasWrittenFirst, out state.CharsNeeded))
                             {
                                 return false;
                             }
@@ -472,14 +472,14 @@ namespace Zerra.Serialization.Json.Converters
                     {
                         if (writer.UseBytes)
                         {
-                            if (!writer.TryWritePropertyName(propertyNameAsBytes, state.Current.HasWrittenFirst, out state.CharsNeeded))
+                            if (!writer.TryWriteNameSegment(jsonNameSegmentBytes, state.Current.HasWrittenFirst, out state.CharsNeeded))
                             {
                                 return false;
                             }
                         }
                         else
                         {
-                            if (!writer.TryWritePropertyName(propertyName, state.Current.HasWrittenFirst, out state.CharsNeeded))
+                            if (!writer.TryWriteNameSegment(jsonNameSegmentChars, state.Current.HasWrittenFirst, out state.CharsNeeded))
                             {
                                 return false;
                             }

@@ -12,8 +12,10 @@ namespace Zerra.Serialization.Json
     internal static class StringHelper
     {
         private static readonly Encoding encoding = Encoding.UTF8;
+        private const byte quoteByte = (byte)'"';
+        private const byte colonByte = (byte)':';
 
-        public unsafe static byte[]? EscapeAndEncodeString(string? value)
+        public unsafe static byte[]? EscapeAndEncodeString(string? value, bool quoteAndColon)
         {
             const int maxEscapeCharacterSize = 6;
 
@@ -105,25 +107,171 @@ namespace Zerra.Serialization.Json
                             bufferIndex += value.Length - start;
                         }
 
-                        bytes = new byte[encoding.GetByteCount(pBuffer, bufferIndex)];
+                        bytes = new byte[encoding.GetByteCount(pBuffer, bufferIndex) + (quoteAndColon ? 3 : 0)];
                         fixed (byte* pBytes = bytes)
                         {
-                            _ = encoding.GetBytes(pBuffer, bufferIndex, pBytes, bytes.Length);
+                            if (quoteAndColon)
+                            {
+                                pBytes[0] = quoteByte;
+                            }
+                            _ = encoding.GetBytes(pBuffer, bufferIndex, &pBytes[1], bytes.Length - 1);
+                            if (quoteAndColon)
+                            {
+                                pBytes[bytes.Length - 2] = quoteByte;
+                                pBytes[bytes.Length - 1] = colonByte;
+                            }
                         }
                     }
                     ArrayPoolHelper<char>.Return(bufferOwner);
                 }
                 else
                 {
-                    bytes = new byte[encoding.GetByteCount(pValue, value.Length)];
+                    bytes = new byte[encoding.GetByteCount(pValue, value.Length) + (quoteAndColon ? 3 : 0)];
                     fixed (byte* pBytes = bytes)
                     {
-                        _ = encoding.GetBytes(pValue, value.Length, pBytes, bytes.Length);
+                        if (quoteAndColon)
+                        {
+                            pBytes[0] = quoteByte;
+                        }
+                        _ = encoding.GetBytes(pValue, value.Length, &pBytes[1], bytes.Length - 1);
+                        if (quoteAndColon)
+                        {
+                            pBytes[bytes.Length - 2] = quoteByte;
+                            pBytes[bytes.Length - 1] = colonByte;
+                        }
                     }
                 }
             }
 
             return bytes;
+        }
+
+        public unsafe static char[]? EscapeString(string? value, bool quoteAndColon)
+        {
+            const int maxEscapeCharacterSize = 6;
+
+            if (value is null)
+                return null;
+            if (value.Length == 0)
+                return Array.Empty<char>();
+
+            char[] chars;
+            fixed (char* pValue = value)
+            {
+                bool needsEscaped = false;
+                var i = 0;
+                for (; i < value.Length; i++)
+                {
+                    var c = pValue[i];
+                    if (c < ' ' || c == '"' || c == '\\')
+                    {
+                        needsEscaped = true;
+                        break;
+                    }
+                }
+
+                if (needsEscaped)
+                {
+                    var bufferOwner = ArrayPoolHelper<char>.Rent(i + (value.Length - i) * maxEscapeCharacterSize);
+
+                    fixed (char* pBuffer = bufferOwner)
+                    {
+                        var start = 0;
+                        var bufferIndex = 0;
+
+                        for (; i < value.Length; i++)
+                        {
+                            var c = pValue[i];
+                            char escapedChar;
+                            switch (c)
+                            {
+                                case '"':
+                                    escapedChar = '"';
+                                    break;
+                                case '\\':
+                                    escapedChar = '\\';
+                                    break;
+                                case >= ' ': //32
+                                    continue;
+                                case '\b':
+                                    escapedChar = 'b';
+                                    break;
+                                case '\f':
+                                    escapedChar = 'f';
+                                    break;
+                                case '\n':
+                                    escapedChar = 'n';
+                                    break;
+                                case '\r':
+                                    escapedChar = 'r';
+                                    break;
+                                case '\t':
+                                    escapedChar = 't';
+                                    break;
+                                default:
+
+                                    Buffer.MemoryCopy(&pValue[start], &pBuffer[bufferIndex], (bufferOwner.Length - bufferIndex) * 2, (i - start) * 2);
+                                    bufferIndex += i - start;
+
+                                    var code = LowUnicodeIntToEncodedHex[c];
+                                    fixed (char* pCode = code)
+                                    {
+                                        Buffer.MemoryCopy(pCode, &pBuffer[bufferIndex], (bufferOwner.Length - bufferIndex) * 2, code.Length * 2);
+                                    }
+                                    bufferIndex += code.Length;
+
+                                    start = i + 1;
+                                    continue;
+                            }
+
+                            Buffer.MemoryCopy(&pValue[start], &pBuffer[bufferIndex], (bufferOwner.Length - bufferIndex) * 2, (i - start) * 2);
+                            bufferIndex += i - start;
+
+                            pValue[bufferIndex++] = '\\';
+                            pValue[bufferIndex++] = escapedChar;
+                            start = i + 1;
+                        }
+
+                        if (value.Length > start)
+                        {
+                            Buffer.MemoryCopy(&pValue[start], &pBuffer[bufferIndex], (bufferOwner.Length - bufferIndex) * 2, (value.Length - start) * 2);
+                            bufferIndex += value.Length - start;
+                        }
+
+                        chars = new char[encoding.GetByteCount(pBuffer, bufferIndex) + (quoteAndColon ? 3 : 0)];
+                        fixed (char* pChar = chars)
+                        {
+                            if (quoteAndColon)
+                            {
+                                pChar[0] = '"';
+                            }
+                            Buffer.MemoryCopy(pValue, &pChar[1], (chars.Length - 1) * 2, value.Length * 2);
+                            if (quoteAndColon)
+                            {
+                                pChar[chars.Length - 2] = '"'; ;
+                                pChar[chars.Length - 1] = ':'; ;
+                            }
+                        }
+                    }
+                    ArrayPoolHelper<char>.Return(bufferOwner);
+                }
+                else
+                {
+                    if (!quoteAndColon)
+                        return value.ToCharArray();
+
+                    chars = new char[value.Length + 3];
+                    fixed (char* pChar = chars)
+                    {
+                        pChar[0] = '"';
+                        Buffer.MemoryCopy(pValue, &pChar[1], (chars.Length - 1) * 2, value.Length * 2);
+                        pChar[chars.Length - 2] = '"';
+                        pChar[chars.Length - 1] = ':';
+                    }
+                }
+            }
+
+            return chars;
         }
 
         internal static readonly string[] LowUnicodeIntToEncodedHex =

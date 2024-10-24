@@ -21,7 +21,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
         {
             if (collectedValuesPool.TryPop(out var collectedValues))
                 return collectedValues;
-            return new(MemberNameComparer.Instance);
+            return new(StringComparer.OrdinalIgnoreCase);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ReturnCollectedValues(Dictionary<string, object?> collectedValues)
@@ -99,7 +99,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                             break;
                         }
                         //must have a matching a member
-                        if (!membersByName.Values.Any(x => x.Member.Type == parameter.Type && MemberNameComparer.Instance.Equals(x.Member.Name, parameter.Name)))
+                        if (!membersByName.Values.Any(x => x.Member.Type == parameter.Type && StringComparer.OrdinalIgnoreCase.Equals(x.Member.Name, parameter.Name)))
                         {
                             skip = true;
                             break;

@@ -21,7 +21,7 @@ namespace Zerra.Serialization.Json.Converters.General
         {
             if (collectedValuesPool.TryPop(out var collectedValues))
                 return collectedValues;
-            return new();
+            return new(StringComparer.OrdinalIgnoreCase);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ReturnCollectedValues(Dictionary<string, object?> collectedValues)
@@ -79,7 +79,7 @@ namespace Zerra.Serialization.Json.Converters.General
                             break;
                         }
                         //must have a matching a member
-                        if (!membersByName.Values.Any(x => x.Member.Type == parameter.Type && MemberNameComparer.Instance.Equals(x.Member.Name, parameter.Name)))
+                        if (!membersByName.Values.Any(x => x.Member.Type == parameter.Type && StringComparer.OrdinalIgnoreCase.Equals(x.JsonName, parameter.Name)))
                         {
                             skip = true;
                             break;
@@ -564,7 +564,7 @@ namespace Zerra.Serialization.Json.Converters.General
                         continue;
                     }
 
-                    if (!enumerator.Current.Value.Converter.TryWriteFromParent(ref writer, ref state, value, enumerator.Current.Key, enumerator.Current.Value.NameAsBytes, false))
+                    if (!enumerator.Current.Value.Converter.TryWriteFromParent(ref writer, ref state, value, enumerator.Current.Value.Member.Name, enumerator.Current.Value.JsonNameSegmentChars, enumerator.Current.Value.JsonNameSegmentBytes, false))
                     {
                         state.Current.HasWrittenStart = true;
                         state.Current.Enumerator = enumerator;

@@ -17,23 +17,34 @@ namespace Zerra.Serialization.Json.Converters.General
 
             public readonly MemberDetail Member;
 
-            private readonly string name;
+            private readonly string jsonName;
+            public string JsonName => jsonName;
 
-            private byte[]? nameAsBytes = null;
-            public ReadOnlySpan<byte> NameAsBytes
+            private byte[]? jsonNameSegmentBytes = null;
+            public ReadOnlySpan<byte> JsonNameSegmentBytes
             {
                 get
                 {
-                    nameAsBytes ??= StringHelper.EscapeAndEncodeString(name);
-                    return nameAsBytes;
+                    jsonNameSegmentBytes ??= StringHelper.EscapeAndEncodeString(jsonName, true);
+                    return jsonNameSegmentBytes;
                 }
             }
 
-            public JsonConverterObjectMember(TypeDetail parentTypeDetail, MemberDetail member, string name)
+            private char[]? jsonNameSegmentChars = null;
+            public ReadOnlySpan<char> JsonNameSegmentChars
+            {
+                get
+                {
+                    jsonNameSegmentChars ??= StringHelper.EscapeString(jsonName, true);
+                    return jsonNameSegmentChars;
+                }
+            }
+
+            public JsonConverterObjectMember(TypeDetail parentTypeDetail, MemberDetail member, string jsonName)
             {
                 this.memberKey = $"{parentTypeDetail.Type.FullName}.{member.Name}";
                 this.Member = member;
-                this.name = name;
+                this.jsonName = jsonName;
             }
 
             private JsonConverter<TValue>? converter = null;
@@ -61,10 +72,10 @@ namespace Zerra.Serialization.Json.Converters.General
             }
 
             private static readonly Type byteConverterObjectMemberT = typeof(JsonConverterObjectMember<>);
-            public static JsonConverterObjectMember New(TypeDetail parentTypeDetail, MemberDetail member, string name)
+            public static JsonConverterObjectMember New(TypeDetail parentTypeDetail, MemberDetail member, string jsonName)
             {
                 var generic = byteConverterObjectMemberT.GetGenericTypeDetail(typeof(TParent), typeof(TValue), member.Type);
-                var obj = generic.ConstructorDetailsBoxed[0].CreatorWithArgsBoxed([parentTypeDetail, member, name]);
+                var obj = generic.ConstructorDetailsBoxed[0].CreatorWithArgsBoxed([parentTypeDetail, member, jsonName]);
                 return (JsonConverterObjectMember)obj;
             }
         }
