@@ -3,8 +3,10 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Zerra.Buffers;
 using Zerra.Serialization.Json.State;
 
 namespace Zerra.Serialization.Json.IO
@@ -35,6 +37,7 @@ namespace Zerra.Serialization.Json.IO
         private const byte fByte = (byte)'f';
         private const byte aByte = (byte)'a';
         private const byte sByte = (byte)'s';
+        private const byte bByte = (byte)'b';
 
         private const byte zeroByte = (byte)'0';
         private const byte oneByte = (byte)'1';
@@ -76,8 +79,6 @@ namespace Zerra.Serialization.Json.IO
             }
         }
 #endif
-
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryReadNext(out char c)
         {
@@ -233,49 +234,13 @@ namespace Zerra.Serialization.Json.IO
                 return true;
             }
         }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadNextQuote()
-        {
-            if (useBytes)
-            {
-            bytesAgain:
-                if (position >= length
-#if DEBUG
-            || Skip()
-#endif
-            )
-                    return false;
-                var b = bufferBytes[position++];
-                if (b == spaceByte || b == tabByte || b == returnByte || b == newlineByte)
-                    goto bytesAgain;
-                if (b != quoteByte)
-                    throw CreateException("Unexpected character");
-                return true;
-            }
-            else
-            {
-            charsAgain:
-                if (position >= length
-#if DEBUG
-            || Skip()
-#endif
-            )
-                    return false;
-                var c = bufferChars[position++];
-                if (c == ' ' || c == '\t' || c == '\r' || c == '\n')
-                    goto charsAgain;
-                if (c != '"')
-                    throw CreateException("Unexpected character");
-                return true;
-            }
-        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryReadValueType(out JsonValueType valueType, out int sizeNeeded)
         {
             sizeNeeded = 1;
         whiteSpaceGoAgain:
-            if (position + 1 > length
+            if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -314,9 +279,9 @@ namespace Zerra.Serialization.Json.IO
 
                     case nByte:
                         {
-                            if (position + 4 > length)
+                            sizeNeeded = 4;
+                            if (length - position < sizeNeeded)
                             {
-                                sizeNeeded = 4;
                                 valueType = default;
                                 return false;
                             }
@@ -333,9 +298,9 @@ namespace Zerra.Serialization.Json.IO
 
                     case tByte:
                         {
-                            if (position + 4 > length)
+                            sizeNeeded = 4;
+                            if (length - position < sizeNeeded)
                             {
-                                sizeNeeded = 4;
                                 valueType = default;
                                 return false;
                             }
@@ -352,9 +317,9 @@ namespace Zerra.Serialization.Json.IO
 
                     case fByte:
                         {
-                            if (position + 5 > length)
+                            sizeNeeded = 5;
+                            if (length - position < sizeNeeded)
                             {
-                                sizeNeeded = 5;
                                 valueType = default;
                                 return false;
                             }
@@ -417,9 +382,9 @@ namespace Zerra.Serialization.Json.IO
 
                     case 'n':
                         {
-                            if (position + 4 > length)
+                            sizeNeeded = 4;
+                            if (length - position < sizeNeeded)
                             {
-                                sizeNeeded = 4;
                                 valueType = default;
                                 return false;
                             }
@@ -436,9 +401,9 @@ namespace Zerra.Serialization.Json.IO
 
                     case 't':
                         {
-                            if (position + 4 > length)
+                            sizeNeeded = 4;
+                            if (length - position < sizeNeeded)
                             {
-                                sizeNeeded = 4;
                                 valueType = default;
                                 return false;
                             }
@@ -455,9 +420,9 @@ namespace Zerra.Serialization.Json.IO
 
                     case 'f':
                         {
-                            if (position + 5 > length)
+                            sizeNeeded = 5;
+                            if (length - position < sizeNeeded)
                             {
-                                sizeNeeded = 5;
                                 valueType = default;
                                 return false;
                             }
@@ -499,7 +464,7 @@ namespace Zerra.Serialization.Json.IO
             if (useBytes)
             {
                 sizeNeeded = 4;
-                if (position + 4 > length
+                if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -519,11 +484,11 @@ namespace Zerra.Serialization.Json.IO
             else
             {
                 sizeNeeded = 4;
-                if (position + 4 > length
+                if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+                || Skip()
 #endif
-            )
+                )
                 {
                     s = default;
                     return false;
@@ -540,11 +505,11 @@ namespace Zerra.Serialization.Json.IO
             if (useBytes)
             {
                 sizeNeeded = 1;
-                if (position >= length
+                if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+                || Skip()
 #endif
-            )
+                )
                 {
                     s = default;
                     return false;
@@ -572,7 +537,7 @@ namespace Zerra.Serialization.Json.IO
             else
             {
                 sizeNeeded = 1;
-                if (position >= length
+                if (length - position < sizeNeeded
 #if DEBUG
             || Skip()
 #endif
@@ -705,11 +670,342 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void BackOne()
+        public unsafe bool TryReadStringUnescapedQuoted(bool hasStarted,
+#if !NETSTANDARD2_0
+            [MaybeNullWhen(false)]
+#endif
+        out string s, out int sizeNeeded)
         {
-            if (position == 0)
-                throw new InvalidOperationException($"Cannot {nameof(BackOne)} before position of zero.");
-            position--;
+            if (position >= length
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                sizeNeeded = 1;
+                s = null;
+                return false;
+            }
+
+            var originalPosition = position;
+            if (useBytes)
+            {
+                fixed (byte* pBuffer = bufferBytes)
+                {
+                    if (!hasStarted)
+                    {
+                        var b = pBuffer[position++];
+                        while (b == spaceByte || b == tabByte || b == returnByte || b == newlineByte)
+                        {
+                            if (position == length)
+                            {
+                                s = null;
+                                position = originalPosition;
+                                sizeNeeded = length - position + 1;
+                                return false;
+                            }
+                            b = pBuffer[position++];
+                        }
+
+                        if (b != quoteByte)
+                            throw CreateException("Unexpected character");
+                    }
+
+                    var startPosition = position;
+
+                    var escapeStart = -1;
+                    for (; position < length; position++)
+                    {
+                        var b = pBuffer[position];
+                        if (b == quoteByte)
+                            break;
+
+                        if (b == escapeByte)
+                        {
+                            if (escapeStart == -1)
+                                escapeStart = position;
+
+                            position++;
+                            if (position == length)
+                                break;
+
+                            b = pBuffer[position];
+                            if (b == uByte)
+                            {
+                                position += 3; //4 with end++
+                                continue;
+                            }
+                        }
+                    }
+                    if (position >= length)
+                    {
+                        s = null;
+                        position = originalPosition;
+                        sizeNeeded = length - position + 1;
+                        return false;
+                    }
+
+                    var endPosition = position;
+                    position++;
+
+                    if (escapeStart == -1)
+                    {
+                        sizeNeeded = 0;
+                        s = encoding.GetString(&pBuffer[startPosition], endPosition - startPosition);
+                        return true;
+                    }
+
+                    var maxSize = encoding.GetMaxCharCount(endPosition - startPosition);
+                    char[]? escapeBufferOwner;
+                    scoped Span<char> escapeBuffer;
+                    if (maxSize > 128)
+                    {
+                        escapeBufferOwner = ArrayPoolHelper<char>.Rent(maxSize);
+                        escapeBuffer = escapeBufferOwner;
+                    }
+                    else
+                    {
+                        escapeBufferOwner = null;
+                        escapeBuffer = stackalloc char[maxSize];
+                    }
+
+                    var uChars = stackalloc char[4];
+
+                    fixed (char* pEscapeBuffer = escapeBuffer)
+                    {
+                        var bufferIndex = 0;
+                        var start = startPosition;
+
+                        for (var i = startPosition; i < endPosition; i++)
+                        {
+                            var b = pBuffer[i];
+
+                            if (b != escapeByte)
+                                continue;
+
+                            if (i > start)
+                            {
+                                bufferIndex += encoding.GetChars(&pBuffer[start], i - start, &pEscapeBuffer[bufferIndex], maxSize - bufferIndex);
+                            }
+
+                            b = pBuffer[++i];
+
+                            switch (b)
+                            {
+                                case bByte:
+                                    pEscapeBuffer[bufferIndex++] = '\b';
+                                    start = i + 1;
+                                    continue;
+                                case tByte:
+                                    pEscapeBuffer[bufferIndex++] = '\t';
+                                    start = i + 1;
+                                    continue;
+                                case nByte:
+                                    pEscapeBuffer[bufferIndex++] = '\n';
+                                    start = i + 1;
+                                    continue;
+                                case fByte:
+                                    pEscapeBuffer[bufferIndex++] = '\f';
+                                    start = i + 1;
+                                    continue;
+                                case rByte:
+                                    pEscapeBuffer[bufferIndex++] = '\r';
+                                    start = i + 1;
+                                    continue;
+                                case uByte:
+                                    uChars[0] = (char)pBuffer[++i];
+                                    uChars[1] = (char)pBuffer[++i];
+                                    uChars[2] = (char)pBuffer[++i];
+                                    uChars[3] = (char)pBuffer[++i];
+                                    if (!StringHelper.LowUnicodeHexToChar.TryGetValue(new string(uChars, 0, 4), out var unicodeChar))
+                                        throw CreateException("Incomplete escape sequence");
+                                    pEscapeBuffer[bufferIndex++] = unicodeChar;
+                                    start = i + 5;
+                                    break;
+                                default:
+                                    if (b > 128)
+                                        throw CreateException("Invalid escape sequence");
+                                    pEscapeBuffer[bufferIndex++] = (char)b;
+                                    start = i + 1;
+                                    continue;
+                            }
+                        }
+
+                        if (start < endPosition)
+                        {
+                            bufferIndex += encoding.GetChars(&pBuffer[start], endPosition - start, &pEscapeBuffer[bufferIndex], maxSize - bufferIndex);
+                        }
+
+                        s = escapeBuffer.Slice(0, bufferIndex).ToString();
+                    }
+
+                    if (escapeBufferOwner is not null)
+                        ArrayPoolHelper<char>.Return(escapeBufferOwner);
+
+                    sizeNeeded = 0;
+                    return true;
+                }
+            }
+            else
+            {
+                fixed (char* pBuffer = bufferChars)
+                {
+                    if (!hasStarted)
+                    {
+                        var b = pBuffer[position++];
+                        while (b == ' ' || b == '\t' || b == '\r' || b == '\n')
+                        {
+                            if (position == length)
+                            {
+                                s = null;
+                                position = originalPosition;
+                                sizeNeeded = length - position + 1;
+                                return false;
+                            }
+                            b = pBuffer[position++];
+                        }
+
+                        if (b != quoteByte)
+                            throw CreateException("Unexpected character");
+                    }
+
+                    var startPosition = position;
+
+                    var escapeStart = -1;
+                    for (; position < length; position++)
+                    {
+                        var c = pBuffer[position];
+                        if (c == '"')
+                            break;
+
+                        if (c == '\\')
+                        {
+                            if (escapeStart == -1)
+                                escapeStart = position;
+
+                            position++;
+                            if (position == length)
+                                break;
+
+                            c = pBuffer[position];
+                            if (c == uByte)
+                            {
+                                position += 3; //4 with end++
+                                continue;
+                            }
+                        }
+                    }
+                    if (position >= length)
+                    {
+                        s = null;
+                        position = originalPosition;
+                        sizeNeeded = length - position + 1;
+                        return false;
+                    }
+
+                    var endPosition = position;
+                    position++;
+
+                    if (escapeStart == -1)
+                    {
+                        sizeNeeded = 0;
+                        s = new string(pBuffer, startPosition, endPosition - startPosition);
+                        return true;
+                    }
+
+                    var maxSize = endPosition - startPosition;
+                    char[]? escapeBufferOwner;
+                    scoped Span<char> escapeBuffer;
+                    if (maxSize > 128)
+                    {
+                        escapeBufferOwner = ArrayPoolHelper<char>.Rent(maxSize);
+                        escapeBuffer = escapeBufferOwner;
+                    }
+                    else
+                    {
+                        escapeBufferOwner = null;
+                        escapeBuffer = stackalloc char[maxSize];
+                    }
+
+                    var uChars = stackalloc char[4];
+
+                    fixed (char* pEscapeBuffer = escapeBuffer)
+                    {
+                        var bufferIndex = 0;
+                        var start = startPosition;
+
+                        for (var i = startPosition; i < endPosition; i++)
+                        {
+                            var c = pBuffer[i];
+
+                            if (c != '\\')
+                                continue;
+
+                            if (i > start)
+                            {
+                                Buffer.MemoryCopy(&pBuffer[start], &pEscapeBuffer[bufferIndex], (maxSize - bufferIndex) * 2, (i - start) * 2);
+                                bufferIndex += i - start;
+                            }
+
+                            c = pBuffer[++i];
+
+                            switch (c)
+                            {
+                                case 'b':
+                                    pEscapeBuffer[bufferIndex++] = '\b';
+                                    start = i + 1;
+                                    continue;
+                                case 't':
+                                    pEscapeBuffer[bufferIndex++] = '\t';
+                                    start = i + 1;
+                                    continue;
+                                case 'n':
+                                    pEscapeBuffer[bufferIndex++] = '\n';
+                                    start = i + 1;
+                                    continue;
+                                case 'f':
+                                    pEscapeBuffer[bufferIndex++] = '\f';
+                                    start = i + 1;
+                                    continue;
+                                case 'r':
+                                    pEscapeBuffer[bufferIndex++] = '\r';
+                                    start = i + 1;
+                                    continue;
+                                case 'u':
+                                    uChars[0] = pBuffer[++i];
+                                    uChars[1] = pBuffer[++i];
+                                    uChars[2] = pBuffer[++i];
+                                    uChars[3] = pBuffer[++i];
+                                    if (!StringHelper.LowUnicodeHexToChar.TryGetValue(new string(uChars, 0, 4), out var unicodeChar))
+                                        throw CreateException("Incomplete escape sequence");
+                                    pEscapeBuffer[bufferIndex++] = unicodeChar;
+                                    start = i + 5;
+                                    break;
+                                default:
+                                    if (c > 128)
+                                        throw CreateException("Invalid escape sequence");
+                                    pEscapeBuffer[bufferIndex++] = c;
+                                    start = i + 1;
+                                    continue;
+                            }
+                        }
+
+                        if (start < endPosition)
+                        {
+                            Buffer.MemoryCopy(&pBuffer[start], &pEscapeBuffer[bufferIndex], (maxSize - bufferIndex) * 2, (endPosition - start) * 2);
+                            bufferIndex += endPosition - start;
+                        }
+
+                        s = escapeBuffer.Slice(0, bufferIndex).ToString();
+                    }
+
+                    if (escapeBufferOwner is not null)
+                        ArrayPoolHelper<char>.Return(escapeBufferOwner);
+
+                    sizeNeeded = 0;
+                    return true;
+                }
+            }
         }
     }
 }

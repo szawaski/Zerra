@@ -2755,7 +2755,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (!state.Current.HasReadProperty)
                 {
-                    if (!ReadString(ref reader, ref state, false, out var name))
+                    if (!reader.TryReadStringUnescapedQuoted(false, out var name, out state.CharsNeeded))
                         return false;
 
                     if (String.IsNullOrWhiteSpace(name))
@@ -3121,168 +3121,6 @@ namespace Zerra.Serialization.Json.Converters
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static bool ReadString(ref JsonReader reader, ref ReadState state, bool hasStarted,
-#if !NETSTANDARD2_0
-            [MaybeNullWhen(false)]
-#endif
-        out string value)
-        {
-            scoped Span<char> buffer;
-
-            if (!hasStarted && !state.ReadStringStart)
-            {
-                if (!reader.TryReadNextQuote())
-                {
-                    state.CharsNeeded = 1;
-                    value = default;
-                    return false;
-                }
-                state.ReadStringStart = true;
-            }
-
-            if (state.StringBuffer is null)
-            {
-                buffer = stackalloc char[128];
-            }
-            else
-            {
-                if (state.StringBuffer.Length > 128)
-                {
-                    buffer = state.StringBuffer;
-                }
-                else
-                {
-                    buffer = stackalloc char[128];
-                    state.StringBuffer.CopyTo(buffer);
-                    ArrayPoolHelper<char>.Return(state.StringBuffer);
-                    state.StringBuffer = null;
-                }
-            }
-
-            char c;
-            for (; ; )
-            {
-                //reading segment
-                if (!state.ReadStringEscape)
-                {
-                    if (!reader.TryReadSpanUntilQuoteOrEscape(out var s, out state.CharsNeeded))
-                    {
-                        if (state.StringBuffer is null)
-                        {
-                            state.StringBuffer = ArrayPoolHelper<char>.Rent(buffer.Length);
-                            buffer.Slice(0, state.StringPosition).CopyTo(state.StringBuffer);
-                        }
-                        value = default;
-                        return false;
-                    }
-                    if (state.StringPosition + s.Length - 1 > buffer.Length)
-                    {
-                        var oldRented = state.StringBuffer;
-                        state.StringBuffer = ArrayPoolHelper<char>.Rent(buffer.Length * 2);
-                        buffer.CopyTo(state.StringBuffer);
-                        buffer = state.StringBuffer;
-                        if (oldRented is not null)
-                            ArrayPoolHelper<char>.Return(oldRented);
-                    }
-                    s.Slice(0, s.Length - 1).CopyTo(buffer.Slice(state.StringPosition));
-                    state.StringPosition += s.Length - 1;
-                    c = s[s.Length - 1];
-                    if (c == '\"')
-                    {
-                        value = buffer.Slice(0, state.StringPosition).ToString();
-                        if (state.StringBuffer is not null)
-                        {
-                            ArrayPoolHelper<char>.Return(state.StringBuffer);
-                            state.StringBuffer = null;
-                        }
-                        state.StringPosition = 0;
-                        if (!hasStarted)
-                            state.ReadStringStart = false;
-                        return true;
-                    }
-                    state.ReadStringEscape = true;
-                }
-
-                //reading escape
-                if (!state.ReadStringEscapeUnicode)
-                {
-                    if (!reader.TryReadNext(out c))
-                    {
-                        state.CharsNeeded = 1;
-                        if (state.StringBuffer is null)
-                        {
-                            state.StringBuffer = ArrayPoolHelper<char>.Rent(buffer.Length);
-                            buffer.Slice(0, state.StringPosition).CopyTo(state.StringBuffer);
-                        }
-                        value = default;
-                        return false;
-                    }
-
-                    if (state.StringPosition + 1 > buffer.Length)
-                    {
-                        var oldRented = state.StringBuffer;
-                        state.StringBuffer = ArrayPoolHelper<char>.Rent(buffer.Length * 2);
-                        buffer.CopyTo(state.StringBuffer);
-                        buffer = state.StringBuffer;
-                        if (oldRented is not null)
-                            ArrayPoolHelper<char>.Return(oldRented);
-                    }
-
-                    switch (c)
-                    {
-                        case 'b':
-                            buffer[state.StringPosition++] = '\b';
-                            state.ReadStringEscape = false;
-                            continue;
-                        case 't':
-                            buffer[state.StringPosition++] = '\t';
-                            state.ReadStringEscape = false;
-                            continue;
-                        case 'n':
-                            buffer[state.StringPosition++] = '\n';
-                            state.ReadStringEscape = false;
-                            continue;
-                        case 'f':
-                            buffer[state.StringPosition++] = '\f';
-                            state.ReadStringEscape = false;
-                            continue;
-                        case 'r':
-                            buffer[state.StringPosition++] = '\r';
-                            state.ReadStringEscape = false;
-                            continue;
-                        case 'u':
-                            state.ReadStringEscapeUnicode = true;
-                            break;
-                        default:
-                            buffer[state.StringPosition++] = c;
-                            state.ReadStringEscape = false;
-                            continue;
-                    }
-                }
-
-                //reading escape unicode
-                if (!reader.TryReadEscapeHex(out var unicodeSpan, out state.CharsNeeded))
-                {
-                    if (state.StringBuffer is null)
-                    {
-                        state.StringBuffer = ArrayPoolHelper<char>.Rent(buffer.Length);
-                        buffer.Slice(0, state.StringPosition).CopyTo(state.StringBuffer);
-                    }
-                    value = default;
-                    return false;
-                }
-                if (!StringHelper.LowUnicodeHexToChar.TryGetValue(unicodeSpan.ToString(), out var unicodeChar))
-                    throw reader.CreateException("Incomplete escape sequence");
-
-                //length checked in earlier state
-                buffer[state.StringPosition++] = unicodeChar;
-
-                state.ReadStringEscape = false;
-                state.ReadStringEscapeUnicode = false;
-            }
-        }
-       
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool TryReadJsonObject(ref JsonReader reader, ref ReadState state, out JsonObject? value)
         {
             if (state.EntryValueType == JsonValueType.NotDetermined)
@@ -3317,7 +3155,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.EndFrame();
                     return true;
                 case JsonValueType.String:
-                    if (!ReadString(ref reader, ref state, true, out var str))
+                    if (!reader.TryReadStringUnescapedQuoted(true, out var str, out state.CharsNeeded))
                     {
                         value = default;
                         return false;
@@ -3382,7 +3220,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.Current.ChildValueType = JsonValueType.NotDetermined;
                     return true;
                 case JsonValueType.String:
-                    if (!ReadString(ref reader, ref state, true, out var str))
+                    if (!reader.TryReadStringUnescapedQuoted(true, out var str, out state.CharsNeeded))
                     {
                         value = default;
                         return false;
@@ -3451,7 +3289,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.Current.ChildValueType = JsonValueType.NotDetermined;
                     return true;
                 case JsonValueType.String:
-                    if (!ReadString(ref reader, ref state, true, out var str))
+                    if (!reader.TryReadStringUnescapedQuoted(true, out var str, out state.CharsNeeded))
                     {
                         value = default;
                         return false;
@@ -3494,7 +3332,7 @@ namespace Zerra.Serialization.Json.Converters
                 case JsonValueType.Array:
                     return ReadJsonObjectArray(ref reader, ref state, out value);
                 case JsonValueType.String:
-                    if (!ReadString(ref reader, ref state, true, out var str))
+                    if (!reader.TryReadStringUnescapedQuoted(true, out var str, out state.CharsNeeded))
                     {
                         value = default;
                         return false;
@@ -3555,7 +3393,7 @@ namespace Zerra.Serialization.Json.Converters
                 string? property;
                 if (!state.Current.HasReadProperty)
                 {
-                    if (!ReadString(ref reader, ref state, false, out property))
+                    if (!reader.TryReadStringUnescapedQuoted(false, out property, out state.CharsNeeded))
                     {
                         state.Current.Object = value;
                         return false;

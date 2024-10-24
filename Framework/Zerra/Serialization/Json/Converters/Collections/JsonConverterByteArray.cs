@@ -21,7 +21,7 @@ namespace Zerra.Serialization.Json.Converters.Collections
                 return Drain(ref reader, ref state, valueType);
             }
 
-            if (!ReadString(ref reader, ref state, true, out var str))
+            if (!reader.TryReadStringUnescapedQuoted(true, out var str, out state.CharsNeeded))
             {
                 value = default;
                 return false;

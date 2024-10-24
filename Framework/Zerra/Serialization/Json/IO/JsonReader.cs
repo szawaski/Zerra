@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Zerra.Serialization.Json.IO
@@ -37,6 +38,14 @@ namespace Zerra.Serialization.Json.IO
             this.position = 0;
             this.length = bytes.Length;
             this.useBytes = true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void BackOne()
+        {
+            if (position == 0)
+                throw new InvalidOperationException($"Cannot {nameof(BackOne)} before position of zero.");
+            position--;
         }
 
         public readonly FormatException CreateException(string message)

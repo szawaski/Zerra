@@ -27,7 +27,7 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                     value = default;
                     return DrainArray(ref reader, ref state);
                 case JsonValueType.String:
-                    if (!ReadString(ref reader, ref state, true, out var str))
+                    if (!reader.TryReadStringUnescapedQuoted(true, out var str, out state.CharsNeeded))
                     {
                         value = default;
                         return false;

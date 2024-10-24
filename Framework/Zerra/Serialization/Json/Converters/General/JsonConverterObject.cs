@@ -306,7 +306,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     JsonConverterObjectMember? member;
                     if (!state.Current.HasReadProperty)
                     {
-                        if (!ReadString(ref reader, ref state, false, out var name))
+                        if (!reader.TryReadStringUnescapedQuoted(false, out var name, out state.CharsNeeded))
                         {
                             if (collectValues)
                                 state.Current.Object = collectedValues;
@@ -564,7 +564,7 @@ namespace Zerra.Serialization.Json.Converters.General
                         continue;
                     }
 
-                    if (!enumerator.Current.Value.Converter.TryWriteFromParent(ref writer, ref state, value, enumerator.Current.Key, enumerator.Current.Value.NameAsBytes, false))
+                    if (!enumerator.Current.Value.Converter.TryWriteFromParent(ref writer, ref state, value, enumerator.Current.Value.Member.Name, enumerator.Current.Value.JsonNameSegmentChars, enumerator.Current.Value.JsonNameSegmentBytes, false))
                     {
                         state.Current.HasWrittenStart = true;
                         state.Current.Enumerator = enumerator;
