@@ -21,7 +21,7 @@ namespace Zerra.Serialization.Json.Converters.General
         {
             if (collectedValuesPool.TryPop(out var collectedValues))
                 return collectedValues;
-            return new(MemberNameComparer.Instance);
+            return new();
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ReturnCollectedValues(Dictionary<string, object?> collectedValues)
