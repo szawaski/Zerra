@@ -104,14 +104,12 @@ namespace Zerra.Serialization.Json.IO
         {
             if (bufferCharsOwner is not null)
             {
-                Array.Clear(bufferCharsOwner, 0, position);
                 ArrayPoolHelper<char>.Return(bufferCharsOwner);
                 bufferCharsOwner = null;
                 bufferChars = null;
             }
             if (bufferBytesOwner is not null)
             {
-                Array.Clear(bufferBytesOwner, 0, position);
                 ArrayPoolHelper<byte>.Return(bufferBytesOwner);
                 bufferBytesOwner = null;
                 bufferBytes = null;

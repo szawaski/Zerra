@@ -222,7 +222,6 @@ namespace Zerra.Serialization.Json
             }
             finally
             {
-                Array.Clear(buffer, 0, buffer.Length);
                 ArrayPoolHelper<byte>.Return(buffer);
             }
         }
@@ -271,7 +270,6 @@ namespace Zerra.Serialization.Json
             }
             finally
             {
-                Array.Clear(buffer, 0, buffer.Length);
                 ArrayPoolHelper<byte>.Return(buffer);
             }
         }
@@ -322,7 +320,6 @@ namespace Zerra.Serialization.Json
             }
             finally
             {
-                Array.Clear(buffer, 0, buffer.Length);
                 ArrayPoolHelper<byte>.Return(buffer);
             }
         }
@@ -379,7 +376,6 @@ namespace Zerra.Serialization.Json
             }
             finally
             {
-                Array.Clear(buffer, 0, buffer.Length);
                 ArrayPoolHelper<byte>.Return(buffer);
             }
         }
@@ -435,7 +431,6 @@ namespace Zerra.Serialization.Json
             }
             finally
             {
-                Array.Clear(buffer, 0, buffer.Length);
                 ArrayPoolHelper<byte>.Return(buffer);
             }
         }
@@ -493,7 +488,6 @@ namespace Zerra.Serialization.Json
             }
             finally
             {
-                Array.Clear(buffer, 0, buffer.Length);
                 ArrayPoolHelper<byte>.Return(buffer);
             }
         }

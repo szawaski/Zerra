@@ -126,7 +126,8 @@ namespace Zerra.Buffers
         /// Returns an array to the <see cref="ArrayPool{T}"/>. The array must not be used afterwards.
         /// </summary>
         /// <param name="buffer">The rented array to return.</param>
-        public static void Return(T[] buffer)
+        /// <param name="lengthToClear">The length of the buffer to clear. Less than zero will clear all.  Default is -1.</param>
+        public static void Return(T[] buffer, int lengthToClear = -1)
         {
 #if DEBUG && false
             lock (rented)
@@ -139,6 +140,10 @@ namespace Zerra.Buffers
                 System.Diagnostics.Debug.WriteLine($"Memory<{typeof(T).Name}> Returned - {rented.Count}: Size {buffer.Length} {line}");
             }
 #else
+            if (lengthToClear < 0)
+                lengthToClear = buffer.Length;
+            if (lengthToClear > 0)
+                Array.Clear(buffer, 0, lengthToClear);
             pool.Return(buffer);
 #endif
         }

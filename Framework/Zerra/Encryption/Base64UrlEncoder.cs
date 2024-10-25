@@ -34,7 +34,6 @@ namespace Zerra.Encryption
                 };
             }
             var filteredString = new string(filtered, 0, filteredLength);
-            Array.Clear(filtered, 0, filteredLength);
             ArrayPoolHelper<char>.Return(filtered);
             return filteredString;
         }
@@ -73,7 +72,6 @@ namespace Zerra.Encryption
             }
 
             var filteredString = new string(filtered, 0, filteredLength);
-            Array.Clear(filtered, 0, filteredLength);
             ArrayPoolHelper<char>.Return(filtered);
             return Convert.FromBase64String(filteredString);
         }

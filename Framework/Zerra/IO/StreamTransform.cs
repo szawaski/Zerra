@@ -78,7 +78,6 @@ namespace Zerra.IO
             }
             finally
             {
-                Array.Clear(bufferOwner, 0, maxSize);
                 ArrayPoolHelper<byte>.Return(bufferOwner);
             }
         }

@@ -73,7 +73,6 @@ namespace Zerra.Serialization.Bytes.IO
         {
             if (bufferOwner is not null)
             {
-                Array.Clear(bufferOwner, 0, position);
                 ArrayPoolHelper<byte>.Return(bufferOwner);
                 bufferOwner = null;
                 buffer = null;

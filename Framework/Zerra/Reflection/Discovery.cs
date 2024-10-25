@@ -1259,7 +1259,6 @@ namespace Zerra.Reflection
             {
                 if (rented is not null)
                 {
-                    Array.Clear(rented, 0, rented.Length);
                     ArrayPool<char>.Shared.Return(rented);
                 }
             }

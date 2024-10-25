@@ -34,7 +34,6 @@ namespace Zerra.Extensions
             }
             finally
             {
-                Array.Clear(buffer, 0, totalRead);
                 ArrayPoolHelper<byte>.Return(buffer);
             }
         }
@@ -59,7 +58,6 @@ namespace Zerra.Extensions
             }
             finally
             {
-                Array.Clear(buffer, 0, totalRead);
                 ArrayPoolHelper<byte>.Return(buffer);
             }
         }
@@ -135,7 +133,6 @@ namespace Zerra.Extensions
             }
             finally
             {
-                Array.Clear(buffer, 0, totalRead);
                 ArrayPoolHelper<byte>.Return(buffer);
             }
             return totalRead;
@@ -152,7 +149,6 @@ namespace Zerra.Extensions
             }
             finally
             {
-                Array.Clear(buffer, 0, totalRead);
                 ArrayPoolHelper<byte>.Return(buffer);
             }
             return totalRead;
@@ -181,7 +177,6 @@ namespace Zerra.Extensions
             }
             finally
             {
-                Array.Clear(buffer, 0, totalRead);
                 ArrayPoolHelper<char>.Return(buffer);
             }
             return totalRead;
@@ -198,7 +193,6 @@ namespace Zerra.Extensions
             }
             finally
             {
-                Array.Clear(buffer, 0, totalRead);
                 ArrayPoolHelper<char>.Return(buffer);
             }
             return totalRead;

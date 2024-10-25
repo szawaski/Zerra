@@ -84,14 +84,12 @@ namespace Zerra.Encryption
         {
             if (keyBufferOwner is not null)
             {
-                Array.Clear(keyBufferOwner, 0, keyBufferOwner.Length);
                 ArrayPoolHelper<byte>.Return(keyBufferOwner);
                 keyBufferOwner = null;
                 keyBuffer = null;
             }
             if (workingBufferOwner is not null)
             {
-                Array.Clear(workingBufferOwner, 0, workingBufferOwner.Length);
                 ArrayPoolHelper<byte>.Return(workingBufferOwner);
                 workingBufferOwner = null;
                 workingBuffer = null;
@@ -103,14 +101,12 @@ namespace Zerra.Encryption
         {
             if (keyBufferOwner is not null)
             {
-                Array.Clear(keyBufferOwner, 0, keyBufferOwner.Length);
                 ArrayPoolHelper<byte>.Return(keyBufferOwner);
                 keyBufferOwner = null;
                 keyBuffer = null;
             }
             if (workingBufferOwner is not null)
             {
-                Array.Clear(workingBufferOwner, 0, workingBufferOwner.Length);
                 ArrayPoolHelper<byte>.Return(workingBufferOwner);
                 workingBufferOwner = null;
                 workingBuffer = null;
