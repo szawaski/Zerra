@@ -31,6 +31,7 @@ namespace Zerra.Serialization.Json.Converters.General
         }
 
         private readonly Dictionary<string, JsonConverterObjectMember> membersByName = new();
+        private readonly List<JsonConverterObjectMember> members = new();
 
         private bool collectValues;
         private ConstructorDetail<TValue>? parameterConstructor = null;
@@ -46,6 +47,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     {
                         var detail = JsonConverterObjectMember.New(typeDetail, member, jsonPropertyName.Name);
                         membersByName.Add(jsonPropertyName.Name, detail);
+                        members.Add(detail);
                         found = true;
                         break;
                     }
@@ -53,6 +55,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     {
                         var detail = JsonConverterObjectMember.New(typeDetail, member, jsonPropertyName2.Name);
                         membersByName.Add(jsonPropertyName2.Name, detail);
+                        members.Add(detail);
                         found = true;
                         break;
                     }
@@ -61,6 +64,7 @@ namespace Zerra.Serialization.Json.Converters.General
                 {
                     var detail = JsonConverterObjectMember.New(typeDetail, member, member.Name);
                     membersByName.Add(member.Name, detail);
+                    members.Add(detail);
                 }
             }
 
@@ -167,7 +171,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     {
                         if (!enumerator.MoveNext())
                             throw reader.CreateException("Unexpected value");
-                      
+
                     }
 
                     if (!state.Current.HasReadValue)
@@ -475,24 +479,20 @@ namespace Zerra.Serialization.Json.Converters.General
                     return true;
                 }
 
-                IEnumerator<KeyValuePair<string, JsonConverterObjectMember>> enumerator;
                 if (!state.Current.HasWrittenStart)
                 {
                     if (!writer.TryWriteOpenBracket(out state.CharsNeeded))
                     {
                         return false;
                     }
-                    enumerator = membersByName.GetEnumerator();
-                }
-                else
-                {
-                    enumerator = (IEnumerator<KeyValuePair<string, JsonConverterObjectMember>>)state.Current.Enumerator!;
                 }
 
-                while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
+                while (state.Current.EnumeratorIndex < members.Count)
                 {
-                    if (state.Current.Graph is not null && !state.Current.Graph.HasMember(enumerator.Current.Key))
+                    var current = members[state.Current.EnumeratorIndex];
+                    if (state.Current.Graph is not null && !state.Current.Graph.HasMember(current.Member.Name))
                     {
+                        state.Current.EnumeratorIndex++;
                         continue;
                     }
 
@@ -501,28 +501,23 @@ namespace Zerra.Serialization.Json.Converters.General
                         if (!writer.TryWriteComma(out state.CharsNeeded))
                         {
                             state.Current.HasWrittenStart = true;
-                            state.Current.EnumeratorInProgress = true;
-                            state.Current.Object = enumerator;
                             return false;
                         }
                     }
 
-                    if (!enumerator.Current.Value.Converter.TryWriteFromParent(ref writer, ref state, value))
+                    if (!current.Converter.TryWriteFromParent(ref writer, ref state, value))
                     {
                         state.Current.HasWrittenStart = true;
                         state.Current.HasWrittenSeperator = true;
-                        state.Current.EnumeratorInProgress = true;
-                        state.Current.Enumerator = enumerator;
                         return false;
                     }
-
 
                     if (!state.Current.HasWrittenFirst)
                         state.Current.HasWrittenFirst = true;
                     if (state.Current.HasWrittenSeperator)
                         state.Current.HasWrittenSeperator = false;
-                    if (state.Current.EnumeratorInProgress)
-                        state.Current.EnumeratorInProgress = false;
+
+                    state.Current.EnumeratorIndex++;
                 }
 
                 if (!writer.TryWriteCloseBracket(out state.CharsNeeded))
@@ -543,37 +538,29 @@ namespace Zerra.Serialization.Json.Converters.General
                     return true;
                 }
 
-                IEnumerator<KeyValuePair<string, JsonConverterObjectMember>> enumerator;
                 if (!state.Current.HasWrittenStart)
                 {
                     if (!writer.TryWriteOpenBrace(out state.CharsNeeded))
                     {
                         return false;
                     }
-                    enumerator = membersByName.GetEnumerator();
-                }
-                else
-                {
-                    enumerator = (IEnumerator<KeyValuePair<string, JsonConverterObjectMember>>)state.Current.Enumerator!;
                 }
 
-                while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
+                while (state.Current.EnumeratorIndex < members.Count)
                 {
-                    if (state.Current.Graph is not null && !state.Current.Graph.HasMember(enumerator.Current.Key))
+                    var current = members[state.Current.EnumeratorIndex];
+                    if (state.Current.Graph is not null && !state.Current.Graph.HasMember(current.Member.Name))
                     {
+                        state.Current.EnumeratorIndex++;
                         continue;
                     }
 
-                    if (!enumerator.Current.Value.Converter.TryWriteFromParent(ref writer, ref state, value, enumerator.Current.Value.Member.Name, enumerator.Current.Value.JsonNameSegmentChars, enumerator.Current.Value.JsonNameSegmentBytes, false))
+                    if (!current.Converter.TryWriteFromParent(ref writer, ref state, value, current.Member.Name, current.JsonNameSegmentChars, current.JsonNameSegmentBytes, false))
                     {
                         state.Current.HasWrittenStart = true;
-                        state.Current.Enumerator = enumerator;
-                        state.Current.EnumeratorInProgress = true;
                         return false;
                     }
-
-                    if (state.Current.EnumeratorInProgress)
-                        state.Current.EnumeratorInProgress = false;
+                    state.Current.EnumeratorIndex++;
                 }
 
                 if (!writer.TryWriteCloseBrace(out state.CharsNeeded))

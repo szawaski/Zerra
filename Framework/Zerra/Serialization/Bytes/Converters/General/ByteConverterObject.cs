@@ -33,6 +33,8 @@ namespace Zerra.Serialization.Bytes.Converters.General
         private readonly Dictionary<ushort, ByteConverterObjectMember> membersByIndex = new();
         private readonly Dictionary<ushort, ByteConverterObjectMember> membersByIndexIngoreAttributes = new();
         private readonly Dictionary<string, ByteConverterObjectMember> membersByName = new();
+        private readonly List<ByteConverterObjectMember> membersIngoreAttributes = new();
+        private readonly List<ByteConverterObjectMember> members = new();
         private bool indexSizeUInt16Only;
 
         private bool collectValues;
@@ -40,33 +42,36 @@ namespace Zerra.Serialization.Bytes.Converters.General
 
         protected override sealed void Setup()
         {
-            var memberSets = new List<Tuple<MemberDetail, SerializerIndexAttribute?>>();
+            var validMembers = new List<MemberDetail>();
             foreach (var member in typeDetail.SerializableMemberDetails)
             {
                 if (member.Attributes.Any(x => x is NonSerializedAttribute))
                     continue;
-                var indexAttribute = member.Attributes.Select(x => x as SerializerIndexAttribute).Where(x => x is not null).FirstOrDefault();
-                memberSets.Add(new Tuple<MemberDetail, SerializerIndexAttribute?>(member, indexAttribute));
+                validMembers.Add(member);
             }
 
             //Members by Index with Attributes
-            foreach (var member in memberSets.Where(x => x.Item2 is not null))
+            foreach (var member in validMembers)
             {
-                var index = (ushort)(member.Item2!.Index + indexOffset);
+                var indexAttribute = member.Attributes.Select(x => x as SerializerIndexAttribute).Where(x => x is not null).FirstOrDefault();
+                if (indexAttribute is null)
+                    continue;
+                var index = (ushort)(indexAttribute.Index + indexOffset);
 
                 if (index > byte.MaxValue)
                     indexSizeUInt16Only = true;
                 if (index > ushort.MaxValue)
-                    throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members to serialize");
+                    throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has an {nameof(SerializerIndexAttribute)} index too high");
 
-                var detail = ByteConverterObjectMember.New(typeDetail, member.Item1);
+                var detail = ByteConverterObjectMember.New(typeDetail, member, index);
                 membersByIndex.Add(index, detail);
+                members.Add(detail);
             }
 
             //Members by Index and Name
             var hasAttributes = membersByIndex.Count > 0;
             var orderIndex = 0;
-            foreach (var member in memberSets)
+            foreach (var member in validMembers)
             {
                 var index = (ushort)(orderIndex + indexOffset);
 
@@ -75,11 +80,15 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 if (index > ushort.MaxValue)
                     throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members to serialize");
 
-                var detail = ByteConverterObjectMember.New(typeDetail, member.Item1);
+                var detail = ByteConverterObjectMember.New(typeDetail, member, index);
                 if (!hasAttributes)
+                {
                     membersByIndex.Add(index, detail);
+                    members.Add(detail);
+                }
                 membersByIndexIngoreAttributes.Add(index, detail);
-                membersByName.Add(member.Item1.Name, detail);
+                membersByName.Add(member.Name, detail);
+                membersIngoreAttributes.Add(detail);
 
                 orderIndex++;
             }
@@ -117,7 +126,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TValue? value)
         {
             if (indexSizeUInt16Only && !state.IndexSizeUInt16 && !state.UsePropertyNames)
-                throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members for index size");
+                throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members or {nameof(SerializerIndexAttribute)} index too high for index size");
 
             Dictionary<string, object?>? collectedValues;
 
@@ -324,61 +333,41 @@ namespace Zerra.Serialization.Bytes.Converters.General
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in TValue value)
         {
             if (indexSizeUInt16Only && !state.IndexSizeUInt16 && !state.UsePropertyNames)
-                throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members for index size");
+                throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members or {nameof(SerializerIndexAttribute)} index too high for index size");
 
-            IEnumerator<KeyValuePair<ushort, ByteConverterObjectMember>> enumerator;
-            if (state.Current.Enumerator is null)
-            {
-                if (state.IgnoreIndexAttribute)
-                    enumerator = membersByIndexIngoreAttributes.GetEnumerator();
-                else
-                    enumerator = membersByIndex.GetEnumerator();
-            }
+            List<ByteConverterObjectMember> enumerator;
+            if (state.IgnoreIndexAttribute)
+                enumerator = membersIngoreAttributes;
             else
-            {
-                enumerator = (IEnumerator<KeyValuePair<ushort, ByteConverterObjectMember>>)state.Current.Enumerator;
-            }
+                enumerator = members;
 
-            while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
+            while (state.Current.EnumeratorIndex < enumerator.Count)
             {
+                var current = enumerator[state.Current.EnumeratorIndex];
                 //Base will write the property name or index if the value is not null.
                 //Done this way so we don't have to extract the value twice due to null checking.
-                if (!enumerator.Current.Value.Converter.TryWriteFromParent(ref writer, ref state, value, false, enumerator.Current.Key, state.UsePropertyNames ? enumerator.Current.Value.NameAsBytes : null))
-                {
-                    state.Current.Enumerator = enumerator;
-                    state.Current.EnumeratorInProgress = true;
+                if (!current.Converter.TryWriteFromParent(ref writer, ref state, value, false, current.Index, state.UsePropertyNames ? current.NameAsBytes : null))
                     return false;
-                }
 
-                if (state.Current.EnumeratorInProgress)
-                    state.Current.EnumeratorInProgress = false;
+                state.Current.EnumeratorIndex++;
             }
 
             if (state.UsePropertyNames)
             {
                 if (!writer.TryWrite(0, out state.BytesNeeded))
-                {
-                    state.Current.Enumerator = enumerator;
                     return false;
-                }
             }
             else
             {
                 if (state.IndexSizeUInt16)
                 {
                     if (!writer.TryWriteRaw(endObjectFlagUInt16, out state.BytesNeeded))
-                    {
-                        state.Current.Enumerator = enumerator;
                         return false;
-                    }
                 }
                 else
                 {
                     if (!writer.TryWrite(endObjectFlagByte, out state.BytesNeeded))
-                    {
-                        state.Current.Enumerator = enumerator;
                         return false;
-                    }
                 }
             }
 

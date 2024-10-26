@@ -11,8 +11,8 @@ namespace Zerra.Serialization.Bytes.Converters.General
     {
         private sealed class ByteConverterObjectMember<TValue2> : ByteConverterObjectMember
         {
-            public ByteConverterObjectMember(TypeDetail parentTypeDetail, MemberDetail member)
-                : base(parentTypeDetail, member) { }
+            public ByteConverterObjectMember(TypeDetail parentTypeDetail, MemberDetail member, ushort index)
+                : base(parentTypeDetail, member, index) { }
 
             private void SetterForConverterSetValues(Dictionary<string, object?> parent, TValue2? value) => parent.Add(Member.Name.TrimStart('_'), value);
 

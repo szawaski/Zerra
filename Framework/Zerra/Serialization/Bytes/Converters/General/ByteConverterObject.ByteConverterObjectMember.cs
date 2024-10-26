@@ -17,6 +17,8 @@ namespace Zerra.Serialization.Bytes.Converters.General
 
             public readonly MemberDetail Member;
 
+            public readonly ushort Index;
+
             private byte[]? nameAsBytes = null;
             public ReadOnlySpan<byte> NameAsBytes
             {
@@ -27,10 +29,11 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 }
             }
 
-            public ByteConverterObjectMember(TypeDetail parentTypeDetail, MemberDetail member)
+            public ByteConverterObjectMember(TypeDetail parentTypeDetail, MemberDetail member, ushort index)
             {
                 this.memberKey = $"{parentTypeDetail.Type.FullName}.{member.Name}";
                 this.Member = member;
+                this.Index = index;
             }
 
             private ByteConverter<TValue>? converter = null;
@@ -58,10 +61,10 @@ namespace Zerra.Serialization.Bytes.Converters.General
             }
 
             private static readonly Type byteConverterObjectMemberT = typeof(ByteConverterObjectMember<>);
-            public static ByteConverterObjectMember New(TypeDetail parentTypeDetail, MemberDetail member)
+            public static ByteConverterObjectMember New(TypeDetail parentTypeDetail, MemberDetail member, ushort index)
             {
                 var generic = byteConverterObjectMemberT.GetGenericTypeDetail(typeof(TParent), typeof(TValue), member.Type);
-                var obj = generic.ConstructorDetailsBoxed[0].CreatorWithArgsBoxed([parentTypeDetail, member]);
+                var obj = generic.ConstructorDetailsBoxed[0].CreatorWithArgsBoxed([parentTypeDetail, member, index]);
                 return (ByteConverterObjectMember)obj;
             }
         }

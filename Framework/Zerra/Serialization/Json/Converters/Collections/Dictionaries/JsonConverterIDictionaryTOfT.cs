@@ -247,7 +247,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                 }
                 else
                 {
-                    enumerator = (IEnumerator<KeyValuePair<TKey, TValue>>)state.Current.Enumerator!;
+                    enumerator = (IEnumerator<KeyValuePair<TKey, TValue>>)state.Current.Object!;
                 }
 
                 while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
@@ -258,7 +258,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                     if (!writeValueConverter.TryWriteFromParent(ref writer, ref state, enumerator, name, nameSegmentChars, nameSegmentBytes, true))
                     {
                         state.Current.HasWrittenStart = true;
-                        state.Current.Enumerator = enumerator;
+                        state.Current.Object = enumerator;
                         state.Current.EnumeratorInProgress = true;
                         return false;
                     }
@@ -297,7 +297,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                 }
                 else
                 {
-                    enumerator = (IEnumerator<KeyValuePair<TKey, TValue>>)state.Current.Enumerator!;
+                    enumerator = (IEnumerator<KeyValuePair<TKey, TValue>>)state.Current.Object!;
                 }
 
                 while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
@@ -307,7 +307,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                         if (!writer.TryWriteComma(out state.CharsNeeded))
                         {
                             state.Current.HasWrittenStart = true;
-                            state.Current.Enumerator = enumerator;
+                            state.Current.Object = enumerator;
                             state.Current.EnumeratorInProgress = true;
                             return false;
                         }
@@ -316,7 +316,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                     if (!writeConverter.TryWriteFromParent(ref writer, ref state, enumerator))
                     {
                         state.Current.HasWrittenStart = true;
-                        state.Current.Enumerator = enumerator;
+                        state.Current.Object = enumerator;
                         state.Current.EnumeratorInProgress = true;
                         state.Current.HasWrittenSeperator = true;
                         state.Current.HasWrittenPropertyName = true;

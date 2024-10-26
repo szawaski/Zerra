@@ -15,7 +15,7 @@ namespace Zerra.Serialization.Json.State
         public bool HasWrittenStart;
         public bool HasWrittenFirst;
         public bool HasWrittenSeperator;
-        public object? Enumerator;
+        public int EnumeratorIndex;
         public bool EnumeratorInProgress;
 
         public Graph? Graph;
