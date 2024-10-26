@@ -594,7 +594,7 @@ namespace Zerra.Serialization.Bytes.Converters
                 return true;
             var value = getter(parent);
 
-            var writeProperty = (!state.UsePropertyNames && indexProperty > 0) || (state.UsePropertyNames && indexPropertyName.Length>0);
+            var writeProperty = (!state.UsePropertyNames && indexProperty > 0) || (state.UsePropertyNames && indexPropertyName.Length > 0);
 
             if (writeProperty)
             {
@@ -620,7 +620,7 @@ namespace Zerra.Serialization.Bytes.Converters
                 {
                     if (state.UsePropertyNames)
                     {
-                        if (!writer.TryWriteEncodedString(indexPropertyName, out state.BytesNeeded))
+                        if (!writer.TryWritePropertyName(indexPropertyName, out state.BytesNeeded))
                         {
                             state.Current.ChildHasWrittenIsNull = true;
                             return false;

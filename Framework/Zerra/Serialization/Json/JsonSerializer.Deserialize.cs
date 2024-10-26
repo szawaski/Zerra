@@ -231,7 +231,7 @@ namespace Zerra.Serialization.Json
                     if (state.IsFinalBlock)
                         throw new EndOfStreamException();
 
-                    Buffer.BlockCopy(buffer, bytesUsed, buffer, 0, length - bytesUsed);
+                    BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
 
                     if (length + state.CharsNeeded > buffer.Length)
@@ -338,7 +338,7 @@ namespace Zerra.Serialization.Json
                     if (state.IsFinalBlock)
                         throw new EndOfStreamException();
 
-                    Buffer.BlockCopy(buffer, bytesUsed, buffer, 0, length - bytesUsed);
+                    BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
 
                     if (length + state.CharsNeeded > buffer.Length)
@@ -429,7 +429,7 @@ namespace Zerra.Serialization.Json
 
                 for (; ; )
                 {
-                    var usedBytes = Read(converter, buffer.AsSpan().Slice(0, length), ref state, out result);
+                    var bytesUsed = Read(converter, buffer.AsSpan().Slice(0, length), ref state, out result);
 
                     if (state.CharsNeeded == 0)
                     {
@@ -444,8 +444,8 @@ namespace Zerra.Serialization.Json
                     if (state.IsFinalBlock)
                         throw new EndOfStreamException();
 
-                    Buffer.BlockCopy(buffer, usedBytes, buffer, 0, length - usedBytes);
-                    length -= usedBytes;
+                    BufferShift(buffer, bytesUsed);
+                    length -= bytesUsed;
 
                     if (length + state.CharsNeeded > buffer.Length)
                         ArrayPoolHelper<byte>.Grow(ref buffer, length + state.CharsNeeded);
@@ -551,7 +551,7 @@ namespace Zerra.Serialization.Json
                     if (state.IsFinalBlock)
                         throw new EndOfStreamException();
 
-                    Buffer.BlockCopy(buffer, bytesUsed, buffer, 0, length - bytesUsed);
+                    BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
 
                     if (length + state.CharsNeeded > buffer.Length)
@@ -692,6 +692,15 @@ namespace Zerra.Serialization.Json
                 goto again;
 #endif
             return reader.Position;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private unsafe static void BufferShift(byte[] buffer, int position)
+        {
+            fixed (byte* pBuffer = buffer)
+            {
+                Buffer.MemoryCopy(&pBuffer[position], pBuffer, buffer.Length, buffer.Length - position);
+            }
         }
     }
 }

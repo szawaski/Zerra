@@ -56,7 +56,7 @@ namespace Zerra.Serialization.Bytes.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryWriteEncodedString(ReadOnlySpan<byte> bytes, out int sizeNeeded)
+        public unsafe bool TryWritePropertyName(ReadOnlySpan<byte> bytes, out int sizeNeeded)
         {
             sizeNeeded = bytes.Length + 4;
             if (length - position < sizeNeeded)

@@ -62,11 +62,6 @@ namespace Zerra.Serialization.Json.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool Grow(int sizeNeeded)
         {
-#if DEBUG
-            if (length - position >= sizeNeeded)
-                return true;
-#endif
-
             if (useBytes)
             {
                 if (bufferBytesOwner is null)

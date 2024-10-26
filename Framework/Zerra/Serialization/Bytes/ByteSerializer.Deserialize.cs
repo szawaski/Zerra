@@ -129,7 +129,7 @@ namespace Zerra.Serialization.Bytes
                     if (isFinalBlock)
                         throw new EndOfStreamException();
 
-                    Buffer.BlockCopy(buffer, bytesUsed, buffer, 0, length - bytesUsed);
+                    BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
 
                     if (length + state.BytesNeeded > buffer.Length)
@@ -227,7 +227,7 @@ namespace Zerra.Serialization.Bytes
                     if (isFinalBlock)
                         throw new EndOfStreamException();
 
-                    Buffer.BlockCopy(buffer, bytesUsed, buffer, 0, length - bytesUsed);
+                    BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
 
                     if (length + state.BytesNeeded > buffer.Length)
@@ -312,7 +312,7 @@ namespace Zerra.Serialization.Bytes
 
                 for (; ; )
                 {
-                    var usedBytes = Read(converter, buffer.AsSpan().Slice(0, length), ref state, out result);
+                    var bytesUsed = Read(converter, buffer.AsSpan().Slice(0, length), ref state, out result);
 
                     if (state.BytesNeeded == 0)
                     {
@@ -324,8 +324,8 @@ namespace Zerra.Serialization.Bytes
                     if (isFinalBlock)
                         throw new EndOfStreamException();
 
-                    Buffer.BlockCopy(buffer, usedBytes, buffer, 0, length - usedBytes);
-                    length -= usedBytes;
+                    BufferShift(buffer, bytesUsed);
+                    length -= bytesUsed;
 
                     if (length + state.BytesNeeded > buffer.Length)
                         ArrayPoolHelper<byte>.Grow(ref buffer, length + state.BytesNeeded);
@@ -422,7 +422,7 @@ namespace Zerra.Serialization.Bytes
                     if (isFinalBlock)
                         throw new EndOfStreamException();
 
-                    Buffer.BlockCopy(buffer, bytesUsed, buffer, 0, length - bytesUsed);
+                    BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
 
                     if (length + state.BytesNeeded > buffer.Length)
@@ -512,6 +512,15 @@ namespace Zerra.Serialization.Bytes
                 goto again;
 #endif
             return reader.Position;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private unsafe static void BufferShift(byte[] buffer, int position)
+        {
+            fixed (byte* pBuffer = buffer)
+            {
+                Buffer.MemoryCopy(&pBuffer[position], pBuffer, buffer.Length, buffer.Length - position);
+            }
         }
     }
 }
