@@ -15,6 +15,10 @@ namespace Zerra.Serialization.Json
         /// </summary>
         public bool DoNotWriteNullProperties { get; set; }
         /// <summary>
+        /// Properties with default values will not be written.
+        /// </summary>
+        public bool DoNotWriteDefaultProperties { get; set; }
+        /// <summary>
         /// Enums will serialize as their numeric value instead of the name string.
         /// </summary>
         public bool EnumAsNumber { get; set; }

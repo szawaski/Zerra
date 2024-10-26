@@ -423,7 +423,7 @@ namespace Zerra.Serialization.Json.Converters
             state.Current.ChildValueType = JsonValueType.NotDetermined;
             return true;
         }
-        public override sealed bool TryWriteFromParent(ref JsonWriter writer, ref WriteState state, TParent parent, string? propertyName, ReadOnlySpan<char> jsonNameSegmentChars, ReadOnlySpan<byte> jsonNameSegmentBytes, bool ignoreDoNotWriteNullProperties)
+        public override sealed bool TryWriteFromParent(ref JsonWriter writer, ref WriteState state, TParent parent, string? propertyName, ReadOnlySpan<char> jsonNameSegmentChars, ReadOnlySpan<byte> jsonNameSegmentBytes, JsonIgnoreCondition ignoreCondition, bool ignoreDoNotWriteNullProperties)
         {
             if (getter is null)
                 return true;
@@ -433,7 +433,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (isNullable && value is null)
                 {
-                    if (!ignoreDoNotWriteNullProperties && state.DoNotWriteNullProperties)
+                    if (!ignoreDoNotWriteNullProperties && (ignoreCondition == JsonIgnoreCondition.WhenWritingNull || state.DoNotWriteNullProperties))
                     {
                         return true;
                     }
@@ -468,6 +468,11 @@ namespace Zerra.Serialization.Json.Converters
                 }
                 else
                 {
+                    if (!ignoreDoNotWriteNullProperties && (ignoreCondition == JsonIgnoreCondition.WhenWritingDefault || state.DoNotWriteDefaultProperties) && value.Equals(default(TValue)))
+                    {
+                        return true;
+                    }
+
                     if (!state.Current.HasWrittenPropertyName)
                     {
                         if (writer.UseBytes)

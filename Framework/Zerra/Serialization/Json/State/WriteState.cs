@@ -22,6 +22,7 @@ namespace Zerra.Serialization.Json.State
 
         public bool Nameless { get; set; }
         public bool DoNotWriteNullProperties { get; set; }
+        public bool DoNotWriteDefaultProperties { get; set; }
         public bool EnumAsNumber { get; set; }
 
         public byte WorkingStringStage;

@@ -41,11 +41,45 @@ namespace Zerra.Serialization.Json.Converters.General
             foreach (var member in typeDetail.SerializableMemberDetails)
             {
                 var found = false;
+                var ignoreCondition = JsonIgnoreCondition.Never;
                 foreach (var attribute in member.Attributes)
                 {
+                    if (attribute is JsonIgnoreAttribute jsonIgnore)
+                    {
+                        ignoreCondition = jsonIgnore.Condition;
+                    }
+                    else if (attribute is System.Text.Json.Serialization.JsonIgnoreAttribute jsonIgnore2)
+                    {
+#if NET5_0_OR_GREATER
+                        switch (jsonIgnore2.Condition)
+                        {
+                            case System.Text.Json.Serialization.JsonIgnoreCondition.Never:
+                                ignoreCondition = JsonIgnoreCondition.Never;
+                                break;
+                            case System.Text.Json.Serialization.JsonIgnoreCondition.Always:
+                                ignoreCondition = JsonIgnoreCondition.Always;
+                                break;
+                            case System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault:
+                                ignoreCondition = JsonIgnoreCondition.WhenWritingDefault;
+                                break;
+                            case System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull:
+                                ignoreCondition = JsonIgnoreCondition.WhenWritingNull;
+                                break;
+                            default:
+                                ignoreCondition = JsonIgnoreCondition.Always;
+                                break;
+                        }
+#else
+                        ignoreCondition = JsonIgnoreCondition.Always;
+#endif
+                    }
+
+                    if (ignoreCondition == JsonIgnoreCondition.Always)
+                        break;
+
                     if (attribute is JsonPropertyNameAttribute jsonPropertyName)
                     {
-                        var detail = JsonConverterObjectMember.New(typeDetail, member, jsonPropertyName.Name);
+                        var detail = JsonConverterObjectMember.New(typeDetail, member, jsonPropertyName.Name, ignoreCondition);
                         membersByName.Add(jsonPropertyName.Name, detail);
                         members.Add(detail);
                         found = true;
@@ -53,16 +87,19 @@ namespace Zerra.Serialization.Json.Converters.General
                     }
                     else if (attribute is System.Text.Json.Serialization.JsonPropertyNameAttribute jsonPropertyName2)
                     {
-                        var detail = JsonConverterObjectMember.New(typeDetail, member, jsonPropertyName2.Name);
+                        var detail = JsonConverterObjectMember.New(typeDetail, member, jsonPropertyName2.Name, ignoreCondition);
                         membersByName.Add(jsonPropertyName2.Name, detail);
                         members.Add(detail);
                         found = true;
                         break;
                     }
                 }
+                if (ignoreCondition == JsonIgnoreCondition.Always)
+                    continue;
+
                 if (!found)
                 {
-                    var detail = JsonConverterObjectMember.New(typeDetail, member, member.Name);
+                    var detail = JsonConverterObjectMember.New(typeDetail, member, member.Name, ignoreCondition);
                     membersByName.Add(member.Name, detail);
                     members.Add(detail);
                 }
@@ -114,8 +151,6 @@ namespace Zerra.Serialization.Json.Converters.General
                     return Drain(ref reader, ref state, valueType);
                 }
 
-                IEnumerator<JsonConverterObjectMember> enumerator;
-
                 if (!state.Current.HasCreated)
                 {
                     if (!reader.TryReadNextSkipWhiteSpace(out c))
@@ -146,8 +181,6 @@ namespace Zerra.Serialization.Json.Converters.General
 
                     reader.BackOne();
 
-                    enumerator = this.membersByName.Values.GetEnumerator();
-
                     state.Current.HasCreated = true;
                 }
                 else
@@ -162,26 +195,22 @@ namespace Zerra.Serialization.Json.Converters.General
                         value = (TValue?)state.Current.Object;
                         collectedValues = null;
                     }
-                    enumerator = (IEnumerator<JsonConverterObjectMember>)state.Current.Property!;
                 }
 
                 for (; ; )
                 {
-                    if (!state.Current.HasReadProperty)
-                    {
-                        if (!enumerator.MoveNext())
-                            throw reader.CreateException("Unexpected value");
+                    if (state.Current.EnumeratorIndex == members.Count)
+                        throw reader.CreateException("Unexpected value");
 
-                    }
+                    var current = members[state.Current.EnumeratorIndex];
 
                     if (!state.Current.HasReadValue)
                     {
-                        if (enumerator.Current is null)
+                        if (collectValues)
                         {
-                            if (!DrainFromParent(ref reader, ref state))
+                            if (!current.ConverterSetCollectedValues.TryReadFromParent(ref reader, ref state, collectedValues, current.Member.Name))
                             {
                                 state.Current.HasReadProperty = true;
-                                state.Current.Property = enumerator;
                                 state.Current.HasReadSeperator = true;
                                 if (collectValues)
                                     state.Current.Object = collectedValues;
@@ -192,33 +221,15 @@ namespace Zerra.Serialization.Json.Converters.General
                         }
                         else
                         {
-                            if (collectValues)
+                            if (!current.Converter.TryReadFromParent(ref reader, ref state, value, current.Member.Name))
                             {
-                                if (!enumerator.Current.ConverterSetCollectedValues.TryReadFromParent(ref reader, ref state, collectedValues, enumerator.Current.Member.Name))
-                                {
-                                    state.Current.HasReadProperty = true;
-                                    state.Current.HasReadSeperator = true;
-                                    state.Current.Property = enumerator;
-                                    if (collectValues)
-                                        state.Current.Object = collectedValues;
-                                    else
-                                        state.Current.Object = value;
-                                    return false;
-                                }
-                            }
-                            else
-                            {
-                                if (!enumerator.Current.Converter.TryReadFromParent(ref reader, ref state, value, enumerator.Current.Member.Name))
-                                {
-                                    state.Current.HasReadProperty = true;
-                                    state.Current.HasReadSeperator = true;
-                                    state.Current.Property = enumerator;
-                                    if (collectValues)
-                                        state.Current.Object = collectedValues;
-                                    else
-                                        state.Current.Object = value;
-                                    return false;
-                                }
+                                state.Current.HasReadProperty = true;
+                                state.Current.HasReadSeperator = true;
+                                if (collectValues)
+                                    state.Current.Object = collectedValues;
+                                else
+                                    state.Current.Object = value;
+                                return false;
                             }
                         }
                     }
@@ -229,7 +240,6 @@ namespace Zerra.Serialization.Json.Converters.General
                         state.Current.HasReadProperty = true;
                         state.Current.HasReadSeperator = true;
                         state.Current.HasReadValue = true;
-                        state.Current.Property = enumerator;
                         if (collectValues)
                             state.Current.Object = collectedValues;
                         else
@@ -246,6 +256,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     state.Current.HasReadProperty = false;
                     state.Current.HasReadSeperator = false;
                     state.Current.HasReadValue = false;
+                    state.Current.EnumeratorIndex++;
                 }
             }
             else
@@ -325,7 +336,11 @@ namespace Zerra.Serialization.Json.Converters.General
                         member = null;
                         if (membersByName!.TryGetValue(name!, out member))
                         {
-                            if (state.Current.Graph is not null && !state.Current.Graph.HasMember(name))
+                            if (member.IgnoreCondition == JsonIgnoreCondition.Always || member.IgnoreCondition == JsonIgnoreCondition.WhenReading)
+                            {
+                                member = null;
+                            }
+                            else if (state.Current.Graph is not null && !state.Current.Graph.HasMember(name))
                             {
                                 member = null;
                             }
@@ -490,6 +505,11 @@ namespace Zerra.Serialization.Json.Converters.General
                 while (state.Current.EnumeratorIndex < members.Count)
                 {
                     var current = members[state.Current.EnumeratorIndex];
+                    if (current.IgnoreCondition == JsonIgnoreCondition.Always || current.IgnoreCondition == JsonIgnoreCondition.WhenWriting)
+                    {
+                        state.Current.EnumeratorIndex++;
+                        continue;
+                    }
                     if (state.Current.Graph is not null && !state.Current.Graph.HasMember(current.Member.Name))
                     {
                         state.Current.EnumeratorIndex++;
@@ -505,7 +525,7 @@ namespace Zerra.Serialization.Json.Converters.General
                         }
                     }
 
-                    if (!current.Converter.TryWriteFromParent(ref writer, ref state, value))
+                    if (!current.Converter.TryWriteFromParent(ref writer, ref state, value, null, default, default, current.IgnoreCondition, true))
                     {
                         state.Current.HasWrittenStart = true;
                         state.Current.HasWrittenSeperator = true;
@@ -549,13 +569,18 @@ namespace Zerra.Serialization.Json.Converters.General
                 while (state.Current.EnumeratorIndex < members.Count)
                 {
                     var current = members[state.Current.EnumeratorIndex];
+                    if (current.IgnoreCondition == JsonIgnoreCondition.Always || current.IgnoreCondition == JsonIgnoreCondition.WhenWriting)
+                    {
+                        state.Current.EnumeratorIndex++;
+                        continue;
+                    }
                     if (state.Current.Graph is not null && !state.Current.Graph.HasMember(current.Member.Name))
                     {
                         state.Current.EnumeratorIndex++;
                         continue;
                     }
 
-                    if (!current.Converter.TryWriteFromParent(ref writer, ref state, value, current.Member.Name, current.JsonNameSegmentChars, current.JsonNameSegmentBytes, false))
+                    if (!current.Converter.TryWriteFromParent(ref writer, ref state, value, current.Member.Name, current.JsonNameSegmentChars, current.JsonNameSegmentBytes, current.IgnoreCondition))
                     {
                         state.Current.HasWrittenStart = true;
                         return false;

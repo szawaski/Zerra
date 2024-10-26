@@ -33,6 +33,7 @@ namespace Zerra.Serialization.Json
             {
                 Nameless = options.Nameless,
                 DoNotWriteNullProperties = options.DoNotWriteNullProperties,
+                DoNotWriteDefaultProperties = options.DoNotWriteDefaultProperties,
                 EnumAsNumber = options.EnumAsNumber,
                 Graph = graph?.GetInstanceGraph(obj)
             };
@@ -58,6 +59,7 @@ namespace Zerra.Serialization.Json
             {
                 Nameless = options.Nameless,
                 DoNotWriteNullProperties = options.DoNotWriteNullProperties,
+                DoNotWriteDefaultProperties = options.DoNotWriteDefaultProperties,
                 EnumAsNumber = options.EnumAsNumber,
                 Graph = graph?.GetInstanceGraph(obj)
             };
@@ -86,6 +88,7 @@ namespace Zerra.Serialization.Json
             {
                 Nameless = options.Nameless,
                 DoNotWriteNullProperties = options.DoNotWriteNullProperties,
+                DoNotWriteDefaultProperties = options.DoNotWriteDefaultProperties,
                 EnumAsNumber = options.EnumAsNumber,
                 Graph = graph?.GetInstanceGraph(obj)
             };
@@ -112,6 +115,7 @@ namespace Zerra.Serialization.Json
             {
                 Nameless = options.Nameless,
                 DoNotWriteNullProperties = options.DoNotWriteNullProperties,
+                DoNotWriteDefaultProperties = options.DoNotWriteDefaultProperties,
                 EnumAsNumber = options.EnumAsNumber,
                 Graph = graph?.GetInstanceGraph(obj)
             };
@@ -137,6 +141,7 @@ namespace Zerra.Serialization.Json
             {
                 Nameless = options.Nameless,
                 DoNotWriteNullProperties = options.DoNotWriteNullProperties,
+                DoNotWriteDefaultProperties = options.DoNotWriteDefaultProperties,
                 EnumAsNumber = options.EnumAsNumber,
                 Graph = graph?.GetInstanceGraph(obj)
             };
@@ -165,6 +170,7 @@ namespace Zerra.Serialization.Json
             {
                 Nameless = options.Nameless,
                 DoNotWriteNullProperties = options.DoNotWriteNullProperties,
+                DoNotWriteDefaultProperties = options.DoNotWriteDefaultProperties,
                 EnumAsNumber = options.EnumAsNumber,
                 Graph = graph?.GetInstanceGraph(obj)
             };
@@ -197,6 +203,7 @@ namespace Zerra.Serialization.Json
                 {
                     Nameless = options.Nameless,
                     DoNotWriteNullProperties = options.DoNotWriteNullProperties,
+                    DoNotWriteDefaultProperties = options.DoNotWriteDefaultProperties,
                     EnumAsNumber = options.EnumAsNumber,
                     Graph = graph?.GetInstanceGraph(obj)
                 };
@@ -245,6 +252,7 @@ namespace Zerra.Serialization.Json
                 {
                     Nameless = options.Nameless,
                     DoNotWriteNullProperties = options.DoNotWriteNullProperties,
+                    DoNotWriteDefaultProperties = options.DoNotWriteDefaultProperties,
                     EnumAsNumber = options.EnumAsNumber,
                     Graph = graph?.GetInstanceGraph(obj)
                 };
@@ -295,6 +303,7 @@ namespace Zerra.Serialization.Json
                 {
                     Nameless = options.Nameless,
                     DoNotWriteNullProperties = options.DoNotWriteNullProperties,
+                    DoNotWriteDefaultProperties = options.DoNotWriteDefaultProperties,
                     EnumAsNumber = options.EnumAsNumber,
                     Graph = graph?.GetInstanceGraph(obj)
                 };
@@ -351,6 +360,7 @@ namespace Zerra.Serialization.Json
                 {
                     Nameless = options.Nameless,
                     DoNotWriteNullProperties = options.DoNotWriteNullProperties,
+                    DoNotWriteDefaultProperties = options.DoNotWriteDefaultProperties,
                     EnumAsNumber = options.EnumAsNumber,
                     Graph = graph?.GetInstanceGraph(obj)
                 };
@@ -406,6 +416,7 @@ namespace Zerra.Serialization.Json
                 {
                     Nameless = options.Nameless,
                     DoNotWriteNullProperties = options.DoNotWriteNullProperties,
+                    DoNotWriteDefaultProperties = options.DoNotWriteDefaultProperties,
                     EnumAsNumber = options.EnumAsNumber,
                     Graph = graph?.GetInstanceGraph(obj)
                 };
@@ -463,6 +474,7 @@ namespace Zerra.Serialization.Json
                 {
                     Nameless = options.Nameless,
                     DoNotWriteNullProperties = options.DoNotWriteNullProperties,
+                    DoNotWriteDefaultProperties = options.DoNotWriteDefaultProperties,
                     EnumAsNumber = options.EnumAsNumber,
                     Graph = graph?.GetInstanceGraph(obj)
                 };

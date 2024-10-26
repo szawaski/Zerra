@@ -11,8 +11,8 @@ namespace Zerra.Serialization.Json.Converters.General
     {
         private sealed class JsonConverterObjectMember<TValue2> : JsonConverterObjectMember
         {
-            public JsonConverterObjectMember(TypeDetail parentTypeDetail, MemberDetail member, string jsonName)
-                : base(parentTypeDetail, member, jsonName) { }
+            public JsonConverterObjectMember(TypeDetail parentTypeDetail, MemberDetail member, string jsonName, JsonIgnoreCondition ignoreCondition)
+                : base(parentTypeDetail, member, jsonName, ignoreCondition) { }
 
             private void SetterForConverterSetValues(Dictionary<string, object?> parent, TValue2? value) => parent.Add(Member.Name.TrimStart('_'), value);
 

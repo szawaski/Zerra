@@ -24,7 +24,6 @@ namespace Zerra.Serialization.Json.State
 
         public JsonValueType EntryValueType;
         public bool Nameless { get; set; }
-        public bool DoNotWriteNullProperties { get; set; }
         public bool EnumAsNumber { get; set; }
         public bool ErrorOnTypeMismatch { get; set; }
 

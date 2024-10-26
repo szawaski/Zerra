@@ -720,18 +720,9 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void StringPropertyName()
+        public void StringPropertyNameAttribute()
         {
-            var baseModel = new JsonNameTestModel()
-            {
-                _1_Property = 5,
-                property2 = 7,
-                _3_Property = new SimpleModel()
-                {
-                    Value1 = 10,
-                    Value2 = "11"
-                }
-            };
+            var baseModel = JsonPropertyNameAttributeTestModel.Create();
 
             var json = JsonSerializer.Serialize(baseModel);
 
@@ -741,12 +732,39 @@ namespace Zerra.Test
 
             json.Replace("\"property2\"", "\"PROPERTY2\"");
 
-            var model = JsonSerializer.Deserialize<JsonNameTestModel>(json);
+            var model = JsonSerializer.Deserialize<JsonPropertyNameAttributeTestModel>(json);
             Assert.AreEqual(baseModel._1_Property, model._1_Property);
             Assert.AreEqual(baseModel.property2, model.property2);
             Assert.IsNotNull(model._3_Property);
             Assert.AreEqual(baseModel._3_Property.Value1, model._3_Property.Value1);
             Assert.AreEqual(baseModel._3_Property.Value2, model._3_Property.Value2);
+        }
+
+        [TestMethod]
+        public void StringIgnoreAttribute()
+        {
+            var baseModel = JsonIgnoreAttributeTestModel.Create();
+
+            var json = JsonSerializer.Serialize(baseModel);
+            Assert.IsTrue(json.Contains("\"Property1\""));
+            Assert.IsFalse(json.Contains("\"Property2\""));
+            Assert.IsTrue(json.Contains("\"Property3\""));
+            Assert.IsFalse(json.Contains("\"Property4\""));
+            Assert.IsTrue(json.Contains("\"Property5a\""));
+            Assert.IsFalse(json.Contains("\"Property5b\""));
+            Assert.IsTrue(json.Contains("\"Property6a\""));
+            Assert.IsFalse(json.Contains("\"Property6b\""));
+
+            var json2 = System.Text.Json.JsonSerializer.Serialize(baseModel);
+            var model = JsonSerializer.Deserialize<JsonIgnoreAttributeTestModel>(json2);
+            Assert.AreEqual(baseModel.Property1, model.Property1);
+            Assert.AreEqual(0, model.Property2);
+            Assert.AreEqual(0, model.Property3);
+            Assert.AreEqual(baseModel.Property4, model.Property4);
+            Assert.AreEqual(baseModel.Property5a, model.Property5a);
+            Assert.AreEqual(baseModel.Property5b, model.Property5b);
+            Assert.AreEqual(baseModel.Property6a, model.Property6a);
+            Assert.AreEqual(baseModel.Property6b, model.Property6b);
         }
 
         [TestMethod]
@@ -1720,22 +1738,12 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public async Task StreamPropertyName()
+        public async Task StreamPropertyNameAttribute()
         {
-            var baseModel = new JsonNameTestModel()
-            {
-                _1_Property = 5,
-                property2 = 7,
-                _3_Property = new SimpleModel()
-                {
-                    Value1 = 10,
-                    Value2 = "11"
-                }
-            };
+            var baseModel = JsonPropertyNameAttributeTestModel.Create();
 
             using var stream = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream, baseModel);
-
             stream.Position = 0;
             using var sr = new StreamReader(stream, Encoding.UTF8);
             var json = await sr.ReadToEndAsync();
@@ -1747,12 +1755,49 @@ namespace Zerra.Test
             json.Replace("\"property2\"", "\"PROPERTY2\"");
 
             using var stream2 = new MemoryStream(Encoding.UTF8.GetBytes(json));
-            var model = await JsonSerializer.DeserializeAsync<JsonNameTestModel>(stream2);
+            var model = await JsonSerializer.DeserializeAsync<JsonPropertyNameAttributeTestModel>(stream2);
             Assert.AreEqual(baseModel._1_Property, model._1_Property);
             Assert.AreEqual(baseModel.property2, model.property2);
             Assert.IsNotNull(model._3_Property);
             Assert.AreEqual(baseModel._3_Property.Value1, model._3_Property.Value1);
             Assert.AreEqual(baseModel._3_Property.Value2, model._3_Property.Value2);
+        }
+
+        [TestMethod]
+        public async Task StreamIgnoreAttribute()
+        {
+            var baseModel = JsonIgnoreAttributeTestModel.Create();
+
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, baseModel);
+            stream.Position = 0;
+            using var sr = new StreamReader(stream, Encoding.UTF8);
+            var json = await sr.ReadToEndAsync();
+
+            Assert.IsTrue(json.Contains("\"Property1\""));
+            Assert.IsFalse(json.Contains("\"Property2\""));
+            Assert.IsTrue(json.Contains("\"Property3\""));
+            Assert.IsFalse(json.Contains("\"Property4\""));
+            Assert.IsTrue(json.Contains("\"Property5a\""));
+            Assert.IsFalse(json.Contains("\"Property5b\""));
+            Assert.IsTrue(json.Contains("\"Property6a\""));
+            Assert.IsFalse(json.Contains("\"Property6b\""));
+
+            using var stream2 = new MemoryStream();
+            await System.Text.Json.JsonSerializer.SerializeAsync(stream2, baseModel);
+            stream2.Position = 0;
+            using var sr2 = new StreamReader(stream2, Encoding.UTF8);
+            var json2 = await sr2.ReadToEndAsync();
+
+            var model = JsonSerializer.Deserialize<JsonIgnoreAttributeTestModel>(json2);
+            Assert.AreEqual(baseModel.Property1, model.Property1);
+            Assert.AreEqual(0, model.Property2);
+            Assert.AreEqual(0, model.Property3);
+            Assert.AreEqual(baseModel.Property4, model.Property4);
+            Assert.AreEqual(baseModel.Property5a, model.Property5a);
+            Assert.AreEqual(baseModel.Property5b, model.Property5b);
+            Assert.AreEqual(baseModel.Property6a, model.Property6a);
+            Assert.AreEqual(baseModel.Property6b, model.Property6b);
         }
 
         [TestMethod]

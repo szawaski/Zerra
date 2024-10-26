@@ -16,15 +16,16 @@ namespace Zerra.Serialization.Json.Converters.General
 
             public readonly MemberDetail Member;
 
-            private readonly string jsonName;
-            public string JsonName => jsonName;
+            public readonly string JsonName;
+
+            public readonly JsonIgnoreCondition IgnoreCondition;
 
             private byte[]? jsonNameSegmentBytes = null;
             public ReadOnlySpan<byte> JsonNameSegmentBytes
             {
                 get
                 {
-                    jsonNameSegmentBytes ??= StringHelper.EscapeAndEncodeString(jsonName, true);
+                    jsonNameSegmentBytes ??= StringHelper.EscapeAndEncodeString(JsonName, true);
                     return jsonNameSegmentBytes;
                 }
             }
@@ -34,16 +35,17 @@ namespace Zerra.Serialization.Json.Converters.General
             {
                 get
                 {
-                    jsonNameSegmentChars ??= StringHelper.EscapeString(jsonName, true);
+                    jsonNameSegmentChars ??= StringHelper.EscapeString(JsonName, true);
                     return jsonNameSegmentChars;
                 }
             }
 
-            public JsonConverterObjectMember(TypeDetail parentTypeDetail, MemberDetail member, string jsonName)
+            public JsonConverterObjectMember(TypeDetail parentTypeDetail, MemberDetail member, string jsonName, JsonIgnoreCondition ignoreCondition)
             {
                 this.memberKey = $"{parentTypeDetail.Type.FullName}.{member.Name}";
                 this.Member = member;
-                this.jsonName = jsonName;
+                this.JsonName = jsonName;
+                this.IgnoreCondition = ignoreCondition;
             }
 
             private JsonConverter<TValue>? converter = null;
@@ -71,10 +73,10 @@ namespace Zerra.Serialization.Json.Converters.General
             }
 
             private static readonly Type byteConverterObjectMemberT = typeof(JsonConverterObjectMember<>);
-            public static JsonConverterObjectMember New(TypeDetail parentTypeDetail, MemberDetail member, string jsonName)
+            public static JsonConverterObjectMember New(TypeDetail parentTypeDetail, MemberDetail member, string jsonName, JsonIgnoreCondition ignoreCondition)
             {
                 var generic = byteConverterObjectMemberT.GetGenericTypeDetail(typeof(TParent), typeof(TValue), member.Type);
-                var obj = generic.ConstructorDetailsBoxed[0].CreatorWithArgsBoxed([parentTypeDetail, member, jsonName]);
+                var obj = generic.ConstructorDetailsBoxed[0].CreatorWithArgsBoxed([parentTypeDetail, member, jsonName, ignoreCondition]);
                 return (JsonConverterObjectMember)obj;
             }
         }

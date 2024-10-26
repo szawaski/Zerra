@@ -15,6 +15,7 @@ namespace Zerra.Serialization.Json.State
 
         public bool HasCreated;
         public object? Object;
+        public int EnumeratorIndex;
 
         public bool HasReadProperty;
         public bool HasReadSeperator;

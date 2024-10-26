@@ -40,7 +40,6 @@ namespace Zerra.Serialization.Json
             var state = new ReadState()
             {
                 Nameless = options.Nameless,
-                DoNotWriteNullProperties = options.DoNotWriteNullProperties,
                 EnumAsNumber = options.EnumAsNumber,
                 ErrorOnTypeMismatch = options.ErrorOnTypeMismatch,
                 Graph = graph,
@@ -76,7 +75,6 @@ namespace Zerra.Serialization.Json
             var state = new ReadState()
             {
                 Nameless = options.Nameless,
-                DoNotWriteNullProperties = options.DoNotWriteNullProperties,
                 EnumAsNumber = options.EnumAsNumber,
                 ErrorOnTypeMismatch = options.ErrorOnTypeMismatch,
                 Graph = graph,
@@ -111,7 +109,6 @@ namespace Zerra.Serialization.Json
             var state = new ReadState()
             {
                 Nameless = options.Nameless,
-                DoNotWriteNullProperties = options.DoNotWriteNullProperties,
                 EnumAsNumber = options.EnumAsNumber,
                 ErrorOnTypeMismatch = options.ErrorOnTypeMismatch,
                 Graph = graph,
@@ -147,7 +144,6 @@ namespace Zerra.Serialization.Json
             var state = new ReadState()
             {
                 Nameless = options.Nameless,
-                DoNotWriteNullProperties = options.DoNotWriteNullProperties,
                 EnumAsNumber = options.EnumAsNumber,
                 ErrorOnTypeMismatch = options.ErrorOnTypeMismatch,
                 Graph = graph,
@@ -207,7 +203,6 @@ namespace Zerra.Serialization.Json
                 var state = new ReadState()
                 {
                     Nameless = options.Nameless,
-                    DoNotWriteNullProperties = options.DoNotWriteNullProperties,
                     EnumAsNumber = options.EnumAsNumber,
                     ErrorOnTypeMismatch = options.ErrorOnTypeMismatch,
                     Graph = graph,
@@ -311,7 +306,6 @@ namespace Zerra.Serialization.Json
                 var state = new ReadState()
                 {
                     Nameless = options.Nameless,
-                    DoNotWriteNullProperties = options.DoNotWriteNullProperties,
                     EnumAsNumber = options.EnumAsNumber,
                     ErrorOnTypeMismatch = options.ErrorOnTypeMismatch,
                     Graph = graph,
@@ -417,7 +411,6 @@ namespace Zerra.Serialization.Json
                 var state = new ReadState()
                 {
                     Nameless = options.Nameless,
-                    DoNotWriteNullProperties = options.DoNotWriteNullProperties,
                     EnumAsNumber = options.EnumAsNumber,
                     ErrorOnTypeMismatch = options.ErrorOnTypeMismatch,
                     Graph = graph,
@@ -524,7 +517,6 @@ namespace Zerra.Serialization.Json
                 var state = new ReadState()
                 {
                     Nameless = options.Nameless,
-                    DoNotWriteNullProperties = options.DoNotWriteNullProperties,
                     EnumAsNumber = options.EnumAsNumber,
                     ErrorOnTypeMismatch = options.ErrorOnTypeMismatch,
                     Graph = graph,
