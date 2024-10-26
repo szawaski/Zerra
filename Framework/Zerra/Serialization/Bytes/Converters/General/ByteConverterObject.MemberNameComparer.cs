@@ -28,25 +28,29 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 }
                 if (y is null)
                     return false;
+
+                var xLength = x.Length;
+                var yLength = y.Length;
+
                 fixed (char* pX = x, pY = y)
                 {
                     var i = 0;
                     var j = 0;
-                    while (i < x.Length)
+                    while (i < xLength)
                     {
                         if (pX[i] != '_')
                             break;
                         i++;
                     }
-                    while (j < x.Length)
+                    while (j < xLength)
                     {
                         if (pY[i] != '_')
                             break;
                         j++;
                     }
-                    if (x.Length - i != y.Length - j)
+                    if (xLength - i != yLength - j)
                         return false;
-                    while (i < x.Length)
+                    while (i < xLength)
                     {
                         var c1 = pX[i++];
                         var c2 = pY[j++];
