@@ -594,13 +594,11 @@ namespace Zerra.Serialization.Bytes.Converters
                 return true;
             var value = getter(parent);
 
-            var writeProperty = (!state.UsePropertyNames && indexProperty > 0) || (state.UsePropertyNames && indexPropertyName.Length > 0);
-
-            if (writeProperty)
+            if (isNullable)
             {
                 if (value is null)
                 {
-                    if (nullFlags && isNullable && !state.Current.ChildHasWrittenIsNull)
+                    if (nullFlags && !state.Current.ChildHasWrittenIsNull)
                     {
                         if (!writer.TryWriteNull(out state.BytesNeeded))
                             return false;
@@ -609,18 +607,30 @@ namespace Zerra.Serialization.Bytes.Converters
                 }
                 else
                 {
-                    if (nullFlags && isNullable && !state.Current.ChildHasWrittenIsNull)
+                    if (nullFlags && !state.Current.ChildHasWrittenIsNull)
                     {
                         if (!writer.TryWriteNotNull(out state.BytesNeeded))
                             return false;
                     }
                 }
+            }
 
-                if (!state.Current.HasWrittenPropertyIndex)
+            var writeProperty = (!state.UsePropertyNames && indexProperty > 0) || (state.UsePropertyNames && indexPropertyName.Length > 0);
+            if (writeProperty && !state.Current.HasWrittenPropertyIndex)
+            {
+                if (state.UsePropertyNames)
                 {
-                    if (state.UsePropertyNames)
+                    if (!writer.TryWritePropertyName(indexPropertyName, out state.BytesNeeded))
                     {
-                        if (!writer.TryWritePropertyName(indexPropertyName, out state.BytesNeeded))
+                        state.Current.ChildHasWrittenIsNull = true;
+                        return false;
+                    }
+                }
+                else
+                {
+                    if (state.IndexSizeUInt16)
+                    {
+                        if (!writer.TryWrite(indexProperty, out state.BytesNeeded))
                         {
                             state.Current.ChildHasWrittenIsNull = true;
                             return false;
@@ -628,51 +638,14 @@ namespace Zerra.Serialization.Bytes.Converters
                     }
                     else
                     {
-                        if (state.IndexSizeUInt16)
+                        if (!writer.TryWrite((byte)indexProperty, out state.BytesNeeded))
                         {
-                            if (!writer.TryWrite(indexProperty, out state.BytesNeeded))
-                            {
-                                state.Current.ChildHasWrittenIsNull = true;
-                                return false;
-                            }
-                        }
-                        else
-                        {
-                            if (!writer.TryWrite((byte)indexProperty, out state.BytesNeeded))
-                            {
-                                state.Current.ChildHasWrittenIsNull = true;
-                                return false;
-                            }
-                        }
-                    }
-                    state.Current.HasWrittenPropertyIndex = true;
-                }
-            }
-            else if (isNullable)
-            {
-                if (value is null)
-                {
-                    if (nullFlags)
-                    {
-                        if (!state.Current.ChildHasWrittenIsNull)
-                        {
-                            if (!writer.TryWriteNull(out state.BytesNeeded))
-                                return false;
-                        }
-                    }
-                    return true;
-                }
-                else
-                {
-                    if (nullFlags)
-                    {
-                        if (!state.Current.ChildHasWrittenIsNull)
-                        {
-                            if (!writer.TryWriteNotNull(out state.BytesNeeded))
-                                return false;
+                            state.Current.ChildHasWrittenIsNull = true;
+                            return false;
                         }
                     }
                 }
+                state.Current.HasWrittenPropertyIndex = true;
             }
 
             if (state.IncludeTypes)
