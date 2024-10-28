@@ -65,7 +65,7 @@ namespace Zerra.Buffers
         /// <param name="minSize">The minimum size required for the array.</param>
         /// <exception cref="ArgumentNullException">Throws if the array is null.</exception>
         /// <exception cref="OverflowException">Throws when the array tries to exceede the maximum length.</exception>
-        public static void Grow(ref T[] buffer, int minSize)
+        public unsafe static void Grow(ref T[] buffer, int minSize)
         {
             if (buffer is null)
                 throw new ArgumentNullException(nameof(buffer));
@@ -85,12 +85,18 @@ namespace Zerra.Buffers
 
 #if DEBUG && false
             var newBuffer = Rent(newBufferLength);
-            Buffer.BlockCopy(buffer, 0, newBuffer, 0, buffer.Length * elementSize);
+            fixed (void* pBuffer = buffer, pNewBuffer = newBuffer)
+            {
+                Buffer.MemoryCopy(pBuffer, pNewBuffer, newBufferLength, buffer.Length * elementSize);
+            }
             Array.Clear(buffer, 0, buffer.Length);
             Return(buffer);
 #else
             var newBuffer = pool.Rent(newBufferLength);
-            Buffer.BlockCopy(buffer, 0, newBuffer, 0, buffer.Length * elementSize);
+            fixed (void* pBuffer = buffer, pNewBuffer = newBuffer)
+            {
+                Buffer.MemoryCopy(pBuffer, pNewBuffer, newBufferLength, buffer.Length * elementSize);
+            }
             Array.Clear(buffer, 0, buffer.Length);
             pool.Return(buffer);
 #endif
