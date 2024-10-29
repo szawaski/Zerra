@@ -36,18 +36,10 @@ namespace Zerra.Serialization.Json.Converters.General
                 {
                     var i = 0;
                     var j = 0;
-                    while (i < xLength)
-                    {
-                        if (pX[i] != '_')
-                            break;
+                    if (pX[i] == '_')
                         i++;
-                    }
-                    while (j < xLength)
-                    {
-                        if (pY[i] != '_')
-                            break;
+                    if (pY[j] == '_')
                         j++;
-                    }
                     if (xLength - i != yLength - j)
                         return false;
                     while (i < xLength)
