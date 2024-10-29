@@ -12,14 +12,14 @@ namespace Zerra.Serialization.Bytes
             public readonly bool UsePropertyNames;
             public readonly bool IncludePropertyTypes;
             public readonly bool IgnoreIndexAttribute;
-            public readonly ByteSerializerIndexSize IndexSize;
+            public readonly ByteSerializerIndexType IndexSize;
 
             public OptionsStruct(ByteSerializerOptions options)
             {
-                this.UsePropertyNames = options.UsePropertyNames;
+                this.UsePropertyNames = options.IndexType == ByteSerializerIndexType.PropertyNames;
                 this.IncludePropertyTypes = options.UseTypes;
                 this.IgnoreIndexAttribute = options.IgnoreIndexAttribute;
-                this.IndexSize = options.IndexSize;
+                this.IndexSize = options.IndexType;
             }
         }
     }

@@ -218,7 +218,7 @@ namespace Zerra.Test
         {
             var options = new ByteSerializerOptions()
             {
-                IndexSize = ByteSerializerIndexSize.UInt16,
+                IndexType = ByteSerializerIndexType.UInt16,
                 UseTypes = true
             };
 
@@ -347,7 +347,7 @@ namespace Zerra.Test
         {
             var options = new ByteSerializerOptions()
             {
-                IndexSize = ByteSerializerIndexSize.UInt16
+                IndexType = ByteSerializerIndexType.UInt16
             };
 
             var model1 = TypesAllModel.Create();
@@ -362,7 +362,7 @@ namespace Zerra.Test
         {
             var options = new ByteSerializerOptions()
             {
-                IndexSize = ByteSerializerIndexSize.UInt16,
+                IndexType = ByteSerializerIndexType.UInt16,
                 UseTypes = true
             };
 
@@ -377,8 +377,7 @@ namespace Zerra.Test
         {
             var options = new ByteSerializerOptions()
             {
-                IndexSize = ByteSerializerIndexSize.UInt16,
-                UsePropertyNames = true
+                IndexType = ByteSerializerIndexType.PropertyNames
             };
 
             var model1 = TypesAllModel.Create();
@@ -491,7 +490,7 @@ namespace Zerra.Test
         {
             var options = new ByteSerializerOptions()
             {
-                IndexSize = ByteSerializerIndexSize.UInt16
+                IndexType = ByteSerializerIndexType.UInt16
             };
 
             var model1 = TestSerializerLongIndexModel.Create();
@@ -571,7 +570,7 @@ namespace Zerra.Test
         {
             var options = new ByteSerializerOptions()
             {
-                IndexSize = ByteSerializerIndexSize.UInt16
+                IndexType = ByteSerializerIndexType.UInt16
             };
 
             var model1 = TypesAllModel.Create();

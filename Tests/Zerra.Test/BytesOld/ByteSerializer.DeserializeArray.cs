@@ -30,7 +30,7 @@ namespace Zerra.Serialization.Bytes
             options ??= defaultOptions;
             var optionsStruct = new OptionsStruct(options);
 
-            var typeDetail = GetTypeInformation(type, options.IndexSize, options.IgnoreIndexAttribute);
+            var typeDetail = GetTypeInformation(type, options.IndexType, options.IgnoreIndexAttribute);
 
             var reader = new ByteReaderOld(bytes, Encoding.UTF8);
             var obj = FromBytes(ref reader, typeDetail, true, false, ref optionsStruct);
@@ -156,8 +156,8 @@ namespace Zerra.Serialization.Bytes
                 {
                     var propertyIndex = options.IndexSize switch
                     {
-                        ByteSerializerIndexSize.Byte => (ushort)reader.ReadByte(),
-                        ByteSerializerIndexSize.UInt16 => reader.ReadUInt16(),
+                        ByteSerializerIndexType.Byte => (ushort)reader.ReadByte(),
+                        ByteSerializerIndexType.UInt16 => reader.ReadUInt16(),
                         _ => throw new NotImplementedException(),
                     };
 

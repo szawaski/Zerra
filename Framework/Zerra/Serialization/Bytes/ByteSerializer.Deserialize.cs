@@ -27,13 +27,7 @@ namespace Zerra.Serialization.Bytes
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
             var converter = (ByteConverter<object, T>)ByteConverterFactory<object>.GetRoot(typeDetail);
 
-            var state = new ReadState()
-            {
-                UseTypes = options.UseTypes,
-                UsePropertyNames = options.UsePropertyNames,
-                IgnoreIndexAttribute = options.IgnoreIndexAttribute,
-                IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
-            };
+            var state = new ReadState(options);
             T? result;
 
             Read(converter, bytes, ref state, out result);
@@ -52,13 +46,7 @@ namespace Zerra.Serialization.Bytes
             var typeDetail = type.GetTypeDetail();
             var converter = ByteConverterFactory<object>.GetRoot(typeDetail);
 
-            var state = new ReadState()
-            {
-                UseTypes = options.UseTypes,
-                UsePropertyNames = options.UsePropertyNames,
-                IgnoreIndexAttribute = options.IgnoreIndexAttribute,
-                IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
-            };
+            var state = new ReadState(options);
             object? result;
 
             ReadBoxed(converter, bytes, ref state, out result);
@@ -106,13 +94,7 @@ namespace Zerra.Serialization.Bytes
                     return default;
                 }
 
-                var state = new ReadState()
-                {
-                    UseTypes = options.UseTypes,
-                    UsePropertyNames = options.UsePropertyNames,
-                    IgnoreIndexAttribute = options.IgnoreIndexAttribute,
-                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
-                };
+                var state = new ReadState(options);
                 T? result;
 
                 for (; ; )
@@ -204,13 +186,7 @@ namespace Zerra.Serialization.Bytes
                     return default;
                 }
 
-                var state = new ReadState()
-                {
-                    UseTypes = options.UseTypes,
-                    UsePropertyNames = options.UsePropertyNames,
-                    IgnoreIndexAttribute = options.IgnoreIndexAttribute,
-                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
-                };
+                var state = new ReadState(options);
                 object? result;
 
                 for (; ; )
@@ -301,13 +277,7 @@ namespace Zerra.Serialization.Bytes
                     return default;
                 }
 
-                var state = new ReadState()
-                {
-                    UseTypes = options.UseTypes,
-                    UsePropertyNames = options.UsePropertyNames,
-                    IgnoreIndexAttribute = options.IgnoreIndexAttribute,
-                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
-                };
+                var state = new ReadState(options);
                 T? result;
 
                 for (; ; )
@@ -399,13 +369,7 @@ namespace Zerra.Serialization.Bytes
                     return default;
                 }
 
-                var state = new ReadState()
-                {
-                    UseTypes = options.UseTypes,
-                    UsePropertyNames = options.UsePropertyNames,
-                    IgnoreIndexAttribute = options.IgnoreIndexAttribute,
-                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
-                };
+                var state = new ReadState(options);
                 object? result;
 
                 for (; ; )

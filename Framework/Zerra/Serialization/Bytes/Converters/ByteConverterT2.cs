@@ -180,7 +180,7 @@ namespace Zerra.Serialization.Bytes.Converters
                 }
             }
 
-            if (state.IncludeTypes)
+            if (state.UseTypes)
             {
                 if (state.EntryWriteType is null)
                 {
@@ -394,7 +394,7 @@ namespace Zerra.Serialization.Bytes.Converters
                 }
             }
 
-            if (state.IncludeTypes)
+            if (state.UseTypes)
             {
                 if (state.EntryWriteType is null)
                 {
@@ -615,10 +615,9 @@ namespace Zerra.Serialization.Bytes.Converters
                 }
             }
 
-            var writeProperty = (!state.UsePropertyNames && indexProperty > 0) || (state.UsePropertyNames && indexPropertyName.Length > 0);
-            if (writeProperty && !state.Current.HasWrittenPropertyIndex)
+            if (state.UsePropertyNames)
             {
-                if (state.UsePropertyNames)
+                if (indexPropertyName.Length > 0)
                 {
                     if (!writer.TryWritePropertyName(indexPropertyName, out state.BytesNeeded))
                     {
@@ -626,7 +625,10 @@ namespace Zerra.Serialization.Bytes.Converters
                         return false;
                     }
                 }
-                else
+            }
+            else
+            {
+                if (indexProperty > 0)
                 {
                     if (state.IndexSizeUInt16)
                     {
@@ -645,10 +647,9 @@ namespace Zerra.Serialization.Bytes.Converters
                         }
                     }
                 }
-                state.Current.HasWrittenPropertyIndex = true;
             }
 
-            if (state.IncludeTypes)
+            if (state.UseTypes)
             {
                 if (state.Current.ChildWriteType is null)
                 {
@@ -686,8 +687,7 @@ namespace Zerra.Serialization.Bytes.Converters
 
                     if (StackRequired)
                         state.EndFrame();
-                    if (writeProperty)
-                        state.Current.HasWrittenPropertyIndex = false;
+                    state.Current.HasWrittenPropertyIndex = false;
                     state.Current.ChildWriteType = null;
                     state.Current.ChildHasWrittenIsNull = false;
                     return true;
@@ -719,9 +719,8 @@ namespace Zerra.Serialization.Bytes.Converters
 
                     if (StackRequired)
                         state.EndFrame();
-                    if (writeProperty)
-                        state.Current.HasWrittenPropertyIndex = false;
-                    if (state.IncludeTypes)
+                    state.Current.HasWrittenPropertyIndex = false;
+                    if (state.UseTypes)
                         state.Current.ChildWriteType = null;
                     state.Current.ChildHasWrittenIsNull = false;
                     return true;
@@ -738,9 +737,8 @@ namespace Zerra.Serialization.Bytes.Converters
 
             if (StackRequired)
                 state.EndFrame();
-            if (writeProperty)
-                state.Current.HasWrittenPropertyIndex = false;
-            if (state.IncludeTypes)
+            state.Current.HasWrittenPropertyIndex = false;
+            if (state.UseTypes)
                 state.Current.ChildWriteType = null;
             state.Current.ChildHasWrittenIsNull = false;
             return true;

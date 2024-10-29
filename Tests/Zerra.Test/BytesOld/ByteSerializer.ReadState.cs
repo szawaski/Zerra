@@ -13,7 +13,7 @@ namespace Zerra.Serialization.Bytes
             public bool UsePropertyNames;
             public bool IncludePropertyTypes;
             public bool IgnoreIndexAttribute;
-            public ByteSerializerIndexSize IndexSize;
+            public ByteSerializerIndexType IndexSize;
 
             private Stack<ReadFrame> stack;
             public ReadFrame CurrentFrame;

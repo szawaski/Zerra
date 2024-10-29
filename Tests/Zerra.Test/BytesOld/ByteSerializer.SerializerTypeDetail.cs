@@ -13,7 +13,7 @@ namespace Zerra.Serialization.Bytes
     {
         private sealed class SerializerTypeDetail
         {
-            private readonly ByteSerializerIndexSize indexSize;
+            private readonly ByteSerializerIndexType indexSize;
             private readonly bool ignoreIndexAttribute;
 
             public Type Type { get; }
@@ -41,7 +41,7 @@ namespace Zerra.Serialization.Bytes
                 }
             }
 
-            public SerializerTypeDetail(ByteSerializerIndexSize indexSize, bool ignoreIndexAttribute, Type type)
+            public SerializerTypeDetail(ByteSerializerIndexType indexSize, bool ignoreIndexAttribute, Type type)
             {
                 this.indexSize = indexSize;
                 this.ignoreIndexAttribute = ignoreIndexAttribute;
@@ -81,11 +81,11 @@ namespace Zerra.Serialization.Bytes
                             {
                                 switch (indexSize)
                                 {
-                                    case ByteSerializerIndexSize.Byte:
+                                    case ByteSerializerIndexType.Byte:
                                         if (member.Item2!.Index > Byte.MaxValue - indexOffset)
                                             throw new Exception("Index attribute too large for the index size");
                                         break;
-                                    case ByteSerializerIndexSize.UInt16:
+                                    case ByteSerializerIndexType.UInt16:
                                         if (member.Item2!.Index > UInt16.MaxValue - indexOffset)
                                             throw new Exception("Index attribute too large for the index size");
                                         break;
@@ -108,11 +108,11 @@ namespace Zerra.Serialization.Bytes
                         {
                             switch (indexSize)
                             {
-                                case ByteSerializerIndexSize.Byte:
+                                case ByteSerializerIndexType.Byte:
                                     if (orderIndex > Byte.MaxValue - indexOffset)
                                         throw new Exception("Index attribute too large for the index size");
                                     break;
-                                case ByteSerializerIndexSize.UInt16:
+                                case ByteSerializerIndexType.UInt16:
                                     if (orderIndex > UInt16.MaxValue - indexOffset)
                                         throw new Exception("Index attribute too large for the index size");
                                     break;

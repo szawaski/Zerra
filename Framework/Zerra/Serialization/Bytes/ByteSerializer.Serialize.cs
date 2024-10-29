@@ -27,13 +27,7 @@ namespace Zerra.Serialization.Bytes
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
             var converter = (ByteConverter<object, T>)ByteConverterFactory<object>.GetRoot(typeDetail);
 
-            var state = new WriteState()
-            {
-                IncludeTypes = options.UseTypes,
-                UsePropertyNames = options.UsePropertyNames,
-                IgnoreIndexAttribute = options.IgnoreIndexAttribute,
-                IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,
-            };
+            var state = new WriteState(options);
 
             var result = Write(converter, defaultBufferSize, ref state, obj);
 
@@ -52,13 +46,7 @@ namespace Zerra.Serialization.Bytes
             var typeDetail = obj.GetType().GetTypeDetail();
             var converter = ByteConverterFactory<object>.GetRoot(typeDetail);
 
-            var state = new WriteState()
-            {
-                IncludeTypes = options.UseTypes,
-                UsePropertyNames = options.UsePropertyNames,
-                IgnoreIndexAttribute = options.IgnoreIndexAttribute,
-                IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16,
-            };
+            var state = new WriteState(options);
 
             var result = WriteBoxed(converter, defaultBufferSize, ref state, obj);
 
@@ -80,13 +68,7 @@ namespace Zerra.Serialization.Bytes
             var typeDetail = type.GetTypeDetail();
             var converter = ByteConverterFactory<object>.GetRoot(typeDetail);
 
-            var state = new WriteState()
-            {
-                IncludeTypes = options.UseTypes,
-                UsePropertyNames = options.UsePropertyNames,
-                IgnoreIndexAttribute = options.IgnoreIndexAttribute,
-                IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
-            };
+            var state = new WriteState(options);
 
             var result = WriteBoxed(converter, defaultBufferSize, ref state, obj);
 
@@ -112,13 +94,7 @@ namespace Zerra.Serialization.Bytes
 
             try
             {
-                var state = new WriteState()
-                {
-                    IncludeTypes = options.UseTypes,
-                    UsePropertyNames = options.UsePropertyNames,
-                    IgnoreIndexAttribute = options.IgnoreIndexAttribute,
-                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
-                };
+                var state = new WriteState(options);
 
                 for (; ; )
                 {
@@ -160,13 +136,7 @@ namespace Zerra.Serialization.Bytes
 
             try
             {
-                var state = new WriteState()
-                {
-                    IncludeTypes = options.UseTypes,
-                    UsePropertyNames = options.UsePropertyNames,
-                    IgnoreIndexAttribute = options.IgnoreIndexAttribute,
-                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
-                };
+                var state = new WriteState(options);
 
                 for (; ; )
                 {
@@ -210,13 +180,7 @@ namespace Zerra.Serialization.Bytes
 
             try
             {
-                var state = new WriteState()
-                {
-                    IncludeTypes = options.UseTypes,
-                    UsePropertyNames = options.UsePropertyNames,
-                    IgnoreIndexAttribute = options.IgnoreIndexAttribute,
-                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
-                };
+                var state = new WriteState(options);
 
                 for (; ; )
                 {
@@ -259,13 +223,7 @@ namespace Zerra.Serialization.Bytes
 
             try
             {
-                var state = new WriteState()
-                {
-                    IncludeTypes = options.UseTypes,
-                    UsePropertyNames = options.UsePropertyNames,
-                    IgnoreIndexAttribute = options.IgnoreIndexAttribute,
-                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
-                };
+                var state = new WriteState(options);
 
                 for (; ; )
                 {
@@ -312,13 +270,7 @@ namespace Zerra.Serialization.Bytes
 
             try
             {
-                var state = new WriteState()
-                {
-                    IncludeTypes = options.UseTypes,
-                    UsePropertyNames = options.UsePropertyNames,
-                    IgnoreIndexAttribute = options.IgnoreIndexAttribute,
-                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
-                };
+                var state = new WriteState(options);
 
                 for (; ; )
                 {
@@ -367,13 +319,7 @@ namespace Zerra.Serialization.Bytes
 
             try
             {
-                var state = new WriteState()
-                {
-                    IncludeTypes = options.UseTypes,
-                    UsePropertyNames = options.UsePropertyNames,
-                    IgnoreIndexAttribute = options.IgnoreIndexAttribute,
-                    IndexSizeUInt16 = options.IndexSize == ByteSerializerIndexSize.UInt16
-                };
+                var state = new WriteState(options);
 
                 for (; ; )
                 {

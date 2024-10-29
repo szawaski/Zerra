@@ -43,7 +43,7 @@ namespace Zerra.CQRS.Network
 
         private static readonly ByteSerializerOptions byteSerializerOptions = new()
         {
-            UsePropertyNames = true,
+            IndexType = ByteSerializerIndexType.PropertyNames,
             IgnoreIndexAttribute = true
         };
 

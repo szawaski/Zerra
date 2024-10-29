@@ -12,7 +12,7 @@ namespace Zerra.Repository
     {
         private static readonly ByteSerializerOptions byteSerializerOptions = new()
         {
-            UsePropertyNames = true,
+            IndexType = ByteSerializerIndexType.PropertyNames,
             UseTypes = true,
             IgnoreIndexAttribute = true
         };

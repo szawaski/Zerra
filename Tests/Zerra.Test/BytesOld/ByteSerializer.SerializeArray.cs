@@ -38,7 +38,7 @@ namespace Zerra.Serialization.Bytes
             options ??= defaultOptions;
             var optionsStruct = new OptionsStruct(options);
 
-            var typeDetail = GetTypeInformation(type, options.IndexSize, options.IgnoreIndexAttribute);
+            var typeDetail = GetTypeInformation(type, options.IndexType, options.IgnoreIndexAttribute);
 
 #if DEBUG
             var writer = new ByteWriterOld(Testing ? 1 : defaultBufferSize, Encoding.UTF8);
@@ -155,10 +155,10 @@ namespace Zerra.Serialization.Bytes
                     {
                         switch (options.IndexSize)
                         {
-                            case ByteSerializerIndexSize.Byte:
+                            case ByteSerializerIndexType.Byte:
                                 writer.Write((byte)indexProperty.Key);
                                 break;
-                            case ByteSerializerIndexSize.UInt16:
+                            case ByteSerializerIndexType.UInt16:
                                 writer.Write(indexProperty.Key);
                                 break;
                             default:
@@ -177,10 +177,10 @@ namespace Zerra.Serialization.Bytes
             {
                 switch (options.IndexSize)
                 {
-                    case ByteSerializerIndexSize.Byte:
+                    case ByteSerializerIndexType.Byte:
                         writer.Write(endObjectFlagByte);
                         break;
-                    case ByteSerializerIndexSize.UInt16:
+                    case ByteSerializerIndexType.UInt16:
                         writer.Write(endObjectFlagUInt16);
                         break;
                     default:

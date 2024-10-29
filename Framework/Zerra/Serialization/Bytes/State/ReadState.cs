@@ -18,8 +18,8 @@ namespace Zerra.Serialization.Bytes.State
         public int StackSize => stackCount;
 
         public bool UseTypes;
-        public bool UsePropertyNames;
         public bool IgnoreIndexAttribute;
+        public bool UsePropertyNames;
         public bool IndexSizeUInt16;
 
         public ReadFrame Current;
@@ -27,6 +27,16 @@ namespace Zerra.Serialization.Bytes.State
 
         public bool EntryHasNullChecked;
         public Type? EntryReadType;
+
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+        public ReadState(ByteSerializerOptions options)
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+        {
+            UseTypes = options.UseTypes;
+            IgnoreIndexAttribute = options.IgnoreIndexAttribute;
+            UsePropertyNames = options.IndexType == ByteSerializerIndexType.PropertyNames;
+            IndexSizeUInt16 = options.IndexType == ByteSerializerIndexType.UInt16;
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EnsureStackSize()

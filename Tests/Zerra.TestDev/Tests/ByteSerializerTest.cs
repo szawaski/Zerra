@@ -67,7 +67,7 @@ namespace Zerra.TestDev
         {
             var options = new ByteSerializerOptions()
             {
-                IndexSize = ByteSerializerIndexSize.UInt16
+                IndexType = ByteSerializerIndexType.UInt16
             };
             var item = TypesAllModel.Create();
             var data = ByteSerializer.Serialize(item, options);
@@ -221,7 +221,7 @@ namespace Zerra.TestDev
 
             var option1 = new ByteSerializerOptions()
             {
-                UsePropertyNames = true
+                IndexType = ByteSerializerIndexType.PropertyNames
             };
             var option2 = new ByteSerializerOptions()
             {
@@ -229,7 +229,7 @@ namespace Zerra.TestDev
             };
             var option3 = new ByteSerializerOptions()
             {
-                UsePropertyNames = true,
+                IndexType = ByteSerializerIndexType.PropertyNames,
                 UseTypes = true
             };
 

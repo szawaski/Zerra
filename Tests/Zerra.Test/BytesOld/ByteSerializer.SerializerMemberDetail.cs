@@ -11,7 +11,7 @@ namespace Zerra.Serialization.Bytes
     {
         private sealed class SerializerMemberDetail
         {
-            private readonly ByteSerializerIndexSize indexSize;
+            private readonly ByteSerializerIndexType indexSize;
             private readonly bool ignoreBinaryIndexAttribute;
 
             public string Name { get; }
@@ -37,7 +37,7 @@ namespace Zerra.Serialization.Bytes
             public Func<object, object?> Getter { get; }
             public Action<object, object?> Setter { get; }
 
-            public SerializerMemberDetail(ByteSerializerIndexSize indexSize, bool ignoreBinaryIndexAttribute, MemberDetail member)
+            public SerializerMemberDetail(ByteSerializerIndexType indexSize, bool ignoreBinaryIndexAttribute, MemberDetail member)
             {
                 this.indexSize = indexSize;
                 this.ignoreBinaryIndexAttribute = ignoreBinaryIndexAttribute;

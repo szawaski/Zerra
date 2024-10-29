@@ -62,7 +62,7 @@ namespace Zerra.Serialization.Bytes
         private static readonly ByteSerializerOptions defaultOptions = new();
 
         private static readonly ConcurrentFactoryDictionary<int, ConcurrentFactoryDictionary<Type, SerializerTypeDetail>> typeInfoCache = new();
-        private static SerializerTypeDetail GetTypeInformation(Type type, ByteSerializerIndexSize indexSize, bool ignoreIndexAttribute)
+        private static SerializerTypeDetail GetTypeInformation(Type type, ByteSerializerIndexType indexSize, bool ignoreIndexAttribute)
         {
             var dictionarySetIndex = ((int)indexSize + 1) * (ignoreIndexAttribute ? 1 : 2);
             var dictionarySet = typeInfoCache.GetOrAdd(dictionarySetIndex, (_) =>

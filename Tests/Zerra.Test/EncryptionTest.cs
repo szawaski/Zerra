@@ -183,7 +183,7 @@ namespace Zerra.Test
         public async Task WithSerializer()
         {
             var key = SymmetricEncryptor.GenerateKey(SymmetricAlgorithmType.AESwithShift);
-            var options = new ByteSerializerOptions() { IndexSize = ByteSerializerIndexSize.UInt16 };
+            var options = new ByteSerializerOptions() { IndexType = ByteSerializerIndexType.UInt16 };
 
             var model1 = TypesAllModel.Create();
             using (var ms = new MemoryStream())
@@ -204,7 +204,7 @@ namespace Zerra.Test
         public async Task WithSerializerAndShift()
         {
             var key = SymmetricEncryptor.GenerateKey(SymmetricAlgorithmType.AESwithShift);
-            var options = new ByteSerializerOptions() { IndexSize = ByteSerializerIndexSize.UInt16 };
+            var options = new ByteSerializerOptions() { IndexType = ByteSerializerIndexType.UInt16 };
 
             var model1 = TypesAllModel.Create();
             using (var ms = new MemoryStream())

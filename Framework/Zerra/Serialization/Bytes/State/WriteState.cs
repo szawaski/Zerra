@@ -17,9 +17,9 @@ namespace Zerra.Serialization.Bytes.State
         private int stashCount;
         public int StackSize => stackCount;
 
-        public bool IncludeTypes;
-        public bool UsePropertyNames;
+        public bool UseTypes;
         public bool IgnoreIndexAttribute;
+        public bool UsePropertyNames;
         public bool IndexSizeUInt16;
 
         public WriteFrame Current;
@@ -27,6 +27,16 @@ namespace Zerra.Serialization.Bytes.State
 
         public bool EntryHasWrittenIsNull;
         public Type? EntryWriteType;
+
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+        public WriteState(ByteSerializerOptions options)
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+        {
+            UseTypes = options.UseTypes;
+            IgnoreIndexAttribute = options.IgnoreIndexAttribute;
+            UsePropertyNames = options.IndexType == ByteSerializerIndexType.PropertyNames;
+            IndexSizeUInt16 = options.IndexType == ByteSerializerIndexType.UInt16;
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EnsureStackSize()

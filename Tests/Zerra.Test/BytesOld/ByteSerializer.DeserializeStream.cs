@@ -27,14 +27,14 @@ namespace Zerra.Serialization.Bytes
 
             options ??= defaultOptions;
 
-            var typeDetail = GetTypeInformation(type, options.IndexSize, options.IgnoreIndexAttribute);
+            var typeDetail = GetTypeInformation(type, options.IndexType, options.IgnoreIndexAttribute);
 
             var state = new ReadState()
             {
-                UsePropertyNames = options.UsePropertyNames,
+                UsePropertyNames = options.IndexType == ByteSerializerIndexType.PropertyNames,
                 IncludePropertyTypes = options.UseTypes,
                 IgnoreIndexAttribute = options.IgnoreIndexAttribute,
-                IndexSize = options.IndexSize
+                IndexSize = options.IndexType
             };
             state.CurrentFrame = ReadFrameFromType(ref state, typeDetail, false, true);
 
@@ -59,7 +59,7 @@ namespace Zerra.Serialization.Bytes
 
             options ??= defaultOptions;
 
-            var typeDetail = GetTypeInformation(type, options.IndexSize, options.IgnoreIndexAttribute);
+            var typeDetail = GetTypeInformation(type, options.IndexType, options.IgnoreIndexAttribute);
 
             var isFinalBlock = false;
 #if DEBUG
@@ -96,10 +96,10 @@ namespace Zerra.Serialization.Bytes
 
                 var state = new ReadState()
                 {
-                    UsePropertyNames = options.UsePropertyNames,
+                    UsePropertyNames = options.IndexType == ByteSerializerIndexType.PropertyNames,
                     IncludePropertyTypes = options.UseTypes,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
-                    IndexSize = options.IndexSize
+                    IndexSize = options.IndexType
                 };
                 state.CurrentFrame = ReadFrameFromType(ref state, typeDetail, false, true);
 
@@ -162,7 +162,7 @@ namespace Zerra.Serialization.Bytes
 
             var type = typeof(T);
 
-            var typeDetail = GetTypeInformation(type, options.IndexSize, options.IgnoreIndexAttribute);
+            var typeDetail = GetTypeInformation(type, options.IndexType, options.IgnoreIndexAttribute);
 
             var isFinalBlock = false;
 #if DEBUG
@@ -199,10 +199,10 @@ namespace Zerra.Serialization.Bytes
 
                 var state = new ReadState()
                 {
-                    UsePropertyNames = options.UsePropertyNames,
+                    UsePropertyNames = options.IndexType == ByteSerializerIndexType.PropertyNames,
                     IncludePropertyTypes = options.UseTypes,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
-                    IndexSize = options.IndexSize
+                    IndexSize = options.IndexType
                 };
                 state.CurrentFrame = ReadFrameFromType(ref state, typeDetail, false, true);
 
@@ -264,7 +264,7 @@ namespace Zerra.Serialization.Bytes
 
             options ??= defaultOptions;
 
-            var typeDetail = GetTypeInformation(type, options.IndexSize, options.IgnoreIndexAttribute);
+            var typeDetail = GetTypeInformation(type, options.IndexType, options.IgnoreIndexAttribute);
 
             var isFinalBlock = false;
 #if DEBUG
@@ -301,10 +301,10 @@ namespace Zerra.Serialization.Bytes
 
                 var state = new ReadState()
                 {
-                    UsePropertyNames = options.UsePropertyNames,
+                    UsePropertyNames = options.IndexType == ByteSerializerIndexType.PropertyNames,
                     IncludePropertyTypes = options.UseTypes,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
-                    IndexSize = options.IndexSize
+                    IndexSize = options.IndexType
                 };
                 state.CurrentFrame = ReadFrameFromType(ref state, typeDetail, false, true);
 
@@ -1335,7 +1335,7 @@ namespace Zerra.Serialization.Bytes
                     ushort propertyIndex;
                     switch (state.IndexSize)
                     {
-                        case ByteSerializerIndexSize.Byte:
+                        case ByteSerializerIndexType.Byte:
                             {
                                 if (!reader.TryReadByte(out var value, out var sizeNeeded))
                                 {
@@ -1345,7 +1345,7 @@ namespace Zerra.Serialization.Bytes
                                 propertyIndex = value;
                                 break;
                             }
-                        case ByteSerializerIndexSize.UInt16:
+                        case ByteSerializerIndexType.UInt16:
                             {
                                 if (!reader.TryReadUInt16(out var value, out var sizeNeeded))
                                 {

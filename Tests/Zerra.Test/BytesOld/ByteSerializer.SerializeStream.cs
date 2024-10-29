@@ -35,7 +35,7 @@ namespace Zerra.Serialization.Bytes
 
             options ??= defaultOptions;
 
-            var typeDetail = GetTypeInformation(type, options.IndexSize, options.IgnoreIndexAttribute);
+            var typeDetail = GetTypeInformation(type, options.IndexType, options.IgnoreIndexAttribute);
 #if DEBUG
             var buffer = ArrayPoolHelper<byte>.Rent(Testing ? 1 : defaultBufferSize);
 #else
@@ -47,10 +47,10 @@ namespace Zerra.Serialization.Bytes
             {
                 var state = new WriteState()
                 {
-                    UsePropertyNames = options.UsePropertyNames,
+                    UsePropertyNames = options.IndexType == ByteSerializerIndexType.PropertyNames,
                     IncludePropertyTypes = options.UseTypes,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
-                    IndexSize = options.IndexSize
+                    IndexSize = options.IndexType
                 };
                 state.CurrentFrame = WriteFrameFromType(ref state, obj, typeDetail, false, true);
 
@@ -105,7 +105,7 @@ namespace Zerra.Serialization.Bytes
 
             options ??= defaultOptions;
 
-            var typeDetail = GetTypeInformation(type, options.IndexSize, options.IgnoreIndexAttribute);
+            var typeDetail = GetTypeInformation(type, options.IndexType, options.IgnoreIndexAttribute);
 #if DEBUG
             var buffer = ArrayPoolHelper<byte>.Rent(Testing ? 1 : defaultBufferSize);
 #else
@@ -116,10 +116,10 @@ namespace Zerra.Serialization.Bytes
             {
                 var state = new WriteState()
                 {
-                    UsePropertyNames = options.UsePropertyNames,
+                    UsePropertyNames = options.IndexType == ByteSerializerIndexType.PropertyNames,
                     IncludePropertyTypes = options.UseTypes,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
-                    IndexSize = options.IndexSize
+                    IndexSize = options.IndexType
                 };
                 state.CurrentFrame = WriteFrameFromType(ref state, obj, typeDetail, false, true);
 
@@ -184,7 +184,7 @@ namespace Zerra.Serialization.Bytes
 
             options ??= defaultOptions;
 
-            var typeDetail = GetTypeInformation(type, options.IndexSize, options.IgnoreIndexAttribute);
+            var typeDetail = GetTypeInformation(type, options.IndexType, options.IgnoreIndexAttribute);
 #if DEBUG
             var buffer = ArrayPoolHelper<byte>.Rent(Testing ? 1 : defaultBufferSize);
 #else
@@ -195,10 +195,10 @@ namespace Zerra.Serialization.Bytes
             {
                 var state = new WriteState()
                 {
-                    UsePropertyNames = options.UsePropertyNames,
+                    UsePropertyNames = options.IndexType == ByteSerializerIndexType.PropertyNames,
                     IncludePropertyTypes = options.UseTypes,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
-                    IndexSize = options.IndexSize
+                    IndexSize = options.IndexType
                 };
                 state.CurrentFrame = WriteFrameFromType(ref state, obj, typeDetail, false, true);
 
@@ -903,14 +903,14 @@ namespace Zerra.Serialization.Bytes
                 {
                     switch (state.IndexSize)
                     {
-                        case ByteSerializerIndexSize.Byte:
+                        case ByteSerializerIndexType.Byte:
                             if (!writer.TryWrite((byte)indexProperty.Key, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
                                 return;
                             }
                             break;
-                        case ByteSerializerIndexSize.UInt16:
+                        case ByteSerializerIndexType.UInt16:
                             if (!writer.TryWrite(indexProperty.Key, out sizeNeeded))
                             {
                                 state.BytesNeeded = sizeNeeded;
@@ -940,14 +940,14 @@ namespace Zerra.Serialization.Bytes
             {
                 switch (state.IndexSize)
                 {
-                    case ByteSerializerIndexSize.Byte:
+                    case ByteSerializerIndexType.Byte:
                         if (!writer.TryWrite(endObjectFlagByte, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
                             return;
                         }
                         break;
-                    case ByteSerializerIndexSize.UInt16:
+                    case ByteSerializerIndexType.UInt16:
                         if (!writer.TryWrite(endObjectFlagUInt16, out sizeNeeded))
                         {
                             state.BytesNeeded = sizeNeeded;
