@@ -4,6 +4,7 @@
 
 using System;
 using System.IO;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Threading;
@@ -33,7 +34,7 @@ namespace Zerra.Encryption
         private int keyPosition;
         private int position;
 
-        public CryptoShiftStream(Stream stream, int cryptoBlockSize, CryptoStreamMode mode, bool deshift, bool leaveOpen) 
+        public CryptoShiftStream(Stream stream, int cryptoBlockSize, CryptoStreamMode mode, bool deshift, bool leaveOpen)
             : base(stream, leaveOpen)
         {
             if (cryptoBlockSize < 16 || cryptoBlockSize % 8 != 0)
@@ -400,16 +401,27 @@ namespace Zerra.Encryption
         {
             fixed (byte* pBuffer = &buffer[offset], pKey = key)
             {
-                for (var i = 0; i < count; i++)
+                if (!deshift)
                 {
-                    if (!deshift)
+                    for (var i = 0; i < count; i++)
+                    {
                         pBuffer[i] = (byte)(pBuffer[i] + pKey[keyPosition]);
-                    else
+
+                        keyPosition++;
+                        if (keyPosition == keySizeBytes)
+                            keyPosition = 0;
+                    }
+                }
+                else
+                {
+                    for (var i = 0; i < count; i++)
+                    {
                         pBuffer[i] = (byte)(pBuffer[i] - pKey[keyPosition]);
 
-                    keyPosition++;
-                    if (keyPosition == keySizeBytes)
-                        keyPosition = 0;
+                        keyPosition++;
+                        if (keyPosition == keySizeBytes)
+                            keyPosition = 0;
+                    }
                 }
             }
         }
