@@ -29,6 +29,35 @@ namespace Zerra.TestDev
         public SubNormalJsonModel[] SubModels2 { get; set; }
         public SubNormalJsonModel[] SubModels3 { get; set; }
 
+        public static NormalJsonModel Create()
+        {
+            return new NormalJsonModel()
+            {
+                String1 = "s\"sdfk\"l;ajsdflkajsdf",
+                String2 = "WERQEFASDFAasdfaf",
+                String3 = "gSDGASDFASDFAGWE",
+                String4 = "asgahreaefbadfvadfasasdfaweasdvasdawefasdvasdfawefasdvawefasdvasdawefasdvavergaergafasdf",
+                String5 = "@#$)(@*)(#%#mamsidlfja",
+                String6 = "askdfjav0memamsidlfja",
+                String7 = "34rqevasdvasdv",
+                String8 = "askdfjav0memamsidlfja",
+                String9 = "vasdfa as dfa34",
+                String0 = "3asdabasdfgda",
+
+                Value1 = 123.45m,
+                Value2 = 0.123515m,
+                Value3 = 123412123.5m,
+
+                Flag1 = true,
+                Flag2 = false,
+                Flag3 = true,
+
+                SubModels1 = [SubNormalJsonModel.Create()],
+                SubModels2 = [SubNormalJsonModel.Create(), SubNormalJsonModel.Create()],
+                SubModels3 = [SubNormalJsonModel.Create(), SubNormalJsonModel.Create(), SubNormalJsonModel.Create(), SubNormalJsonModel.Create(), SubNormalJsonModel.Create(), SubNormalJsonModel.Create(), SubNormalJsonModel.Create(), SubNormalJsonModel.Create(), SubNormalJsonModel.Create(), SubNormalJsonModel.Create()]
+            };
+        }
+
         public class SubNormalJsonModel
         {
             public string SubString1 { get; set; }
@@ -74,34 +103,6 @@ namespace Zerra.TestDev
                     SubFlag3 = true
                 };
             }
-        }
-
-        public static NormalJsonModel Create()
-        {
-            return new NormalJsonModel()
-            {
-                String1 = "s\"sdfk\"l;ajsdflkajsdf",
-                String2 = "WERQEFASDFAasdfaf",
-                String3 = "gSDGASDFASDFAGWE",
-                String4 = "asgahreaefbadfvadfasasdfaweasdvasdawefasdvasdfawefasdvawefasdvasdawefasdvavergaergafasdf",
-                String5 = "@#$)(@*)(#%#mamsidlfja",
-                String6 = "askdfjav0memamsidlfja",
-                String7 = "34rqevasdvasdv",
-                String8 = "askdfjav0memamsidlfja",
-                String9 = "vasdfa as dfa34",
-                String0 = "3asdabasdfgda",
-
-                Value1 = 123.45m,
-                Value2 = 0.123515m,
-                Value3 = 123412123.5m,
-
-                Flag1 = true,
-                Flag2 = false,
-                Flag3 = true,
-                SubModels1 = [SubNormalJsonModel.Create()],
-                SubModels2 = [SubNormalJsonModel.Create(), SubNormalJsonModel.Create()],
-                SubModels3 = [SubNormalJsonModel.Create(), SubNormalJsonModel.Create(), SubNormalJsonModel.Create(), SubNormalJsonModel.Create(), SubNormalJsonModel.Create(), SubNormalJsonModel.Create(), SubNormalJsonModel.Create(), SubNormalJsonModel.Create(), SubNormalJsonModel.Create(), SubNormalJsonModel.Create()]
-            };
         }
     }
 }

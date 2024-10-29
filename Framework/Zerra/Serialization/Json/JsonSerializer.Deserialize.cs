@@ -37,15 +37,7 @@ namespace Zerra.Serialization.Json
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
             var converter = (JsonConverter<object, T>)JsonConverterFactory<object>.GetRoot(typeDetail);
 
-            var state = new ReadState()
-            {
-                Nameless = options.Nameless,
-                EnumAsNumber = options.EnumAsNumber,
-                ErrorOnTypeMismatch = options.ErrorOnTypeMismatch,
-                Graph = graph,
-
-                IsFinalBlock = true
-            };
+            var state = new ReadState(options, graph, true);
 
             T? result;
 
@@ -72,15 +64,7 @@ namespace Zerra.Serialization.Json
             var typeDetail = type.GetTypeDetail();
             var converter = JsonConverterFactory<object>.GetRoot(typeDetail);
 
-            var state = new ReadState()
-            {
-                Nameless = options.Nameless,
-                EnumAsNumber = options.EnumAsNumber,
-                ErrorOnTypeMismatch = options.ErrorOnTypeMismatch,
-                Graph = graph,
-
-                IsFinalBlock = true
-            };
+            var state = new ReadState(options, graph, true);
 
             object? result;
 
@@ -106,15 +90,7 @@ namespace Zerra.Serialization.Json
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
             var converter = (JsonConverter<object, T>)JsonConverterFactory<object>.GetRoot(typeDetail);
 
-            var state = new ReadState()
-            {
-                Nameless = options.Nameless,
-                EnumAsNumber = options.EnumAsNumber,
-                ErrorOnTypeMismatch = options.ErrorOnTypeMismatch,
-                Graph = graph,
-
-                IsFinalBlock = true
-            };
+            var state = new ReadState(options, graph, true);
 
             T? result;
 
@@ -141,15 +117,7 @@ namespace Zerra.Serialization.Json
             var typeDetail = type.GetTypeDetail();
             var converter = JsonConverterFactory<object>.GetRoot(typeDetail);
 
-            var state = new ReadState()
-            {
-                Nameless = options.Nameless,
-                EnumAsNumber = options.EnumAsNumber,
-                ErrorOnTypeMismatch = options.ErrorOnTypeMismatch,
-                Graph = graph,
-
-                IsFinalBlock = true
-            };
+            var state = new ReadState(options, graph, true);
 
             object? result;
 
@@ -200,15 +168,7 @@ namespace Zerra.Serialization.Json
                     return default;
                 }
 
-                var state = new ReadState()
-                {
-                    Nameless = options.Nameless,
-                    EnumAsNumber = options.EnumAsNumber,
-                    ErrorOnTypeMismatch = options.ErrorOnTypeMismatch,
-                    Graph = graph,
-
-                    IsFinalBlock = isFinalBlock
-                };
+                var state = new ReadState(options, graph, isFinalBlock);
 
                 T? result;
 
@@ -303,15 +263,7 @@ namespace Zerra.Serialization.Json
                     return default;
                 }
 
-                var state = new ReadState()
-                {
-                    Nameless = options.Nameless,
-                    EnumAsNumber = options.EnumAsNumber,
-                    ErrorOnTypeMismatch = options.ErrorOnTypeMismatch,
-                    Graph = graph,
-
-                    IsFinalBlock = isFinalBlock
-                };
+                var state = new ReadState(options, graph, isFinalBlock);
 
                 object? result;
 
@@ -408,15 +360,7 @@ namespace Zerra.Serialization.Json
                     return default;
                 }
 
-                var state = new ReadState()
-                {
-                    Nameless = options.Nameless,
-                    EnumAsNumber = options.EnumAsNumber,
-                    ErrorOnTypeMismatch = options.ErrorOnTypeMismatch,
-                    Graph = graph,
-
-                    IsFinalBlock = isFinalBlock
-                };
+                var state = new ReadState(options, graph, isFinalBlock);
 
                 T? result;
 
@@ -514,15 +458,7 @@ namespace Zerra.Serialization.Json
                     return default;
                 }
 
-                var state = new ReadState()
-                {
-                    Nameless = options.Nameless,
-                    EnumAsNumber = options.EnumAsNumber,
-                    ErrorOnTypeMismatch = options.ErrorOnTypeMismatch,
-                    Graph = graph,
-
-                    IsFinalBlock = isFinalBlock
-                };
+                var state = new ReadState(options, graph, isFinalBlock);
 
                 object? result;
 

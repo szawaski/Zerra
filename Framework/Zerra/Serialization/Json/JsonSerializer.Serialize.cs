@@ -29,14 +29,7 @@ namespace Zerra.Serialization.Json
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
             var converter = (JsonConverter<object, T>)JsonConverterFactory<object>.GetRoot(typeDetail);
 
-            var state = new WriteState()
-            {
-                Nameless = options.Nameless,
-                DoNotWriteNullProperties = options.DoNotWriteNullProperties,
-                DoNotWriteDefaultProperties = options.DoNotWriteDefaultProperties,
-                EnumAsNumber = options.EnumAsNumber,
-                Graph = graph?.GetInstanceGraph(obj)
-            };
+            var state = new WriteState(options, graph?.GetInstanceGraph(obj));
 
             var result = Write(converter, defaultBufferSize, ref state, obj);
 
@@ -55,14 +48,7 @@ namespace Zerra.Serialization.Json
             var typeDetail = obj.GetType().GetTypeDetail();
             var converter = JsonConverterFactory<object>.GetRoot(typeDetail);
 
-            var state = new WriteState()
-            {
-                Nameless = options.Nameless,
-                DoNotWriteNullProperties = options.DoNotWriteNullProperties,
-                DoNotWriteDefaultProperties = options.DoNotWriteDefaultProperties,
-                EnumAsNumber = options.EnumAsNumber,
-                Graph = graph?.GetInstanceGraph(obj)
-            };
+            var state = new WriteState(options, graph?.GetInstanceGraph(obj));
 
             var result = WriteBoxed(converter, defaultBufferSize, ref state, obj);
 
@@ -84,14 +70,7 @@ namespace Zerra.Serialization.Json
             var typeDetail = type.GetTypeDetail();
             var converter = JsonConverterFactory<object>.GetRoot(typeDetail);
 
-            var state = new WriteState()
-            {
-                Nameless = options.Nameless,
-                DoNotWriteNullProperties = options.DoNotWriteNullProperties,
-                DoNotWriteDefaultProperties = options.DoNotWriteDefaultProperties,
-                EnumAsNumber = options.EnumAsNumber,
-                Graph = graph?.GetInstanceGraph(obj)
-            };
+            var state = new WriteState(options, graph?.GetInstanceGraph(obj));
 
             var result = WriteBoxed(converter, defaultBufferSize, ref state, obj);
 
@@ -111,14 +90,7 @@ namespace Zerra.Serialization.Json
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
             var converter = (JsonConverter<object, T>)JsonConverterFactory<object>.GetRoot(typeDetail);
 
-            var state = new WriteState()
-            {
-                Nameless = options.Nameless,
-                DoNotWriteNullProperties = options.DoNotWriteNullProperties,
-                DoNotWriteDefaultProperties = options.DoNotWriteDefaultProperties,
-                EnumAsNumber = options.EnumAsNumber,
-                Graph = graph?.GetInstanceGraph(obj)
-            };
+            var state = new WriteState(options, graph?.GetInstanceGraph(obj));
 
             var result = WriteBytes(converter, defaultBufferSize, ref state, obj);
 
@@ -137,14 +109,7 @@ namespace Zerra.Serialization.Json
             var typeDetail = obj.GetType().GetTypeDetail();
             var converter = JsonConverterFactory<object>.GetRoot(typeDetail);
 
-            var state = new WriteState()
-            {
-                Nameless = options.Nameless,
-                DoNotWriteNullProperties = options.DoNotWriteNullProperties,
-                DoNotWriteDefaultProperties = options.DoNotWriteDefaultProperties,
-                EnumAsNumber = options.EnumAsNumber,
-                Graph = graph?.GetInstanceGraph(obj)
-            };
+            var state = new WriteState(options, graph?.GetInstanceGraph(obj));
 
             var result = WriteBoxedBytes(converter, defaultBufferSize, ref state, obj);
 
@@ -166,14 +131,7 @@ namespace Zerra.Serialization.Json
             var typeDetail = type.GetTypeDetail();
             var converter = JsonConverterFactory<object>.GetRoot(typeDetail);
 
-            var state = new WriteState()
-            {
-                Nameless = options.Nameless,
-                DoNotWriteNullProperties = options.DoNotWriteNullProperties,
-                DoNotWriteDefaultProperties = options.DoNotWriteDefaultProperties,
-                EnumAsNumber = options.EnumAsNumber,
-                Graph = graph?.GetInstanceGraph(obj)
-            };
+            var state = new WriteState(options, graph?.GetInstanceGraph(obj));
 
             var result = WriteBoxedBytes(converter, defaultBufferSize, ref state, obj);
 
@@ -199,14 +157,7 @@ namespace Zerra.Serialization.Json
 
             try
             {
-                var state = new WriteState()
-                {
-                    Nameless = options.Nameless,
-                    DoNotWriteNullProperties = options.DoNotWriteNullProperties,
-                    DoNotWriteDefaultProperties = options.DoNotWriteDefaultProperties,
-                    EnumAsNumber = options.EnumAsNumber,
-                    Graph = graph?.GetInstanceGraph(obj)
-                };
+                var state = new WriteState(options, graph?.GetInstanceGraph(obj));
 
                 for (; ; )
                 {
@@ -248,14 +199,7 @@ namespace Zerra.Serialization.Json
 
             try
             {
-                var state = new WriteState()
-                {
-                    Nameless = options.Nameless,
-                    DoNotWriteNullProperties = options.DoNotWriteNullProperties,
-                    DoNotWriteDefaultProperties = options.DoNotWriteDefaultProperties,
-                    EnumAsNumber = options.EnumAsNumber,
-                    Graph = graph?.GetInstanceGraph(obj)
-                };
+                var state = new WriteState(options, graph?.GetInstanceGraph(obj));
 
                 for (; ; )
                 {
@@ -299,14 +243,7 @@ namespace Zerra.Serialization.Json
 
             try
             {
-                var state = new WriteState()
-                {
-                    Nameless = options.Nameless,
-                    DoNotWriteNullProperties = options.DoNotWriteNullProperties,
-                    DoNotWriteDefaultProperties = options.DoNotWriteDefaultProperties,
-                    EnumAsNumber = options.EnumAsNumber,
-                    Graph = graph?.GetInstanceGraph(obj)
-                };
+                var state = new WriteState(options, graph?.GetInstanceGraph(obj));
 
                 for (; ; )
                 {
@@ -356,14 +293,7 @@ namespace Zerra.Serialization.Json
 
             try
             {
-                var state = new WriteState()
-                {
-                    Nameless = options.Nameless,
-                    DoNotWriteNullProperties = options.DoNotWriteNullProperties,
-                    DoNotWriteDefaultProperties = options.DoNotWriteDefaultProperties,
-                    EnumAsNumber = options.EnumAsNumber,
-                    Graph = graph?.GetInstanceGraph(obj)
-                };
+                var state = new WriteState(options, graph?.GetInstanceGraph(obj));
 
                 for (; ; )
                 {
@@ -412,14 +342,7 @@ namespace Zerra.Serialization.Json
 
             try
             {
-                var state = new WriteState()
-                {
-                    Nameless = options.Nameless,
-                    DoNotWriteNullProperties = options.DoNotWriteNullProperties,
-                    DoNotWriteDefaultProperties = options.DoNotWriteDefaultProperties,
-                    EnumAsNumber = options.EnumAsNumber,
-                    Graph = graph?.GetInstanceGraph(obj)
-                };
+                var state = new WriteState(options, graph?.GetInstanceGraph(obj));
 
                 for (; ; )
                 {
@@ -470,14 +393,7 @@ namespace Zerra.Serialization.Json
 
             try
             {
-                var state = new WriteState()
-                {
-                    Nameless = options.Nameless,
-                    DoNotWriteNullProperties = options.DoNotWriteNullProperties,
-                    DoNotWriteDefaultProperties = options.DoNotWriteDefaultProperties,
-                    EnumAsNumber = options.EnumAsNumber,
-                    Graph = graph?.GetInstanceGraph(obj)
-                };
+                var state = new WriteState(options, graph?.GetInstanceGraph(obj));
 
                 for (; ; )
                 {

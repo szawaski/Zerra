@@ -47,6 +47,17 @@ namespace Zerra.Serialization.Json.State
         public bool NumberWorkingIsNegative;
 
         public Graph? Graph;
+
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+        public ReadState(JsonSerializerOptions options, Graph? graph, bool isFinalBlock)
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+        {
+            Nameless = options.Nameless;
+            EnumAsNumber = options.EnumAsNumber;
+            ErrorOnTypeMismatch = options.ErrorOnTypeMismatch;
+            Graph = graph;
+            IsFinalBlock = isFinalBlock;
+        }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EnsureStackSize()

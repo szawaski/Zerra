@@ -20,10 +20,10 @@ namespace Zerra.Serialization.Json.State
         public WriteFrame Current;
         public int CharsNeeded;
 
-        public bool Nameless { get; set; }
-        public bool DoNotWriteNullProperties { get; set; }
-        public bool DoNotWriteDefaultProperties { get; set; }
-        public bool EnumAsNumber { get; set; }
+        public bool Nameless;
+        public bool DoNotWriteNullProperties;
+        public bool DoNotWriteDefaultProperties;
+        public bool EnumAsNumber;
 
         public byte WorkingStringStage;
         public ReadOnlyMemory<char> WorkingString;
@@ -31,6 +31,17 @@ namespace Zerra.Serialization.Json.State
         public int WorkingStringStart;
 
         public Graph? Graph;
+
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+        public WriteState(JsonSerializerOptions options, Graph? graph)
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+        {
+            Nameless = options.Nameless;
+            DoNotWriteNullProperties = options.DoNotWriteNullProperties;
+            DoNotWriteDefaultProperties = options.DoNotWriteDefaultProperties;
+            EnumAsNumber = options.EnumAsNumber;
+            Graph = graph;
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EnsureStackSize()
