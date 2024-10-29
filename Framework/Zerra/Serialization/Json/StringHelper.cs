@@ -54,12 +54,13 @@ namespace Zerra.Serialization.Json
                         if (quoteAndColon)
                         {
                             pBytes[0] = quoteByte;
-                        }
-                        _ = encoding.GetBytes(pValue, value.Length, &pBytes[1], bytes.Length - 1);
-                        if (quoteAndColon)
-                        {
+                            _ = encoding.GetBytes(pValue, value.Length, &pBytes[1], bytes.Length - 1);
                             pBytes[bytes.Length - 2] = quoteByte;
                             pBytes[bytes.Length - 1] = colonByte;
+                        }
+                        else
+                        {
+                            _ = encoding.GetBytes(pValue, value.Length, pBytes, bytes.Length);
                         }
                     }
                     return bytes;
@@ -146,12 +147,13 @@ namespace Zerra.Serialization.Json
                         if (quoteAndColon)
                         {
                             pBytes[0] = quoteByte;
-                        }
-                        Buffer.MemoryCopy(pEscapeBuffer, pBytes, bytes.Length - 1, bufferIndex);
-                        if (quoteAndColon)
-                        {
+                            Buffer.MemoryCopy(pEscapeBuffer, &pBytes[1], bytes.Length - 1, bufferIndex);
                             pBytes[bytes.Length - 2] = quoteByte;
                             pBytes[bytes.Length - 1] = colonByte;
+                        }
+                        else
+                        {
+                            Buffer.MemoryCopy(pEscapeBuffer, pBytes, bytes.Length - 1, bufferIndex);
                         }
                     }
                 }
