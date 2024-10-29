@@ -852,8 +852,8 @@ namespace Zerra.Serialization.Json.IO
                 {
                     if (!hasStarted)
                     {
-                        var b = pBuffer[position++];
-                        while (b == ' ' || b == '\t' || b == '\r' || b == '\n')
+                        var c = pBuffer[position++];
+                        while (c == ' ' || c == '\t' || c == '\r' || c == '\n')
                         {
                             if (position == length)
                             {
@@ -862,10 +862,10 @@ namespace Zerra.Serialization.Json.IO
                                 sizeNeeded = length - position + 1;
                                 return false;
                             }
-                            b = pBuffer[position++];
+                            c = pBuffer[position++];
                         }
 
-                        if (b != quoteByte)
+                        if (c != '\"')
                             throw CreateException("Unexpected character");
                     }
 
@@ -888,7 +888,7 @@ namespace Zerra.Serialization.Json.IO
                                 break;
 
                             c = pBuffer[position];
-                            if (c == uByte)
+                            if (c == 'u')
                             {
                                 position += 3; //4 with end++
                                 continue;
@@ -1005,6 +1005,164 @@ namespace Zerra.Serialization.Json.IO
                     sizeNeeded = 0;
                     return true;
                 }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe bool TryReadStringBytesQuoted(bool hasStarted,
+#if !NETSTANDARD2_0
+    [MaybeNullWhen(false)]
+#endif
+        out ReadOnlySpan<byte> bytes, out int sizeNeeded)
+        {
+            if (!useBytes)
+                throw new InvalidOperationException($"{nameof(TryReadStringBytesQuoted)} {nameof(useBytes)} is the wrong setting for this call");
+
+            if (position >= length
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                sizeNeeded = 1;
+                bytes = null;
+                return false;
+            }
+
+            var originalPosition = position;
+
+            fixed (byte* pBuffer = bufferBytes)
+            {
+                if (!hasStarted)
+                {
+                    var b = pBuffer[position++];
+                    while (b == spaceByte || b == tabByte || b == returnByte || b == newlineByte)
+                    {
+                        if (position == length)
+                        {
+                            bytes = null;
+                            position = originalPosition;
+                            sizeNeeded = length - position + 1;
+                            return false;
+                        }
+                        b = pBuffer[position++];
+                    }
+
+                    if (b != quoteByte)
+                        throw CreateException("Unexpected character");
+                }
+
+                var startPosition = position;
+
+                for (; position < length; position++)
+                {
+                    var b = pBuffer[position];
+                    if (b == quoteByte)
+                        break;
+
+                    if (b == escapeByte)
+                    {
+                        position++;
+                        if (position == length)
+                            break;
+
+                        b = pBuffer[position];
+                        if (b == uByte)
+                            position += 3; //4 with position++
+                        continue;
+                    }
+                }
+                if (position >= length)
+                {
+                    bytes = null;
+                    position = originalPosition;
+                    sizeNeeded = length - position + 1;
+                    return false;
+                }
+
+                sizeNeeded = 0;
+                bytes = bufferBytes.Slice(startPosition, position - startPosition);
+                position++;
+                return true;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe bool TryReadStringCharsQuoted(bool hasStarted,
+#if !NETSTANDARD2_0
+[MaybeNullWhen(false)]
+#endif
+        out ReadOnlySpan<char> chars, out int sizeNeeded)
+        {
+            if (useBytes)
+                throw new InvalidOperationException($"{nameof(TryReadStringCharsQuoted)} {nameof(useBytes)} is the wrong setting for this call");
+
+            if (position >= length
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                sizeNeeded = 1;
+                chars = null;
+                return false;
+            }
+
+            var originalPosition = position;
+
+            fixed (char* pBuffer = bufferChars)
+            {
+                if (!hasStarted)
+                {
+                    var c = pBuffer[position++];
+                    while (c == ' ' || c == '\t' || c == '\r' || c == '\n')
+                    {
+                        if (position == length)
+                        {
+                            chars = null;
+                            position = originalPosition;
+                            sizeNeeded = length - position + 1;
+                            return false;
+                        }
+                        c = pBuffer[position++];
+                    }
+
+                    if (c != '\"')
+                        throw CreateException("Unexpected character");
+                }
+
+                var startPosition = position;
+
+                for (; position < length; position++)
+                {
+                    var c = pBuffer[position];
+                    if (c == '\"')
+                        break;
+
+                    if (c == escapeByte)
+                    {
+                        position++;
+                        if (position == length)
+                            break;
+
+                        c = pBuffer[position];
+                        if (c == 'u')
+                            position += 3; //4 with position++
+                        continue;
+                    }
+                }
+                if (position >= length)
+                {
+                    chars = null;
+                    position = originalPosition;
+                    sizeNeeded = length - position + 1;
+                    return false;
+                }
+
+                sizeNeeded = 0;
+                chars = bufferChars.Slice(startPosition, position - startPosition);
+                position++;
+                return true;
             }
         }
     }

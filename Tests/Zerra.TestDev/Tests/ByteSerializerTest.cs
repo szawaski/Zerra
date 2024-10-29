@@ -63,7 +63,7 @@ namespace Zerra.TestDev
             return testList;
         }
 
-        public static Task TempTestSpeed()
+        public static Task CompareTestSpeed()
         {
             var options = new ByteSerializerOptions()
             {
@@ -73,11 +73,11 @@ namespace Zerra.TestDev
             var data = ByteSerializer.Serialize(item, options);
             var dataOld = ByteSerializerOld.Serialize(item, options);
 
-            var method = typeof(ByteSerializerTest).GetMethod(nameof(TempTestSpeed2), BindingFlags.Static | BindingFlags.NonPublic).MakeGenericMethod(item.GetType());
+            var method = typeof(ByteSerializerTest).GetMethod(nameof(CompareTestSpeed2), BindingFlags.Static | BindingFlags.NonPublic).MakeGenericMethod(item.GetType());
             return (Task)method.Invoke(null, [item, data, dataOld, options, 5000, 5]);
         }
 
-        private static async Task TempTestSpeed2<T>(T item, byte[] data, byte[] dataOld, ByteSerializerOptions options, int iterations, int loops)
+        private static async Task CompareTestSpeed2<T>(T item, byte[] data, byte[] dataOld, ByteSerializerOptions options, int iterations, int loops)
         {
             using var readStream = new MemoryStream(data);
             using var readOldStream = new MemoryStream(dataOld);

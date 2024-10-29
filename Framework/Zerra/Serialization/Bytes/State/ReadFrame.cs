@@ -16,6 +16,8 @@ namespace Zerra.Serialization.Bytes.State
         public bool HasCreated;
         public object? Object;
 
+        public int EnumeratorIndex;
+
         public int? EnumerableLength;
 
         public bool HasReadProperty;

@@ -30,11 +30,10 @@ namespace Zerra.Serialization.Bytes.Converters.General
             collectedValuesPool.Push(collectedValues);
         }
 
-        private readonly Dictionary<ushort, ByteConverterObjectMember> membersByIndex = new();
-        private readonly Dictionary<ushort, ByteConverterObjectMember> membersByIndexIngoreAttributes = new();
+        private MemberKey[] members = null!;
+        private MemberKey[] membersIngoreAttributes = null!;
         private readonly Dictionary<string, ByteConverterObjectMember> membersByName = new();
-        private readonly List<ByteConverterObjectMember> membersIngoreAttributes = new();
-        private readonly List<ByteConverterObjectMember> members = new();
+
         private bool indexSizeUInt16Only;
 
         private bool collectValues;
@@ -49,6 +48,9 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     continue;
                 validMembers.Add(member);
             }
+
+            var membersByIndex = new Dictionary<ushort, ByteConverterObjectMember>();
+            var membersByIndexIngoreAttributes = new Dictionary<ushort, ByteConverterObjectMember>();
 
             //Members by Index with Attributes
             foreach (var member in validMembers)
@@ -65,7 +67,6 @@ namespace Zerra.Serialization.Bytes.Converters.General
 
                 var detail = ByteConverterObjectMember.New(typeDetail, member, index);
                 membersByIndex.Add(index, detail);
-                members.Add(detail);
             }
 
             //Members by Index and Name
@@ -84,14 +85,15 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 if (!hasAttributes)
                 {
                     membersByIndex.Add(index, detail);
-                    members.Add(detail);
                 }
                 membersByIndexIngoreAttributes.Add(index, detail);
                 membersByName.Add(member.Name, detail);
-                membersIngoreAttributes.Add(detail);
 
                 orderIndex++;
             }
+
+            members = membersByIndex.Select(x => new MemberKey(x.Key, x.Value)).ToArray();
+            membersIngoreAttributes = membersByIndexIngoreAttributes.Select(x => new MemberKey(x.Key, x.Value)).ToArray();
 
             if (typeDetail.Type.IsValueType || !typeDetail.HasCreator)
             {
@@ -179,7 +181,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 {
                     if (state.UsePropertyNames)
                     {
-                        if (!reader.TryRead(out string? name, out state.BytesNeeded))
+                        if (!reader.TryRead(out ReadOnlySpan<byte> name, out state.BytesNeeded))
                         {
                             if (collectValues)
                                 state.Current.Object = collectedValues;
@@ -188,13 +190,60 @@ namespace Zerra.Serialization.Bytes.Converters.General
                             return false;
                         }
 
-                        if (name == String.Empty)
+                        if (name.Length == 0)
                         {
                             break;
                         }
 
-                        member = null;
-                        _ = membersByName!.TryGetValue(name!, out member);
+                        MemberKey memberKey;
+                        var memberLength = members.Length;
+                        var nextIndex = state.Current.EnumeratorIndex;
+                        var prevIndex = state.Current.EnumeratorIndex - 1;
+
+                        for (; ; )
+                        {
+                            if (nextIndex < memberLength)
+                            {
+                                memberKey = members[nextIndex];
+                                if (MemberKey.IsEqual(memberKey, name))
+                                {
+                                    member = memberKey.Member;
+                                    state.Current.EnumeratorIndex = nextIndex + 1;
+                                    break;
+                                }
+
+                                if (prevIndex >= 0)
+                                {
+                                    memberKey = members[prevIndex];
+                                    if (MemberKey.IsEqual(memberKey, name))
+                                    {
+                                        member = memberKey.Member;
+                                        state.Current.EnumeratorIndex = prevIndex + 1;
+                                        break;
+                                    }
+                                }
+
+                                prevIndex--;
+                                nextIndex++;
+                            }
+                            else if (prevIndex >= 0)
+                            {
+                                memberKey = members[prevIndex];
+                                if (MemberKey.IsEqual(memberKey, name))
+                                {
+                                    member = memberKey.Member;
+                                    state.Current.EnumeratorIndex = prevIndex + 1;
+                                    break;
+                                }
+
+                                prevIndex--;
+                            }
+                            else
+                            {
+                                member = null;
+                                break;
+                            }
+                        }
                     }
                     else
                     {
@@ -228,11 +277,56 @@ namespace Zerra.Serialization.Bytes.Converters.General
                             break;
                         }
 
-                        member = null;
-                        if (state.IgnoreIndexAttribute)
-                            _ = membersByIndexIngoreAttributes?.TryGetValue(propertyIndex, out member);
-                        else
-                            _ = membersByIndex?.TryGetValue(propertyIndex, out member);
+                        MemberKey memberKey;
+                        var selectedMembers = state.IgnoreIndexAttribute ? membersIngoreAttributes : members;
+                        var memberLength = members.Length;
+                        var nextIndex = state.Current.EnumeratorIndex;
+                        var prevIndex = state.Current.EnumeratorIndex - 1;
+
+                        for (; ; )
+                        {
+                            if (nextIndex < memberLength)
+                            {
+                                memberKey = selectedMembers[nextIndex];
+                                if (memberKey.Index == propertyIndex)
+                                {
+                                    member = memberKey.Member;
+                                    state.Current.EnumeratorIndex = nextIndex + 1;
+                                    break;
+                                }
+
+                                if (prevIndex >= 0)
+                                {
+                                    memberKey = selectedMembers[prevIndex];
+                                    if (memberKey.Index == propertyIndex)
+                                    {
+                                        member = memberKey.Member;
+                                        state.Current.EnumeratorIndex = prevIndex + 1;
+                                        break;
+                                    }
+                                }
+
+                                prevIndex--;
+                                nextIndex++;
+                            }
+                            else if (prevIndex >= 0)
+                            {
+                                memberKey = selectedMembers[prevIndex];
+                                if (memberKey.Index == propertyIndex)
+                                {
+                                    member = memberKey.Member;
+                                    state.Current.EnumeratorIndex = prevIndex + 1;
+                                    break;
+                                }
+
+                                prevIndex--;
+                            }
+                            else
+                            {
+                                member = null;
+                                break;
+                            }
+                        }
                     }
                 }
                 else
@@ -335,15 +429,15 @@ namespace Zerra.Serialization.Bytes.Converters.General
             if (indexSizeUInt16Only && !state.IndexSizeUInt16 && !state.UsePropertyNames)
                 throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members or {nameof(SerializerIndexAttribute)} index too high for index size");
 
-            List<ByteConverterObjectMember> enumerator;
+            MemberKey[] enumerator;
             if (state.IgnoreIndexAttribute)
                 enumerator = membersIngoreAttributes;
             else
                 enumerator = members;
 
-            while (state.Current.EnumeratorIndex < enumerator.Count)
+            while (state.Current.EnumeratorIndex < enumerator.Length)
             {
-                var current = enumerator[state.Current.EnumeratorIndex];
+                var current = enumerator[state.Current.EnumeratorIndex].Member;
                 //Base will write the property name or index if the value is not null.
                 //Done this way so we don't have to extract the value twice due to null checking.
                 if (!current.Converter.TryWriteFromParent(ref writer, ref state, value, false, current.Index, state.UsePropertyNames ? current.NameAsBytes : null))

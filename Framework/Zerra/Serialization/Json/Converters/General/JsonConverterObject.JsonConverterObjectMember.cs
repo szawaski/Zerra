@@ -20,6 +20,16 @@ namespace Zerra.Serialization.Json.Converters.General
 
             public readonly JsonIgnoreCondition IgnoreCondition;
 
+            private byte[]? jsonNameBytes = null;
+            public ReadOnlySpan<byte> JsonNameBytes
+            {
+                get
+                {
+                    jsonNameBytes ??= StringHelper.EscapeAndEncodeString(JsonName, false);
+                    return jsonNameBytes;
+                }
+            }
+
             private byte[]? jsonNameSegmentBytes = null;
             public ReadOnlySpan<byte> JsonNameSegmentBytes
             {
@@ -27,6 +37,16 @@ namespace Zerra.Serialization.Json.Converters.General
                 {
                     jsonNameSegmentBytes ??= StringHelper.EscapeAndEncodeString(JsonName, true);
                     return jsonNameSegmentBytes;
+                }
+            }
+
+            private char[]? jsonNameChars = null;
+            public ReadOnlySpan<char> JsonNameChars
+            {
+                get
+                {
+                    jsonNameChars ??= StringHelper.EscapeString(JsonName, false);
+                    return jsonNameChars;
                 }
             }
 

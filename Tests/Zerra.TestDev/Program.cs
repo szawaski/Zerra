@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using Zerra.Reflection;
 
@@ -24,8 +25,9 @@ namespace Zerra.TestDev
 
             //TestMe();
             //TestMe2();
-            JsonSerializerTest.TempTestSpeed();
-            //ByteSerializerTest.TempTestSpeed();
+            //TestMe3();
+            JsonSerializerTest.CompareTestSpeed();
+            //ByteSerializerTest.CompareTestSpeed();
 
             //TestMemory.TryFinallyOrDisposed();
             //InlineTest.Test();
@@ -359,6 +361,188 @@ namespace Zerra.TestDev
             }
             timer.Stop();
             Console.WriteLine($"True Span {timer.ElapsedMilliseconds}ms");
+        }
+
+        private static void TestMe3()
+        {
+            const int itterations = 20000000;
+            Stopwatch timer;
+            for (var a = 0; a < 10; a++)
+            {
+                var chars = new char[a];
+                for (var i = 0; i < chars.Length; i++)
+                    chars[i] = i.ToString()[0];
+                var span = chars.AsSpan();
+
+                Console.WriteLine();
+
+                timer = Stopwatch.StartNew();
+                for (var i = 0; i < itterations; i++)
+                {
+                    _ = GetHashCode(span);
+                }
+                timer.Stop();
+                Console.WriteLine($"GetHashCode {a} {timer.ElapsedMilliseconds}ms");
+
+                timer = Stopwatch.StartNew();
+                for (var i = 0; i < itterations; i++)
+                {
+                    _ = GetHashCode2(span);
+                }
+                timer.Stop();
+                Console.WriteLine($"GetHashCode2 {a} {timer.ElapsedMilliseconds}ms");
+            }
+
+            Console.WriteLine();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static ulong GetHashCode(ReadOnlySpan<char> name)
+        {
+            ref byte reference = ref MemoryMarshal.GetReference(MemoryMarshal.AsBytes(name));
+            var length = name.Length * 2;
+
+            ulong code;
+            //even cases not possible, most chars have 2nd byte as 0 so skip those
+            switch (length)
+            {
+                case > 14:
+                    //take 4 bytes from front and 3 bytes from end
+                    // 00000000_########_########_########_########_########_########_########
+                    code = (ulong)reference | ((ulong)Unsafe.Add(ref reference, 2) << 8) | ((ulong)Unsafe.Add(ref reference, 4) << 16) | ((ulong)Unsafe.Add(ref reference, 6) << 24) | ((ulong)Unsafe.Add(ref reference, length - 6) << 32) | ((ulong)Unsafe.Add(ref reference, length - 4) << 40) | ((ulong)Unsafe.Add(ref reference, length - 2) << 48);
+
+                    // ########_00000000_00000000_00000000_00000000_00000000_00000000_00000000
+                    code |= (ulong)Math.Min(length, 255) << 56;
+                    return code;
+                case 14:
+                    // 00000000_########_########_########_########_########_########_########
+                    code = (ulong)reference | ((ulong)Unsafe.Add(ref reference, 2) << 8) | ((ulong)Unsafe.Add(ref reference, 4) << 16) | ((ulong)Unsafe.Add(ref reference, 6) << 24) | ((ulong)Unsafe.Add(ref reference, 8) << 32) | ((ulong)Unsafe.Add(ref reference, 10) << 40) | ((ulong)Unsafe.Add(ref reference, 12) << 48);
+
+                    // ########_00000000_00000000_00000000_00000000_00000000_00000000_00000000
+                    code |= (ulong)Math.Min(length, 255) << 56;
+                    return code;
+                case 12:
+                    // 00000000_00000000_########_########_########_########_########_########
+                    code = (ulong)reference | ((ulong)Unsafe.Add(ref reference, 2) << 8) | ((ulong)Unsafe.Add(ref reference, 4) << 16) | ((ulong)Unsafe.Add(ref reference, 6) << 24) | ((ulong)Unsafe.Add(ref reference, 8) << 32) | ((ulong)Unsafe.Add(ref reference, 10) << 40);
+
+                    // ########_00000000_00000000_00000000_00000000_00000000_00000000_00000000
+                    code |= (ulong)Math.Min(length, 255) << 56;
+                    return code;
+                case 10:
+                    // 00000000_00000000_00000000_########_########_########_########_########
+                    code = (ulong)reference | ((ulong)Unsafe.Add(ref reference, 2) << 8) | ((ulong)Unsafe.Add(ref reference, 4) << 16) | ((ulong)Unsafe.Add(ref reference, 6) << 24) | ((ulong)Unsafe.Add(ref reference, 8) << 32);
+
+                    // ########_00000000_00000000_00000000_00000000_00000000_00000000_00000000
+                    code |= (ulong)Math.Min(length, 255) << 56;
+                    return code;
+                case 8:
+                    // 00000000_00000000_00000000_00000000_########_########_########_########
+                    code = (ulong)reference | ((ulong)Unsafe.Add(ref reference, 2) << 8) | ((ulong)Unsafe.Add(ref reference, 4) << 16) | ((ulong)Unsafe.Add(ref reference, 6) << 24);
+
+                    // ########_00000000_00000000_00000000_00000000_00000000_00000000_00000000
+                    code |= (ulong)Math.Min(length, 255) << 56;
+                    return code;
+                case 6:
+                    // 00000000_00000000_00000000_00000000_00000000_00000000_00000000_######## | 00000000_00000000_00000000_00000000_00000000_00000000_########_00000000 | 00000000_00000000_00000000_00000000_00000000_########_00000000_00000000
+                    code = (ulong)reference | ((ulong)Unsafe.Add(ref reference, 2) << 8) | ((ulong)Unsafe.Add(ref reference, 4) << 16);
+
+                    // ########_00000000_00000000_00000000_00000000_00000000_00000000_00000000
+                    code |= (ulong)length << 56;
+                    return code;
+                case 4:
+                    // 00000000_00000000_00000000_00000000_00000000_00000000_00000000_######## | 00000000_00000000_00000000_00000000_00000000_00000000_########_00000000
+                    code = (ulong)reference | ((ulong)Unsafe.Add(ref reference, 2) << 8);
+
+                    // ########_00000000_00000000_00000000_00000000_00000000_00000000_00000000
+                    code |= (ulong)length << 56;
+                    return code;
+                case 2:
+                    // 00000000_00000000_00000000_00000000_00000000_00000000_00000000_########
+                    code = (ulong)reference;
+
+                    // ########_00000000_00000000_00000000_00000000_00000000_00000000_00000000
+                    code |= (ulong)length << 56;
+                    return code;
+                default:
+                    code = 0UL;
+                    return code;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private unsafe static ulong GetHashCode2(ReadOnlySpan<char> name)
+        {
+            var length = name.Length * 2;
+            ulong code;
+            fixed (void* pVoid = name)
+            {
+                var p = (byte*)pVoid;
+
+                //even cases not possible, most chars have 2nd byte as 0 so skip those
+                switch (length)
+                {
+                    case > 14:
+                        //take 4 bytes from front and 3 bytes from end
+                        // 00000000_########_########_########_########_########_########_########
+                        code = (ulong)Unsafe.ReadUnaligned<byte>(p) | ((ulong)Unsafe.ReadUnaligned<byte>(&p[2]) << 8) | ((ulong)Unsafe.ReadUnaligned<byte>(&p[4]) << 16) | ((ulong)Unsafe.ReadUnaligned<byte>(&p[6]) << 24) | ((ulong)Unsafe.ReadUnaligned<byte>(&p[length - 6]) << 32) | ((ulong)Unsafe.ReadUnaligned<byte>(&p[length - 4]) << 40) | ((ulong)Unsafe.ReadUnaligned<byte>(&p[length - 2]) << 48);
+
+                        // ########_00000000_00000000_00000000_00000000_00000000_00000000_00000000
+                        code |= (ulong)Math.Min(length, 255) << 56;
+                        return code;
+                    case 14:
+                        // 00000000_########_########_########_########_########_########_########
+                        code = (ulong)Unsafe.ReadUnaligned<byte>(p) | ((ulong)Unsafe.ReadUnaligned<byte>(&p[2]) << 8) | ((ulong)Unsafe.ReadUnaligned<byte>(&p[4]) << 16) | ((ulong)Unsafe.ReadUnaligned<byte>(&p[6]) << 24) | ((ulong)Unsafe.ReadUnaligned<byte>(&p[8]) << 32) | ((ulong)Unsafe.ReadUnaligned<byte>(&p[10]) << 40) | ((ulong)Unsafe.ReadUnaligned<byte>(&p[12]) << 48);
+
+                        // ########_00000000_00000000_00000000_00000000_00000000_00000000_00000000
+                        code |= (ulong)Math.Min(length, 255) << 56;
+                        return code;
+                    case 12:
+                        // 00000000_00000000_########_########_########_########_########_########
+                        code = (ulong)Unsafe.ReadUnaligned<byte>(p) | ((ulong)Unsafe.ReadUnaligned<byte>(&p[2]) << 8) | ((ulong)Unsafe.ReadUnaligned<byte>(&p[4]) << 16) | ((ulong)Unsafe.ReadUnaligned<byte>(&p[6]) << 24) | ((ulong)Unsafe.ReadUnaligned<byte>(&p[8]) << 32) | ((ulong)Unsafe.ReadUnaligned<byte>(&p[10]) << 40);
+
+                        // ########_00000000_00000000_00000000_00000000_00000000_00000000_00000000
+                        code |= (ulong)Math.Min(length, 255) << 56;
+                        return code;
+                    case 10:
+                        // 00000000_00000000_00000000_########_########_########_########_########
+                        code = (ulong)Unsafe.ReadUnaligned<byte>(p) | ((ulong)Unsafe.ReadUnaligned<byte>(&p[2]) << 8) | ((ulong)Unsafe.ReadUnaligned<byte>(&p[4]) << 16) | ((ulong)Unsafe.ReadUnaligned<byte>(&p[6]) << 24) | ((ulong)Unsafe.ReadUnaligned<byte>(&p[8]) << 32);
+
+                        // ########_00000000_00000000_00000000_00000000_00000000_00000000_00000000
+                        code |= (ulong)Math.Min(length, 255) << 56;
+                        return code;
+                    case 8:
+                        // 00000000_00000000_00000000_00000000_########_########_########_########
+                        code = (ulong)Unsafe.ReadUnaligned<byte>(p) | ((ulong)Unsafe.ReadUnaligned<byte>(&p[2]) << 8) | ((ulong)Unsafe.ReadUnaligned<byte>(&p[4]) << 16) | ((ulong)Unsafe.ReadUnaligned<byte>(&p[6]) << 24);
+
+                        // ########_00000000_00000000_00000000_00000000_00000000_00000000_00000000
+                        code |= (ulong)Math.Min(length, 255) << 56;
+                        return code;
+                    case 6:
+                        // 00000000_00000000_00000000_00000000_00000000_00000000_00000000_######## | 00000000_00000000_00000000_00000000_00000000_00000000_########_00000000 | 00000000_00000000_00000000_00000000_00000000_########_00000000_00000000
+                        code = (ulong)Unsafe.ReadUnaligned<byte>(p) | ((ulong)Unsafe.ReadUnaligned<byte>(&p[2]) << 8) | ((ulong)Unsafe.ReadUnaligned<byte>(&p[4]) << 16);
+
+                        // ########_00000000_00000000_00000000_00000000_00000000_00000000_00000000
+                        code |= (ulong)length << 56;
+                        return code;
+                    case 4:
+                        // 00000000_00000000_00000000_00000000_00000000_00000000_00000000_######## | 00000000_00000000_00000000_00000000_00000000_00000000_########_00000000
+                        code = (ulong)Unsafe.ReadUnaligned<byte>(p) | ((ulong)Unsafe.ReadUnaligned<byte>(&p[2]) << 8);
+
+                        // ########_00000000_00000000_00000000_00000000_00000000_00000000_00000000
+                        code |= (ulong)length << 56;
+                        return code;
+                    case 2:
+                        // 00000000_00000000_00000000_00000000_00000000_00000000_00000000_########
+                        code = (ulong)Unsafe.ReadUnaligned<byte>(p);
+
+                        // ########_00000000_00000000_00000000_00000000_00000000_00000000_00000000
+                        code |= (ulong)length << 56;
+                        return code;
+                    default:
+                        code = 0UL;
+                        return code;
+                }
+            }
         }
     }
 }

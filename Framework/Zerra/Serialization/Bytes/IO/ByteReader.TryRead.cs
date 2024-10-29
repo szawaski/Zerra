@@ -5898,5 +5898,38 @@ namespace Zerra.Serialization.Bytes.IO
             position += sizeNeeded;
             return true;
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe bool TryRead(out ReadOnlySpan<byte> value, out int sizeNeeded)
+        {
+            sizeNeeded = 4;
+            if (length - position < sizeNeeded
+#if DEBUG
+            || Skip()
+#endif
+            )
+            {
+                value = default;
+                return false;
+            }
+
+            sizeNeeded = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
+            if (sizeNeeded == 0)
+            {
+                value = default;
+                return true;
+            }
+
+            if (length - position < sizeNeeded)
+            {
+                sizeNeeded += 4;
+                position -= 4;
+                value = default;
+                return false;
+            }
+
+            value = buffer.Slice(position, sizeNeeded);
+            position += sizeNeeded;
+            return true;
+        }
     }
 }

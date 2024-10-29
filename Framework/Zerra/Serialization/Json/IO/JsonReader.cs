@@ -16,7 +16,9 @@ namespace Zerra.Serialization.Json.IO
 
         private readonly ReadOnlySpan<char> bufferChars;
         private readonly ReadOnlySpan<byte> bufferBytes;
+
         private bool useBytes;
+        public bool UseBytes => useBytes;
 
         private int position;
         private readonly int length;

@@ -2,7 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -32,6 +31,7 @@ namespace Zerra.Serialization.Json.Converters.General
 
         private readonly Dictionary<string, JsonConverterObjectMember> membersByName = new();
         private readonly List<JsonConverterObjectMember> members = new();
+        private MemberKey[] membersKeyed = null!;
 
         private bool collectValues;
         private ConstructorDetail<TValue>? parameterConstructor = null;
@@ -103,6 +103,8 @@ namespace Zerra.Serialization.Json.Converters.General
                     membersByName.Add(member.Name, detail);
                     members.Add(detail);
                 }
+
+                membersKeyed = members.Select(x => new MemberKey(x)).ToArray();
             }
 
             if (typeDetail.Type.IsValueType || !typeDetail.HasCreator)
@@ -120,7 +122,7 @@ namespace Zerra.Serialization.Json.Converters.General
                             break;
                         }
                         //must have a matching a member
-                        if (!membersByName.Values.Any(x => x.Member.Type == parameter.Type && MemberNameComparer.Instance.Equals(x.Member.Name, parameter.Name)))
+                        if (!members.Any(x => x.Member.Type == parameter.Type && MemberNameComparer.Instance.Equals(x.Member.Name, parameter.Name)))
                         {
                             skip = true;
                             break;
@@ -319,30 +321,161 @@ namespace Zerra.Serialization.Json.Converters.General
                 for (; ; )
                 {
                     JsonConverterObjectMember? member;
+                    MemberKey memberKey;
+                    var memberLength = members.Count;
+                    int nextIndex = state.Current.EnumeratorIndex;
+                    int prevIndex = state.Current.EnumeratorIndex - 1;
+
                     if (!state.Current.HasReadProperty)
                     {
-                        if (!reader.TryReadStringUnescapedQuoted(false, out var name, out state.CharsNeeded))
+                        if (reader.UseBytes)
                         {
-                            if (collectValues)
-                                state.Current.Object = collectedValues;
-                            else
-                                state.Current.Object = value;
-                            return false;
-                        }
-
-                        if (String.IsNullOrWhiteSpace(name))
-                            throw reader.CreateException("Unexpected character");
-
-                        member = null;
-                        if (membersByName!.TryGetValue(name!, out member))
-                        {
-                            if (member.IgnoreCondition == JsonIgnoreCondition.Always || member.IgnoreCondition == JsonIgnoreCondition.WhenReading)
+                            if (!reader.TryReadStringBytesQuoted(false, out var name, out state.CharsNeeded))
                             {
-                                member = null;
+                                if (collectValues)
+                                    state.Current.Object = collectedValues;
+                                else
+                                    state.Current.Object = value;
+                                return false;
                             }
-                            else if (state.Current.Graph is not null && !state.Current.Graph.HasMember(name))
+
+                            if (name.Length == 0)
+                                throw reader.CreateException("Unexpected character");
+
+                            for (; ; )
                             {
-                                member = null;
+                                if (nextIndex < memberLength)
+                                {
+                                    memberKey = membersKeyed[nextIndex];
+                                    if (MemberKey.IsEqual(memberKey, name))
+                                    {
+                                        member = memberKey.Member;
+                                        if (member.IgnoreCondition == JsonIgnoreCondition.WhenReading || (state.Current.Graph is not null && !state.Current.Graph.HasMember(member.Member.Name)))
+                                        {
+                                            nextIndex++;
+                                            continue;
+                                        }
+                                        state.Current.EnumeratorIndex = nextIndex + 1;
+                                        break;
+                                    }
+
+                                    if (prevIndex >= 0)
+                                    {
+                                        memberKey = membersKeyed[prevIndex];
+                                        if (MemberKey.IsEqual(memberKey, name))
+                                        {
+                                            member = memberKey.Member;
+                                            if (member.IgnoreCondition == JsonIgnoreCondition.WhenReading || (state.Current.Graph is not null && !state.Current.Graph.HasMember(member.Member.Name)))
+                                            {
+                                                prevIndex--;
+                                                nextIndex++;
+                                                continue;
+                                            }
+                                            state.Current.EnumeratorIndex = prevIndex + 1;
+                                            break;
+                                        }
+                                    }
+
+                                    prevIndex--;
+                                    nextIndex++;
+                                }
+                                else if (prevIndex >= 0)
+                                {
+                                    memberKey = membersKeyed[prevIndex];
+                                    if (MemberKey.IsEqual(memberKey, name))
+                                    {
+                                        member = memberKey.Member;
+                                        if (member.IgnoreCondition == JsonIgnoreCondition.WhenReading || (state.Current.Graph is not null && !state.Current.Graph.HasMember(member.Member.Name)))
+                                        {
+                                            prevIndex--;
+                                            continue;
+                                        }
+                                        state.Current.EnumeratorIndex = prevIndex + 1;
+                                        break;
+                                    }
+
+                                    prevIndex--;
+                                }
+                                else
+                                {
+                                    member = null;
+                                    break;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            if (!reader.TryReadStringCharsQuoted(false, out var name, out state.CharsNeeded))
+                            {
+                                if (collectValues)
+                                    state.Current.Object = collectedValues;
+                                else
+                                    state.Current.Object = value;
+                                return false;
+                            }
+
+                            if (name.Length == 0)
+                                throw reader.CreateException("Unexpected character");
+
+                            for (; ; )
+                            {
+                                if (nextIndex < memberLength)
+                                {
+                                    memberKey = membersKeyed[nextIndex];
+                                    if (MemberKey.IsEqual(memberKey, name))
+                                    {
+                                        member = memberKey.Member;
+                                        if (member.IgnoreCondition == JsonIgnoreCondition.WhenReading || (state.Current.Graph is not null && !state.Current.Graph.HasMember(member.Member.Name)))
+                                        {
+                                            nextIndex++;
+                                            continue;
+                                        }
+                                        state.Current.EnumeratorIndex = nextIndex + 1;
+                                        break;
+                                    }
+
+                                    if (prevIndex >= 0)
+                                    {
+                                        memberKey = membersKeyed[prevIndex];
+                                        if (MemberKey.IsEqual(memberKey, name))
+                                        {
+                                            member = memberKey.Member;
+                                            if (member.IgnoreCondition == JsonIgnoreCondition.WhenReading || (state.Current.Graph is not null && !state.Current.Graph.HasMember(member.Member.Name)))
+                                            {
+                                                prevIndex--;
+                                                nextIndex++;
+                                                continue;
+                                            }
+                                            state.Current.EnumeratorIndex = prevIndex + 1;
+                                            break;
+                                        }
+                                    }
+
+                                    prevIndex--;
+                                    nextIndex++;
+                                }
+                                else if (prevIndex >= 0)
+                                {
+                                    memberKey = membersKeyed[prevIndex];
+                                    if (MemberKey.IsEqual(memberKey, name))
+                                    {
+                                        member = memberKey.Member;
+                                        if (member.IgnoreCondition == JsonIgnoreCondition.WhenReading || (state.Current.Graph is not null && !state.Current.Graph.HasMember(member.Member.Name)))
+                                        {
+                                            prevIndex--;
+                                            continue;
+                                        }
+                                        state.Current.EnumeratorIndex = prevIndex + 1;
+                                        break;
+                                    }
+
+                                    prevIndex--;
+                                }
+                                else
+                                {
+                                    member = null;
+                                    break;
+                                }
                             }
                         }
                     }
@@ -505,7 +638,7 @@ namespace Zerra.Serialization.Json.Converters.General
                 while (state.Current.EnumeratorIndex < members.Count)
                 {
                     var current = members[state.Current.EnumeratorIndex];
-                    if (current.IgnoreCondition == JsonIgnoreCondition.Always || current.IgnoreCondition == JsonIgnoreCondition.WhenWriting)
+                    if (current.IgnoreCondition == JsonIgnoreCondition.WhenWriting)
                     {
                         state.Current.EnumeratorIndex++;
                         continue;
@@ -569,7 +702,7 @@ namespace Zerra.Serialization.Json.Converters.General
                 while (state.Current.EnumeratorIndex < members.Count)
                 {
                     var current = members[state.Current.EnumeratorIndex];
-                    if (current.IgnoreCondition == JsonIgnoreCondition.Always || current.IgnoreCondition == JsonIgnoreCondition.WhenWriting)
+                    if (current.IgnoreCondition == JsonIgnoreCondition.WhenWriting)
                     {
                         state.Current.EnumeratorIndex++;
                         continue;
