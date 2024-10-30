@@ -221,7 +221,7 @@ namespace Zerra.TestDev
 
             var option1 = new ByteSerializerOptions()
             {
-                IndexType = ByteSerializerIndexType.PropertyNames
+                IndexType = ByteSerializerIndexType.MemberNames
             };
             var option2 = new ByteSerializerOptions()
             {
@@ -229,7 +229,7 @@ namespace Zerra.TestDev
             };
             var option3 = new ByteSerializerOptions()
             {
-                IndexType = ByteSerializerIndexType.PropertyNames,
+                IndexType = ByteSerializerIndexType.MemberNames,
                 UseTypes = true
             };
 

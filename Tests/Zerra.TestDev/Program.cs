@@ -26,8 +26,8 @@ namespace Zerra.TestDev
             //TestMe();
             //TestMe2();
             //TestMe3();
-            JsonSerializerTest.CompareTestSpeed();
-            //ByteSerializerTest.CompareTestSpeed();
+            //JsonSerializerTest.CompareTestSpeed();
+            ByteSerializerTest.CompareTestSpeed();
 
             //TestMemory.TryFinallyOrDisposed();
             //InlineTest.Test();

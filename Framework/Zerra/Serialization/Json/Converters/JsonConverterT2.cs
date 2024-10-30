@@ -20,7 +20,7 @@ namespace Zerra.Serialization.Json.Converters
         private Func<TParent, TValue?>? getter;
         private Action<TParent, TValue?>? setter;
 
-        private bool isNullable;
+        private bool canBeNull;
         private bool isObject;
         private bool isInterfacedObject;
 
@@ -39,7 +39,7 @@ namespace Zerra.Serialization.Json.Converters
                 setter ??= (parent, value) => setterDelegate.DynamicInvoke(parent, value);
             }
 
-            isNullable = typeDetail.IsNullable || !typeDetail.Type.IsValueType;
+            canBeNull = typeDetail.IsNullable || !typeDetail.Type.IsValueType;
             isObject = typeDetail.Type == typeof(object);
             isInterfacedObject = typeDetail.Type.IsInterface && !typeDetail.HasIEnumerableGeneric && !typeDetail.HasIEnumerable;
 
@@ -136,7 +136,7 @@ namespace Zerra.Serialization.Json.Converters
         }
         public override sealed bool TryWriteBoxed(ref JsonWriter writer, ref WriteState state, in object? value)
         {
-            if (isNullable)
+            if (canBeNull)
             {
                 if (value is null)
                 {
@@ -275,7 +275,7 @@ namespace Zerra.Serialization.Json.Converters
         }
         public bool TryWrite(ref JsonWriter writer, ref WriteState state, TValue? value)
         {
-            if (isNullable)
+            if (canBeNull)
             {
                 if (value is null)
                 {
@@ -431,7 +431,7 @@ namespace Zerra.Serialization.Json.Converters
 
             if (propertyName is not null)
             {
-                if (isNullable && value is null)
+                if (canBeNull && value is null)
                 {
                     if (!ignoreDoNotWriteNullProperties && (ignoreCondition == JsonIgnoreCondition.WhenWritingNull || state.DoNotWriteNullProperties))
                     {
@@ -495,7 +495,7 @@ namespace Zerra.Serialization.Json.Converters
                     }
                 }
             }
-            else if (isNullable && value is null)
+            else if (canBeNull && value is null)
             {
                 if (!writer.TryWriteNull(out state.CharsNeeded))
                 {

@@ -127,7 +127,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
 
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TValue? value)
         {
-            if (indexSizeUInt16Only && !state.IndexSizeUInt16 && !state.UsePropertyNames)
+            if (indexSizeUInt16Only && !state.UseIndexSizeUInt16 && !state.UseMemberNames)
                 throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members or {nameof(SerializerIndexAttribute)} index too high for index size");
 
             Dictionary<string, object?>? collectedValues;
@@ -179,7 +179,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 ByteConverterObjectMember? member;
                 if (!state.Current.HasReadProperty)
                 {
-                    if (state.UsePropertyNames)
+                    if (state.UseMemberNames)
                     {
                         if (!reader.TryRead(out ReadOnlySpan<byte> name, out state.BytesNeeded))
                         {
@@ -248,7 +248,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     else
                     {
                         ushort propertyIndex;
-                        if (state.IndexSizeUInt16)
+                        if (state.UseIndexSizeUInt16)
                         {
                             if (!reader.TryRead(out propertyIndex, out state.BytesNeeded))
                             {
@@ -336,7 +336,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
 
                 if (member is null)
                 {
-                    if (!state.UsePropertyNames && !state.UseTypes)
+                    if (!state.UseMemberNames && !state.UseTypes)
                         throw new Exception($"Cannot deserialize with property undefined and no types.");
 
                     //consume bytes but object does not have property
@@ -426,7 +426,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
 
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in TValue value)
         {
-            if (indexSizeUInt16Only && !state.IndexSizeUInt16 && !state.UsePropertyNames)
+            if (indexSizeUInt16Only && !state.UseIndexSizeUInt16 && !state.UseMemberNames)
                 throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members or {nameof(SerializerIndexAttribute)} index too high for index size");
 
             MemberKey[] enumerator;
@@ -440,20 +440,20 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 var current = enumerator[state.Current.EnumeratorIndex].Member;
                 //Base will write the property name or index if the value is not null.
                 //Done this way so we don't have to extract the value twice due to null checking.
-                if (!current.Converter.TryWriteFromParent(ref writer, ref state, value, false, current.Index, state.UsePropertyNames ? current.NameAsBytes : null))
+                if (!current.Converter.TryWriteFromParent(ref writer, ref state, value, false, current.Index, state.UseMemberNames ? current.NameAsBytes : null))
                     return false;
 
                 state.Current.EnumeratorIndex++;
             }
 
-            if (state.UsePropertyNames)
+            if (state.UseMemberNames)
             {
                 if (!writer.TryWrite(0, out state.BytesNeeded))
                     return false;
             }
             else
             {
-                if (state.IndexSizeUInt16)
+                if (state.UseIndexSizeUInt16)
                 {
                     if (!writer.TryWriteRaw(endObjectFlagUInt16, out state.BytesNeeded))
                         return false;

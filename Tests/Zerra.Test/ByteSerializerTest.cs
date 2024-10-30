@@ -373,11 +373,11 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void UsePropertyNames()
+        public void IndexTypeMemberNames()
         {
             var options = new ByteSerializerOptions()
             {
-                IndexType = ByteSerializerIndexType.PropertyNames
+                IndexType = ByteSerializerIndexType.MemberNames
             };
 
             var model1 = TypesAllModel.Create();

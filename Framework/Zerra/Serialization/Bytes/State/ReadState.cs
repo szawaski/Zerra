@@ -19,8 +19,8 @@ namespace Zerra.Serialization.Bytes.State
 
         public bool UseTypes;
         public bool IgnoreIndexAttribute;
-        public bool UsePropertyNames;
-        public bool IndexSizeUInt16;
+        public bool UseMemberNames;
+        public bool UseIndexSizeUInt16;
 
         public ReadFrame Current;
         public int BytesNeeded;
@@ -34,8 +34,8 @@ namespace Zerra.Serialization.Bytes.State
         {
             UseTypes = options.UseTypes;
             IgnoreIndexAttribute = options.IgnoreIndexAttribute;
-            UsePropertyNames = options.IndexType == ByteSerializerIndexType.PropertyNames;
-            IndexSizeUInt16 = options.IndexType == ByteSerializerIndexType.UInt16;
+            UseMemberNames = options.IndexType == ByteSerializerIndexType.MemberNames;
+            UseIndexSizeUInt16 = options.IndexType == ByteSerializerIndexType.UInt16;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

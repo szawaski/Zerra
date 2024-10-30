@@ -16,7 +16,7 @@ namespace Zerra.Serialization.Bytes
 
             public OptionsStruct(ByteSerializerOptions options)
             {
-                this.UsePropertyNames = options.IndexType == ByteSerializerIndexType.PropertyNames;
+                this.UsePropertyNames = options.IndexType == ByteSerializerIndexType.MemberNames;
                 this.IncludePropertyTypes = options.UseTypes;
                 this.IgnoreIndexAttribute = options.IgnoreIndexAttribute;
                 this.IndexSize = options.IndexType;

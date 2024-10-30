@@ -47,7 +47,7 @@ namespace Zerra.Serialization.Bytes
             {
                 var state = new WriteState()
                 {
-                    UsePropertyNames = options.IndexType == ByteSerializerIndexType.PropertyNames,
+                    UsePropertyNames = options.IndexType == ByteSerializerIndexType.MemberNames,
                     IncludePropertyTypes = options.UseTypes,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSize = options.IndexType
@@ -116,7 +116,7 @@ namespace Zerra.Serialization.Bytes
             {
                 var state = new WriteState()
                 {
-                    UsePropertyNames = options.IndexType == ByteSerializerIndexType.PropertyNames,
+                    UsePropertyNames = options.IndexType == ByteSerializerIndexType.MemberNames,
                     IncludePropertyTypes = options.UseTypes,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSize = options.IndexType
@@ -195,7 +195,7 @@ namespace Zerra.Serialization.Bytes
             {
                 var state = new WriteState()
                 {
-                    UsePropertyNames = options.IndexType == ByteSerializerIndexType.PropertyNames,
+                    UsePropertyNames = options.IndexType == ByteSerializerIndexType.MemberNames,
                     IncludePropertyTypes = options.UseTypes,
                     IgnoreIndexAttribute = options.IgnoreIndexAttribute,
                     IndexSize = options.IndexType
