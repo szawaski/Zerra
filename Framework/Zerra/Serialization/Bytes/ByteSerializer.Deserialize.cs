@@ -441,7 +441,7 @@ namespace Zerra.Serialization.Bytes
                 if (!ByteWriter.Testing)
                     throw new Exception($"{nameof(state.SizeNeeded)} not indicated");
 #else
-                state.BytesNeeded = 1;
+                state.SizeNeeded = 1;
 #endif
             }
 #if DEBUG
@@ -468,7 +468,7 @@ namespace Zerra.Serialization.Bytes
                 if (!ByteWriter.Testing)
                     throw new Exception($"{nameof(state.SizeNeeded)} not indicated");
 #else
-                state.BytesNeeded = 1;
+                state.SizeNeeded = 1;
 #endif
             }
 #if DEBUG
