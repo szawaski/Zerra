@@ -10,7 +10,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.Arrays
     internal sealed class ByteConverterSByteArray<TParent> : ByteConverter<TParent, sbyte[]>
     {
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out sbyte[]? value)
-            => reader.TryRead(out value, out state.BytesNeeded);
+            => reader.TryRead(out value, out state.SizeNeeded);
 
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in sbyte[] value)
             => writer.TryWrite(value, value.Length, out state.BytesNeeded);

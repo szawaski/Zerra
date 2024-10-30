@@ -12,7 +12,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.ListTs
     internal sealed class ByteConverterGuidNullableList<TParent> : ByteConverter<TParent, List<Guid?>>
     {
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out List<Guid?>? value)
-            => reader.TryRead(out value, out state.BytesNeeded);
+            => reader.TryRead(out value, out state.SizeNeeded);
 
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in List<Guid?> value)
             => writer.TryWrite(value, value.Count, out state.BytesNeeded);

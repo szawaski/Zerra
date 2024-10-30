@@ -181,7 +181,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 {
                     if (state.UseMemberNames)
                     {
-                        if (!reader.TryRead(out ReadOnlySpan<byte> name, out state.BytesNeeded))
+                        if (!reader.TryRead(out ReadOnlySpan<byte> name, out state.SizeNeeded))
                         {
                             if (collectValues)
                                 state.Current.Object = collectedValues;
@@ -250,7 +250,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         ushort propertyIndex;
                         if (state.UseIndexSizeUInt16)
                         {
-                            if (!reader.TryRead(out propertyIndex, out state.BytesNeeded))
+                            if (!reader.TryRead(out propertyIndex, out state.SizeNeeded))
                             {
                                 if (collectValues)
                                     state.Current.Object = collectedValues;
@@ -261,7 +261,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         }
                         else
                         {
-                            if (!reader.TryRead(out byte propertyIndexValue, out state.BytesNeeded))
+                            if (!reader.TryRead(out byte propertyIndexValue, out state.SizeNeeded))
                             {
                                 if (collectValues)
                                     state.Current.Object = collectedValues;

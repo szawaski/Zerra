@@ -12,7 +12,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.IReadOnlyListTs
     {
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out IReadOnlyList<long>? value)
         {
-            if (!reader.TryRead(out List<long>? valueTyped, out state.BytesNeeded))
+            if (!reader.TryRead(out List<long>? valueTyped, out state.SizeNeeded))
             {
                 value = default;
                 return false;

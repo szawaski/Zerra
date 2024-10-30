@@ -31,7 +31,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
 
             if (state.Current.Object is null)
             {
-                if (!reader.TryRead(out int length, out state.BytesNeeded))
+                if (!reader.TryRead(out int length, out state.SizeNeeded))
                 {
                     value = default;
                     return false;

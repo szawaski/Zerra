@@ -23,7 +23,7 @@ namespace Zerra.Serialization.Bytes.State
         public bool UseIndexSizeUInt16;
 
         public ReadFrame Current;
-        public int BytesNeeded;
+        public int SizeNeeded;
 
         public bool EntryHasNullChecked;
         public Type? EntryReadType;

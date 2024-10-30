@@ -19,7 +19,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
             {
                 case CoreEnumType.Byte:
                     {
-                        if (!reader.TryRead(out byte number, out state.BytesNeeded))
+                        if (!reader.TryRead(out byte number, out state.SizeNeeded))
                         {
                             value = default;
                             return false;
@@ -32,7 +32,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreEnumType.SByte:
                     {
-                        if (!reader.TryRead(out sbyte number, out state.BytesNeeded))
+                        if (!reader.TryRead(out sbyte number, out state.SizeNeeded))
                         {
                             value = default;
                             return false;
@@ -45,7 +45,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreEnumType.Int16:
                     {
-                        if (!reader.TryRead(out short number, out state.BytesNeeded))
+                        if (!reader.TryRead(out short number, out state.SizeNeeded))
                         {
                             value = default;
                             return false;
@@ -58,7 +58,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreEnumType.UInt16:
                     {
-                        if (!reader.TryRead(out ushort number, out state.BytesNeeded))
+                        if (!reader.TryRead(out ushort number, out state.SizeNeeded))
                         {
                             value = default;
                             return false;
@@ -71,7 +71,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreEnumType.Int32:
                     {
-                        if (!reader.TryRead(out int number, out state.BytesNeeded))
+                        if (!reader.TryRead(out int number, out state.SizeNeeded))
                         {
                             value = default;
                             return false;
@@ -84,7 +84,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreEnumType.UInt32:
                     {
-                        if (!reader.TryRead(out uint number, out state.BytesNeeded))
+                        if (!reader.TryRead(out uint number, out state.SizeNeeded))
                         {
                             value = default;
                             return false;
@@ -97,7 +97,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreEnumType.Int64:
                     {
-                        if (!reader.TryRead(out long number, out state.BytesNeeded))
+                        if (!reader.TryRead(out long number, out state.SizeNeeded))
                         {
                             value = default;
                             return false;
@@ -110,7 +110,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreEnumType.UInt64:
                     {
-                        if (!reader.TryRead(out ulong number, out state.BytesNeeded))
+                        if (!reader.TryRead(out ulong number, out state.SizeNeeded))
                         {
                             value = default;
                             return false;
@@ -123,7 +123,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreEnumType.ByteNullable:
                     {
-                        if (!reader.TryRead(out byte? number, out state.BytesNeeded))
+                        if (!reader.TryRead(out byte? number, out state.SizeNeeded))
                         {
                             value = default;
                             return false;
@@ -141,7 +141,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreEnumType.SByteNullable:
                     {
-                        if (!reader.TryRead(out sbyte? number, out state.BytesNeeded))
+                        if (!reader.TryRead(out sbyte? number, out state.SizeNeeded))
                         {
                             value = default;
                             return false;
@@ -159,7 +159,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreEnumType.Int16Nullable:
                     {
-                        if (!reader.TryRead(out short? number, out state.BytesNeeded))
+                        if (!reader.TryRead(out short? number, out state.SizeNeeded))
                         {
                             value = default;
                             return false;
@@ -177,7 +177,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreEnumType.UInt16Nullable:
                     {
-                        if (!reader.TryRead(out ushort? number, out state.BytesNeeded))
+                        if (!reader.TryRead(out ushort? number, out state.SizeNeeded))
                         {
                             value = default;
                             return false;
@@ -195,7 +195,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreEnumType.Int32Nullable:
                     {
-                        if (!reader.TryRead(out int? number, out state.BytesNeeded))
+                        if (!reader.TryRead(out int? number, out state.SizeNeeded))
                         {
                             value = default;
                             return false;
@@ -213,7 +213,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreEnumType.UInt32Nullable:
                     {
-                        if (!reader.TryRead(out uint? number, out state.BytesNeeded))
+                        if (!reader.TryRead(out uint? number, out state.SizeNeeded))
                         {
                             value = default;
                             return false;
@@ -231,7 +231,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreEnumType.Int64Nullable:
                     {
-                        if (!reader.TryRead(out long? number, out state.BytesNeeded))
+                        if (!reader.TryRead(out long? number, out state.SizeNeeded))
                         {
                             value = default;
                             return false;
@@ -249,7 +249,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                 case CoreEnumType.UInt64Nullable:
                     {
-                        if (!reader.TryRead(out ulong? number, out state.BytesNeeded))
+                        if (!reader.TryRead(out ulong? number, out state.SizeNeeded))
                         {
                             value = default;
                             return false;

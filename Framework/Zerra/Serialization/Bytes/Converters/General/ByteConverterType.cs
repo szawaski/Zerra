@@ -15,7 +15,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
 
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out Type? value)
         {
-            if (!reader.TryRead(out string? typeName, out state.BytesNeeded))
+            if (!reader.TryRead(out string? typeName, out state.SizeNeeded))
             {
                 value = default;
                 return false;

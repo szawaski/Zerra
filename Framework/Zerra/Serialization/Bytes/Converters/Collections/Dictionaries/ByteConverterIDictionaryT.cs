@@ -29,7 +29,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Dictionaries
         {
             if (!state.Current.EnumerableLength.HasValue)
             {
-                if (!reader.TryRead(out state.Current.EnumerableLength, out state.BytesNeeded))
+                if (!reader.TryRead(out state.Current.EnumerableLength, out state.SizeNeeded))
                 {
                     value = default;
                     return false;

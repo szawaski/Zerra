@@ -12,7 +12,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.ISetTs
     {
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out ISet<short>? value)
         {
-            if (!reader.TryRead(out HashSet<short>? valueTyped, out state.BytesNeeded))
+            if (!reader.TryRead(out HashSet<short>? valueTyped, out state.SizeNeeded))
             {
                 value = default;
                 return false;

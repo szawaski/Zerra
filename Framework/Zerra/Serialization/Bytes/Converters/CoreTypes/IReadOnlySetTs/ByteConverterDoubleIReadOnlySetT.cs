@@ -15,7 +15,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.IReadOnlySetTs
     {
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out IReadOnlySet<double>? value)
         {
-            if (!reader.TryRead(out HashSet<double>? valueTyped, out state.BytesNeeded))
+            if (!reader.TryRead(out HashSet<double>? valueTyped, out state.SizeNeeded))
             {
                 value = default;
                 return false;

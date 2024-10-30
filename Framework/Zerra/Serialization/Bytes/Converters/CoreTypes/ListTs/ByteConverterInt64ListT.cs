@@ -11,7 +11,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.ListTs
     internal sealed class ByteConverterInt64List<TParent> : ByteConverter<TParent, List<long>>
     {
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out List<long>? value)
-            => reader.TryRead(out value, out state.BytesNeeded);
+            => reader.TryRead(out value, out state.SizeNeeded);
 
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in List<long> value)
             => writer.TryWrite(value, value.Count, out state.BytesNeeded);

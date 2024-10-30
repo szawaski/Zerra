@@ -32,7 +32,7 @@ namespace Zerra.Serialization.Bytes
 
             Read(converter, bytes, ref state, out result);
 
-            if (state.BytesNeeded > 0)
+            if (state.SizeNeeded > 0)
                 throw new EndOfStreamException();
 
             return result;
@@ -51,7 +51,7 @@ namespace Zerra.Serialization.Bytes
 
             ReadBoxed(converter, bytes, ref state, out result);
 
-            if (state.BytesNeeded > 0)
+            if (state.SizeNeeded > 0)
                 throw new EndOfStreamException();
 
             return result;
@@ -101,7 +101,7 @@ namespace Zerra.Serialization.Bytes
                 {
                     var bytesUsed = Read(converter, buffer.AsSpan().Slice(0, length), ref state, out result);
 
-                    if (state.BytesNeeded == 0)
+                    if (state.SizeNeeded == 0)
                     {
                         if (!isFinalBlock)
                             throw new EndOfStreamException();
@@ -114,8 +114,8 @@ namespace Zerra.Serialization.Bytes
                     BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
 
-                    if (length + state.BytesNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, length + state.BytesNeeded);
+                    if (length + state.SizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, length + state.SizeNeeded);
 
                     while (length < buffer.Length)
                     {
@@ -133,10 +133,10 @@ namespace Zerra.Serialization.Bytes
                         length += read;
                     }
 
-                    if (length < state.BytesNeeded)
+                    if (length < state.SizeNeeded)
                         throw new EndOfStreamException();
 
-                    state.BytesNeeded = 0;
+                    state.SizeNeeded = 0;
                 }
 
                 return result;
@@ -193,7 +193,7 @@ namespace Zerra.Serialization.Bytes
                 {
                     var bytesUsed = ReadBoxed(converter, buffer.AsSpan().Slice(0, length), ref state, out result);
 
-                    if (state.BytesNeeded == 0)
+                    if (state.SizeNeeded == 0)
                     {
                         if (!isFinalBlock)
                             throw new EndOfStreamException();
@@ -206,8 +206,8 @@ namespace Zerra.Serialization.Bytes
                     BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
 
-                    if (length + state.BytesNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, length + state.BytesNeeded);
+                    if (length + state.SizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, length + state.SizeNeeded);
 
                     while (length < buffer.Length)
                     {
@@ -225,10 +225,10 @@ namespace Zerra.Serialization.Bytes
                         length += read;
                     }
 
-                    if (length < state.BytesNeeded)
+                    if (length < state.SizeNeeded)
                         throw new EndOfStreamException();
 
-                    state.BytesNeeded = 0;
+                    state.SizeNeeded = 0;
                 }
 
                 return result;
@@ -284,7 +284,7 @@ namespace Zerra.Serialization.Bytes
                 {
                     var bytesUsed = Read(converter, buffer.AsSpan().Slice(0, length), ref state, out result);
 
-                    if (state.BytesNeeded == 0)
+                    if (state.SizeNeeded == 0)
                     {
                         if (!isFinalBlock)
                             throw new EndOfStreamException();
@@ -297,8 +297,8 @@ namespace Zerra.Serialization.Bytes
                     BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
 
-                    if (length + state.BytesNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, length + state.BytesNeeded);
+                    if (length + state.SizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, length + state.SizeNeeded);
 
                     while (length < buffer.Length)
                     {
@@ -316,10 +316,10 @@ namespace Zerra.Serialization.Bytes
                         length += read;
                     }
 
-                    if (length < state.BytesNeeded)
+                    if (length < state.SizeNeeded)
                         throw new EndOfStreamException();
 
-                    state.BytesNeeded = 0;
+                    state.SizeNeeded = 0;
                 }
 
                 return result;
@@ -376,7 +376,7 @@ namespace Zerra.Serialization.Bytes
                 {
                     var bytesUsed = ReadBoxed(converter, buffer.AsSpan().Slice(0, length), ref state, out result);
 
-                    if (state.BytesNeeded == 0)
+                    if (state.SizeNeeded == 0)
                     {
                         if (!isFinalBlock)
                             throw new EndOfStreamException();
@@ -389,8 +389,8 @@ namespace Zerra.Serialization.Bytes
                     BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
 
-                    if (length + state.BytesNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, length + state.BytesNeeded);
+                    if (length + state.SizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, length + state.SizeNeeded);
 
                     while (length < buffer.Length)
                     {
@@ -408,10 +408,10 @@ namespace Zerra.Serialization.Bytes
                         length += read;
                     }
 
-                    if (length < state.BytesNeeded)
+                    if (length < state.SizeNeeded)
                         throw new EndOfStreamException();
 
-                    state.BytesNeeded = 0;
+                    state.SizeNeeded = 0;
                 }
 
                 return result;
@@ -433,19 +433,19 @@ namespace Zerra.Serialization.Bytes
             var read = converter.TryRead(ref reader, ref state, out result);
             if (read)
             {
-                state.BytesNeeded = 0;
+                state.SizeNeeded = 0;
             }
-            else if (state.BytesNeeded == 0)
+            else if (state.SizeNeeded == 0)
             {
 #if DEBUG
                 if (!ByteWriter.Testing)
-                    throw new Exception($"{nameof(state.BytesNeeded)} not indicated");
+                    throw new Exception($"{nameof(state.SizeNeeded)} not indicated");
 #else
                 state.BytesNeeded = 1;
 #endif
             }
 #if DEBUG
-            if (!read && ByteReader.Testing && reader.Position + state.BytesNeeded <= reader.Length)
+            if (!read && ByteReader.Testing && reader.Position + state.SizeNeeded <= reader.Length)
                 goto again;
 #endif
             return reader.Position;
@@ -460,19 +460,19 @@ namespace Zerra.Serialization.Bytes
             var read = converter.TryReadBoxed(ref reader, ref state, out result);
             if (read)
             {
-                state.BytesNeeded = 0;
+                state.SizeNeeded = 0;
             }
-            else if (state.BytesNeeded == 0)
+            else if (state.SizeNeeded == 0)
             {
 #if DEBUG
                 if (!ByteWriter.Testing)
-                    throw new Exception($"{nameof(state.BytesNeeded)} not indicated");
+                    throw new Exception($"{nameof(state.SizeNeeded)} not indicated");
 #else
                 state.BytesNeeded = 1;
 #endif
             }
 #if DEBUG
-            if (!read && ByteReader.Testing && reader.Position + state.BytesNeeded <= reader.Length)
+            if (!read && ByteReader.Testing && reader.Position + state.SizeNeeded <= reader.Length)
                 goto again;
 #endif
             return reader.Position;

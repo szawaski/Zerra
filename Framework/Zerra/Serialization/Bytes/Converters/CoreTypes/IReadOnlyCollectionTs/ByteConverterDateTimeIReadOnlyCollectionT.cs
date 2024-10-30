@@ -13,7 +13,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.IReadOnlyCollectionTs
     {
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out IReadOnlyCollection<DateTime>? value)
         {
-            if (!reader.TryRead(out List<DateTime>? valueTyped, out state.BytesNeeded))
+            if (!reader.TryRead(out List<DateTime>? valueTyped, out state.SizeNeeded))
             {
                 value = default;
                 return false;

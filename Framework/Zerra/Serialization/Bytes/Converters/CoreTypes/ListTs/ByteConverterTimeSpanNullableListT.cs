@@ -12,7 +12,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.ListTs
     internal sealed class ByteConverterTimeSpanNullableList<TParent> : ByteConverter<TParent, List<TimeSpan?>>
     {
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out List<TimeSpan?>? value)
-            => reader.TryRead(out value, out state.BytesNeeded);
+            => reader.TryRead(out value, out state.SizeNeeded);
 
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in List<TimeSpan?> value)
             => writer.TryWrite(value, value.Count, out state.BytesNeeded);

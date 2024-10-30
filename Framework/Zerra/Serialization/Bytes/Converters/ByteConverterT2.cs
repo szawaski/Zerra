@@ -51,7 +51,7 @@ namespace Zerra.Serialization.Bytes.Converters
         {
             if (canBeNull && !state.EntryHasNullChecked)
             {
-                if (!reader.TryReadIsNull(out var isNull, out state.BytesNeeded))
+                if (!reader.TryReadIsNull(out var isNull, out state.SizeNeeded))
                 {
                     returnValue = default;
                     return false;
@@ -68,7 +68,7 @@ namespace Zerra.Serialization.Bytes.Converters
             {
                 if (state.EntryReadType is null)
                 {
-                    if (!reader.TryRead(out string? typeName, out state.BytesNeeded))
+                    if (!reader.TryRead(out string? typeName, out state.SizeNeeded))
                     {
                         state.EntryHasNullChecked = true;
                         returnValue = default;
@@ -265,7 +265,7 @@ namespace Zerra.Serialization.Bytes.Converters
         {
             if (canBeNull && !state.EntryHasNullChecked)
             {
-                if (!reader.TryReadIsNull(out var isNull, out state.BytesNeeded))
+                if (!reader.TryReadIsNull(out var isNull, out state.SizeNeeded))
                 {
                     returnValue = default;
                     return false;
@@ -282,7 +282,7 @@ namespace Zerra.Serialization.Bytes.Converters
             {
                 if (state.EntryReadType is null)
                 {
-                    if (!reader.TryRead(out string? typeName, out state.BytesNeeded))
+                    if (!reader.TryRead(out string? typeName, out state.SizeNeeded))
                     {
                         state.EntryHasNullChecked = true;
                         returnValue = default;
@@ -478,7 +478,7 @@ namespace Zerra.Serialization.Bytes.Converters
         {
             if (nullFlags && canBeNull && !state.Current.ChildHasNullChecked)
             {
-                if (!reader.TryReadIsNull(out var isNull, out state.BytesNeeded))
+                if (!reader.TryReadIsNull(out var isNull, out state.SizeNeeded))
                     return false;
 
                 if (isNull)
@@ -493,7 +493,7 @@ namespace Zerra.Serialization.Bytes.Converters
             {
                 if (state.Current.ChildReadType is null)
                 {
-                    if (!reader.TryRead(out string? typeName, out state.BytesNeeded))
+                    if (!reader.TryRead(out string? typeName, out state.SizeNeeded))
                     {
                         state.Current.ChildHasNullChecked = true;
                         return false;

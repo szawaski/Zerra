@@ -12,7 +12,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.HashSetTs
     internal sealed class ByteConverterDateTimeNullableHashSet<TParent> : ByteConverter<TParent, HashSet<DateTime?>>
     {
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out HashSet<DateTime?>? value)
-            => reader.TryRead(out value, out state.BytesNeeded);
+            => reader.TryRead(out value, out state.SizeNeeded);
 
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in HashSet<DateTime?> value)
             => writer.TryWrite(value, value.Count, out state.BytesNeeded);

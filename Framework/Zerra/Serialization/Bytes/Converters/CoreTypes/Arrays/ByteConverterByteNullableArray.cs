@@ -10,7 +10,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.Arrays
     internal sealed class ByteConverterByteNullableArray<TParent> : ByteConverter<TParent, byte?[]>
     {
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out byte?[]? value)
-            => reader.TryRead(out value, out state.BytesNeeded);
+            => reader.TryRead(out value, out state.SizeNeeded);
 
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in byte?[] value)
             => writer.TryWrite(value, value.Length, out state.BytesNeeded);
