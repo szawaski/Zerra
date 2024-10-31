@@ -1399,7 +1399,11 @@ namespace Zerra.Serialization.Json.IO
 
             if (useBytes)
             {
+#if NET8_0_OR_GREATER
+                _ = value.TryFormat(bufferBytes.Slice(position), out var written);
+#else
                 _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
+#endif
                 position += written;
             }
             else
