@@ -53,6 +53,8 @@ namespace Zerra.Test
 #endif
         public Guid? GuidThingNullable { get; set; }
 
+        public string? StringThing { get; set; }
+
         public static TypesCoreModel Create()
         {
             var model = new TypesCoreModel()
@@ -100,6 +102,8 @@ namespace Zerra.Test
                 TimeOnlyThingNullable = TimeOnly.FromDateTime(DateTime.UtcNow.AddMonths(1)),
 #endif
                 GuidThingNullable = Guid.NewGuid(),
+
+                StringThing = "abcdefghijklmnopqrstuvwxy\r\n\tz"
             };
             return model;
         }
