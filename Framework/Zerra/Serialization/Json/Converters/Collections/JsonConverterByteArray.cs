@@ -21,7 +21,7 @@ namespace Zerra.Serialization.Json.Converters.Collections
                 return Drain(ref reader, ref state, valueType);
             }
 
-            if (!reader.TryReadStringUnescapedQuoted(true, out var str, out state.CharsNeeded))
+            if (!reader.TryReadStringUnescapedQuoted(true, out var str, out state.SizeNeeded))
             {
                 value = default;
                 return false;
@@ -44,7 +44,7 @@ namespace Zerra.Serialization.Json.Converters.Collections
             {
                 if (value.Length == 0)
                 {
-                    if (!writer.TryWriteEmptyString(out state.CharsNeeded))
+                    if (!writer.TryWriteEmptyString(out state.SizeNeeded))
                     {
                         return false;
                     }
@@ -58,7 +58,7 @@ namespace Zerra.Serialization.Json.Converters.Collections
                 str = (string)state.Current.Object!;
             }
 
-            if (!writer.TryWriteQuoted(str, out state.CharsNeeded))
+            if (!writer.TryWriteQuoted(str, out state.SizeNeeded))
             {
                 state.Current.Object = str;
                 return false;

@@ -33,7 +33,7 @@ namespace Zerra.Serialization.Json
 
             var result = Write(converter, defaultBufferSize, ref state, obj);
 
-            if (state.CharsNeeded > 0)
+            if (state.SizeNeeded > 0)
                 throw new EndOfStreamException();
 
             return result;
@@ -52,7 +52,7 @@ namespace Zerra.Serialization.Json
 
             var result = WriteBoxed(converter, defaultBufferSize, ref state, obj);
 
-            if (state.CharsNeeded > 0)
+            if (state.SizeNeeded > 0)
                 throw new EndOfStreamException();
 
             return result;
@@ -74,7 +74,7 @@ namespace Zerra.Serialization.Json
 
             var result = WriteBoxed(converter, defaultBufferSize, ref state, obj);
 
-            if (state.CharsNeeded > 0)
+            if (state.SizeNeeded > 0)
                 throw new EndOfStreamException();
 
             return result;
@@ -94,7 +94,7 @@ namespace Zerra.Serialization.Json
 
             var result = WriteBytes(converter, defaultBufferSize, ref state, obj);
 
-            if (state.CharsNeeded > 0)
+            if (state.SizeNeeded > 0)
                 throw new EndOfStreamException();
 
             return result;
@@ -113,7 +113,7 @@ namespace Zerra.Serialization.Json
 
             var result = WriteBoxedBytes(converter, defaultBufferSize, ref state, obj);
 
-            if (state.CharsNeeded > 0)
+            if (state.SizeNeeded > 0)
                 throw new EndOfStreamException();
 
             return result;
@@ -135,7 +135,7 @@ namespace Zerra.Serialization.Json
 
             var result = WriteBoxedBytes(converter, defaultBufferSize, ref state, obj);
 
-            if (state.CharsNeeded > 0)
+            if (state.SizeNeeded > 0)
                 throw new EndOfStreamException();
 
             return result;
@@ -169,13 +169,13 @@ namespace Zerra.Serialization.Json
                     stream.Write(buffer.AsSpan(0, usedBytes));
 #endif
 
-                    if (state.CharsNeeded == 0)
+                    if (state.SizeNeeded == 0)
                         break;
 
-                    if (state.CharsNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, state.CharsNeeded);
+                    if (state.SizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, state.SizeNeeded);
 
-                    state.CharsNeeded = 0;
+                    state.SizeNeeded = 0;
                 }
             }
             finally
@@ -211,13 +211,13 @@ namespace Zerra.Serialization.Json
                     stream.Write(buffer.AsSpan(0, usedBytes));
 #endif
 
-                    if (state.CharsNeeded == 0)
+                    if (state.SizeNeeded == 0)
                         break;
 
-                    if (state.CharsNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, state.CharsNeeded);
+                    if (state.SizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, state.SizeNeeded);
 
-                    state.CharsNeeded = 0;
+                    state.SizeNeeded = 0;
                 }
             }
             finally
@@ -255,13 +255,13 @@ namespace Zerra.Serialization.Json
                     stream.Write(buffer.AsSpan(0, usedBytes));
 #endif
 
-                    if (state.CharsNeeded == 0)
+                    if (state.SizeNeeded == 0)
                         break;
 
-                    if (state.CharsNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, state.CharsNeeded);
+                    if (state.SizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, state.SizeNeeded);
 
-                    state.CharsNeeded = 0;
+                    state.SizeNeeded = 0;
                 }
             }
             finally
@@ -305,13 +305,13 @@ namespace Zerra.Serialization.Json
                     await stream.WriteAsync(buffer.AsMemory(0, usedBytes));
 #endif
 
-                    if (state.CharsNeeded == 0)
+                    if (state.SizeNeeded == 0)
                         break;
 
-                    if (state.CharsNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, state.CharsNeeded);
+                    if (state.SizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, state.SizeNeeded);
 
-                    state.CharsNeeded = 0;
+                    state.SizeNeeded = 0;
                 }
             }
             finally
@@ -354,13 +354,13 @@ namespace Zerra.Serialization.Json
                     await stream.WriteAsync(buffer.AsMemory(0, usedBytes));
 #endif
 
-                    if (state.CharsNeeded == 0)
+                    if (state.SizeNeeded == 0)
                         break;
 
-                    if (state.CharsNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, state.CharsNeeded);
+                    if (state.SizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, state.SizeNeeded);
 
-                    state.CharsNeeded = 0;
+                    state.SizeNeeded = 0;
                 }
             }
             finally
@@ -405,13 +405,13 @@ namespace Zerra.Serialization.Json
                     await stream.WriteAsync(buffer.AsMemory(0, usedBytes));
 #endif
 
-                    if (state.CharsNeeded == 0)
+                    if (state.SizeNeeded == 0)
                         break;
 
-                    if (state.CharsNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, state.CharsNeeded);
+                    if (state.SizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, state.SizeNeeded);
 
-                    state.CharsNeeded = 0;
+                    state.SizeNeeded = 0;
                 }
             }
             finally
@@ -432,14 +432,14 @@ namespace Zerra.Serialization.Json
                 var write = converter.TryWrite(ref writer, ref state, value);
                 if (write)
                 {
-                    state.CharsNeeded = 0;
+                    state.SizeNeeded = 0;
                 }
-                else if (state.CharsNeeded == 0)
+                else if (state.SizeNeeded == 0)
                 {
 #if DEBUG
                     throw new Exception($"{nameof(state.CharsNeeded)} not indicated");
 #else
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
 #endif
                 }
 #if DEBUG
@@ -466,14 +466,14 @@ namespace Zerra.Serialization.Json
                 var write = converter.TryWriteBoxed(ref writer, ref state, value);
                 if (write)
                 {
-                    state.CharsNeeded = 0;
+                    state.SizeNeeded = 0;
                 }
-                else if (state.CharsNeeded == 0)
+                else if (state.SizeNeeded == 0)
                 {
 #if DEBUG
                     throw new Exception($"{nameof(state.CharsNeeded)} not indicated");
 #else
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
 #endif
                 }
 #if DEBUG
@@ -501,14 +501,14 @@ namespace Zerra.Serialization.Json
                 var write = converter.TryWrite(ref writer, ref state, value);
                 if (write)
                 {
-                    state.CharsNeeded = 0;
+                    state.SizeNeeded = 0;
                 }
-                else if (state.CharsNeeded == 0)
+                else if (state.SizeNeeded == 0)
                 {
 #if DEBUG
                     throw new Exception($"{nameof(state.CharsNeeded)} not indicated");
 #else
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
 #endif
                 }
 #if DEBUG
@@ -535,14 +535,14 @@ namespace Zerra.Serialization.Json
                 var write = converter.TryWriteBoxed(ref writer, ref state, value);
                 if (write)
                 {
-                    state.CharsNeeded = 0;
+                    state.SizeNeeded = 0;
                 }
-                else if (state.CharsNeeded == 0)
+                else if (state.SizeNeeded == 0)
                 {
 #if DEBUG
                     throw new Exception($"{nameof(state.CharsNeeded)} not indicated");
 #else
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
 #endif
                 }
 #if DEBUG
@@ -571,14 +571,14 @@ namespace Zerra.Serialization.Json
                 var write = converter.TryWrite(ref writer, ref state, value);
                 if (write)
                 {
-                    state.CharsNeeded = 0;
+                    state.SizeNeeded = 0;
                 }
-                else if (state.CharsNeeded == 0)
+                else if (state.SizeNeeded == 0)
                 {
 #if DEBUG
                     throw new Exception($"{nameof(state.CharsNeeded)} not indicated");
 #else
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
 #endif
                 }
 #if DEBUG
@@ -604,14 +604,14 @@ namespace Zerra.Serialization.Json
                 var write = converter.TryWriteBoxed(ref writer, ref state, value);
                 if (write)
                 {
-                    state.CharsNeeded = 0;
+                    state.SizeNeeded = 0;
                 }
-                else if (state.CharsNeeded == 0)
+                else if (state.SizeNeeded == 0)
                 {
 #if DEBUG
                     throw new Exception($"{nameof(state.CharsNeeded)} not indicated");
 #else
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
 #endif
                 }
 #if DEBUG

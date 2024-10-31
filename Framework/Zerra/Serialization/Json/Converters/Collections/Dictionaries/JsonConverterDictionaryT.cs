@@ -64,7 +64,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                 {
                     if (!reader.TryReadNextSkipWhiteSpace(out c))
                     {
-                        state.CharsNeeded = 1;
+                        state.SizeNeeded = 1;
                         value = default;
                         return false;
                     }
@@ -102,7 +102,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                     {
                         if (!reader.TryReadNextSkipWhiteSpace(out c))
                         {
-                            state.CharsNeeded = 1;
+                            state.SizeNeeded = 1;
                             state.Current.HasReadProperty = true;
                             state.Current.Object = accessor;
                             value = default;
@@ -126,7 +126,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
 
                     if (!reader.TryReadNextSkipWhiteSpace(out c))
                     {
-                        state.CharsNeeded = 1;
+                        state.SizeNeeded = 1;
                         state.Current.HasReadProperty = true;
                         state.Current.HasReadSeperator = true;
                         state.Current.HasReadValue = true;
@@ -155,7 +155,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                 {
                     if (!reader.TryReadNextSkipWhiteSpace(out c))
                     {
-                        state.CharsNeeded = 1;
+                        state.SizeNeeded = 1;
                         value = default;
                         return false;
                     }
@@ -186,7 +186,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
 
                     if (!reader.TryReadNextSkipWhiteSpace(out c))
                     {
-                        state.CharsNeeded = 1;
+                        state.SizeNeeded = 1;
                         state.Current.HasCreated = true;
                         state.Current.Object = value;
                         state.Current.HasReadValue = true;
@@ -223,14 +223,14 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                 {
                     if (value.Count == 0)
                     {
-                        if (!writer.TryWriteEmptyBrace(out state.CharsNeeded))
+                        if (!writer.TryWriteEmptyBrace(out state.SizeNeeded))
                         {
                             return false;
                         }
                         return true;
                     }
 
-                    if (!writer.TryWriteOpenBrace(out state.CharsNeeded))
+                    if (!writer.TryWriteOpenBrace(out state.SizeNeeded))
                     {
                         return false;
                     }
@@ -258,7 +258,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                         state.Current.EnumeratorInProgress = false;
                 }
 
-                if (!writer.TryWriteCloseBrace(out state.CharsNeeded))
+                if (!writer.TryWriteCloseBrace(out state.SizeNeeded))
                 {
                     state.Current.HasWrittenStart = true;
                     return false;
@@ -272,14 +272,14 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                 {
                     if (value.Count == 0)
                     {
-                        if (!writer.TryWriteEmptyBracket(out state.CharsNeeded))
+                        if (!writer.TryWriteEmptyBracket(out state.SizeNeeded))
                         {
                             return false;
                         }
                         return true;
                     }
 
-                    if (!writer.TryWriteOpenBracket(out state.CharsNeeded))
+                    if (!writer.TryWriteOpenBracket(out state.SizeNeeded))
                     {
                         return false;
                     }
@@ -294,7 +294,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                 {
                     if (state.Current.HasWrittenFirst && !state.Current.HasWrittenSeperator)
                     {
-                        if (!writer.TryWriteComma(out state.CharsNeeded))
+                        if (!writer.TryWriteComma(out state.SizeNeeded))
                         {
                             state.Current.HasWrittenStart = true;
                             state.Current.Object = enumerator;
@@ -323,7 +323,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                         state.Current.EnumeratorInProgress = false;
                 }
 
-                if (!writer.TryWriteCloseBracket(out state.CharsNeeded))
+                if (!writer.TryWriteCloseBracket(out state.SizeNeeded))
                 {
                     state.Current.HasWrittenStart = true;
                     return false;

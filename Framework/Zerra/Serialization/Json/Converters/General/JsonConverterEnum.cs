@@ -29,7 +29,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     value = default;
                     return DrainArray(ref reader, ref state);
                 case JsonValueType.String:
-                    if (!reader.TryReadStringUnescapedQuoted(true, out var str, out state.CharsNeeded))
+                    if (!reader.TryReadStringUnescapedQuoted(true, out var str, out state.SizeNeeded))
                     {
                         value = default;
                         return false;
@@ -86,7 +86,7 @@ namespace Zerra.Serialization.Json.Converters.General
         {
             if (value is null)
             {
-                if (!writer.TryWriteNull(out state.CharsNeeded))
+                if (!writer.TryWriteNull(out state.SizeNeeded))
                     return false;
                 return true;
             }
@@ -100,42 +100,42 @@ namespace Zerra.Serialization.Json.Converters.General
                 {
                     case CoreEnumType.Byte:
                     case CoreEnumType.ByteNullable:
-                        if (!writer.TryWrite((byte)(object)value, out state.CharsNeeded))
+                        if (!writer.TryWrite((byte)(object)value, out state.SizeNeeded))
                             return false;
                         return true;
                     case CoreEnumType.SByte:
                     case CoreEnumType.SByteNullable:
-                        if (!writer.TryWrite((sbyte)(object)value, out state.CharsNeeded))
+                        if (!writer.TryWrite((sbyte)(object)value, out state.SizeNeeded))
                             return false;
                         return true;
                     case CoreEnumType.Int16:
                     case CoreEnumType.Int16Nullable:
-                        if (!writer.TryWrite((short)(object)value, out state.CharsNeeded))
+                        if (!writer.TryWrite((short)(object)value, out state.SizeNeeded))
                             return false;
                         return true;
                     case CoreEnumType.UInt16:
                     case CoreEnumType.UInt16Nullable:
-                        if (!writer.TryWrite((ushort)(object)value, out state.CharsNeeded))
+                        if (!writer.TryWrite((ushort)(object)value, out state.SizeNeeded))
                             return false;
                         return true;
                     case CoreEnumType.Int32:
                     case CoreEnumType.Int32Nullable:
-                        if (!writer.TryWrite((int)(object)value, out state.CharsNeeded))
+                        if (!writer.TryWrite((int)(object)value, out state.SizeNeeded))
                             return false;
                         return true;
                     case CoreEnumType.UInt32:
                     case CoreEnumType.UInt32Nullable:
-                        if (!writer.TryWrite((uint)(object)value, out state.CharsNeeded))
+                        if (!writer.TryWrite((uint)(object)value, out state.SizeNeeded))
                             return false;
                         return true;
                     case CoreEnumType.Int64:
                     case CoreEnumType.Int64Nullable:
-                        if (!writer.TryWrite((long)(object)value, out state.CharsNeeded))
+                        if (!writer.TryWrite((long)(object)value, out state.SizeNeeded))
                             return false;
                         return true;
                     case CoreEnumType.UInt64:
                     case CoreEnumType.UInt64Nullable:
-                        if (!writer.TryWrite((ulong)(object)value, out state.CharsNeeded))
+                        if (!writer.TryWrite((ulong)(object)value, out state.SizeNeeded))
                             return false;
                         return true;
                     default: throw new NotSupportedException();
@@ -143,7 +143,7 @@ namespace Zerra.Serialization.Json.Converters.General
             }
             else
             {
-                if (!writer.TryWriteQuoted(EnumName.GetName(typeDetail.IsNullable ? typeDetail.InnerType : typeDetail.Type, value), out state.CharsNeeded))
+                if (!writer.TryWriteQuoted(EnumName.GetName(typeDetail.IsNullable ? typeDetail.InnerType : typeDetail.Type, value), out state.SizeNeeded))
                     return false;
                 return true;
             }

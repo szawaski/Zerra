@@ -52,7 +52,7 @@ namespace Zerra.Serialization.Json.Converters
         {
             if (state.EntryValueType == JsonValueType.NotDetermined)
             {
-                if (!reader.TryReadValueType(out state.EntryValueType, out state.CharsNeeded))
+                if (!reader.TryReadValueType(out state.EntryValueType, out state.SizeNeeded))
                 {
                     returnValue = default;
                     return false;
@@ -140,7 +140,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (value is null)
                 {
-                    if (!writer.TryWriteNull(out state.CharsNeeded))
+                    if (!writer.TryWriteNull(out state.SizeNeeded))
                     {
                         return false;
                     }
@@ -191,7 +191,7 @@ namespace Zerra.Serialization.Json.Converters
         {
             if (state.EntryValueType == JsonValueType.NotDetermined)
             {
-                if (!reader.TryReadValueType(out state.EntryValueType, out state.CharsNeeded))
+                if (!reader.TryReadValueType(out state.EntryValueType, out state.SizeNeeded))
                 {
                     returnValue = default;
                     return false;
@@ -279,7 +279,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (value is null)
                 {
-                    if (!writer.TryWriteNull(out state.CharsNeeded))
+                    if (!writer.TryWriteNull(out state.SizeNeeded))
                     {
                         return false;
                     }
@@ -328,7 +328,7 @@ namespace Zerra.Serialization.Json.Converters
         {
             if (state.Current.ChildValueType == JsonValueType.NotDetermined)
             {
-                if (!reader.TryReadValueType(out state.Current.ChildValueType, out state.CharsNeeded))
+                if (!reader.TryReadValueType(out state.Current.ChildValueType, out state.SizeNeeded))
                 {
                     return false;
                 }
@@ -442,14 +442,14 @@ namespace Zerra.Serialization.Json.Converters
                     {
                         if (writer.UseBytes)
                         {
-                            if (!writer.TryWriteNameSegment(jsonNameSegmentBytes, state.Current.HasWrittenFirst, out state.CharsNeeded))
+                            if (!writer.TryWriteNameSegment(jsonNameSegmentBytes, state.Current.HasWrittenFirst, out state.SizeNeeded))
                             {
                                 return false;
                             }
                         }
                         else
                         {
-                            if (!writer.TryWriteNameSegment(jsonNameSegmentChars, state.Current.HasWrittenFirst, out state.CharsNeeded))
+                            if (!writer.TryWriteNameSegment(jsonNameSegmentChars, state.Current.HasWrittenFirst, out state.SizeNeeded))
                             {
                                 return false;
                             }
@@ -459,7 +459,7 @@ namespace Zerra.Serialization.Json.Converters
                         state.Current.HasWrittenPropertyName = true;
                     }
 
-                    if (!writer.TryWriteNull(out state.CharsNeeded))
+                    if (!writer.TryWriteNull(out state.SizeNeeded))
                     {
                         return false;
                     }
@@ -477,14 +477,14 @@ namespace Zerra.Serialization.Json.Converters
                     {
                         if (writer.UseBytes)
                         {
-                            if (!writer.TryWriteNameSegment(jsonNameSegmentBytes, state.Current.HasWrittenFirst, out state.CharsNeeded))
+                            if (!writer.TryWriteNameSegment(jsonNameSegmentBytes, state.Current.HasWrittenFirst, out state.SizeNeeded))
                             {
                                 return false;
                             }
                         }
                         else
                         {
-                            if (!writer.TryWriteNameSegment(jsonNameSegmentChars, state.Current.HasWrittenFirst, out state.CharsNeeded))
+                            if (!writer.TryWriteNameSegment(jsonNameSegmentChars, state.Current.HasWrittenFirst, out state.SizeNeeded))
                             {
                                 return false;
                             }
@@ -497,7 +497,7 @@ namespace Zerra.Serialization.Json.Converters
             }
             else if (canBeNull && value is null)
             {
-                if (!writer.TryWriteNull(out state.CharsNeeded))
+                if (!writer.TryWriteNull(out state.SizeNeeded))
                 {
                     return false;
                 }

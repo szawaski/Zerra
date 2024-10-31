@@ -45,7 +45,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Sets
             {
                 if (!reader.TryReadNextSkipWhiteSpace(out c))
                 {
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     value = default;
                     return false;
                 }
@@ -83,7 +83,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Sets
 
                 if (!reader.TryReadNextSkipWhiteSpace(out c))
                 {
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     state.Current.HasCreated = true;
                     state.Current.HasReadValue = true;
                     value = default;
@@ -111,14 +111,14 @@ namespace Zerra.Serialization.Json.Converters.Collections.Sets
             {
                 if (value.Count == 0)
                 {
-                    if (!writer.TryWriteEmptyBracket(out state.CharsNeeded))
+                    if (!writer.TryWriteEmptyBracket(out state.SizeNeeded))
                     {
                         return false;
                     }
                     return true;
                 }
 
-                if (!writer.TryWriteOpenBracket(out state.CharsNeeded))
+                if (!writer.TryWriteOpenBracket(out state.SizeNeeded))
                 {
                     return false;
                 }
@@ -133,7 +133,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Sets
             {
                 if (state.Current.HasWrittenFirst && !state.Current.HasWrittenSeperator)
                 {
-                    if (!writer.TryWriteComma(out state.CharsNeeded))
+                    if (!writer.TryWriteComma(out state.SizeNeeded))
                     {
                         state.Current.HasWrittenStart = true;
                         state.Current.EnumeratorInProgress = true;
@@ -159,7 +159,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Sets
                     state.Current.EnumeratorInProgress = false;
             }
 
-            if (!writer.TryWriteCloseBracket(out state.CharsNeeded))
+            if (!writer.TryWriteCloseBracket(out state.SizeNeeded))
             {
                 state.Current.HasWrittenStart = true;
                 state.Current.Object = enumerator;

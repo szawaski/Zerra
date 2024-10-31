@@ -18,7 +18,7 @@ namespace Zerra.Serialization.Json.State
         public int StackSize => stackCount;
 
         public WriteFrame Current;
-        public int CharsNeeded;
+        public int SizeNeeded;
 
         public bool Nameless;
         public bool DoNotWriteNullProperties;

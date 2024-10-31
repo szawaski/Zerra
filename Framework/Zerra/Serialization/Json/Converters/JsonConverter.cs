@@ -85,7 +85,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.NumberStage = ReadNumberStage.Setup;
                     return true;
                 }
-                state.CharsNeeded = 1;
+                state.SizeNeeded = 1;
                 if (state.StringBuffer is null)
                 {
                     state.StringBuffer = ArrayPoolHelper<char>.Rent(buffer.Length);
@@ -138,7 +138,7 @@ namespace Zerra.Serialization.Json.Converters
                         state.NumberStage = ReadNumberStage.Setup;
                         return true;
                     }
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     if (state.StringBuffer is null)
                     {
                         state.StringBuffer = ArrayPoolHelper<char>.Rent(buffer.Length);
@@ -242,7 +242,7 @@ namespace Zerra.Serialization.Json.Converters
                         state.NumberStage = ReadNumberStage.Setup;
                         return true;
                     }
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     if (state.StringBuffer is null)
                     {
                         state.StringBuffer = ArrayPoolHelper<char>.Rent(buffer.Length);
@@ -332,7 +332,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.NumberStage = ReadNumberStage.Setup;
                     return true;
                 }
-                state.CharsNeeded = 1;
+                state.SizeNeeded = 1;
                 if (state.StringBuffer is null)
                 {
                     state.StringBuffer = ArrayPoolHelper<char>.Rent(buffer.Length);
@@ -387,7 +387,7 @@ namespace Zerra.Serialization.Json.Converters
                         state.NumberStage = ReadNumberStage.Setup;
                         return true;
                     }
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     if (state.StringBuffer is null)
                     {
                         state.StringBuffer = ArrayPoolHelper<char>.Rent(buffer.Length);
@@ -495,7 +495,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.NumberStage = ReadNumberStage.Setup;
                     return true;
                 }
-                state.CharsNeeded = 1;
+                state.SizeNeeded = 1;
                 state.NumberInt64 = value;
                 state.NumberStage = ReadNumberStage.Value;
                 return false;
@@ -532,7 +532,7 @@ namespace Zerra.Serialization.Json.Converters
                         state.NumberStage = ReadNumberStage.Setup;
                         return true;
                     }
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     state.NumberInt64 = value;
                     state.NumberStage = ReadNumberStage.ValueContinue;
                     return false;
@@ -588,7 +588,7 @@ namespace Zerra.Serialization.Json.Converters
                         state.NumberStage = ReadNumberStage.Setup;
                         return true;
                     }
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     state.NumberInt64 = value;
                     state.NumberStage = ReadNumberStage.Decimal;
                     return false;
@@ -635,7 +635,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.NumberStage = ReadNumberStage.Setup;
                     return true;
                 }
-                state.CharsNeeded = 1;
+                state.SizeNeeded = 1;
                 state.NumberInt64 = value;
                 state.NumberStage = ReadNumberStage.Exponent;
                 return false;
@@ -676,7 +676,7 @@ namespace Zerra.Serialization.Json.Converters
                         state.NumberStage = ReadNumberStage.Setup;
                         return true;
                     }
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     state.NumberInt64 = value;
                     state.NumberDouble = workingNumber;
                     state.NumberStage = ReadNumberStage.ExponentContinue;
@@ -764,7 +764,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.NumberStage = ReadNumberStage.Setup;
                     return true;
                 }
-                state.CharsNeeded = 1;
+                state.SizeNeeded = 1;
                 state.NumberUInt64 = value;
                 state.NumberStage = ReadNumberStage.Value;
                 return false;
@@ -798,7 +798,7 @@ namespace Zerra.Serialization.Json.Converters
                         state.NumberStage = ReadNumberStage.Setup;
                         return true;
                     }
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     state.NumberUInt64 = value;
                     state.NumberStage = ReadNumberStage.ValueContinue;
                     return false;
@@ -848,7 +848,7 @@ namespace Zerra.Serialization.Json.Converters
                         state.NumberStage = ReadNumberStage.Setup;
                         return true;
                     }
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     state.NumberUInt64 = value;
                     state.NumberStage = ReadNumberStage.Decimal;
                     return false;
@@ -893,7 +893,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.NumberStage = ReadNumberStage.Setup;
                     return true;
                 }
-                state.CharsNeeded = 1;
+                state.SizeNeeded = 1;
                 state.NumberUInt64 = value;
                 state.NumberStage = ReadNumberStage.Exponent;
                 return false;
@@ -932,7 +932,7 @@ namespace Zerra.Serialization.Json.Converters
                         state.NumberStage = ReadNumberStage.Setup;
                         return true;
                     }
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     state.NumberUInt64 = value;
                     state.NumberDouble = workingNumber;
                     state.NumberStage = ReadNumberStage.ExponentContinue;
@@ -1018,7 +1018,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.NumberStage = ReadNumberStage.Setup;
                     return true;
                 }
-                state.CharsNeeded = 1;
+                state.SizeNeeded = 1;
                 state.NumberDouble = value;
                 state.NumberStage = ReadNumberStage.Value;
                 return false;
@@ -1055,7 +1055,7 @@ namespace Zerra.Serialization.Json.Converters
                         state.NumberStage = ReadNumberStage.Setup;
                         return true;
                     }
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     state.NumberDouble = value;
                     state.NumberStage = ReadNumberStage.ValueContinue;
                     return false;
@@ -1111,7 +1111,7 @@ namespace Zerra.Serialization.Json.Converters
                         state.NumberStage = ReadNumberStage.Setup;
                         return true;
                     }
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     state.NumberDouble = value;
                     state.NumberWorkingDouble = workingNumber;
                     state.NumberStage = ReadNumberStage.Decimal;
@@ -1164,7 +1164,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.NumberStage = ReadNumberStage.Setup;
                     return true;
                 }
-                state.CharsNeeded = 1;
+                state.SizeNeeded = 1;
                 state.NumberDouble = value;
                 state.NumberStage = ReadNumberStage.Exponent;
                 return false;
@@ -1205,7 +1205,7 @@ namespace Zerra.Serialization.Json.Converters
                         state.NumberStage = ReadNumberStage.Setup;
                         return true;
                     }
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     state.NumberDouble = value;
                     state.NumberWorkingDouble = workingNumber;
                     state.NumberStage = ReadNumberStage.ExponentContinue;
@@ -1295,7 +1295,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.NumberStage = ReadNumberStage.Setup;
                     return true;
                 }
-                state.CharsNeeded = 1;
+                state.SizeNeeded = 1;
                 state.NumberDecimal = value;
                 state.NumberStage = ReadNumberStage.Value;
                 return false;
@@ -1332,7 +1332,7 @@ namespace Zerra.Serialization.Json.Converters
                         state.NumberStage = ReadNumberStage.Setup;
                         return true;
                     }
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     state.NumberDecimal = value;
                     state.NumberStage = ReadNumberStage.ValueContinue;
                     return false;
@@ -1388,7 +1388,7 @@ namespace Zerra.Serialization.Json.Converters
                         state.NumberStage = ReadNumberStage.Setup;
                         return true;
                     }
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     state.NumberDecimal = value;
                     state.NumberWorkingDecimal = workingNumber;
                     state.NumberStage = ReadNumberStage.Decimal;
@@ -1441,7 +1441,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.NumberStage = ReadNumberStage.Setup;
                     return true;
                 }
-                state.CharsNeeded = 1;
+                state.SizeNeeded = 1;
                 state.NumberDecimal = value;
                 state.NumberStage = ReadNumberStage.Exponent;
                 return false;
@@ -1482,7 +1482,7 @@ namespace Zerra.Serialization.Json.Converters
                         state.NumberStage = ReadNumberStage.Setup;
                         return true;
                     }
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     state.NumberDecimal = value;
                     state.NumberWorkingDecimal = workingNumber;
                     state.NumberStage = ReadNumberStage.ExponentContinue;
@@ -1569,7 +1569,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (state.IsFinalBlock && reader.Position == reader.Length)
                     throw reader.CreateException("Unexpected character");
-                state.CharsNeeded = 1;
+                state.SizeNeeded = 1;
                 state.NumberInt64 = value.Value;
                 state.NumberStage = ReadNumberStage.Value;
                 return false;
@@ -1607,7 +1607,7 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock && reader.Position == reader.Length)
                         throw reader.CreateException("Unexpected character");
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     state.NumberInt64 = value.Value;
                     state.NumberStage = ReadNumberStage.ValueContinue;
                     return false;
@@ -1667,7 +1667,7 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock && reader.Position == reader.Length)
                         throw reader.CreateException("Unexpected character");
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     state.NumberInt64 = value.Value;
                     state.NumberStage = ReadNumberStage.Decimal;
                     return false;
@@ -1720,7 +1720,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (state.IsFinalBlock && reader.Position == reader.Length)
                     throw reader.CreateException("Unexpected character");
-                state.CharsNeeded = 1;
+                state.SizeNeeded = 1;
                 state.NumberInt64 = value.Value;
                 state.NumberStage = ReadNumberStage.Exponent;
                 return false;
@@ -1756,7 +1756,7 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock && reader.Position == reader.Length)
                         throw reader.CreateException("Unexpected character");
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     state.NumberInt64 = value.Value;
                     state.NumberDouble = workingNumber;
                     state.NumberStage = ReadNumberStage.ExponentContinue;
@@ -1848,7 +1848,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (state.IsFinalBlock && reader.Position == reader.Length)
                     throw reader.CreateException("Unexpected character");
-                state.CharsNeeded = 1;
+                state.SizeNeeded = 1;
                 state.NumberUInt64 = value.Value;
                 state.NumberStage = ReadNumberStage.Value;
                 return false;
@@ -1885,7 +1885,7 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock && reader.Position == reader.Length)
                         throw reader.CreateException("Unexpected character");
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     state.NumberUInt64 = value.Value;
                     state.NumberStage = ReadNumberStage.ValueContinue;
                     return false;
@@ -1941,7 +1941,7 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock && reader.Position == reader.Length)
                         throw reader.CreateException("Unexpected character");
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     state.NumberUInt64 = value.Value;
                     state.NumberStage = ReadNumberStage.Decimal;
                     return false;
@@ -1992,7 +1992,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (state.IsFinalBlock && reader.Position == reader.Length)
                     throw reader.CreateException("Unexpected character");
-                state.CharsNeeded = 1;
+                state.SizeNeeded = 1;
                 state.NumberUInt64 = value.Value;
                 state.NumberStage = ReadNumberStage.Exponent;
                 return false;
@@ -2028,7 +2028,7 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock && reader.Position == reader.Length)
                         throw reader.CreateException("Unexpected character");
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     state.NumberUInt64 = value.Value;
                     state.NumberDouble = workingNumber;
                     state.NumberStage = ReadNumberStage.ExponentContinue;
@@ -2116,7 +2116,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (state.IsFinalBlock && reader.Position == reader.Length)
                     throw reader.CreateException("Unexpected character");
-                state.CharsNeeded = 1;
+                state.SizeNeeded = 1;
                 state.NumberDouble = value.Value;
                 state.NumberStage = ReadNumberStage.Value;
                 return false;
@@ -2154,7 +2154,7 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock && reader.Position == reader.Length)
                         throw reader.CreateException("Unexpected character");
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     state.NumberDouble = value.Value;
                     state.NumberStage = ReadNumberStage.ValueContinue;
                     return false;
@@ -2214,7 +2214,7 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock && reader.Position == reader.Length)
                         throw reader.CreateException("Unexpected character");
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     state.NumberDouble = value.Value;
                     state.NumberWorkingDouble = workingNumber;
                     state.NumberStage = ReadNumberStage.Decimal;
@@ -2271,7 +2271,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (state.IsFinalBlock && reader.Position == reader.Length)
                     throw reader.CreateException("Unexpected character");
-                state.CharsNeeded = 1;
+                state.SizeNeeded = 1;
                 state.NumberDouble = value.Value;
                 state.NumberStage = ReadNumberStage.Exponent;
                 return false;
@@ -2307,7 +2307,7 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock && reader.Position == reader.Length)
                         throw reader.CreateException("Unexpected character");
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     state.NumberDouble = value.Value;
                     state.NumberWorkingDouble = workingNumber;
                     state.NumberStage = ReadNumberStage.ExponentContinue;
@@ -2399,7 +2399,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (state.IsFinalBlock && reader.Position == reader.Length)
                     throw reader.CreateException("Unexpected character");
-                state.CharsNeeded = 1;
+                state.SizeNeeded = 1;
                 state.NumberDecimal = value.Value;
                 state.NumberStage = ReadNumberStage.Value;
                 return false;
@@ -2437,7 +2437,7 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock && reader.Position == reader.Length)
                         throw reader.CreateException("Unexpected character");
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     state.NumberDecimal = value.Value;
                     state.NumberStage = ReadNumberStage.ValueContinue;
                     return false;
@@ -2497,7 +2497,7 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock && reader.Position == reader.Length)
                         throw reader.CreateException("Unexpected character");
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     state.NumberDecimal = value.Value;
                     state.NumberWorkingDecimal = workingNumber;
                     state.NumberStage = ReadNumberStage.Decimal;
@@ -2554,7 +2554,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (state.IsFinalBlock && reader.Position == reader.Length)
                     throw reader.CreateException("Unexpected character");
-                state.CharsNeeded = 1;
+                state.SizeNeeded = 1;
                 state.NumberDecimal = value.Value;
                 state.NumberStage = ReadNumberStage.Exponent;
                 return false;
@@ -2590,7 +2590,7 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (state.IsFinalBlock && reader.Position == reader.Length)
                         throw reader.CreateException("Unexpected character");
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     state.NumberDecimal = value.Value;
                     state.NumberWorkingDecimal = workingNumber;
                     state.NumberStage = ReadNumberStage.ExponentContinue;
@@ -2648,7 +2648,7 @@ namespace Zerra.Serialization.Json.Converters
         {
             if (state.Current.ChildValueType == JsonValueType.NotDetermined)
             {
-                if (!reader.TryReadValueType(out state.Current.ChildValueType, out state.CharsNeeded))
+                if (!reader.TryReadValueType(out state.Current.ChildValueType, out state.SizeNeeded))
                     return false;
             }
 
@@ -2739,7 +2739,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (!reader.TryReadNextSkipWhiteSpace(out c))
                 {
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     return false;
                 }
 
@@ -2755,7 +2755,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (!state.Current.HasReadProperty)
                 {
-                    if (!reader.TryReadStringUnescapedQuoted(false, out var name, out state.CharsNeeded))
+                    if (!reader.TryReadStringUnescapedQuoted(false, out var name, out state.SizeNeeded))
                         return false;
 
                     if (String.IsNullOrWhiteSpace(name))
@@ -2767,7 +2767,7 @@ namespace Zerra.Serialization.Json.Converters
                     if (!reader.TryReadNextSkipWhiteSpace(out c))
                     {
                         state.Current.HasReadProperty = true;
-                        state.CharsNeeded = 1;
+                        state.SizeNeeded = 1;
                         return false;
                     }
                     if (c != ':')
@@ -2786,7 +2786,7 @@ namespace Zerra.Serialization.Json.Converters
 
                 if (!reader.TryReadNextSkipWhiteSpace(out c))
                 {
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     state.Current.HasReadProperty = true;
                     state.Current.HasReadSeperator = true;
                     state.Current.HasReadValue = true;
@@ -2815,7 +2815,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (!reader.TryReadNextSkipWhiteSpace(out c))
                 {
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     return false;
                 }
 
@@ -2840,7 +2840,7 @@ namespace Zerra.Serialization.Json.Converters
 
                 if (!reader.TryReadNextSkipWhiteSpace(out c))
                 {
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     state.Current.HasCreated = true;
                     state.Current.HasReadValue = true;
                     return false;
@@ -2864,7 +2864,7 @@ namespace Zerra.Serialization.Json.Converters
                 //reading segment
                 if (!state.ReadStringEscape)
                 {
-                    if (!reader.TryReadSpanUntilQuoteOrEscape(out var s, out state.CharsNeeded))
+                    if (!reader.TryReadSpanUntilQuoteOrEscape(out var s, out state.SizeNeeded))
                     {
                         return false;
                     }
@@ -2881,7 +2881,7 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (!reader.TryReadNext(out c))
                     {
-                        state.CharsNeeded = 1;
+                        state.SizeNeeded = 1;
                         return false;
                     }
 
@@ -2897,7 +2897,7 @@ namespace Zerra.Serialization.Json.Converters
                 }
 
                 //reading escape unicode
-                if (!reader.TryReadEscapeHex(out var unicodeSpan, out state.CharsNeeded))
+                if (!reader.TryReadEscapeHex(out var unicodeSpan, out state.SizeNeeded))
                 {
                     return false;
                 }
@@ -2937,7 +2937,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.NumberStage = ReadNumberStage.Setup;
                     return true;
                 }
-                state.CharsNeeded = 1;
+                state.SizeNeeded = 1;
                 state.NumberStage = ReadNumberStage.ValueContinue;
                 return false;
             }
@@ -2968,7 +2968,7 @@ namespace Zerra.Serialization.Json.Converters
                         state.NumberStage = ReadNumberStage.Setup;
                         return true;
                     }
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     state.NumberStage = ReadNumberStage.ValueContinue;
                     return false;
                 }
@@ -3014,7 +3014,7 @@ namespace Zerra.Serialization.Json.Converters
                         state.NumberStage = ReadNumberStage.Setup;
                         return true;
                     }
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     state.NumberStage = ReadNumberStage.Decimal;
                     return false;
                 }
@@ -3056,7 +3056,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.NumberStage = ReadNumberStage.Setup;
                     return true;
                 }
-                state.CharsNeeded = 1;
+                state.SizeNeeded = 1;
                 state.NumberStage = ReadNumberStage.Exponent;
                 return false;
             }
@@ -3125,7 +3125,7 @@ namespace Zerra.Serialization.Json.Converters
         {
             if (state.EntryValueType == JsonValueType.NotDetermined)
             {
-                if (!reader.TryReadValueType(out state.EntryValueType, out state.CharsNeeded))
+                if (!reader.TryReadValueType(out state.EntryValueType, out state.SizeNeeded))
                 {
                     value = default;
                     return false;
@@ -3155,7 +3155,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.EndFrame();
                     return true;
                 case JsonValueType.String:
-                    if (!reader.TryReadStringUnescapedQuoted(true, out var str, out state.CharsNeeded))
+                    if (!reader.TryReadStringUnescapedQuoted(true, out var str, out state.SizeNeeded))
                     {
                         value = default;
                         return false;
@@ -3189,7 +3189,7 @@ namespace Zerra.Serialization.Json.Converters
         {
             if (state.Current.ChildValueType == JsonValueType.NotDetermined)
             {
-                if (!reader.TryReadValueType(out state.Current.ChildValueType, out state.CharsNeeded))
+                if (!reader.TryReadValueType(out state.Current.ChildValueType, out state.SizeNeeded))
                     return false;
             }
 
@@ -3220,7 +3220,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.Current.ChildValueType = JsonValueType.NotDetermined;
                     return true;
                 case JsonValueType.String:
-                    if (!reader.TryReadStringUnescapedQuoted(true, out var str, out state.CharsNeeded))
+                    if (!reader.TryReadStringUnescapedQuoted(true, out var str, out state.SizeNeeded))
                     {
                         value = default;
                         return false;
@@ -3258,7 +3258,7 @@ namespace Zerra.Serialization.Json.Converters
         {
             if (state.Current.ChildValueType == JsonValueType.NotDetermined)
             {
-                if (!reader.TryReadValueType(out state.Current.ChildValueType, out state.CharsNeeded))
+                if (!reader.TryReadValueType(out state.Current.ChildValueType, out state.SizeNeeded))
                     return false;
             }
 
@@ -3289,7 +3289,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.Current.ChildValueType = JsonValueType.NotDetermined;
                     return true;
                 case JsonValueType.String:
-                    if (!reader.TryReadStringUnescapedQuoted(true, out var str, out state.CharsNeeded))
+                    if (!reader.TryReadStringUnescapedQuoted(true, out var str, out state.SizeNeeded))
                     {
                         value = default;
                         return false;
@@ -3332,7 +3332,7 @@ namespace Zerra.Serialization.Json.Converters
                 case JsonValueType.Array:
                     return ReadJsonObjectArray(ref reader, ref state, out value);
                 case JsonValueType.String:
-                    if (!reader.TryReadStringUnescapedQuoted(true, out var str, out state.CharsNeeded))
+                    if (!reader.TryReadStringUnescapedQuoted(true, out var str, out state.SizeNeeded))
                     {
                         value = default;
                         return false;
@@ -3369,7 +3369,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (!reader.TryReadNextSkipWhiteSpace(out c))
                 {
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     value = default;
                     return false;
                 }
@@ -3393,7 +3393,7 @@ namespace Zerra.Serialization.Json.Converters
                 string? property;
                 if (!state.Current.HasReadProperty)
                 {
-                    if (!reader.TryReadStringUnescapedQuoted(false, out property, out state.CharsNeeded))
+                    if (!reader.TryReadStringUnescapedQuoted(false, out property, out state.SizeNeeded))
                     {
                         state.Current.Object = value;
                         return false;
@@ -3414,7 +3414,7 @@ namespace Zerra.Serialization.Json.Converters
                         state.Current.Object = value;
                         state.Current.Property = property;
                         state.Current.HasReadProperty = true;
-                        state.CharsNeeded = 1;
+                        state.SizeNeeded = 1;
                         return false;
                     }
                     if (c != ':')
@@ -3435,7 +3435,7 @@ namespace Zerra.Serialization.Json.Converters
 
                 if (!reader.TryReadNextSkipWhiteSpace(out c))
                 {
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     state.Current.Object = value;
                     state.Current.Property = property;
                     state.Current.HasReadProperty = true;
@@ -3467,7 +3467,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (!reader.TryReadNextSkipWhiteSpace(out c))
                 {
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     value = default;
                     return false;
                 }
@@ -3505,7 +3505,7 @@ namespace Zerra.Serialization.Json.Converters
 
                 if (!reader.TryReadNextSkipWhiteSpace(out c))
                 {
-                    state.CharsNeeded = 1;
+                    state.SizeNeeded = 1;
                     state.Current.Object = accessor;
                     state.Current.HasCreated = true;
                     state.Current.HasReadValue = true;

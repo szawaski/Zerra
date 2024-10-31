@@ -41,7 +41,7 @@ namespace Zerra.Serialization.Json
 
             Read(chars, ref state, out result);
 
-            if (state.CharsNeeded > 0)
+            if (state.SizeNeeded > 0)
                 throw new EndOfStreamException();
 
             return result;
@@ -68,7 +68,7 @@ namespace Zerra.Serialization.Json
 
             Read(bytes, ref state, out result);
 
-            if (state.CharsNeeded > 0)
+            if (state.SizeNeeded > 0)
                 throw new EndOfStreamException();
 
             return result;
@@ -126,7 +126,7 @@ namespace Zerra.Serialization.Json
                 {
                     var bytesUsed = Read(buffer.AsSpan().Slice(0, read), ref state, out result);
 
-                    if (state.CharsNeeded == 0)
+                    if (state.SizeNeeded == 0)
                         break;
 
                     if (state.IsFinalBlock)
@@ -135,8 +135,8 @@ namespace Zerra.Serialization.Json
                     Buffer.BlockCopy(buffer, bytesUsed, buffer, 0, length - bytesUsed);
                     position = length - position;
 
-                    if (position + state.CharsNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, position + state.CharsNeeded);
+                    if (position + state.SizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, position + state.SizeNeeded);
 
                     while (position < buffer.Length)
                     {
@@ -155,10 +155,10 @@ namespace Zerra.Serialization.Json
                         length = position;
                     }
 
-                    if (position < state.CharsNeeded)
+                    if (position < state.SizeNeeded)
                         throw new EndOfStreamException();
 
-                    state.CharsNeeded = 0;
+                    state.SizeNeeded = 0;
                 }
 
                 return result;
@@ -221,7 +221,7 @@ namespace Zerra.Serialization.Json
                 {
                     var usedBytes = Read(buffer.AsSpan().Slice(0, length), ref state, out result);
 
-                    if (state.CharsNeeded == 0)
+                    if (state.SizeNeeded == 0)
                         break;
 
                     if (state.IsFinalBlock)
@@ -230,8 +230,8 @@ namespace Zerra.Serialization.Json
                     Buffer.BlockCopy(buffer, usedBytes, buffer, 0, length - usedBytes);
                     position = length - usedBytes;
 
-                    if (position + state.CharsNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, position + state.CharsNeeded);
+                    if (position + state.SizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, position + state.SizeNeeded);
 
                     while (position < buffer.Length)
                     {
@@ -250,10 +250,10 @@ namespace Zerra.Serialization.Json
                         length = position;
                     }
 
-                    if (position < state.CharsNeeded)
+                    if (position < state.SizeNeeded)
                         throw new EndOfStreamException();
 
-                    state.CharsNeeded = 0;
+                    state.SizeNeeded = 0;
                 }
 
                 return result;
@@ -274,14 +274,14 @@ namespace Zerra.Serialization.Json
             var read = JsonConverter.TryReadJsonObject(ref reader, ref state, out result);
             if (read)
             {
-                state.CharsNeeded = 0;
+                state.SizeNeeded = 0;
             }
-            else if (state.CharsNeeded == 0)
+            else if (state.SizeNeeded == 0)
             {
 #if DEBUG
                 throw new Exception($"{nameof(state.CharsNeeded)} not indicated");
 #else
-                state.CharsNeeded = 1;
+                state.SizeNeeded = 1;
 #endif
             }
 #if DEBUG
@@ -300,14 +300,14 @@ namespace Zerra.Serialization.Json
             var read = JsonConverter.TryReadJsonObject(ref reader, ref state, out result);
             if (read)
             {
-                state.CharsNeeded = 0;
+                state.SizeNeeded = 0;
             }
-            else if (state.CharsNeeded == 0)
+            else if (state.SizeNeeded == 0)
             {
 #if DEBUG
                 throw new Exception($"{nameof(state.CharsNeeded)} not indicated");
 #else
-                state.CharsNeeded = 1;
+                state.SizeNeeded = 1;
 #endif
             }
 #if DEBUG

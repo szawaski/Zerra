@@ -26,7 +26,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     value = default;
                     return DrainArray(ref reader, ref state);
                 case JsonValueType.String:
-                    if (!reader.TryReadStringUnescapedQuoted(true, out var str, out state.CharsNeeded))
+                    if (!reader.TryReadStringUnescapedQuoted(true, out var str, out state.SizeNeeded))
                     {
                         value = default;
                         return false;
@@ -59,6 +59,6 @@ namespace Zerra.Serialization.Json.Converters.General
         }
 
         protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, in Type? value)
-            => value is null ? writer.TryWriteNull(out state.CharsNeeded) : writer.TryWriteQuoted(value.FullName, out state.CharsNeeded);
+            => value is null ? writer.TryWriteNull(out state.SizeNeeded) : writer.TryWriteQuoted(value.FullName, out state.SizeNeeded);
     }
 }

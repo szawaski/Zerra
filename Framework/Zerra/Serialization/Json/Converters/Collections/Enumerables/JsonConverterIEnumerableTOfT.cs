@@ -47,7 +47,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Enumerables
                 //    return true;
                 //}
 
-                if (!writer.TryWriteOpenBracket(out state.CharsNeeded))
+                if (!writer.TryWriteOpenBracket(out state.SizeNeeded))
                 {
                     return false;
                 }
@@ -62,7 +62,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Enumerables
             {
                 if (state.Current.HasWrittenFirst && !state.Current.HasWrittenSeperator)
                 {
-                    if (!writer.TryWriteComma(out state.CharsNeeded))
+                    if (!writer.TryWriteComma(out state.SizeNeeded))
                     {
                         state.Current.HasWrittenStart = true;
                         state.Current.EnumeratorInProgress = true;
@@ -88,7 +88,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Enumerables
                     state.Current.EnumeratorInProgress = false;
             }
 
-            if (!writer.TryWriteCloseBracket(out state.CharsNeeded))
+            if (!writer.TryWriteCloseBracket(out state.SizeNeeded))
             {
                 state.Current.HasWrittenStart = true;
                 state.Current.Object = enumerator;

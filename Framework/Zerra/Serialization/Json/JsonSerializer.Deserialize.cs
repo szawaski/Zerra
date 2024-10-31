@@ -43,7 +43,7 @@ namespace Zerra.Serialization.Json
 
             Read(converter, chars, ref state, out result);
 
-            if (state.CharsNeeded > 0)
+            if (state.SizeNeeded > 0)
                 throw new EndOfStreamException();
 
             return result;
@@ -70,7 +70,7 @@ namespace Zerra.Serialization.Json
 
             ReadBoxed(converter, chars, ref state, out result);
 
-            if (state.CharsNeeded > 0)
+            if (state.SizeNeeded > 0)
                 throw new EndOfStreamException();
 
             return result;
@@ -96,7 +96,7 @@ namespace Zerra.Serialization.Json
 
             Read(converter, bytes, ref state, out result);
 
-            if (state.CharsNeeded > 0)
+            if (state.SizeNeeded > 0)
                 throw new EndOfStreamException();
 
             return result;
@@ -123,7 +123,7 @@ namespace Zerra.Serialization.Json
 
             ReadBoxed(converter, bytes, ref state, out result);
 
-            if (state.CharsNeeded > 0)
+            if (state.SizeNeeded > 0)
                 throw new EndOfStreamException();
 
             return result;
@@ -176,7 +176,7 @@ namespace Zerra.Serialization.Json
                 {
                     var bytesUsed = Read(converter, buffer.AsSpan().Slice(0, length), ref state, out result);
 
-                    if (state.CharsNeeded == 0)
+                    if (state.SizeNeeded == 0)
                     {
                         if (!state.IsFinalBlock)
                             throw new EndOfStreamException();
@@ -189,8 +189,8 @@ namespace Zerra.Serialization.Json
                     BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
 
-                    if (length + state.CharsNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, length + state.CharsNeeded);
+                    if (length + state.SizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, length + state.SizeNeeded);
 
                     while (length < buffer.Length)
                     {
@@ -208,10 +208,10 @@ namespace Zerra.Serialization.Json
                         length += read;
                     }
 
-                    if (length < state.CharsNeeded)
+                    if (length < state.SizeNeeded)
                         throw new EndOfStreamException();
 
-                    state.CharsNeeded = 0;
+                    state.SizeNeeded = 0;
                 }
 
                 return result;
@@ -271,7 +271,7 @@ namespace Zerra.Serialization.Json
                 {
                     var bytesUsed = ReadBoxed(converter, buffer.AsSpan().Slice(0, length), ref state, out result);
 
-                    if (state.CharsNeeded == 0)
+                    if (state.SizeNeeded == 0)
                     {
                         if (!state.IsFinalBlock)
                             throw new EndOfStreamException();
@@ -287,8 +287,8 @@ namespace Zerra.Serialization.Json
                     BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
 
-                    if (length + state.CharsNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, length + state.CharsNeeded);
+                    if (length + state.SizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, length + state.SizeNeeded);
 
                     while (length < buffer.Length)
                     {
@@ -306,10 +306,10 @@ namespace Zerra.Serialization.Json
                         length += read;
                     }
 
-                    if (length < state.CharsNeeded)
+                    if (length < state.SizeNeeded)
                         throw new EndOfStreamException();
 
-                    state.CharsNeeded = 0;
+                    state.SizeNeeded = 0;
                 }
 
                 return result;
@@ -368,7 +368,7 @@ namespace Zerra.Serialization.Json
                 {
                     var bytesUsed = Read(converter, buffer.AsSpan().Slice(0, length), ref state, out result);
 
-                    if (state.CharsNeeded == 0)
+                    if (state.SizeNeeded == 0)
                     {
                         if (!state.IsFinalBlock)
                             throw new EndOfStreamException();
@@ -384,8 +384,8 @@ namespace Zerra.Serialization.Json
                     BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
 
-                    if (length + state.CharsNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, length + state.CharsNeeded);
+                    if (length + state.SizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, length + state.SizeNeeded);
 
                     while (length < buffer.Length)
                     {
@@ -403,10 +403,10 @@ namespace Zerra.Serialization.Json
                         length += read;
                     }
 
-                    if (length < state.CharsNeeded)
+                    if (length < state.SizeNeeded)
                         throw new EndOfStreamException();
 
-                    state.CharsNeeded = 0;
+                    state.SizeNeeded = 0;
                 }
 
                 return result;
@@ -466,7 +466,7 @@ namespace Zerra.Serialization.Json
                 {
                     var bytesUsed = ReadBoxed(converter, buffer.AsSpan().Slice(0, length), ref state, out result);
 
-                    if (state.CharsNeeded == 0)
+                    if (state.SizeNeeded == 0)
                     {
                         if (!state.IsFinalBlock)
                             throw new EndOfStreamException();
@@ -482,8 +482,8 @@ namespace Zerra.Serialization.Json
                     BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
 
-                    if (length + state.CharsNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, length + state.CharsNeeded);
+                    if (length + state.SizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, length + state.SizeNeeded);
 
                     while (length < buffer.Length)
                     {
@@ -501,10 +501,10 @@ namespace Zerra.Serialization.Json
                         length += read;
                     }
 
-                    if (length < state.CharsNeeded)
+                    if (length < state.SizeNeeded)
                         throw new EndOfStreamException();
 
-                    state.CharsNeeded = 0;
+                    state.SizeNeeded = 0;
                 }
 
                 return result;
@@ -526,14 +526,14 @@ namespace Zerra.Serialization.Json
             var read = converter.TryRead(ref reader, ref state, out result);
             if (read)
             {
-                state.CharsNeeded = 0;
+                state.SizeNeeded = 0;
             }
-            else if (state.CharsNeeded == 0)
+            else if (state.SizeNeeded == 0)
             {
 #if DEBUG
                 throw new Exception($"{nameof(state.CharsNeeded)} not indicated");
 #else
-                state.CharsNeeded = 1;
+                state.SizeNeeded = 1;
 #endif
             }
 #if DEBUG
@@ -552,14 +552,14 @@ namespace Zerra.Serialization.Json
             var read = converter.TryReadBoxed(ref reader, ref state, out result);
             if (read)
             {
-                state.CharsNeeded = 0;
+                state.SizeNeeded = 0;
             }
-            else if (state.CharsNeeded == 0)
+            else if (state.SizeNeeded == 0)
             {
 #if DEBUG
                 throw new Exception($"{nameof(state.CharsNeeded)} not indicated");
 #else
-                state.CharsNeeded = 1;
+                state.SizeNeeded = 1;
 #endif
             }
 #if DEBUG
@@ -579,14 +579,14 @@ namespace Zerra.Serialization.Json
             var read = converter.TryRead(ref reader, ref state, out result);
             if (read)
             {
-                state.CharsNeeded = 0;
+                state.SizeNeeded = 0;
             }
-            else if (state.CharsNeeded == 0)
+            else if (state.SizeNeeded == 0)
             {
 #if DEBUG
                 throw new Exception($"{nameof(state.CharsNeeded)} not indicated");
 #else
-                state.CharsNeeded = 1;
+                state.SizeNeeded = 1;
 #endif
             }
 #if DEBUG
@@ -605,14 +605,14 @@ namespace Zerra.Serialization.Json
             var read = converter.TryReadBoxed(ref reader, ref state, out result);
             if (read)
             {
-                state.CharsNeeded = 0;
+                state.SizeNeeded = 0;
             }
-            else if (state.CharsNeeded == 0)
+            else if (state.SizeNeeded == 0)
             {
 #if DEBUG
                 throw new Exception($"{nameof(state.CharsNeeded)} not indicated");
 #else
-                state.CharsNeeded = 1;
+                state.SizeNeeded = 1;
 #endif
             }
 #if DEBUG
