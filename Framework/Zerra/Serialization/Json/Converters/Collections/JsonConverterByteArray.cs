@@ -15,13 +15,13 @@ namespace Zerra.Serialization.Json.Converters.Collections
             if (valueType != JsonValueType.String)
             {
                 if (state.ErrorOnTypeMismatch)
-                    throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                    ThrowCannotConvert(ref reader);
 
                 value = default;
                 return Drain(ref reader, ref state, valueType);
             }
 
-            if (!reader.TryReadStringUnescapedQuoted(true, out var str, out state.SizeNeeded))
+            if (!reader.TryReadStringEscapedQuoted(true, out var str, out state.SizeNeeded))
             {
                 value = default;
                 return false;

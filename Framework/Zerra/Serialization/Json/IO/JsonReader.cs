@@ -16,6 +16,7 @@ namespace Zerra.Serialization.Json.IO
 
         private readonly ReadOnlySpan<char> bufferChars;
         private readonly ReadOnlySpan<byte> bufferBytes;
+        private readonly bool isFinalBlock;
 
         private bool useBytes;
         public bool UseBytes => useBytes;
@@ -26,20 +27,27 @@ namespace Zerra.Serialization.Json.IO
         public readonly int Position => position;
         public readonly int Length => length;
 
-        public JsonReader(ReadOnlySpan<char> chars)
+        public JsonReader()
+        {
+            throw new NotSupportedException($"{nameof(JsonReader)} cannot use default constructor");
+        }
+
+        public JsonReader(ReadOnlySpan<char> chars, bool isFinalBlock)
         {
             this.bufferChars = chars;
             this.position = 0;
             this.length = chars.Length;
             this.useBytes = false;
+            this.isFinalBlock = isFinalBlock;
         }
 
-        public JsonReader(ReadOnlySpan<byte> bytes)
+        public JsonReader(ReadOnlySpan<byte> bytes, bool isFinalBlock)
         {
             this.bufferBytes = bytes;
             this.position = 0;
             this.length = bytes.Length;
             this.useBytes = true;
+            this.isFinalBlock = isFinalBlock;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

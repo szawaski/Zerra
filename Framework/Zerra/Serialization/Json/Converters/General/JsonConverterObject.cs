@@ -147,7 +147,7 @@ namespace Zerra.Serialization.Json.Converters.General
                 if (valueType != JsonValueType.Array)
                 {
                     if (state.ErrorOnTypeMismatch)
-                        throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                        ThrowCannotConvert(ref reader);
 
                     value = default;
                     return Drain(ref reader, ref state, valueType);
@@ -266,7 +266,7 @@ namespace Zerra.Serialization.Json.Converters.General
                 if (valueType != JsonValueType.Object)
                 {
                     if (state.ErrorOnTypeMismatch)
-                        throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                        ThrowCannotConvert(ref reader);
 
                     value = default;
                     return Drain(ref reader, ref state, valueType);
@@ -330,7 +330,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     {
                         if (reader.UseBytes)
                         {
-                            if (!reader.TryReadStringBytesQuoted(false, out var name, out state.SizeNeeded))
+                            if (!reader.TryReadStringQuotedBytes(false, out var name, out state.SizeNeeded))
                             {
                                 if (collectValues)
                                     state.Current.Object = collectedValues;
@@ -405,7 +405,7 @@ namespace Zerra.Serialization.Json.Converters.General
                         }
                         else
                         {
-                            if (!reader.TryReadStringCharsQuoted(false, out var name, out state.SizeNeeded))
+                            if (!reader.TryReadStringQuotedChars(false, out var name, out state.SizeNeeded))
                             {
                                 if (collectValues)
                                     state.Current.Object = collectedValues;

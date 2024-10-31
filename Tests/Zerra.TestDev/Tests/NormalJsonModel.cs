@@ -2,6 +2,8 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System;
+
 namespace Zerra.TestDev
 {
     public class NormalJsonModel
@@ -24,6 +26,10 @@ namespace Zerra.TestDev
         public bool Flag1 { get; set; }
         public bool Flag2 { get; set; }
         public bool Flag3 { get; set; }
+
+        public DateTime Date1 { get; set; }
+        public DateTime Date2 { get; set; }
+        public DateTime Date3 { get; set; }
 
         public SubNormalJsonModel[] SubModels1 { get; set; }
         public SubNormalJsonModel[] SubModels2 { get; set; }
@@ -52,6 +58,10 @@ namespace Zerra.TestDev
                 Flag2 = false,
                 Flag3 = true,
 
+                Date1 = DateTime.UtcNow,
+                Date2 = DateTime.UtcNow,
+                Date3 = DateTime.UtcNow,
+
                 SubModels1 = [SubNormalJsonModel.Create()],
                 SubModels2 = [SubNormalJsonModel.Create(), SubNormalJsonModel.Create()],
                 SubModels3 = [SubNormalJsonModel.Create(), SubNormalJsonModel.Create(), SubNormalJsonModel.Create(), SubNormalJsonModel.Create(), SubNormalJsonModel.Create(), SubNormalJsonModel.Create(), SubNormalJsonModel.Create(), SubNormalJsonModel.Create(), SubNormalJsonModel.Create(), SubNormalJsonModel.Create()]
@@ -79,6 +89,11 @@ namespace Zerra.TestDev
             public bool SubFlag2 { get; set; }
             public bool SubFlag3 { get; set; }
 
+            public DateTime SubDate1 { get; set; }
+            public DateTime SubDate2 { get; set; }
+            public DateTime SubDate3 { get; set; }
+
+
             public static SubNormalJsonModel Create()
             {
                 return new SubNormalJsonModel()
@@ -100,7 +115,11 @@ namespace Zerra.TestDev
 
                     SubFlag1 = true,
                     SubFlag2 = false,
-                    SubFlag3 = true
+                    SubFlag3 = true,
+
+                    SubDate1 = DateTime.UtcNow,
+                    SubDate2 = DateTime.UtcNow,
+                    SubDate3 = DateTime.UtcNow,
                 };
             }
         }

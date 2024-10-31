@@ -2755,7 +2755,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (!state.Current.HasReadProperty)
                 {
-                    if (!reader.TryReadStringUnescapedQuoted(false, out var name, out state.SizeNeeded))
+                    if (!reader.TryReadStringEscapedQuoted(false, out var name, out state.SizeNeeded))
                         return false;
 
                     if (String.IsNullOrWhiteSpace(name))
@@ -3155,7 +3155,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.EndFrame();
                     return true;
                 case JsonValueType.String:
-                    if (!reader.TryReadStringUnescapedQuoted(true, out var str, out state.SizeNeeded))
+                    if (!reader.TryReadStringEscapedQuoted(true, out var str, out state.SizeNeeded))
                     {
                         value = default;
                         return false;
@@ -3220,7 +3220,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.Current.ChildValueType = JsonValueType.NotDetermined;
                     return true;
                 case JsonValueType.String:
-                    if (!reader.TryReadStringUnescapedQuoted(true, out var str, out state.SizeNeeded))
+                    if (!reader.TryReadStringEscapedQuoted(true, out var str, out state.SizeNeeded))
                     {
                         value = default;
                         return false;
@@ -3289,7 +3289,7 @@ namespace Zerra.Serialization.Json.Converters
                     state.Current.ChildValueType = JsonValueType.NotDetermined;
                     return true;
                 case JsonValueType.String:
-                    if (!reader.TryReadStringUnescapedQuoted(true, out var str, out state.SizeNeeded))
+                    if (!reader.TryReadStringEscapedQuoted(true, out var str, out state.SizeNeeded))
                     {
                         value = default;
                         return false;
@@ -3332,7 +3332,7 @@ namespace Zerra.Serialization.Json.Converters
                 case JsonValueType.Array:
                     return ReadJsonObjectArray(ref reader, ref state, out value);
                 case JsonValueType.String:
-                    if (!reader.TryReadStringUnescapedQuoted(true, out var str, out state.SizeNeeded))
+                    if (!reader.TryReadStringEscapedQuoted(true, out var str, out state.SizeNeeded))
                     {
                         value = default;
                         return false;
@@ -3393,7 +3393,7 @@ namespace Zerra.Serialization.Json.Converters
                 string? property;
                 if (!state.Current.HasReadProperty)
                 {
-                    if (!reader.TryReadStringUnescapedQuoted(false, out property, out state.SizeNeeded))
+                    if (!reader.TryReadStringEscapedQuoted(false, out property, out state.SizeNeeded))
                     {
                         state.Current.Object = value;
                         return false;

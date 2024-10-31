@@ -437,13 +437,13 @@ namespace Zerra.Serialization.Json
                 else if (state.SizeNeeded == 0)
                 {
 #if DEBUG
-                    throw new Exception($"{nameof(state.CharsNeeded)} not indicated");
+                    throw new Exception($"{nameof(state.SizeNeeded)} not indicated");
 #else
                     state.SizeNeeded = 1;
 #endif
                 }
 #if DEBUG
-                if (!write && JsonWriter.Testing && writer.Position + state.CharsNeeded <= writer.Length)
+                if (!write && JsonWriter.Testing && writer.Position + state.SizeNeeded <= writer.Length)
                     goto again;
 #endif
                 var result = writer.ToString();
@@ -471,13 +471,13 @@ namespace Zerra.Serialization.Json
                 else if (state.SizeNeeded == 0)
                 {
 #if DEBUG
-                    throw new Exception($"{nameof(state.CharsNeeded)} not indicated");
+                    throw new Exception($"{nameof(state.SizeNeeded)} not indicated");
 #else
                     state.SizeNeeded = 1;
 #endif
                 }
 #if DEBUG
-                if (!write && JsonWriter.Testing && writer.Position + state.CharsNeeded <= writer.Length)
+                if (!write && JsonWriter.Testing && writer.Position + state.SizeNeeded <= writer.Length)
                     goto again;
 #endif
                 var result = writer.ToString();
@@ -506,13 +506,13 @@ namespace Zerra.Serialization.Json
                 else if (state.SizeNeeded == 0)
                 {
 #if DEBUG
-                    throw new Exception($"{nameof(state.CharsNeeded)} not indicated");
+                    throw new Exception($"{nameof(state.SizeNeeded)} not indicated");
 #else
                     state.SizeNeeded = 1;
 #endif
                 }
 #if DEBUG
-                if (!write && JsonWriter.Testing && writer.Position + state.CharsNeeded <= writer.Length)
+                if (!write && JsonWriter.Testing && writer.Position + state.SizeNeeded <= writer.Length)
                     goto again;
 #endif
                 var result = writer.ToByteArray();
@@ -540,13 +540,13 @@ namespace Zerra.Serialization.Json
                 else if (state.SizeNeeded == 0)
                 {
 #if DEBUG
-                    throw new Exception($"{nameof(state.CharsNeeded)} not indicated");
+                    throw new Exception($"{nameof(state.SizeNeeded)} not indicated");
 #else
                     state.SizeNeeded = 1;
 #endif
                 }
 #if DEBUG
-                if (!write && JsonWriter.Testing && writer.Position + state.CharsNeeded <= writer.Length)
+                if (!write && JsonWriter.Testing && writer.Position + state.SizeNeeded <= writer.Length)
                     goto again;
 #endif
                 var result = writer.ToByteArray();
@@ -576,13 +576,13 @@ namespace Zerra.Serialization.Json
                 else if (state.SizeNeeded == 0)
                 {
 #if DEBUG
-                    throw new Exception($"{nameof(state.CharsNeeded)} not indicated");
+                    throw new Exception($"{nameof(state.SizeNeeded)} not indicated");
 #else
                     state.SizeNeeded = 1;
 #endif
                 }
 #if DEBUG
-                if (!write && JsonWriter.Testing && writer.Position + state.CharsNeeded <= writer.Length)
+                if (!write && JsonWriter.Testing && writer.Position + state.SizeNeeded <= writer.Length)
                     goto again;
 #endif
                 return writer.Position;
@@ -609,13 +609,13 @@ namespace Zerra.Serialization.Json
                 else if (state.SizeNeeded == 0)
                 {
 #if DEBUG
-                    throw new Exception($"{nameof(state.CharsNeeded)} not indicated");
+                    throw new Exception($"{nameof(state.SizeNeeded)} not indicated");
 #else
                     state.SizeNeeded = 1;
 #endif
                 }
 #if DEBUG
-                if (!write && JsonWriter.Testing && writer.Position + state.CharsNeeded <= writer.Length)
+                if (!write && JsonWriter.Testing && writer.Position + state.SizeNeeded <= writer.Length)
                     goto again;
 #endif
                 return writer.Position;

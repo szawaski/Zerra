@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Buffers.Text;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 
@@ -16,44 +17,63 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
         {
             switch (valueType)
             {
-                case JsonValueType.Object:
-                    if (state.ErrorOnTypeMismatch)
-                        throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
-                    value = default;
-                    return DrainObject(ref reader, ref state);
-                case JsonValueType.Array:
-                    if (state.ErrorOnTypeMismatch)
-                        throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
-                    value = default;
-                    return DrainArray(ref reader, ref state);
-                case JsonValueType.String:
-                    if (!ReadStringAsInt64(ref reader, ref state, out var numberFromString))
+                case JsonValueType.Number:
+                    if (reader.UseBytes)
                     {
-                        value = default;
-                        return false;
-                    }
-                    if (!numberFromString.HasValue)
-                    {
-                        if (state.ErrorOnTypeMismatch)
-                            throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
-                        value = default;
+                        if (!reader.TryReadNumberBytes(out var bytes, out state.SizeNeeded))
+                        {
+                            value = default;
+                            return false;
+                        }
+                        if ((!Utf8Parser.TryParse(bytes, out value, out var consumed) || consumed != bytes.Length) && state.ErrorOnTypeMismatch)
+                            ThrowCannotConvert(ref reader);
+                        return true;
                     }
                     else
                     {
-                        value = (short)numberFromString.Value;
+                        if (!reader.TryReadNumberChars(out var chars, out state.SizeNeeded))
+                        {
+                            value = default;
+                            return false;
+                        }
+#if NETSTANDARD2_0
+                        if (!Int16.TryParse(chars.ToString(), out value) && state.ErrorOnTypeMismatch)
+#else
+                        if (!Int16.TryParse(chars, out value) && state.ErrorOnTypeMismatch)
+#endif
+                            ThrowCannotConvert(ref reader);
+                        return true;
                     }
-                    return true;
-                case JsonValueType.Number:
-                    if (!ReadNumberAsInt64(ref reader, ref state, out var number))
+                case JsonValueType.String:
+                    if (reader.UseBytes)
                     {
-                        value = default;
-                        return false;
+                        if (!reader.TryReadStringQuotedBytes(true, out var bytes, out state.SizeNeeded))
+                        {
+                            value = default;
+                            return false;
+                        }
+                        if ((!Utf8Parser.TryParse(bytes, out value, out var consumed) || bytes.Length != consumed) && state.ErrorOnTypeMismatch)
+                            ThrowCannotConvert(ref reader);
+                        return true;
                     }
-                    value = (short)number;
-                    return true;
+                    else
+                    {
+                        if (!reader.TryReadStringQuotedChars(true, out var chars, out state.SizeNeeded))
+                        {
+                            value = default;
+                            return false;
+                        }
+#if NETSTANDARD2_0
+                        if (!Int16.TryParse(chars.ToString(), out value) && state.ErrorOnTypeMismatch)
+#else
+                        if (!Int16.TryParse(chars, out value) && state.ErrorOnTypeMismatch)
+#endif
+                            ThrowCannotConvert(ref reader);
+                        return true;
+                    }
                 case JsonValueType.Null_Completed:
                     if (state.ErrorOnTypeMismatch)
-                        throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                        ThrowCannotConvert(ref reader);
                     value = default;
                     return true;
                 case JsonValueType.False_Completed:
@@ -62,6 +82,16 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                 case JsonValueType.True_Completed:
                     value = (short)1;
                     return true;
+                case JsonValueType.Object:
+                    if (state.ErrorOnTypeMismatch)
+                        ThrowCannotConvert(ref reader);
+                    value = default;
+                    return DrainObject(ref reader, ref state);
+                case JsonValueType.Array:
+                    if (state.ErrorOnTypeMismatch)
+                        ThrowCannotConvert(ref reader);
+                    value = default;
+                    return DrainArray(ref reader, ref state);
                 default:
                     throw new NotImplementedException();
             }

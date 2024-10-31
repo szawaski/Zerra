@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Text;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 
@@ -16,25 +17,8 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
         {
             switch (valueType)
             {
-                case JsonValueType.Object:
-                    if (state.ErrorOnTypeMismatch)
-                        throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
-                    value = String.Empty;
-                    return DrainObject(ref reader, ref state);
-                case JsonValueType.Array:
-                    if (state.ErrorOnTypeMismatch)
-                        throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
-                    value = default;
-                    return DrainArray(ref reader, ref state);
                 case JsonValueType.String:
-                    if (!reader.TryReadStringUnescapedQuoted(true, out value, out state.SizeNeeded))
-                    {
-                        value = default;
-                        return false;
-                    }
-                    return true;
-                case JsonValueType.Number:
-                    if (!ReadNumberAsString(ref reader, ref state, out value))
+                    if (!reader.TryReadStringEscapedQuoted(true, out value, out state.SizeNeeded))
                     {
                         value = default;
                         return false;
@@ -43,12 +27,29 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                 case JsonValueType.Null_Completed:
                     value = null;
                     return true;
+                case JsonValueType.Number:
+                    if (!reader.TryReadNumberString(out value, out state.SizeNeeded))
+                    {
+                        value = default;
+                        return false;
+                    }
+                    return true;
                 case JsonValueType.False_Completed:
                     value = "false";
                     return true;
                 case JsonValueType.True_Completed:
                     value = "true";
                     return true;
+                case JsonValueType.Object:
+                    if (state.ErrorOnTypeMismatch)
+                        ThrowCannotConvert(ref reader);
+                    value = String.Empty;
+                    return DrainObject(ref reader, ref state);
+                case JsonValueType.Array:
+                    if (state.ErrorOnTypeMismatch)
+                        ThrowCannotConvert(ref reader);
+                    value = default;
+                    return DrainArray(ref reader, ref state);
                 default:
                     throw new NotImplementedException();
             }

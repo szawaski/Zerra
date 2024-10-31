@@ -20,16 +20,16 @@ namespace Zerra.Serialization.Json.Converters.General
             {
                 case JsonValueType.Object:
                     if (state.ErrorOnTypeMismatch)
-                        throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                        ThrowCannotConvert(ref reader);
                     value = default;
                     return DrainObject(ref reader, ref state);
                 case JsonValueType.Array:
                     if (state.ErrorOnTypeMismatch)
-                        throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                        ThrowCannotConvert(ref reader);
                     value = default;
                     return DrainArray(ref reader, ref state);
                 case JsonValueType.String:
-                    if (!reader.TryReadStringUnescapedQuoted(true, out var str, out state.SizeNeeded))
+                    if (!reader.TryReadStringEscapedQuoted(true, out var str, out state.SizeNeeded))
                     {
                         value = default;
                         return false;
@@ -41,7 +41,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     else
                     {
                         if (state.ErrorOnTypeMismatch)
-                            throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                            ThrowCannotConvert(ref reader);
                         value = default;
                     }
                     return true;
@@ -58,23 +58,23 @@ namespace Zerra.Serialization.Json.Converters.General
                     catch
                     {
                         if (state.ErrorOnTypeMismatch)
-                            throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                            ThrowCannotConvert(ref reader);
                         value = default;
                     }
                     return true;
                 case JsonValueType.Null_Completed:
                     if (!typeDetail.IsNullable && state.ErrorOnTypeMismatch)
-                        throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                        ThrowCannotConvert(ref reader);
                     value = default;
                     return true;
                 case JsonValueType.False_Completed:
                     if (state.ErrorOnTypeMismatch)
-                        throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                        ThrowCannotConvert(ref reader);
                     value = default;
                     return true;
                 case JsonValueType.True_Completed:
                     if (state.ErrorOnTypeMismatch)
-                        throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                        ThrowCannotConvert(ref reader);
                     value = default;
                     return true;
                 default:

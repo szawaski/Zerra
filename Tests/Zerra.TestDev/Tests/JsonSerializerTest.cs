@@ -66,7 +66,7 @@ namespace Zerra.TestDev
             Console.WriteLine($"Zerra Deserialize: {timer.ElapsedMilliseconds}");
 
             var method = typeof(JsonSerializerTest).GetMethod(nameof(CompareTestSpeed2), BindingFlags.Static | BindingFlags.NonPublic).MakeGenericMethod(item.GetType());
-            return (Task)method.Invoke(null, [item, data1, 10000, 5]);
+            return (Task)method.Invoke(null, [item, data1, 5000, 5]);
         }
 
         private static async Task CompareTestSpeed2<T>(T item, string data, int iterations, int loops)

@@ -519,7 +519,7 @@ namespace Zerra.Serialization.Json
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Read<T>(JsonConverter<object, T> converter, ReadOnlySpan<byte> buffer, ref ReadState state, out T? result)
         {
-            var reader = new JsonReader(buffer);
+            var reader = new JsonReader(buffer, state.IsFinalBlock);
 #if DEBUG
         again:
 #endif
@@ -531,13 +531,13 @@ namespace Zerra.Serialization.Json
             else if (state.SizeNeeded == 0)
             {
 #if DEBUG
-                throw new Exception($"{nameof(state.CharsNeeded)} not indicated");
+                throw new Exception($"{nameof(state.SizeNeeded)} not indicated");
 #else
                 state.SizeNeeded = 1;
 #endif
             }
 #if DEBUG
-            if (!read && JsonReader.Testing && reader.Position + state.CharsNeeded <= reader.Length)
+            if (!read && JsonReader.Testing && reader.Position + state.SizeNeeded <= reader.Length)
                 goto again;
 #endif
             return reader.Position;
@@ -545,7 +545,7 @@ namespace Zerra.Serialization.Json
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int ReadBoxed(JsonConverter converter, ReadOnlySpan<byte> buffer, ref ReadState state, out object? result)
         {
-            var reader = new JsonReader(buffer);
+            var reader = new JsonReader(buffer, state.IsFinalBlock);
 #if DEBUG
         again:
 #endif
@@ -557,13 +557,13 @@ namespace Zerra.Serialization.Json
             else if (state.SizeNeeded == 0)
             {
 #if DEBUG
-                throw new Exception($"{nameof(state.CharsNeeded)} not indicated");
+                throw new Exception($"{nameof(state.SizeNeeded)} not indicated");
 #else
                 state.SizeNeeded = 1;
 #endif
             }
 #if DEBUG
-            if (!read && JsonReader.Testing && reader.Position + state.CharsNeeded <= reader.Length)
+            if (!read && JsonReader.Testing && reader.Position + state.SizeNeeded <= reader.Length)
                 goto again;
 #endif
             return reader.Position;
@@ -572,7 +572,7 @@ namespace Zerra.Serialization.Json
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Read<T>(JsonConverter<object, T> converter, ReadOnlySpan<char> buffer, ref ReadState state, out T? result)
         {
-            var reader = new JsonReader(buffer);
+            var reader = new JsonReader(buffer, state.IsFinalBlock);
 #if DEBUG
         again:
 #endif
@@ -584,13 +584,13 @@ namespace Zerra.Serialization.Json
             else if (state.SizeNeeded == 0)
             {
 #if DEBUG
-                throw new Exception($"{nameof(state.CharsNeeded)} not indicated");
+                throw new Exception($"{nameof(state.SizeNeeded)} not indicated");
 #else
                 state.SizeNeeded = 1;
 #endif
             }
 #if DEBUG
-            if (!read && JsonReader.Testing && reader.Position + state.CharsNeeded <= reader.Length)
+            if (!read && JsonReader.Testing && reader.Position + state.SizeNeeded <= reader.Length)
                 goto again;
 #endif
             return reader.Position;
@@ -598,7 +598,7 @@ namespace Zerra.Serialization.Json
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int ReadBoxed(JsonConverter converter, ReadOnlySpan<char> buffer, ref ReadState state, out object? result)
         {
-            var reader = new JsonReader(buffer);
+            var reader = new JsonReader(buffer, state.IsFinalBlock);
 #if DEBUG
         again:
 #endif
@@ -610,13 +610,13 @@ namespace Zerra.Serialization.Json
             else if (state.SizeNeeded == 0)
             {
 #if DEBUG
-                throw new Exception($"{nameof(state.CharsNeeded)} not indicated");
+                throw new Exception($"{nameof(state.SizeNeeded)} not indicated");
 #else
                 state.SizeNeeded = 1;
 #endif
             }
 #if DEBUG
-            if (!read && JsonReader.Testing && reader.Position + state.CharsNeeded <= reader.Length)
+            if (!read && JsonReader.Testing && reader.Position + state.SizeNeeded <= reader.Length)
                 goto again;
 #endif
             return reader.Position;
