@@ -40,7 +40,7 @@ namespace Zerra.Serialization.Json.IO
         private const byte sByte = (byte)'s';
         private const byte bByte = (byte)'b';
 
-        private const byte bigEByte = (byte)'E';
+        private const byte eUpperByte = (byte)'E';
 
         private const byte plusByte = (byte)'+'; //43
         private const byte minusByte = (byte)'-'; //45
@@ -1204,7 +1204,7 @@ namespace Zerra.Serialization.Json.IO
                 for (; position < length; position++)
                 {
                     var b = pBuffer[position];
-                    if ((b < zeroByte && b != minusByte && b != dotByte && b != plusByte) || (b > nineByte && b != eByte && b != bigEByte))
+                    if ((b < zeroByte && b != minusByte && b != dotByte && b != plusByte) || (b > nineByte && b != eByte && b != eUpperByte))
                         break;
                 }
 
@@ -1299,7 +1299,7 @@ namespace Zerra.Serialization.Json.IO
                     for (; position < length; position++)
                     {
                         var b = pBuffer[position];
-                        if ((b < zeroByte && b != minusByte && b != dotByte && b != plusByte) || (b > nineByte && b != eByte && b != bigEByte))
+                        if ((b < zeroByte && b != minusByte && b != dotByte && b != plusByte) || (b > nineByte && b != eByte && b != eUpperByte))
                             break;
                     }
 

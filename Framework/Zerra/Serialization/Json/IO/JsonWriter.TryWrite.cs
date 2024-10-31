@@ -93,7 +93,11 @@ namespace Zerra.Serialization.Json.IO
 
             if (useBytes)
             {
+#if NET8_0_OR_GREATER
+                _ = value.TryFormat(bufferBytes.Slice(position), out var written);
+#else
                 _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
+#endif
                 position += written;
             }
             else
@@ -129,7 +133,11 @@ namespace Zerra.Serialization.Json.IO
 
             if (useBytes)
             {
+#if NET8_0_OR_GREATER
+                _ = value.TryFormat(bufferBytes.Slice(position), out var written);
+#else
                 _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
+#endif
                 position += written;
             }
             else
@@ -165,7 +173,11 @@ namespace Zerra.Serialization.Json.IO
 
             if (useBytes)
             {
+#if NET8_0_OR_GREATER
+                _ = value.TryFormat(bufferBytes.Slice(position), out var written);
+#else
                 _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
+#endif
                 position += written;
             }
             else
@@ -201,7 +213,11 @@ namespace Zerra.Serialization.Json.IO
 
             if (useBytes)
             {
+#if NET8_0_OR_GREATER
+                _ = value.TryFormat(bufferBytes.Slice(position), out var written);
+#else
                 _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
+#endif
                 position += written;
             }
             else
@@ -237,7 +253,11 @@ namespace Zerra.Serialization.Json.IO
 
             if (useBytes)
             {
+#if NET8_0_OR_GREATER
+                _ = value.TryFormat(bufferBytes.Slice(position), out var written);
+#else
                 _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
+#endif
                 position += written;
             }
             else
@@ -273,7 +293,11 @@ namespace Zerra.Serialization.Json.IO
 
             if (useBytes)
             {
+#if NET8_0_OR_GREATER
+                _ = value.TryFormat(bufferBytes.Slice(position), out var written);
+#else
                 _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
+#endif
                 position += written;
             }
             else
@@ -302,7 +326,11 @@ namespace Zerra.Serialization.Json.IO
 
             if (useBytes)
             {
+#if NET8_0_OR_GREATER
+                _ = value.TryFormat(bufferBytes.Slice(position), out var written);
+#else
                 _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
+#endif
                 position += written;
             }
             else
@@ -338,7 +366,11 @@ namespace Zerra.Serialization.Json.IO
 
             if (useBytes)
             {
+#if NET8_0_OR_GREATER
+                _ = value.TryFormat(bufferBytes.Slice(position), out var written);
+#else
                 _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
+#endif
                 position += written;
             }
             else
@@ -374,7 +406,11 @@ namespace Zerra.Serialization.Json.IO
 
             if (useBytes)
             {
+#if NET8_0_OR_GREATER
+                _ = value.TryFormat(bufferBytes.Slice(position), out var written);
+#else
                 _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
+#endif
                 position += written;
             }
             else
@@ -411,7 +447,11 @@ namespace Zerra.Serialization.Json.IO
 
             if (useBytes)
             {
+#if NET8_0_OR_GREATER
+                _ = value.TryFormat(bufferBytes.Slice(position), out var written);
+#else
                 _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
+#endif
                 position += written;
             }
             else
@@ -448,7 +488,11 @@ namespace Zerra.Serialization.Json.IO
 
             if (useBytes)
             {
+#if NET8_0_OR_GREATER
+                _ = value.TryFormat(bufferBytes.Slice(position), out var written);
+#else
                 _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
+#endif
                 position += written;
             }
             else
@@ -611,7 +655,7 @@ namespace Zerra.Serialization.Json.IO
                 _ = Utf8Formatter.TryFormat(value.Second, bufferBytes.Slice(position), out written);
                 position += written;
 
-                var fraction = value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / 10000000) * 10000000;
+                var fraction = value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / TimeSpan.TicksPerSecond) * TimeSpan.TicksPerSecond;
                 if (fraction > 0)
                 {
                     bufferBytes[position++] = dotByte;
@@ -709,7 +753,7 @@ namespace Zerra.Serialization.Json.IO
                     bufferChars[position++] = '0';
                 WriteInt32Chars(value.Second);
 
-                var fraction = value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / 10000000) * 10000000;
+                var fraction = value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / TimeSpan.TicksPerSecond) * TimeSpan.TicksPerSecond;
                 if (fraction > 0)
                 {
                     bufferChars[position++] = '.';
@@ -827,7 +871,7 @@ namespace Zerra.Serialization.Json.IO
                 _ = Utf8Formatter.TryFormat(value.Second, bufferBytes.Slice(position), out written);
                 position += written;
 
-                var fraction = value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / 10000000) * 10000000;
+                var fraction = value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / TimeSpan.TicksPerSecond) * TimeSpan.TicksPerSecond;
                 if (fraction > 0)
                 {
                     bufferBytes[position++] = dotByte;
@@ -906,7 +950,7 @@ namespace Zerra.Serialization.Json.IO
                     bufferChars[position++] = '0';
                 WriteInt32Chars(value.Second);
 
-                var fraction = value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / 10000000) * 10000000;
+                var fraction = value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / TimeSpan.TicksPerSecond) * TimeSpan.TicksPerSecond;
                 if (fraction > 0)
                 {
                     bufferChars[position++] = '.';
@@ -1033,9 +1077,9 @@ namespace Zerra.Serialization.Json.IO
 
                 long fraction;
                 if (value.Ticks > -1)
-                    fraction = value.Ticks - (value.Ticks / 10000000) * 10000000;
+                    fraction = value.Ticks - (value.Ticks / TimeSpan.TicksPerSecond) * TimeSpan.TicksPerSecond;
                 else
-                    fraction = -value.Ticks - (-value.Ticks / 10000000) * 10000000;
+                    fraction = -value.Ticks - (-value.Ticks / TimeSpan.TicksPerSecond) * TimeSpan.TicksPerSecond;
                 if (fraction > 0)
                 {
                     bufferBytes[position++] = dotByte;
@@ -1122,9 +1166,9 @@ namespace Zerra.Serialization.Json.IO
 
                 long fraction;
                 if (value.Ticks > -1)
-                    fraction = value.Ticks - (value.Ticks / 10000000) * 10000000;
+                    fraction = value.Ticks - (value.Ticks / TimeSpan.TicksPerSecond) * TimeSpan.TicksPerSecond;
                 else
-                    fraction = -value.Ticks - (-value.Ticks / 10000000) * 10000000;
+                    fraction = -value.Ticks - (-value.Ticks / TimeSpan.TicksPerSecond) * TimeSpan.TicksPerSecond;
                 if (fraction > 0)
                 {
                     bufferChars[position++] = '.';
@@ -1262,7 +1306,7 @@ namespace Zerra.Serialization.Json.IO
                 _ = Utf8Formatter.TryFormat(value.Second, bufferBytes.Slice(position), out written);
                 position += written;
 
-                var fraction = value.Ticks - (value.Ticks / 10000000) * 10000000;
+                var fraction = value.Ticks - (value.Ticks / TimeSpan.TicksPerSecond) * TimeSpan.TicksPerSecond;
                 if (fraction > 0)
                 {
                     bufferBytes[position++] = dotByte;
@@ -1306,7 +1350,7 @@ namespace Zerra.Serialization.Json.IO
                     bufferChars[position++] = '0';
                 WriteInt32Chars(value.Second);
 
-                var fraction = value.Ticks - (value.Ticks / 10000000) * 10000000;
+                var fraction = value.Ticks - (value.Ticks / TimeSpan.TicksPerSecond) * TimeSpan.TicksPerSecond;
                 if (fraction > 0)
                 {
                     bufferChars[position++] = '.';

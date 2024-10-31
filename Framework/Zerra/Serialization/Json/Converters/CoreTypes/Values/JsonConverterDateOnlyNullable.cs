@@ -27,7 +27,7 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                             value = default;
                             return false;
                         }
-                        if (!Utf8ParserCustom.TryParse(bytes, out DateOnly parsed) && state.ErrorOnTypeMismatch)
+                        if (!Utf8Helper.TryParse(bytes, out DateOnly parsed) && state.ErrorOnTypeMismatch)
                             ThrowCannotConvert(ref reader);
                         value = parsed;
                         return true;
