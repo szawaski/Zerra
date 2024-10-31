@@ -547,14 +547,26 @@ namespace Zerra.Test
             var model10 = JsonSerializer.Deserialize<int?>("");
             Assert.AreEqual(null, model10);
 
-            var model11 = JsonSerializer.Deserialize<uint?>("");
-            Assert.AreEqual(null, model11);
+            StringEmptysNumbers<byte>();
+            StringEmptysNumbers<sbyte>();
+            StringEmptysNumbers<short>();
+            StringEmptysNumbers<ushort>();
+            StringEmptysNumbers<int>();
+            StringEmptysNumbers<uint>();
+            StringEmptysNumbers<long>();
+            StringEmptysNumbers<ulong>();
+            StringEmptysNumbers<float>();
+            StringEmptysNumbers<double>();
+            StringEmptysNumbers<decimal>();
+        }
+        private static void StringEmptysNumbers<T>()
+            where T : unmanaged
+        {
+            var model11 = JsonSerializer.Deserialize<T>("\"\"");
+            Assert.AreEqual(default, model11);
 
-            var model12 = JsonSerializer.Deserialize<double?>("");
+            var model12 = JsonSerializer.Deserialize<T?>("\"\"");
             Assert.AreEqual(null, model12);
-
-            var model13 = JsonSerializer.Deserialize<decimal?>("");
-            Assert.AreEqual(null, model13);
         }
 
         [TestMethod]
@@ -1216,6 +1228,9 @@ namespace Zerra.Test
             var model1 = TypesCoreModel.Create();
             using var stream = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream, model1);
+
+            var json = Encoding.UTF8.GetString(stream.ToArray());
+
             stream.Position = 0;
             var model2 = await JsonSerializer.DeserializeAsync<TypesCoreModel>(stream);
             AssertHelper.AreEqual(model1, model2);
@@ -1520,20 +1535,32 @@ namespace Zerra.Test
             var model8 = await JsonSerializer.DeserializeAsync<object>(new MemoryStream(Encoding.UTF8.GetBytes("{}")));
             Assert.IsNotNull(model8);
 
-            var model9 = await JsonSerializer.DeserializeAsync<int>(new MemoryStream(Encoding.UTF8.GetBytes("\"\"")));
+            var model9 = await JsonSerializer.DeserializeAsync<int>(new MemoryStream(Encoding.UTF8.GetBytes("")));
             Assert.AreEqual(0, model9);
 
-            var model10 = await JsonSerializer.DeserializeAsync<int?>(new MemoryStream(Encoding.UTF8.GetBytes("\"\"")));
+            var model10 = await JsonSerializer.DeserializeAsync<int?>(new MemoryStream(Encoding.UTF8.GetBytes("")));
             Assert.AreEqual(null, model10);
 
-            var model11 = await JsonSerializer.DeserializeAsync<uint?>(new MemoryStream(Encoding.UTF8.GetBytes("\"\"")));
-            Assert.AreEqual(null, model11);
+            await StreamEmptysNumbers<byte>();
+            await StreamEmptysNumbers<sbyte>();
+            await StreamEmptysNumbers<short>();
+            await StreamEmptysNumbers<ushort>();
+            await StreamEmptysNumbers<int>();
+            await StreamEmptysNumbers<uint>();
+            await StreamEmptysNumbers<long>();
+            await StreamEmptysNumbers<ulong>();
+            await StreamEmptysNumbers<float>();
+            await StreamEmptysNumbers<double>();
+            await StreamEmptysNumbers<decimal>();
+        }
+        private static async Task StreamEmptysNumbers<T>()
+            where T : unmanaged
+        {
+            var model11 = await JsonSerializer.DeserializeAsync<T>(new MemoryStream(Encoding.UTF8.GetBytes("\"\"")));
+            Assert.AreEqual(default, model11);
 
-            var model12 = await JsonSerializer.DeserializeAsync<double?>(new MemoryStream(Encoding.UTF8.GetBytes("\"\"")));
+            var model12 = await JsonSerializer.DeserializeAsync<T?>(new MemoryStream(Encoding.UTF8.GetBytes("\"\"")));
             Assert.AreEqual(null, model12);
-
-            var model13 = await JsonSerializer.DeserializeAsync<decimal?>(new MemoryStream(Encoding.UTF8.GetBytes("\"\"")));
-            Assert.AreEqual(null, model13);
         }
 
         [TestMethod]
