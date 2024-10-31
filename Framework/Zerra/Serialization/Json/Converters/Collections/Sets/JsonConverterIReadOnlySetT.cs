@@ -32,7 +32,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Sets
             if (valueType != JsonValueType.Array)
             {
                 if (state.ErrorOnTypeMismatch)
-                    throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(state.ErrorOnTypeMismatch)} to prevent this exception)");
+                    ThrowCannotConvert(ref reader);
 
                 value = default;
                 return Drain(ref reader, ref state, valueType);

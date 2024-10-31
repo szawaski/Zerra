@@ -575,5 +575,8 @@ namespace Zerra.Serialization.Json.Converters
             if (setter is not null && parent is not null && value is not null)
                 setter(parent, (TValue)value);
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected void ThrowCannotConvert(ref JsonReader reader) => throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(ReadState.ErrorOnTypeMismatch)} to prevent this exception)");
     }
 }
