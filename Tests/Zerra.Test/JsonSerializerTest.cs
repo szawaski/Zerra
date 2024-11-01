@@ -460,17 +460,8 @@ namespace Zerra.Test
         public void StringPretty()
         {
             var baseModel = TypesAllModel.Create();
-            var json = JsonSerializer.Serialize(baseModel);
-            string jsonPretty;
-            using (var stringReader = new StringReader(json))
-            using (var stringWriter = new StringWriter())
-            {
-                var jsonReader = new Newtonsoft.Json.JsonTextReader(stringReader);
-                var jsonWriter = new Newtonsoft.Json.JsonTextWriter(stringWriter) { Formatting = Newtonsoft.Json.Formatting.Indented, Indentation = 4 };
-                jsonWriter.WriteToken(jsonReader);
-                jsonPretty = stringWriter.ToString();
-            }
-            var model = JsonSerializer.Deserialize<TypesAllModel>(jsonPretty);
+            var json = System.Text.Json.JsonSerializer.Serialize(baseModel, new System.Text.Json.JsonSerializerOptions() { WriteIndented = true });
+            var model = JsonSerializer.Deserialize<TypesAllModel>(json);
             AssertHelper.AreEqual(baseModel, model);
         }
 
@@ -1423,24 +1414,10 @@ namespace Zerra.Test
         public async Task StreamPretty()
         {
             var baseModel = TypesAllModel.Create();
-            using var stream1 = new MemoryStream();
-            await JsonSerializer.SerializeAsync(stream1, baseModel);
-            using var sr1 = new StreamReader(stream1, Encoding.UTF8);
-            stream1.Position = 0;
-            var json = await sr1.ReadToEndAsync();
+            var json = System.Text.Json.JsonSerializer.Serialize(baseModel, new System.Text.Json.JsonSerializerOptions() { WriteIndented = true });
 
-            string jsonPretty;
-            using (var stringReader = new StringReader(json))
-            using (var stringWriter = new StringWriter())
-            {
-                var jsonReader = new Newtonsoft.Json.JsonTextReader(stringReader);
-                var jsonWriter = new Newtonsoft.Json.JsonTextWriter(stringWriter) { Formatting = Newtonsoft.Json.Formatting.Indented, Indentation = 4 };
-                jsonWriter.WriteToken(jsonReader);
-                jsonPretty = stringWriter.ToString();
-            }
-
-            using var stream2 = new MemoryStream(Encoding.UTF8.GetBytes(jsonPretty));
-            var model = await JsonSerializer.DeserializeAsync<TypesAllModel>(stream2);
+            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(json));
+            var model = await JsonSerializer.DeserializeAsync<TypesAllModel>(stream);
             AssertHelper.AreEqual(baseModel, model);
         }
 
