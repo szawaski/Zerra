@@ -88,13 +88,17 @@ namespace Zerra.Serialization.Json.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryReadNext(out char c)
         {
+#if DEBUG
+            if (Skip())
+            {
+                c = default;
+                return false;
+            }
+#endif
+
             if (useBytes)
             {
-                if (position >= length
-#if DEBUG
-            || Skip()
-#endif
-                )
+                if (position >= length)
                 {
                     c = default;
                     return false;
@@ -145,11 +149,7 @@ namespace Zerra.Serialization.Json.IO
             }
             else
             {
-                if (position >= length
-#if DEBUG
-            || Skip()
-#endif
-            )
+                if (position >= length)
                 {
                     c = default;
                     return false;
@@ -161,16 +161,20 @@ namespace Zerra.Serialization.Json.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryReadNextSkipWhiteSpace(out char c)
         {
+#if DEBUG
+            if (Skip())
+            {
+                c = default;
+                return false;
+            }
+#endif
+
             if (useBytes)
             {
                 fixed (byte* pBuffer = bufferBytes)
                 {
                 bytesAgain:
-                    if (position >= length
-#if DEBUG
-                    || Skip()
-#endif
-                    )
+                    if (position >= length)
                     {
                         c = default;
                         return false;
@@ -228,11 +232,7 @@ namespace Zerra.Serialization.Json.IO
                 fixed (char* pBuffer = bufferChars)
                 {
                 charsAgain:
-                    if (position >= length
-#if DEBUG
-                    || Skip()
-#endif
-                    )
+                    if (position >= length)
                     {
                         c = default;
                         return false;
@@ -249,12 +249,17 @@ namespace Zerra.Serialization.Json.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryReadValueType(out JsonValueType valueType, out int sizeNeeded)
         {
-            sizeNeeded = 1;
-            if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            if (Skip())
+            {
+                sizeNeeded = 1;
+                valueType = default;
+                return false;
+            }
 #endif
-            )
+
+            sizeNeeded = 1;
+            if (length - position < sizeNeeded)
             {
                 valueType = default;
                 return false;
@@ -463,112 +468,6 @@ namespace Zerra.Serialization.Json.IO
                             throw CreateException("Invalid JSON value");
                     }
                 }
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadEscapeHex(out ReadOnlySpan<char> s, out int sizeNeeded)
-        {
-            if (useBytes)
-            {
-                sizeNeeded = 4;
-                if (length - position < sizeNeeded
-#if DEBUG
-            || Skip()
-#endif
-            )
-                {
-                    s = default;
-                    return false;
-                }
-                var chars = new char[4];
-                chars[0] = (char)bufferBytes[position++];
-                chars[1] = (char)bufferBytes[position++];
-                chars[2] = (char)bufferBytes[position++];
-                chars[3] = (char)bufferBytes[position++];
-                s = chars;
-                return true;
-            }
-            else
-            {
-                sizeNeeded = 4;
-                if (length - position < sizeNeeded
-#if DEBUG
-                || Skip()
-#endif
-                )
-                {
-                    s = default;
-                    return false;
-                }
-                s = bufferChars.Slice(position, 4);
-                position += 4;
-                return true;
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryReadSpanUntilQuoteOrEscape(out ReadOnlySpan<char> s, out int sizeNeeded)
-        {
-            if (useBytes)
-            {
-                sizeNeeded = 1;
-                if (length - position < sizeNeeded
-#if DEBUG
-                || Skip()
-#endif
-                )
-                {
-                    s = default;
-                    return false;
-                }
-                var start = position;
-                var b = bufferBytes[position++];
-                while (b != quoteByte && b != escapeByte)
-                {
-                    if (position >= length)
-                    {
-                        position = start;
-                        sizeNeeded = length - position + 1;
-                        s = default;
-                        return false;
-                    }
-                    b = bufferBytes[position++];
-                }
-#if NETSTANDARD2_0
-                s = encoding.GetString(bufferBytes.Slice(start, position - start).ToArray()).AsSpan();
-#else
-                s = encoding.GetString(bufferBytes.Slice(start, position - start));
-#endif
-                return true;
-            }
-            else
-            {
-                sizeNeeded = 1;
-                if (length - position < sizeNeeded
-#if DEBUG
-            || Skip()
-#endif
-            )
-                {
-                    s = default;
-                    return false;
-                }
-                var start = position;
-                var c = bufferChars[position++];
-                while (c != '\"' && c != '\\')
-                {
-                    if (position >= length)
-                    {
-                        position = start;
-                        sizeNeeded = length - position + 1;
-                        s = default;
-                        return false;
-                    }
-                    c = bufferChars[position++];
-                }
-                s = bufferChars.Slice(start, position - start);
-                return true;
             }
         }
 

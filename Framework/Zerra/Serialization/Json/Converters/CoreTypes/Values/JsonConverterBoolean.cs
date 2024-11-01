@@ -56,13 +56,34 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                         return true;
                     }
                 case JsonValueType.Number:
-                    if (!ReadNumberAsDouble(ref reader, ref state, out var number))
+                    if (reader.UseBytes)
                     {
-                        value = default;
-                        return false;
+                        if (!reader.TryReadNumberBytes(out var bytes, out state.SizeNeeded))
+                        {
+                            value = default;
+                            return false;
+                        }
+                        if ((!Utf8Parser.TryParse(bytes, out float number, out var consumed) || consumed != bytes.Length) && state.ErrorOnTypeMismatch)
+                            ThrowCannotConvert(ref reader);
+                        value = number > 0;
+                        return true;
                     }
-                    value = number > 0;
-                    return true;
+                    else
+                    {
+                        if (!reader.TryReadNumberChars(out var chars, out state.SizeNeeded))
+                        {
+                            value = default;
+                            return false;
+                        }
+#if NETSTANDARD2_0
+                        if (!Single.TryParse(chars.ToString(), out var number) && state.ErrorOnTypeMismatch)
+#else
+                        if (!Single.TryParse(chars, out var number) && state.ErrorOnTypeMismatch)
+#endif
+                            ThrowCannotConvert(ref reader);
+                        value = number > 0;
+                        return true;
+                    }
                 case JsonValueType.Object:
                     if (state.ErrorOnTypeMismatch)
                         ThrowCannotConvert(ref reader);
