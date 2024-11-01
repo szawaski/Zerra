@@ -39,11 +39,7 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                             value = default;
                             return false;
                         }
-#if NETSTANDARD2_0
-                        if (!DateOnly.TryParse(chars.ToString(), out DateOnly parsed) && state.ErrorOnTypeMismatch)
-#else
-                        if (!DateOnly.TryParse(chars, out DateOnly parsed) && state.ErrorOnTypeMismatch)
-#endif
+                        if (!Utf8Helper.TryParse(chars, out DateOnly parsed) && state.ErrorOnTypeMismatch)
                             ThrowCannotConvert(ref reader);
                         value = parsed;
                         return true;

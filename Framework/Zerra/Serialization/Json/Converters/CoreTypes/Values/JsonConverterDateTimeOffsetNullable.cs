@@ -38,11 +38,7 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                             value = default;
                             return false;
                         }
-#if NETSTANDARD2_0
-                        if (!DateTimeOffset.TryParse(chars.ToString(), null, DateTimeStyles.RoundtripKind,out DateTimeOffset parsed) && state.ErrorOnTypeMismatch)
-#else
-                        if (!DateTimeOffset.TryParse(chars, null, DateTimeStyles.RoundtripKind, out DateTimeOffset parsed) && state.ErrorOnTypeMismatch)
-#endif
+                        if (!Utf8Helper.TryParse(chars, out DateTimeOffset parsed) && state.ErrorOnTypeMismatch)
                             ThrowCannotConvert(ref reader);
                         value = parsed;
                         return true;

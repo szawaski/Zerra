@@ -37,11 +37,7 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                             value = default;
                             return false;
                         }
-#if NETSTANDARD2_0
-                        if (!DateTime.TryParse(chars.ToString(), null, DateTimeStyles.RoundtripKind, out value) && state.ErrorOnTypeMismatch)
-#else
-                        if (!DateTime.TryParse(chars, null, DateTimeStyles.RoundtripKind, out value) && state.ErrorOnTypeMismatch)
-#endif
+                        if (!Utf8Helper.TryParse(chars, out value) && state.ErrorOnTypeMismatch)
                             ThrowCannotConvert(ref reader);
                         return true;
                     }
