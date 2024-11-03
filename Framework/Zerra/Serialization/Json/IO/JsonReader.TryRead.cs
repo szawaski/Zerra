@@ -85,79 +85,7 @@ namespace Zerra.Serialization.Json.IO
             }
         }
 #endif
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadNext(out char c)
-        {
-#if DEBUG
-            if (Skip())
-            {
-                c = default;
-                return false;
-            }
-#endif
 
-            if (useBytes)
-            {
-                if (position >= length)
-                {
-                    c = default;
-                    return false;
-                }
-                var b = bufferBytes[position];
-                if (b < 192)
-                {
-                    c = (char)b;
-                    position++;
-                    return true;
-                }
-                else if (b < 224)
-                {
-                    if (position + 1 >= length)
-                    {
-                        c = default;
-                        return false;
-                    }
-                    var chars = stackalloc char[1];
-                    fixed (byte* bytesPtr = bufferBytes.Slice(position))
-                    {
-                        encoding.GetChars(bytesPtr, 2, chars, 0);
-                    }
-                    c = chars[0];
-                    position += 2;
-                    return true;
-                }
-                else if (b < 240)
-                {
-                    if (position + 2 >= length)
-                    {
-                        c = default;
-                        return false;
-                    }
-                    var chars = stackalloc char[1];
-                    fixed (byte* bytesPtr = bufferBytes.Slice(position))
-                    {
-                        encoding.GetChars(bytesPtr, 3, chars, 0);
-                        c = chars[0];
-                        position += 3;
-                        return true;
-                    }
-                }
-                else
-                {
-                    throw CreateException("Unsupported UTF8 byte sequence");
-                }
-            }
-            else
-            {
-                if (position >= length)
-                {
-                    c = default;
-                    return false;
-                }
-                c = bufferChars[position++];
-                return true;
-            }
-        }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryReadNextSkipWhiteSpace(out char c)
         {
