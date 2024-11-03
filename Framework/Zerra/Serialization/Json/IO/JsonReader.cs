@@ -53,8 +53,10 @@ namespace Zerra.Serialization.Json.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void BackOne()
         {
+#if DEBUG
             if (position == 0)
                 throw new InvalidOperationException($"Cannot {nameof(BackOne)} before position of zero.");
+#endif
             position--;
         }
 

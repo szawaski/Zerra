@@ -108,51 +108,16 @@ namespace Zerra.Serialization.Json.IO
                         return false;
                     }
 
-                    var b = pBuffer[position];
+                    var b = pBuffer[position++];
                     if (b == spaceByte || b == tabByte || b == returnByte || b == newlineByte)
-                    {
-                        position++;
                         goto bytesAgain;
-                    }
-                    if (b < 192)
-                    {
-                        c = (char)b;
-                        position++;
-                        return true;
-                    }
-                    else if (b < 224)
-                    {
-                        if (position + 1 >= length)
-                        {
-                            c = default;
-                            return false;
-                        }
-                        var chars = stackalloc char[1];
 
-                        encoding.GetChars(&pBuffer[position], 2, chars, 0);
+                    //JSON has no tokens over the 1-byte uft8 range
+                    if (b > 192)
+                        throw CreateException("Unexpected Character");
 
-                        c = chars[0];
-                        position += 2;
-                        return true;
-                    }
-                    else if (b < 240)
-                    {
-                        if (position + 2 >= length)
-                        {
-                            c = default;
-                            return false;
-                        }
-                        var chars = stackalloc char[1];
-
-                        encoding.GetChars(&pBuffer[position], 3, chars, 0);
-                        c = chars[0];
-                        position += 3;
-                        return true;
-                    }
-                    else
-                    {
-                        throw CreateException("Unsupported UTF8 byte sequence");
-                    }
+                    c = (char)b;
+                    return true;
                 }
             }
             else
@@ -530,7 +495,7 @@ namespace Zerra.Serialization.Json.IO
                     if (!hasStarted)
                     {
                         var b = pBuffer[position++];
-                        while (b == spaceByte || b == tabByte || b == returnByte || b == newlineByte)
+                        if (b != quoteByte)
                         {
                             if (position == length)
                             {
@@ -540,10 +505,22 @@ namespace Zerra.Serialization.Json.IO
                                 return false;
                             }
                             b = pBuffer[position++];
-                        }
 
-                        if (b != quoteByte)
-                            throw CreateException("Unexpected character");
+                            while (b == spaceByte || b == tabByte || b == returnByte || b == newlineByte)
+                            {
+                                if (position == length)
+                                {
+                                    s = null;
+                                    position = originalPosition;
+                                    sizeNeeded = length - position + 1;
+                                    return false;
+                                }
+                                b = pBuffer[position++];
+                            }
+
+                            if (b != quoteByte)
+                                throw CreateException("Unexpected character");
+                        }
                     }
 
                     var startPosition = position;
@@ -688,7 +665,7 @@ namespace Zerra.Serialization.Json.IO
                     if (!hasStarted)
                     {
                         var c = pBuffer[position++];
-                        while (c == ' ' || c == '\t' || c == '\r' || c == '\n')
+                        if (c != '\"')
                         {
                             if (position == length)
                             {
@@ -698,10 +675,22 @@ namespace Zerra.Serialization.Json.IO
                                 return false;
                             }
                             c = pBuffer[position++];
-                        }
 
-                        if (c != '\"')
-                            throw CreateException("Unexpected character");
+                            while (c == ' ' || c == '\t' || c == '\r' || c == '\n')
+                            {
+                                if (position == length)
+                                {
+                                    s = null;
+                                    position = originalPosition;
+                                    sizeNeeded = length - position + 1;
+                                    return false;
+                                }
+                                c = pBuffer[position++];
+                            }
+
+                            if (c != '\"')
+                                throw CreateException("Unexpected character");
+                        }
                     }
 
                     var startPosition = position;
