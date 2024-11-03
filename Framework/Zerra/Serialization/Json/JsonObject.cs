@@ -231,7 +231,7 @@ namespace Zerra.Serialization.Json
                         _ = sb.Append(chars.Slice(start, i - start));
 #endif
                         start = i + 1;
-                        var code = StringHelper.LowUnicodeIntToEncodedHex[c];
+                        var code = StringHelper.LowUnicodeIntToEncodedHexChars[c];
                         _ = sb.Append(code);
                         continue;
                 }

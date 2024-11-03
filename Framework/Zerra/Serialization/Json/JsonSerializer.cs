@@ -6,7 +6,7 @@ namespace Zerra.Serialization.Json
 {
     public partial class JsonSerializer
     {
-        private const int defaultBufferSize = 8 * 1024;
+        private const int defaultBufferSize = 16 * 1024;
 
         private static readonly JsonSerializerOptions defaultOptions = new();
     }

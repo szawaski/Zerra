@@ -2004,10 +2004,11 @@ namespace Zerra.Serialization.Json.IO
 
                                     position += encoding.GetBytes(&pValue[start], i - start, &pBuffer[position], length - position);
 
-                                    var code = StringHelper.LowUnicodeIntToEncodedHex[c];
-                                    fixed (char* pCode = code)
+                                    var code = StringHelper.LowUnicodeIntToEncodedHexBytes[c];
+                                    fixed (byte* pCode = code)
                                     {
-                                        position += encoding.GetBytes(pCode, code.Length, &pBuffer[position], length - position);
+                                        Buffer.MemoryCopy(pCode, &pBuffer[position], (length - position) * 2, code.Length);
+                                        position += code.Length;
                                     }
 
                                     start = i + 1;
@@ -2122,7 +2123,7 @@ namespace Zerra.Serialization.Json.IO
                                     Buffer.MemoryCopy(&pValue[start], &pBuffer[position], (length - position) * 2, (i - start) * 2);
                                     position += i - start;
 
-                                    var code = StringHelper.LowUnicodeIntToEncodedHex[c];
+                                    var code = StringHelper.LowUnicodeIntToEncodedHexChars[c];
                                     fixed (char* pCode = code)
                                     {
                                         Buffer.MemoryCopy(pCode, &pBuffer[position], (length - position) * 2, code.Length * 2);
@@ -2205,7 +2206,7 @@ namespace Zerra.Serialization.Json.IO
                             escapedByte = tByte;
                             break;
                         default:
-                            var code = StringHelper.LowUnicodeIntToEncodedHex[value];
+                            var code = StringHelper.LowUnicodeIntToEncodedHexBytes[value];
 
                             sizeNeeded = code.Length + 2;
                             if (length - position < sizeNeeded)
@@ -2217,15 +2218,11 @@ namespace Zerra.Serialization.Json.IO
                             if (Skip())
                                 return false;
 #endif
-                            fixed (char* pCode = code)
-                            fixed (byte* pBuffer = bufferBytes)
+                            fixed (byte* pCode = code, pBuffer = bufferBytes)
                             {
                                 pBuffer[position++] = quoteByte;
-
-                                //chars are 2 bytes but we want the 1 byte encoding
-                                for (var i = 0; i < code.Length; i++)
-                                    pBuffer[position++] = (byte)pCode[i];
-
+                                Buffer.MemoryCopy(pCode, &pBuffer[position], length - position, code.Length);
+                                position += code.Length;
                                 pBuffer[position++] = quoteByte;
                             }
                             return true;
@@ -2318,7 +2315,7 @@ namespace Zerra.Serialization.Json.IO
                         escapedChar = 't';
                         break;
                     default:
-                        var code = StringHelper.LowUnicodeIntToEncodedHex[value];
+                        var code = StringHelper.LowUnicodeIntToEncodedHexChars[value];
 
                         sizeNeeded = code.Length + 2;
                         if (length - position < sizeNeeded)

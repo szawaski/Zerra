@@ -1574,6 +1574,7 @@ namespace Zerra.Test
             }
         }
 
+        [TestMethod]
         public async Task StreamStringEscaping()
         {
             for (var i = 0; i < (int)byte.MaxValue; i++)
