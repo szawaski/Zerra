@@ -37,8 +37,6 @@ namespace Zerra
             }
         }
 
-        public IReadOnlyCollection<Graph> ChildGraphs => childGraphs is null ? Array.Empty<Graph>() : childGraphs.Values;
-
         private static readonly TypeDetail graphTType = typeof(Graph<>).GetTypeDetail();
 
         [NonSerialized]
@@ -259,6 +257,7 @@ namespace Zerra
             if (childGraphs is not null && childGraphs.TryGetValue(member, out var childGraph))
             {
                 childGraph.includeAllMembers = true;
+                childGraph.signature = null;
             }
             else
             {

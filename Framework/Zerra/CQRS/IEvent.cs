@@ -4,6 +4,9 @@
 
 namespace Zerra.CQRS
 {
+    /// <summary>
+    /// Indicates that this class is an command.
+    /// </summary>
     public interface IEvent : IMessage
     {
 

@@ -5,18 +5,14 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Net.Security;
-using System.Reflection;
 using System.Security;
 using System.Security.Principal;
 using System.Threading;
 using System.Threading.Tasks;
 using Zerra.Collections;
-using Zerra.CQRS.Relay;
 using Zerra.CQRS.Settings;
 using Zerra.Encryption;
 using Zerra.Logging;
@@ -28,6 +24,12 @@ using Zerra.Serialization.Json;
 
 namespace Zerra.CQRS
 {
+    /// <summary>
+    /// Responsible for sending commands, events, and queries to the correct destination.
+    /// A destination may be an implementation in the same assembly or calling a remote service.
+    /// Discovery will host commands and events with the <see cref=""ServiceExposedAttribute/>.
+    /// Discovery will also host queries whose interface has <see cref=""ServiceExposedAttribute/>.
+    /// </summary>
     [Zerra.Reflection.GenerateTypeDetail]
     public static partial class Bus
     {
@@ -53,7 +55,6 @@ namespace Zerra.CQRS
         private static int maxConcurrentEventsPerTopic = Environment.ProcessorCount * 16;
         private static CommandCounter commandCounter = new();
 
-
         private static readonly ConcurrentFactoryDictionary<Type, MessageMetadata> commandMetadata = new();
         private static readonly ConcurrentFactoryDictionary<Type, Func<ICommand, Task>?> commandCacheProviders = new();
         private static readonly ConcurrentFactoryDictionary<Type, Delegate?> commandWithResultCacheProviders = new();
@@ -72,9 +73,89 @@ namespace Zerra.CQRS
         private static readonly HashSet<Type> handledQueryTypes = new();
         private static IBusLogger? busLogger = null;
 
+        public static int MaxConcurrentQueries
+        {
+            get => maxConcurrentQueries;
+            set
+            {
+                setupLock.Wait();
+                try
+                {
+                    if (HasServices)
+                        throw new InvalidOperationException($"Cannot set {nameof(maxConcurrentQueries)} after services added");
+                    maxConcurrentQueries = value;
+                }
+                finally
+                {
+                    setupLock.Release();
+                }
+            }
+        }
+        public static int MaxConcurrentCommandsPerTopic
+        {
+            get => maxConcurrentCommandsPerTopic;
+            set
+            {
+                setupLock.Wait();
+                try
+                {
+                    if (HasServices)
+                        throw new InvalidOperationException($"Cannot set {nameof(MaxConcurrentCommandsPerTopic)} after services added");
+                    maxConcurrentCommandsPerTopic = value;
+                }
+                finally
+                {
+                    setupLock.Release();
+                }
+            }
+        }
+        public static int MaxConcurrentEventsPerTopic
+        {
+            get => maxConcurrentEventsPerTopic;
+            set
+            {
+                setupLock.Wait();
+                try
+                {
+                    if (HasServices)
+                        throw new InvalidOperationException($"Cannot set {nameof(MaxConcurrentEventsPerTopic)} after services added");
+                    maxConcurrentEventsPerTopic = value;
+                }
+                finally
+                {
+                    setupLock.Release();
+                }
+            }
+        }
+        public static int? ReceiveCommandsBeforeExit
+        {
+            get => commandCounter.ReceiveCountBeforeExit;
+            set
+            {
+                setupLock.Wait();
+                try
+                {
+                    if (HasServices)
+                        throw new InvalidOperationException($"Cannot set {nameof(ReceiveCommandsBeforeExit)} after services added");
+                    commandCounter = new CommandCounter(value, HandleProcessExit);
+                }
+                finally
+                {
+                    setupLock.Release();
+                }
+            }
+        }
+        private static bool HasServices
+        {
+            get => !commandProducers.IsEmpty ||
+                   commandConsumers.Count != 0 ||
+                   !eventProducers.IsEmpty ||
+                   eventConsumers.Count != 0 ||
+                   !queryClients.IsEmpty ||
+                   queryServers.Count != 0;
+        }
 
-
-        public static async Task<RemoteQueryCallResponse> HandleRemoteQueryCallAsync(Type interfaceType, string methodName, string?[] arguments, string source, bool isApi)
+        internal static async Task<RemoteQueryCallResponse> HandleRemoteQueryCallAsync(Type interfaceType, string methodName, string?[] arguments, string source, bool isApi)
         {
             var networkType = isApi ? NetworkType.Api : NetworkType.Internal;
             var callerProvider = CallInternal(interfaceType, networkType, source);
@@ -113,18 +194,18 @@ namespace Zerra.CQRS
             else
                 return new RemoteQueryCallResponse(model);
         }
-        public static Task HandleRemoteCommandDispatchAsync(ICommand command, string source, bool isApi)
+        internal static Task HandleRemoteCommandDispatchAsync(ICommand command, string source, bool isApi)
         {
             var networkType = isApi ? NetworkType.Api : NetworkType.Internal;
             return DispatchCommandInternalAsync(command, false, networkType, source);
         }
-        public static Task HandleRemoteCommandDispatchAwaitAsync(ICommand command, string source, bool isApi)
+        internal static Task HandleRemoteCommandDispatchAwaitAsync(ICommand command, string source, bool isApi)
         {
             var networkType = isApi ? NetworkType.Api : NetworkType.Internal;
             return DispatchCommandInternalAsync(command, true, networkType, source);
         }
         private static readonly MethodDetail dispatchCommandWithResultInternalAsyncMethod = typeof(Bus).GetMethodDetail(nameof(DispatchCommandWithResultInternalAsync));
-        public static async Task<object?> HandleRemoteCommandWithResultDispatchAwaitAsync(ICommand command, string source, bool isApi)
+        internal static async Task<object?> HandleRemoteCommandWithResultDispatchAwaitAsync(ICommand command, string source, bool isApi)
         {
             var networkType = isApi ? NetworkType.Api : NetworkType.Internal;
             var commandType = command.GetType().GetTypeDetail();
@@ -135,15 +216,44 @@ namespace Zerra.CQRS
 
             return model;
         }
-        public static Task HandleRemoteEventDispatchAsync(IEvent @event, string source, bool isApi)
+        internal static Task HandleRemoteEventDispatchAsync(IEvent @event, string source, bool isApi)
         {
             var networkType = isApi ? NetworkType.Api : NetworkType.Internal;
             return DispatchEventInternalAsync(@event, networkType, source);
         }
 
+        /// <summary>
+        /// Send a command to the correct destination.
+        /// This follows the eventual consistency pattern so the sender does not know when the command is processed.
+        /// A destination may be an implementation in the same assembly or calling a remote service.
+        /// </summary>
+        /// <param name="command">The command to send.</param>
+        /// <returns>A task to complete sending the command.</returns>
         public static Task DispatchAsync(ICommand command) => DispatchCommandInternalAsync(command, false, NetworkType.Local, Config.ApplicationIdentifier);
+        /// <summary>
+        /// Send a command to the correct destination and wait for it to process.
+        /// This will await until the reciever has returned a signal or an exception that the command has been processed.
+        /// A destination may be an implementation in the same assembly or calling a remote service.
+        /// </summary>
+        /// <param name="command">The command to send.</param>
+        /// <returns>A task to await processing of the command.</returns>
         public static Task DispatchAwaitAsync(ICommand command) => DispatchCommandInternalAsync(command, true, NetworkType.Local, Config.ApplicationIdentifier);
+        /// <summary>
+        /// Send an event to the correct destination.
+        /// Events will go to any number of destinations that wish to recieve the event.
+        /// It is not possible to recieve information back from destinations.
+        /// A destination may be an implementation in the same assembly or calling a remote service.
+        /// </summary>
+        /// <param name="command">The command to send.</param>
+        /// <returns>A task to complete sending the event.</returns>
         public static Task DispatchAsync(IEvent @event) => DispatchEventInternalAsync(@event, NetworkType.Local, Config.ApplicationIdentifier);
+        /// <summary>
+        /// Send a command to the correct destination and wait for a result.
+        /// This will await until the reciever has returned a result or an exception.
+        /// A destination may be an implementation in the same assembly or calling a remote service.
+        /// </summary>
+        /// <param name="command">The command to send.</param>
+        /// <returns>A task to await the result of the command.</returns>
         public static Task<TResult?> DispatchAwaitAsync<TResult>(ICommand<TResult> command) => DispatchCommandWithResultInternalAsync(command, NetworkType.Local, Config.ApplicationIdentifier);
 
         private static Task DispatchCommandInternalAsync(ICommand command, bool requireAffirmation, NetworkType networkType, string source)
@@ -153,7 +263,7 @@ namespace Zerra.CQRS
             var metadata = commandMetadata.GetOrAdd(commandType, networkType, static (commandType, networkType) =>
             {
                 var exposed = false;
-                var busLogging = BusLogging.Logged;
+                var busLogging = BusLogging.SenderAndHandler;
                 var authenticate = false;
                 IReadOnlyCollection<string>? roles = null;
                 foreach (var attribute in commandType.GetTypeDetail().Attributes)
@@ -202,11 +312,7 @@ namespace Zerra.CQRS
                 _ = methodSetNextProvider.CallerBoxed(cacheInstance, [messageHandlerToDispatchProvider]);
 
                 var method = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(ICommandHandler<ICommand>.Handle), [commandType]);
-                Task caller(ICommand arg)
-                {
-                    var task = (Task)method.CallerBoxed(cacheInstance, [arg])!;
-                    return task;
-                }
+                Task caller(ICommand arg) => (Task)method.CallerBoxed(cacheInstance, [arg])!;
 
                 return caller;
             });
@@ -223,7 +329,7 @@ namespace Zerra.CQRS
             var metadata = commandMetadata.GetOrAdd(commandType, networkType, static (commandType, networkType) =>
             {
                 var exposed = false;
-                var busLogging = BusLogging.Logged;
+                var busLogging = BusLogging.SenderAndHandler;
                 var authenticate = false;
                 IReadOnlyCollection<string>? roles = null;
                 foreach (var attribute in commandType.GetTypeDetail().Attributes)
@@ -272,11 +378,7 @@ namespace Zerra.CQRS
                 _ = methodSetNextProvider.CallerBoxed(cacheInstance, [messageHandlerToDispatchProvider]);
 
                 var method = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(ICommandHandler<ICommand<TResult>, TResult>.Handle), [commandType, typeof(TResult)]);
-                Task<TResult?> caller(ICommand<TResult> arg)
-                {
-                    var task = (Task<TResult?>)method.CallerBoxed(cacheInstance, [arg])!;
-                    return task;
-                }
+                Task<TResult?> caller(ICommand<TResult> arg) => (Task<TResult?>)method.CallerBoxed(cacheInstance, [arg])!;
 
                 return caller;
             });
@@ -294,7 +396,7 @@ namespace Zerra.CQRS
             var metadata = eventMetadata.GetOrAdd(eventType, networkType, static (eventType, networkType) =>
             {
                 var exposed = false;
-                var busLogging = BusLogging.Logged;
+                var busLogging = BusLogging.SenderAndHandler;
                 var authenticate = false;
                 IReadOnlyCollection<string>? roles = null;
                 foreach (var attribute in eventType.GetTypeDetail().Attributes)
@@ -343,11 +445,7 @@ namespace Zerra.CQRS
                 _ = methodSetNextProvider.CallerBoxed(cacheInstance, [messageHandlerToDispatchProvider]);
 
                 var method = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(IEventHandler<IEvent>.Handle), [eventType]);
-                Task caller(IEvent arg)
-                {
-                    var task = (Task)method.CallerBoxed(cacheInstance, [arg])!;
-                    return task;
-                }
+                Task caller(IEvent arg) => (Task)method.CallerBoxed(cacheInstance, [arg])!;
 
                 return caller;
             });
@@ -358,6 +456,9 @@ namespace Zerra.CQRS
             return _DispatchEventInternalAsync(@event, eventType, networkType, source, metadata.BusLogging);
         }
 
+        /// <summary>
+        /// Internal Use Only. Do not call this method except by generated types.
+        /// </summary>
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         public static Task _DispatchCommandInternalAsync(ICommand command, Type commandType, bool requireAffirmation, NetworkType networkType, string source, BusLogging busLogging)
         {
@@ -401,6 +502,9 @@ namespace Zerra.CQRS
                 return Task.CompletedTask;
             }
         }
+        /// <summary>
+        /// Internal Use Only. Do not call this method except by generated types.
+        /// </summary>
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         public static Task<TResult?> _DispatchCommandWithResultInternalAsync<TResult>(ICommand<TResult> command, Type commandType, NetworkType networkType, string source, BusLogging busLogging)
         {
@@ -430,6 +534,9 @@ namespace Zerra.CQRS
             else
                 return HandleCommandWithResultLoggedAsync((ICommand<TResult>)command, commandType, source);
         }
+        /// <summary>
+        /// Internal Use Only. Do not call this method except by generated types.
+        /// </summary>
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         public static Task _DispatchEventInternalAsync(IEvent @event, Type eventType, NetworkType networkType, string source, BusLogging busLogging)
         {
@@ -653,7 +760,19 @@ namespace Zerra.CQRS
             busLogger?.EndEvent(eventType, @event, source, true, timer.ElapsedMilliseconds, null);
         }
 
+        /// <summary>
+        /// Returns in instance of an interface that will route a query to the correct destination.
+        /// A destination may be an implementation in the same assembly or calling a remote service.
+        /// </summary>
+        /// <typeparam name="TInterface">The interface type.</typeparam>
+        /// <returns>An instance of the interface to route queries.</returns>
         public static TInterface Call<TInterface>() => (TInterface)CallInternal(typeof(TInterface), NetworkType.Local, Config.ApplicationIdentifier);
+        /// <summary>
+        /// Returns in instance of an interface that will route a query to the correct destination.
+        /// A destination may be an implementation in the same assembly or calling a remote service.
+        /// </summary>
+        /// <param name="interfaceType">The interface type.</param>
+        /// <returns>An instance of the interface to route queries.</returns>
         public static object Call(Type interfaceType) => CallInternal(interfaceType, NetworkType.Local, Config.ApplicationIdentifier);
 
         private static object CallInternal(Type interfaceType, NetworkType networkType, string source)
@@ -661,7 +780,7 @@ namespace Zerra.CQRS
             var metadata = callMetadata.GetOrAdd(interfaceType, networkType, static (interfaceType, networkType) =>
             {
                 var exposed = false;
-                var busLogging = BusLogging.Logged;
+                var busLogging = BusLogging.SenderAndHandler;
                 var authenticate = false;
                 IReadOnlyCollection<string>? roles = null;
                 foreach (var attribute in interfaceType.GetTypeDetail().Attributes)
@@ -712,6 +831,9 @@ namespace Zerra.CQRS
             return callerProvider;
         }
 
+        /// <summary>
+        /// Internal Use Only. Do not call this method except by generated types.
+        /// </summary>
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         public static TReturn _CallMethod<TReturn>(Type interfaceType, string methodName, object[] arguments, NetworkType networkType, string source)
         {
@@ -722,7 +844,7 @@ namespace Zerra.CQRS
             var metadata = callMetadata.GetOrAdd(interfaceType, networkType, static (interfaceType, networkType) =>
             {
                 var exposed = false;
-                var busLogging = BusLogging.Logged;
+                var busLogging = BusLogging.SenderAndHandler;
                 var authenticate = false;
                 IReadOnlyCollection<string>? roles = null;
                 foreach (var attribute in interfaceType.GetTypeDetail().Attributes)
@@ -977,6 +1099,11 @@ namespace Zerra.CQRS
         {
             var messageTypes = new HashSet<Type>();
             var typeDetail = TypeAnalyzer.GetTypeDetail(interfaceType);
+            if (typeDetail.Type.Name == iCommandHandlerType.Name || typeDetail.Type.Name == iCommandHandlerWithResultType.Name)
+            {
+                var messageType = typeDetail.InnerTypes[0];
+                _ = messageTypes.Add(messageType);
+            }
             foreach (var item in typeDetail.Interfaces.Where(x => x.Name == iCommandHandlerType.Name || x.Name == iCommandHandlerWithResultType.Name))
             {
                 var itemDetail = TypeAnalyzer.GetTypeDetail(item);
@@ -989,6 +1116,11 @@ namespace Zerra.CQRS
         {
             var messageTypes = new HashSet<Type>();
             var typeDetail = TypeAnalyzer.GetTypeDetail(interfaceType);
+            if (typeDetail.Type.Name == iEventHandlerType.Name)
+            {
+                var messageType = typeDetail.InnerTypes[0];
+                _ = messageTypes.Add(messageType);
+            }
             foreach (var item in typeDetail.Interfaces.Where(x => x.Name == iEventHandlerType.Name))
             {
                 var itemDetail = TypeAnalyzer.GetTypeDetail(item);
@@ -1028,6 +1160,13 @@ namespace Zerra.CQRS
             }
         }
 
+        /// <summary>
+        /// Manually add a command producer service to send commands.
+        /// It's recommended to use <see cref="StartServices"/> instead unless there is some special case.
+        /// Discovery will host commands with the <see cref=""ServiceExposedAttribute/>.
+        /// </summary>
+        /// <typeparam name="TInterface">An interface inheriting command handler interfaces for the types of commands to send.</typeparam>
+        /// <param name="commandProducer">The command producer service.</param>
         public static void AddCommandProducer<TInterface>(ICommandProducer commandProducer)
         {
             setupLock.Wait();
@@ -1059,6 +1198,11 @@ namespace Zerra.CQRS
             }
         }
 
+        /// <summary>
+        /// Manually add a command consumer service to receive commands.
+        /// It's recommended to use <see cref="StartServices"/> instead unless there is some special case.
+        /// </summary>
+        /// <param name="commandConsumer">The command consumer service.</param>
         public static void AddCommandConsumer(ICommandConsumer commandConsumer)
         {
             setupLock.Wait();
@@ -1102,7 +1246,14 @@ namespace Zerra.CQRS
                 setupLock.Release();
             }
         }
-        
+
+        /// <summary>
+        /// Manually add an event producer service to send commands.
+        /// It's recommended to use <see cref="StartServices"/> instead unless there is some special case.
+        /// Discovery will host events with the <see cref=""ServiceExposedAttribute/>.
+        /// </summary>
+        /// <typeparam name="TInterface">An interface inheriting event handler interfaces for the types of events to send.</typeparam>
+        /// <param name="commandProducer">The event producer service.</param>
         public static void AddEventProducer<TInterface>(IEventProducer eventProducer)
         {
             setupLock.Wait();
@@ -1129,6 +1280,11 @@ namespace Zerra.CQRS
             }
         }
 
+        /// <summary>
+        /// Manually add an event consumer service to receive commands.
+        /// It's recommended to use <see cref="StartServices"/> instead unless there is some special case.
+        /// </summary>
+        /// <param name="commandConsumer">The event consumer service.</param>
         public static void AddEventConsumer(IEventConsumer eventConsumer)
         {
             setupLock.Wait();
@@ -1168,6 +1324,12 @@ namespace Zerra.CQRS
             }
         }
 
+        /// <summary>
+        /// Manually add a query client service to call for queries.
+        /// It's recommended to use <see cref="StartServices"/> instead unless there is some special case.
+        /// </summary>
+        /// <typeparam name="TInterface">An interface of queries.</typeparam>
+        /// <param name="queryClient">The query client service.</param>
         public static void AddQueryClient<TInterface>(IQueryClient queryClient)
         {
             setupLock.Wait();
@@ -1194,6 +1356,12 @@ namespace Zerra.CQRS
             }
         }
 
+        /// <summary>
+        /// Manually add a query server to receive and response to queries.
+        /// It's recommended to use <see cref="StartServices"/> instead unless there is some special case.
+        /// Discovery will host implementations with the <see cref=""ServiceExposedAttribute/> on the interface.
+        /// </summary>
+        /// <param name="queryServer">The query server service.</param>
         public static void AddQueryServer(IQueryServer queryServer)
         {
             setupLock.Wait();
@@ -1234,6 +1402,12 @@ namespace Zerra.CQRS
             }
         }
 
+        /// <summary>
+        /// Adds a logger for the bus.
+        /// This will intercept for logging any command, event, or query with the <see cref="ServiceLogAttribute"/>
+        /// Note that this has a slightly degraded performance impact.
+        /// </summary>
+        /// <param name="busLogger">The bus logger instance.</param>
         public static void AddLogger(IBusLogger busLogger)
         {
             setupLock.Wait();
@@ -1264,89 +1438,15 @@ namespace Zerra.CQRS
             }
         }
 
-        public static int MaxConcurrentQueries
-        {
-            get => maxConcurrentQueries;
-            set
-            {
-                setupLock.Wait();
-                try
-                {
-                    if (HasServices)
-                        throw new InvalidOperationException($"Cannot set {nameof(maxConcurrentQueries)} after services added");
-                    maxConcurrentQueries = value;
-                }
-                finally
-                {
-                    setupLock.Release();
-                }
-            }
-        }
-        public static int MaxConcurrentCommandsPerTopic
-        {
-            get => maxConcurrentCommandsPerTopic;
-            set
-            {
-                setupLock.Wait();
-                try
-                {
-                    if (HasServices)
-                        throw new InvalidOperationException($"Cannot set {nameof(MaxConcurrentCommandsPerTopic)} after services added");
-                    maxConcurrentCommandsPerTopic = value;
-                }
-                finally
-                {
-                    setupLock.Release();
-                }
-            }
-        }
-        public static int MaxConcurrentEventsPerTopic
-        {
-            get => maxConcurrentEventsPerTopic;
-            set
-            {
-                setupLock.Wait();
-                try
-                {
-                    if (HasServices)
-                        throw new InvalidOperationException($"Cannot set {nameof(MaxConcurrentEventsPerTopic)} after services added");
-                    maxConcurrentEventsPerTopic = value;
-                }
-                finally
-                {
-                    setupLock.Release();
-                }
-            }
-        }
-        public static int? ReceiveCommandsBeforeExit
-        {
-            get => commandCounter.ReceiveCountBeforeExit;
-            set
-            {
-                setupLock.Wait();
-                try
-                {
-                    if (HasServices)
-                        throw new InvalidOperationException($"Cannot set {nameof(ReceiveCommandsBeforeExit)} after services added");
-                    commandCounter = new CommandCounter(value, HandleProcessExit);
-                }
-                finally
-                {
-                    setupLock.Release();
-                }
-            }
-        }
-        private static bool HasServices
-        {
-            get => !commandProducers.IsEmpty ||
-                   commandConsumers.Count != 0 ||
-                   !eventProducers.IsEmpty ||
-                   eventConsumers.Count != 0 ||
-                   !queryClients.IsEmpty ||
-                   queryServers.Count != 0;
-        }
-
-        public static void StartServices(ServiceSettings serviceSettings, IServiceCreator serviceCreator, IRelayRegister? relayRegister = null)
+        /// <summary>
+        /// Starts all the services defined by a ServiceSettings instance and a service creator.
+        /// The static class <see cref="Zerra.CQRS.Settings.CQRSSettings"/> can assist in getting these settings from a json file.
+        /// Each type of type service has a creator class to select what to create. The best service for direct queries and commands is <see cref="Zerra.CQRS.TcpServiceCreator"/> however events need a message service.
+        /// See other Zerra.CQRS libraries to add other types of services for commands and events.
+        /// </summary>
+        /// <param name="serviceSettings">The settings definining all the services.</param>
+        /// <param name="serviceCreator">An instance that selects the services to create.</param>
+        public static void StartServices(ServiceSettings serviceSettings, IServiceCreator serviceCreator)
         {
             setupLock.Wait();
             try
@@ -1424,7 +1524,7 @@ namespace Zerra.CQRS
 
                         foreach (var serviceType in serviceQuerySetting.Types)
                         {
-                            var externalUrl = relayRegister?.RelayUrl ?? serviceQuerySetting.ExternalUrl;
+                            var externalUrl = serviceQuerySetting.ExternalUrl;
 
                             if (String.IsNullOrEmpty(serviceType))
                                 throw new Exception($"{serviceType ?? "null"} is not an interface");
@@ -1451,7 +1551,7 @@ namespace Zerra.CQRS
                                     if (handledQueryTypes.Contains(interfaceType))
                                     {
                                         _ = Log.ErrorAsync($"Cannot add Query Server: type already registered {interfaceType.GetNiceName()}");
-                                           continue;
+                                        continue;
                                     }
 
                                     try
@@ -1732,12 +1832,6 @@ namespace Zerra.CQRS
                     }
                 }
 
-                Dictionary<string, HashSet<string>>? relayRegisterTypes = null;
-                if (relayRegister is not null)
-                {
-                    relayRegisterTypes = new Dictionary<string, HashSet<string>>();
-                }
-
                 if (newCommandConsumers is not null)
                 {
                     foreach (var newCommandConsumer in newCommandConsumers)
@@ -1745,17 +1839,6 @@ namespace Zerra.CQRS
                         try
                         {
                             newCommandConsumer.Open();
-                            if (relayRegister is not null && relayRegisterTypes is not null)
-                            {
-                                var commandTypes = newCommandConsumer.GetCommandTypes().Select(x => x.GetNiceName()).ToArray();
-                                if (!relayRegisterTypes.TryGetValue(newCommandConsumer.ServiceUrl, out var relayTypes))
-                                {
-                                    relayTypes = new HashSet<string>();
-                                    relayRegisterTypes.Add(newCommandConsumer.ServiceUrl, relayTypes);
-                                }
-                                foreach (var type in commandTypes)
-                                    _ = relayTypes.Add(type);
-                            }
                         }
                         catch (Exception ex)
                         {
@@ -1770,17 +1853,6 @@ namespace Zerra.CQRS
                         try
                         {
                             newEventConsumer.Open();
-                            if (relayRegister is not null && relayRegisterTypes is not null)
-                            {
-                                var eventTypes = newEventConsumer.GetEventTypes().Select(x => x.GetNiceName()).ToArray();
-                                if (!relayRegisterTypes.TryGetValue(newEventConsumer.ServiceUrl, out var relayTypes))
-                                {
-                                    relayTypes = new HashSet<string>();
-                                    relayRegisterTypes.Add(newEventConsumer.ServiceUrl, relayTypes);
-                                }
-                                foreach (var type in eventTypes)
-                                    _ = relayTypes.Add(type);
-                            }
                         }
                         catch (Exception ex)
                         {
@@ -1795,29 +1867,12 @@ namespace Zerra.CQRS
                         try
                         {
                             newQueryServer.Open();
-                            if (relayRegister is not null && relayRegisterTypes is not null)
-                            {
-                                var queryTypes = newQueryServer.GetInterfaceTypes().Select(x => x.GetNiceName()).ToArray();
-                                if (!relayRegisterTypes.TryGetValue(newQueryServer.ServiceUrl, out var relayTypes))
-                                {
-                                    relayTypes = new HashSet<string>();
-                                    relayRegisterTypes.Add(newQueryServer.ServiceUrl, relayTypes);
-                                }
-                                foreach (var type in queryTypes)
-                                    _ = relayTypes.Add(type);
-                            }
                         }
                         catch (Exception ex)
                         {
                             _ = Log.ErrorAsync($"Failed to open Query Server", ex);
                         }
                     }
-                }
-
-                if (relayRegister is not null && relayRegisterTypes is not null)
-                {
-                    foreach (var group in relayRegisterTypes)
-                        _ = relayRegister.Register(group.Key, group.Value.ToArray());
                 }
             }
             finally
@@ -1826,10 +1881,16 @@ namespace Zerra.CQRS
             }
         }
 
+        /// <summary>
+        /// Manually stop all the services. This is not necessary if using <see cref="WaitForExit"/> or <see cref="WaitForExitAsync"/>. 
+        /// </summary>
         public static void StopServices()
         {
             StopServicesAsync().GetAwaiter().GetResult();
         }
+        /// <summary>
+        /// Manually stop all the services. This is not necessary if using <see cref="WaitForExit"/> or <see cref="WaitForExitAsync"/>.
+        /// </summary>
         public static async Task StopServicesAsync()
         {
             _ = Log.InfoAsync($"{nameof(Bus)} Shutting Down");
@@ -1973,19 +2034,12 @@ namespace Zerra.CQRS
             }
         }
 
-        public static void WaitForExit()
-        {
-            lock (exitLock)
-            {
-                if (exited)
-                    return;
-                processWaiter = new SemaphoreSlim(0, 1);
-                AppDomain.CurrentDomain.ProcessExit += HandleProcessExit;
-            }
-            processWaiter.Wait();
-            StopServicesAsync().GetAwaiter().GetResult();
-        }
-        public static void WaitForExit(CancellationToken cancellationToken)
+        /// <summary>
+        /// An awaiter to hold the assembly process until it receives a shutdown command.
+        /// All the services will be stopped upon shutdown.
+        /// </summary>
+        /// <param name="cancellationToken">A token to cancel the wait.</param>
+        public static void WaitForExit(CancellationToken cancellationToken = default)
         {
             lock (exitLock)
             {
@@ -2002,20 +2056,12 @@ namespace Zerra.CQRS
             StopServicesAsync().GetAwaiter().GetResult();
         }
 
-        public static async Task WaitForExitAsync()
-        {
-            lock (exitLock)
-            {
-                if (exited)
-                    return;
-                processWaiter = new SemaphoreSlim(0, 1);
-                AppDomain.CurrentDomain.ProcessExit += HandleProcessExit;
-            }
-            await processWaiter.WaitAsync();
-            _ = Log.InfoAsync($"{nameof(Bus)} Exiting");
-            await StopServicesAsync();
-        }
-        public static async Task WaitForExitAsync(CancellationToken cancellationToken)
+        /// <summary>
+        /// An awaiter to hold the assembly process until it receives a shutdown command.
+        /// All the services will be stopped upon shutdown.
+        /// </summary>
+        /// <param name="cancellationToken">A token to cancel the wait.</param>
+        public static async Task WaitForExitAsync(CancellationToken cancellationToken = default)
         {
             lock (exitLock)
             {

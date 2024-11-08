@@ -195,6 +195,17 @@ namespace Zerra.Reflection
             return method ?? throw new ArgumentException($"{type.GetNiceName()}.{name} method not found");
         }
 
+        private static readonly ConcurrentFactoryDictionary<MethodInfo, MethodDetail?> methodDetailsByMethodInfo = new();
+        public static MethodDetail GetMethodDetail(MethodInfo methodInfo)
+        {
+            if (methodInfo.ReflectedType is null)
+                throw new ArgumentException("MethodInfo.ReflectedType cannot be null");
+
+            var method = methodDetailsByMethodInfo.GetOrAdd(methodInfo, static (methodInfo) =>
+                 MethodDetailRuntime<object>.New(methodInfo.ReflectedType!, methodInfo.Name, methodInfo, false, new()));
+            return method ?? throw new ArgumentException($"{methodInfo.ReflectedType.GetNiceName()}.{methodInfo.Name} method not found");
+        }
+
         private static readonly ConcurrentFactoryDictionary<TypeKey, ConstructorDetail?> constructorDetailsByType = new();
         public static ConstructorDetail GetConstructorDetail(Type type, Type[]? parameterTypes = null)
         {

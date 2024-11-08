@@ -6,7 +6,7 @@ namespace Zerra.CQRS
 {
     public enum BusLogging : byte
     {
-        Logged = 0,
+        SenderAndHandler = 0,
         HandlerOnly = 1,
         None = 2
     }

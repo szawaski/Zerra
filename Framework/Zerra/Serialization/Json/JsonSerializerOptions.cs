@@ -7,7 +7,7 @@ namespace Zerra.Serialization.Json
     public sealed class JsonSerializerOptions
     {
         /// <summary>
-        /// A special feature to write JSON as arrays instead of property names. The exact same model is needed to deserialize.
+        /// A special feature to write JSON objects as arrays instead of property names. The exact same model is needed to deserialize.
         /// </summary>
         public bool Nameless { get; set; }
         /// <summary>
