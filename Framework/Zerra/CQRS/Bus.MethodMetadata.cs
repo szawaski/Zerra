@@ -10,13 +10,13 @@ namespace Zerra.CQRS
     {
         private class MethodMetadata
         {
-            public bool Blocked { get; }
+            public NetworkType BlockedNetworkType { get; }
             public BusLogging BusLogging { get; }
             public bool Authenticate { get; }
             public IReadOnlyCollection<string>? Roles { get; }
-            public MethodMetadata(bool blocked, BusLogging busLogging, bool authenticate, IReadOnlyCollection<string>? roles)
+            public MethodMetadata(NetworkType blockedNetworkType, BusLogging busLogging, bool authenticate, IReadOnlyCollection<string>? roles)
             {
-                this.Blocked = blocked;
+                this.BlockedNetworkType = blockedNetworkType;
                 this.BusLogging = busLogging;
                 this.Authenticate = authenticate;
                 this.Roles = roles;

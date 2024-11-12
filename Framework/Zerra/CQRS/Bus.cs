@@ -60,11 +60,11 @@ namespace Zerra.CQRS
         private static readonly ConcurrentFactoryDictionary<Type, Delegate?> commandWithResultCacheProviders = new();
         private static readonly ConcurrentFactoryDictionary<Type, Func<IEvent, Task>?> eventCacheProviders = new();
         private static readonly ConcurrentFactoryDictionary<Type, CallMetadata> callMetadata = new();
-        private static readonly ConcurrentFactoryDictionary<Type, object?> callCacheProviders = new();
+        private static readonly ConcurrentFactoryDictionary<Type, object> callProviders = new();
 
         private static readonly ConcurrentDictionary<Type, ICommandProducer> commandProducers = new();
         private static readonly HashSet<ICommandConsumer> commandConsumers = new();
-        
+
         private static readonly ConcurrentDictionary<Type, IEventProducer> eventProducers = new();
         private static readonly HashSet<IEventConsumer> eventConsumers = new();
         private static readonly ConcurrentDictionary<Type, IQueryClient> queryClients = new();
@@ -259,17 +259,17 @@ namespace Zerra.CQRS
         {
             var commandType = command.GetType();
 
-            var metadata = messageMetadata.GetOrAdd(commandType, networkType, static (commandType, networkType) =>
+            var metadata = messageMetadata.GetOrAdd(commandType, static (commandType) =>
             {
-                var exposed = false;
+                NetworkType exposedNetworkType = NetworkType.None;
                 var busLogging = BusLogging.SenderAndHandler;
                 var authenticate = false;
                 IReadOnlyCollection<string>? roles = null;
                 foreach (var attribute in commandType.GetTypeDetail().Attributes)
                 {
-                    if (attribute is ServiceExposedAttribute serviceExposedAttribute && serviceExposedAttribute.NetworkType >= networkType)
+                    if (attribute is ServiceExposedAttribute serviceExposedAttribute)
                     {
-                        exposed = true;
+                        exposedNetworkType = serviceExposedAttribute.NetworkType;
                     }
                     else if (attribute is ServiceLogAttribute busLoggedAttribute)
                     {
@@ -281,10 +281,10 @@ namespace Zerra.CQRS
                         roles = serviceSecureAttribute.Roles;
                     }
                 }
-                return new MessageMetadata(exposed, busLogging, authenticate, roles);
+                return new MessageMetadata(exposedNetworkType, busLogging, authenticate, roles);
             });
 
-            if (networkType != NetworkType.Local && !metadata.Exposed)
+            if (metadata.ExposedNetworkType < networkType)
                 throw new SecurityException($"Not Exposed Command {commandType.GetNiceName()} for {nameof(NetworkType)}.{networkType.EnumName()}");
             if (metadata.Authenticate)
                 Authenticate(Thread.CurrentPrincipal, metadata.Roles, () => $"Access Denied for Command {commandType.GetNiceName()}");
@@ -327,15 +327,15 @@ namespace Zerra.CQRS
 
             var metadata = messageMetadata.GetOrAdd(commandType, networkType, static (commandType, networkType) =>
             {
-                var exposed = false;
+                NetworkType exposedNetworkType = NetworkType.None;
                 var busLogging = BusLogging.SenderAndHandler;
                 var authenticate = false;
                 IReadOnlyCollection<string>? roles = null;
                 foreach (var attribute in commandType.GetTypeDetail().Attributes)
                 {
-                    if (attribute is ServiceExposedAttribute serviceExposedAttribute && serviceExposedAttribute.NetworkType >= networkType)
+                    if (attribute is ServiceExposedAttribute serviceExposedAttribute)
                     {
-                        exposed = true;
+                        exposedNetworkType = serviceExposedAttribute.NetworkType;
                     }
                     else if (attribute is ServiceLogAttribute busLoggedAttribute)
                     {
@@ -347,10 +347,10 @@ namespace Zerra.CQRS
                         roles = serviceSecureAttribute.Roles;
                     }
                 }
-                return new MessageMetadata(exposed, busLogging, authenticate, roles);
+                return new MessageMetadata(exposedNetworkType, busLogging, authenticate, roles);
             });
 
-            if (networkType != NetworkType.Local && !metadata.Exposed)
+            if (metadata.ExposedNetworkType < networkType)
                 throw new SecurityException($"Not Exposed Command {commandType.GetNiceName()} for {nameof(NetworkType)}.{networkType.EnumName()}");
             if (metadata.Authenticate)
                 Authenticate(Thread.CurrentPrincipal, metadata.Roles, () => $"Access Denied for Command {commandType.GetNiceName()}");
@@ -394,15 +394,15 @@ namespace Zerra.CQRS
 
             var metadata = messageMetadata.GetOrAdd(eventType, networkType, static (eventType, networkType) =>
             {
-                var exposed = false;
+                NetworkType exposedNetworkType = NetworkType.None;
                 var busLogging = BusLogging.SenderAndHandler;
                 var authenticate = false;
                 IReadOnlyCollection<string>? roles = null;
                 foreach (var attribute in eventType.GetTypeDetail().Attributes)
                 {
-                    if (attribute is ServiceExposedAttribute serviceExposedAttribute && serviceExposedAttribute.NetworkType >= networkType)
+                    if (attribute is ServiceExposedAttribute serviceExposedAttribute)
                     {
-                        exposed = true;
+                        exposedNetworkType = serviceExposedAttribute.NetworkType;
                     }
                     else if (attribute is ServiceLogAttribute busLoggedAttribute)
                     {
@@ -414,10 +414,10 @@ namespace Zerra.CQRS
                         roles = serviceSecureAttribute.Roles;
                     }
                 }
-                return new MessageMetadata(exposed, busLogging, authenticate, roles);
+                return new MessageMetadata(exposedNetworkType, busLogging, authenticate, roles);
             });
 
-            if (networkType != NetworkType.Local && !metadata.Exposed)
+            if (metadata.ExposedNetworkType < networkType)
                 throw new SecurityException($"Not Exposed Event {eventType.GetNiceName()} for {nameof(NetworkType)}.{networkType.EnumName()}");
             if (metadata.Authenticate)
                 Authenticate(Thread.CurrentPrincipal, metadata.Roles, () => $"Access Denied for Event {eventType.GetNiceName()}");
@@ -778,15 +778,15 @@ namespace Zerra.CQRS
         {
             var metadata = callMetadata.GetOrAdd(interfaceType, networkType, static (interfaceType, networkType) =>
             {
-                var exposed = false;
+                NetworkType exposedNetworkType = NetworkType.None;
                 var busLogging = BusLogging.SenderAndHandler;
                 var authenticate = false;
                 IReadOnlyCollection<string>? roles = null;
                 foreach (var attribute in interfaceType.GetTypeDetail().Attributes)
                 {
-                    if (attribute is ServiceExposedAttribute serviceExposedAttribute && serviceExposedAttribute.NetworkType >= networkType)
+                    if (attribute is ServiceExposedAttribute serviceExposedAttribute)
                     {
-                        exposed = true;
+                        exposedNetworkType = serviceExposedAttribute.NetworkType;
                     }
                     else if (attribute is ServiceLogAttribute busLoggedAttribute)
                     {
@@ -798,34 +798,34 @@ namespace Zerra.CQRS
                         roles = serviceSecureAttribute.Roles;
                     }
                 }
-                return new CallMetadata(exposed, busLogging, authenticate, roles);
+                return new CallMetadata(exposedNetworkType, busLogging, authenticate, roles);
             });
 
-            if (networkType != NetworkType.Local && !metadata.Exposed)
+            if (metadata.ExposedNetworkType < networkType)
                 throw new Exception($"Not Exposed Interface {interfaceType.GetNiceName()} for {nameof(NetworkType)}.{networkType.EnumName()}");
             if (metadata.Authenticate)
                 Authenticate(Thread.CurrentPrincipal, metadata.Roles, () => $"Access Denied for Interface {interfaceType.GetNiceName()}");
 
-            var callerProvider = BusRouters.GetProviderToCallMethodInternalInstance(interfaceType, networkType, source);
-
-            var cacheCallProvider = callCacheProviders.GetOrAdd(interfaceType, callerProvider, static (interfaceType, callerProvider) =>
+            var callerProvider = callProviders.GetOrAdd(interfaceType, networkType, source, static (interfaceType, networkType, source) =>
             {
+                var callerProvider = BusRouters.GetProviderToCallMethodInternalInstance(interfaceType, networkType, source);
+
                 var busCacheType = Discovery.GetClassByInterface(interfaceType, iBusCacheType, false);
-                if (busCacheType is null)
-                    return null;
+                if (busCacheType is not null)
+                {
+                    var methodSetNextProvider = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(LayerProvider<object>.SetNextProvider)).MethodInfo;
+                    if (methodSetNextProvider is not null)
+                    {
+                        var cacheInstance = Instantiator.Create(busCacheType);
 
-                var methodSetNextProvider = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(LayerProvider<object>.SetNextProvider)).MethodInfo;
-                if (methodSetNextProvider is null)
-                    return null;
+                        _ = methodSetNextProvider.Invoke(cacheInstance, [callerProvider]);
 
-                var cacheInstance = Instantiator.Create(busCacheType);
-                _ = methodSetNextProvider.Invoke(cacheInstance, [callerProvider]);
+                        return cacheInstance;
+                    }
+                }
 
-                return cacheInstance;
+                return callerProvider;
             });
-
-            if (cacheCallProvider is not null)
-                return cacheCallProvider;
 
             return callerProvider;
         }
@@ -842,15 +842,15 @@ namespace Zerra.CQRS
 
             var metadata = callMetadata.GetOrAdd(interfaceType, networkType, static (interfaceType, networkType) =>
             {
-                var exposed = false;
+                NetworkType exposedNetworkType = NetworkType.None;
                 var busLogging = BusLogging.SenderAndHandler;
                 var authenticate = false;
                 IReadOnlyCollection<string>? roles = null;
                 foreach (var attribute in interfaceType.GetTypeDetail().Attributes)
                 {
-                    if (attribute is ServiceExposedAttribute serviceExposedAttribute && serviceExposedAttribute.NetworkType >= networkType)
+                    if (attribute is ServiceExposedAttribute serviceExposedAttribute)
                     {
-                        exposed = true;
+                        exposedNetworkType = serviceExposedAttribute.NetworkType;
                         break;
                     }
                     else if (attribute is ServiceLogAttribute busLoggedAttribute)
@@ -863,20 +863,20 @@ namespace Zerra.CQRS
                         roles = serviceSecureAttribute.Roles;
                     }
                 }
-                return new CallMetadata(exposed, busLogging, authenticate, roles);
+                return new CallMetadata(exposedNetworkType, busLogging, authenticate, roles);
             });
 
             var methodMetadata = metadata.MethodMetadata.GetOrAdd(methodDetail, networkType, metadata, static (methodDetail, networkType, metadata) =>
             {
-                var blocked = false;
+                NetworkType blockedNetworkType = NetworkType.Api;
                 var busLogging = metadata.BusLogging;
                 var authenticate = false;
                 IReadOnlyCollection<string>? roles = null;
                 foreach (var attribute in methodDetail.Attributes)
                 {
-                    if (attribute is ServiceBlockedAttribute serviceBlockedAttribute && serviceBlockedAttribute.NetworkType < networkType)
+                    if (attribute is ServiceBlockedAttribute serviceBlockedAttribute)
                     {
-                        blocked = true;
+                        blockedNetworkType = serviceBlockedAttribute.NetworkType;
                     }
                     else if (attribute is ServiceLogAttribute busLoggedAttribute && busLoggedAttribute.BusLogging > busLogging)
                     {
@@ -888,16 +888,13 @@ namespace Zerra.CQRS
                         roles = serviceSecureAttribute.Roles;
                     }
                 }
-                return new MethodMetadata(blocked, busLogging, authenticate, roles);
+                return new MethodMetadata(blockedNetworkType, busLogging, authenticate, roles);
             });
 
-            if (networkType != NetworkType.Local)
-            {
-                if (!metadata.Exposed)
-                    throw new Exception($"Not Exposed Interface {interfaceType.GetNiceName()} for {nameof(NetworkType)}.{networkType.EnumName()}");
-                if (methodMetadata.Blocked)
-                    throw new Exception($"Blocked Method {interfaceType.GetNiceName()}.{methodDetail.Name} for {nameof(NetworkType)}.{networkType.EnumName()}");
-            }
+            if (metadata.ExposedNetworkType < networkType)
+                throw new Exception($"Not Exposed Interface {interfaceType.GetNiceName()} for {nameof(NetworkType)}.{networkType.EnumName()}");
+            if (methodMetadata.BlockedNetworkType >= networkType)
+                throw new Exception($"Blocked Method {interfaceType.GetNiceName()}.{methodDetail.Name} for {nameof(NetworkType)}.{networkType.EnumName()}");
 
             if (metadata.Authenticate)
                 Authenticate(Thread.CurrentPrincipal, metadata.Roles, () => $"Access Denied for Interface {interfaceType.GetNiceName()}");
