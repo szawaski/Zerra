@@ -4,6 +4,10 @@
 
 namespace Zerra.CQRS
 {
+    /// <summary>
+    /// Indicates that this class is a command with a result.
+    /// </summary>
+    /// <typeparam name="TResult">The result type.</typeparam>
     public interface ICommand<TResult> : ICommand
     {
 

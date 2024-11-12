@@ -17,14 +17,7 @@ namespace Zerra.Web
             this.settings = settings;
         }
 
-        public string ServiceUrl => throw new NotImplementedException();
-
         public void Close() { }
-
-        public ICollection<Type> GetInterfaceTypes()
-        {
-            return settings.InterfaceTypes.Keys;
-        }
 
         public void Open() { }
 

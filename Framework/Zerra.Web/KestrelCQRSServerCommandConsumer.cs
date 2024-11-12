@@ -17,14 +17,7 @@ namespace Zerra.Web
             this.settings = settings;
         }
 
-        public string ServiceUrl => throw new NotImplementedException();
-
         public void Close() { }
-
-        public IEnumerable<Type> GetCommandTypes()
-        {
-            return settings.CommandTypes.Keys;
-        }
 
         public void Open() { }
 

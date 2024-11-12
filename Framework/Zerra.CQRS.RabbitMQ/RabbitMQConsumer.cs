@@ -28,8 +28,6 @@ namespace Zerra.CQRS.RabbitMQ
         private HandleRemoteCommandWithResultDispatch? commandHandlerWithResultAwaitAsync = null;
         private HandleRemoteEventDispatch? eventHandlerAsync = null;
 
-        public string ServiceUrl => host;
-
         private CommandCounter? commandCounter = null;
 
         public RabbitMQConsumer(string host, SymmetricConfig? symmetricConfig, string? environment)
@@ -157,10 +155,6 @@ namespace Zerra.CQRS.RabbitMQ
                 OpenExchanges();
             }
         }
-        IEnumerable<Type> ICommandConsumer.GetCommandTypes()
-        {
-            return commandTypes;
-        }
 
         void IEventConsumer.RegisterEventType(int maxConcurrent, string topic, Type type)
         {
@@ -177,10 +171,6 @@ namespace Zerra.CQRS.RabbitMQ
                 eventExchanges.Add(topic, new EventConsumer(maxConcurrent, topic, symmetricConfig, environment, eventHandlerAsync));
                 OpenExchanges();
             }
-        }
-        IEnumerable<Type> IEventConsumer.GetEventTypes()
-        {
-            return eventTypes;
         }
     }
 }

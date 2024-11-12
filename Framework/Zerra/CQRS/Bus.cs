@@ -55,22 +55,21 @@ namespace Zerra.CQRS
         private static int maxConcurrentEventsPerTopic = Environment.ProcessorCount * 16;
         private static CommandCounter commandCounter = new();
 
-        private static readonly ConcurrentFactoryDictionary<Type, MessageMetadata> commandMetadata = new();
+        private static readonly ConcurrentFactoryDictionary<Type, MessageMetadata> messageMetadata = new();
         private static readonly ConcurrentFactoryDictionary<Type, Func<ICommand, Task>?> commandCacheProviders = new();
         private static readonly ConcurrentFactoryDictionary<Type, Delegate?> commandWithResultCacheProviders = new();
-        private static readonly ConcurrentFactoryDictionary<Type, MessageMetadata> eventMetadata = new();
         private static readonly ConcurrentFactoryDictionary<Type, Func<IEvent, Task>?> eventCacheProviders = new();
         private static readonly ConcurrentFactoryDictionary<Type, CallMetadata> callMetadata = new();
         private static readonly ConcurrentFactoryDictionary<Type, object?> callCacheProviders = new();
+
         private static readonly ConcurrentDictionary<Type, ICommandProducer> commandProducers = new();
-        private static readonly ConcurrentReadWriteHashSet<ICommandConsumer> commandConsumers = new();
-        private static readonly HashSet<Type> handledCommandTypes = new();
+        private static readonly HashSet<ICommandConsumer> commandConsumers = new();
+        
         private static readonly ConcurrentDictionary<Type, IEventProducer> eventProducers = new();
-        private static readonly ConcurrentReadWriteHashSet<IEventConsumer> eventConsumers = new();
-        private static readonly HashSet<Type> handledEventTypes = new();
+        private static readonly HashSet<IEventConsumer> eventConsumers = new();
         private static readonly ConcurrentDictionary<Type, IQueryClient> queryClients = new();
-        private static readonly ConcurrentReadWriteHashSet<IQueryServer> queryServers = new();
-        private static readonly HashSet<Type> handledQueryTypes = new();
+        private static readonly HashSet<IQueryServer> queryServers = new();
+        private static readonly HashSet<Type> handledTypes = new();
         private static IBusLogger? busLogger = null;
 
         public static int MaxConcurrentQueries
@@ -260,7 +259,7 @@ namespace Zerra.CQRS
         {
             var commandType = command.GetType();
 
-            var metadata = commandMetadata.GetOrAdd(commandType, networkType, static (commandType, networkType) =>
+            var metadata = messageMetadata.GetOrAdd(commandType, networkType, static (commandType, networkType) =>
             {
                 var exposed = false;
                 var busLogging = BusLogging.SenderAndHandler;
@@ -326,7 +325,7 @@ namespace Zerra.CQRS
         {
             var commandType = command.GetType();
 
-            var metadata = commandMetadata.GetOrAdd(commandType, networkType, static (commandType, networkType) =>
+            var metadata = messageMetadata.GetOrAdd(commandType, networkType, static (commandType, networkType) =>
             {
                 var exposed = false;
                 var busLogging = BusLogging.SenderAndHandler;
@@ -393,7 +392,7 @@ namespace Zerra.CQRS
         {
             var eventType = @event.GetType();
 
-            var metadata = eventMetadata.GetOrAdd(eventType, networkType, static (eventType, networkType) =>
+            var metadata = messageMetadata.GetOrAdd(eventType, networkType, static (eventType, networkType) =>
             {
                 var exposed = false;
                 var busLogging = BusLogging.SenderAndHandler;
@@ -462,7 +461,7 @@ namespace Zerra.CQRS
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         public static Task _DispatchCommandInternalAsync(ICommand command, Type commandType, bool requireAffirmation, NetworkType networkType, string source, BusLogging busLogging)
         {
-            if (networkType == NetworkType.Local || !handledCommandTypes.Contains(commandType))
+            if (networkType == NetworkType.Local || !handledTypes.Contains(commandType))
             {
                 ICommandProducer? producer = null;
                 var messageBaseType = commandType;
@@ -508,7 +507,7 @@ namespace Zerra.CQRS
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         public static Task<TResult?> _DispatchCommandWithResultInternalAsync<TResult>(ICommand<TResult> command, Type commandType, NetworkType networkType, string source, BusLogging busLogging)
         {
-            if (networkType == NetworkType.Local || !handledCommandTypes.Contains(commandType))
+            if (networkType == NetworkType.Local || !handledTypes.Contains(commandType))
             {
                 ICommandProducer? producer = null;
                 var messageBaseType = commandType;
@@ -540,7 +539,7 @@ namespace Zerra.CQRS
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         public static Task _DispatchEventInternalAsync(IEvent @event, Type eventType, NetworkType networkType, string source, BusLogging busLogging)
         {
-            if (networkType == NetworkType.Local || !handledEventTypes.Contains(eventType))
+            if (networkType == NetworkType.Local || !handledTypes.Contains(eventType))
             {
                 IEventProducer? producer = null;
                 var messageBaseType = eventType;
@@ -1176,7 +1175,7 @@ namespace Zerra.CQRS
                 var commandTypes = GetCommandTypesFromInterface(type);
                 foreach (var commandType in commandTypes)
                 {
-                    if (handledCommandTypes.Contains(commandType))
+                    if (handledTypes.Contains(commandType))
                     {
                         _ = Log.ErrorAsync($"Cannot add Command Producer: type already registered {commandType.GetNiceName()}");
                         continue;
@@ -1223,14 +1222,14 @@ namespace Zerra.CQRS
                                     _ = Log.ErrorAsync($"Cannot add Command Consumer: type already registered {commandType.GetNiceName()}");
                                     continue;
                                 }
-                                if (!handledCommandTypes.Contains(commandType))
+                                if (!handledTypes.Contains(commandType))
                                 {
                                     _ = Log.ErrorAsync($"Cannot add Command Consumer: type already registered {commandType.GetNiceName()}");
                                     continue;
                                 }
                                 var topic = GetCommandTopic(commandType);
                                 commandConsumer.RegisterCommandType(maxConcurrentCommandsPerTopic, topic, commandType);
-                                _ = handledCommandTypes.Add(commandType);
+                                _ = handledTypes.Add(commandType);
                                 _ = Log.InfoAsync($"{commandConsumer.GetType().GetNiceName()}: {commandType.GetNiceName()}");
                             }
                         }
@@ -1300,14 +1299,14 @@ namespace Zerra.CQRS
                             var hasHandler = ProviderResolver.HasBase(TypeAnalyzer.GetGenericType(typeof(IEventHandler<>), eventType));
                             if (hasHandler)
                             {
-                                if (!handledEventTypes.Contains(eventType))
+                                if (!handledTypes.Contains(eventType))
                                 {
                                     _ = Log.ErrorAsync($"Cannot add Event Consumer: type already registered {eventType.GetNiceName()}");
                                     continue;
                                 }
                                 var topic = GetEventTopic(eventType);
                                 eventConsumer.RegisterEventType(maxConcurrentEventsPerTopic, topic, eventType);
-                                _ = handledEventTypes.Add(eventType);
+                                _ = handledTypes.Add(eventType);
                                 _ = Log.InfoAsync($"{eventConsumer.GetType().GetNiceName()}: {eventType.GetNiceName()}");
                             }
                         }
@@ -1336,7 +1335,7 @@ namespace Zerra.CQRS
             try
             {
                 var interfaceType = typeof(TInterface);
-                if (handledQueryTypes.Contains(interfaceType))
+                if (handledTypes.Contains(interfaceType))
                 {
                     _ = Log.ErrorAsync($"Cannot add Query Client: type already registered {interfaceType.GetNiceName()}");
                     return;
@@ -1380,13 +1379,13 @@ namespace Zerra.CQRS
                                 _ = Log.ErrorAsync($"Cannot add Query Client: type already registered {interfaceType.GetNiceName()}");
                                 continue;
                             }
-                            if (handledQueryTypes.Contains(interfaceType))
+                            if (handledTypes.Contains(interfaceType))
                             {
                                 _ = Log.ErrorAsync($"Cannot add Query Server: type already registered {interfaceType.GetNiceName()}");
                                 continue;
                             }
                             queryServer.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
-                            _ = handledQueryTypes.Add(interfaceType);
+                            _ = handledTypes.Add(interfaceType);
                             _ = Log.InfoAsync($"{queryServer.GetType().GetNiceName()}: {interfaceType.GetNiceName()}");
                         }
                     }
@@ -1548,7 +1547,7 @@ namespace Zerra.CQRS
                                         _ = Log.ErrorAsync($"Cannot add Query Server: type already registered {interfaceType.GetNiceName()}");
                                         continue;
                                     }
-                                    if (handledQueryTypes.Contains(interfaceType))
+                                    if (handledTypes.Contains(interfaceType))
                                     {
                                         _ = Log.ErrorAsync($"Cannot add Query Server: type already registered {interfaceType.GetNiceName()}");
                                         continue;
@@ -1572,7 +1571,7 @@ namespace Zerra.CQRS
                                         }
                                         if (queryServer is not null && queryServerType is not null)
                                         {
-                                            _ = handledQueryTypes.Add(interfaceType);
+                                            _ = handledTypes.Add(interfaceType);
                                             queryServer.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
                                             _ = Log.InfoAsync($"Hosting - {queryServerType.GetNiceName()}: {interfaceType.GetNiceName()}");
                                         }
@@ -1589,7 +1588,7 @@ namespace Zerra.CQRS
 
                                     if (!serverTypes.Contains(interfaceType))
                                     {
-                                        if (handledQueryTypes.Contains(interfaceType))
+                                        if (handledTypes.Contains(interfaceType))
                                         {
                                             _ = Log.ErrorAsync($"Cannot add Query Client: type already registered {interfaceType.GetNiceName()}");
                                             continue;
@@ -1690,14 +1689,14 @@ namespace Zerra.CQRS
                                                     _ = Log.ErrorAsync($"Cannot add Command Consumer: type already registered {commandType.GetNiceName()}");
                                                     continue;
                                                 }
-                                                if (handledCommandTypes.Contains(commandType))
+                                                if (handledTypes.Contains(commandType))
                                                 {
                                                     _ = Log.ErrorAsync($"Cannot add Command Consumer: type already registered {commandType.GetNiceName()}");
                                                     continue;
                                                 }
                                                 var topic = GetCommandTopic(commandType);
                                                 commandConsumer.RegisterCommandType(maxConcurrentCommandsPerTopic, topic, commandType);
-                                                _ = handledCommandTypes.Add(commandType);
+                                                _ = handledTypes.Add(commandType);
                                                 _ = Log.InfoAsync($"Hosting - {commandConsumerType.GetNiceName()}: {commandType.GetNiceName()}");
                                             }
                                         }
@@ -1728,7 +1727,7 @@ namespace Zerra.CQRS
                                             {
                                                 foreach (var commandType in clientCommandTypes)
                                                 {
-                                                    if (handledCommandTypes.Contains(commandType))
+                                                    if (handledTypes.Contains(commandType))
                                                     {
                                                         _ = Log.ErrorAsync($"Cannot add Command Producer: type already registered {commandType.GetNiceName()}");
                                                         continue;
@@ -1779,14 +1778,14 @@ namespace Zerra.CQRS
                                         {
                                             foreach (var eventType in eventTypes)
                                             {
-                                                if (handledEventTypes.Contains(eventType))
+                                                if (handledTypes.Contains(eventType))
                                                 {
                                                     _ = Log.ErrorAsync($"Cannot add Event Consumer: type already registered {eventType.GetNiceName()}");
                                                     continue;
                                                 }
                                                 var topic = GetEventTopic(eventType);
                                                 eventConsumer.RegisterEventType(maxConcurrentEventsPerTopic, topic, eventType);
-                                                _ = handledEventTypes.Add(eventType);
+                                                _ = handledTypes.Add(eventType);
                                                 _ = Log.InfoAsync($"Hosting - {eventConsumerType.GetNiceName()}: {eventType.GetNiceName()}");
                                             }
                                         }
@@ -1905,7 +1904,7 @@ namespace Zerra.CQRS
                 var asyncDisposed = new HashSet<IAsyncDisposable>();
                 var disposed = new HashSet<IDisposable>();
 
-                foreach (var commandProducer in commandProducers.Select(x => x.Value))
+                foreach (var commandProducer in commandProducers.Values)
                 {
                     if (commandProducer is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
                     {
@@ -1936,7 +1935,7 @@ namespace Zerra.CQRS
                 }
                 commandConsumers.Clear();
 
-                foreach (var eventProducer in eventProducers.Select(x => x.Value))
+                foreach (var eventProducer in eventProducers.Values)
                 {
                     if (eventProducer is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
                     {
@@ -1982,7 +1981,7 @@ namespace Zerra.CQRS
                 }
                 busLogger = null;
 
-                foreach (var client in queryClients.Select(x => x.Value))
+                foreach (var client in queryClients.Values)
                 {
                     if (client is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
                     {

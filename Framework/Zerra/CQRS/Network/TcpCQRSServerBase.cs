@@ -32,7 +32,6 @@ namespace Zerra.CQRS.Network
         protected SemaphoreSlim? throttle = null;
 
         private readonly string serviceUrl;
-        public string ServiceUrl => serviceUrl;
 
         public TcpCqrsServerBase(string serviceUrl)
         {
@@ -59,10 +58,6 @@ namespace Zerra.CQRS.Network
 
             interfaceTypes.Add(type);
         }
-        ICollection<Type> IQueryServer.GetInterfaceTypes()
-        {
-            return interfaceTypes;
-        }
 
         void ICommandConsumer.Setup(CommandCounter commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
         {
@@ -82,10 +77,6 @@ namespace Zerra.CQRS.Network
             throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
 
             commandTypes.Add(type);
-        }
-        IEnumerable<Type> ICommandConsumer.GetCommandTypes()
-        {
-            return commandTypes;
         }
 
         void IQueryServer.Open()

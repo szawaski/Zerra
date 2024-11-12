@@ -27,8 +27,6 @@ namespace Zerra.CQRS.Kafka
         private HandleRemoteCommandWithResultDispatch? commandHandlerWithResultAwaitAsync = null;
         private HandleRemoteEventDispatch? eventHandlerAsync = null;
 
-        public string ServiceUrl => host;
-
         private CommandCounter? commandCounter = null;
 
         public KafkaConsumer(string host, SymmetricConfig? symmetricConfig, string? environment)
@@ -140,10 +138,6 @@ namespace Zerra.CQRS.Kafka
                 OpenExchanges();
             }
         }
-        IEnumerable<Type> ICommandConsumer.GetCommandTypes()
-        {
-            return commandTypes;
-        }
 
         void IEventConsumer.RegisterEventType(int maxConcurrent, string topic, Type type)
         {
@@ -160,10 +154,6 @@ namespace Zerra.CQRS.Kafka
                 eventExchanges.Add(topic, new EventConsumer(maxConcurrent, topic, symmetricConfig, environment, eventHandlerAsync));
                 OpenExchanges();
             }
-        }
-        IEnumerable<Type> IEventConsumer.GetEventTypes()
-        {
-            return eventTypes;
         }
     }
 }

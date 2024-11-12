@@ -10,9 +10,7 @@ namespace Zerra.CQRS
 {
     public interface IEventConsumer
     {
-        string ServiceUrl { get; }
         void RegisterEventType(int maxConcurrent, string topic, Type type);
-        IEnumerable<Type> GetEventTypes();
         void Setup(HandleRemoteEventDispatch handlerAsync);
         void Open();
         void Close();

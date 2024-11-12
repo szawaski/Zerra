@@ -32,8 +32,6 @@ namespace Zerra.CQRS.AzureServiceBus
 
         private CommandCounter? commandCounter = null;
 
-        public string ServiceUrl => host;
-
         private static readonly ServiceBusReceiverOptions receiverOptions = new()
         {
             ReceiveMode = ServiceBusReceiveMode.ReceiveAndDelete,
@@ -151,10 +149,6 @@ namespace Zerra.CQRS.AzureServiceBus
                 OpenExchanges();
             }
         }
-        IEnumerable<Type> ICommandConsumer.GetCommandTypes()
-        {
-            return commandTypes;
-        }
 
         void IEventConsumer.RegisterEventType(int maxConcurrent, string topic, Type type)
         {
@@ -171,10 +165,6 @@ namespace Zerra.CQRS.AzureServiceBus
                 eventExchanges.Add(topic, new EventConsumer(maxConcurrent, topic, symmetricConfig, environment, eventHandlerAsync));
                 OpenExchanges();
             }
-        }
-        IEnumerable<Type> IEventConsumer.GetEventTypes()
-        {
-            return eventTypes;
         }
     }
 }

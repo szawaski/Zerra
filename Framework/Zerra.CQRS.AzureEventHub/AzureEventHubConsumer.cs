@@ -39,8 +39,6 @@ namespace Zerra.CQRS.AzureEventHub
         private bool isOpen;
         private CancellationTokenSource? canceller = null;
 
-        public string ServiceUrl => host;
-
         private CommandCounter? commandCounter = null;
         private int? maxConcurrent = null;
 
@@ -306,20 +304,12 @@ namespace Zerra.CQRS.AzureEventHub
                 this.maxConcurrent = maxConcurrent;
             commandTypes.Add(type);
         }
-        IEnumerable<Type> ICommandConsumer.GetCommandTypes()
-        {
-            return commandTypes;
-        }
 
         void IEventConsumer.RegisterEventType(int maxConcurrent, string topic, Type type)
         {
             if (!this.maxConcurrent.HasValue || maxConcurrent < this.maxConcurrent.Value)
                 this.maxConcurrent = maxConcurrent;
             eventTypes.Add(type);
-        }
-        IEnumerable<Type> IEventConsumer.GetEventTypes()
-        {
-            return eventTypes;
         }
     }
 }

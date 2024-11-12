@@ -14,10 +14,11 @@ namespace Zerra.CQRS
 {
     internal static class BusRouters
     {
-        private static readonly ConcurrentFactoryDictionary<Type, Type> callerClasses = new();
+        private static readonly ConcurrentFactoryDictionary<Type, Type> interfaceRouterClasses = new();
+
         public static object GetProviderToCallMethodInternalInstance(Type interfaceType, NetworkType networkType, string source)
         {
-            var callerClassType = callerClasses.GetOrAdd(interfaceType, GenerateProviderToCallMethodInternalClass);
+            var callerClassType = interfaceRouterClasses.GetOrAdd(interfaceType, GenerateProviderToCallMethodInternalClass);
             var instance = Instantiator.GetSingle(interfaceType.Name + ((byte)networkType) + source, callerClassType, networkType, source, static (callerClassType, networkType, source) => Instantiator.Create(callerClassType, [typeof(NetworkType), typeof(string)], networkType, source));
             return instance;
         }
@@ -139,14 +140,13 @@ namespace Zerra.CQRS
         {
             if (!interfaceType.IsInterface)
                 throw new ArgumentException($"Type {interfaceType.GetNiceName()} is not an interface");
-            if (!callerClasses.TryAdd(interfaceType, type))
+            if (!interfaceRouterClasses.TryAdd(interfaceType, type))
                 throw new InvalidOperationException($"Caller for {interfaceType.GetNiceName()} is already registered");
         }
 
-        private static readonly ConcurrentFactoryDictionary<Type, Type> dispatcherClasses = new();
         public static object GetHandlerToDispatchInternalInstance(Type interfaceType, bool requireAffirmation, NetworkType networkType, string source, BusLogging busLogging)
         {
-            var dispatcherClassType = dispatcherClasses.GetOrAdd(interfaceType, GenerateHandlerToDispatchInternalClass);
+            var dispatcherClassType = interfaceRouterClasses.GetOrAdd(interfaceType, GenerateHandlerToDispatchInternalClass);
             var instance = Instantiator.GetSingle(interfaceType.Name + (requireAffirmation ? 1 : 0) + (byte)networkType + source, dispatcherClassType, requireAffirmation, networkType, source, busLogging, static (dispatcherClassType, requireAffirmation, networkType, source, busLogging) => Instantiator.Create(dispatcherClassType, [typeof(bool), typeof(NetworkType), typeof(string), typeof(BusLogging)], requireAffirmation, networkType, source, busLogging));
             return instance;
         }

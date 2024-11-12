@@ -7,6 +7,10 @@ using System.Threading;
 
 namespace Zerra.CQRS
 {
+    /// <summary>
+    /// A counter to track and limit the commands processed by this service.
+    /// Short lived services can be told to terminate after processing a number of commands.
+    /// </summary>
     public sealed class CommandCounter
     {
         private readonly object locker = new();
@@ -16,12 +20,13 @@ namespace Zerra.CQRS
 
         private readonly int? receiveCountBeforeExit;
         private readonly Action? processExit;
-        public CommandCounter()
+
+        internal CommandCounter()
         {
             this.receiveCountBeforeExit = null;
             this.processExit = null;
         }
-        public CommandCounter(int? receiveCountBeforeExit, Action processExit)
+        internal CommandCounter(int? receiveCountBeforeExit, Action processExit)
         {
             if (receiveCountBeforeExit.HasValue && receiveCountBeforeExit.Value < 1) throw new ArgumentException("cannot be less than 1", nameof(receiveCountBeforeExit));
 
@@ -29,8 +34,15 @@ namespace Zerra.CQRS
             this.processExit = processExit;
         }
 
+        /// <summary>
+        /// The number of commands to process before the service terminates.
+        /// </summary>
         public int? ReceiveCountBeforeExit => receiveCountBeforeExit;
 
+        /// <summary>
+        /// Called by a <see cref="ICommandHandler{T}"/>, increment the count and return if a command should be received and handled.
+        /// </summary>
+        /// <returns>True if the service should continue to receive and handle a command.</returns>
         public bool BeginReceive()
         {
             if (!receiveCountBeforeExit.HasValue)
@@ -45,6 +57,10 @@ namespace Zerra.CQRS
             return true;
         }
 
+        /// <summary>
+        /// Called by a <see cref="ICommandHandler{T}"/> when a command handling count needs cancelled because there was no command recieved.
+        /// </summary>
+        /// <param name="throttle">A throttler used by the <see cref="ICommandHandler{T}"/> passed here so it can release at the approriate time.</param>
         public void CancelReceive(SemaphoreSlim throttle)
         {
             if (!receiveCountBeforeExit.HasValue)
@@ -60,6 +76,10 @@ namespace Zerra.CQRS
             }
         }
 
+        /// <summary>
+        /// Called by a <see cref="ICommandHandler{T}"/> when a command has completed receiving and handling.
+        /// </summary>
+        /// <param name="throttle">A throttler used by the <see cref="ICommandHandler{T}"/> passed here so it can release at the approriate time.</param>
         public void CompleteReceive(SemaphoreSlim throttle)
         {
             if (!receiveCountBeforeExit.HasValue)
