@@ -306,7 +306,7 @@ namespace Zerra.CQRS
         {
             if (!interfaceType.IsInterface)
                 throw new ArgumentException($"Type {interfaceType.GetNiceName()} is not an interface");
-            if (!dispatcherClasses.TryAdd(interfaceType, type))
+            if (!interfaceRouterClasses.TryAdd(interfaceType, type))
                 throw new InvalidOperationException($"Dispatcher for {interfaceType.GetNiceName()} is already registered");
         }
     }
