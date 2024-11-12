@@ -2,7 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Collections.Generic;
 using Zerra.Collections;
 using Zerra.Reflection;
 
@@ -10,14 +9,14 @@ namespace Zerra.CQRS
 {
     public static partial class Bus
     {
-        private class CallMetadata
+        private readonly struct CallMetadata
         {
             public NetworkType ExposedNetworkType { get; }
             public BusLogging BusLogging { get; }
             public bool Authenticate { get; }
-            public IReadOnlyCollection<string>? Roles { get; }
+            public string[]? Roles { get; }
             public ConcurrentFactoryDictionary<MethodDetail, MethodMetadata> MethodMetadata { get; }
-            public CallMetadata(NetworkType exposedNetworkType, BusLogging busLogging, bool authenticate, IReadOnlyCollection<string>? roles)
+            public CallMetadata(NetworkType exposedNetworkType, BusLogging busLogging, bool authenticate, string[]? roles)
             {
                 this.ExposedNetworkType = exposedNetworkType;
                 this.BusLogging = busLogging;

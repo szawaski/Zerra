@@ -17,7 +17,7 @@ namespace Zerra.CQRS
         /// <summary>
         /// The roles the user must be in to access what the attribute guards.
         /// </summary>
-        public IReadOnlyCollection<string>? Roles { get; }
+        public string[]? Roles { get; }
 
         /// <summary>
         /// Creates a new security attribute that requires a user to be authenticated.
@@ -34,17 +34,6 @@ namespace Zerra.CQRS
         public ServiceSecureAttribute(params string[] roles)
         {
             if (roles.Length == 0)
-                this.Roles = null;
-            else
-                this.Roles = roles;
-        }
-        /// <summary>
-        /// Creates a new security attribute that requires a user to be authenticated.
-        /// </summary>
-        /// <param name="roles">The roles the user must be in to access what the attribute guards.</param>
-        public ServiceSecureAttribute(IReadOnlyCollection<string> roles)
-        {
-            if (roles.Count == 0)
                 this.Roles = null;
             else
                 this.Roles = roles;

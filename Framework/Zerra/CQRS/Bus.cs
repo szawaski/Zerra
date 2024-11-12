@@ -264,7 +264,7 @@ namespace Zerra.CQRS
                 NetworkType exposedNetworkType = NetworkType.None;
                 var busLogging = BusLogging.SenderAndHandler;
                 var authenticate = false;
-                IReadOnlyCollection<string>? roles = null;
+                string[]? roles = null;
                 foreach (var attribute in commandType.GetTypeDetail().Attributes)
                 {
                     if (attribute is ServiceExposedAttribute serviceExposedAttribute)
@@ -330,7 +330,7 @@ namespace Zerra.CQRS
                 NetworkType exposedNetworkType = NetworkType.None;
                 var busLogging = BusLogging.SenderAndHandler;
                 var authenticate = false;
-                IReadOnlyCollection<string>? roles = null;
+                string[]? roles = null;
                 foreach (var attribute in commandType.GetTypeDetail().Attributes)
                 {
                     if (attribute is ServiceExposedAttribute serviceExposedAttribute)
@@ -397,7 +397,7 @@ namespace Zerra.CQRS
                 NetworkType exposedNetworkType = NetworkType.None;
                 var busLogging = BusLogging.SenderAndHandler;
                 var authenticate = false;
-                IReadOnlyCollection<string>? roles = null;
+                string[]? roles = null;
                 foreach (var attribute in eventType.GetTypeDetail().Attributes)
                 {
                     if (attribute is ServiceExposedAttribute serviceExposedAttribute)
@@ -781,7 +781,7 @@ namespace Zerra.CQRS
                 NetworkType exposedNetworkType = NetworkType.None;
                 var busLogging = BusLogging.SenderAndHandler;
                 var authenticate = false;
-                IReadOnlyCollection<string>? roles = null;
+                string[]? roles = null;
                 foreach (var attribute in interfaceType.GetTypeDetail().Attributes)
                 {
                     if (attribute is ServiceExposedAttribute serviceExposedAttribute)
@@ -845,7 +845,7 @@ namespace Zerra.CQRS
                 NetworkType exposedNetworkType = NetworkType.None;
                 var busLogging = BusLogging.SenderAndHandler;
                 var authenticate = false;
-                IReadOnlyCollection<string>? roles = null;
+                string[]? roles = null;
                 foreach (var attribute in interfaceType.GetTypeDetail().Attributes)
                 {
                     if (attribute is ServiceExposedAttribute serviceExposedAttribute)
@@ -868,10 +868,10 @@ namespace Zerra.CQRS
 
             var methodMetadata = metadata.MethodMetadata.GetOrAdd(methodDetail, networkType, metadata, static (methodDetail, networkType, metadata) =>
             {
-                NetworkType blockedNetworkType = NetworkType.Api;
+                NetworkType blockedNetworkType = NetworkType.None;
                 var busLogging = metadata.BusLogging;
                 var authenticate = false;
-                IReadOnlyCollection<string>? roles = null;
+                string[]? roles = null;
                 foreach (var attribute in methodDetail.Attributes)
                 {
                     if (attribute is ServiceBlockedAttribute serviceBlockedAttribute)
@@ -893,7 +893,7 @@ namespace Zerra.CQRS
 
             if (metadata.ExposedNetworkType < networkType)
                 throw new Exception($"Not Exposed Interface {interfaceType.GetNiceName()} for {nameof(NetworkType)}.{networkType.EnumName()}");
-            if (methodMetadata.BlockedNetworkType >= networkType)
+            if (methodMetadata.BlockedNetworkType != NetworkType.None && methodMetadata.BlockedNetworkType >= networkType)
                 throw new Exception($"Blocked Method {interfaceType.GetNiceName()}.{methodDetail.Name} for {nameof(NetworkType)}.{networkType.EnumName()}");
 
             if (metadata.Authenticate)

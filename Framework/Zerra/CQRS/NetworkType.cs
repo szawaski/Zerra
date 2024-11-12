@@ -10,7 +10,7 @@ namespace Zerra.CQRS
     public enum NetworkType : byte
     {
         /// <summary>
-        /// Indicates this is not exposed.
+        /// Indicates no value, not exposed or blocked.
         /// </summary>
         None = 0,
         /// <summary>
