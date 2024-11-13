@@ -27,8 +27,8 @@ namespace Zerra.CQRS
     /// <summary>
     /// Responsible for sending commands, events, and queries to the correct destination.
     /// A destination may be an implementation in the same assembly or calling a remote service.
-    /// Discovery will host commands and events with the <see cref=""ServiceExposedAttribute/>.
-    /// Discovery will also host queries whose interface has <see cref=""ServiceExposedAttribute/>.
+    /// Discovery will host commands and events with the <see cref="ServiceExposedAttribute"/>.
+    /// Discovery will also host queries whose interface has <see cref="ServiceExposedAttribute"/>.
     /// </summary>
     [Zerra.Reflection.GenerateTypeDetail]
     public static partial class Bus
@@ -72,6 +72,9 @@ namespace Zerra.CQRS
         private static readonly HashSet<Type> handledTypes = new();
         private static IBusLogger? busLogger = null;
 
+        /// <summary>
+        /// Gets or sets the maximum number of concurrent queries.
+        /// </summary>
         public static int MaxConcurrentQueries
         {
             get => maxConcurrentQueries;
@@ -90,6 +93,9 @@ namespace Zerra.CQRS
                 }
             }
         }
+        /// <summary>
+        /// Gets or sets the maximum number of concurrent commands.
+        /// </summary>
         public static int MaxConcurrentCommandsPerTopic
         {
             get => maxConcurrentCommandsPerTopic;
@@ -108,6 +114,9 @@ namespace Zerra.CQRS
                 }
             }
         }
+        /// <summary>
+        /// Gets or sets the maximum number of concurrent events.
+        /// </summary>
         public static int MaxConcurrentEventsPerTopic
         {
             get => maxConcurrentEventsPerTopic;
@@ -126,6 +135,10 @@ namespace Zerra.CQRS
                 }
             }
         }
+        /// <summary>
+        /// Sets the number of commands to receive before the service terminates.
+        /// This is useful for ephimeral services in features such as Kubernetes KEDA.
+        /// </summary>
         public static int? ReceiveCommandsBeforeExit
         {
             get => commandCounter.ReceiveCountBeforeExit;
