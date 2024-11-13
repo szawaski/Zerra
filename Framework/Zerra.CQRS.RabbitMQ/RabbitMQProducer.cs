@@ -58,8 +58,8 @@ namespace Zerra.CQRS.RabbitMQ
         }
 
         Task ICommandProducer.DispatchAsync(ICommand command, string source) { return SendAsync(command, false, source); }
-        Task ICommandProducer.DispatchAsyncAwait(ICommand command, string source) { return SendAsync(command, true, source); }
-        Task<TResult?> ICommandProducer.DispatchAsyncAwait<TResult>(ICommand<TResult> command, string source) where TResult : default { return SendAsync(command, source); }
+        Task ICommandProducer.DispatchAwaitAsync(ICommand command, string source) { return SendAsync(command, true, source); }
+        Task<TResult?> ICommandProducer.DispatchAwaitAsync<TResult>(ICommand<TResult> command, string source) where TResult : default { return SendAsync(command, source); }
         Task IEventProducer.DispatchAsync(IEvent @event, string source) { return SendAsync(@event, source); }
 
         private async Task SendAsync(ICommand command, bool requireAcknowledgement, string source)
@@ -385,10 +385,6 @@ namespace Zerra.CQRS.RabbitMQ
             if (!throttleByTopic.TryAdd(topic, throttle))
                 throttle.Dispose();
         }
-        IEnumerable<Type> ICommandProducer.GetCommandTypes()
-        {
-            return topicsByCommandType.Keys;
-        }
 
         void IEventProducer.RegisterEventType(int maxConcurrent, string topic, Type type)
         {
@@ -400,10 +396,6 @@ namespace Zerra.CQRS.RabbitMQ
             var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
             if (!throttleByTopic.TryAdd(topic, throttle))
                 throttle.Dispose();
-        }
-        IEnumerable<Type> IEventProducer.GetEventTypes()
-        {
-            return topicsByEventType.Keys;
         }
     }
 }

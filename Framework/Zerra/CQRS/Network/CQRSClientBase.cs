@@ -55,10 +55,6 @@ namespace Zerra.CQRS.Network
             if (!throttleByTopic.TryAdd(topic, throttle))
                 throttle.Dispose();
         }
-        IEnumerable<Type> ICommandProducer.GetCommandTypes()
-        {
-            return topicsByCommandType.Keys;
-        }
 
         void IQueryClient.RegisterInterfaceType(int maxConcurrent, Type type)
         {
@@ -119,7 +115,7 @@ namespace Zerra.CQRS.Network
                 throw;
             }
         }
-        Task ICommandProducer.DispatchAsyncAwait(ICommand command, string source)
+        Task ICommandProducer.DispatchAwaitAsync(ICommand command, string source)
         {
             var commandType = command.GetType();
             if (!topicsByCommandType.TryGetValue(commandType, out var topic))
@@ -137,7 +133,7 @@ namespace Zerra.CQRS.Network
                 throw;
             }
         }
-        Task<TResult?> ICommandProducer.DispatchAsyncAwait<TResult>(ICommand<TResult> command, string source) where TResult : default
+        Task<TResult?> ICommandProducer.DispatchAwaitAsync<TResult>(ICommand<TResult> command, string source) where TResult : default
         {
             var commandType = command.GetType();
             if (!topicsByCommandType.TryGetValue(commandType, out var topic))

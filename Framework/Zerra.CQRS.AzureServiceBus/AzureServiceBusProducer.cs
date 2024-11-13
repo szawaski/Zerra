@@ -53,8 +53,8 @@ namespace Zerra.CQRS.AzureServiceBus
         public string ConnectionString => host;
 
         Task ICommandProducer.DispatchAsync(ICommand command, string source) { return SendAsync(command, false, source); }
-        Task ICommandProducer.DispatchAsyncAwait(ICommand command, string source) { return SendAsync(command, true, source); }
-        Task<TResult?> ICommandProducer.DispatchAsyncAwait<TResult>(ICommand<TResult> command, string source) where TResult : default { return SendAsync(command, source); }
+        Task ICommandProducer.DispatchAwaitAsync(ICommand command, string source) { return SendAsync(command, true, source); }
+        Task<TResult?> ICommandProducer.DispatchAwaitAsync<TResult>(ICommand<TResult> command, string source) where TResult : default { return SendAsync(command, source); }
         Task IEventProducer.DispatchAsync(IEvent @event, string source) { return SendAsync(@event, source); }
 
         private async Task SendAsync(ICommand command, bool requireAcknowledgement, string source)
@@ -381,10 +381,6 @@ namespace Zerra.CQRS.AzureServiceBus
             if (!throttleByQueueOrTopic.TryAdd(topic, throttle))
                 throttle.Dispose();
         }
-        IEnumerable<Type> ICommandProducer.GetCommandTypes()
-        {
-            return queueByCommandType.Keys;
-        }
 
         void IEventProducer.RegisterEventType(int maxConcurrent, string topic, Type type)
         {
@@ -396,10 +392,6 @@ namespace Zerra.CQRS.AzureServiceBus
             var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
             if (!throttleByQueueOrTopic.TryAdd(topic, throttle))
                 throttle.Dispose();
-        }
-        IEnumerable<Type> IEventProducer.GetEventTypes()
-        {
-            return topicByEventType.Keys;
         }
     }
 }

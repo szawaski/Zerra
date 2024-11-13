@@ -1324,7 +1324,7 @@ namespace Zerra.Reflection
 
                 var name = span.Slice(0, i).ToString();
 
-                //Have to inspect or inner generics or partially constructed generics won't work
+                //Have to inspect because inner generics or partially constructed generics won't work
                 var parameters = type.GetGenericArguments();
 
                 var sb = new StringBuilder();

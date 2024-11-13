@@ -472,7 +472,7 @@ namespace Zerra.CQRS
                         if (busLogger is null || busLogging == BusLogging.None || (busLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
                         {
                             if (requireAffirmation)
-                                return producer.DispatchAsyncAwait(command, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source);
+                                return producer.DispatchAwaitAsync(command, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source);
                             else
                                 return producer.DispatchAsync(command, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source);
                         }
@@ -517,7 +517,7 @@ namespace Zerra.CQRS
                     {
                         if (busLogger is null || busLogging == BusLogging.None || (busLogging == BusLogging.HandlerOnly && networkType != NetworkType.Local))
                         {
-                            return producer.DispatchAsyncAwait(command, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source);
+                            return producer.DispatchAwaitAsync(command, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source);
                         }
                         else
                         {
@@ -583,7 +583,7 @@ namespace Zerra.CQRS
             {
                 if (requireAffirmation)
                 {
-                    await producer.DispatchAsyncAwait(command, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source);
+                    await producer.DispatchAwaitAsync(command, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source);
                 }
                 else
                 {
@@ -608,7 +608,7 @@ namespace Zerra.CQRS
             TResult? result;
             try
             {
-                result = await producer.DispatchAsyncAwait(command, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source);
+                result = await producer.DispatchAwaitAsync(command, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source);
             }
             catch (Exception ex)
             {
