@@ -7,7 +7,7 @@ using System.Collections.Generic;
 
 namespace Zerra.CQRS.Network
 {
-    public sealed class HttpRequestHeader
+    internal sealed class HttpRequestHeader
     {
         public ReadOnlyMemory<byte> BodyStartBuffer { get; set; }
 

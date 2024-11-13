@@ -8,7 +8,7 @@ using System.Net;
 
 namespace Zerra.CQRS.Network
 {
-    public static class IPResolver
+    internal static class IPResolver
     {
         private static readonly char[] anyhosts = ['+', '*'];
         public static IList<IPEndPoint> GetIPEndPoints(string url)

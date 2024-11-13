@@ -6,7 +6,7 @@ using System;
 
 namespace Zerra.CQRS.Network
 {
-    public class HostAndPort
+    internal class HostAndPort
     {
         public string Host { get; }
         public int Port { get; }

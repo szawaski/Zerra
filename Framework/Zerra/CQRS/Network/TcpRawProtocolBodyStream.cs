@@ -12,7 +12,7 @@ using Zerra.IO;
 
 namespace Zerra.CQRS.Network
 {
-    public sealed class TcpRawProtocolBodyStream : StreamTransform
+    internal sealed class TcpRawProtocolBodyStream : StreamTransform
     {
         private static readonly byte[] endingBytes = BitConverter.GetBytes(0);
 

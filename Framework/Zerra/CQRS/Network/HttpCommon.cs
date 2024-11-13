@@ -3,13 +3,12 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Zerra.Buffers;
-using Zerra.IO;
 
 namespace Zerra.CQRS.Network
 {
-    public static class HttpCommon
+    internal static class HttpCommon
     {
-        public const int BufferLength = 1024 * 8; //Limits max header size
+        public const int BufferLength = 1024 * 16; //Limits max header size
 
         private const string postRequest = "POST ";
         private const string requestEnding = " HTTP/1.1";

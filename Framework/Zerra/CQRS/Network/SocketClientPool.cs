@@ -12,7 +12,7 @@ using Zerra.Collections;
 
 namespace Zerra.CQRS.Network
 {
-    public class SocketClientPool : IDisposable
+    internal class SocketClientPool : IDisposable
     {
         public static readonly SocketClientPool Shared = new();
 

@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Zerra.CQRS.Network
+namespace ZerraDemo.Common
 {
     public static class CookieParser
     {

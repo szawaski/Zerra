@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Zerra.CQRS.Network
 {
-    public sealed class SocketListener : IDisposable
+    internal sealed class SocketListener : IDisposable
     {
         private const int backlog = 512; //Kestrel uses this value
 

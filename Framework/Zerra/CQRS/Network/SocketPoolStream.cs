@@ -8,7 +8,7 @@ using Zerra.IO;
 
 namespace Zerra.CQRS.Network
 {
-    public class SocketPoolStream : StreamWrapper
+    internal class SocketPoolStream : StreamWrapper
     {
         public bool Connected => socket?.Connected ?? false;
         public bool NewConnection { get; }

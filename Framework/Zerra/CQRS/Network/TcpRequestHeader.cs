@@ -6,7 +6,7 @@ using System;
 
 namespace Zerra.CQRS.Network
 {
-    public sealed class TcpRequestHeader
+    internal sealed class TcpRequestHeader
     {
         public ReadOnlyMemory<byte> BodyStartBuffer { get; }
 

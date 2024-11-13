@@ -4,7 +4,7 @@
 
 namespace Zerra.CQRS.Network
 {
-    public sealed class ExceptionContent
+    internal sealed class ExceptionContent
     {
         public string? ErrorMessage { get; set; }
         public string? ErrorType { get; set; }
