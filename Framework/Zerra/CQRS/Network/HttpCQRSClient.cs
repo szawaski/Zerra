@@ -116,7 +116,7 @@ namespace Zerra.CQRS.Network
                         if (bytesRead == 0)
                         {
                             stream.DisposeSocket();
-                            if (stream.NewConnection)
+                            if (stream.IsNewConnection)
                             {
                                 stream = null;
                                 throw new ConnectionAbortedException();
@@ -175,7 +175,7 @@ namespace Zerra.CQRS.Network
                         if (stream is not null)
                         {
                             stream.DisposeSocket();
-                            if (!stream.NewConnection)
+                            if (!stream.IsNewConnection)
                             {
                                 _ = Log.ErrorAsync(ex);
                                 stream = null;
@@ -286,7 +286,7 @@ namespace Zerra.CQRS.Network
                         if (bytesRead == 0)
                         {
                             stream.DisposeSocket();
-                            if (stream.NewConnection)
+                            if (stream.IsNewConnection)
                             {
                                 stream = null;
                                 throw new ConnectionAbortedException();
@@ -367,7 +367,7 @@ namespace Zerra.CQRS.Network
                         if (stream is not null)
                         {
                             stream.DisposeSocket();
-                            if (!stream.NewConnection)
+                            if (!stream.IsNewConnection)
                             {
                                 _ = Log.ErrorAsync(ex);
                                 stream = null;
@@ -484,7 +484,7 @@ namespace Zerra.CQRS.Network
                         if (bytesRead == 0)
                         {
                             stream.DisposeSocket();
-                            if (stream.NewConnection)
+                            if (stream.IsNewConnection)
                             {
                                 stream = null;
                                 throw new ConnectionAbortedException();
@@ -556,7 +556,7 @@ namespace Zerra.CQRS.Network
                         if (stream is not null)
                         {
                             stream.DisposeSocket();
-                            if (!stream.NewConnection)
+                            if (!stream.IsNewConnection)
                             {
                                 _ = Log.ErrorAsync(ex);
                                 stream = null;
@@ -673,7 +673,7 @@ namespace Zerra.CQRS.Network
                         if (bytesRead == 0)
                         {
                             stream.DisposeSocket();
-                            if (stream.NewConnection)
+                            if (stream.IsNewConnection)
                             {
                                 stream = null;
                                 throw new ConnectionAbortedException();
@@ -754,7 +754,7 @@ namespace Zerra.CQRS.Network
                         if (stream is not null)
                         {
                             stream.DisposeSocket();
-                            if (!stream.NewConnection)
+                            if (!stream.IsNewConnection)
                             {
                                 _ = Log.ErrorAsync(ex);
                                 stream = null;

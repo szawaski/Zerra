@@ -91,7 +91,7 @@ namespace Zerra.CQRS.Network
             _ = beginAcceptWaiter.Release();
 
             var incommingSocket = socket.EndAccept(result);
-            //incommingSocket.NoDelay = socket.NoDelay; linstener copies settings
+            //incommingSocket.NoDelay = socket.NoDelay; listener copies settings
 
             _ = handler(incommingSocket, canceller!.Token);
         }
