@@ -37,6 +37,7 @@ namespace Zerra.CQRS.Settings
         /// <summary>
         /// The query interface types that the service will host.
         /// The simple interface names works, full qualified names are not required.
+        /// Using the <see cref="ServiceExposedAttribute"/> on query interfaces is also required.
         /// </summary>
         public string[]? Types { get; internal set; }
 

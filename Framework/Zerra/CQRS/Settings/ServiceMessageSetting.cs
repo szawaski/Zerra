@@ -31,6 +31,7 @@ namespace Zerra.CQRS.Settings
         /// <summary>
         /// The command and event handler interface types that the service will host.
         /// The simple interface names works, full qualified names are not required.
+        /// Using the <see cref="ServiceExposedAttribute"/> on commands and events is also required.
         /// </summary>
         public string[]? Types { get; internal set; }
 
