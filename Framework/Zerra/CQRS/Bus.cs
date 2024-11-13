@@ -164,9 +164,11 @@ namespace Zerra.CQRS
             if (methodDetail.ParameterDetails.Count != (arguments is not null ? arguments.Length : 0))
                 throw new ArgumentException($"{interfaceType.GetNiceName()}.{methodName} invalid number of arguments");
 
-            var args = new object?[arguments is not null ? arguments.Length : 0];
+            object?[]? args = null;
             if (arguments is not null && arguments.Length > 0)
             {
+                args = new object?[arguments.Length];
+
                 var i = 0;
                 foreach (var argument in arguments)
                 {

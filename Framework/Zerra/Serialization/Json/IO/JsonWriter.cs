@@ -20,8 +20,8 @@ namespace Zerra.Serialization.Json.IO
         private byte[]? bufferBytesOwner;
         private Span<byte> bufferBytes;
 
-        private bool useBytes;
-        public bool UseBytes => useBytes;
+        private readonly bool useBytes;
+        public readonly bool UseBytes => useBytes;
 
         private int position;
         private int length;

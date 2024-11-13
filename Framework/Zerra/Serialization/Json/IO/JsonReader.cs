@@ -12,14 +12,14 @@ namespace Zerra.Serialization.Json.IO
     {
         private static readonly Encoding encoding = Encoding.UTF8;
 
-        const int errorHelperLength = 32;
+        private const int errorHelperLength = 32;
 
         private readonly ReadOnlySpan<char> bufferChars;
         private readonly ReadOnlySpan<byte> bufferBytes;
         private readonly bool isFinalBlock;
 
-        private bool useBytes;
-        public bool UseBytes => useBytes;
+        private readonly bool useBytes;
+        public readonly bool UseBytes => useBytes;
 
         private int position;
         private readonly int length;

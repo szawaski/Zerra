@@ -10,6 +10,13 @@ using Zerra.Serialization.Json;
 
 namespace Zerra.CQRS.Settings
 {
+    /// <summary>
+    /// Loads configuration file cqrssettings.json or cqrssettings.{Environment}.json.
+    /// These files allow this current service to know what it is hosting and where other services can be found and what they are hosting.
+    /// The JSON is structured from <see cref="ServiceSettings" />.
+    /// If not supplied, the <see cref="ServiceQuerySetting.BindingUrl"/> can be searched for if specified by the parameter or will fall back to defaults.
+    /// If not supplied, the <see cref="ServiceQuerySetting.ExternalUrl"/> value will be searched for by service name in configuration and environmental variables.
+    /// </summary>
     public static class CQRSSettings
     {
         private const string settingsFileName = "cqrssettings.json";
@@ -26,6 +33,17 @@ namespace Zerra.CQRS.Settings
 
         private const string bindingUrlDefault = "http://localhost:5000;https://localhost:5001";
 
+        /// <summary>
+        /// Loads the cqrssettings.json settings file.
+        /// The name of this service is the entry assembly name which will be matched in the <see cref="ServiceSettings"/>.
+        /// If not supplied, the <see cref="ServiceQuerySetting.BindingUrl"/> can be searched for if specified by the parameter or will fall back to defaults.
+        /// If not supplied, the <see cref="ServiceQuerySetting.ExternalUrl"/> value will be searched for by service name in configuration and environmental variables.
+        /// </summary>
+        /// <param name="bindingUrlFromStandardVariables">
+        /// If a binding url is not supplied, True will mean to search for the url from the standard variables from configuration and environmental variables.
+        /// These variables include: urls, ASPNETCORE_URLS, ASPNETCORE_SERVER, DOTNET_URLS, WEBSITE_SITE_NAME
+        /// </param>
+        /// <returns>The the settings deserialized with updated urls.</returns>
         public static ServiceSettings Get(bool bindingUrlFromStandardVariables)
         {
             var settingsName = Config.EntryAssemblyName;
@@ -33,6 +51,17 @@ namespace Zerra.CQRS.Settings
                 throw new Exception($"Entry Assembly is null, {nameof(CQRSSettings)} cannot identify which service is running");
             return Get(settingsName, bindingUrlFromStandardVariables);
         }
+        /// <summary>
+        /// Loads the cqrssettings.json settings file.
+        /// If not supplied, the <see cref="ServiceQuerySetting.BindingUrl"/> can be searched for if specified by the parameter or will fall back to defaults.
+        /// If not supplied, the <see cref="ServiceQuerySetting.ExternalUrl"/> value will be searched for by service name in configuration and environmental variables.
+        /// </summary>
+        /// <param name="serviceName">The name of this service to be matched in <see cref="ServiceSettings"/>.</param>
+        /// <param name="bindingUrlFromStandardVariables">
+        /// If a binding url is not supplied, True will mean to search for the url from the standard variables from configuration and environmental variables.
+        /// These variables include: urls, ASPNETCORE_URLS, ASPNETCORE_SERVER, DOTNET_URLS, WEBSITE_SITE_NAME
+        /// </param>
+        /// <returns>The the settings deserialized with updated urls.</returns>
         public static ServiceSettings Get(string serviceName, bool bindingUrlFromStandardVariables)
         {
             var environmentName = Config.EnvironmentName;
@@ -118,7 +147,7 @@ namespace Zerra.CQRS.Settings
             return settings;
         }
 
-        public static bool GetBindingUrl(string? defaultUrl, bool useStandardVariables, out string? url, out string? urlSource)
+        private static bool GetBindingUrl(string? defaultUrl, bool useStandardVariables, out string? url, out string? urlSource)
         {
             urlSource = bindingUrl0;
             url = Config.GetSetting(bindingUrl0);
@@ -168,7 +197,7 @@ namespace Zerra.CQRS.Settings
             return false;
         }
 
-        public static bool GetExternalUrl(string? settingName, string? defaultUrl, out string? url, out string? urlSource)
+        private static bool GetExternalUrl(string? settingName, string? defaultUrl, out string? url, out string? urlSource)
         {
             urlSource = settingName;
             if (!String.IsNullOrWhiteSpace(settingName))
