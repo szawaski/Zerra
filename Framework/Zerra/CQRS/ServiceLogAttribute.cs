@@ -26,5 +26,12 @@ namespace Zerra.CQRS
         {
             BusLogging = busLogging;
         }
+        /// <summary>
+        /// Creates a new service log attribute.
+        /// </summary>
+        public ServiceLogAttribute()
+        {
+            BusLogging = BusLogging.SenderAndHandler;
+        }
     }
 }

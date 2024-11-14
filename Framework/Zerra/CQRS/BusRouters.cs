@@ -156,13 +156,13 @@ namespace Zerra.CQRS
                 throw new InvalidOperationException($"Caller for {interfaceType.GetNiceName()} is already registered");
         }
 
-        public static object GetHandlerToDispatchInternalInstance(Type interfaceType, bool requireAffirmation, NetworkType networkType, string source, BusLogging busLogging)
+        public static object GetHandlerToDispatchInternalInstance(Type interfaceType, bool requireAffirmation, NetworkType networkType, bool isFinalLayer, string source)
         {
-            var key = $"{interfaceType.Name}{(requireAffirmation ? '1' : '0')}{(byte)networkType}{source}";
-            var instance = Instantiator.GetSingle(key, interfaceType, requireAffirmation, networkType, source, busLogging, static (interfaceType, requireAffirmation, networkType, source, busLogging) =>
+            var key = $"{interfaceType.Name}{(requireAffirmation ? '1' : '0')}{(byte)networkType}{(isFinalLayer ? '1' : '0')}{source}";
+            var instance = Instantiator.GetSingle(key, interfaceType, requireAffirmation, networkType, isFinalLayer, source, static (interfaceType, requireAffirmation, networkType, isFinalLayer, source) =>
             {
                 var dispatcherClassType = interfaceRouterClasses.GetOrAdd(interfaceType, GenerateHandlerToDispatchInternalClass);
-                return Instantiator.Create(dispatcherClassType, [typeof(bool), typeof(NetworkType), typeof(string), typeof(BusLogging)], requireAffirmation, networkType, source, busLogging);
+                return Instantiator.Create(dispatcherClassType, [typeof(bool), typeof(NetworkType), typeof(bool), typeof(string)], requireAffirmation, networkType, isFinalLayer, source);
             });
             return instance;
         }
@@ -185,15 +185,15 @@ namespace Zerra.CQRS
 
             var requireAffirmationField = typeBuilder.DefineField("requireAffirmation", typeof(bool), FieldAttributes.Private | FieldAttributes.InitOnly);
             var networkTypeField = typeBuilder.DefineField("networkType", typeof(NetworkType), FieldAttributes.Private | FieldAttributes.InitOnly);
+            var isFinalLayerField = typeBuilder.DefineField("isFinalLayer", typeof(bool), FieldAttributes.Private | FieldAttributes.InitOnly);
             var sourceField = typeBuilder.DefineField("source", typeof(string), FieldAttributes.Private | FieldAttributes.InitOnly);
-            var busLoggingField = typeBuilder.DefineField("busLogging", typeof(BusLogging), FieldAttributes.Private | FieldAttributes.InitOnly);
 
-            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Standard, [typeof(bool), typeof(NetworkType), typeof(string), typeof(BusLogging)]);
+            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Standard, [typeof(bool), typeof(NetworkType), typeof(bool), typeof(string)]);
             {
                 constructorBuilder.DefineParameter(0, ParameterAttributes.None, "requireAffirmation");
                 constructorBuilder.DefineParameter(1, ParameterAttributes.None, "networkType");
-                constructorBuilder.DefineParameter(2, ParameterAttributes.None, "source");
-                constructorBuilder.DefineParameter(3, ParameterAttributes.None, "busLogging");
+                constructorBuilder.DefineParameter(2, ParameterAttributes.None, "isFinalLayer");
+                constructorBuilder.DefineParameter(3, ParameterAttributes.None, "source");
 
                 var il = constructorBuilder.GetILGenerator();
                 il.Emit(OpCodes.Ldarg_0);
@@ -211,6 +211,10 @@ namespace Zerra.CQRS
 
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldarg_3);
+                il.Emit(OpCodes.Stfld, isFinalLayerField);
+
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Ldarg, 4);
                 il.Emit(OpCodes.Stfld, sourceField);
 
                 il.Emit(OpCodes.Ret);
@@ -234,7 +238,7 @@ namespace Zerra.CQRS
 
                 if (genericInterface == BusRouterMethods.CommandHandlerType)
                 {
-                    // Bus._DispatchCommandInternalAsync(command, commandType, requireAffirmation, networkType, source, busLogging)
+                    // Bus._DispatchCommandInternalAsync(command, commandType, requireAffirmation, networkType, isFinalLayer, source)
 
                     il.Emit(OpCodes.Ldarg_1); //command
 
@@ -248,10 +252,11 @@ namespace Zerra.CQRS
                     il.Emit(OpCodes.Ldfld, networkTypeField); //networkType
 
                     il.Emit(OpCodes.Ldarg_0);
-                    il.Emit(OpCodes.Ldfld, sourceField); //source
+                    il.Emit(OpCodes.Ldfld, isFinalLayerField); //isFinalLayer
 
                     il.Emit(OpCodes.Ldarg_0);
-                    il.Emit(OpCodes.Ldfld, busLoggingField); //busLogging
+                    il.Emit(OpCodes.Ldfld, sourceField); //source
+
 
                     il.Emit(OpCodes.Call, BusRouterMethods.DispatchCommandInternalAsyncMethod);
                     il.Emit(OpCodes.Ret);
@@ -260,7 +265,7 @@ namespace Zerra.CQRS
                 }
                 else if (genericInterface == BusRouterMethods.CommandHandlerWithResultType)
                 {
-                    // Bus._DispatchCommandWithResultInternalAsync<>(command, commandType, networkType, source, busLogging)
+                    // Bus._DispatchCommandWithResultInternalAsync<>(command, commandType, networkType, isFinalLayer, source)
 
                     il.Emit(OpCodes.Ldarg_1); //command
 
@@ -271,10 +276,10 @@ namespace Zerra.CQRS
                     il.Emit(OpCodes.Ldfld, networkTypeField); //networkType
 
                     il.Emit(OpCodes.Ldarg_0);
-                    il.Emit(OpCodes.Ldfld, sourceField); //source
+                    il.Emit(OpCodes.Ldfld, isFinalLayerField); //isFinalLayer
 
                     il.Emit(OpCodes.Ldarg_0);
-                    il.Emit(OpCodes.Ldfld, busLoggingField); //busLogging
+                    il.Emit(OpCodes.Ldfld, sourceField); //source
 
                     il.Emit(OpCodes.Call, BusRouterMethods.DispatchCommandInternalAsyncMethod);
                     il.Emit(OpCodes.Ret);
@@ -283,7 +288,7 @@ namespace Zerra.CQRS
                 }
                 else if (genericInterface == BusRouterMethods.EventHandlerType)
                 {
-                    // Bus._DispatchEventInternalAsync(@event, eventType, networkType, source, busLogging)
+                    // Bus._DispatchEventInternalAsync(@event, eventType, networkType, isFinalLayer, source)
 
                     il.Emit(OpCodes.Ldarg_1); //@event
 
@@ -294,10 +299,10 @@ namespace Zerra.CQRS
                     il.Emit(OpCodes.Ldfld, networkTypeField); //networkType
 
                     il.Emit(OpCodes.Ldarg_0);
-                    il.Emit(OpCodes.Ldfld, sourceField); //source
+                    il.Emit(OpCodes.Ldfld, isFinalLayerField); //isFinalLayer
 
                     il.Emit(OpCodes.Ldarg_0);
-                    il.Emit(OpCodes.Ldfld, busLoggingField); //busLogging
+                    il.Emit(OpCodes.Ldfld, sourceField); //source
 
                     il.Emit(OpCodes.Call, BusRouterMethods.DispatchCommandInternalAsyncMethod);
                     il.Emit(OpCodes.Ret);

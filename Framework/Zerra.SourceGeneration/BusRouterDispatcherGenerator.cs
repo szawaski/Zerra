@@ -44,14 +44,14 @@ namespace Zerra.SourceGeneration.Discovery
                     {
                         private readonly bool requireAffirmation;
                         private readonly Zerra.CQRS.NetworkType networkType;
+                        private readonly bool isFinalLayer;
                         private readonly string source;
-                        private readonly Zerra.CQRS.BusLogging busLogging;
-                        public {{className}}(bool requireAffirmation, Zerra.CQRS.NetworkType networkType, string source, Zerra.CQRS.BusLogging busLogging)
+                        public {{className}}(bool requireAffirmation, Zerra.CQRS.NetworkType networkType, bool isFinalLayer, string source)
                         {
                             this.requireAffirmation = requireAffirmation;
                             this.networkType = networkType;
+                            this.isFinalLayer = isFinalLayer;
                             this.source = source;
-                            this.busLogging = busLogging;
                         }
 
                         {{membersLines}}
@@ -101,20 +101,20 @@ namespace Zerra.SourceGeneration.Discovery
                     {
                         var parameter = method.Parameters[0];
                         var messageTypeOf = Helpers.GetTypeOfName(parameter.Type);
-                        _ = sb.Append("Zerra.CQRS.Bus._DispatchCommandInternalAsync(@").Append(parameter.Name).Append(", ").Append(messageTypeOf).Append(", this.requireAffirmation, this.networkType, this.source, this.busLogging);");
+                        _ = sb.Append("Zerra.CQRS.Bus._DispatchCommandInternalAsync(@").Append(parameter.Name).Append(", ").Append(messageTypeOf).Append(", this.requireAffirmation, this.networkType, this.isFinalLayer, this.source);");
                     }
                     else
                     {
                         var parameter = method.Parameters[0];
                         var messageTypeOf = Helpers.GetTypeOfName(parameter.Type);
-                        _ = sb.Append("Zerra.CQRS.Bus._DispatchCommandWithResultInternalAsync(@").Append(parameter.Name).Append(", ").Append(messageTypeOf).Append(", this.networkType, this.source, this.busLogging)!;");
+                        _ = sb.Append("Zerra.CQRS.Bus._DispatchCommandWithResultInternalAsync(@").Append(parameter.Name).Append(", ").Append(messageTypeOf).Append(", this.networkType, this.isFinalLayer, this.source)!;");
                     }
                 }
                 else if (method.ContainingType.Name == "IEventHandler")
                 {
                     var parameter = method.Parameters[0];
                     var messageTypeOf = Helpers.GetTypeOfName(parameter.Type);
-                    _ = sb.Append("Zerra.CQRS.Bus._DispatchEventInternalAsync(@").Append(parameter.Name).Append(", ").Append(messageTypeOf).Append(", this.networkType, this.source, this.busLogging);");
+                    _ = sb.Append("Zerra.CQRS.Bus._DispatchEventInternalAsync(@").Append(parameter.Name).Append(", ").Append(messageTypeOf).Append(", this.networkType, this.isFinalLayer, this.source);");
                 }
                 else
                 {

@@ -68,7 +68,7 @@ namespace Zerra.CQRS.Network
                 throw new ArgumentException($"Provider {data.ProviderType} is not an interface type");
             var typeDetail = TypeAnalyzer.GetTypeDetail(providerType);
 
-            return Bus.HandleRemoteQueryCallAsync(providerType, data.ProviderMethod, data.ProviderArguments, data.Source, true);
+            return Bus.RemoteHandleQueryCallAsync(providerType, data.ProviderMethod, data.ProviderArguments, data.Source, true);
         }
 
         private static Task Dispatch(ApiRequestData data)
@@ -87,9 +87,9 @@ namespace Zerra.CQRS.Network
                 throw new Exception($"Invalid {nameof(data.MessageData)}");
 
             if (data.MessageAwait)
-                return Bus.HandleRemoteCommandDispatchAwaitAsync(command, data.Source, true);
+                return Bus.RemoteHandleCommandDispatchAwaitAsync(command, data.Source, true);
             else
-                return Bus.HandleRemoteCommandDispatchAsync(command, data.Source, true);
+                return Bus.RemoteHandleCommandDispatchAsync(command, data.Source, true);
         }
         private static Task<object?> DispatchWithResult(ApiRequestData data)
         {
@@ -106,7 +106,7 @@ namespace Zerra.CQRS.Network
             if (command is null)
                 throw new Exception($"Invalid {nameof(data.MessageData)}");
 
-            return Bus.HandleRemoteCommandWithResultDispatchAwaitAsync(command, data.Source, true);
+            return Bus.RemoteHandleCommandWithResultDispatchAwaitAsync(command, data.Source, true);
         }
     }
 }

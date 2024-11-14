@@ -18,8 +18,12 @@ namespace Zerra.CQRS
         /// </summary>
         HandlerOnly = 1,
         /// <summary>
+        /// Only the sender will log commands, events, and queries.
+        /// </summary>
+        SenderOnly = 2,
+        /// <summary>
         /// No loggging will occur.
         /// </summary>
-        None = 2
+        None = 3
     }
 }
