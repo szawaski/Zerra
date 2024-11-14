@@ -335,7 +335,7 @@ namespace Zerra.CQRS
             if (!commandProducers.IsEmpty && (networkType == NetworkType.Local || !handledTypes.Contains(commandType)))
             {
                 var messageBaseType = commandType;
-                while (producer is null && messageBaseType is not null)
+                while (messageBaseType is not null)
                 {
                     if (commandProducers.TryGetValue(messageBaseType, out producer))
                         break;
@@ -449,7 +449,7 @@ namespace Zerra.CQRS
             if (!commandProducers.IsEmpty && (networkType == NetworkType.Local || !handledTypes.Contains(commandType)))
             {
                 var messageBaseType = commandType;
-                while (producer is null && messageBaseType is not null)
+                while (messageBaseType is not null)
                 {
                     if (commandProducers.TryGetValue(messageBaseType, out producer))
                         break;
@@ -557,7 +557,7 @@ namespace Zerra.CQRS
             if (!eventProducers.IsEmpty && (networkType == NetworkType.Local || !handledTypes.Contains(eventType)))
             {
                 var messageBaseType = eventType;
-                while (producer is null && messageBaseType is not null)
+                while (messageBaseType is not null)
                 {
                     if (eventProducers.TryGetValue(messageBaseType, out producer))
                         break;
