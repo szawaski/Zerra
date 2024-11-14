@@ -88,65 +88,6 @@ namespace Zerra.Reflection.Compiletime
             }
         }
 
-        private bool callerBoxedLoaded = false;
-        private Func<object?, object?[]?, Task<object?>>? callerBoxedAsync = null;
-        public override sealed Func<object?, object?[]?, Task<object?>> CallerBoxedAsync
-        {
-            get
-            {
-                LoadCallerBoxedAsync();
-                return this.callerBoxedAsync ?? throw new NotSupportedException($"{nameof(MethodDetail)} {Name} does not have a {nameof(CallerAsync)}");
-            }
-        }
-        public override sealed bool HasCallerBoxedAsync
-        {
-            get
-            {
-                LoadCallerBoxedAsync();
-                return this.callerBoxedAsync is not null;
-            }
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void LoadCallerBoxedAsync()
-        {
-            if (!callerBoxedLoaded)
-            {
-                lock (locker)
-                {
-                    if (!callerBoxedLoaded)
-                    {
-                        if (HasCallerBoxed)
-                        {
-                            this.callerBoxedAsync = async (source, arguments) =>
-                            {
-                                var caller = CallerBoxed;
-                                if (caller is null)
-                                    return default;
-                                var returnTypeInfo = ReturnTypeDetailBoxed;
-
-                                if (returnTypeInfo.IsTask)
-                                {
-                                    var result = caller(source, arguments)!;
-                                    var task = (Task)result;
-                                    await task;
-                                    if (returnTypeInfo.Type.IsGenericType)
-                                        return returnTypeInfo.TaskResultGetter(result);
-                                    else
-                                        return default;
-                                }
-                                else
-                                {
-                                    return caller(source, arguments);
-                                }
-                            };
-                        }
-
-                        callerBoxedLoaded = true;
-                    }
-                }
-            }
-        }
-
         private bool callerLoaded = false;
         private Func<T?, object?[]?, Task<object?>>? callerAsync = null;
         public override sealed Func<T?, object?[]?, Task<object?>> CallerAsync

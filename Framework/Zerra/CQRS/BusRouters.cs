@@ -16,12 +16,13 @@ namespace Zerra.CQRS
     {
         private static readonly ConcurrentFactoryDictionary<Type, Type> interfaceRouterClasses = new();
 
-        public static object GetProviderToCallMethodInternalInstance(Type interfaceType, NetworkType networkType, string source)
+        public static object GetProviderToCallMethodInternalInstance(Type interfaceType, NetworkType networkType, bool isFinalLayer, string source)
         {
-            var instance = Instantiator.GetSingle(interfaceType.Name + ((byte)networkType) + source, interfaceType, networkType, source, static (interfaceType, networkType, source) =>
+            var key = $"{interfaceType.Name}{(byte)networkType}{(isFinalLayer ? '1' : '0')}{source}";
+            var instance = Instantiator.GetSingle(key, interfaceType, networkType, isFinalLayer, source, static (interfaceType, networkType, isFinalLayer, source) =>
             {
                 var callerClassType = interfaceRouterClasses.GetOrAdd(interfaceType, GenerateProviderToCallMethodInternalClass);
-                return Instantiator.Create(callerClassType, [typeof(NetworkType), typeof(string)], networkType, source);
+                return Instantiator.Create(callerClassType, [typeof(NetworkType), typeof(bool), typeof(string)], networkType, isFinalLayer, source);
             });
             return instance;
         }
@@ -43,11 +44,13 @@ namespace Zerra.CQRS
             typeBuilder.AddInterfaceImplementation(interfaceType);
 
             var networkTypeField = typeBuilder.DefineField("networkType", typeof(NetworkType), FieldAttributes.Private | FieldAttributes.InitOnly);
+            var isFinalLayerField = typeBuilder.DefineField("isFinalLayer", typeof(bool), FieldAttributes.Private | FieldAttributes.InitOnly);
             var sourceField = typeBuilder.DefineField("source", typeof(string), FieldAttributes.Private | FieldAttributes.InitOnly);
 
-            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Standard, [typeof(NetworkType), typeof(string)]);
+            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Standard, [typeof(NetworkType), typeof(bool), typeof(string)]);
             {
                 constructorBuilder.DefineParameter(0, ParameterAttributes.None, "networkType");
+                constructorBuilder.DefineParameter(2, ParameterAttributes.None, "isFinalLayer");
                 constructorBuilder.DefineParameter(1, ParameterAttributes.None, "source");
 
                 var il = constructorBuilder.GetILGenerator();
@@ -62,6 +65,10 @@ namespace Zerra.CQRS
 
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldarg_2);
+                il.Emit(OpCodes.Stfld, isFinalLayerField);
+
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Ldarg_3);
                 il.Emit(OpCodes.Stfld, sourceField);
 
                 il.Emit(OpCodes.Ret);
@@ -95,7 +102,7 @@ namespace Zerra.CQRS
 
                 il.Emit(OpCodes.Nop);
 
-                //_CallInternal<TReturn>(Type interfaceType, string methodName, object[] arguments, NetworkType networkType, string source)
+                //_CallInternal<TReturn>(Type interfaceType, string methodName, object[] arguments, NetworkType networkType, bool isFinalLayer, string source)
 
                 il.Emit(OpCodes.Ldtoken, interfaceType);
                 il.Emit(OpCodes.Call, BusRouterMethods.TypeOfMethod); //typeof(TInterface)
@@ -118,6 +125,9 @@ namespace Zerra.CQRS
                 il.Emit(OpCodes.Ldfld, networkTypeField); //networkType
 
                 il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Ldfld, isFinalLayerField); //isFinalLayer
+
+                il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldfld, sourceField); //source
 
                 il.Emit(OpCodes.Call, callMethod);
@@ -138,7 +148,6 @@ namespace Zerra.CQRS
             Type objectType = typeBuilder.CreateTypeInfo() ?? throw new Exception("Failed to CreateTypeInfo");
             return objectType;
         }
-
         public static void RegisterCaller(Type interfaceType, Type type)
         {
             if (!interfaceType.IsInterface)
@@ -149,7 +158,8 @@ namespace Zerra.CQRS
 
         public static object GetHandlerToDispatchInternalInstance(Type interfaceType, bool requireAffirmation, NetworkType networkType, string source, BusLogging busLogging)
         {
-            var instance = Instantiator.GetSingle(interfaceType.Name + (requireAffirmation ? 1 : 0) + (byte)networkType + source, interfaceType, requireAffirmation, networkType, source, busLogging, static (interfaceType, requireAffirmation, networkType, source, busLogging) =>
+            var key = $"{interfaceType.Name}{(requireAffirmation ? '1' : '0')}{(byte)networkType}{source}";
+            var instance = Instantiator.GetSingle(key, interfaceType, requireAffirmation, networkType, source, busLogging, static (interfaceType, requireAffirmation, networkType, source, busLogging) =>
             {
                 var dispatcherClassType = interfaceRouterClasses.GetOrAdd(interfaceType, GenerateHandlerToDispatchInternalClass);
                 return Instantiator.Create(dispatcherClassType, [typeof(bool), typeof(NetworkType), typeof(string), typeof(BusLogging)], requireAffirmation, networkType, source, busLogging);
@@ -307,7 +317,6 @@ namespace Zerra.CQRS
             Type objectType = typeBuilder.CreateTypeInfo() ?? throw new Exception("Failed to CreateTypeInfo");
             return objectType;
         }
-
         public static void RegisterDispatcher(Type interfaceType, Type type)
         {
             if (!interfaceType.IsInterface)

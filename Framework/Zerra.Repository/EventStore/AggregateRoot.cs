@@ -147,7 +147,7 @@ namespace Zerra.Repository
                 return methodDetail;
             });
 
-            return methodDetail.CallerBoxedAsync(this, [@event]);
+            return (Task)methodDetail.CallerBoxed(this, [@event])!;
         }
     }
 }

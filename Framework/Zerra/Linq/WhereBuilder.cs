@@ -16,32 +16,32 @@ namespace Zerra.Linq
 
         public WhereBuilder(Expression<Func<TModel, bool>> expression)
         {
-            this.expressionStack.Add(new ExpressionStackItem() { Expression = expression });
+            this.expressionStack.Add(new ExpressionStackItem(expression, false, false, false, false));
         }
 
         public void And(Expression<Func<TModel, bool>> expression)
         {
-            this.expressionStack.Add(new ExpressionStackItem() { Expression = expression, And = true });
+            this.expressionStack.Add(new ExpressionStackItem(expression, true, false, false, false));
         }
 
         public void Or(Expression<Func<TModel, bool>> expression)
         {
-            this.expressionStack.Add(new ExpressionStackItem() { Expression = expression, Or = true });
+            this.expressionStack.Add(new ExpressionStackItem(expression, false, true, false, false));
         }
 
         public void StartGroupAnd()
         {
-            this.expressionStack.Add(new ExpressionStackItem() { StartGroup = true, And = true });
+            this.expressionStack.Add(new ExpressionStackItem(null, true, false, true, false));
         }
 
         public void StartGroupOr()
         {
-            this.expressionStack.Add(new ExpressionStackItem() { StartGroup = true, Or = true });
+            this.expressionStack.Add(new ExpressionStackItem(null, false, true, true, false));
         }
 
         public void EndGroup()
         {
-            this.expressionStack.Add(new ExpressionStackItem() { EndGroup = true });
+            this.expressionStack.Add(new ExpressionStackItem(null, false, false, false, true));
         }
 
         public override string ToString()

@@ -10,13 +10,22 @@ namespace Zerra.Linq
     public sealed partial class WhereBuilder<TModel>
         where TModel : class, new()
     {
-        private sealed class ExpressionStackItem
+        private readonly struct ExpressionStackItem
         {
-            public Expression<Func<TModel, bool>> Expression { get; set; } = null!;
-            public bool And { get; set; }
-            public bool Or { get; set; }
-            public bool StartGroup { get; set; }
-            public bool EndGroup { get; set; }
+            public readonly Expression<Func<TModel, bool>>? Expression;
+            public readonly bool And;
+            public readonly bool Or;
+            public readonly bool StartGroup;
+            public readonly bool EndGroup;
+
+            public ExpressionStackItem(Expression<Func<TModel, bool>>? expression, bool and, bool or, bool startGroup, bool endGroup)
+            {
+                this.Expression = expression;
+                this.And = and;
+                this.Or = or;
+                this.StartGroup = startGroup;
+                this.EndGroup = endGroup;
+            }
         }
     }
 }

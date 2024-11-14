@@ -95,7 +95,6 @@ namespace Zerra.Reflection.Compiletime
 
         private bool callerBoxedLoaded = false;
         private Func<object?, object?[]?, object?>? callerBoxed = null;
-        private Func<object?, object?[]?, Task<object?>>? callerBoxedAsync = null;
         public override sealed Func<object?, object?[]?, object?> CallerBoxed
         {
             get
@@ -110,22 +109,6 @@ namespace Zerra.Reflection.Compiletime
             {
                 LoadCallerBoxed();
                 return this.callerBoxed is not null;
-            }
-        }
-        public override sealed Func<object?, object?[]?, Task<object?>> CallerBoxedAsync
-        {
-            get
-            {
-                LoadCallerBoxed();
-                return this.callerBoxedAsync ?? throw new NotSupportedException($"{nameof(MethodDetail)} {Name} does not have a {nameof(CallerBoxedAsync)}");
-            }
-        }
-        public override sealed bool HasCallerBoxedAsync
-        {
-            get
-            {
-                LoadCallerBoxed();
-                return this.callerBoxedAsync is not null;
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -144,28 +127,6 @@ namespace Zerra.Reflection.Compiletime
                         )
                         {
                             this.callerBoxed = AccessorGenerator.GenerateCaller(MethodInfo);
-                            this.callerBoxedAsync = async (source, arguments) =>
-                            {
-                                var caller = this.callerBoxed;
-                                if (caller is null)
-                                    return default;
-                                var returnTypeInfo = ReturnTypeDetailBoxed;
-
-                                if (returnTypeInfo.IsTask)
-                                {
-                                    var result = caller(source, arguments)!;
-                                    var task = (Task)result;
-                                    await task;
-                                    if (returnTypeInfo.Type.IsGenericType)
-                                        return returnTypeInfo.TaskResultGetter(result);
-                                    else
-                                        return default;
-                                }
-                                else
-                                {
-                                    return caller(source, arguments);
-                                }
-                            };
                         }
 
                         callerBoxedLoaded = true;

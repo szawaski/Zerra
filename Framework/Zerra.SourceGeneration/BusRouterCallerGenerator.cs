@@ -5,7 +5,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
@@ -43,10 +42,12 @@ namespace Zerra.SourceGeneration.Discovery
                     public class {{className}} : {{symbol.ToString()}}
                     {
                         private readonly Zerra.CQRS.NetworkType networkType;
+                        private readonly bool isFinalLayer;
                         private readonly string source;
-                        public {{className}}(Zerra.CQRS.NetworkType networkType, string source)
+                        public {{className}}(Zerra.CQRS.NetworkType networkType, bool isFinalLayer, string source)
                         {
                             this.networkType = networkType;
+                            this.isFinalLayer = isFinalLayer;
                             this.source = source;
                         }
 
@@ -103,7 +104,7 @@ namespace Zerra.SourceGeneration.Discovery
                         firstPassed = true;
                     sb.Append('@').Append(parameter.Name);
                 }
-                _ = sb.Append("], this.networkType, this.source);");
+                _ = sb.Append("], this.networkType, this.isFinalLayer, this.source);");
             }
 
             foreach (IPropertySymbol property in members.Where(x => x.Kind == SymbolKind.Property))

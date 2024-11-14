@@ -25,8 +25,6 @@ namespace Zerra.Reflection
 
         public abstract Func<object?, object?[]?, object?> CallerBoxed { get; }
         public abstract bool HasCallerBoxed { get; }
-        public abstract Func<object?, object?[]?, Task<object?>> CallerBoxedAsync { get; }
-        public abstract bool HasCallerBoxedAsync { get; }
 
         public abstract Delegate? CallerTyped { get; }
 
