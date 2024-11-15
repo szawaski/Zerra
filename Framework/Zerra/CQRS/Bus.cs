@@ -370,7 +370,7 @@ namespace Zerra.CQRS
             }
             else
             {
-                result = HandleCommandTaskLogged(handled, producer, cacheProviderDispatchAsync, command, commandType, networkType, source);
+                result = HandleCommandTaskLogged(handled, producer, cacheProviderDispatchAsync, command, commandType, requireAffirmation, networkType, source);
             }
 
             if (!requireAffirmation && networkType == NetworkType.Local)
@@ -599,7 +599,7 @@ namespace Zerra.CQRS
             return result;
         }
 
-        private static async Task HandleCommandTaskLogged(bool handled, ICommandProducer? producer, Func<ICommand, Task>? cacheProviderDispatchAsync, ICommand command, Type commandType, NetworkType networkType, string source)
+        private static async Task HandleCommandTaskLogged(bool handled, ICommandProducer? producer, Func<ICommand, Task>? cacheProviderDispatchAsync, ICommand command, Type commandType, bool requireAffirmation, NetworkType networkType, string source)
         {
             busLogger?.BeginCommand(commandType, command, source, handled);
 
@@ -620,7 +620,10 @@ namespace Zerra.CQRS
                 }
                 else
                 {
-                    await producer!.DispatchAsync(command, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source);
+                    if (requireAffirmation)
+                        await producer!.DispatchAwaitAsync(command, source);
+                    else
+                        await producer!.DispatchAsync(command, source);
                 }
             }
             catch (Exception ex)
@@ -726,10 +729,6 @@ namespace Zerra.CQRS
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         public static TReturn _CallMethod<TReturn>(Type interfaceType, string methodName, object[] arguments, NetworkType networkType, bool isFinalLayer, string source)
         {
-            var methodDetail = TypeAnalyzer.GetMethodDetail(interfaceType, methodName);
-            if (methodDetail.ParameterDetails.Count != arguments.Length)
-                throw new ArgumentException($"{interfaceType.GetNiceName()}.{methodName} invalid number of arguments");
-
             var metadata = callMetadata.GetOrAdd(interfaceType, networkType, static (interfaceType, networkType) =>
             {
                 NetworkType exposedNetworkType = NetworkType.None;
@@ -756,8 +755,10 @@ namespace Zerra.CQRS
                 return new CallMetadata(exposedNetworkType, busLogging, authenticate, roles);
             });
 
-            var methodMetadata = metadata.MethodMetadata.GetOrAdd(methodDetail, networkType, metadata, static (methodDetail, networkType, metadata) =>
+            var methodMetadata = metadata.MethodMetadata.GetOrAdd(methodName, interfaceType, networkType, metadata, static (methodName, interfaceType, networkType, metadata) =>
             {
+                var methodDetail = TypeAnalyzer.GetMethodDetail(interfaceType, methodName);
+
                 NetworkType blockedNetworkType = NetworkType.None;
                 var busLogging = metadata.BusLogging;
                 var authenticate = false;
@@ -778,18 +779,21 @@ namespace Zerra.CQRS
                         roles = serviceSecureAttribute.Roles;
                     }
                 }
-                return new MethodMetadata(blockedNetworkType, busLogging, authenticate, roles);
+                return new MethodMetadata(methodDetail, blockedNetworkType, busLogging, authenticate, roles);
             });
+
+            if (methodMetadata.MethodDetail.ParameterDetails.Count != arguments.Length)
+                throw new ArgumentException($"{interfaceType.GetNiceName()}.{methodName} invalid number of arguments");
 
             if (metadata.ExposedNetworkType < networkType)
                 throw new Exception($"Not Exposed Interface {interfaceType.GetNiceName()} for {nameof(NetworkType)}.{networkType.EnumName()}");
             if (methodMetadata.BlockedNetworkType != NetworkType.None && methodMetadata.BlockedNetworkType >= networkType)
-                throw new Exception($"Blocked Method {interfaceType.GetNiceName()}.{methodDetail.Name} for {nameof(NetworkType)}.{networkType.EnumName()}");
+                throw new Exception($"Blocked Method {interfaceType.GetNiceName()}.{methodName} for {nameof(NetworkType)}.{networkType.EnumName()}");
 
             if (metadata.Authenticate)
                 Authenticate(Thread.CurrentPrincipal, metadata.Roles, () => $"Access Denied for Interface {interfaceType.GetNiceName()}");
             if (methodMetadata.Authenticate)
-                Authenticate(Thread.CurrentPrincipal, methodMetadata.Roles, () => $"Access Denied for Method {interfaceType.GetNiceName()}.{methodDetail.Name}");
+                Authenticate(Thread.CurrentPrincipal, methodMetadata.Roles, () => $"Access Denied for Method {interfaceType.GetNiceName()}.{methodName}");
 
             object? cacheProvider = null;
             if (!isFinalLayer)
@@ -829,31 +833,31 @@ namespace Zerra.CQRS
             {
                 if (cacheProvider is not null)
                 {
-                    result = (TReturn)methodDetail.CallerBoxed(cacheProvider, arguments)!;
+                    result = (TReturn)methodMetadata.MethodDetail.CallerBoxed(cacheProvider, arguments)!;
                 }
                 else
                 {
                     if (handled)
                     {
                         var provider = ProviderResolver.GetFirst(interfaceType);
-                        result = (TReturn)methodDetail.CallerBoxed(provider, arguments)!;
+                        result = (TReturn)methodMetadata.MethodDetail.CallerBoxed(provider, arguments)!;
                     }
                     else
                     {
-                        result = queryClient!.Call<TReturn>(interfaceType, methodDetail.Name, arguments, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source)!;
+                        result = queryClient!.Call<TReturn>(interfaceType, methodName, arguments, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source)!;
                     }
                 }
             }
-            else if (methodDetail.ReturnTypeDetailBoxed.IsTask)
+            else if (methodMetadata.MethodDetail.ReturnTypeDetailBoxed.IsTask)
             {
-                if (methodDetail.ReturnTypeDetailBoxed.Type.IsGenericType)
+                if (methodMetadata.MethodDetail.ReturnTypeDetailBoxed.Type.IsGenericType)
                 {
-                    var method = callMethodTaskGenericLoggedMethod.GetGenericMethodDetail(methodDetail.ReturnTypeDetailBoxed.InnerType);
-                    result = (TReturn)method.CallerBoxed(null, [handled, queryClient, cacheProvider, interfaceType, methodDetail, arguments, networkType, source])!;
+                    var method = callMethodTaskGenericLoggedMethod.GetGenericMethodDetail(methodMetadata.MethodDetail.ReturnTypeDetailBoxed.InnerType);
+                    result = (TReturn)method.CallerBoxed(null, [handled, queryClient, cacheProvider, interfaceType, methodMetadata.MethodDetail, arguments, networkType, source])!;
                 }
                 else
                 {
-                    result = (TReturn)(object)CallMethodTaskLogged(handled, queryClient, cacheProvider, interfaceType, methodDetail, arguments, networkType, source);
+                    result = (TReturn)(object)CallMethodTaskLogged(handled, queryClient, cacheProvider, interfaceType, methodMetadata.MethodDetail, arguments, networkType, source);
                 }
             }
             else
@@ -865,16 +869,16 @@ namespace Zerra.CQRS
                 {
                     if (cacheProvider is not null)
                     {
-                        result = (TReturn)methodDetail.CallerBoxed(cacheProvider, arguments)!;
+                        result = (TReturn)methodMetadata.MethodDetail.CallerBoxed(cacheProvider, arguments)!;
                     }
                     else if (handled)
                     {
                         var provider = ProviderResolver.GetFirst(interfaceType);
-                        result = (TReturn)methodDetail.CallerBoxed(provider, arguments)!;
+                        result = (TReturn)methodMetadata.MethodDetail.CallerBoxed(provider, arguments)!;
                     }
                     else
                     {
-                        result = queryClient!.Call<TReturn>(interfaceType, methodDetail.Name, arguments, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source)!;
+                        result = queryClient!.Call<TReturn>(interfaceType, methodName, arguments, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source)!;
                     }
                 }
                 catch (Exception ex)
@@ -1292,6 +1296,7 @@ namespace Zerra.CQRS
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void Authenticate(IPrincipal? principal, IReadOnlyCollection<string>? roles, Func<string> message)
         {
             if (principal is null || principal.Identity is null || !principal.Identity.IsAuthenticated)

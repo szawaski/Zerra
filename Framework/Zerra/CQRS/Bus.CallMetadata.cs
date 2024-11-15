@@ -15,7 +15,7 @@ namespace Zerra.CQRS
             public BusLogging BusLogging { get; }
             public bool Authenticate { get; }
             public string[]? Roles { get; }
-            public ConcurrentFactoryDictionary<MethodDetail, MethodMetadata> MethodMetadata { get; }
+            public ConcurrentFactoryDictionary<string, MethodMetadata> MethodMetadata { get; }
             public CallMetadata(NetworkType exposedNetworkType, BusLogging busLogging, bool authenticate, string[]? roles)
             {
                 this.ExposedNetworkType = exposedNetworkType;
