@@ -50,15 +50,15 @@ namespace Zerra.CQRS.Kafka
                 this.canceller = new CancellationTokenSource();
             }
 
-            public void Open(string host)
+            public void Open(string host, string? userName, string? password)
             {
                 if (IsOpen)
                     return;
                 IsOpen = true;
-                _ = ListeningThread(host);
+                _ = Task.Run(() => ListeningThread(host, userName, password));
             }
 
-            private async Task ListeningThread(string host)
+            private async Task ListeningThread(string host, string? userName, string? password)
             {
             retry:
 
@@ -66,12 +66,18 @@ namespace Zerra.CQRS.Kafka
 
                 try
                 {
-                    await KafkaCommon.EnsureTopic(host, topic);
+                    await KafkaCommon.EnsureTopic(host, userName, password, topic);
 
                     var consumerConfig = new ConsumerConfig();
                     consumerConfig.BootstrapServers = host;
                     consumerConfig.GroupId = topic;
                     consumerConfig.EnableAutoCommit = false;
+                    if (userName is not null && password is not null)
+                    {
+                        consumerConfig.SaslMechanism = SaslMechanism.Plain;
+                        consumerConfig.SaslUsername = userName;
+                        consumerConfig.SaslPassword = password;
+                    }
 
                     using (var consumer = new ConsumerBuilder<string, byte[]>(consumerConfig).Build())
                     {

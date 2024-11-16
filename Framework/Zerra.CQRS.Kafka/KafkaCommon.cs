@@ -40,10 +40,16 @@ namespace Zerra.CQRS.Kafka
             return ByteSerializer.Deserialize<T>(bytes);
         }
 
-        public static async Task EnsureTopic(string host, string topic)
+        public static async Task EnsureTopic(string host, string? userName, string? password, string topic)
         {
             var clientConfig = new AdminClientConfig();
             clientConfig.BootstrapServers = host;
+            if (userName is not null && password is not null)
+            {
+                clientConfig.SaslMechanism = SaslMechanism.Plain;
+                clientConfig.SaslUsername = userName;
+                clientConfig.SaslPassword = password;
+            }
 
             await locker.WaitAsync();
             try
@@ -76,10 +82,16 @@ namespace Zerra.CQRS.Kafka
             }
         }
 
-        public static async Task DeleteTopic(string host, string topic)
+        public static async Task DeleteTopic(string host, string? userName, string? password, string topic)
         {
             var clientConfig = new AdminClientConfig();
             clientConfig.BootstrapServers = host;
+            if (userName is not null && password is not null)
+            {
+                clientConfig.SaslMechanism = SaslMechanism.Plain;
+                clientConfig.SaslUsername = userName;
+                clientConfig.SaslPassword = password;
+            }
 
 
             await locker.WaitAsync();

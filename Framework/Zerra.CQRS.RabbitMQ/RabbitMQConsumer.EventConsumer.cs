@@ -49,7 +49,7 @@ namespace Zerra.CQRS.RabbitMQ
                 if (IsOpen)
                     return;
                 IsOpen = true;
-                _ = ListeningThread(connection);
+                _ = Task.Run(() => ListeningThread(connection));
             }
 
             private async Task ListeningThread(IConnection connection)

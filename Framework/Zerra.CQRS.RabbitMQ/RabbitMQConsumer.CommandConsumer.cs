@@ -60,7 +60,7 @@ namespace Zerra.CQRS.RabbitMQ
                         return;
                     IsOpen = true;
                 }
-                _ = ListeningThread(connection);
+                _ = Task.Run(() => ListeningThread(connection));
             }
 
             private async Task ListeningThread(IConnection connection)
@@ -169,7 +169,7 @@ namespace Zerra.CQRS.RabbitMQ
 
                     consumer.ConsumerCancelled += (sender, e) =>
                     {
-                        _ = ListeningThread(connection);
+                        _ = Task.Run(() => ListeningThread(connection));
                         return Task.CompletedTask;
                     };
 

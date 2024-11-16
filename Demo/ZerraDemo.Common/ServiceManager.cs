@@ -6,6 +6,7 @@ using Zerra.CQRS.Settings;
 using Zerra.Logging;
 using Zerra.Logger;
 using System;
+using Zerra.CQRS.Kafka;
 
 namespace ZerraDemo.Common
 {
@@ -24,6 +25,9 @@ namespace ZerraDemo.Common
             //this is helpful if running AspNetCore in addition to a TcpService Server which will fight for the port
             //in Kubernetes the BindingUrl needs to be 0.0.0.0 which can be replaced with "+" such as "+:80"
             var serviceSettings = CQRSSettings.Get(false);
+
+            var messageHost = Config.GetSetting("MessageHost")!;
+            serviceSettings.SetAllMessageHosts(messageHost);
 
             IServiceCreator serviceCreator;
 
@@ -44,10 +48,10 @@ namespace ZerraDemo.Common
             //----------------------------------------------------------
 
             //Option2A: Enable this using RabbitMQ for commands/events
-            serviceCreator = new RabbitMQServiceCreator(serviceCreator, Config.EnvironmentName);
+            //serviceCreator = new RabbitMQServiceCreator(serviceCreator, Config.EnvironmentName);
 
             //Option2B: Enable this using Kafka for commands/events
-            //serviceCreator = new KafkaServiceCreator(serviceCreator, Config.EnvironmentName);
+            serviceCreator = new KafkaServiceCreator(serviceCreator, Config.EnvironmentName);
 
             //Option2C: Enable this using Azure Event Hub for commands/events
             //serviceCreator = new AzureEventHubServiceCreator(serviceCreator, Config.EnvironmentName);

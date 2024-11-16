@@ -5,7 +5,6 @@
 using Azure.Messaging.ServiceBus;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading;
@@ -50,8 +49,6 @@ namespace Zerra.CQRS.AzureServiceBus
             this.ackCallbacks = new ConcurrentDictionary<string, Action<Acknowledgement>>();
         }
 
-        public string ConnectionString => host;
-
         Task ICommandProducer.DispatchAsync(ICommand command, string source) { return SendAsync(command, false, source); }
         Task ICommandProducer.DispatchAwaitAsync(ICommand command, string source) { return SendAsync(command, true, source); }
         Task<TResult?> ICommandProducer.DispatchAwaitAsync<TResult>(ICommand<TResult> command, string source) where TResult : default { return SendAsync(command, source); }
@@ -85,7 +82,7 @@ namespace Zerra.CQRS.AzureServiceBus
                             {
                                 await AzureServiceBusCommon.EnsureQueue(host, ackQueue, true);
 
-                                _ = AckListeningThread();
+                                _ = Task.Run(AckListeningThread);
                                 listenerStarted = true;
                             }
                         }
@@ -187,7 +184,7 @@ namespace Zerra.CQRS.AzureServiceBus
                         {
                             await AzureServiceBusCommon.EnsureQueue(host, ackQueue, true);
 
-                            _ = AckListeningThread();
+                            _ = Task.Run(AckListeningThread);
                             listenerStarted = true;
                         }
                     }

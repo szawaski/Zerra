@@ -15,6 +15,8 @@ namespace Zerra.CQRS.Kafka
         private readonly string host;
         private readonly SymmetricConfig? symmetricConfig;
         private readonly string? environment;
+        private readonly string? userName;
+        private readonly string? password;
 
         private readonly Dictionary<string, CommandConsumer> commandExchanges;
         private readonly Dictionary<string, EventConsumer> eventExchanges;
@@ -29,7 +31,7 @@ namespace Zerra.CQRS.Kafka
 
         private CommandCounter? commandCounter = null;
 
-        public KafkaConsumer(string host, SymmetricConfig? symmetricConfig, string? environment)
+        public KafkaConsumer(string host, SymmetricConfig? symmetricConfig, string? environment, string? userName, string? password)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 
@@ -87,10 +89,10 @@ namespace Zerra.CQRS.Kafka
                 return;
 
             foreach (var exchange in commandExchanges.Values.Where(x => !x.IsOpen))
-                exchange.Open(this.host);
+                exchange.Open(this.host, this.userName, this.password);
 
             foreach (var exchange in eventExchanges.Values.Where(x => !x.IsOpen))
-                exchange.Open(this.host);
+                exchange.Open(this.host, this.userName, this.password);
         }
 
         void ICommandConsumer.Close()

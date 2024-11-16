@@ -7,7 +7,6 @@ using Azure.Messaging.EventHubs.Consumer;
 using Azure.Messaging.EventHubs.Producer;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Security.Claims;
@@ -52,8 +51,6 @@ namespace Zerra.CQRS.AzureEventHub
             this.throttleByTopic = new();
         }
 
-        public string ConnectionString => host;
-
         Task ICommandProducer.DispatchAsync(ICommand command, string source) { return SendAsync(command, false, source); }
         Task ICommandProducer.DispatchAwaitAsync(ICommand command, string source) { return SendAsync(command, true, source); }
         Task<TResult?> ICommandProducer.DispatchAwaitAsync<TResult>(ICommand<TResult> command, string source) where TResult : default { return SendAsync(command, source); }
@@ -79,7 +76,7 @@ namespace Zerra.CQRS.AzureEventHub
                         {
                             if (!listenerStarted)
                             {
-                                _ = AckListeningThread();
+                                _ = Task.Run(AckListeningThread);
                                 listenerStarted = true;
                             }
                         }
@@ -172,7 +169,7 @@ namespace Zerra.CQRS.AzureEventHub
                     {
                         if (!listenerStarted)
                         {
-                            _ = AckListeningThread();
+                            _ = Task.Run(AckListeningThread);
                             listenerStarted = true;
                         }
                     }

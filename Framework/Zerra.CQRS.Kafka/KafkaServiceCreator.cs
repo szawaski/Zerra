@@ -12,30 +12,34 @@ namespace Zerra.CQRS.Kafka
     {
         private readonly IServiceCreator serviceCreatorForQueries;
         private readonly string? environment;
-        public KafkaServiceCreator(IServiceCreator serviceCreatorForQueries, string? environment)
+        private readonly string? userName;
+        private readonly string? password;
+        public KafkaServiceCreator(IServiceCreator serviceCreatorForQueries, string? environment, string? userName = null, string? password = null)
         {
             this.serviceCreatorForQueries = serviceCreatorForQueries;
             this.environment = environment;
+            this.userName = userName;
+            this.password = password;
         }
 
         public ICommandProducer? CreateCommandProducer(string messageHost, SymmetricConfig? symmetricConfig)
         {
-            return new KafkaProducer(messageHost, symmetricConfig, environment);
+            return new KafkaProducer(messageHost, symmetricConfig, environment, userName, password);
         }
 
         public ICommandConsumer? CreateCommandConsumer(string messageHost, SymmetricConfig? symmetricConfig)
         {
-            return new KafkaConsumer(messageHost, symmetricConfig, environment);
+            return new KafkaConsumer(messageHost, symmetricConfig, environment, userName, password);
         }
 
         public IEventProducer? CreateEventProducer(string messageHost, SymmetricConfig? symmetricConfig)
         {
-            return new KafkaProducer(messageHost, symmetricConfig, environment);
+            return new KafkaProducer(messageHost, symmetricConfig, environment, userName, password);
         }
 
         public IEventConsumer? CreateEventConsumer(string messageHost, SymmetricConfig? symmetricConfig)
         {
-            return new KafkaConsumer(messageHost, symmetricConfig, environment);
+            return new KafkaConsumer(messageHost, symmetricConfig, environment, userName, password);
         }
 
         public IQueryClient? CreateQueryClient(string serviceUrl, SymmetricConfig? symmetricConfig)

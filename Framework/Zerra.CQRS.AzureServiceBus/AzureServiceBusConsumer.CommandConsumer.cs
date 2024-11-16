@@ -53,7 +53,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 if (IsOpen)
                     return;
                 IsOpen = true;
-                _ = ListeningThread(host, client);
+                _ = Task.Run(() => ListeningThread(host, client));
             }
 
             private async Task ListeningThread(string host, ServiceBusClient client)
@@ -166,7 +166,7 @@ namespace Zerra.CQRS.AzureServiceBus
 
                 try
                 {
-                   var ackTopic = serviceBusMessage.ReplyTo;
+                    var ackTopic = serviceBusMessage.ReplyTo;
                     var ackKey = serviceBusMessage.ReplyToSessionId;
 
                     var acknowledgement = new Acknowledgement(result, error);

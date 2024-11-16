@@ -6,7 +6,6 @@ using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Consumer;
 using Azure.Messaging.EventHubs.Producer;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading;
@@ -96,7 +95,7 @@ namespace Zerra.CQRS.AzureEventHub
             if ((commandCounter is null || handlerAsync is null || handlerAwaitAsync is null) && (eventHandlerAsync is null))
                 throw new Exception($"{nameof(AzureEventHubConsumer)} is not setup");
 
-            _ = ListeningThread();
+            _ = Task.Run(ListeningThread);
         }
 
         private async Task ListeningThread()
