@@ -5,7 +5,6 @@
 using Confluent.Kafka;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Security.Claims;
@@ -26,6 +25,9 @@ namespace Zerra.CQRS.Kafka
         private readonly string host;
         private readonly SymmetricConfig? symmetricConfig;
         private readonly string? environment;
+        private readonly string? userName;
+        private readonly string? password;
+
         private readonly string ackTopic;
         private readonly ConcurrentDictionary<Type, string> topicsByCommandType;
         private readonly ConcurrentDictionary<Type, string> topicsByEventType;
@@ -33,13 +35,15 @@ namespace Zerra.CQRS.Kafka
         private readonly IProducer<string, byte[]> producer;
         private readonly CancellationTokenSource canceller;
         private readonly ConcurrentDictionary<string, Action<Acknowledgement>> ackCallbacks;
-        public KafkaProducer(string host, SymmetricConfig? symmetricConfig, string? environment)
+        public KafkaProducer(string host, SymmetricConfig? symmetricConfig, string? environment, string? userName, string? password)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 
             this.host = host;
             this.symmetricConfig = symmetricConfig;
             this.environment = environment;
+            this.userName = userName;
+            this.password = password;
 
             var clientID = StringExtensions.Join(KafkaCommon.TopicMaxLength - 4, "_", environment ?? "Unknown_Environment", Environment.MachineName, Config.EntryAssemblyName ?? "Unknown_Assembly");
             this.ackTopic = $"ACK-{clientID}";
@@ -49,14 +53,20 @@ namespace Zerra.CQRS.Kafka
 
             var producerConfig = new ProducerConfig();
             producerConfig.BootstrapServers = host;
+            producerConfig.SaslMechanism = SaslMechanism.Plain;
             producerConfig.ClientId = clientID;
+            if (userName is not null && password is not null)
+            {
+                producerConfig.SaslMechanism = SaslMechanism.Plain;
+                producerConfig.SaslUsername = userName;
+                producerConfig.SaslPassword = password;
+            }
+
             producer = new ProducerBuilder<string, byte[]>(producerConfig).Build();
 
             this.canceller = new CancellationTokenSource();
             this.ackCallbacks = new ConcurrentDictionary<string, Action<Acknowledgement>>();
         }
-
-        public string ConnectionString => host;
 
         Task ICommandProducer.DispatchAsync(ICommand command, string source) { return SendAsync(command, false, source); }
         Task ICommandProducer.DispatchAsyncAwait(ICommand command, string source) { return SendAsync(command, true, source); }
@@ -88,8 +98,8 @@ namespace Zerra.CQRS.Kafka
                         {
                             if (!listenerStarted)
                             {
-                                await KafkaCommon.EnsureTopic(host, ackTopic);
-                                _ = AckListeningThread();
+                                await KafkaCommon.EnsureTopic(host, userName, password, ackTopic);
+                                _ = Task.Run(AckListeningThread);
                                 listenerStarted = true;
                             }
                         }
@@ -274,7 +284,7 @@ namespace Zerra.CQRS.Kafka
 
                 try
                 {
-                    await KafkaCommon.DeleteTopic(host, ackTopic);
+                    await KafkaCommon.DeleteTopic(host, userName, password, ackTopic);
                 }
                 catch (Exception ex)
                 {

@@ -16,31 +16,35 @@ namespace Zerra.CQRS.Kafka
         private readonly string host;
         private readonly IServiceCreator serviceCreatorForQueries;
         private readonly string? environment;
-        public KafkaServiceCreator(string host, IServiceCreator serviceCreatorForQueries, string? environment)
+        private readonly string? userName;
+        private readonly string? password;
+        public KafkaServiceCreator(IServiceCreator serviceCreatorForQueries, string? environment, string? userName = null, string? password = null)
         {
             this.host = host;
             this.serviceCreatorForQueries = serviceCreatorForQueries;
             this.environment = environment;
+            this.userName = userName;
+            this.password = password;
         }
 
         public ICommandProducer? CreateCommandProducer(string? serviceUrl, SymmetricConfig? symmetricConfig)
         {
-            return kakfaClients.GetOrAdd(host, (host) => new KafkaProducer(host, symmetricConfig, environment));
+            return new KafkaProducer(messageHost, symmetricConfig, environment, userName, password);
         }
 
         public ICommandConsumer? CreateCommandConsumer(string? serviceUrl, SymmetricConfig? symmetricConfig)
         {
-            return kafkaServers.GetOrAdd(host, (host) => new KafkaConsumer(host, symmetricConfig, environment));
+            return new KafkaConsumer(messageHost, symmetricConfig, environment, userName, password);
         }
 
         public IEventProducer? CreateEventProducer(string? serviceUrl, SymmetricConfig? symmetricConfig)
         {
-            return kakfaClients.GetOrAdd(host, (host) => new KafkaProducer(host, symmetricConfig, environment));
+            return new KafkaProducer(messageHost, symmetricConfig, environment, userName, password);
         }
 
         public IEventConsumer? CreateEventConsumer(string? serviceUrl, SymmetricConfig? symmetricConfig)
         {
-            return kafkaServers.GetOrAdd(host, (host) => new KafkaConsumer(host, symmetricConfig, environment));
+            return new KafkaConsumer(messageHost, symmetricConfig, environment, userName, password);
         }
 
         public IQueryClient? CreateQueryClient(string? serviceUrl, SymmetricConfig? symmetricConfig)

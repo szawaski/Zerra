@@ -51,10 +51,13 @@ namespace Zerra.CQRS.RabbitMQ
 
             public void Open(IConnection connection)
             {
-                if (IsOpen)
-                    return;
-                IsOpen = true;
-                _ = ListeningThread(connection, handlerAsync, handlerAwaitAsync);
+                lock (isOpenLock)
+                {
+                    if (IsOpen)
+                        return;
+                    IsOpen = true;
+                }
+                _ = Task.Run(() => ListeningThread(connection));
             }
 
             private async Task ListeningThread(IConnection connection, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)
@@ -167,7 +170,7 @@ namespace Zerra.CQRS.RabbitMQ
 
                     consumer.ConsumerCancelled += (sender, e) =>
                     {
-                        _ = ListeningThread(connection, handlerAsync, handlerAwaitAsync);
+                        _ = Task.Run(() => ListeningThread(connection));
                         return Task.CompletedTask;
                     };
 

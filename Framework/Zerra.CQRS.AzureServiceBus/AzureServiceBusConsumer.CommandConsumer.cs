@@ -51,7 +51,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 if (IsOpen)
                     return;
                 IsOpen = true;
-                _ = ListeningThread(host, client, handlerAsync, handlerAwaitAsync);
+                _ = Task.Run(() => ListeningThread(host, client));
             }
 
             private async Task ListeningThread(string host, ServiceBusClient client, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync)

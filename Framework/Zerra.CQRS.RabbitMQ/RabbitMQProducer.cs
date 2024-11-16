@@ -31,8 +31,6 @@ namespace Zerra.CQRS.RabbitMQ
         private readonly ConnectionFactory factory;
         private IConnection? connection = null;
 
-        public string ConnectionString => host;
-
         public RabbitMQProducer(string host, SymmetricConfig? symmetricConfig, string? environment)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
