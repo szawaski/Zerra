@@ -13,7 +13,7 @@
         <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <LangVersion>11.0</LangVersion>
-        <Version>4.10.0</Version>
+        <Version>4.10.7</Version>
     </PropertyGroup>
 
     <ItemGroup>
