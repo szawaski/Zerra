@@ -1730,8 +1730,8 @@ WHERE C.TABLE_NAME = '{model.DataSourceEntityName.ToLower()}'";
                 NumericPrecision = x[5] != DBNull.Value ? (uint)x[5] : (uint?)null,
                 NumericScale = x[6] != DBNull.Value ? (uint)x[6] : (uint?)null,
                 DatetimePrecision = x[7] != DBNull.Value ? (uint)x[7] : (uint?)null,
-                IsIdentity = x[8] != DBNull.Value && (ulong)x[8] == 1,
-                IsPrimaryKey = x[9] != DBNull.Value && (ulong)x[9] == 1,
+                IsIdentity = x[8] != DBNull.Value && (long)x[8] == 1, //TODO 9.1 is long 8.0 is ulong
+                IsPrimaryKey = x[9] != DBNull.Value && (long)x[9] == 1, //TODO 9.1 is long 8.0 is ulong
             }).ToArray();
 
             return sqlColumns;
