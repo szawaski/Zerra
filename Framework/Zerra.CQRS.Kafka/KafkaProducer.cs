@@ -53,10 +53,10 @@ namespace Zerra.CQRS.Kafka
 
             var producerConfig = new ProducerConfig();
             producerConfig.BootstrapServers = host;
-            producerConfig.SaslMechanism = SaslMechanism.Plain;
             producerConfig.ClientId = clientID;
             if (userName is not null && password is not null)
             {
+                producerConfig.SecurityProtocol = SecurityProtocol.SaslPlaintext;
                 producerConfig.SaslMechanism = SaslMechanism.Plain;
                 producerConfig.SaslUsername = userName;
                 producerConfig.SaslPassword = password;

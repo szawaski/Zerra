@@ -65,6 +65,7 @@ namespace Zerra.CQRS.Kafka
                     consumerConfig.EnableAutoCommit = false;
                     if (userName is not null && password is not null)
                     {
+                        consumerConfig.SecurityProtocol = SecurityProtocol.SaslPlaintext;
                         consumerConfig.SaslMechanism = SaslMechanism.Plain;
                         consumerConfig.SaslUsername = userName;
                         consumerConfig.SaslPassword = password;

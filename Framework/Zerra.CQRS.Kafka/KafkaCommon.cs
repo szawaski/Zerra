@@ -46,6 +46,7 @@ namespace Zerra.CQRS.Kafka
             clientConfig.BootstrapServers = host;
             if (userName is not null && password is not null)
             {
+                clientConfig.SecurityProtocol = SecurityProtocol.Ssl;
                 clientConfig.SaslMechanism = SaslMechanism.Plain;
                 clientConfig.SaslUsername = userName;
                 clientConfig.SaslPassword = password;
@@ -88,6 +89,7 @@ namespace Zerra.CQRS.Kafka
             clientConfig.BootstrapServers = host;
             if (userName is not null && password is not null)
             {
+                clientConfig.SecurityProtocol = SecurityProtocol.SaslPlaintext;
                 clientConfig.SaslMechanism = SaslMechanism.Plain;
                 clientConfig.SaslUsername = userName;
                 clientConfig.SaslPassword = password;
