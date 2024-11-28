@@ -22,7 +22,7 @@ namespace Zerra.Web
 
         void ICommandConsumer.Setup(CommandCounter commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
         {
-            settings.ReceiveCounter = commandCounter;
+            settings.CommandCounter = commandCounter;
             settings.CommandHandlerAsync = handlerAsync;
             settings.CommandHandlerAwaitAsync = handlerAwaitAsync;
             settings.CommandHandlerWithResultAwaitAsync = handlerWithResultAwaitAsync;

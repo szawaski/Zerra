@@ -57,7 +57,7 @@
         },
         {
             "Service": "ZerraDemo.Service.Pets",
-            "MessageHost": "localhost:90011",
+            "MessageHost": "localhost:9111",
             "EncryptionKey": "SecretTransportKey6",
             "Types": [
                 "IPetsCommandHandler"
@@ -65,7 +65,7 @@
         },
         {
             "Service": "ZerraDemo.Service.Weather",
-            "MessageHost": "localhost:90012",
+            "MessageHost": "localhost:9112",
             "EncryptionKey": "SecretTransportKey7",
             "Types": [
                 "IWeatherCommandHandler"
@@ -73,7 +73,7 @@
         },
         {
             "Service": "ZerraDemo.Service.Weather",
-            "MessageHost": "localhost:90013",
+            "MessageHost": "localhost:9113",
             "EncryptionKey": "SecretTransportKeyEvents",
             "Types": [
                 "IWeatherEventHandler"
@@ -81,7 +81,7 @@
         },
         {
             "Service": "ZerraDemo.Service.WeatherCached",
-            "MessageHost": "localhost",
+            "MessageHost": "localhost:9114",
             "EncryptionKey": "SecretTransportKey8",
             "Types": [
                 "IWeatherCachedCommandHandler"
@@ -89,7 +89,7 @@
         },
         {
             "Service": "ZerraDemo.Service.WeatherCached",
-            "MessageHost": "localhost:90014",
+            "MessageHost": "localhost:9115",
             "EncryptionKey": "SecretTransportKeyEvents",
             "Types": [
                 "IWeatherEventHandler"
@@ -97,7 +97,7 @@
         },
         {
             "Service": "ZerraDemo.Service.Ledger1",
-            "MessageHost": "localhost:90015",
+            "MessageHost": "localhost:9116",
             "EncryptionKey": "SecretTransportKey9",
             "Types": [
                 "ILedger1CommandHandler"
@@ -105,7 +105,7 @@
         },
         {
             "Service": "ZerraDemo.Service.Ledger2",
-            "MessageHost": "localhost:90016",
+            "MessageHost": "localhost:9117",
             "EncryptionKey": "SecretTransportKey10",
             "Types": [
                 "ILedger2CommandHandler"

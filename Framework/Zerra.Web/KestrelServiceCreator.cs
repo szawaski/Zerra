@@ -45,7 +45,9 @@ namespace Zerra.Web
 
         public IEventProducer? CreateEventProducer(string messageHost, SymmetricConfig? symmetricConfig)
         {
-            throw new NotSupportedException($"{nameof(KestrelServiceCreator)} does not support {nameof(CreateEventProducer)}");
+            if (String.IsNullOrWhiteSpace(messageHost))
+                throw new Exception($"{nameof(KestrelServiceCreator)}.{nameof(CreateCommandProducer)} requires {nameof(messageHost)}");
+            return new KestrelCqrsClient(messageHost, settings.ContentType, symmetricConfig, settings.Authorizer, settings.Route);
         }
 
         public IEventConsumer? CreateEventConsumer(string messageHost, SymmetricConfig? symmetricConfig)

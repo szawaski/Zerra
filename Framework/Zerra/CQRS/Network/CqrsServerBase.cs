@@ -36,7 +36,6 @@ namespace Zerra.CQRS.Network
         {
             this.serviceUrl = serviceUrl;
             this.types = new();
-            this.types = new();
             this.thisType = this.GetType();
         }
 
@@ -68,9 +67,6 @@ namespace Zerra.CQRS.Network
 
         void ICommandConsumer.RegisterCommandType(int maxConcurrent, string topic, Type type)
         {
-            if (types.Count > 0)
-                throw new Exception($"Cannot register command because this instance of {thisType.GetNiceName()} is already being used for queries");
-
             if (throttle is not null)
                 throttle.Dispose();
             throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
@@ -85,9 +81,6 @@ namespace Zerra.CQRS.Network
 
         void IEventConsumer.RegisterEventType(int maxConcurrent, string topic, Type type)
         {
-            if (types.Count > 0)
-                throw new Exception($"Cannot register command because this instance of {thisType.GetNiceName()} is already being used for queries");
-
             if (throttle is not null)
                 throttle.Dispose();
             throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);

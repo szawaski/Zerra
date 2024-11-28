@@ -272,13 +272,8 @@ namespace Zerra.Web
                 }
                 else if (!String.IsNullOrWhiteSpace(data.MessageType))
                 {
-                    if (settings.ReceiveCounter is null) throw new InvalidOperationException($"{nameof(KestrelCqrsServerMiddleware)} is not setup");
                     if (data.MessageData is null) throw new Exception("Invalid Request");
                     if (String.IsNullOrWhiteSpace(data.Source)) throw new Exception("Invalid Request");
-
-                    isCommand = true;
-                    if (!settings.ReceiveCounter.BeginReceive())
-                        throw new Exception("Cannot receive any more commands");
 
                     var messageType = Discovery.GetTypeFromName(data.MessageType);
                     var typeDetail = TypeAnalyzer.GetTypeDetail(messageType);
@@ -288,13 +283,17 @@ namespace Zerra.Web
 
                     await throttle.WaitAsync();
 
-                    _ = settings.ReceiveCounter.BeginReceive();
-
                     bool hasResult;
                     object? result = null;
 
                     if (typeDetail.Interfaces.Contains(typeof(ICommand)))
                     {
+                        if (settings.CommandCounter is null) throw new InvalidOperationException($"{nameof(KestrelCqrsServerCommandConsumer)} is not setup");
+                        isCommand = true;
+
+                        if (!settings.CommandCounter.BeginReceive())
+                            throw new Exception("Cannot receive any more commands");
+
                         var command = (ICommand?)JsonSerializer.Deserialize(messageType, data.MessageData);
                         if (command is null)
                             throw new Exception("Invalid Request");
@@ -444,14 +443,10 @@ namespace Zerra.Web
             {
                 if (throttle is not null)
                 {
-                    if (isCommand)
-                    {
-                        settings.ReceiveCounter!.CompleteReceive(throttle);
-                    }
+                    if (isCommand && settings.CommandCounter is not null)
+                        settings.CommandCounter.CompleteReceive(throttle);
                     else
-                    {
                         throttle.Release();
-                    }
                 }
             }
         }

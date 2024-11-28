@@ -32,7 +32,6 @@ namespace Zerra.CQRS.Network
         protected override async Task Handle(Socket socket, CancellationToken cancellationToken)
         {
             if (throttle is null) throw new InvalidOperationException($"{nameof(TcpRawCqrsServer)} is not setup");
-            if (commandCounter is null) throw new InvalidOperationException($"{nameof(TcpRawCqrsServer)} is not setup");
 
             try
             {
@@ -223,6 +222,7 @@ namespace Zerra.CQRS.Network
 
                             if (typeDetail.Interfaces.Contains(typeof(ICommand)))
                             {
+                                if (commandCounter is null) throw new InvalidOperationException($"{nameof(TcpRawCqrsServer)} is not setup");
                                 isCommand = true;
 
                                 if (!commandCounter.BeginReceive())
@@ -391,7 +391,7 @@ namespace Zerra.CQRS.Network
 #endif
                         }
                         ArrayPoolHelper<byte>.Return(bufferOwner);
-                        if (isCommand)
+                        if (isCommand && commandCounter is not null)
                             commandCounter.CompleteReceive(throttle);
                         else
                             throttle.Release();

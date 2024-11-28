@@ -34,7 +34,7 @@ namespace Zerra.Web
 
         void IQueryServer.Setup(CommandCounter commandCounter, QueryHandlerDelegate providerHandlerAsync)
         {
-            settings.ReceiveCounter = commandCounter;
+            settings.CommandCounter = commandCounter;
             settings.ProviderHandlerAsync = providerHandlerAsync;
         }
     }

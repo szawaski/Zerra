@@ -770,9 +770,193 @@ namespace Zerra.CQRS.Network
             }
         }
 
-        protected override Task DispatchInternal(SemaphoreSlim throttle, Type eventType, IEvent @event, string source)
+        protected override async Task DispatchInternal(SemaphoreSlim throttle, Type eventType, IEvent @event, string source)
         {
-            throw new NotSupportedException($"{nameof(HttpCqrsClient)} does not support events");
+            await throttle.WaitAsync();
+
+            SocketPoolStream? stream = null;
+            Stream? requestBodyStream = null;
+            CryptoFlushStream? requestBodyCryptoStream = null;
+            Stream? responseBodyStream = null;
+            var bufferOwner = ArrayPoolHelper<byte>.Rent(HttpCommon.BufferLength);
+            var isThrowingRemote = false;
+            try
+            {
+                var messageTypeName = eventType.GetNiceName();
+
+                var messageData = ContentTypeSerializer.Serialize(contentType, @event);
+
+                string[][]? claims = null;
+                if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
+                    claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
+
+                var data = new CqrsRequestData()
+                {
+                    MessageType = messageTypeName,
+                    MessageData = messageData,
+                    MessageAwait = false,
+                    MessageResult = false,
+
+                    Claims = claims,
+                    Source = source
+                };
+
+                IDictionary<string, IList<string?>>? authHeaders = null;
+                if (authorizer is not null)
+                    authHeaders = authorizer.BuildAuthHeaders();
+
+                var buffer = bufferOwner.AsMemory();
+
+            newconnection:
+                try
+                {
+                    //Request Header
+                    var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, null, data.ProviderType, contentType, authHeaders);
+
+#if NETSTANDARD2_0
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength);
+#else
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength));
+#endif
+
+                    requestBodyStream = new HttpProtocolBodyStream(null, stream, null, true);
+
+                    if (symmetricConfig is not null)
+                    {
+                        requestBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, requestBodyStream, true);
+                        await ContentTypeSerializer.SerializeAsync(contentType, requestBodyCryptoStream, data);
+#if NET5_0_OR_GREATER
+                        await requestBodyCryptoStream.FlushFinalBlockAsync();
+#else
+                        requestBodyCryptoStream.FlushFinalBlock();
+#endif
+#if NETSTANDARD2_0
+                        requestBodyCryptoStream.Dispose();
+#else
+                        await requestBodyCryptoStream.DisposeAsync();
+#endif
+                        requestBodyCryptoStream = null;
+                    }
+                    else
+                    {
+                        await ContentTypeSerializer.SerializeAsync(contentType, requestBodyStream, data);
+                        await requestBodyStream.FlushAsync();
+
+#if NETSTANDARD2_0
+                        requestBodyStream.Dispose();
+#else
+                        await requestBodyStream.DisposeAsync();
+#endif
+                    }
+
+                    requestBodyStream = null;
+
+                    //Response Header
+                    var headerPosition = 0;
+                    var headerLength = 0;
+                    var headerEnd = false;
+                    while (!headerEnd)
+                    {
+                        if (headerLength == buffer.Length)
+                            throw new CqrsNetworkException($"{nameof(HttpCqrsClient)} Header Too Long");
+
+#if NETSTANDARD2_0
+                        var bytesRead = await stream.ReadAsync(bufferOwner, headerPosition, buffer.Length - headerPosition);
+#else
+                        var bytesRead = await stream.ReadAsync(buffer.Slice(headerPosition, buffer.Length - headerPosition));
+#endif
+
+                        if (bytesRead == 0)
+                        {
+                            stream.DisposeSocket();
+                            if (stream.IsNewConnection)
+                            {
+                                stream = null;
+                                throw new ConnectionAbortedException();
+                            }
+                            else
+                            {
+                                stream = null;
+                                goto newconnection;
+                            }
+                        }
+                        headerLength += bytesRead;
+
+                        headerEnd = HttpCommon.ReadToHeaderEnd(buffer, ref headerPosition, headerLength);
+                    }
+                    var responseHeader = HttpCommon.ReadHeader(buffer, headerPosition, headerLength);
+
+                    //Response Body
+                    responseBodyStream = new HttpProtocolBodyStream(null, stream, responseHeader.BodyStartBuffer, false);
+
+                    if (symmetricConfig is not null)
+                        responseBodyStream = SymmetricEncryptor.Decrypt(symmetricConfig, responseBodyStream, false);
+
+                    if (responseHeader.IsError)
+                    {
+                        var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseBodyStream);
+                        isThrowingRemote = true;
+                        throw responseException;
+                    }
+
+#if NETSTANDARD2_0
+                    responseBodyStream.Dispose();
+#else
+                    await responseBodyStream.DisposeAsync();
+#endif
+                }
+                catch (Exception ex)
+                {
+                    if (responseBodyStream is not null)
+                    {
+#if NETSTANDARD2_0
+                        responseBodyStream.Dispose();
+#else
+                        await responseBodyStream.DisposeAsync();
+#endif
+                    }
+                    if (requestBodyStream is not null)
+                    {
+#if NETSTANDARD2_0
+                        requestBodyStream.Dispose();
+#else
+                        await requestBodyStream.DisposeAsync();
+#endif
+                    }
+                    if (requestBodyCryptoStream is not null)
+                    {
+#if NETSTANDARD2_0
+                        requestBodyCryptoStream.Dispose();
+#else
+                        await requestBodyCryptoStream.DisposeAsync();
+#endif
+                    }
+                    if (isThrowingRemote)
+                    {
+                        if (stream is not null)
+                            stream.Dispose();
+                    }
+                    else
+                    {
+                        if (stream is not null)
+                        {
+                            stream.DisposeSocket();
+                            if (!stream.IsNewConnection)
+                            {
+                                _ = Log.ErrorAsync(ex);
+                                stream = null;
+                                goto newconnection;
+                            }
+                        }
+                    }
+                    throw;
+                }
+            }
+            finally
+            {
+                ArrayPoolHelper<byte>.Return(bufferOwner);
+                throttle.Release();
+            }
         }
     }
 }
