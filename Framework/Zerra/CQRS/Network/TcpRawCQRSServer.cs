@@ -386,10 +386,5 @@ namespace Zerra.CQRS.Network
                 socket.Dispose();
             }
         }
-
-        public static TcpRawCqrsServer CreateDefault(string serverUrl, SymmetricConfig? symmetricConfig)
-        {
-            return new TcpRawCqrsServer(ContentType.Bytes, serverUrl, symmetricConfig);
-        }
     }
 }

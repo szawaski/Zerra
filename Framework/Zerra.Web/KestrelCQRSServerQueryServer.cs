@@ -3,16 +3,15 @@
 // Licensed to you under the MIT license
 
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using Zerra.CQRS;
 
 namespace Zerra.Web
 {
-    public sealed class KestrelCQRSServerQueryServer : IQueryServer
+    public sealed class KestrelCqrsServerQueryServer : IQueryServer
     {
-        private readonly KestrelCQRSServerLinkedSettings settings;
-        public KestrelCQRSServerQueryServer(KestrelCQRSServerLinkedSettings settings)
+        private readonly KestrelCqrsServerLinkedSettings settings;
+        public KestrelCqrsServerQueryServer(KestrelCqrsServerLinkedSettings settings)
         {
             this.settings = settings;
         }

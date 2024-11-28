@@ -21,13 +21,13 @@ using Zerra.Serialization.Json;
 
 namespace Zerra.Web
 {
-    public sealed class KestrelCQRSServerMiddleware : IDisposable
+    public sealed class KestrelCqrsServerMiddleware : IDisposable
     {
         private readonly RequestDelegate requestDelegate;
         private readonly SymmetricConfig symmetricConfig;
-        private readonly KestrelCQRSServerLinkedSettings settings;
+        private readonly KestrelCqrsServerLinkedSettings settings;
 
-        public KestrelCQRSServerMiddleware(RequestDelegate requestDelegate, SymmetricConfig symmetricConfig, KestrelCQRSServerLinkedSettings settings)
+        public KestrelCqrsServerMiddleware(RequestDelegate requestDelegate, SymmetricConfig symmetricConfig, KestrelCqrsServerLinkedSettings settings)
         {
             this.requestDelegate = requestDelegate;
             this.symmetricConfig = symmetricConfig;
@@ -105,7 +105,7 @@ namespace Zerra.Web
 
                 if (settings.AllowOrigins.Contains(originRequestHeader))
                 {
-                    _ = Log.WarnAsync($"{nameof(KestrelCQRSServerMiddleware)} Origin Not Allowed {originRequestHeader}");
+                    _ = Log.WarnAsync($"{nameof(KestrelCqrsServerMiddleware)} Origin Not Allowed {originRequestHeader}");
                     context.Response.StatusCode = 401;
                     return;
                 }
@@ -161,7 +161,7 @@ namespace Zerra.Web
                 //----------------------------------------------------------------------------------------------------
                 if (!String.IsNullOrWhiteSpace(data.ProviderType))
                 {
-                    if (settings.ProviderHandlerAsync is null) throw new InvalidOperationException($"{nameof(KestrelCQRSServerMiddleware)} is not setup");
+                    if (settings.ProviderHandlerAsync is null) throw new InvalidOperationException($"{nameof(KestrelCqrsServerMiddleware)} is not setup");
 
                     if (String.IsNullOrWhiteSpace(data.ProviderMethod)) throw new Exception("Invalid Request");
                     if (data.ProviderArguments is null) throw new Exception("Invalid Request");
@@ -170,7 +170,7 @@ namespace Zerra.Web
                     var providerType = Discovery.GetTypeFromName(data.ProviderType);
 
                     if (!settings.InterfaceTypes.TryGetValue(providerType, out throttle))
-                        throw new Exception($"{providerType.GetNiceName()} is not registered with {nameof(KestrelCQRSServerMiddleware)}");
+                        throw new Exception($"{providerType.GetNiceName()} is not registered with {nameof(KestrelCqrsServerMiddleware)}");
 
                     await throttle.WaitAsync();
 
@@ -272,7 +272,7 @@ namespace Zerra.Web
                 }
                 else if (!String.IsNullOrWhiteSpace(data.MessageType))
                 {
-                    if (settings.ReceiveCounter is null) throw new InvalidOperationException($"{nameof(KestrelCQRSServerMiddleware)} is not setup");
+                    if (settings.ReceiveCounter is null) throw new InvalidOperationException($"{nameof(KestrelCqrsServerMiddleware)} is not setup");
                     if (data.MessageData is null) throw new Exception("Invalid Request");
                     if (String.IsNullOrWhiteSpace(data.Source)) throw new Exception("Invalid Request");
 
@@ -283,7 +283,7 @@ namespace Zerra.Web
                     var messageType = Discovery.GetTypeFromName(data.MessageType);
 
                     if (!settings.CommandTypes.TryGetValue(messageType, out throttle))
-                        throw new Exception($"{messageType.GetNiceName()} is not registered with {nameof(KestrelCQRSServerMiddleware)}");
+                        throw new Exception($"{messageType.GetNiceName()} is not registered with {nameof(KestrelCqrsServerMiddleware)}");
 
                     await throttle.WaitAsync();
 
@@ -299,19 +299,19 @@ namespace Zerra.Web
                     inHandlerContext = true;
                     if (data.MessageResult == true)
                     {
-                        if (settings.HandlerWithResultAwaitAsync is null) throw new InvalidOperationException($"{nameof(KestrelCQRSServerMiddleware)} is not setup");
+                        if (settings.HandlerWithResultAwaitAsync is null) throw new InvalidOperationException($"{nameof(KestrelCqrsServerMiddleware)} is not setup");
                         result = await settings.HandlerWithResultAwaitAsync(command, data.Source, false);
                         hasResult = true;
                     }
                     else if (data.MessageAwait == true)
                     {
-                        if (settings.HandlerAwaitAsync is null) throw new InvalidOperationException($"{nameof(KestrelCQRSServerMiddleware)} is not setup");
+                        if (settings.HandlerAwaitAsync is null) throw new InvalidOperationException($"{nameof(KestrelCqrsServerMiddleware)} is not setup");
                         await settings.HandlerAwaitAsync(command, data.Source, false);
                         hasResult = false;
                     }
                     else
                     {
-                        if (settings.HandlerAsync is null) throw new InvalidOperationException($"{nameof(KestrelCQRSServerMiddleware)} is not setup");
+                        if (settings.HandlerAsync is null) throw new InvalidOperationException($"{nameof(KestrelCqrsServerMiddleware)} is not setup");
                         await settings.HandlerAsync(command, data.Source, false);
                         hasResult = false;
                     }

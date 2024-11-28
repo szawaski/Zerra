@@ -4,494 +4,376 @@
 
 using System;
 using System.IO;
-using System.Threading.Tasks;
-using Zerra.Logging;
-using System.Collections.Generic;
+using System.Linq;
+using System.Net;
 using System.Net.Http;
-using Zerra.CQRS;
-using Zerra.CQRS.Network;
 using System.Net.Http.Headers;
-using Zerra.Encryption;
+using System.Reflection;
 using System.Security.Claims;
 using System.Threading;
-using System.Linq;
+using System.Threading.Tasks;
+using Zerra.CQRS;
+using Zerra.CQRS.Network;
+using Zerra.Encryption;
+using Zerra.Reflection;
+using Zerra.Serialization.Json;
 
 namespace Zerra.Web
 {
-    public sealed class KestrelCQRSClient : CqrsClientBase, IDisposable
+    public sealed class KestrelCqrsClient : CqrsClientBase
     {
-        private readonly ContentType contentType;
+        private readonly ContentType requestContentType;
         private readonly SymmetricConfig? symmetricConfig;
         private readonly ICqrsAuthorizer? authorizer;
+        private readonly Uri routeUri;
+        private readonly HttpClientHandler handler;
         private readonly HttpClient client;
 
-        public KestrelCQRSClient(ContentType contentType, string serviceUrl, SymmetricConfig? symmetricConfig, ICqrsAuthorizer? authorizer)
-            : base(serviceUrl)
+        public KestrelCqrsClient(string endpoint, ContentType contentType, SymmetricConfig? symmetricConfig, ICqrsAuthorizer? authorizer, string? route) : base(endpoint)
         {
-            this.contentType = contentType;
+            this.requestContentType = contentType;
             this.symmetricConfig = symmetricConfig;
             this.authorizer = authorizer;
-            this.client = new HttpClient();
 
-            _ = Log.InfoAsync($"{nameof(KestrelCQRSClient)} started for {this.contentType} at {this.serviceUri}");
+            if (route is not null)
+                routeUri = new Uri($"{base.serviceUri.AbsoluteUri}{route}");
+            else
+                routeUri = base.serviceUri;
+
+            this.handler = new HttpClientHandler()
+            {
+                CookieContainer = new CookieContainer()
+            };
+            this.client = new HttpClient(this.handler);
         }
 
         protected override TReturn? CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source) where TReturn : default
         {
+            var providerName = interfaceType.Name;
+            var stringArguments = new string?[arguments.Length];
+            for (var i = 0; i < arguments.Length; i++)
+                stringArguments[i] = JsonSerializer.Serialize(arguments);
+
+            string[][]? claims = null;
+            if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
+                claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
+
+            var data = new CqrsRequestData()
+            {
+                ProviderType = interfaceType.Name,
+                ProviderMethod = methodName,
+
+                Claims = claims,
+                Source = source
+            };
+            data.AddProviderArguments(arguments);
+
+            var model = Request<TReturn>(throttle, isStream, routeUri, providerName, requestContentType, data, true);
+            return model;
+        }
+        protected override Task<TReturn?> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source) where TReturn : default
+        {
+            var providerName = interfaceType.Name;
+            var stringArguments = new string?[arguments.Length];
+            for (var i = 0; i < arguments.Length; i++)
+                stringArguments[i] = JsonSerializer.Serialize(arguments);
+
+            string[][]? claims = null;
+            if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
+                claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
+
+            var data = new CqrsRequestData()
+            {
+                ProviderType = interfaceType.Name,
+                ProviderMethod = methodName,
+
+                Claims = claims,
+                Source = source
+            };
+            data.AddProviderArguments(arguments);
+
+            var model = RequestAsync<TReturn>(throttle, isStream, routeUri, providerName, requestContentType, data, true);
+            return model;
+        }
+
+        protected override Task DispatchInternal(SemaphoreSlim throttle, Type commandType, ICommand command, bool messageAwait, string source)
+        {
+            var messageType = commandType.GetNiceFullName();
+            var messageData = ContentTypeSerializer.Serialize(requestContentType, command);
+
+            string[][]? claims = null;
+            if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
+                claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
+
+            var data = new CqrsRequestData()
+            {
+                MessageType = messageType,
+                MessageData = messageData,
+                MessageAwait = messageAwait,
+                MessageResult = false,
+
+                Claims = claims,
+                Source = source
+            };
+
+            return RequestAsync<object>(throttle, false, routeUri, messageType, requestContentType, data, false);
+        }
+        protected override Task<TResult?> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source) where TResult : default
+        {
+            var messageType = commandType.GetNiceFullName();
+            var messageData = ContentTypeSerializer.Serialize(requestContentType, command);
+
+            string[][]? claims = null;
+            if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
+                claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
+
+            var data = new CqrsRequestData()
+            {
+                MessageType = messageType,
+                MessageData = messageData,
+                MessageAwait = true,
+                MessageResult = false,
+
+                Claims = claims,
+                Source = source
+            };
+
+            return RequestAsync<TResult>(throttle, isStream, routeUri, messageType, requestContentType, data, true);
+        }
+
+        protected override Task DispatchInternal(SemaphoreSlim throttle, Type eventType, IEvent @event, string source)
+        {
+            var messageType = eventType.GetNiceFullName();
+            var messageData = ContentTypeSerializer.Serialize(requestContentType, @event);
+
+            string[][]? claims = null;
+            if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
+                claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
+
+            var data = new CqrsRequestData()
+            {
+                MessageType = messageType,
+                MessageData = messageData,
+                MessageAwait = false,
+                MessageResult = false,
+
+                Claims = claims,
+                Source = source
+            };
+
+            return RequestAsync<object>(throttle, false, routeUri, messageType, requestContentType, data, false);
+        }
+
+        private static readonly MethodInfo requestAsyncMethod = TypeAnalyzer.GetTypeDetail(typeof(KestrelCqrsClient)).MethodDetailsBoxed.First(x => x.MethodInfo.Name == nameof(KestrelCqrsClient.RequestAsync)).MethodInfo;
+        private TReturn? Request<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, string? providerType, ContentType contentType, CqrsRequestData data, bool getResponseData)
+        {
             throttle.Wait();
 
+            Stream? responseStream = null;
             try
             {
-                string[][]? claims = null;
-                if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
-                    claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
+                using var request = new HttpRequestMessage(HttpMethod.Post, url);
 
-                var data = new CqrsRequestData()
+                request.Content = new WriteStreamContent((postStream) =>
                 {
-                    ProviderType = interfaceType.Name,
-                    ProviderMethod = methodName,
-
-                    Claims = claims,
-                    Source = source
-                };
-                data.AddProviderArguments(arguments);
-
-                IDictionary<string, IList<string?>>? authHeaders = null;
-                if (authorizer is not null)
-                    authHeaders = authorizer.BuildAuthHeaders();
-
-                var request = new HttpRequestMessage(HttpMethod.Post, serviceUri);
-                HttpResponseMessage? response = null;
-                Stream? responseBodyStream = null;
-                try
-                {
-                    request.Content = new WriteStreamContent((requestBodyStream) =>
-                    {
-                        if (symmetricConfig is not null)
-                        {
-                            CryptoFlushStream? requestBodyCryptoStream = null;
-                            try
-                            {
-                                requestBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, requestBodyStream, true, true);
-                                ContentTypeSerializer.Serialize(contentType, requestBodyCryptoStream, data);
-                                requestBodyCryptoStream.FlushFinalBlock();
-                            }
-                            finally
-                            {
-                                requestBodyCryptoStream?.Dispose();
-                            }
-                        }
-                        else
-                        {
-                            ContentTypeSerializer.Serialize(contentType, requestBodyStream, data);
-                            requestBodyStream.Flush();
-                        }
-                    });
-
-                    request.Content.Headers.ContentType = contentType switch
-                    {
-                        ContentType.Bytes => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeBytes),
-                        ContentType.Json => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJson),
-                        ContentType.JsonNameless => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJsonNameless),
-                        _ => throw new NotImplementedException(),
-                    };
-                    request.Headers.Add(HttpCommon.ProviderTypeHeader, data.ProviderType);
-                    request.Headers.TransferEncodingChunked = true;
-                    request.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, "*");
-                    request.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
-                    request.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
-                    request.Headers.Host = serviceUri.Authority;
-                    request.Headers.Add(HttpCommon.OriginHeader, serviceUri.Host);
-
-                    if (authHeaders is not null)
-                    {
-                        foreach (var authHeader in authHeaders)
-                        {
-                            foreach (var authHeaderValue in authHeader.Value)
-                            {
-                                request.Headers.Add(authHeader.Key, authHeaderValue);
-                            }
-                        }
-                    }
-
-                    response = client.SendAsync(request).GetAwaiter().GetResult();
-                    responseBodyStream = response.Content.ReadAsStreamAsync().GetAwaiter().GetResult();
-
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        var responseException = ContentTypeSerializer.DeserializeException(contentType, responseBodyStream);
-                        throw responseException;
-                    }
-
-                    if (isStream)
-                    {
-                        return (TReturn)(object)responseBodyStream; //TODO better way to convert type???
-                    }
-                    else
-                    {
-                        var model = ContentTypeSerializer.Deserialize<TReturn>(contentType, responseBodyStream);
-                        responseBodyStream.Dispose();
-                        response.Dispose();
-                        return model;
-                    }
-                }
-                catch
-                {
-                    responseBodyStream?.Dispose();
-                    response?.Dispose();
-                    throw;
-                }
-            }
-            finally
-            {
-                throttle.Release();
-            }
-        }
-
-        protected override async Task<TReturn?> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source) where TReturn : default
-        {
-            await throttle.WaitAsync();
-
-            try
-            {
-                string[][]? claims = null;
-                if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
-                    claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
-
-                var data = new CqrsRequestData()
-                {
-                    ProviderType = interfaceType.Name,
-                    ProviderMethod = methodName,
-
-                    Claims = claims,
-                    Source = source
-                };
-                data.AddProviderArguments(arguments);
-
-                IDictionary<string, IList<string?>>? authHeaders = null;
-                if (authorizer is not null)
-                    authHeaders = authorizer.BuildAuthHeaders();
-
-                var request = new HttpRequestMessage(HttpMethod.Post, serviceUri);
-                HttpResponseMessage? response = null;
-                Stream? responseBodyStream = null;
-                try
-                {
-                    request.Content = new WriteStreamContent(async (requestBodyStream) =>
-                    {
-                        if (symmetricConfig is not null)
-                        {
-                            CryptoFlushStream? requestBodyCryptoStream = null;
-                            try
-                            {
-                                requestBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, requestBodyStream, true, true);
-                                await ContentTypeSerializer.SerializeAsync(contentType, requestBodyCryptoStream, data);
-                                await requestBodyCryptoStream.FlushFinalBlockAsync();
-                            }
-                            finally
-                            {
-                                if (requestBodyCryptoStream is not null)
-                                {
-                                    await requestBodyCryptoStream.DisposeAsync();
-                                }
-                            }
-                        }
-                        else
-                        {
-                            await ContentTypeSerializer.SerializeAsync(contentType, requestBodyStream, data);
-                            await requestBodyStream.FlushAsync();
-                        }
-                    });
-
-                    request.Headers.Add(HttpCommon.ProviderTypeHeader, data.ProviderType);
-                    request.Content.Headers.ContentType = contentType switch
-                    {
-                        ContentType.Bytes => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeBytes),
-                        ContentType.Json => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJson),
-                        ContentType.JsonNameless => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJsonNameless),
-                        _ => throw new NotImplementedException(),
-                    };
-                    request.Headers.TransferEncodingChunked = true;
-                    request.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, "*");
-                    request.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
-                    request.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
-                    request.Headers.Host = serviceUri.Authority;
-                    request.Headers.Add(HttpCommon.OriginHeader, serviceUri.Host);
-
-                    if (authHeaders is not null)
-                    {
-                        foreach (var authHeader in authHeaders)
-                        {
-                            foreach (var authHeaderValue in authHeader.Value)
-                                request.Headers.Add(authHeader.Key, authHeaderValue);
-                        }
-                    }
-
-                    response = await client.SendAsync(request);
-                    responseBodyStream = await response.Content.ReadAsStreamAsync();
-
                     if (symmetricConfig is not null)
-                        responseBodyStream = SymmetricEncryptor.Decrypt(symmetricConfig, responseBodyStream, false);
-
-                    if (!response.IsSuccessStatusCode)
                     {
-                        var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseBodyStream);
-                        throw responseException;
-                    }
-
-                    if (isStream)
-                    {
-                        return (TReturn)(object)responseBodyStream; //TODO better way to convert type???
+                        var cryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, postStream, true);
+                        ContentTypeSerializer.Serialize(contentType, cryptoStream, data);
+                        cryptoStream.FlushFinalBlock();
+                        cryptoStream.Dispose();
                     }
                     else
                     {
-                        var model = await ContentTypeSerializer.DeserializeAsync<TReturn>(contentType, responseBodyStream);
-                        await responseBodyStream.DisposeAsync();
-                        response.Dispose();
-                        return model;
+                        ContentTypeSerializer.Serialize(contentType, postStream, data);
                     }
-                }
-                catch
+                });
+                request.Content.Headers.ContentType = contentType switch
                 {
-                    if (responseBodyStream is not null)
-                    {
-                        await responseBodyStream.DisposeAsync();
-                    }
-                    response?.Dispose();
-                    throw;
+                    ContentType.Bytes => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeBytes),
+                    ContentType.Json => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJson),
+                    ContentType.JsonNameless => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJsonNameless),
+                    _ => throw new NotImplementedException(),
+                };
+
+                request.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, "*");
+                request.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
+                request.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
+
+                if (authorizer is not null)
+                {
+                    var authHeaders = authorizer.BuildAuthHeaders();
+                    foreach (var authHeader in authHeaders)
+                        request.Headers.Add(authHeader.Key, authHeader.Value);
                 }
+
+                if (!String.IsNullOrWhiteSpace(providerType))
+                    request.Headers.Add(HttpCommon.ProviderTypeHeader, providerType);
+
+
+#if NET5_0_OR_GREATER
+                using var response = client.Send(request);
+                responseStream = response.Content.ReadAsStream();
+#else
+                using var response = client.SendAsync(request).GetAwaiter().GetResult();
+                responseStream = response.Content.ReadAsStreamAsync().GetAwaiter().GetResult();
+#endif
+
+                if (symmetricConfig is not null)
+                    responseStream = SymmetricEncryptor.Decrypt(symmetricConfig, responseStream, false);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var responseException = ContentTypeSerializer.DeserializeException(contentType, responseStream);
+                    throw responseException;
+                }
+
+                if (!getResponseData)
+                {
+                    responseStream.Dispose();
+                    client.Dispose();
+                    return default!;
+                }
+
+                if (isStream)
+                {
+                    return (TReturn)(object)responseStream; //TODO better way to convert type???
+                }
+                else
+                {
+                    var result = ContentTypeSerializer.Deserialize<TReturn>(contentType, responseStream);
+                    responseStream.Dispose();
+                    client.Dispose();
+                    return result;
+                }
+            }
+            catch
+            {
+                if (responseStream is not null)
+                {
+                    try
+                    {
+                        responseStream.Dispose();
+                    }
+                    catch { }
+                    client?.Dispose();
+                }
+                throw;
             }
             finally
             {
                 throttle.Release();
             }
         }
-
-        protected override async Task DispatchInternal(SemaphoreSlim throttle, Type commandType, ICommand command, bool messageAwait, string source)
+        private async Task<TReturn?> RequestAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, string? providerType, ContentType contentType, CqrsRequestData data, bool getResponseData)
         {
             await throttle.WaitAsync();
 
+            Stream? responseStream = null;
             try
             {
-                var messageTypeName = commandType.GetNiceName();
+                using var request = new HttpRequestMessage(HttpMethod.Post, url);
 
-                var messageData = ContentTypeSerializer.Serialize(contentType, command);
-
-                string[][]? claims = null;
-                if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
-                    claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
-
-                var data = new CqrsRequestData()
+                request.Content = new WriteStreamContent(async (postStream) =>
                 {
-                    MessageType = messageTypeName,
-                    MessageData = messageData,
-                    MessageAwait = messageAwait,
-                    MessageResult = false,
-
-                    Claims = claims,
-                    Source = source
-                };
-
-                IDictionary<string, IList<string?>>? authHeaders = null;
-                if (authorizer is not null)
-                    authHeaders = authorizer.BuildAuthHeaders();
-
-                var request = new HttpRequestMessage(HttpMethod.Post, serviceUri);
-                HttpResponseMessage? response = null;
-                Stream? responseBodyStream = null;
-                try
-                {
-                    request.Content = new WriteStreamContent(async (requestBodyStream) =>
+                    if (symmetricConfig is not null)
                     {
-                        if (symmetricConfig is not null)
-                        {
-                            CryptoFlushStream? requestBodyCryptoStream = null;
-                            try
-                            {
-                                requestBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, requestBodyStream, true, true);
-                                await ContentTypeSerializer.SerializeAsync(contentType, requestBodyCryptoStream, data);
-                                await requestBodyCryptoStream.FlushFinalBlockAsync();
-                            }
-                            finally
-                            {
-                                if (requestBodyCryptoStream is not null)
-                                {
-                                    await requestBodyCryptoStream.DisposeAsync();
-                                }
-                            }
-                        }
-                        else
-                        {
-                            await ContentTypeSerializer.SerializeAsync(contentType, requestBodyStream, data);
-                            requestBodyStream.Flush();
-                        }
-                    });
-
-                    request.Headers.Add(HttpCommon.ProviderTypeHeader, data.ProviderType);
-                    request.Content.Headers.ContentType = contentType switch
-                    {
-                        ContentType.Bytes => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeBytes),
-                        ContentType.Json => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJson),
-                        ContentType.JsonNameless => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJsonNameless),
-                        _ => throw new NotImplementedException(),
-                    };
-                    request.Headers.TransferEncodingChunked = true;
-                    request.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, "*");
-                    request.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
-                    request.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
-                    request.Headers.Host = serviceUri.Authority;
-                    request.Headers.Add(HttpCommon.OriginHeader, serviceUri.Host);
-
-                    if (authHeaders is not null)
-                    {
-                        foreach (var authHeader in authHeaders)
-                        {
-                            foreach (var authHeaderValue in authHeader.Value)
-                                request.Headers.Add(authHeader.Key, authHeaderValue);
-                        }
-                    }
-
-                    response = await client.SendAsync(request);
-                    responseBodyStream = await response.Content.ReadAsStreamAsync();
-
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseBodyStream);
-                        throw responseException;
-                    }
-
-                    await responseBodyStream.DisposeAsync();
-                }
-                catch
-                {
-                    if (responseBodyStream is not null)
-                    {
-                        await responseBodyStream.DisposeAsync();
-                    }
-                    response?.Dispose();
-                    throw;
-                }
-            }
-            finally
-            {
-                throttle.Release();
-            }
-        }
-
-        protected override async Task<TResult?> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source) where TResult : default
-        {
-            await throttle.WaitAsync();
-
-            try
-            {
-                var messageTypeName = commandType.GetNiceName();
-
-                var messageData = ContentTypeSerializer.Serialize(contentType, command);
-
-                string[][]? claims = null;
-                if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
-                    claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
-
-                var data = new CqrsRequestData()
-                {
-                    MessageType = messageTypeName,
-                    MessageData = messageData,
-                    MessageAwait = true,
-                    MessageResult = true,
-
-                    Claims = claims,
-                    Source = source
-                };
-
-                IDictionary<string, IList<string?>>? authHeaders = null;
-                if (authorizer is not null)
-                    authHeaders = authorizer.BuildAuthHeaders();
-
-                var request = new HttpRequestMessage(HttpMethod.Post, serviceUri);
-                HttpResponseMessage? response = null;
-                Stream? responseBodyStream = null;
-                try
-                {
-                    request.Content = new WriteStreamContent(async (requestBodyStream) =>
-                    {
-                        if (symmetricConfig is not null)
-                        {
-                            CryptoFlushStream? requestBodyCryptoStream = null;
-                            try
-                            {
-                                requestBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, requestBodyStream, true, true);
-                                await ContentTypeSerializer.SerializeAsync(contentType, requestBodyCryptoStream, data);
-                                await requestBodyCryptoStream.FlushFinalBlockAsync();
-                            }
-                            finally
-                            {
-                                if (requestBodyCryptoStream is not null)
-                                {
-                                    await requestBodyCryptoStream.DisposeAsync();
-                                }
-                            }
-                        }
-                        else
-                        {
-                            await ContentTypeSerializer.SerializeAsync(contentType, requestBodyStream, data);
-                            requestBodyStream.Flush();
-                        }
-                    });
-
-                    request.Headers.Add(HttpCommon.ProviderTypeHeader, data.ProviderType);
-                    request.Content.Headers.ContentType = contentType switch
-                    {
-                        ContentType.Bytes => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeBytes),
-                        ContentType.Json => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJson),
-                        ContentType.JsonNameless => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJsonNameless),
-                        _ => throw new NotImplementedException(),
-                    };
-                    request.Headers.TransferEncodingChunked = true;
-                    request.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, "*");
-                    request.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
-                    request.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
-                    request.Headers.Host = serviceUri.Authority;
-                    request.Headers.Add(HttpCommon.OriginHeader, serviceUri.Host);
-
-                    if (authHeaders is not null)
-                    {
-                        foreach (var authHeader in authHeaders)
-                        {
-                            foreach (var authHeaderValue in authHeader.Value)
-                                request.Headers.Add(authHeader.Key, authHeaderValue);
-                        }
-                    }
-
-                    response = await client.SendAsync(request);
-                    responseBodyStream = await response.Content.ReadAsStreamAsync();
-
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseBodyStream);
-                        throw responseException;
-                    }
-
-                    if (isStream)
-                    {
-                        return (TResult)(object)responseBodyStream; //TODO better way to convert type???
+                        var cryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, postStream, true);
+                        await ContentTypeSerializer.SerializeAsync(contentType, cryptoStream, data);
+#if NETCOREAPP
+                        await cryptoStream.FlushFinalBlockAsync();
+#else
+                        cryptoStream.FlushFinalBlock();
+#endif
+#if NETSTANDARD2_0
+                        cryptoStream.Dispose();
+#else
+                        await cryptoStream.DisposeAsync();
+#endif
                     }
                     else
                     {
-                        var model = await ContentTypeSerializer.DeserializeAsync<TResult>(contentType, responseBodyStream);
-                        await responseBodyStream.DisposeAsync();
-                        response.Dispose();
-                        return model;
+                        await ContentTypeSerializer.SerializeAsync(contentType, postStream, data);
                     }
-                }
-                catch
+                });
+                request.Content.Headers.ContentType = contentType switch
                 {
-                    if (responseBodyStream is not null)
-                    {
-                        await responseBodyStream.DisposeAsync();
-                    }
-                    response?.Dispose();
-                    throw;
+                    ContentType.Bytes => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeBytes),
+                    ContentType.Json => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJson),
+                    ContentType.JsonNameless => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJsonNameless),
+                    _ => throw new NotImplementedException(),
+                };
+
+                request.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, "*");
+                request.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
+                request.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
+
+                if (authorizer is not null)
+                {
+                    var authHeaders = authorizer.BuildAuthHeaders();
+                    foreach (var authHeader in authHeaders)
+                        request.Headers.Add(authHeader.Key, authHeader.Value);
                 }
+
+                if (!String.IsNullOrWhiteSpace(providerType))
+                    request.Headers.Add(HttpCommon.ProviderTypeHeader, providerType);
+
+                using var response = await client.SendAsync(request);
+
+                responseStream = await response.Content.ReadAsStreamAsync();
+
+                if (symmetricConfig is not null)
+                    responseStream = SymmetricEncryptor.Decrypt(symmetricConfig, responseStream, false);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseStream);
+                    throw responseException;
+                }
+
+                if (!getResponseData)
+                {
+#if NETSTANDARD2_0
+                    responseStream.Dispose();
+#else
+                    await responseStream.DisposeAsync();
+#endif
+                    client.Dispose();
+                    return default!;
+                }
+
+                if (isStream)
+                {
+                    return (TReturn?)(object)responseStream; //TODO better way to convert type???
+                }
+                else
+                {
+                    var result = await ContentTypeSerializer.DeserializeAsync<TReturn>(contentType, responseStream);
+#if NETSTANDARD2_0
+                    responseStream.Dispose();
+#else
+                    await responseStream.DisposeAsync();
+#endif
+                    client.Dispose();
+                    return result;
+                }
+            }
+            catch
+            {
+                if (responseStream is not null)
+                {
+                    try
+                    {
+#if NETSTANDARD2_0
+                        responseStream.Dispose();
+#else
+                        await responseStream.DisposeAsync();
+#endif
+                    }
+                    catch { }
+                    client?.Dispose();
+                }
+                throw;
             }
             finally
             {
@@ -503,6 +385,7 @@ namespace Zerra.Web
         {
             base.Dispose();
             client.Dispose();
+            handler.Dispose();
         }
     }
 }

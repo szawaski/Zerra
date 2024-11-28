@@ -10,7 +10,7 @@ using Zerra.CQRS.Network;
 
 namespace Zerra.Web
 {
-    public sealed class KestrelCQRSServerLinkedSettings : IDisposable
+    public sealed class KestrelCqrsServerLinkedSettings : IDisposable
     {
         public ConcurrentDictionary<Type, SemaphoreSlim> InterfaceTypes { get; }
         public ConcurrentDictionary<Type, SemaphoreSlim> CommandTypes { get; }
@@ -49,7 +49,7 @@ namespace Zerra.Web
             }
         }
 
-        public KestrelCQRSServerLinkedSettings(string? route, ICqrsAuthorizer? authorizer, ContentType contentType)
+        public KestrelCqrsServerLinkedSettings(string? route, ICqrsAuthorizer? authorizer, ContentType contentType)
         {
             this.Route = route;
             this.Authorizer = authorizer;

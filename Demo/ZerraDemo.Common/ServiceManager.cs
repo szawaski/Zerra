@@ -1,12 +1,10 @@
 ﻿using System.Diagnostics;
 using Zerra;
 using Zerra.CQRS;
-using Zerra.CQRS.RabbitMQ;
 using Zerra.CQRS.Settings;
 using Zerra.Logging;
 using Zerra.Logger;
 using System;
-using Zerra.CQRS.Kafka;
 
 namespace ZerraDemo.Common
 {
@@ -42,22 +40,22 @@ namespace ZerraDemo.Common
             //serviceCreator = new HttpServiceCreator(Zerra.CQRS.Network.ContentType.Json, authorizer);
 
             //Option1C: Enable this using Kestrel Http (Required for Azure Apps)
-            //var kestrelServiceCreator = new KestrelServiceCreator(app, null, ContentType.Bytes);
+            //var serviceCreator = new Zerra.Web.KestrelServiceCreator(app, ContentType.Bytes);
 
             //Option2: Enable one of the following message services
             //----------------------------------------------------------
 
             //Option2A: Enable this using RabbitMQ for commands/events
-            //serviceCreator = new RabbitMQServiceCreator(serviceCreator, Config.EnvironmentName);
+            serviceCreator = new Zerra.CQRS.RabbitMQ.RabbitMQServiceCreator(serviceCreator, Config.EnvironmentName);
 
             //Option2B: Enable this using Kafka for commands/events
-            serviceCreator = new KafkaServiceCreator(serviceCreator, Config.EnvironmentName);
+            //serviceCreator = new Zerra.CQRS.Kafka.KafkaServiceCreator(serviceCreator, Config.EnvironmentName);
 
             //Option2C: Enable this using Azure Event Hub for commands/events
-            //serviceCreator = new AzureEventHubServiceCreator(serviceCreator, Config.EnvironmentName);
+            //serviceCreator = new Zerra.CQRS.AzureEventHub.AzureEventHubServiceCreator(serviceCreator, Config.EnvironmentName);
 
             //Option2D: Enable this using Azure Service Bus for commands/events
-            //serviceCreator = new AzureServiceBusServiceCreator(serviceCreator, Config.EnvironmentName);
+            //serviceCreator = new Zerra.CQRS.AzureServiceBus.AzureServiceBusServiceCreator(serviceCreator, Config.EnvironmentName);
 
             //Option3: Enable one of the following routing options
             //----------------------------------------------------------

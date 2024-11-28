@@ -4,7 +4,6 @@
 
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -15,13 +14,13 @@ using Zerra.Reflection;
 
 namespace Zerra.CQRS.Network
 {
-    public abstract class CqrsClientBase : IQueryClient, ICommandProducer, IDisposable
+    public abstract class CqrsClientBase : IQueryClient, ICommandProducer, IEventProducer, IDisposable
     {
         protected readonly Uri serviceUri;
         protected readonly string host;
         protected readonly int port;
         private readonly ConcurrentDictionary<Type, SemaphoreSlim> throttleByInterfaceType;
-        private readonly ConcurrentDictionary<Type, string> topicsByCommandType;
+        private readonly ConcurrentDictionary<Type, string> topicsByMessageType;
         private readonly ConcurrentDictionary<string, SemaphoreSlim> throttleByTopic;
 
         public CqrsClientBase(string serviceUrl)
@@ -37,7 +36,7 @@ namespace Zerra.CQRS.Network
             port = this.serviceUri.Port >= 0 ? this.serviceUri.Port : (String.Equals(this.serviceUri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) ? 443 : 80);
 
             this.throttleByInterfaceType = new();
-            this.topicsByCommandType = new();
+            this.topicsByMessageType = new();
             this.throttleByTopic = new();
         }
 
@@ -46,9 +45,21 @@ namespace Zerra.CQRS.Network
 
         void ICommandProducer.RegisterCommandType(int maxConcurrent, string topic, Type type)
         {
-            if (topicsByCommandType.ContainsKey(type))
+            if (topicsByMessageType.ContainsKey(type))
                 return;
-            topicsByCommandType.TryAdd(type, topic);
+            topicsByMessageType.TryAdd(type, topic);
+            if (throttleByTopic.ContainsKey(topic))
+                return;
+            var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
+            if (!throttleByTopic.TryAdd(topic, throttle))
+                throttle.Dispose();
+        }
+
+        void IEventProducer.RegisterEventType(int maxConcurrent, string topic, Type type)
+        {
+            if (topicsByMessageType.ContainsKey(type))
+                return;
+            topicsByMessageType.TryAdd(type, topic);
             if (throttleByTopic.ContainsKey(topic))
                 return;
             var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
@@ -100,7 +111,7 @@ namespace Zerra.CQRS.Network
         Task ICommandProducer.DispatchAsync(ICommand command, string source)
         {
             var commandType = command.GetType();
-            if (!topicsByCommandType.TryGetValue(commandType, out var topic))
+            if (!topicsByMessageType.TryGetValue(commandType, out var topic))
                 throw new Exception($"{commandType.GetNiceName()} is not registered with {this.GetType().GetNiceName()}");
             if (!throttleByTopic.TryGetValue(topic, out var throttle))
                 throw new Exception($"{commandType.GetNiceName()} is not registered with {this.GetType().GetNiceName()}");
@@ -118,7 +129,7 @@ namespace Zerra.CQRS.Network
         Task ICommandProducer.DispatchAwaitAsync(ICommand command, string source)
         {
             var commandType = command.GetType();
-            if (!topicsByCommandType.TryGetValue(commandType, out var topic))
+            if (!topicsByMessageType.TryGetValue(commandType, out var topic))
                 throw new Exception($"{commandType.GetNiceName()} is not registered with {this.GetType().GetNiceName()}");
             if (!throttleByTopic.TryGetValue(topic, out var throttle))
                 throw new Exception($"{commandType.GetNiceName()} is not registered with {this.GetType().GetNiceName()}");
@@ -136,7 +147,7 @@ namespace Zerra.CQRS.Network
         Task<TResult?> ICommandProducer.DispatchAwaitAsync<TResult>(ICommand<TResult> command, string source) where TResult : default
         {
             var commandType = command.GetType();
-            if (!topicsByCommandType.TryGetValue(commandType, out var topic))
+            if (!topicsByMessageType.TryGetValue(commandType, out var topic))
                 throw new Exception($"{commandType.GetNiceName()} is not registered with {this.GetType().GetNiceName()}");
             if (!throttleByTopic.TryGetValue(topic, out var throttle))
                 throw new Exception($"{commandType.GetNiceName()} is not registered with {this.GetType().GetNiceName()}");
@@ -155,8 +166,29 @@ namespace Zerra.CQRS.Network
             }
         }
 
+        Task IEventProducer.DispatchAsync(IEvent @event, string source)
+        {
+            var commandType = @event.GetType();
+            if (!topicsByMessageType.TryGetValue(commandType, out var topic))
+                throw new Exception($"{commandType.GetNiceName()} is not registered with {this.GetType().GetNiceName()}");
+            if (!throttleByTopic.TryGetValue(topic, out var throttle))
+                throw new Exception($"{commandType.GetNiceName()} is not registered with {this.GetType().GetNiceName()}");
+
+            try
+            {
+                return DispatchInternal(throttle, commandType, @event, source);
+            }
+            catch (Exception ex)
+            {
+                _ = Log.ErrorAsync($"Dispatch Failed", ex);
+                throw;
+            }
+        }
+
         protected abstract Task DispatchInternal(SemaphoreSlim throttle, Type commandType, ICommand command, bool messageAwait, string source);
         protected abstract Task<TResult?> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source);
+
+        protected abstract Task DispatchInternal(SemaphoreSlim throttle, Type eventType, IEvent @event, string source);
 
         public void Dispose()
         {

@@ -11,9 +11,7 @@ using Zerra.Reflection;
 using Zerra.Logging;
 using Zerra.Encryption;
 using System.IO;
-using Zerra.Serialization.Json;
 using System.Threading.Tasks;
-using Zerra.Serialization.Bytes.Converters.CoreTypes.IReadOnlyListTs;
 using Zerra.Buffers;
 
 namespace Zerra.CQRS.Network
@@ -430,11 +428,6 @@ namespace Zerra.CQRS.Network
             {
                 socket.Dispose();
             }
-        }
-
-        public static HttpCqrsServer CreateDefault(string serverUrl, SymmetricConfig? symmetricConfig, ICqrsAuthorizer? authorizer, string[]? allowOrigins)
-        {
-            return new HttpCqrsServer(ContentType.Json, serverUrl, symmetricConfig, authorizer, allowOrigins);
         }
     }
 }

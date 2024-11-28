@@ -968,37 +968,41 @@ namespace Zerra.CQRS
             return taskresult;
         }
 
-        private static HashSet<Type> GetCommandTypesFromInterface(Type interfaceType)
+        private static HashSet<Type> GetExposedCommandTypesFromInterface(Type interfaceType)
         {
             var messageTypes = new HashSet<Type>();
             var typeDetail = TypeAnalyzer.GetTypeDetail(interfaceType);
             if (typeDetail.Type.Name == iCommandHandlerType.Name || typeDetail.Type.Name == iCommandHandlerWithResultType.Name)
             {
-                var messageType = typeDetail.InnerTypes[0];
-                _ = messageTypes.Add(messageType);
+                var messageType = typeDetail.InnerTypeDetails[0];
+                if (messageType.Attributes.Any(x => x is ServiceExposedAttribute))
+                    _ = messageTypes.Add(messageType.Type);
             }
             foreach (var item in typeDetail.Interfaces.Where(x => x.Name == iCommandHandlerType.Name || x.Name == iCommandHandlerWithResultType.Name))
             {
                 var itemDetail = TypeAnalyzer.GetTypeDetail(item);
-                var messageType = itemDetail.InnerTypes[0];
-                _ = messageTypes.Add(messageType);
+                var messageType = itemDetail.InnerTypeDetails[0];
+                if (messageType.Attributes.Any(x => x is ServiceExposedAttribute))
+                    _ = messageTypes.Add(messageType.Type);
             }
             return messageTypes;
         }
-        private static HashSet<Type> GetEventTypesFromInterface(Type interfaceType)
+        private static HashSet<Type> GetExposedEventTypesFromInterface(Type interfaceType)
         {
             var messageTypes = new HashSet<Type>();
             var typeDetail = TypeAnalyzer.GetTypeDetail(interfaceType);
             if (typeDetail.Type.Name == iEventHandlerType.Name)
             {
-                var messageType = typeDetail.InnerTypes[0];
-                _ = messageTypes.Add(messageType);
+                var messageType = typeDetail.InnerTypeDetail;
+                if (messageType.Attributes.Any(x => x is ServiceExposedAttribute))
+                    _ = messageTypes.Add(messageType.Type);
             }
             foreach (var item in typeDetail.Interfaces.Where(x => x.Name == iEventHandlerType.Name))
             {
                 var itemDetail = TypeAnalyzer.GetTypeDetail(item);
-                var messageType = itemDetail.InnerType;
-                _ = messageTypes.Add(messageType);
+                var messageType = itemDetail.InnerTypeDetail;
+                if (messageType.Attributes.Any(x => x is ServiceExposedAttribute))
+                    _ = messageTypes.Add(messageType.Type);
             }
             return messageTypes;
         }
@@ -1046,7 +1050,7 @@ namespace Zerra.CQRS
             try
             {
                 var type = typeof(TInterface);
-                var commandTypes = GetCommandTypesFromInterface(type);
+                var commandTypes = GetExposedCommandTypesFromInterface(type);
                 foreach (var commandType in commandTypes)
                 {
                     if (handledTypes.Contains(commandType))
@@ -1133,7 +1137,7 @@ namespace Zerra.CQRS
             try
             {
                 var type = typeof(TInterface);
-                var eventTypes = GetEventTypesFromInterface(type);
+                var eventTypes = GetExposedEventTypesFromInterface(type);
                 foreach (var eventType in eventTypes)
                 {
                     if (eventProducers.ContainsKey(eventType))
@@ -1334,7 +1338,8 @@ namespace Zerra.CQRS
                 List<IEventConsumer>? newEventConsumers = null;
                 List<IQueryServer>? newQueryServers = null;
 
-                var serverTypes = new HashSet<Type>();
+                var thisServerTypes = new HashSet<Type>();
+                //Find all the types that will be hosted so we don't create producers for them
                 if (serviceSettings.Queries is not null)
                 {
                     foreach (var clientQuerySetting in serviceSettings.Queries)
@@ -1351,9 +1356,8 @@ namespace Zerra.CQRS
                             if (!type.IsInterface)
                                 throw new Exception($"{type.GetNiceName()} is not an interface");
 
-                            var typeDetail = TypeAnalyzer.GetTypeDetail(type);
-                            if (typeDetail.Attributes.Any(x => x is ServiceExposedAttribute))
-                                _ = serverTypes.Add(type);
+                            if (type.GetTypeDetail().Attributes.Any(x => x is ServiceExposedAttribute))
+                                _ = thisServerTypes.Add(type);
                         }
                     }
                 }
@@ -1373,13 +1377,13 @@ namespace Zerra.CQRS
                             if (!type.IsInterface)
                                 throw new Exception($"{type.GetNiceName()} is not an interface");
 
-                            var commandTypes = GetCommandTypesFromInterface(type);
+                            var commandTypes = GetExposedCommandTypesFromInterface(type);
                             foreach (var commandType in commandTypes)
-                                _ = serverTypes.Add(commandType);
+                                _ = thisServerTypes.Add(commandType);
 
-                            var eventTypes = GetEventTypesFromInterface(type);
+                            var eventTypes = GetExposedEventTypesFromInterface(type);
                             foreach (var eventType in eventTypes)
-                                _ = serverTypes.Add(eventType);
+                                _ = thisServerTypes.Add(eventType);
                         }
                     }
                 }
@@ -1409,95 +1413,94 @@ namespace Zerra.CQRS
                                 continue;
                             }
 
-                            var interfaceTypeDetail = TypeAnalyzer.GetTypeDetail(interfaceType);
-                            if (interfaceTypeDetail.Attributes.Any(x => x is ServiceExposedAttribute))
+                            if (!interfaceType.GetTypeDetail().Attributes.Any(x => x is ServiceExposedAttribute))
+                                continue;
+
+                            if (serviceQuerySetting.Service == serviceSettings.ThisServiceName)
                             {
-                                if (serviceQuerySetting.Service == serviceSettings.ThisServiceName)
+                                if (String.IsNullOrEmpty(serviceQuerySetting.BindingUrl))
+                                    continue;
+
+                                if (queryClients.ContainsKey(interfaceType))
                                 {
-                                    if (String.IsNullOrEmpty(serviceQuerySetting.BindingUrl))
-                                        continue;
+                                    _ = Log.ErrorAsync($"Cannot add Query Server: type already registered {interfaceType.GetNiceName()}");
+                                    continue;
+                                }
+                                if (handledTypes.Contains(interfaceType))
+                                {
+                                    _ = Log.ErrorAsync($"Cannot add Query Server: type already registered {interfaceType.GetNiceName()}");
+                                    continue;
+                                }
 
-                                    if (queryClients.ContainsKey(interfaceType))
+                                try
+                                {
+                                    if (queryServer is null)
                                     {
-                                        _ = Log.ErrorAsync($"Cannot add Query Server: type already registered {interfaceType.GetNiceName()}");
-                                        continue;
-                                    }
-                                    if (handledTypes.Contains(interfaceType))
-                                    {
-                                        _ = Log.ErrorAsync($"Cannot add Query Server: type already registered {interfaceType.GetNiceName()}");
-                                        continue;
-                                    }
-
-                                    try
-                                    {
-                                        if (queryServer is null)
+                                        var encryptionKey = String.IsNullOrWhiteSpace(serviceQuerySetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceQuerySetting.EncryptionKey);
+                                        var symmetricConfig = encryptionKey is null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
+                                        queryServer = serviceCreator.CreateQueryServer(serviceQuerySetting.BindingUrl, symmetricConfig);
+                                        if (queryServer is not null)
                                         {
-                                            var encryptionKey = String.IsNullOrWhiteSpace(serviceQuerySetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceQuerySetting.EncryptionKey);
-                                            var symmetricConfig = encryptionKey is null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
-                                            queryServer = serviceCreator.CreateQueryServer(serviceQuerySetting.BindingUrl, symmetricConfig);
-                                            if (queryServer is not null)
-                                            {
-                                                queryServerType = queryServer.GetType();
-                                                queryServer.Setup(commandCounter, RemoteHandleQueryCallAsync);
-                                                _ = queryServers.Add(queryServer);
-                                                newQueryServers ??= new();
-                                                newQueryServers.Add(queryServer);
-                                            }
-                                        }
-                                        if (queryServer is not null && queryServerType is not null)
-                                        {
-                                            _ = handledTypes.Add(interfaceType);
-                                            queryServer.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
-                                            _ = Log.InfoAsync($"Hosting - {queryServerType.GetNiceName()}: {interfaceType.GetNiceName()}");
+                                            queryServerType = queryServer.GetType();
+                                            queryServer.Setup(commandCounter, RemoteHandleQueryCallAsync);
+                                            _ = queryServers.Add(queryServer);
+                                            newQueryServers ??= new();
+                                            newQueryServers.Add(queryServer);
                                         }
                                     }
-                                    catch (Exception ex)
+                                    if (queryServer is not null && queryServerType is not null)
                                     {
-                                        _ = Log.ErrorAsync($"Failed to create Query Server for {serviceQuerySetting.Service}", ex);
+                                        _ = handledTypes.Add(interfaceType);
+                                        queryServer.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
+                                        _ = Log.InfoAsync($"Hosting - {queryServerType.GetNiceName()}: {interfaceType.GetNiceName()}");
                                     }
                                 }
-                                else
+                                catch (Exception ex)
                                 {
-                                    if (String.IsNullOrWhiteSpace(externalUrl))
-                                        continue;
+                                    _ = Log.ErrorAsync($"Failed to create Query Server for {serviceQuerySetting.Service}", ex);
+                                }
+                            }
+                            else
+                            {
+                                if (String.IsNullOrWhiteSpace(externalUrl))
+                                    continue;
 
-                                    if (!serverTypes.Contains(interfaceType))
+                                if (thisServerTypes.Contains(interfaceType))
+                                    continue;
+
+                                if (handledTypes.Contains(interfaceType))
+                                {
+                                    _ = Log.ErrorAsync($"Cannot add Query Client: type already registered {interfaceType.GetNiceName()}");
+                                    continue;
+                                }
+                                if (commandProducers.ContainsKey(interfaceType))
+                                {
+                                    _ = Log.ErrorAsync($"Cannot add Query Client: type already registered {interfaceType.GetNiceName()}");
+                                    continue;
+                                }
+
+                                try
+                                {
+                                    if (queryClient is null)
                                     {
-                                        if (handledTypes.Contains(interfaceType))
+                                        var encryptionKey = String.IsNullOrWhiteSpace(serviceQuerySetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceQuerySetting.EncryptionKey);
+                                        var symmetricConfig = encryptionKey is null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
+                                        queryClient = serviceCreator.CreateQueryClient(externalUrl, symmetricConfig);
+                                        if (queryClient is not null)
                                         {
-                                            _ = Log.ErrorAsync($"Cannot add Query Client: type already registered {interfaceType.GetNiceName()}");
-                                            continue;
-                                        }
-                                        if (commandProducers.ContainsKey(interfaceType))
-                                        {
-                                            _ = Log.ErrorAsync($"Cannot add Query Client: type already registered {interfaceType.GetNiceName()}");
-                                            continue;
-                                        }
-
-                                        try
-                                        {
-                                            if (queryClient is null)
-                                            {
-                                                var encryptionKey = String.IsNullOrWhiteSpace(serviceQuerySetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceQuerySetting.EncryptionKey);
-                                                var symmetricConfig = encryptionKey is null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
-                                                queryClient = serviceCreator.CreateQueryClient(externalUrl, symmetricConfig);
-                                                if (queryClient is not null)
-                                                {
-                                                    queryClientType = queryClient.GetType();
-                                                }
-                                            }
-                                            if (queryClient is not null && queryClientType is not null)
-                                            {
-                                                queryClient.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
-                                                _ = queryClients.TryAdd(interfaceType, queryClient);
-                                                _ = Log.InfoAsync($"{serviceQuerySetting.Service} - {queryClientType.GetNiceName()}: {interfaceType.GetNiceName()}");
-                                            }
-                                        }
-                                        catch (Exception ex)
-                                        {
-                                            _ = Log.ErrorAsync($"Failed to create Query Client for {serviceQuerySetting.Service}", ex);
+                                            queryClientType = queryClient.GetType();
                                         }
                                     }
+                                    if (queryClient is not null && queryClientType is not null)
+                                    {
+                                        queryClient.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
+                                        _ = queryClients.TryAdd(interfaceType, queryClient);
+                                        _ = Log.InfoAsync($"{serviceQuerySetting.Service} - {queryClientType.GetNiceName()}: {interfaceType.GetNiceName()}");
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    _ = Log.ErrorAsync($"Failed to create Query Client for {serviceQuerySetting.Service}", ex);
                                 }
                             }
                         }
@@ -1532,7 +1535,7 @@ namespace Zerra.CQRS
                                 continue;
                             }
 
-                            var commandTypes = GetCommandTypesFromInterface(interfaceType);
+                            var commandTypes = GetExposedCommandTypesFromInterface(interfaceType);
                             if (commandTypes.Count > 0)
                             {
                                 if (serviceMessageSetting.Service == serviceSettings.ThisServiceName)
@@ -1585,7 +1588,7 @@ namespace Zerra.CQRS
                                 {
                                     try
                                     {
-                                        var clientCommandTypes = commandTypes.Where(x => !serverTypes.Contains(x)).ToArray();
+                                        var clientCommandTypes = commandTypes.Where(x => !thisServerTypes.Contains(x)).ToArray();
                                         if (clientCommandTypes.Length > 0)
                                         {
                                             if (commandProducer is null)
@@ -1627,7 +1630,7 @@ namespace Zerra.CQRS
                                 }
                             }
 
-                            var eventTypes = GetEventTypesFromInterface(interfaceType);
+                            var eventTypes = GetExposedEventTypesFromInterface(interfaceType);
                             if (eventTypes.Count > 0)
                             {
                                 //events fan out so can have producer and consumer on same service
@@ -1688,8 +1691,11 @@ namespace Zerra.CQRS
                                     {
                                         foreach (var eventType in eventTypes)
                                         {
-                                            if (!eventType.GetTypeDetail().Attributes.Any(x => x is ServiceExposedAttribute))
+                                            if (handledTypes.Contains(eventType))
                                                 continue;
+                                            if (commandProducers.ContainsKey(eventType))
+                                                continue;
+
                                             var topic = GetEventTopic(eventType);
                                             eventProducer.RegisterEventType(maxConcurrentEventsPerTopic, topic, eventType);
                                             _ = eventProducers.TryAdd(eventType, eventProducer);

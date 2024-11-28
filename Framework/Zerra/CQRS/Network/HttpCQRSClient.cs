@@ -192,7 +192,6 @@ namespace Zerra.CQRS.Network
                 throttle.Release();
             }
         }
-
         protected override async Task<TReturn?> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source) where TReturn : default
         {
             await throttle.WaitAsync();
@@ -573,7 +572,6 @@ namespace Zerra.CQRS.Network
                 throttle.Release();
             }
         }
-
         protected override async Task<TResult?> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source) where TResult : default
         {
             await throttle.WaitAsync();
@@ -770,6 +768,11 @@ namespace Zerra.CQRS.Network
                 ArrayPoolHelper<byte>.Return(bufferOwner);
                 throttle.Release();
             }
+        }
+
+        protected override Task DispatchInternal(SemaphoreSlim throttle, Type eventType, IEvent @event, string source)
+        {
+            throw new NotSupportedException($"{nameof(HttpCqrsClient)} does not support events");
         }
     }
 }

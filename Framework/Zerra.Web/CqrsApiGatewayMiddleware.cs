@@ -4,6 +4,8 @@
 
 using Microsoft.AspNetCore.Http;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Security;
 using System.Threading.Tasks;
 using Zerra.CQRS.Network;
@@ -14,12 +16,19 @@ namespace Zerra.Web
     public sealed class CqrsApiGatewayMiddleware
     {
         private readonly RequestDelegate requestDelegate;
-        private readonly string route;
+        private readonly string? route;
+        private readonly ICqrsAuthorizer? authorizer;
 
-        public CqrsApiGatewayMiddleware(RequestDelegate requestDelegate, string route)
+        public CqrsApiGatewayMiddleware(RequestDelegate requestDelegate, string? route)
         {
-            this.requestDelegate = requestDelegate;
             this.route = route;
+            this.requestDelegate = requestDelegate;
+        }
+        public CqrsApiGatewayMiddleware(RequestDelegate requestDelegate, ICqrsAuthorizer? authorizer, string? route)
+        {
+            this.authorizer = authorizer;
+            this.route = route;
+            this.requestDelegate = requestDelegate;
         }
 
         public async Task Invoke(HttpContext context)
@@ -35,9 +44,7 @@ namespace Zerra.Web
             context.Response.Headers.Append(HttpCommon.AccessControlAllowHeadersHeader, "*");
 
             if (context.Request.Method == "OPTIONS")
-            {
                 return;
-            }
 
             var requestContentType = context.Request.ContentType;
             ContentType contentType;
@@ -75,6 +82,12 @@ namespace Zerra.Web
                 acceptContentType = null;
             }
 
+            if (authorizer is not null)
+            {
+                var headers = context.Request.Headers.ToDictionary(x => x.Key, x => (IList<string?>)x.Value.ToList());
+                authorizer.Authorize(headers);
+            }
+
             var inHandlerContext = false;
             try
             {
@@ -93,9 +106,7 @@ namespace Zerra.Web
                 }
 
                 if (response.Void)
-                {
                     return;
-                }
 
                 if (response.Bytes is not null)
                 {
@@ -113,14 +124,14 @@ namespace Zerra.Web
                 else if (response.Stream is not null)
                 {
                     context.Response.ContentType = "application/octet-stream";
+
                     await response.Stream.CopyToAsync(context.Response.Body);
+                    await context.Response.Body.FlushAsync();
                 }
                 else
                 {
                     throw new NotImplementedException("Should not happen");
                 }
-
-                await context.Response.Body.FlushAsync();
             }
             catch (Exception ex)
             {
@@ -141,7 +152,8 @@ namespace Zerra.Web
                     //can't deserialize nameless in JavaScript without knowing Exception model
                     ContentType.Json or ContentType.JsonNameless or null => "application/json; charset=utf-8",
                     _ => throw new NotImplementedException(),
-                }; ;
+                };
+
                 await ContentTypeSerializer.SerializeExceptionAsync(acceptContentType ?? ContentType.Json, context.Response.Body, ex);
                 await context.Response.Body.FlushAsync();
             }

@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using System;
-using System.Collections;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -20,12 +19,20 @@ namespace Zerra.CQRS.Network
     public sealed class ApiClient : CqrsClientBase
     {
         private readonly ContentType requestContentType;
+        private readonly ICqrsAuthorizer? authorizer;
+        private readonly Uri routeUri;
         private readonly HttpClientHandler handler;
         private readonly HttpClient client;
 
-        public ApiClient(string endpoint, ContentType contentType) : base(endpoint)
+        public ApiClient(string endpoint, ContentType contentType, ICqrsAuthorizer? authorizer, string? route) : base(endpoint)
         {
             this.requestContentType = contentType;
+            this.authorizer = authorizer;
+
+            if (route is not null)
+                routeUri = new Uri($"{base.serviceUri.AbsoluteUri}{route}");
+            else
+                routeUri = base.serviceUri;
 
             this.handler = new HttpClientHandler()
             {
@@ -50,10 +57,9 @@ namespace Zerra.CQRS.Network
             };
             data.AddProviderArguments(arguments);
 
-            var model = Request<TReturn>(throttle, isStream, serviceUri.OriginalString, providerName, requestContentType, data, true);
+            var model = Request<TReturn>(throttle, isStream, routeUri, providerName, requestContentType, data, true);
             return model;
         }
-
         protected override Task<TReturn?> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source) where TReturn : default
         {
             var providerName = interfaceType.Name;
@@ -70,7 +76,7 @@ namespace Zerra.CQRS.Network
             };
             data.AddProviderArguments(arguments);
 
-            var model = RequestAsync<TReturn>(throttle, isStream, serviceUri.OriginalString, providerName, requestContentType, data, true);
+            var model = RequestAsync<TReturn>(throttle, isStream, routeUri, providerName, requestContentType, data, true);
             return model;
         }
 
@@ -88,9 +94,8 @@ namespace Zerra.CQRS.Network
                 Source = source
             };
 
-            return RequestAsync<object>(throttle, false, serviceUri.OriginalString, commendTypeName, requestContentType, data, false);
+            return RequestAsync<object>(throttle, false, routeUri, commendTypeName, requestContentType, data, false);
         }
-
         protected override Task<TResult?> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source) where TResult : default
         {
             var commendTypeName = commandType.GetNiceFullName();
@@ -105,18 +110,35 @@ namespace Zerra.CQRS.Network
                 Source = source
             };
 
-            return RequestAsync<TResult>(throttle, isStream, serviceUri.OriginalString, commendTypeName, requestContentType, data, true);
+            return RequestAsync<TResult>(throttle, isStream, routeUri, commendTypeName, requestContentType, data, true);
+        }
+
+        protected override Task DispatchInternal(SemaphoreSlim throttle, Type eventType, IEvent @event, string source)
+        {
+            var commendTypeName = eventType.GetNiceFullName();
+            var commandData = JsonSerializer.Serialize(@event, eventType);
+
+            var data = new ApiRequestData()
+            {
+                MessageType = commendTypeName,
+                MessageData = commandData,
+                MessageAwait = true,
+
+                Source = source
+            };
+
+            return RequestAsync<object>(throttle, false, routeUri, commendTypeName, requestContentType, data, false);
         }
 
         private static readonly MethodInfo requestAsyncMethod = TypeAnalyzer.GetTypeDetail(typeof(ApiClient)).MethodDetailsBoxed.First(x => x.MethodInfo.Name == nameof(ApiClient.RequestAsync)).MethodInfo;
-        private TReturn? Request<TReturn>(SemaphoreSlim throttle, bool isStream, string address, string? providerType, ContentType contentType, object data, bool getResponseData)
+        private TReturn? Request<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, string? providerType, ContentType contentType, ApiRequestData data, bool getResponseData)
         {
             throttle.Wait();
 
             Stream? responseStream = null;
             try
             {
-                using var request = new HttpRequestMessage(HttpMethod.Post, address);
+                using var request = new HttpRequestMessage(HttpMethod.Post, url);
 
                 request.Content = new WriteStreamContent((postStream) =>
                 {
@@ -130,13 +152,20 @@ namespace Zerra.CQRS.Network
                     _ => throw new NotImplementedException(),
                 };
 
-                request.Headers.TransferEncodingChunked = true;
                 request.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, "*");
                 request.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
                 request.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
 
+                if (authorizer is not null)
+                {
+                    var authHeaders = authorizer.BuildAuthHeaders();
+                    foreach (var authHeader in authHeaders)
+                        request.Headers.Add(authHeader.Key, authHeader.Value);
+                }
+
                 if (!String.IsNullOrWhiteSpace(providerType))
                     request.Headers.Add(HttpCommon.ProviderTypeHeader, providerType);
+
 
 #if NET5_0_OR_GREATER
                 using var response = client.Send(request);
@@ -189,14 +218,14 @@ namespace Zerra.CQRS.Network
                 throttle.Release();
             }
         }
-        private async Task<TReturn?> RequestAsync<TReturn>(SemaphoreSlim throttle, bool isStream, string address, string? providerType, ContentType contentType, object data, bool getResponseData)
+        private async Task<TReturn?> RequestAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, string? providerType, ContentType contentType, ApiRequestData data, bool getResponseData)
         {
             await throttle.WaitAsync();
 
             Stream? responseStream = null;
             try
             {
-                using var request = new HttpRequestMessage(HttpMethod.Post, address);
+                using var request = new HttpRequestMessage(HttpMethod.Post, url);
 
                 request.Content = new WriteStreamContent(async (postStream) =>
                 {
@@ -210,10 +239,16 @@ namespace Zerra.CQRS.Network
                     _ => throw new NotImplementedException(),
                 };
 
-                request.Headers.TransferEncodingChunked = true;
                 request.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, "*");
                 request.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
                 request.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
+
+                if (authorizer is not null)
+                {
+                    var authHeaders = authorizer.BuildAuthHeaders();
+                    foreach (var authHeader in authHeaders)
+                        request.Headers.Add(authHeader.Key, authHeader.Value);
+                }
 
                 if (!String.IsNullOrWhiteSpace(providerType))
                     request.Headers.Add(HttpCommon.ProviderTypeHeader, providerType);
@@ -230,7 +265,11 @@ namespace Zerra.CQRS.Network
 
                 if (!getResponseData)
                 {
+#if NETSTANDARD2_0
                     responseStream.Dispose();
+#else
+                    await responseStream.DisposeAsync();
+#endif
                     client.Dispose();
                     return default!;
                 }
@@ -272,96 +311,6 @@ namespace Zerra.CQRS.Network
             {
                 throttle.Release();
             }
-        }
-
-        public CookieCollection? GetCookieCredentials()
-        {
-            return GetCookiesFromContainer(this.handler.CookieContainer);
-        }
-        public void SetCookieCredentials(CookieCollection cookies)
-        {
-            var newCookieContainer = new CookieContainer();
-            newCookieContainer.Add(cookies);
-            this.handler.CookieContainer = newCookieContainer;
-        }
-        public void RemoveCookieCredentials()
-        {
-            this.handler.CookieContainer = new CookieContainer();
-        }
-        public async Task RequestCookieCredentials(string address, string json)
-        {
-            Stream? responseStream = null;
-            try
-            {
-                using var request = new HttpRequestMessage(HttpMethod.Post, address);
-
-                request.Content = new WriteStreamContent(async (postStream) =>
-                {
-                    var data = System.Text.Encoding.UTF8.GetBytes(json);
-                    await ContentTypeSerializer.SerializeAsync(ContentType.Json, postStream, data);
-                });
-                request.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJson);
-
-                request.Headers.TransferEncodingChunked = true;
-                request.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, "*");
-                request.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
-                request.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
-
-                using var response = await client.SendAsync(request);
-
-                responseStream = await response.Content.ReadAsStreamAsync();
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(ContentType.Json, responseStream);
-                    throw responseException;
-                }
-
-                responseStream.Dispose();
-                client.Dispose();
-
-            }
-            catch
-            {
-                if (responseStream is not null)
-                {
-                    try
-                    {
-#if NETSTANDARD2_0
-                        responseStream.Dispose();
-#else
-                        await responseStream.DisposeAsync();
-#endif
-                    }
-                    catch { }
-                    client?.Dispose();
-                }
-                throw;
-            }
-        }
-
-        private static readonly Func<object, object?> cookieContainerGetter = TypeAnalyzer.GetTypeDetail(typeof(CookieContainer)).GetMember("m_domainTable").GetterBoxed;
-        private static readonly Func<object, object?> pathListGetter = TypeAnalyzer.GetTypeDetail(Discovery.GetTypeFromName("System.Net.PathList, System.Net.Primitives, Version=4.1.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a")).GetMember("m_list").GetterBoxed;
-        private static CookieCollection GetCookiesFromContainer(CookieContainer cookieJar)
-        {
-            var cookieCollection = new CookieCollection();
-
-            var table = (Hashtable)cookieContainerGetter(cookieJar)!;
-
-            foreach (var pathList in table.Values)
-            {
-                var list = (SortedList)pathListGetter(pathList)!;
-
-                foreach (CookieCollection collection in list.Values)
-                {
-                    foreach (var cookie in collection.Cast<Cookie>())
-                    {
-                        cookieCollection.Add(cookie);
-                    }
-                }
-            }
-
-            return cookieCollection;
         }
 
         public new void Dispose()

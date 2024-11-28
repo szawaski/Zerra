@@ -768,9 +768,9 @@ namespace Zerra.CQRS.Network
             }
         }
 
-        public static TcpRawCqrsClient CreateDefault(string endpoint, SymmetricConfig? symmetricConfig)
+        protected override Task DispatchInternal(SemaphoreSlim throttle, Type eventType, IEvent @event, string source)
         {
-            return new TcpRawCqrsClient(ContentType.Bytes, endpoint, symmetricConfig);
+            throw new NotSupportedException($"{nameof(TcpRawCqrsClient)} does not support events");
         }
     }
 }

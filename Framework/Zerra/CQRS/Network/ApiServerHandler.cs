@@ -3,8 +3,10 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Zerra.Encryption;
 using Zerra.Reflection;
 using Zerra.Serialization.Json;
 

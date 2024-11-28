@@ -12,20 +12,21 @@ namespace Zerra.CQRS
 {
     public sealed class TcpServiceCreator : IServiceCreator
     {
+        private const ContentType contentType = ContentType.Bytes;
         private static readonly ConcurrentFactoryDictionary<string, TcpRawCqrsServer> servers = new();
 
         public ICommandProducer? CreateCommandProducer(string messageHost, SymmetricConfig? symmetricConfig)
         {
             if (String.IsNullOrWhiteSpace(messageHost))
                 return null;
-            return TcpRawCqrsClient.CreateDefault(messageHost, symmetricConfig);
+            return new TcpRawCqrsClient(contentType, messageHost, symmetricConfig);
         }
 
         public ICommandConsumer? CreateCommandConsumer(string messageHost, SymmetricConfig? symmetricConfig)
         {
             if (String.IsNullOrWhiteSpace(messageHost))
                 return null;
-            return servers.GetOrAdd(messageHost, symmetricConfig, static (messageHost, symmetricConfig) => TcpRawCqrsServer.CreateDefault(messageHost, symmetricConfig));
+            return servers.GetOrAdd(messageHost, symmetricConfig, static (messageHost, symmetricConfig) => new TcpRawCqrsServer(contentType, messageHost, symmetricConfig));
         }
 
         public IEventProducer? CreateEventProducer(string messageHost, SymmetricConfig? symmetricConfig)
@@ -42,14 +43,14 @@ namespace Zerra.CQRS
         {
             if (String.IsNullOrWhiteSpace(serviceUrl))
                 return null;
-            return TcpRawCqrsClient.CreateDefault(serviceUrl, symmetricConfig);
+            return new TcpRawCqrsClient(contentType, serviceUrl, symmetricConfig);
         }
 
         public IQueryServer? CreateQueryServer(string serviceUrl, SymmetricConfig? symmetricConfig)
         {
             if (String.IsNullOrWhiteSpace(serviceUrl))
                 return null;
-            return servers.GetOrAdd(serviceUrl, symmetricConfig, static (serviceUrl, symmetricConfig) => TcpRawCqrsServer.CreateDefault(serviceUrl, symmetricConfig));
+            return servers.GetOrAdd(serviceUrl, symmetricConfig, static (serviceUrl, symmetricConfig) => new TcpRawCqrsServer(contentType, serviceUrl, symmetricConfig));
         }
     }
 }
