@@ -11,6 +11,7 @@
         <ProjectReference Include="..\..\Framework\Zerra.CQRS.Kafka\Zerra.CQRS.Kafka.csproj" />
         <ProjectReference Include="..\..\Framework\Zerra.CQRS.RabbitMQ\Zerra.CQRS.RabbitMQ.csproj" />
         <ProjectReference Include="..\..\Framework\Zerra.Logger\Zerra.Logger.csproj" />
+        <ProjectReference Include="..\..\Framework\Zerra.Web\Zerra.Web.csproj" />
         <ProjectReference Include="..\..\Framework\Zerra\Zerra.csproj" />
         <ProjectReference Include="..\..\Misc\Zerra.Tools\Zerra.Tools.csproj" />
     </ItemGroup>

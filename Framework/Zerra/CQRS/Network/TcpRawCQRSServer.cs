@@ -17,7 +17,7 @@ using Zerra.Buffers;
 
 namespace Zerra.CQRS.Network
 {
-    public sealed class TcpRawCqrsServer : TcpCqrsServerBase
+    public sealed class TcpRawCqrsServer : CqrsServerBase
     {
         private readonly ContentType? contentType;
         private readonly SymmetricConfig? symmetricConfig;
@@ -130,7 +130,7 @@ namespace Zerra.CQRS.Network
                             var providerType = Discovery.GetTypeFromName(data.ProviderType);
                             var typeDetail = TypeAnalyzer.GetTypeDetail(providerType);
 
-                            if (!this.interfaceTypes.Contains(providerType))
+                            if (!this.types.Contains(providerType))
                                 throw new CqrsNetworkException($"Unhandled Provider Type {providerType.FullName}");
 
                             inHandlerContext = true;
@@ -212,46 +212,63 @@ namespace Zerra.CQRS.Network
                             if (String.IsNullOrWhiteSpace(data.Source)) throw new Exception("Invalid Request");
                             if (requestHeader.ProviderType != data.MessageType) throw new Exception("Invalid Request");
 
-                            isCommand = true;
-                            if (!commandCounter.BeginReceive())
-                                throw new CqrsNetworkException("Cannot receive any more commands");
+                            var messageType = Discovery.GetTypeFromName(data.MessageType);
+                            var typeDetail = TypeAnalyzer.GetTypeDetail(messageType);
 
-                            var commandType = Discovery.GetTypeFromName(data.MessageType);
-                            var typeDetail = TypeAnalyzer.GetTypeDetail(commandType);
-
-                            if (!typeDetail.Interfaces.Contains(typeof(ICommand)))
-                                throw new CqrsNetworkException($"Type {data.MessageType} is not a command");
-
-                            if (!this.commandTypes.Contains(commandType))
-                                throw new CqrsNetworkException($"Unhandled Command Type {commandType.FullName}");
-
-                            var command = (ICommand?)ContentTypeSerializer.Deserialize(requestHeader.ContentType.Value, commandType, data.MessageData);
-                            if (command is null)
-                                throw new Exception($"Invalid {nameof(data.MessageData)}");
+                            if (!this.types.Contains(messageType))
+                                throw new CqrsNetworkException($"Unhandled Message Type {messageType.FullName}");
 
                             bool hasResult;
                             object? result = null;
 
-                            inHandlerContext = true;
-                            if (data.MessageResult)
+                            if (typeDetail.Interfaces.Contains(typeof(ICommand)))
                             {
-                                if (handlerWithResultAwaitAsync is null) throw new InvalidOperationException($"{nameof(TcpRawCqrsServer)} is not setup");
-                                result = await handlerWithResultAwaitAsync(command, data.Source, false);
-                                hasResult = true;
+                                isCommand = true;
+
+                                if (!commandCounter.BeginReceive())
+                                    throw new CqrsNetworkException("Cannot receive any more commands");
+
+                                var command = (ICommand?)ContentTypeSerializer.Deserialize(requestHeader.ContentType.Value, messageType, data.MessageData);
+                                if (command is null)
+                                    throw new Exception($"Invalid {nameof(data.MessageData)}");
+
+                                inHandlerContext = true;
+                                if (data.MessageResult)
+                                {
+                                    if (commandHandlerWithResultAwaitAsync is null) throw new InvalidOperationException($"{nameof(TcpRawCqrsServer)} is not setup");
+                                    result = await commandHandlerWithResultAwaitAsync(command, data.Source, false);
+                                    hasResult = true;
+                                }
+                                else if (data.MessageAwait)
+                                {
+                                    if (commandHandlerAwaitAsync is null) throw new InvalidOperationException($"{nameof(TcpRawCqrsServer)} is not setup");
+                                    await commandHandlerAwaitAsync(command, data.Source, false);
+                                    hasResult = false;
+                                }
+                                else
+                                {
+                                    if (commandHandlerAsync is null) throw new InvalidOperationException($"{nameof(TcpRawCqrsServer)} is not setup");
+                                    await commandHandlerAsync(command, data.Source, false);
+                                    hasResult = false;
+                                }
+                                inHandlerContext = false;
                             }
-                            else if (data.MessageAwait)
+                            else if (typeDetail.Interfaces.Contains(typeof(IEvent)))
                             {
-                                if (handlerAwaitAsync is null) throw new InvalidOperationException($"{nameof(TcpRawCqrsServer)} is not setup");
-                                await handlerAwaitAsync(command, data.Source, false);
+                                var @event = (IEvent?)ContentTypeSerializer.Deserialize(requestHeader.ContentType.Value, messageType, data.MessageData);
+                                if (@event is null)
+                                    throw new Exception($"Invalid {nameof(data.MessageData)}");
+
+                                inHandlerContext = true;
+                                if (eventHandlerAsync is null) throw new InvalidOperationException($"{nameof(TcpRawCqrsServer)} is not setup");
+                                await eventHandlerAsync(@event, data.Source, false);
                                 hasResult = false;
+                                inHandlerContext = false;
                             }
                             else
                             {
-                                if (handlerAsync is null) throw new InvalidOperationException($"{nameof(TcpRawCqrsServer)} is not setup");
-                                await handlerAsync(command, data.Source, false);
-                                hasResult = false;
+                                throw new CqrsNetworkException($"Unhandled Message Type {messageType.FullName}");
                             }
-                            inHandlerContext = false;
 
                             responseStarted = true;
 

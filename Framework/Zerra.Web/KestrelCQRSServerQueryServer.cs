@@ -22,12 +22,12 @@ namespace Zerra.Web
 
         public void RegisterInterfaceType(int maxConcurrent, Type type)
         {
-            lock (settings.InterfaceTypes)
+            lock (settings.Types)
             {
-                if (settings.InterfaceTypes.ContainsKey(type))
+                if (settings.Types.ContainsKey(type))
                     return;
                 var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
-                if (!settings.InterfaceTypes.TryAdd(type, throttle))
+                if (!settings.Types.TryAdd(type, throttle))
                     throttle.Dispose();
             }
         }

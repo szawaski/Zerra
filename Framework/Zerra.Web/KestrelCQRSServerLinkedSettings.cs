@@ -12,15 +12,15 @@ namespace Zerra.Web
 {
     public sealed class KestrelCqrsServerLinkedSettings : IDisposable
     {
-        public ConcurrentDictionary<Type, SemaphoreSlim> InterfaceTypes { get; }
-        public ConcurrentDictionary<Type, SemaphoreSlim> CommandTypes { get; }
+        public ConcurrentDictionary<Type, SemaphoreSlim> Types { get; }
 
         public CommandCounter? ReceiveCounter { get; set; }
 
         public QueryHandlerDelegate? ProviderHandlerAsync { get; set; }
-        public HandleRemoteCommandDispatch? HandlerAsync { get; set; }
-        public HandleRemoteCommandDispatch? HandlerAwaitAsync { get; set; }
-        public HandleRemoteCommandWithResultDispatch? HandlerWithResultAwaitAsync { get; set; }
+        public HandleRemoteCommandDispatch? CommandHandlerAsync { get; set; }
+        public HandleRemoteCommandDispatch? CommandHandlerAwaitAsync { get; set; }
+        public HandleRemoteCommandWithResultDispatch? CommandHandlerWithResultAwaitAsync { get; set; }
+        public HandleRemoteEventDispatch? EventHandlerAsync { get; set; }
 
         public string? Route { get; }
         public ICqrsAuthorizer? Authorizer { get; }
@@ -55,20 +55,20 @@ namespace Zerra.Web
             this.Authorizer = authorizer;
             this.ContentType = contentType;
 
-            InterfaceTypes = new();
-            CommandTypes = new();
+            Types = new();
+            Types = new();
             this.allowOriginsString = "*";
         }
 
         public void Dispose()
         {
-            foreach (var throttle in InterfaceTypes.Values)
+            foreach (var throttle in Types.Values)
                 throttle.Dispose();
-            InterfaceTypes.Clear();
+            Types.Clear();
 
-            foreach (var throttle in CommandTypes.Values)
+            foreach (var throttle in Types.Values)
                 throttle.Dispose();
-            CommandTypes.Clear();
+            Types.Clear();
         }
     }
 }

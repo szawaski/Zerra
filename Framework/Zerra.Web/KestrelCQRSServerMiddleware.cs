@@ -169,7 +169,7 @@ namespace Zerra.Web
 
                     var providerType = Discovery.GetTypeFromName(data.ProviderType);
 
-                    if (!settings.InterfaceTypes.TryGetValue(providerType, out throttle))
+                    if (!settings.Types.TryGetValue(providerType, out throttle))
                         throw new Exception($"{providerType.GetNiceName()} is not registered with {nameof(KestrelCqrsServerMiddleware)}");
 
                     await throttle.WaitAsync();
@@ -281,41 +281,61 @@ namespace Zerra.Web
                         throw new Exception("Cannot receive any more commands");
 
                     var messageType = Discovery.GetTypeFromName(data.MessageType);
+                    var typeDetail = TypeAnalyzer.GetTypeDetail(messageType);
 
-                    if (!settings.CommandTypes.TryGetValue(messageType, out throttle))
+                    if (!settings.Types.TryGetValue(messageType, out throttle))
                         throw new Exception($"{messageType.GetNiceName()} is not registered with {nameof(KestrelCqrsServerMiddleware)}");
 
                     await throttle.WaitAsync();
 
                     _ = settings.ReceiveCounter.BeginReceive();
 
-                    var command = (ICommand?)JsonSerializer.Deserialize(messageType, data.MessageData);
-                    if (command is null)
-                        throw new Exception("Invalid Request");
-
                     bool hasResult;
                     object? result = null;
 
-                    inHandlerContext = true;
-                    if (data.MessageResult == true)
+                    if (typeDetail.Interfaces.Contains(typeof(ICommand)))
                     {
-                        if (settings.HandlerWithResultAwaitAsync is null) throw new InvalidOperationException($"{nameof(KestrelCqrsServerMiddleware)} is not setup");
-                        result = await settings.HandlerWithResultAwaitAsync(command, data.Source, false);
-                        hasResult = true;
+                        var command = (ICommand?)JsonSerializer.Deserialize(messageType, data.MessageData);
+                        if (command is null)
+                            throw new Exception("Invalid Request");
+
+                        inHandlerContext = true;
+                        if (data.MessageResult == true)
+                        {
+                            if (settings.CommandHandlerWithResultAwaitAsync is null) throw new InvalidOperationException($"{nameof(KestrelCqrsServerMiddleware)} is not setup");
+                            result = await settings.CommandHandlerWithResultAwaitAsync(command, data.Source, false);
+                            hasResult = true;
+                        }
+                        else if (data.MessageAwait == true)
+                        {
+                            if (settings.CommandHandlerAwaitAsync is null) throw new InvalidOperationException($"{nameof(KestrelCqrsServerMiddleware)} is not setup");
+                            await settings.CommandHandlerAwaitAsync(command, data.Source, false);
+                            hasResult = false;
+                        }
+                        else
+                        {
+                            if (settings.CommandHandlerAsync is null) throw new InvalidOperationException($"{nameof(KestrelCqrsServerMiddleware)} is not setup");
+                            await settings.CommandHandlerAsync(command, data.Source, false);
+                            hasResult = false;
+                        }
+                        inHandlerContext = false;
                     }
-                    else if (data.MessageAwait == true)
+                    else if (typeDetail.Interfaces.Contains(typeof(ICommand)))
                     {
-                        if (settings.HandlerAwaitAsync is null) throw new InvalidOperationException($"{nameof(KestrelCqrsServerMiddleware)} is not setup");
-                        await settings.HandlerAwaitAsync(command, data.Source, false);
+                        var @event = (IEvent?)JsonSerializer.Deserialize(messageType, data.MessageData);
+                        if (@event is null)
+                            throw new Exception("Invalid Request");
+
+                        inHandlerContext = true;
+                        if (settings.EventHandlerAsync is null) throw new InvalidOperationException($"{nameof(KestrelCqrsServerMiddleware)} is not setup");
+                        await settings.EventHandlerAsync(@event, data.Source, false);
                         hasResult = false;
+                        inHandlerContext = false;
                     }
                     else
                     {
-                        if (settings.HandlerAsync is null) throw new InvalidOperationException($"{nameof(KestrelCqrsServerMiddleware)} is not setup");
-                        await settings.HandlerAsync(command, data.Source, false);
-                        hasResult = false;
+                        throw new CqrsNetworkException($"Unhandled Message Type {messageType.FullName}");
                     }
-                    inHandlerContext = false;
 
                     //Response Header
                     context.Response.Headers.Append(HttpCommon.ProviderTypeHeader, data.ProviderType);
@@ -338,7 +358,7 @@ namespace Zerra.Web
                     }
 
                     if (hasResult)
-                    {                
+                    {
                         //Response Header
                         context.Response.Headers.Append(HttpCommon.AccessControlAllowOriginHeader, originRequestHeader);
                         context.Response.Headers.Append(HttpCommon.AccessControlAllowMethodsHeader, "*");

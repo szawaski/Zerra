@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using Zerra.CQRS;
 
@@ -24,17 +23,17 @@ namespace Zerra.Web
         void ICommandConsumer.Setup(CommandCounter commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
         {
             settings.ReceiveCounter = commandCounter;
-            settings.HandlerAsync = handlerAsync;
-            settings.HandlerAwaitAsync = handlerAwaitAsync;
-            settings.HandlerWithResultAwaitAsync = handlerWithResultAwaitAsync;
+            settings.CommandHandlerAsync = handlerAsync;
+            settings.CommandHandlerAwaitAsync = handlerAwaitAsync;
+            settings.CommandHandlerWithResultAwaitAsync = handlerWithResultAwaitAsync;
         }
 
         void ICommandConsumer.RegisterCommandType(int maxConcurrent, string topic, Type type)
         {
-            if (settings.CommandTypes.ContainsKey(type))
+            if (settings.Types.ContainsKey(type))
                 return;
             var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
-            if (!settings.CommandTypes.TryAdd(type, throttle))
+            if (!settings.Types.TryAdd(type, throttle))
                 throttle.Dispose();
         }
     }

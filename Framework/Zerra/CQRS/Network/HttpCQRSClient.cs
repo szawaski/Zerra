@@ -17,7 +17,7 @@ using Zerra.Buffers;
 
 namespace Zerra.CQRS.Network
 {
-    public sealed class HttpCqrsClient : TcpCqrsClientBase
+    public sealed class HttpCqrsClient : CqrsClientBase
     {
         private readonly ContentType contentType;
         private readonly SymmetricConfig? symmetricConfig;

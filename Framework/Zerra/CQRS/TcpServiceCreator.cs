@@ -36,7 +36,9 @@ namespace Zerra.CQRS
 
         public IEventConsumer? CreateEventConsumer(string messageHost, SymmetricConfig? symmetricConfig)
         {
-            throw new NotSupportedException($"{nameof(TcpServiceCreator)} does not support {nameof(CreateEventConsumer)}");
+            if (String.IsNullOrWhiteSpace(messageHost))
+                return null;
+            return servers.GetOrAdd(messageHost, symmetricConfig, static (messageHost, symmetricConfig) => new TcpRawCqrsServer(contentType, messageHost, symmetricConfig));
         }
 
         public IQueryClient? CreateQueryClient(string serviceUrl, SymmetricConfig? symmetricConfig)

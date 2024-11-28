@@ -7,23 +7,22 @@ using System.Net.Sockets;
 using System.Threading;
 using Zerra.Collections;
 using Zerra.Logging;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
 namespace Zerra.CQRS.Network
 {
-    public abstract class TcpCqrsServerBase : IQueryServer, ICommandConsumer, IDisposable
+    public abstract class CqrsServerBase : IQueryServer, ICommandConsumer, IEventConsumer, IDisposable
     {
-        protected readonly ConcurrentReadWriteHashSet<Type> interfaceTypes;
-        protected readonly ConcurrentReadWriteHashSet<Type> commandTypes;
+        protected readonly ConcurrentReadWriteHashSet<Type> types;
         private readonly Type thisType;
-
+        
         private SocketListener[]? listeners = null;
         protected QueryHandlerDelegate? providerHandlerAsync = null;
-        protected HandleRemoteCommandDispatch? handlerAsync = null;
-        protected HandleRemoteCommandDispatch? handlerAwaitAsync = null;
-        protected HandleRemoteCommandWithResultDispatch? handlerWithResultAwaitAsync = null;
+        protected HandleRemoteCommandDispatch? commandHandlerAsync = null;
+        protected HandleRemoteCommandDispatch? commandHandlerAwaitAsync = null;
+        protected HandleRemoteCommandWithResultDispatch? commandHandlerWithResultAwaitAsync = null;
+        protected HandleRemoteEventDispatch? eventHandlerAsync = null;
 
         private bool started = false;
         private bool disposed = false;
@@ -33,11 +32,11 @@ namespace Zerra.CQRS.Network
 
         private readonly string serviceUrl;
 
-        public TcpCqrsServerBase(string serviceUrl)
+        public CqrsServerBase(string serviceUrl)
         {
             this.serviceUrl = serviceUrl;
-            this.interfaceTypes = new();
-            this.commandTypes = new();
+            this.types = new();
+            this.types = new();
             this.thisType = this.GetType();
         }
 
@@ -49,34 +48,51 @@ namespace Zerra.CQRS.Network
 
         void IQueryServer.RegisterInterfaceType(int maxConcurrent, Type type)
         {
-            if (commandTypes.Count > 0)
+            if (types.Count > 0)
                 throw new Exception($"Cannot register interface because this instance of {thisType.GetNiceName()} is already being used for commands");
 
             if (throttle is not null)
                 throttle.Dispose();
             throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
 
-            interfaceTypes.Add(type);
+            types.Add(type);
         }
 
         void ICommandConsumer.Setup(CommandCounter commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
         {
             this.commandCounter = commandCounter;
-            this.handlerAsync = handlerAsync;
-            this.handlerAwaitAsync = handlerAwaitAsync;
-            this.handlerWithResultAwaitAsync = handlerWithResultAwaitAsync;
+            this.commandHandlerAsync = handlerAsync;
+            this.commandHandlerAwaitAsync = handlerAwaitAsync;
+            this.commandHandlerWithResultAwaitAsync = handlerWithResultAwaitAsync;
         }
 
         void ICommandConsumer.RegisterCommandType(int maxConcurrent, string topic, Type type)
         {
-            if (interfaceTypes.Count > 0)
+            if (types.Count > 0)
                 throw new Exception($"Cannot register command because this instance of {thisType.GetNiceName()} is already being used for queries");
 
             if (throttle is not null)
                 throttle.Dispose();
             throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
 
-            commandTypes.Add(type);
+            types.Add(type);
+        }
+
+        void IEventConsumer.Setup(HandleRemoteEventDispatch handlerAsync)
+        {
+            this.eventHandlerAsync = handlerAsync;
+        }
+
+        void IEventConsumer.RegisterEventType(int maxConcurrent, string topic, Type type)
+        {
+            if (types.Count > 0)
+                throw new Exception($"Cannot register command because this instance of {thisType.GetNiceName()} is already being used for queries");
+
+            if (throttle is not null)
+                throttle.Dispose();
+            throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
+
+            types.Add(type);
         }
 
         void IQueryServer.Open()
@@ -89,12 +105,17 @@ namespace Zerra.CQRS.Network
             Open();
             _ = Log.InfoAsync($"{thisType.GetNiceName()} Command Consumer Started On {this.serviceUrl}");
         }
+        void IEventConsumer.Open()
+        {
+            Open();
+            _ = Log.InfoAsync($"{thisType.GetNiceName()} Event Consumer Started On {this.serviceUrl}");
+        }
         protected void Open()
         {
-            lock (interfaceTypes)
+            lock (types)
             {
                 if (disposed)
-                    throw new ObjectDisposedException(nameof(TcpCqrsServerBase));
+                    throw new ObjectDisposedException(nameof(CqrsServerBase));
                 if (started)
                     return;
 
@@ -136,10 +157,15 @@ namespace Zerra.CQRS.Network
             Dispose();
             _ = Log.InfoAsync($"{thisType.GetNiceName()} Command Consumer Closed On {this.serviceUrl}");
         }
+        void IEventConsumer.Close()
+        {
+            Dispose();
+            _ = Log.InfoAsync($"{thisType.GetNiceName()} Event Consumer Closed On {this.serviceUrl}");
+        }
 
         public void Dispose()
         {
-            lock (interfaceTypes)
+            lock (types)
             {
                 if (disposed)
                     return;
@@ -149,8 +175,8 @@ namespace Zerra.CQRS.Network
                         listener.Dispose();
                     listeners = null;
                 }
-                interfaceTypes.Dispose();
-                commandTypes.Dispose();
+                types.Dispose();
+                types.Dispose();
                 disposed = true;
             }
             GC.SuppressFinalize(this);

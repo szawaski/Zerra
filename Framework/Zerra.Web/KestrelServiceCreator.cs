@@ -50,7 +50,15 @@ namespace Zerra.Web
 
         public IEventConsumer? CreateEventConsumer(string messageHost, SymmetricConfig? symmetricConfig)
         {
-            throw new NotSupportedException($"{nameof(KestrelServiceCreator)} does not support {nameof(CreateEventConsumer)}");
+            if (applicationBuilder is null)
+                throw new NotSupportedException($"{nameof(KestrelServiceCreator)} needs {nameof(IApplicationBuilder)} for {nameof(CreateCommandConsumer)}");
+
+            if (!middlewareAdded)
+            {
+                middlewareAdded = true;
+                _ = applicationBuilder.UseMiddleware<KestrelCqrsServerMiddleware>(symmetricConfig, settings);
+            }
+            return new KestrelCqrsServerEventConsumer(settings);
         }
 
         public IQueryClient? CreateQueryClient(string serviceUrl, SymmetricConfig? symmetricConfig)
