@@ -46,7 +46,6 @@ namespace Zerra.CQRS.RabbitMQ
             try
             {
                 this.connection = factory.CreateConnection();
-                _ = Log.InfoAsync($"{nameof(RabbitMQProducer)} Started");
             }
             catch (Exception ex)
             {

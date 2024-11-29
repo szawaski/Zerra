@@ -24,8 +24,8 @@ namespace ZerraDemo.Common
             //in Kubernetes the BindingUrl needs to be 0.0.0.0 which can be replaced with "+" such as "+:80"
             var serviceSettings = CQRSSettings.Get(false);
 
-            var messageHost = Config.GetSetting("MessageHost")!;
-            serviceSettings.SetAllMessageHosts(messageHost);
+            //var messageHost = Config.GetSetting("MessageHost")!;
+            //serviceSettings.SetAllMessageHosts(messageHost);
 
             IServiceCreator serviceCreator;
 
@@ -46,7 +46,7 @@ namespace ZerraDemo.Common
             //----------------------------------------------------------
 
             //Option2A: Enable this using RabbitMQ for commands/events
-            serviceCreator = new Zerra.CQRS.RabbitMQ.RabbitMQServiceCreator(serviceCreator, Config.EnvironmentName);
+            //serviceCreator = new Zerra.CQRS.RabbitMQ.RabbitMQServiceCreator(serviceCreator, Config.EnvironmentName);
 
             //Option2B: Enable this using Kafka for commands/events
             //serviceCreator = new Zerra.CQRS.Kafka.KafkaServiceCreator(serviceCreator, Config.EnvironmentName);
