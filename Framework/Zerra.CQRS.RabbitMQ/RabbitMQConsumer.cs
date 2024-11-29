@@ -43,6 +43,9 @@ namespace Zerra.CQRS.RabbitMQ
             this.eventTypes = new();
         }
 
+        string ICommandConsumer.MessageHost => "[Host has Secrets]";
+        string IEventConsumer.MessageHost => "[Host has Secrets]";
+
         void ICommandConsumer.Setup(CommandCounter commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
         {
             if (this.connection is not null)

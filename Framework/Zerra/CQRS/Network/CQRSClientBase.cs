@@ -16,6 +16,7 @@ namespace Zerra.CQRS.Network
 {
     public abstract class CqrsClientBase : IQueryClient, ICommandProducer, IEventProducer, IDisposable
     {
+        private readonly string serviceUrl;
         protected readonly Uri serviceUri;
         protected readonly string host;
         protected readonly int port;
@@ -28,8 +29,9 @@ namespace Zerra.CQRS.Network
             if (String.IsNullOrWhiteSpace(serviceUrl))
                 throw new ArgumentNullException(nameof(serviceUrl));
 
+            this.serviceUrl = serviceUrl;
             if (!serviceUrl.Contains("://"))
-                this.serviceUri = new Uri("any://" + serviceUrl); //hacky way to make it parse without scheme.
+                this.serviceUri = new Uri($"tcp://{serviceUrl}"); //hacky way to make it parse without scheme.
             else
                 this.serviceUri = new Uri(serviceUrl, UriKind.RelativeOrAbsolute);
             host = this.serviceUri.Host;
@@ -42,6 +44,10 @@ namespace Zerra.CQRS.Network
 
         private static readonly MethodInfo callRequestAsyncMethod = TypeAnalyzer.GetTypeDetail(typeof(CqrsClientBase)).MethodDetailsBoxed.First(x => x.MethodInfo.Name == nameof(CqrsClientBase.CallInternalAsync)).MethodInfo;
         private static readonly Type streamType = typeof(Stream);
+
+        string IQueryClient.ServiceUrl => serviceUrl;
+        string ICommandProducer.MessageHost => serviceUrl;
+        string IEventProducer.MessageHost => serviceUrl;
 
         void ICommandProducer.RegisterCommandType(int maxConcurrent, string topic, Type type)
         {

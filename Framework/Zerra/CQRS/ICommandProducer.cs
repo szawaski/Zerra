@@ -13,6 +13,10 @@ namespace Zerra.CQRS
     public interface ICommandProducer
     {
         /// <summary>
+        /// The host information.
+        /// </summary>
+        string MessageHost { get; }
+        /// <summary>
         /// Registers a command for this producer.
         /// </summary>
         /// <param name="maxConcurrent">The max number of concurrent requests for this command producer.</param>

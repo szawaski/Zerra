@@ -20,6 +20,8 @@ namespace Zerra.Web
 
         public void Open() { }
 
+        string ICommandConsumer.MessageHost => "[Kestrel Host]";
+
         void ICommandConsumer.Setup(CommandCounter commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
         {
             settings.CommandCounter = commandCounter;

@@ -20,6 +20,8 @@ namespace Zerra.Web
 
         public void Open() { }
 
+        string IQueryServer.ServiceUrl => "[Kestrel Host]";
+
         public void RegisterInterfaceType(int maxConcurrent, Type type)
         {
             lock (settings.Types)

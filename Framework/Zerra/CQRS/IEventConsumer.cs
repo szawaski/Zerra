@@ -13,6 +13,10 @@ namespace Zerra.CQRS
     public interface IEventConsumer
     {
         /// <summary>
+        /// The host information.
+        /// </summary>
+        string MessageHost { get; }
+        /// <summary>
         /// Registers an event type for this interface.
         /// </summary>
         /// <param name="maxConcurrent">The max number of concurrent requests for this event consumer.</param>

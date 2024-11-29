@@ -39,6 +39,10 @@ namespace Zerra.CQRS.Network
             this.thisType = this.GetType();
         }
 
+        string IQueryServer.ServiceUrl => serviceUrl;
+        string ICommandConsumer.MessageHost => serviceUrl;
+        string IEventConsumer.MessageHost => serviceUrl;
+
         void IQueryServer.Setup(CommandCounter commandCounter, QueryHandlerDelegate handlerAsync)
         {
             this.commandCounter = commandCounter;

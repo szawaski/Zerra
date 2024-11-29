@@ -49,6 +49,9 @@ namespace Zerra.CQRS.AzureServiceBus
             this.ackCallbacks = new ConcurrentDictionary<string, Action<Acknowledgement>>();
         }
 
+        string ICommandProducer.MessageHost => "[Host has Secrets]";
+        string IEventProducer.MessageHost => "[Host has Secrets]";
+
         Task ICommandProducer.DispatchAsync(ICommand command, string source) { return SendAsync(command, false, source); }
         Task ICommandProducer.DispatchAwaitAsync(ICommand command, string source) { return SendAsync(command, true, source); }
         Task<TResult?> ICommandProducer.DispatchAwaitAsync<TResult>(ICommand<TResult> command, string source) where TResult : default { return SendAsync(command, source); }

@@ -44,6 +44,9 @@ namespace Zerra.CQRS.Kafka
             this.eventTypes = new();
         }
 
+        string ICommandConsumer.MessageHost => "[Host has Secrets]";
+        string IEventConsumer.MessageHost => "[Host has Secrets]";
+
         void ICommandConsumer.Setup(CommandCounter commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
         {
             if (isOpen)

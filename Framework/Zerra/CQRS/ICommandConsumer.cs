@@ -13,6 +13,10 @@ namespace Zerra.CQRS
     public interface ICommandConsumer
     {
         /// <summary>
+        /// The host information.
+        /// </summary>
+        string MessageHost { get; }
+        /// <summary>
         /// Registers a command type for this interface.
         /// </summary>
         /// <param name="maxConcurrent">The max number of concurrent requests for this command consumer.</param>

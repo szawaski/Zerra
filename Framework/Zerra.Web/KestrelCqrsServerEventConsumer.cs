@@ -20,6 +20,8 @@ namespace Zerra.Web
 
         public void Open() { }
 
+        string IEventConsumer.MessageHost => "[Kestrel Host]";
+
         void IEventConsumer.Setup(HandleRemoteEventDispatch handlerAsync)
         {
             settings.EventHandlerAsync = handlerAsync;

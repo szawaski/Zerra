@@ -52,6 +52,9 @@ namespace Zerra.CQRS.AzureServiceBus
             this.client = new ServiceBusClient(host);
         }
 
+        string ICommandConsumer.MessageHost => "[Host has Secrets]";
+        string IEventConsumer.MessageHost => "[Host has Secrets]";
+
         void ICommandConsumer.Setup(CommandCounter commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
         {
             if (isOpen)

@@ -13,6 +13,10 @@ namespace Zerra.CQRS
     public interface IEventProducer
     {
         /// <summary>
+        /// The host information.
+        /// </summary>
+        string MessageHost { get; }
+        /// <summary>
         /// Registers an event for this producer.
         /// </summary>
         /// <param name="maxConcurrent">The max number of concurrent requests for this event producer.</param>

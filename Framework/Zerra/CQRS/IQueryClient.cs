@@ -12,6 +12,10 @@ namespace Zerra.CQRS
     public interface IQueryClient
     {
         /// <summary>
+        /// The service url.
+        /// </summary>
+        string ServiceUrl { get; }
+        /// <summary>
         /// Registers a query interface for this client.
         /// </summary>
         /// <param name="maxConcurrent">The max number of concurrent requests for this query interface.</param>

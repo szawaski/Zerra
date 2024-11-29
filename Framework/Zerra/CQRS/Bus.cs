@@ -61,12 +61,11 @@ namespace Zerra.CQRS
         private static readonly ConcurrentFactoryDictionary<Type, CallMetadata> callMetadata = new();
         private static readonly ConcurrentFactoryDictionary<Type, object?> cacheProviders = new();
 
-        private static readonly ConcurrentDictionary<Type, ICommandProducer> commandProducers = new();
+        private static readonly Dictionary<Type, ICommandProducer> commandProducers = new();
         private static readonly HashSet<ICommandConsumer> commandConsumers = new();
-
-        private static readonly ConcurrentDictionary<Type, IEventProducer> eventProducers = new();
+        private static readonly Dictionary<Type, List<IEventProducer>> eventProducers = new();
         private static readonly HashSet<IEventConsumer> eventConsumers = new();
-        private static readonly ConcurrentDictionary<Type, IQueryClient> queryClients = new();
+        private static readonly Dictionary<Type, IQueryClient> queryClients = new();
         private static readonly HashSet<IQueryServer> queryServers = new();
         private static readonly HashSet<Type> handledTypes = new();
         private static IBusLogger? busLogger = null;
@@ -158,11 +157,11 @@ namespace Zerra.CQRS
         }
         private static bool HasServices
         {
-            get => !commandProducers.IsEmpty ||
+            get => commandProducers.Count != 0 ||
                    commandConsumers.Count != 0 ||
-                   !eventProducers.IsEmpty ||
+                   eventProducers.Count != 0 ||
                    eventConsumers.Count != 0 ||
-                   !queryClients.IsEmpty ||
+                   queryClients.Count != 0 ||
                    queryServers.Count != 0;
         }
 
@@ -332,7 +331,7 @@ namespace Zerra.CQRS
             }
 
             ICommandProducer? producer = null;
-            if (!commandProducers.IsEmpty && (networkType == NetworkType.Local || !handledTypes.Contains(commandType)))
+            if (commandProducers.Count != 0 && (networkType == NetworkType.Local || !handledTypes.Contains(commandType)))
             {
                 var messageBaseType = commandType;
                 while (messageBaseType is not null)
@@ -446,7 +445,7 @@ namespace Zerra.CQRS
             }
 
             ICommandProducer? producer = null;
-            if (!commandProducers.IsEmpty && (networkType == NetworkType.Local || !handledTypes.Contains(commandType)))
+            if (commandProducers.Count != 0 && (networkType == NetworkType.Local || !handledTypes.Contains(commandType)))
             {
                 var messageBaseType = commandType;
                 while (messageBaseType is not null)
@@ -553,19 +552,19 @@ namespace Zerra.CQRS
                 });
             }
 
-            IEventProducer? producer = null;
-            if (!eventProducers.IsEmpty && (networkType == NetworkType.Local || !handledTypes.Contains(eventType)))
+            List<IEventProducer>? producerList = null;
+            if (eventProducers.Count != 0 && (networkType == NetworkType.Local || !handledTypes.Contains(eventType)))
             {
                 var messageBaseType = eventType;
                 while (messageBaseType is not null)
                 {
-                    if (eventProducers.TryGetValue(messageBaseType, out producer))
+                    if (eventProducers.TryGetValue(messageBaseType, out producerList))
                         break;
                     messageBaseType = messageBaseType.BaseType;
                 }
             }
 
-            var handled = producer is null;
+            var handled = producerList is null || producerList.Count == 0;
 
             Task result;
 
@@ -585,12 +584,41 @@ namespace Zerra.CQRS
                 }
                 else
                 {
-                    result = producer!.DispatchAsync(@event, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source);
+                    if (producerList!.Count > 1)
+                    {
+                        var tasks = new Task[producerList.Count];
+                        var i = 0;
+                        var newSource = networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source;
+                        foreach (var producer in producerList)
+                        {
+                            tasks[i++] = producer!.DispatchAsync(@event, newSource);
+                        }
+                        result = Task.WhenAll(tasks);
+                    }
+                    else
+                    {
+                        var producer = producerList.First();
+                        result = producer!.DispatchAsync(@event, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source);
+                    }
                 }
             }
             else
             {
-                result = HandleEventTaskLogged(handled, producer, cacheProviderDispatchAsync, @event, eventType, networkType, source);
+                if (producerList!.Count > 1)
+                {
+                    var tasks = new Task[producerList.Count];
+                    var i = 0;
+                    foreach (var producer in producerList)
+                    {
+                        tasks[i++] = HandleEventTaskLogged(handled, producer, cacheProviderDispatchAsync, @event, eventType, networkType, source);
+                    }
+                    result = Task.WhenAll(tasks);
+                }
+                else
+                {
+                    var producer = producerList.First();
+                    result = HandleEventTaskLogged(handled, producer, cacheProviderDispatchAsync, @event, eventType, networkType, source);
+                }
             }
 
             if (networkType == NetworkType.Local)
@@ -821,7 +849,7 @@ namespace Zerra.CQRS
             }
 
             IQueryClient? queryClient = null;
-            if (!queryClients.IsEmpty && (networkType == NetworkType.Local || !handledTypes.Contains(interfaceType)))
+            if (queryClients.Count != 0 && (networkType == NetworkType.Local || !handledTypes.Contains(interfaceType)))
             {
                 _ = queryClients.TryGetValue(interfaceType, out queryClient);
             }
@@ -1065,8 +1093,8 @@ namespace Zerra.CQRS
                     }
                     var topic = GetCommandTopic(commandType);
                     commandProducer.RegisterCommandType(maxConcurrentCommandsPerTopic, topic, commandType);
-                    _ = commandProducers.TryAdd(commandType, commandProducer);
-                    _ = Log.InfoAsync($"{commandProducer.GetType().GetNiceName()} - {commandType.GetNiceName()}");
+                    commandProducers.Add(commandType, commandProducer);
+                    _ = Log.InfoAsync($"{commandProducer.GetType().GetNiceName()}c - {commandType.GetNiceName()}");
                 }
             }
             finally
@@ -1108,7 +1136,7 @@ namespace Zerra.CQRS
                                 var topic = GetCommandTopic(commandType);
                                 commandConsumer.RegisterCommandType(maxConcurrentCommandsPerTopic, topic, commandType);
                                 _ = handledTypes.Add(commandType);
-                                _ = Log.InfoAsync($"{commandConsumer.GetType().GetNiceName()} - {commandType.GetNiceName()}");
+                                _ = Log.InfoAsync($"{commandConsumer.GetType().GetNiceName()} at {commandConsumer.MessageHost} - {commandType.GetNiceName()}");
                             }
                         }
                     }
@@ -1147,8 +1175,13 @@ namespace Zerra.CQRS
                     }
                     var topic = GetEventTopic(eventType);
                     eventProducer.RegisterEventType(maxConcurrentEventsPerTopic, topic, eventType);
-                    _ = eventProducers.TryAdd(eventType, eventProducer);
-                    _ = Log.InfoAsync($"{eventProducers.GetType().GetNiceName()} - {eventType.GetNiceName()}");
+                    if (!eventProducers.TryGetValue(eventType, out var eventProducerList))
+                    {
+                        eventProducerList = new();
+                        eventProducers.Add(eventType, eventProducerList);
+                    }
+                    eventProducerList.Add(eventProducer);
+                    _ = Log.InfoAsync($"{eventProducers.GetType().GetNiceName()} at {eventProducer.MessageHost} - {eventType.GetNiceName()}");
                 }
             }
             finally
@@ -1185,7 +1218,7 @@ namespace Zerra.CQRS
                                 var topic = GetEventTopic(eventType);
                                 eventConsumer.RegisterEventType(maxConcurrentEventsPerTopic, topic, eventType);
                                 _ = handledTypes.Add(eventType);
-                                _ = Log.InfoAsync($"{eventConsumer.GetType().GetNiceName()} - {eventType.GetNiceName()}");
+                                _ = Log.InfoAsync($"{eventConsumer.GetType().GetNiceName()} at {eventConsumer.MessageHost} - {eventType.GetNiceName()}");
                             }
                         }
                     }
@@ -1224,8 +1257,8 @@ namespace Zerra.CQRS
                     return;
                 }
                 queryClient.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
-                _ = queryClients.TryAdd(interfaceType, queryClient);
-                _ = Log.InfoAsync($"{queryClients.GetType().GetNiceName()} - {interfaceType.GetNiceName()}");
+                queryClients.Add(interfaceType, queryClient);
+                _ = Log.InfoAsync($"{queryClients.GetType().GetNiceName()} at {queryClient.ServiceUrl} - {interfaceType.GetNiceName()}");
             }
             finally
             {
@@ -1264,7 +1297,7 @@ namespace Zerra.CQRS
                             }
                             queryServer.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
                             _ = handledTypes.Add(interfaceType);
-                            _ = Log.InfoAsync($"{queryServer.GetType().GetNiceName()} - {interfaceType.GetNiceName()}");
+                            _ = Log.InfoAsync($"{queryServer.GetType().GetNiceName()} at {queryServer.ServiceUrl} - {interfaceType.GetNiceName()}");
                         }
                     }
                 }
@@ -1458,7 +1491,7 @@ namespace Zerra.CQRS
                                     {
                                         _ = handledTypes.Add(interfaceType);
                                         queryServer.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
-                                        _ = Log.InfoAsync($"Hosting - {queryServerType.GetNiceName()} at {serviceQuerySetting.BindingUrl} - {interfaceType.GetNiceName()}");
+                                        _ = Log.InfoAsync($"Hosting - {queryServerType.GetNiceName()} at {queryServer.ServiceUrl} - {interfaceType.GetNiceName()}");
                                     }
                                 }
                                 catch (Exception ex)
@@ -1503,8 +1536,8 @@ namespace Zerra.CQRS
                                     if (queryClient is not null && queryClientType is not null)
                                     {
                                         queryClient.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
-                                        _ = queryClients.TryAdd(interfaceType, queryClient);
-                                        _ = Log.InfoAsync($"{serviceQuerySetting.Service} - {queryClientType.GetNiceName()} at {serviceQuerySetting.ExternalUrl} - {interfaceType.GetNiceName()}");
+                                        queryClients.Add(interfaceType, queryClient);
+                                        _ = Log.InfoAsync($"{serviceQuerySetting.Service} - {queryClientType.GetNiceName()} at {queryClient.ServiceUrl} - {interfaceType.GetNiceName()}");
                                     }
                                 }
                                 catch (Exception ex)
@@ -1535,7 +1568,7 @@ namespace Zerra.CQRS
                         ICommandProducer? commandProducer = null;
                         Type? commandProducerType = null;
 
-                        IEventProducer? eventProducer = null;
+                        Dictionary<string, IEventProducer>? eventProducerDictionary = null;
                         Type? eventProducerType = null;
 
                         ICommandConsumer? commandConsumer = null;
@@ -1595,7 +1628,7 @@ namespace Zerra.CQRS
                                                 var topic = GetCommandTopic(commandType);
                                                 commandConsumer.RegisterCommandType(maxConcurrentCommandsPerTopic, topic, commandType);
                                                 _ = handledTypes.Add(commandType);
-                                                _ = Log.InfoAsync($"Hosting - {commandConsumerType.GetNiceName()} at {serviceMessageSetting.MessageHost} - {commandType.GetNiceName()}");
+                                                _ = Log.InfoAsync($"Hosting - {commandConsumerType.GetNiceName()} at {commandConsumer.MessageHost} - {commandType.GetNiceName()}");
                                             }
                                         }
                                     }
@@ -1637,8 +1670,8 @@ namespace Zerra.CQRS
                                                     }
                                                     var topic = GetCommandTopic(commandType);
                                                     commandProducer.RegisterCommandType(maxConcurrentCommandsPerTopic, topic, commandType);
-                                                    _ = commandProducers.TryAdd(commandType, commandProducer);
-                                                    _ = Log.InfoAsync($"{serviceMessageSetting.Service} - {commandProducerType.GetNiceName()} at {serviceMessageSetting.MessageHost} - {commandType.GetNiceName()}");
+                                                    commandProducers.Add(commandType, commandProducer);
+                                                    _ = Log.InfoAsync($"{serviceMessageSetting.Service} - {commandProducerType.GetNiceName()} at {commandProducer.MessageHost} - {commandType.GetNiceName()}");
                                                 }
                                             }
                                         }
@@ -1684,7 +1717,7 @@ namespace Zerra.CQRS
                                                 var topic = GetEventTopic(eventType);
                                                 eventConsumer.RegisterEventType(maxConcurrentEventsPerTopic, topic, eventType);
                                                 _ = handledTypes.Add(eventType);
-                                                _ = Log.InfoAsync($"Hosting - {eventConsumerType.GetNiceName()} at {serviceMessageSetting.MessageHost} - {eventType.GetNiceName()}");
+                                                _ = Log.InfoAsync($"Hosting - {eventConsumerType.GetNiceName()} at {eventConsumer.MessageHost} - {eventType.GetNiceName()}");
                                             }
                                         }
                                     }
@@ -1696,7 +1729,8 @@ namespace Zerra.CQRS
 
                                 try
                                 {
-                                    if (eventProducer is null)
+                                    eventProducerDictionary ??= new();
+                                    if (!eventProducerDictionary.TryGetValue(serviceMessageSetting.MessageHost, out var eventProducer))
                                     {
                                         var encryptionKey = String.IsNullOrWhiteSpace(serviceMessageSetting.EncryptionKey) ? null : SymmetricEncryptor.GetKey(serviceMessageSetting.EncryptionKey);
                                         var symmetricConfig = encryptionKey is null ? null : new SymmetricConfig(encryptionAlgoritm, encryptionKey);
@@ -1704,6 +1738,7 @@ namespace Zerra.CQRS
                                         if (eventProducer is not null)
                                         {
                                             eventProducerType = eventProducer.GetType();
+                                            eventProducerDictionary.Add(serviceMessageSetting.MessageHost, eventProducer);
                                         }
                                     }
 
@@ -1711,15 +1746,15 @@ namespace Zerra.CQRS
                                     {
                                         foreach (var eventType in eventTypes)
                                         {
-                                            if (handledTypes.Contains(eventType))
-                                                continue;
-                                            if (commandProducers.ContainsKey(eventType))
-                                                continue;
-
                                             var topic = GetEventTopic(eventType);
                                             eventProducer.RegisterEventType(maxConcurrentEventsPerTopic, topic, eventType);
-                                            _ = eventProducers.TryAdd(eventType, eventProducer);
-                                            _ = Log.InfoAsync($"{serviceMessageSetting.Service} - {eventProducerType.GetNiceName()} at {serviceMessageSetting.MessageHost} - {eventType.GetNiceName()}");
+                                            if (!eventProducers.TryGetValue(eventType, out var eventProducerList))
+                                            {
+                                                eventProducerList = new();
+                                                eventProducers.Add(eventType, eventProducerList);
+                                            }
+                                            eventProducerList.Add(eventProducer);
+                                            _ = Log.InfoAsync($"{serviceMessageSetting.Service} - {eventProducerType.GetNiceName()} at {eventProducer.MessageHost} - {eventType.GetNiceName()}");
                                         }
                                     }
                                 }
