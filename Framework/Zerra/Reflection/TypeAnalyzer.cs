@@ -247,7 +247,7 @@ namespace Zerra.Reflection
             var genericMethod = genericMethodDetailsByMethod.GetOrAdd(key, method, types, static (method, types) =>
             {
                 var generic = method.MakeGenericMethod(types);
-                return MethodDetailRuntime<object>.New(method.ReflectedType, method.Name, generic, false, new object());
+                return MethodDetailRuntime<object>.New(method.ReflectedType!, method.Name, generic, false, new object());
             });
             return genericMethod;
         }

@@ -222,7 +222,11 @@ namespace Zerra.Identity.Consumers
             {
                 var certString = key.X509Certificates.First();
                 var certBytes = Convert.FromBase64String(certString);
+#if NET9_0_OR_GREATER
+                var cert = X509CertificateLoader.LoadCertificate(certBytes);
+#else
                 var cert = new X509Certificate2(certBytes);
+#endif
                 rsa = cert.GetRSAPublicKey();
             }
 

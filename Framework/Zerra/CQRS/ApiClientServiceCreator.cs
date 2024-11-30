@@ -19,6 +19,7 @@ namespace Zerra.CQRS
         {
             this.serviceCreatorForQueriesAndConsumers = serviceCreatorForQueriesAndConsumers;
             this.authorizer = authorizer;
+            this.route = route;
         }
 
         public ICommandProducer? CreateCommandProducer(string messageHost, SymmetricConfig? symmetricConfig)

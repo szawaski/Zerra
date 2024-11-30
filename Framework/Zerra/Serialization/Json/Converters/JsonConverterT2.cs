@@ -468,7 +468,7 @@ namespace Zerra.Serialization.Json.Converters
                 }
                 else
                 {
-                    if (!ignoreDoNotWriteNullProperties && (ignoreCondition == JsonIgnoreCondition.WhenWritingDefault || state.DoNotWriteDefaultProperties) && value.Equals(default(TValue)))
+                    if (!ignoreDoNotWriteNullProperties && (ignoreCondition == JsonIgnoreCondition.WhenWritingDefault || state.DoNotWriteDefaultProperties) && value!.Equals(default(TValue)))
                     {
                         return true;
                     }

@@ -4,6 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.IO;
 using System.Linq;
+using System.Text;
 
 namespace Zerra.SourceGeneration.Test
 {
@@ -69,7 +70,7 @@ namespace Zerra.SourceGeneration.Test
 #endif
 """";
                 var filePath = $"{path}{Path.DirectorySeparatorChar}{source.HintName}";
-                File.WriteAllText(filePath, wrapper, source.SourceText.Encoding);
+                File.WriteAllText(filePath, wrapper, source.SourceText.Encoding ?? Encoding.UTF8);
             }
 
             var sourceFiles = result.GeneratedSources.Select(x => x.HintName).ToHashSet();

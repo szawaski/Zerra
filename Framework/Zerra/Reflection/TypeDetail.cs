@@ -105,7 +105,6 @@ namespace Zerra.Reflection
             }
         }
 
-        private Dictionary<string, MemberDetail>? membersByName = null;
         public abstract MemberDetail GetMember(string name);
         public abstract bool TryGetMember(string name,
 #if !NETSTANDARD2_0

@@ -38,6 +38,8 @@ namespace Zerra.CQRS.Kafka
             this.host = host;
             this.symmetricConfig = symmetricConfig;
             this.environment = environment;
+            this.userName = userName;
+            this.password = password;
             this.commandExchanges = new();
             this.eventExchanges = new();
             this.commandTypes = new();

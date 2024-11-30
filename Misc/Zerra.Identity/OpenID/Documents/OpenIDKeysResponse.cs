@@ -55,7 +55,11 @@ namespace Zerra.Identity.OpenID.Documents
                 {
                     foreach (var x509String in key.X509Certificates)
                     {
+#if NET9_0_OR_GREATER
+                        var cert = X509CertificateLoader.LoadCertificate(Convert.FromBase64String(x509String));
+#else
                         var cert = new X509Certificate2(Convert.FromBase64String(x509String));
+#endif
                         //cert.FriendlyName = key.KeyID;
                         certs.Add(cert);
                     }

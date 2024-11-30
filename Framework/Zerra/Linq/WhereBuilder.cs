@@ -95,11 +95,11 @@ namespace Zerra.Linq
                 }
                 else if (item.And)
                 {
-                    exp = Expression.AndAlso(exp, WhereBuilder<TModel>.Rebind(item.Expression, parameter));
+                    exp = Expression.AndAlso(exp, WhereBuilder<TModel>.Rebind(item.Expression!, parameter));
                 }
                 else if (item.Or)
                 {
-                    exp = Expression.OrElse(exp, WhereBuilder<TModel>.Rebind(item.Expression, parameter));
+                    exp = Expression.OrElse(exp, WhereBuilder<TModel>.Rebind(item.Expression!, parameter));
                 }
                 i++;
             }

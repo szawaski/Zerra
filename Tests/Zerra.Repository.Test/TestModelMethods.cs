@@ -255,7 +255,7 @@ namespace Zerra.Repository.Test
             _ = provider.Query(new QuerySingle<T>(x => x.DateTimeThing.Year > DateTime.Now.AddYears(-1).Year));
 
             //time
-            _ = provider.Query(new QuerySingle<T>(x => x.TimeSpanThing > TimeSpan.FromMilliseconds(123)));
+            _ = provider.Query(new QuerySingle<T>(x => x.TimeSpanThing > TimeSpan.FromMilliseconds(123, 0)));
 
             //string like
             _ = provider.Query(new QuerySingle<T>(x => x.StringThing.Contains("World")));
