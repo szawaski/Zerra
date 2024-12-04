@@ -8,7 +8,7 @@ namespace Zerra.CQRS.Settings
 {
     /// <summary>
     /// Defines a factory to create services for <see cref="Bus.StartServices(ServiceSettings, IServiceCreator)"/>.
-    /// Basic services include <see cref="TcpServiceCreator"/> or <see cref="HttpServiceCreator"/> which handle queries and commands but not events.
+    /// Basic services include <see cref="TcpServiceCreator"/> or <see cref="HttpServiceCreator"/>.
     /// Add on other service implementations or custom build ones for more functionality.
     /// </summary>
     public interface IServiceCreator

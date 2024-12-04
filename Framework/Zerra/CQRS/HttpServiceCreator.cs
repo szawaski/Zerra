@@ -10,6 +10,11 @@ using Zerra.Encryption;
 
 namespace Zerra.CQRS
 {
+    /// <summary>
+    /// A minimal HTTP protocol for communication between services.
+    /// This uses JSON with the <see cref="Zerra.Serialization.Json.JsonSerializer"/>
+    /// Used in <see cref="Bus.StartServices(ServiceSettings, IServiceCreator)"/>.
+    /// </summary>
     public class HttpServiceCreator : IServiceCreator
     {
         private static readonly ConcurrentFactoryDictionary<string, HttpCqrsServer> servers = new();
@@ -17,6 +22,8 @@ namespace Zerra.CQRS
         private readonly ContentType contentType;
         private readonly ICqrsAuthorizer? authorizer;
         private readonly string[]? allowOrigins;
+
+        /// <inheritdoc />
         public HttpServiceCreator(ContentType contentType = ContentType.Json, ICqrsAuthorizer? authorizer = null, string[]? allowOrigins = null)
         {
             this.contentType = contentType;
@@ -24,6 +31,7 @@ namespace Zerra.CQRS
             this.allowOrigins = allowOrigins;
         }
 
+        /// <inheritdoc />
         public ICommandProducer? CreateCommandProducer(string messageHost, SymmetricConfig? symmetricConfig)
         {
             if (String.IsNullOrWhiteSpace(messageHost))
@@ -31,6 +39,7 @@ namespace Zerra.CQRS
             return new HttpCqrsClient(contentType, messageHost, symmetricConfig, authorizer);
         }
 
+        /// <inheritdoc />
         public ICommandConsumer? CreateCommandConsumer(string messageHost, SymmetricConfig? symmetricConfig)
         {
             if (String.IsNullOrWhiteSpace(messageHost))
@@ -38,6 +47,7 @@ namespace Zerra.CQRS
             return servers.GetOrAdd(messageHost, contentType, symmetricConfig, authorizer, allowOrigins, static (messageHost, contentType, symmetricConfig, authorizer, allowOrigins) => new HttpCqrsServer(contentType, messageHost, symmetricConfig, authorizer, allowOrigins));
         }
 
+        /// <inheritdoc />
         public IEventProducer? CreateEventProducer(string messageHost, SymmetricConfig? symmetricConfig)
         {
             if (String.IsNullOrWhiteSpace(messageHost))
@@ -45,6 +55,7 @@ namespace Zerra.CQRS
             return new HttpCqrsClient(contentType, messageHost, symmetricConfig, authorizer);
         }
 
+        /// <inheritdoc />
         public IEventConsumer? CreateEventConsumer(string messageHost, SymmetricConfig? symmetricConfig)
         {
             if (String.IsNullOrWhiteSpace(messageHost))
@@ -52,6 +63,7 @@ namespace Zerra.CQRS
             return servers.GetOrAdd(messageHost, contentType, symmetricConfig, authorizer, allowOrigins, static (messageHost, contentType, symmetricConfig, authorizer, allowOrigins) => new HttpCqrsServer(contentType, messageHost, symmetricConfig, authorizer, allowOrigins));
         }
 
+        /// <inheritdoc />
         public IQueryClient? CreateQueryClient(string serviceUrl, SymmetricConfig? symmetricConfig)
         {
             if (String.IsNullOrWhiteSpace(serviceUrl))
@@ -59,6 +71,7 @@ namespace Zerra.CQRS
             return new HttpCqrsClient(contentType, serviceUrl, symmetricConfig, authorizer);
         }
 
+        /// <inheritdoc />
         public IQueryServer? CreateQueryServer(string serviceUrl, SymmetricConfig? symmetricConfig)
         {
             if (String.IsNullOrWhiteSpace(serviceUrl))

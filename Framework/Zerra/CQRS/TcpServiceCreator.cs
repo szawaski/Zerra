@@ -10,11 +10,17 @@ using Zerra.Encryption;
 
 namespace Zerra.CQRS
 {
+    /// <summary>
+    /// The fastest protocol for communication between services.
+    /// This uses a light-weight TCP spec with fast and small <see cref="Zerra.Serialization.Bytes.ByteSerializer"/>
+    /// Used in <see cref="Bus.StartServices(ServiceSettings, IServiceCreator)"/>.
+    /// </summary>
     public sealed class TcpServiceCreator : IServiceCreator
     {
         private const ContentType contentType = ContentType.Bytes;
         private static readonly ConcurrentFactoryDictionary<string, TcpRawCqrsServer> servers = new();
 
+        /// <inheritdoc />
         public ICommandProducer? CreateCommandProducer(string messageHost, SymmetricConfig? symmetricConfig)
         {
             if (String.IsNullOrWhiteSpace(messageHost))
@@ -22,6 +28,7 @@ namespace Zerra.CQRS
             return new TcpRawCqrsClient(contentType, messageHost, symmetricConfig);
         }
 
+        /// <inheritdoc />
         public ICommandConsumer? CreateCommandConsumer(string messageHost, SymmetricConfig? symmetricConfig)
         {
             if (String.IsNullOrWhiteSpace(messageHost))
@@ -29,6 +36,7 @@ namespace Zerra.CQRS
             return servers.GetOrAdd(messageHost, symmetricConfig, static (messageHost, symmetricConfig) => new TcpRawCqrsServer(contentType, messageHost, symmetricConfig));
         }
 
+        /// <inheritdoc />
         public IEventProducer? CreateEventProducer(string messageHost, SymmetricConfig? symmetricConfig)
         {
             if (String.IsNullOrWhiteSpace(messageHost))
@@ -36,6 +44,7 @@ namespace Zerra.CQRS
             return new TcpRawCqrsClient(contentType, messageHost, symmetricConfig);
         }
 
+        /// <inheritdoc />
         public IEventConsumer? CreateEventConsumer(string messageHost, SymmetricConfig? symmetricConfig)
         {
             if (String.IsNullOrWhiteSpace(messageHost))
@@ -43,6 +52,7 @@ namespace Zerra.CQRS
             return servers.GetOrAdd(messageHost, symmetricConfig, static (messageHost, symmetricConfig) => new TcpRawCqrsServer(contentType, messageHost, symmetricConfig));
         }
 
+        /// <inheritdoc />
         public IQueryClient? CreateQueryClient(string serviceUrl, SymmetricConfig? symmetricConfig)
         {
             if (String.IsNullOrWhiteSpace(serviceUrl))
@@ -50,6 +60,7 @@ namespace Zerra.CQRS
             return new TcpRawCqrsClient(contentType, serviceUrl, symmetricConfig);
         }
 
+        /// <inheritdoc />
         public IQueryServer? CreateQueryServer(string serviceUrl, SymmetricConfig? symmetricConfig)
         {
             if (String.IsNullOrWhiteSpace(serviceUrl))
