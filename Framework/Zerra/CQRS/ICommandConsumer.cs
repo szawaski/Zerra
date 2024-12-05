@@ -41,6 +41,15 @@ namespace Zerra.CQRS
         void Close();
     }
 
+    /// <summary>
+    /// A delegate that a command consumer will use to handle a received command.
+    /// <see cref="Bus"/> will provide the delegate.
+    /// </summary>
     public delegate Task HandleRemoteCommandDispatch(ICommand command, string source, bool isApi);
+
+    /// <summary>
+    /// A delegate that a command consumer will use to handle a received command with a result.
+    /// <see cref="Bus"/> will provide the delegate.
+    /// </summary>
     public delegate Task<object?> HandleRemoteCommandWithResultDispatch(ICommand command, string source, bool isApi);
 }

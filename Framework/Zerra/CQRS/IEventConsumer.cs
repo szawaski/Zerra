@@ -38,5 +38,9 @@ namespace Zerra.CQRS
         void Close();
     }
 
+    /// <summary>
+    /// A delegate that an event consumer will use to handle a received event.
+    /// <see cref="Bus"/> will provide the delegate.
+    /// </summary>
     public delegate Task HandleRemoteEventDispatch(IEvent @event, string source, bool isApi);
 }

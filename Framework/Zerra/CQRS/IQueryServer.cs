@@ -39,5 +39,9 @@ namespace Zerra.CQRS
         void Close();
     }
 
+    /// <summary>
+    /// A delegate that a query server will use to handle a received call.
+    /// <see cref="Bus"/> will provide the delegate.
+    /// </summary>
     public delegate Task<RemoteQueryCallResponse> QueryHandlerDelegate(Type interfaceName, string methodName, string?[] arguments, string source, bool isApi);
 }
