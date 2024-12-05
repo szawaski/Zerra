@@ -265,6 +265,8 @@ namespace Zerra.Map
             var targetParameter = Expression.Parameter(targetType.Type, "target");
             foreach (var memberT in sourceType.MemberDetails)
             {
+                if (memberT.IsExplicitFromInterface)
+                    continue;
                 if (targetType.TryGetMember(memberT.Name, out var memberU))
                 {
                     Expression sourceMemberAccess;
