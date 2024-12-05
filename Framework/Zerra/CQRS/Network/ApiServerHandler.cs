@@ -3,17 +3,25 @@
 // Licensed to you under the MIT license
 
 using System;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Zerra.Encryption;
 using Zerra.Reflection;
 using Zerra.Serialization.Json;
 
 namespace Zerra.CQRS.Network
 {
+    /// <summary>
+    /// Helper class to handle external API requests.
+    /// Used by <see cref="Zerra.Web.CqrsApiGatewayMiddleware"/>
+    /// </summary>
     public static class ApiServerHandler
     {
+        /// <summary>
+        /// Handles an external API request.
+        /// </summary>
+        /// <param name="contentType">The serialized content type of the request.</param>
+        /// <param name="data">The data received for the API request.</param>
+        /// <returns>The response from the API request.</returns>
         public static async Task<ApiResponseData?> HandleRequestAsync(ContentType? contentType, ApiRequestData data)
         {
             if (!String.IsNullOrWhiteSpace(data.ProviderType))

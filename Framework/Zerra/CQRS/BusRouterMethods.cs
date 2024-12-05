@@ -7,9 +7,7 @@ using System.Reflection;
 
 namespace Zerra.CQRS
 {
-    /// <summary>
-    /// Seperate class so they are not loaded if never used.
-    /// </summary>
+    //Seperate class so they are not loaded if never used.
     internal static class BusRouterMethods
     {
         public static readonly ConstructorInfo NotSupportedExceptionConstructor = typeof(NotSupportedException).GetConstructor([typeof(string)]) ?? throw new Exception($"{nameof(NotSupportedException)} constructor not found");
