@@ -10,20 +10,16 @@ namespace Zerra.CQRS
     public enum NetworkType : byte
     {
         /// <summary>
-        /// Indicates no value, not exposed or blocked.
-        /// </summary>
-        None = 0,
-        /// <summary>
         /// Indicates local to the assembly, no other services.
         /// </summary>
-        Local = 1,
+        Local = 0,
         /// <summary>
         /// Indicates internal to the system which may include other services but not exposed to the outside web.
         /// </summary>
-        Internal = 2,
+        Internal = 1,
         /// <summary>
         /// Indicates an API exposed to the outside web.
         /// </summary>
-        Api = 3
+        Api = 2
     }
 }

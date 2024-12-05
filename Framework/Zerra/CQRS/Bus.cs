@@ -269,9 +269,9 @@ namespace Zerra.CQRS
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         public static Task _DispatchCommandInternalAsync(ICommand command, Type commandType, bool requireAffirmation, NetworkType networkType, bool isFinalLayer, string source)
         {
-            var metadata = messageMetadata.GetOrAdd(commandType, static (commandType) =>
+            var metadata = messageMetadata.GetOrAdd(commandType, (Func<Type, MessageMetadata>)(static (commandType) =>
             {
-                NetworkType exposedNetworkType = NetworkType.None;
+                NetworkType exposedNetworkType = NetworkType.Local;
                 var busLogging = BusLogging.SenderAndHandler;
                 var authenticate = false;
                 string[]? roles = null;
@@ -292,7 +292,7 @@ namespace Zerra.CQRS
                     }
                 }
                 return new MessageMetadata(exposedNetworkType, busLogging, authenticate, roles);
-            });
+            }));
 
             if (metadata.ExposedNetworkType < networkType)
                 throw new SecurityException($"Not Exposed Command {commandType.GetNiceName()} for {nameof(NetworkType)}.{networkType.EnumName()}");
@@ -383,9 +383,9 @@ namespace Zerra.CQRS
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         public static Task<TResult?> _DispatchCommandWithResultInternalAsync<TResult>(ICommand<TResult> command, Type commandType, NetworkType networkType, bool isFinalLayer, string source)
         {
-            var metadata = messageMetadata.GetOrAdd(commandType, networkType, static (commandType, networkType) =>
+            var metadata = messageMetadata.GetOrAdd(commandType, networkType, (Func<Type, NetworkType, MessageMetadata>)(static (commandType, networkType) =>
             {
-                NetworkType exposedNetworkType = NetworkType.None;
+                NetworkType exposedNetworkType = NetworkType.Local;
                 var busLogging = BusLogging.SenderAndHandler;
                 var authenticate = false;
                 string[]? roles = null;
@@ -406,7 +406,7 @@ namespace Zerra.CQRS
                     }
                 }
                 return new MessageMetadata(exposedNetworkType, busLogging, authenticate, roles);
-            });
+            }));
 
             if (metadata.ExposedNetworkType < networkType)
                 throw new SecurityException($"Not Exposed Command {commandType.GetNiceName()} for {nameof(NetworkType)}.{networkType.EnumName()}");
@@ -491,9 +491,9 @@ namespace Zerra.CQRS
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         public static Task _DispatchEventInternalAsync(IEvent @event, Type eventType, NetworkType networkType, bool isFinalLayer, string source)
         {
-            var metadata = messageMetadata.GetOrAdd(eventType, networkType, static (eventType, networkType) =>
+            var metadata = messageMetadata.GetOrAdd(eventType, networkType, (Func<Type, NetworkType, MessageMetadata>)(static (eventType, networkType) =>
             {
-                NetworkType exposedNetworkType = NetworkType.None;
+                NetworkType exposedNetworkType = NetworkType.Local;
                 var busLogging = BusLogging.SenderAndHandler;
                 var authenticate = false;
                 string[]? roles = null;
@@ -514,7 +514,7 @@ namespace Zerra.CQRS
                     }
                 }
                 return new MessageMetadata(exposedNetworkType, busLogging, authenticate, roles);
-            });
+            }));
 
             if (metadata.ExposedNetworkType < networkType)
                 throw new SecurityException($"Not Exposed Event {eventType.GetNiceName()} for {nameof(NetworkType)}.{networkType.EnumName()}");
@@ -757,9 +757,9 @@ namespace Zerra.CQRS
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         public static TReturn _CallMethod<TReturn>(Type interfaceType, string methodName, object[] arguments, NetworkType networkType, bool isFinalLayer, string source)
         {
-            var metadata = callMetadata.GetOrAdd(interfaceType, networkType, static (interfaceType, networkType) =>
+            var metadata = callMetadata.GetOrAdd(interfaceType, networkType, (Func<Type, NetworkType, CallMetadata>)(static (interfaceType, networkType) =>
             {
-                NetworkType exposedNetworkType = NetworkType.None;
+                NetworkType exposedNetworkType = NetworkType.Local;
                 var busLogging = BusLogging.SenderAndHandler;
                 var authenticate = false;
                 string[]? roles = null;
@@ -781,13 +781,13 @@ namespace Zerra.CQRS
                     }
                 }
                 return new CallMetadata(exposedNetworkType, busLogging, authenticate, roles);
-            });
+            }));
 
-            var methodMetadata = metadata.MethodMetadata.GetOrAdd(methodName, interfaceType, networkType, metadata, static (methodName, interfaceType, networkType, metadata) =>
+            var methodMetadata = metadata.MethodMetadata.GetOrAdd(methodName, interfaceType, networkType, metadata, (Func<string, Type, NetworkType, CallMetadata, MethodMetadata>)(static (methodName, interfaceType, networkType, metadata) =>
             {
                 var methodDetail = TypeAnalyzer.GetMethodDetail(interfaceType, methodName);
 
-                NetworkType blockedNetworkType = NetworkType.None;
+                NetworkType blockedNetworkType = NetworkType.Local;
                 var busLogging = metadata.BusLogging;
                 var authenticate = false;
                 string[]? roles = null;
@@ -808,14 +808,14 @@ namespace Zerra.CQRS
                     }
                 }
                 return new MethodMetadata(methodDetail, blockedNetworkType, busLogging, authenticate, roles);
-            });
+            }));
 
             if (methodMetadata.MethodDetail.ParameterDetails.Count != arguments.Length)
                 throw new ArgumentException($"{interfaceType.GetNiceName()}.{methodName} invalid number of arguments");
 
             if (metadata.ExposedNetworkType < networkType)
                 throw new Exception($"Not Exposed Interface {interfaceType.GetNiceName()} for {nameof(NetworkType)}.{networkType.EnumName()}");
-            if (methodMetadata.BlockedNetworkType != NetworkType.None && methodMetadata.BlockedNetworkType >= networkType)
+            if (methodMetadata.BlockedNetworkType != NetworkType.Local && methodMetadata.BlockedNetworkType >= networkType)
                 throw new Exception($"Blocked Method {interfaceType.GetNiceName()}.{methodName} for {nameof(NetworkType)}.{networkType.EnumName()}");
 
             if (metadata.Authenticate)
