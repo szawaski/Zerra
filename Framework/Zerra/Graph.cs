@@ -25,6 +25,11 @@ namespace Zerra
         protected Dictionary<object, Graph>? instanceGraphs;
 
         /// <summary>
+        /// All members that were explicity added and not removed.
+        /// </summary>
+        public IEnumerable<string> ExplicitMembers => addedMembers is null ? Array.Empty<string>() : (removedMembers is null ? addedMembers : addedMembers.Where(x => !removedMembers.Contains(x)));
+
+        /// <summary>
         /// All members are included unless explicity removed.
         /// </summary>
         public bool IncludeAllMembers

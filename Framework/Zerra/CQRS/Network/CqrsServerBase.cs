@@ -51,9 +51,6 @@ namespace Zerra.CQRS.Network
 
         void IQueryServer.RegisterInterfaceType(int maxConcurrent, Type type)
         {
-            if (types.Count > 0)
-                throw new Exception($"Cannot register interface because this instance of {thisType.GetNiceName()} is already being used for commands");
-
             if (throttle is not null)
                 throttle.Dispose();
             throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
