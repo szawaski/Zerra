@@ -561,6 +561,29 @@ namespace Zerra.Test
         }
 
         [TestMethod]
+        public void StringDateTimeTypes()
+        {
+            var dateUtc = new DateTime(2024, 12, 5, 18, 10, 5, 123, 456, DateTimeKind.Utc);
+            var json = JsonSerializer.Serialize(dateUtc);
+            var dateUtc2 = JsonSerializer.Deserialize<DateTime>(json);
+            Assert.AreEqual(dateUtc, dateUtc2);
+            Assert.AreEqual(DateTimeKind.Utc, dateUtc2.Kind);
+
+            var dateLocal = new DateTime(2024, 12, 5, 18, 10, 5, 123, 456, DateTimeKind.Local);
+            json = JsonSerializer.Serialize(dateLocal);
+            var dateLocal2 = JsonSerializer.Deserialize<DateTime>(json);
+            var dateLocalUtc = dateLocal.ToUniversalTime();
+            Assert.AreEqual(dateLocalUtc, dateLocal2);
+            Assert.AreEqual(DateTimeKind.Utc, dateLocal2.Kind);
+
+            var dateUnspecified = new DateTime(2024, 12, 5, 18, 10, 5, 123, 456, DateTimeKind.Unspecified);
+            json = JsonSerializer.Serialize(dateUnspecified);
+            var dateUnspecified2 = JsonSerializer.Deserialize<DateTime>(json);
+            Assert.AreEqual(dateUnspecified, dateUnspecified2);
+            Assert.AreEqual(DateTimeKind.Utc, dateUnspecified2.Kind);
+        }
+
+        [TestMethod]
         public void StringCharEscaping()
         {
             for (var i = 0; i < (int)byte.MaxValue; i++)
@@ -1538,6 +1561,35 @@ namespace Zerra.Test
 
             var model12 = await JsonSerializer.DeserializeAsync<T?>(new MemoryStream(Encoding.UTF8.GetBytes("\"\"")));
             Assert.AreEqual(null, model12);
+        }
+
+        [TestMethod]
+        public async Task StreamDateTimeTypes()
+        {
+            var dateUtc = new DateTime(2024, 12, 5, 18, 10, 5, 123, 456, DateTimeKind.Utc);
+            using var stream1 = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream1, dateUtc);
+            stream1.Position = 0;
+            var dateUtc2 = await JsonSerializer.DeserializeAsync<DateTime>(stream1);
+            Assert.AreEqual(dateUtc, dateUtc2);
+            Assert.AreEqual(DateTimeKind.Utc, dateUtc2.Kind);
+
+            var dateLocal = new DateTime(2024, 12, 5, 18, 10, 5, 123, 456, DateTimeKind.Local);
+            using var stream2 = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream2, dateLocal);
+            stream2.Position = 0;
+            var dateLocal2 = await JsonSerializer.DeserializeAsync<DateTime>(stream2);
+            var dateLocalUtc = dateLocal.ToUniversalTime();
+            Assert.AreEqual(dateLocalUtc, dateLocal2);
+            Assert.AreEqual(DateTimeKind.Utc, dateLocal2.Kind);
+
+            var dateUnspecified = new DateTime(2024, 12, 5, 18, 10, 5, 123, 456, DateTimeKind.Unspecified);
+            using var stream3 = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream3, dateUnspecified);
+            stream3.Position = 0;
+            var dateUnspecified2 = await JsonSerializer.DeserializeAsync<DateTime>(stream3);
+            Assert.AreEqual(dateUnspecified, dateUnspecified2);
+            Assert.AreEqual(DateTimeKind.Utc, dateUnspecified2.Kind);
         }
 
         [TestMethod]

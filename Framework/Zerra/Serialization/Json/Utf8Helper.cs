@@ -182,10 +182,12 @@ namespace Zerra.Serialization.Json
                         }
                         fractionTicks = fractionTicks * 10 + (int)d1;
                     }
-                    if (length <= i)
+                    if (length == i)
                     {
-                        value = default;
-                        return false;
+                        for (; i < 27; i++)
+                            fractionTicks *= 10;
+                        value = CreateDateTimeOffset(year, month, day, hours, minutes, seconds, fractionTicks, 0, 0);
+                        return true;
                     }
 
                     afterTime = pSource[i++];
@@ -233,7 +235,7 @@ namespace Zerra.Serialization.Json
                 }
                 int offsetHours;
                 if (offsetNegative)
-                    offsetHours = (int)(d1 * 10 + d2);
+                    offsetHours = (int)(-d1 * 10 - d2);
                 else
                     offsetHours = (int)(d1 * 10 + d2);
 
@@ -252,7 +254,7 @@ namespace Zerra.Serialization.Json
                 }
                 int offsetMinutes;
                 if (offsetNegative)
-                    offsetMinutes = (int)(d1 * 10 + d2);
+                    offsetMinutes = (int)(-d1 * 10 - d2);
                 else
                     offsetMinutes = (int)(d1 * 10 + d2);
 
@@ -447,10 +449,12 @@ namespace Zerra.Serialization.Json
                         }
                         fractionTicks = fractionTicks * 10 + (int)d1;
                     }
-                    if (length <= i)
+                    if (length == i)
                     {
-                        value = default;
-                        return false;
+                        for (; i < 27; i++)
+                            fractionTicks *= 10;
+                        value = CreateDateTimeOffset(year, month, day, hours, minutes, seconds, fractionTicks, 0, 0);
+                        return true;
                     }
 
                     afterTime = pSource[i++];
@@ -498,7 +502,7 @@ namespace Zerra.Serialization.Json
                 }
                 int offsetHours;
                 if (offsetNegative)
-                    offsetHours = (int)(d1 * 10 + d2);
+                    offsetHours = (int)(-d1 * 10 - d2);
                 else
                     offsetHours = (int)(d1 * 10 + d2);
 
@@ -517,7 +521,7 @@ namespace Zerra.Serialization.Json
                 }
                 int offsetMinutes;
                 if (offsetNegative)
-                    offsetMinutes = (int)(d1 * 10 + d2);
+                    offsetMinutes = (int)(-d1 * 10 - d2);
                 else
                     offsetMinutes = (int)(d1 * 10 + d2);
 
