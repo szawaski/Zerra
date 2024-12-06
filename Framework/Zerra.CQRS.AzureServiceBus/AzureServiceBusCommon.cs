@@ -7,7 +7,6 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using Zerra.CQRS.Network;
 using Zerra.Serialization.Bytes;
 
 namespace Zerra.CQRS.AzureServiceBus

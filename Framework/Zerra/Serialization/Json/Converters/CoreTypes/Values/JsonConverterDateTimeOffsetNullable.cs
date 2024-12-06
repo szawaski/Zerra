@@ -3,8 +3,6 @@
 // Licensed to you under the MIT license
 
 using System;
-using System.Buffers.Text;
-using System.Globalization;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 

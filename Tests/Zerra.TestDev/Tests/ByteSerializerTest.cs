@@ -14,7 +14,6 @@ using System.Text;
 using System.Threading.Tasks;
 using Zerra.Serialization.Bytes;
 using Zerra.Test;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Zerra.TestDev
 {

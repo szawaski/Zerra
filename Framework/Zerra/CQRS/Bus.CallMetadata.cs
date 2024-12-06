@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using Zerra.Collections;
-using Zerra.Reflection;
 
 namespace Zerra.CQRS
 {

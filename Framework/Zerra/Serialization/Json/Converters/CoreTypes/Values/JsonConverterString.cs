@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using System;
-using System.Text;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 

@@ -2,7 +2,6 @@
 using System.Runtime.CompilerServices;
 using System.Text;
 using Zerra.Buffers;
-using Zerra.IO;
 
 namespace Zerra.CQRS.Network
 {
