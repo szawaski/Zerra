@@ -37,19 +37,23 @@ namespace Zerra.Reflection
 
         internal static void Discover()
         {
-            if (!Config.DiscoveryEnabled)
-                return;
-
-            Config.SetDiscoveryStarted();
-
-            if (Config.AssemblyLoaderEnabled)
+            //Some test solution trigger multiple Config loads so make sure we aren't crossing threads here
+            lock (discoveredTypes)
             {
-                LoadAssemblies();
+                if (!Config.DiscoveryEnabled)
+                    return;
+
+                Config.SetDiscoveryStarted();
+
+                if (Config.AssemblyLoaderEnabled)
+                {
+                    LoadAssemblies();
+                }
+
+                DiscoverAssemblies();
+
+                RunGenerationsFromAttributes();
             }
-
-            DiscoverAssemblies();
-
-            RunGenerationsFromAttributes();
         }
 
         private static void LoadAssemblies()

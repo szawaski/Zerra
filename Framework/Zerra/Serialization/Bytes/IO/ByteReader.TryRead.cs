@@ -3652,7 +3652,7 @@ namespace Zerra.Serialization.Bytes.IO
             var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var ticks = (long)((ulong)hi) << 32 | lo;
-            value = new DateTime(ticks);
+            value = new DateTime(ticks, DateTimeKind.Utc);
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -3672,7 +3672,7 @@ namespace Zerra.Serialization.Bytes.IO
             var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             var ticks = (long)((ulong)hi) << 32 | lo;
-            value = new DateTime(ticks);
+            value = new DateTime(ticks, DateTimeKind.Utc);
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -3711,7 +3711,7 @@ namespace Zerra.Serialization.Bytes.IO
                 var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var ticks = (long)((ulong)hi) << 32 | lo;
-                var item = new DateTime(ticks);
+                var item = new DateTime(ticks, DateTimeKind.Utc);
                 value[i] = item;
             }
             return true;
@@ -3752,7 +3752,7 @@ namespace Zerra.Serialization.Bytes.IO
                 var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var ticks = (long)((ulong)hi) << 32 | lo;
-                var item = new DateTime(ticks);
+                var item = new DateTime(ticks, DateTimeKind.Utc);
                 value.Add(item);
             }
             return true;
@@ -3801,7 +3801,7 @@ namespace Zerra.Serialization.Bytes.IO
                 var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                 var ticks = (long)((ulong)hi) << 32 | lo;
-                var item = new DateTime(ticks);
+                var item = new DateTime(ticks, DateTimeKind.Utc);
                 value.Add(item);
             }
             return true;
@@ -3842,7 +3842,7 @@ namespace Zerra.Serialization.Bytes.IO
                     var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var ticks = (long)((ulong)hi) << 32 | lo;
-                    var item = new DateTime(ticks);
+                    var item = new DateTime(ticks, DateTimeKind.Utc);
                     value[i] = item;
                 }
             }
@@ -3884,7 +3884,7 @@ namespace Zerra.Serialization.Bytes.IO
                     var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var ticks = (long)((ulong)hi) << 32 | lo;
-                    var item = new DateTime(ticks);
+                    var item = new DateTime(ticks, DateTimeKind.Utc);
                     value.Add(item);
                 }
                 else
@@ -3938,7 +3938,7 @@ namespace Zerra.Serialization.Bytes.IO
                     var lo = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var hi = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
                     var ticks = (long)((ulong)hi) << 32 | lo;
-                    var item = new DateTime(ticks);
+                    var item = new DateTime(ticks, DateTimeKind.Utc);
                     value.Add(item);
                 }
                 else

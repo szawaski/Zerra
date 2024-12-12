@@ -63,20 +63,20 @@ namespace Zerra.Collections
             else
                 this.dictionary = new ConcurrentDictionary<TKey, TValue>(concurrencyLevel, capacity, comparer);
 
-#if NET8_0_OR_GREATER
-            var _tables = _tablesField.GetValue(this.dictionary);
-            this.factoryLocks = (object[])_locksField.GetValue(_tables)!;
-            this.comparer = (IEqualityComparer<TKey>?)_comparerField.GetValue(_tables)!;
-#elif NET6_0 || NET7_0
-            var _tables = _tablesField.GetValue(this.dictionary);
-            this.factoryLocks = (object[])_locksField.GetValue(_tables)!;
-            this.comparer = (IEqualityComparer<TKey>?)_comparerField.GetValue(this.dictionary)!;
-#else
             this.factoryLocks = new object[concurrencyLevel];
             this.factoryLocks[0] = this.factoryLocks;
             for (var i = 1; i < this.factoryLocks.Length; i++)
                 this.factoryLocks[i] = new object();
 
+#if NET8_0_OR_GREATER
+            var _tables = _tablesField.GetValue(this.dictionary);
+            //this.factoryLocks = (object[])_locksField.GetValue(_tables)!; This causes threading issues
+            this.comparer = (IEqualityComparer<TKey>?)_comparerField.GetValue(_tables)!;
+#elif NET6_0 || NET7_0
+            var _tables = _tablesField.GetValue(this.dictionary);
+            //this.factoryLocks = (object[])_locksField.GetValue(_tables)!; This causes threading issues
+            this.comparer = (IEqualityComparer<TKey>?)_comparerField.GetValue(this.dictionary)!;
+#else
             if (comparer is not null)
             {
                 if (!typeof(TKey).IsValueType || !ReferenceEquals(comparer, EqualityComparer<TKey>.Default))

@@ -566,6 +566,29 @@ namespace Zerra.Test
         }
 
         [TestMethod]
+        public void DateTimeTypes()
+        {
+            var dateUtc = new DateTime(2024, 12, 5, 18, 10, 5, 123, 456, DateTimeKind.Utc);
+            var bytes = ByteSerializer.Serialize(dateUtc);
+            var dateUtc2 = ByteSerializer.Deserialize<DateTime>(bytes);
+            Assert.AreEqual(dateUtc, dateUtc2);
+            Assert.AreEqual(DateTimeKind.Utc, dateUtc2.Kind);
+
+            var dateLocal = new DateTime(2024, 12, 5, 18, 10, 5, 123, 456, DateTimeKind.Local);
+            bytes = ByteSerializer.Serialize(dateLocal);
+            var dateLocal2 = ByteSerializer.Deserialize<DateTime>(bytes);
+            var dateLocalUtc = dateLocal.ToUniversalTime();
+            Assert.AreEqual(dateLocalUtc, dateLocal2);
+            Assert.AreEqual(DateTimeKind.Utc, dateLocal2.Kind);
+
+            var dateUnspecified = new DateTime(2024, 12, 5, 18, 10, 5, 123, 456, DateTimeKind.Unspecified);
+            bytes = ByteSerializer.Serialize(dateUnspecified);
+            var dateUnspecified2 = ByteSerializer.Deserialize<DateTime>(bytes);
+            Assert.AreEqual(dateUnspecified, dateUnspecified2);
+            Assert.AreEqual(DateTimeKind.Utc, dateUnspecified2.Kind);
+        }
+
+        [TestMethod]
         public async Task Stream()
         {
             var options = new ByteSerializerOptions()

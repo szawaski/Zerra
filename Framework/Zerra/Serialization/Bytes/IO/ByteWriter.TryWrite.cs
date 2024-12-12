@@ -1212,6 +1212,9 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
 #endif
 
+            if (value.Kind == DateTimeKind.Local)
+                value = value.ToUniversalTime();
+
             buffer[position++] = (byte)value.Ticks;
             buffer[position++] = (byte)(value.Ticks >> 8);
             buffer[position++] = (byte)(value.Ticks >> 16);
@@ -1241,8 +1244,13 @@ namespace Zerra.Serialization.Bytes.IO
             buffer[position++] = (byte)(collectionLength >> 16);
             buffer[position++] = (byte)(collectionLength >> 24);
 
-            foreach (var value in values)
+            DateTime value;
+            foreach (var v in values)
             {
+                value = v;
+                if (value.Kind != DateTimeKind.Local)
+                    value = value.ToUniversalTime();
+
                 buffer[position++] = (byte)value.Ticks;
                 buffer[position++] = (byte)(value.Ticks >> 8);
                 buffer[position++] = (byte)(value.Ticks >> 16);
@@ -1273,19 +1281,24 @@ namespace Zerra.Serialization.Bytes.IO
             buffer[position++] = (byte)(collectionLength >> 16);
             buffer[position++] = (byte)(collectionLength >> 24);
 
-            foreach (var value in values)
+            DateTime value;
+            foreach (var v in values)
             {
-                if (value.HasValue)
+                if (v.HasValue)
                 {
+                    value = v.Value;
+                    if (value.Kind != DateTimeKind.Local)
+                        value = value.ToUniversalTime();
+
                     buffer[position++] = notNullByte;
-                    buffer[position++] = (byte)value.Value.Ticks;
-                    buffer[position++] = (byte)(value.Value.Ticks >> 8);
-                    buffer[position++] = (byte)(value.Value.Ticks >> 16);
-                    buffer[position++] = (byte)(value.Value.Ticks >> 24);
-                    buffer[position++] = (byte)(value.Value.Ticks >> 32);
-                    buffer[position++] = (byte)(value.Value.Ticks >> 40);
-                    buffer[position++] = (byte)(value.Value.Ticks >> 48);
-                    buffer[position++] = (byte)(value.Value.Ticks >> 56);
+                    buffer[position++] = (byte)value.Ticks;
+                    buffer[position++] = (byte)(value.Ticks >> 8);
+                    buffer[position++] = (byte)(value.Ticks >> 16);
+                    buffer[position++] = (byte)(value.Ticks >> 24);
+                    buffer[position++] = (byte)(value.Ticks >> 32);
+                    buffer[position++] = (byte)(value.Ticks >> 40);
+                    buffer[position++] = (byte)(value.Ticks >> 48);
+                    buffer[position++] = (byte)(value.Ticks >> 56);
                 }
                 else
                 {
