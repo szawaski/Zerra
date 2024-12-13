@@ -365,15 +365,16 @@ namespace Zerra.Serialization.Json.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryPeakArrayLength(out int length)
         {
+            var openBrackets = 1;
+            var openBraces = 0;
+            var quoted = false;
+            var escaping = false;
+            length = 0;
+
             if (useBytes)
             {
                 fixed (byte* ptr = bufferBytes.Slice(position))
                 {
-                    var openBrackets = 1;
-                    var openBraces = 0;
-                    var quoted = false;
-                    length = 0;
-
                     byte* ptr2 = ptr;
                     for (var i = position; i < bufferBytes.Length; i++)
                     {
@@ -383,10 +384,14 @@ namespace Zerra.Serialization.Json.IO
                             case commaByte:
                                 if (!quoted && openBrackets == 1 && openBraces == 0)
                                     length++;
+                                if (escaping)
+                                    escaping = false;
                                 continue;
                             case openBracketByte:
                                 if (!quoted)
                                     openBrackets++;
+                                else if (escaping)
+                                    escaping = false;
                                 continue;
                             case closeBracketByte:
                                 if (!quoted)
@@ -398,17 +403,43 @@ namespace Zerra.Serialization.Json.IO
                                         return true;
                                     }
                                 }
+                                else if (escaping)
+                                {
+                                    escaping = false;
+                                }
                                 continue;
                             case openBraceByte:
                                 if (!quoted)
                                     openBraces++;
+                                else if (escaping)
+                                    escaping = false;
                                 continue;
                             case closeBraceByte:
                                 if (!quoted)
                                     openBraces--;
+                                else if (escaping)
+                                    escaping = false;
                                 continue;
                             case quoteByte:
-                                quoted = !quoted;
+                                if (!quoted)
+                                    quoted = true;
+                                else if (escaping)
+                                    escaping = false;
+                                else
+                                    quoted = false;
+                                continue;
+                            case escapeByte:
+                                if (quoted)
+                                {
+                                    if (escaping)
+                                        escaping = false;
+                                    else
+                                        escaping = true;
+                                }
+                                continue;
+                            default:
+                                if (escaping)
+                                    escaping = false;
                                 continue;
                         }
                     }
@@ -419,11 +450,6 @@ namespace Zerra.Serialization.Json.IO
             {
                 fixed (char* ptr = bufferChars.Slice(position))
                 {
-                    var openBrackets = 1;
-                    var openBraces = 0;
-                    var quoted = false;
-                    length = 0;
-
                     char* ptr2 = ptr;
                     for (var i = position; i < bufferChars.Length; i++)
                     {
@@ -433,10 +459,14 @@ namespace Zerra.Serialization.Json.IO
                             case ',':
                                 if (!quoted && openBrackets == 1 && openBraces == 0)
                                     length++;
+                                if (escaping)
+                                    escaping = false;
                                 continue;
                             case '[':
                                 if (!quoted)
                                     openBrackets++;
+                                else if (escaping)
+                                    escaping = false;
                                 continue;
                             case ']':
                                 if (!quoted)
@@ -448,18 +478,45 @@ namespace Zerra.Serialization.Json.IO
                                         return true;
                                     }
                                 }
+                                else if (escaping)
+                                {
+                                    escaping = false;
+                                }
                                 continue;
                             case '{':
                                 if (!quoted)
                                     openBraces++;
+                                else if (escaping)
+                                    escaping = false;
                                 continue;
                             case '}':
                                 if (!quoted)
                                     openBraces--;
+                                else if (escaping)
+                                    escaping = false;
                                 continue;
                             case '"':
-                                quoted = !quoted;
+                                if (!quoted)
+                                    quoted = true;
+                                else if (escaping)
+                                    escaping = false;
+                                else
+                                    quoted = false; 
                                 continue;
+                            case '\\':
+                                if (quoted)
+                                {
+                                    if (escaping)
+                                        escaping = false;
+                                    else
+                                        escaping = true;
+                                }
+                                continue;
+                            default:
+                                if (escaping)
+                                    escaping = false;
+                                continue;
+
                         }
                     }
                 }

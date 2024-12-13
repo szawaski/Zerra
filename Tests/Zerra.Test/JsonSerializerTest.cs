@@ -885,6 +885,26 @@ namespace Zerra.Test
         }
 
         [TestMethod]
+        public void StringSeekArrayLengthEncoding()
+        {
+            var model = new string[]
+            {
+                "abcdefg]hijkl\"mnopqrstuvwxyz",
+                "abcdefg\"hijklmnop}qrstuvwxyz",
+                "abc{defghijklmn\"opq{rst}uvwxyz",
+                "abcde[fg\"hijklmnop[qrs]tuvwxyz",
+                "\"\"\"\"\"\"\"\"\"\"\"\"\""
+            };
+
+            var json = JsonSerializer.Serialize(model);
+            var result = JsonSerializer.Deserialize<string[]>(json);
+
+            Assert.AreEqual(model.Length, result.Length);
+            for (var i = 0; i < model.Length; i++)
+                Assert.AreEqual(model[i], result[i]);
+        }
+
+        [TestMethod]
         public async Task StreamMatchesNewtonsoft()
         {
             var baseModel = TypesAllModel.Create();
@@ -1971,6 +1991,28 @@ namespace Zerra.Test
             stream.Position = 0;
             var model2 = await JsonSerializer.DeserializeAsync<TypeModel>(stream);
             AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
+        public async Task StreamSeekArrayLengthEncoding()
+        {
+            var model = new string[]
+            {
+                "abcdefg]hijkl\"mnopqrstuvwxyz",
+                "abcdefg\"hijklmnop}qrstuvwxyz",
+                "abc{defghijklmn\"opq{rst}uvwxyz",
+                "abcde[fg\"hijklmnop[qrs]tuvwxyz",
+                "\"\"\"\"\"\"\"\"\"\"\"\"\""
+            };
+
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, model);
+            stream.Position = 0;
+            var result = await JsonSerializer.DeserializeAsync<string[]>(stream);
+
+            Assert.AreEqual(model.Length, result.Length);
+            for (var i = 0; i < model.Length; i++)
+                Assert.AreEqual(model[i], result[i]);
         }
     }
 }
