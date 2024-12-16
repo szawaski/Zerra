@@ -24,7 +24,7 @@ namespace Zerra.Serialization.Json.Converters.General
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            private static ulong GetHashCode(ReadOnlySpan<byte> name)
+            public static ulong GetHashCode(ReadOnlySpan<byte> name)
             {
                 ref byte reference = ref MemoryMarshal.GetReference(name);
                 var length = name.Length;
@@ -95,7 +95,7 @@ namespace Zerra.Serialization.Json.Converters.General
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            private static ulong GetHashCode(ReadOnlySpan<char> name)
+            public static ulong GetHashCode(ReadOnlySpan<char> name)
             {
                 ref byte reference = ref MemoryMarshal.GetReference(MemoryMarshal.AsBytes(name));
                 var length = name.Length * 2;
@@ -168,9 +168,8 @@ namespace Zerra.Serialization.Json.Converters.General
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static bool IsEqual(in MemberKey memberKey, in ReadOnlySpan<byte> name)
+            public static bool IsEqual(in MemberKey memberKey, in ReadOnlySpan<byte> name, in ulong key)
             {
-                var key = GetHashCode(name);
                 if (key != memberKey.BytesHashCode)
                     return false;
 
@@ -181,9 +180,8 @@ namespace Zerra.Serialization.Json.Converters.General
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static bool IsEqual(in MemberKey memberKey, in ReadOnlySpan<char> name)
+            public static bool IsEqual(in MemberKey memberKey, in ReadOnlySpan<char> name, in ulong key)
             {
-                var key = GetHashCode(name);
                 if (key != memberKey.CharsHashCode)
                     return false;
 

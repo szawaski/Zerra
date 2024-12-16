@@ -905,6 +905,33 @@ namespace Zerra.Test
         }
 
         [TestMethod]
+        public void StringIgnoreCase()
+        {
+            var options = new JsonSerializerOptions()
+            {
+                IgnoreCase = true
+            };
+
+            var model = new SimpleModel()
+            {
+                Value1 = 5,
+                Value2 = "123456789"
+            };
+
+            var json = JsonSerializer.Serialize(model);
+
+            var jsonUpper = json.ToUpper();
+            var result1 = JsonSerializer.Deserialize<SimpleModel>(jsonUpper, options);
+            Assert.AreEqual(model.Value1, result1.Value1);
+            Assert.AreEqual(model.Value2, result1.Value2);
+
+            var jsonLower = json.ToUpper();
+            var result2 = JsonSerializer.Deserialize<SimpleModel>(jsonLower, options);
+            Assert.AreEqual(model.Value1, result2.Value1);
+            Assert.AreEqual(model.Value2, result2.Value2);
+        }
+
+        [TestMethod]
         public async Task StreamMatchesNewtonsoft()
         {
             var baseModel = TypesAllModel.Create();
@@ -2013,6 +2040,33 @@ namespace Zerra.Test
             Assert.AreEqual(model.Length, result.Length);
             for (var i = 0; i < model.Length; i++)
                 Assert.AreEqual(model[i], result[i]);
+        }
+
+        [TestMethod]
+        public async Task StreamIgnoreCase()
+        {
+            var options = new JsonSerializerOptions()
+            {
+                IgnoreCase = true
+            };
+
+            var model = new SimpleModel()
+            {
+                Value1 = 5,
+                Value2 = "123456789"
+            };
+
+            var json = JsonSerializer.Serialize(model);
+
+            using var streamUpper = new MemoryStream(Encoding.UTF8.GetBytes(json.ToUpper()));
+            var result1 = await JsonSerializer.DeserializeAsync<SimpleModel>(streamUpper, options);
+            Assert.AreEqual(model.Value1, result1.Value1);
+            Assert.AreEqual(model.Value2, result1.Value2);
+
+            using var streamLower = new MemoryStream(Encoding.UTF8.GetBytes(json.ToUpper()));
+            var result2 = await JsonSerializer.DeserializeAsync<SimpleModel>(streamLower, options);
+            Assert.AreEqual(model.Value1, result2.Value1);
+            Assert.AreEqual(model.Value2, result2.Value2);
         }
     }
 }

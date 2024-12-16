@@ -26,5 +26,9 @@ namespace Zerra.Serialization.Json
         /// When the JSON cannot be converted to the type given an error will be thrown.  Normally it will use the default value.
         /// </summary>
         public bool ErrorOnTypeMismatch { get; set; }
+        /// <summary>
+        /// Object members do not need match the case of the JSON when reading. This performs more slowly.
+        /// </summary>
+        public bool IgnoreCase { get; set; }
     }
 }

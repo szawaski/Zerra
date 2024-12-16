@@ -26,6 +26,7 @@ namespace Zerra.Serialization.Json.State
         public bool Nameless { get; set; }
         public bool EnumAsNumber { get; set; }
         public bool ErrorOnTypeMismatch { get; set; }
+        public bool IgnoreCase { get; set; }
 
         public char[]? StringBuffer;
         public int StringPosition;
@@ -57,6 +58,7 @@ namespace Zerra.Serialization.Json.State
             ErrorOnTypeMismatch = options.ErrorOnTypeMismatch;
             Graph = graph;
             IsFinalBlock = isFinalBlock;
+            IgnoreCase = options.IgnoreCase;
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
