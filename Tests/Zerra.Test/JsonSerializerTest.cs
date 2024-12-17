@@ -643,9 +643,14 @@ namespace Zerra.Test
             for (var i = 0; i < (int)byte.MaxValue; i++)
             {
                 var str = new string((char)i, 1);
+
                 var json = $"\"\\u{i.ToString("X4")}\"";
                 var result = JsonSerializer.Deserialize<string>(json);
                 Assert.AreEqual(str, result);
+
+                var json2 = $"\"\\u{i.ToString("x4")}\"";
+                var result2 = JsonSerializer.Deserialize<string>(json2);
+                Assert.AreEqual(str, result2);
             }
         }
 
@@ -1717,10 +1722,16 @@ namespace Zerra.Test
             for (var i = 0; i < (int)byte.MaxValue; i++)
             {
                 var str = new string((char)i, 1);
+
                 var json = $"\"\\u{i.ToString("X4")}\"";
                 using var stream = new MemoryStream(Encoding.UTF8.GetBytes(json));
                 var result = await JsonSerializer.DeserializeAsync<string>(stream);
                 Assert.AreEqual(str, result);
+
+                var json2 = $"\"\\u{i.ToString("X4")}\"";
+                using var stream2 = new MemoryStream(Encoding.UTF8.GetBytes(json2));
+                var result2 = await JsonSerializer.DeserializeAsync<string>(stream2);
+                Assert.AreEqual(str, result2);
             }
         }
 
