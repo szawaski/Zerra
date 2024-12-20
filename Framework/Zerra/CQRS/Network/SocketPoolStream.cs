@@ -15,6 +15,7 @@ namespace Zerra.CQRS.Network
 
         private Socket? socket;
         private bool closeSocket;
+        private bool noReturnSocket;
         private readonly HostAndPort hostAndPort;
         private readonly Action<Socket, HostAndPort, bool> returnSocket;
         public SocketPoolStream(Socket socket, HostAndPort hostAndPort, Action<Socket, HostAndPort, bool> returnSocket, bool isNewConnection)
@@ -22,6 +23,7 @@ namespace Zerra.CQRS.Network
         {
             this.socket = socket;
             this.closeSocket = false;
+            this.noReturnSocket = false;
             this.hostAndPort = hostAndPort;
             this.returnSocket = returnSocket;
             this.IsNewConnection = isNewConnection;
@@ -33,11 +35,18 @@ namespace Zerra.CQRS.Network
             base.Dispose();
         }
 
+        public void DisposeNoReturnSocket()
+        {
+            noReturnSocket = true;
+            base.Dispose();
+        }
+
         protected override void Dispose(bool disposing)
         {
             if (socket is not null)
             {
-                returnSocket(socket, hostAndPort, closeSocket);
+                if (!noReturnSocket)
+                    returnSocket(socket, hostAndPort, closeSocket);
                 socket = null;
                 base.Dispose(disposing);
             }
