@@ -709,6 +709,7 @@ namespace Zerra.Reflection.Runtime
                     }
                 }
             }
+
             if (this.membersByName.TryGetValue(name, out member))
                 return true;
 
@@ -759,14 +760,24 @@ namespace Zerra.Reflection.Runtime
                         backingMember = MemberDetailRuntime<object, object>.New(Type, property.PropertyType, property.Name, backingField, null, false, locker);
 
                     member = MemberDetailRuntime<object, object>.New(Type, property.PropertyType, property.Name, property, backingMember, false, locker);
-                    membersByName!.Add(member.Name, member);
+#if NETSTANDARD2_0
+                    if (membersByName!.ContainsKey(member.Name))
+                        membersByName!.Add(member.Name, member);
+#else
+                    _ = membersByName!.TryAdd(member.Name, member);
+#endif
                     return true;
                 }
                 var field = Type.GetField(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
                 if (field is not null && !field.IsLiteral)
                 {
                     member = MemberDetailRuntime<object, object>.New(Type, field.FieldType, field.Name, field, null, false, locker);
-                    membersByName!.Add(member.Name, member);
+#if NETSTANDARD2_0
+                    if (membersByName!.ContainsKey(member.Name))
+                        membersByName!.Add(member.Name, member);
+#else
+                    _ = membersByName!.TryAdd(member.Name, member);
+#endif
                     return true;
                 }
 
@@ -779,6 +790,7 @@ namespace Zerra.Reflection.Runtime
                     _ = membersByName!.TryAdd(memberDetail.Name, memberDetail);
 #endif
                 }
+
                 membersByNameLoadedAll = true;
                 if (this.membersByName!.TryGetValue(name, out member))
                     return true;
