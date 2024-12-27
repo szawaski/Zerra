@@ -8,6 +8,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace Zerra.Collections
@@ -25,6 +26,7 @@ namespace Zerra.Collections
         private readonly object[] factoryLocks; //we aren't going to worry about resizing
         private readonly IEqualityComparer<TKey>? comparer;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private uint GetFactoryLockNumber(TKey key)
         {
             var hashcode = comparer is not null ? comparer.GetHashCode(key) : key.GetHashCode();

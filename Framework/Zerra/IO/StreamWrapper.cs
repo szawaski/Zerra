@@ -9,6 +9,9 @@ using System.Threading.Tasks;
 
 namespace Zerra.IO
 {
+    /// <summary>
+    /// Wraps a stream so that each method can be overridded to intercept operations as needed.
+    /// </summary>
     public abstract class StreamWrapper : Stream
     {
         private bool disposed = false;

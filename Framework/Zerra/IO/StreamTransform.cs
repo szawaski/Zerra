@@ -10,11 +10,20 @@ using Zerra.Buffers;
 
 namespace Zerra.IO
 {
+    /// <summary>
+    /// This wraps a stream to intercept the reading and writing of bytes to perform operations on them before going to the underlying stream.
+    /// </summary>
     public abstract class StreamTransform : Stream
     {
         private bool disposed = false;
 
+        /// <summary>
+        /// The underlying stream.
+        /// </summary>
         protected readonly Stream stream;
+        /// <summary>
+        /// Indicates the underlying stream will not close when this stream closes or disposes if True.
+        /// </summary>
         protected readonly bool leaveOpen;
 
         public StreamTransform(Stream stream, bool leaveOpen)
@@ -162,10 +171,35 @@ namespace Zerra.IO
         }
 #endif
 
+        /// <summary>
+        /// Perform the syncronous read transformation of the underlying stream.
+        /// The implementation should be using the protected <see cref="stream"/> field.
+        /// </summary>
+        /// <param name="buffer">The incomming buffer to read.</param>
+        /// <returns>The number of bytes read.</returns>
         protected abstract int InternalRead(Span<byte> buffer);
+        /// <summary>
+        /// Perform the asyncronous read transformation of the underlying stream.
+        /// The implementation should be using the protected <see cref="stream"/> field.
+        /// </summary>
+        /// <param name="buffer">The incomming buffer to read.</param>\
+        /// <param name="cancellationToken">A token to cancel the operation.</param>
+        /// <returns>The number of bytes read.</returns>
         protected abstract ValueTask<int> InternalReadAsync(Memory<byte> buffer, CancellationToken cancellationToken);
 
+        /// <summary>
+        /// Perform the syncronous write transformation of the underlying stream.
+        /// The implementation should be using the protected <see cref="stream"/> field.
+        /// </summary>
+        /// <param name="buffer">The outgoing buffer to write.</param>
         protected abstract void InternalWrite(ReadOnlySpan<byte> buffer);
+        /// <summary>
+        /// Perform the asyncronous write transformation of the underlying stream.
+        /// The implementation should be using the protected <see cref="stream"/> field.
+        /// </summary>
+        /// <param name="buffer">The outgoing buffer to write.</param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
         protected abstract ValueTask InternalWriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken);
     }
 }
