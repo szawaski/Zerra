@@ -8,16 +8,28 @@ using Zerra.Reflection;
 
 namespace Zerra.Map
 {
+    /// <summary>
+    /// Methods for mapping properties of a source object to a target object.
+    /// </summary>
     public static class Mapper
     {
-        public static bool DebugMode { get; set; } = Config.IsDebugBuild;
+        internal static bool DebugMode { get; set; } = Config.IsDebugBuild;
 
         private static readonly Type mapType = typeof(MapGenerator<,>);
         private static readonly ConcurrentFactoryDictionary<TypeKey, Func<object, Graph?, object>> copyFuncs = new();
         private static readonly ConcurrentFactoryDictionary<TypeKey, Func<object, object, Graph?, object>> copyToFuncs = new();
 
-        public static TTarget Map<TSource, TTarget>(this TSource source) { return Map<TSource, TTarget>(source, null); }
-        public static TTarget Map<TSource, TTarget>(this TSource source, Graph? graph)
+        /// <summary>
+        /// Creates a new object of the target type and populates the members from the source object.
+        /// Matching names are automatically mapped and will attempt to convert types.
+        /// Customizations are made by implementing <see cref="IMapDefinition{TSource, TTarget}"/>
+        /// </summary>
+        /// <typeparam name="TSource">The source type that will be mapped.</typeparam>
+        /// <typeparam name="TTarget">The target type that will be mapped.</typeparam>
+        /// <param name="source">The source object for the mapping.</param>
+        /// <param name="graph">A graph to filter which properties to map.</param>
+        /// <returns>The new object of the target type with members populated from the source.</returns>
+        public static TTarget Map<TSource, TTarget>(this TSource source, Graph? graph = null)
         {
             if (source is null)
                 throw new ArgumentNullException(nameof(source));
@@ -26,8 +38,16 @@ namespace Zerra.Map
             return map.Copy(source, graph);
         }
 
-        public static void MapTo<TSource, TTarget>(this TSource source, TTarget target) { MapTo(source, target, null); }
-        public static void MapTo<TSource, TTarget>(this TSource source, TTarget target, Graph? graph)
+        /// <summary>
+        /// Populates the members of the target object from the source object.
+        /// Matching names are automatically mapped and will attempt to convert types.
+        /// Customizations are made by implementing <see cref="IMapDefinition{TSource, TTarget}"/>
+        /// </summary>
+        /// <typeparam name="TSource">The source type that will be mapped.</typeparam>
+        /// <typeparam name="TTarget">The target type that will be mapped.</typeparam>
+        /// <param name="source">The source object for the mapping.</param>
+        /// <param name="graph">A graph to filter which properties to map.</param>
+        public static void MapTo<TSource, TTarget>(this TSource source, TTarget target, Graph? graph = null)
         {
             if (source is null)
                 throw new ArgumentNullException(nameof(source));
@@ -38,8 +58,16 @@ namespace Zerra.Map
             _ = map.CopyTo(source, target, graph);
         }
 
-        public static TTarget Map<TTarget>(this object source) { return Map<TTarget>(source, null); }
-        public static TTarget Map<TTarget>(this object source, Graph? graph)
+        /// <summary>
+        /// Creates a new object of the target type and populates the members from the source object.
+        /// Matching names are automatically mapped and will attempt to convert types.
+        /// Customizations are made by implementing <see cref="IMapDefinition{TSource, TTarget}"/>
+        /// </summary>
+        /// <typeparam name="TTarget">The target type that will be mapped.</typeparam>
+        /// <param name="source">The source object for the mapping.</param>
+        /// <param name="graph">A graph to filter which properties to map.</param>
+        /// <returns>The new object of the target type with members populated from the source.</returns>
+        public static TTarget Map<TTarget>(this object source, Graph? graph = null)
         {
             if (source is null)
                 throw new ArgumentNullException(nameof(source));
@@ -58,8 +86,16 @@ namespace Zerra.Map
             return (TTarget)copyFunc(source, graph);
         }
 
-        public static TTarget Copy<TTarget>(this TTarget source) { return Copy(source, null); }
-        public static TTarget Copy<TTarget>(this TTarget source, Graph? graph)
+        /// <summary>
+        /// Creates a copy of the source object populating the members.
+        /// Matching names are automatically mapped.
+        /// Customizations are made by implementing <see cref="IMapDefinition{TSource, TTarget}"/>
+        /// </summary>
+        /// <typeparam name="TTarget">The type that will be copied.</typeparam>
+        /// <param name="source">The source object for the copy.</param>
+        /// <param name="graph">A graph to filter which properties to copy.</param>
+        /// <returns>The new object with members populated.</returns>
+        public static TTarget Copy<TTarget>(this TTarget source, Graph? graph = null)
         {
             if (source is null)
                 throw new ArgumentNullException(nameof(source));
@@ -78,8 +114,15 @@ namespace Zerra.Map
             return (TTarget)copyFunc(source, graph);
         }
 
-        public static void CopyTo<TTarget>(this object source, TTarget target) { CopyTo(source, target, null); }
-        public static void CopyTo<TTarget>(this object source, TTarget target, Graph? graph)
+        /// <summary>
+        /// Populates the members of the target object from the source object.
+        /// Matching names are automatically mapped.
+        /// Customizations are made by implementing <see cref="IMapDefinition{TSource, TTarget}"/>
+        /// </summary>
+        /// <typeparam name="TTarget">The type that will be copied.</typeparam>
+        /// <param name="source">The source object for the copy.</param>
+        /// <param name="graph">A graph to filter which properties to copy.</param>
+        public static void CopyTo<TTarget>(this object source, TTarget target, Graph? graph = null)
         {
             if (source is null)
                 throw new ArgumentNullException(nameof(source));

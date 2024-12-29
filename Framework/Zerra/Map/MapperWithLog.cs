@@ -8,16 +8,29 @@ using Zerra.Reflection;
 
 namespace Zerra.Map
 {
+    /// <summary>
+    /// Methods for mapping properties of a source object to a target object with a parameter for logging changes.
+    /// </summary>
     public static class MapperWithLog
     {
-        public static bool DebugMode { get; set; } = false;
+        internal static bool DebugMode { get; set; } = false;
 
         private static readonly Type mapType = typeof(MapGeneratorWithLog<,>);
         private static readonly ConcurrentFactoryDictionary<TypeKey, Func<object, IMapLogger, Graph?, object>> copyFuncs = new();
         private static readonly ConcurrentFactoryDictionary<TypeKey, Func<object, object, IMapLogger, Graph?, object>> copyToFuncs = new();
 
-        public static TTarget Map<TSource, TTarget>(this TSource source, IMapLogger logger) { return source.Map<TSource, TTarget>(logger, null); }
-        public static TTarget Map<TSource, TTarget>(this TSource source, IMapLogger logger, Graph? graph)
+        /// <summary>
+        /// Creates a new object of the target type and populates the members from the source object.
+        /// Matching names are automatically mapped and will attempt to convert types.
+        /// Customizations are made by implementing <see cref="IMapDefinition{TSource, TTarget}"/>
+        /// </summary>
+        /// <typeparam name="TSource">The source type that will be mapped.</typeparam>
+        /// <typeparam name="TTarget">The target type that will be mapped.</typeparam>
+        /// <param name="source">The source object for the mapping.</param>
+        /// <param name="logger">A logger instance to record the changes.</param>
+        /// <param name="graph">A graph to filter which properties to map.</param>
+        /// <returns>The new object of the target type with members populated from the source.</returns>
+        public static TTarget Map<TSource, TTarget>(this TSource source, IMapLogger logger, Graph? graph = null)
         {
             if (source is null)
                 throw new ArgumentNullException(nameof(source));
@@ -26,8 +39,17 @@ namespace Zerra.Map
             return map.Copy(source, logger, graph);
         }
 
-        public static void MapTo<TSource, TTarget>(this TSource source, TTarget target, IMapLogger logger) { source.MapTo(target, logger, null); }
-        public static void MapTo<TSource, TTarget>(this TSource source, TTarget target, IMapLogger logger, Graph? graph)
+        /// <summary>
+        /// Populates the members of the target object from the source object.
+        /// Matching names are automatically mapped and will attempt to convert types.
+        /// Customizations are made by implementing <see cref="IMapDefinition{TSource, TTarget}"/>
+        /// </summary>
+        /// <typeparam name="TSource">The source type that will be mapped.</typeparam>
+        /// <typeparam name="TTarget">The target type that will be mapped.</typeparam>
+        /// <param name="source">The source object for the mapping.</param>
+        /// <param name="logger">A logger instance to record the changes.</param>
+        /// <param name="graph">A graph to filter which properties to map.</param>
+        public static void MapTo<TSource, TTarget>(this TSource source, TTarget target, IMapLogger logger, Graph? graph = null)
         {
             if (source is null)
                 throw new ArgumentNullException(nameof(source));
@@ -38,8 +60,17 @@ namespace Zerra.Map
             _ = map.CopyTo(source, target, logger, graph);
         }
 
-        public static TTarget Map<TTarget>(this object source, IMapLogger logger) { return source.Map<TTarget>(logger, null); }
-        public static TTarget Map<TTarget>(this object source, IMapLogger logger, Graph? graph)
+        /// <summary>
+        /// Creates a new object of the target type and populates the members from the source object.
+        /// Matching names are automatically mapped and will attempt to convert types.
+        /// Customizations are made by implementing <see cref="IMapDefinition{TSource, TTarget}"/>
+        /// </summary>
+        /// <typeparam name="TTarget">The target type that will be mapped.</typeparam>
+        /// <param name="source">The source object for the mapping.</param>
+        /// <param name="logger">A logger instance to record the changes.</param>
+        /// <param name="graph">A graph to filter which properties to map.</param>
+        /// <returns>The new object of the target type with members populated from the source.</returns>
+        public static TTarget Map<TTarget>(this object source, IMapLogger logger, Graph? graph = null)
         {
             if (source is null)
                 throw new ArgumentNullException(nameof(source));
@@ -58,8 +89,17 @@ namespace Zerra.Map
             return (TTarget)copyFunc(source, logger, graph);
         }
 
-        public static TTarget Copy<TTarget>(this TTarget source, IMapLogger logger) { return source.Copy(logger, null); }
-        public static TTarget Copy<TTarget>(this TTarget source, IMapLogger logger, Graph? graph)
+        /// <summary>
+        /// Creates a copy of the source object populating the members.
+        /// Matching names are automatically mapped.
+        /// Customizations are made by implementing <see cref="IMapDefinition{TSource, TTarget}"/>
+        /// </summary>
+        /// <typeparam name="TTarget">The type that will be copied.</typeparam>
+        /// <param name="source">The source object for the copy.</param>
+        /// <param name="logger">A logger instance to record the changes.</param>
+        /// <param name="graph">A graph to filter which properties to copy.</param>
+        /// <returns>The new object with members populated.</returns>
+        public static TTarget Copy<TTarget>(this TTarget source, IMapLogger logger, Graph? graph = null)
         {
             if (source is null)
                 throw new ArgumentNullException(nameof(source));
@@ -78,8 +118,16 @@ namespace Zerra.Map
             return (TTarget)copyFunc(source, logger, graph);
         }
 
-        public static void CopyTo<TTarget>(this object source, TTarget target, IMapLogger logger) { source.CopyTo(target, logger, null); }
-        public static void CopyTo<TTarget>(this object source, TTarget target, IMapLogger logger, Graph? graph)
+        /// <summary>
+        /// Populates the members of the target object from the source object.
+        /// Matching names are automatically mapped.
+        /// Customizations are made by implementing <see cref="IMapDefinition{TSource, TTarget}"/>
+        /// </summary>
+        /// <typeparam name="TTarget">The type that will be copied.</typeparam>
+        /// <param name="source">The source object for the copy.</param>
+        /// <param name="logger">A logger instance to record the changes.</param>
+        /// <param name="graph">A graph to filter which properties to copy.</param>
+        public static void CopyTo<TTarget>(this object source, TTarget target, IMapLogger logger, Graph? graph = null)
         {
             if (source is null)
                 throw new ArgumentNullException(nameof(source));
