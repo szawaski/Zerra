@@ -1,4 +1,4 @@
-# Zerra Framework: Fast Powerful CQRS and Agnostic Repository with Event Sourcing
+# Zerra: Fast Powerful Microservice Communication Framework using CQRS
 - Container ready for Docker/Kubernetes
 - Run solutions as monoliths or split out domain pieces into **Microservices**
 - Call services agnostically as they run in the assembly or remotely
