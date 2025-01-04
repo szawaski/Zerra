@@ -11,6 +11,7 @@
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
         <PackageTags>Framework, Zerra, Tools</PackageTags>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <Description>Random Assortment of Tools and Experiments</Description>
         <Company>KaKush LLC</Company>
         <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>

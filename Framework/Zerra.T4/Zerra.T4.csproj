@@ -9,6 +9,7 @@
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
         <LangVersion>8.0</LangVersion>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <Company>KaKush LLC</Company>
         <Description>Tools for T4 files to use to generate code and client side libraries for CQRS.</Description>
         <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, T4, Code Generation</PackageTags>

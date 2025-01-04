@@ -11,6 +11,7 @@
         <LangVersion>8.0</LangVersion>
         <PackageTags>Identity Management, SSO, SAML, OAuth, OpenID</PackageTags>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <Description>Identity Sign-On and Servers.
 
             Commonly used types:
