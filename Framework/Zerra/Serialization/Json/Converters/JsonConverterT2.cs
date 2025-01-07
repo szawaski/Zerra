@@ -10,8 +10,7 @@ using Zerra.Serialization.Json.IO;
 
 namespace Zerra.Serialization.Json.Converters
 {
-    public abstract class JsonConverter<TParent, TValue> : JsonConverter<TParent>,
-        IJsonConverterHandles<TValue>
+    public abstract class JsonConverter<TParent, TValue> : JsonConverter<TParent>
     {
         protected virtual bool StackRequired { get; } = true;
 

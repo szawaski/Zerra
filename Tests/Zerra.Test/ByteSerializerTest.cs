@@ -589,6 +589,20 @@ namespace Zerra.Test
         }
 
         [TestMethod]
+        public void CustomType()
+        {
+            ByteSerializer.AddConverter(typeof(CustomTypeByteConverter<>), typeof(CustomType));
+
+            var model1 = CustomTypeModel.Create();
+            var bytes = ByteSerializer.Serialize(model1);
+            var model2 = ByteSerializer.Deserialize<CustomTypeModel>(bytes);
+            Assert.IsNotNull(model2);
+            Assert.IsNotNull(model2.Value);
+            Assert.AreEqual(model1.Value.Things1, model2.Value.Things1);
+            Assert.AreEqual(model1.Value.Things2, model2.Value.Things2);
+        }
+
+        [TestMethod]
         public async Task Stream()
         {
             var options = new ByteSerializerOptions()

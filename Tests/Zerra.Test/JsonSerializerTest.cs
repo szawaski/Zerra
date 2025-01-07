@@ -937,6 +937,20 @@ namespace Zerra.Test
         }
 
         [TestMethod]
+        public void StringCustomType()
+        {
+            JsonSerializer.AddConverter(typeof(CustomTypeJsonConverter<>), typeof(CustomType));
+
+            var model1 = CustomTypeModel.Create();
+            var json = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<CustomTypeModel>(json);
+            Assert.IsNotNull(model2);
+            Assert.IsNotNull(model2.Value);
+            Assert.AreEqual(model1.Value.Things1, model2.Value.Things1);
+            Assert.AreEqual(model1.Value.Things2, model2.Value.Things2);
+        }
+
+        [TestMethod]
         public async Task StreamMatchesNewtonsoft()
         {
             var baseModel = TypesAllModel.Create();
@@ -2078,6 +2092,22 @@ namespace Zerra.Test
             var result2 = await JsonSerializer.DeserializeAsync<SimpleModel>(streamLower, options);
             Assert.AreEqual(model.Value1, result2.Value1);
             Assert.AreEqual(model.Value2, result2.Value2);
+        }
+
+        [TestMethod]
+        public async Task StreamCustomType()
+        {
+            JsonSerializer.AddConverter(typeof(CustomTypeJsonConverter<>), typeof(CustomType));
+
+            var model1 = CustomTypeModel.Create();
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, model1);
+            stream.Position = 0;
+            var model2 = await JsonSerializer.DeserializeAsync<CustomTypeModel>(stream);
+            Assert.IsNotNull(model2);
+            Assert.IsNotNull(model2.Value);
+            Assert.AreEqual(model1.Value.Things1, model2.Value.Things1);
+            Assert.AreEqual(model1.Value.Things2, model2.Value.Things2);
         }
     }
 }

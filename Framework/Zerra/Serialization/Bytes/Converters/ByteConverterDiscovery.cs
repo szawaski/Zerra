@@ -527,5 +527,27 @@ namespace Zerra.Serialization.Bytes.Converters
             }
             return converterType;
         }
+
+        private static readonly string converterBaseTypeName = typeof(ByteConverter<,>).Name;
+        public static void AddConverter(Type converterType, Type valueType)
+        {
+            if (!converterType.IsGenericType)
+                throw new ArgumentException("Cannot add converter because it must be a genertic type");
+            if (converterType.GetGenericArguments().Length > 4)
+                throw new ArgumentException("Cannot add converter because it has more than four generic arguments");
+
+            var baseType = converterType.BaseType;
+            if (baseType is null)
+                throw new ArgumentException($"Cannot add converter because the must inherit {nameof(ByteConverter)}<T>");
+            while (baseType.Name == converterBaseTypeName)
+            {
+                if (baseType.BaseType is null)
+                    throw new ArgumentException($"Cannot add converter because the Converter must inherit {nameof(ByteConverter)}<T>");
+                baseType = baseType.BaseType;
+            }
+
+            var name = Discovery.GetNiceFullName(valueType);
+            typeByInterfaceName[name] = converterType;
+        }
     }
 }
