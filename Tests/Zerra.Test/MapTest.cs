@@ -7,8 +7,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Zerra.Map;
+using Zerra.Test.Map;
 
-namespace Zerra.Test.Map
+namespace Zerra.Test
 {
     [TestClass]
     public class MapTest
@@ -271,7 +272,7 @@ namespace Zerra.Test.Map
         {
             var modelA = ModelA.GetModelA();
             var modelB = modelA.Map<ModelA, ModelB>();
-            Assert.AreEqual(Int32.Parse(modelA.PropA.ToString() + "1"), modelB.PropB);
+            Assert.AreEqual(int.Parse(modelA.PropA.ToString() + "1"), modelB.PropB);
             Assert.AreEqual(modelA.PropC, modelB.PropD);
 
             modelA = modelB.Map<ModelB, ModelA>();
@@ -284,7 +285,7 @@ namespace Zerra.Test.Map
             var log = new MapperLog();
             var modelA = ModelA.GetModelA();
             var modelB = modelA.Map<ModelA, ModelB>(log);
-            Assert.AreEqual(Int32.Parse(modelA.PropA.ToString() + "1"), modelB.PropB);
+            Assert.AreEqual(int.Parse(modelA.PropA.ToString() + "1"), modelB.PropB);
             Assert.AreEqual(modelA.PropC, modelB.PropD);
 
             modelA = modelB.Map<ModelB, ModelA>(log);
