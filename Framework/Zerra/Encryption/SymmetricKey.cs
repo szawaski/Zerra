@@ -26,9 +26,9 @@ namespace Zerra.Encryption
                 return false;
             if (this.KeySize != casted.KeySize || this.BlockSize != casted.BlockSize)
                 return false;
-            if (!this.Key.BytesEquals(casted.Key))
+            if (!this.Key.AsSpan().SequenceEqual(casted.Key))
                 return false;
-            if (!this.IV.BytesEquals(casted.IV))
+            if (!this.IV.AsSpan().SequenceEqual(casted.IV))
                 return false;
             return true;
         }

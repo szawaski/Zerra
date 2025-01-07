@@ -8,9 +8,9 @@ public static class StringExtensions
 {
     public static string Truncate(this string? it, int maxLength)
     {
-		if (it is null) throw new ArgumentNullException(nameof(it));
+        if (it is null) throw new ArgumentNullException(nameof(it));
         if (maxLength < 0) throw new ArgumentException("Cannot be less than zero", nameof(maxLength));
-		
+
         if (it.Length < maxLength)
             return it;
         return it.Substring(0, maxLength);
@@ -530,6 +530,54 @@ public static class StringExtensions
         else
             return null;
     }
+
+#if NET5_0_OR_GREATER
+    public static DateOnly ToDateOnly(this string? it, DateOnly defaultValue = default)
+    {
+        if (it is null)
+            return defaultValue;
+        if (it == String.Empty)
+            return defaultValue;
+        if (DateOnly.TryParse(it, out var tryDateTime))
+            return tryDateTime;
+        else
+            return defaultValue;
+    }
+    public static DateOnly? ToDateOnlyNullable(this string? it)
+    {
+        if (it is null)
+            return null;
+        if (it == String.Empty)
+            return null;
+        if (DateOnly.TryParse(it, out var tryvalue))
+            return tryvalue;
+        else
+            return null;
+    }
+
+    public static TimeOnly ToTimeOnly(this string? it, TimeOnly defaultValue = default)
+    {
+        if (it is null)
+            return defaultValue;
+        if (it == String.Empty)
+            return defaultValue;
+        if (TimeOnly.TryParse(it, out var tryDateTime))
+            return tryDateTime;
+        else
+            return defaultValue;
+    }
+    public static TimeOnly? ToTimeOnlyNullable(this string? it)
+    {
+        if (it is null)
+            return null;
+        if (it == String.Empty)
+            return null;
+        if (TimeOnly.TryParse(it, out var tryvalue))
+            return tryvalue;
+        else
+            return null;
+    }
+#endif
 
     public static Guid ToGuid(this string? it, Guid defaultValue = default)
     {

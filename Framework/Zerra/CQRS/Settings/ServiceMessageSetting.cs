@@ -47,7 +47,7 @@ namespace Zerra.CQRS.Settings
         /// <summary>
         /// Set the message host for the service.
         /// </summary>
-        /// <param name="encryptionKey">The message host.</param>
+        /// <param name="messageHost">The message host.</param>
         public void SetMessageHost(string messageHost)
         {
             this.MessageHost = messageHost;

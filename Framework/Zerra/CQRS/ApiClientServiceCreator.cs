@@ -10,7 +10,7 @@ using Zerra.Encryption;
 namespace Zerra.CQRS
 {
     /// <summary>
-    /// Protocol to communicate with externally exposed API services using <see cref="Zerra.Web.CqrsApiGatewayMiddleware"/>.
+    /// Protocol to communicate with externally exposed API services using Zerra.Web.CqrsApiGatewayMiddleware.
     /// This uses HTTP and is assumed to be over a public network.
     /// Used in <see cref="Bus.StartServices(ServiceSettings, IServiceCreator)"/>.
     /// </summary>

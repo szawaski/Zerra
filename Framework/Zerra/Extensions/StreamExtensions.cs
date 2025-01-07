@@ -13,10 +13,12 @@ namespace Zerra.Extensions
 {
     public static class StreamExtensions
     {
+        private const int bufferSize = 1024 * 16;
+
 #if NETSTANDARD2_0
         public static byte[] ToArray(this Stream stream)
         {
-            var buffer = ArrayPoolHelper<byte>.Rent(1024 * 16);
+            var buffer = ArrayPoolHelper<byte>.Rent(bufferSize);
             var totalRead = 0;
             int read;
             try
@@ -40,7 +42,7 @@ namespace Zerra.Extensions
 
         public static async Task<byte[]> ToArrayAsync(this Stream stream, CancellationToken cancellationToken = default)
         {
-            var buffer = ArrayPoolHelper<byte>.Rent(1024 * 16);
+            var buffer = ArrayPoolHelper<byte>.Rent(bufferSize);
             var totalRead = 0;
             int read;
             try
@@ -64,7 +66,7 @@ namespace Zerra.Extensions
 #else
         public static byte[] ToArray(this Stream stream)
         {
-            var bufferOwner = ArrayPoolHelper<byte>.Rent(1024 * 16);
+            var bufferOwner = ArrayPoolHelper<byte>.Rent(bufferSize);
             var buffer = bufferOwner.AsSpan();
             var totalRead = 0;
             int read;
@@ -93,7 +95,7 @@ namespace Zerra.Extensions
 
         public static async Task<byte[]> ToArrayAsync(this Stream stream, CancellationToken cancellationToken = default)
         {
-            var bufferOwner = ArrayPoolHelper<byte>.Rent(1024 * 16);
+            var bufferOwner = ArrayPoolHelper<byte>.Rent(bufferSize);
             var buffer = bufferOwner.AsMemory();
             var totalRead = 0;
             int read;

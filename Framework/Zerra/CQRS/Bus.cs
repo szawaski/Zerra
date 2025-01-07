@@ -250,7 +250,7 @@ namespace Zerra.CQRS
         /// It is not possible to recieve information back from destinations.
         /// A destination may be an implementation in the same assembly or calling a remote service.
         /// </summary>
-        /// <param name="command">The command to send.</param>
+        /// <param name="event">The command to send.</param>
         /// <returns>A task to complete sending the event.</returns>
         public static Task DispatchAsync(IEvent @event) => _DispatchEventInternalAsync(@event, @event.GetType(), NetworkType.Local, false, Config.ApplicationIdentifier);
         /// <summary>
@@ -1067,7 +1067,7 @@ namespace Zerra.CQRS
         /// <summary>
         /// Manually add a command producer service to send commands.
         /// It's recommended to use <see cref="StartServices"/> instead unless there is some special case.
-        /// Discovery will host commands with the <see cref=""ServiceExposedAttribute/>.
+        /// Discovery will host commands with the <see cref="ServiceExposedAttribute"/>.
         /// </summary>
         /// <typeparam name="TInterface">An interface inheriting command handler interfaces for the types of commands to send.</typeparam>
         /// <param name="commandProducer">The command producer service.</param>
@@ -1154,10 +1154,10 @@ namespace Zerra.CQRS
         /// <summary>
         /// Manually add an event producer service to send commands.
         /// It's recommended to use <see cref="StartServices"/> instead unless there is some special case.
-        /// Discovery will host events with the <see cref=""ServiceExposedAttribute/>.
+        /// Discovery will host events with the <see cref="ServiceExposedAttribute"/>.
         /// </summary>
         /// <typeparam name="TInterface">An interface inheriting event handler interfaces for the types of events to send.</typeparam>
-        /// <param name="commandProducer">The event producer service.</param>
+        /// <param name="eventProducer">The event producer service.</param>
         public static void AddEventProducer<TInterface>(IEventProducer eventProducer)
         {
             setupLock.Wait();
@@ -1193,7 +1193,7 @@ namespace Zerra.CQRS
         /// Manually add an event consumer service to receive commands.
         /// It's recommended to use <see cref="StartServices"/> instead unless there is some special case.
         /// </summary>
-        /// <param name="commandConsumer">The event consumer service.</param>
+        /// <param name="eventConsumer">The event consumer service.</param>
         public static void AddEventConsumer(IEventConsumer eventConsumer)
         {
             setupLock.Wait();
@@ -1268,7 +1268,7 @@ namespace Zerra.CQRS
         /// <summary>
         /// Manually add a query server to receive and response to queries.
         /// It's recommended to use <see cref="StartServices"/> instead unless there is some special case.
-        /// Discovery will host implementations with the <see cref=""ServiceExposedAttribute/> on the interface.
+        /// Discovery will host implementations with the <see cref="ServiceExposedAttribute"/> on the interface.
         /// </summary>
         /// <param name="queryServer">The query server service.</param>
         public static void AddQueryServer(IQueryServer queryServer)

@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 namespace Zerra.Buffers
 {
     /// <summary>
-    /// Does sequential writing to a <see cref="Span{byte}"/>.
+    /// Does sequential writing to a <see cref="Span{T}"/>.
     /// The position is tracked from the end of the last write for the next.
     /// </summary>
     public ref struct SpanWriter<T>
@@ -16,6 +16,9 @@ namespace Zerra.Buffers
         private readonly Span<T> span;
 
         private int position;
+        /// <summary>
+        /// The current position of the span.
+        /// </summary>
         public readonly int Position => position;
 
         /// <summary>
