@@ -41,7 +41,7 @@ namespace ZerraDemo.Common
             var cookies = CookieParser.CookiesFromString(cookieValue);
             if (cookies.TryGetValue(cookieName, out var authCookieDataEncoded))
             {
-                var authCookieDataEncrypted = Base64UrlEncoder.FromBase64String(authCookieDataEncoded);
+                var authCookieDataEncrypted = Base64UrlEncoder.FromBase64UrlString(authCookieDataEncoded);
                 var authCookieDataBytes = SymmetricEncryptor.Decrypt(encryptionAlgorithm, encryptionKey, authCookieDataEncrypted);
                 var authCookieData = Encoding.UTF8.GetString(authCookieDataBytes);
                 if (authCookieData == "I can access this")
@@ -65,7 +65,7 @@ namespace ZerraDemo.Common
             var authCookieData = "I can access this";
             var authCookieDataBytes = Encoding.UTF8.GetBytes(authCookieData);
             var authCookieDataEncrypted = SymmetricEncryptor.Encrypt(encryptionAlgorithm, encryptionKey, authCookieDataBytes);
-            var authCookieDataEncoded = Base64UrlEncoder.ToBase64String(authCookieDataEncrypted);
+            var authCookieDataEncoded = Base64UrlEncoder.ToBase64UrlString(authCookieDataEncrypted);
 
             var cookies = new Dictionary<string, string>
             {

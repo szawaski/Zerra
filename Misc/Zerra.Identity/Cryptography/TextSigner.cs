@@ -24,7 +24,7 @@ namespace Zerra.Identity.Cryptography
         public static string GenerateSignatureString(byte[] bytes, AsymmetricAlgorithm asymmetricAlgorithm, XmlSignatureAlgorithmType signatureAlgorithm, bool base64UrlEncoding)
         {
             var signedBytes = GenerateSignatureBytes(bytes, asymmetricAlgorithm, signatureAlgorithm);
-            var signedText = base64UrlEncoding ? Base64UrlEncoder.ToBase64String(signedBytes) : Convert.ToBase64String(signedBytes);
+            var signedText = base64UrlEncoding ? Base64UrlEncoder.ToBase64UrlString(signedBytes) : Convert.ToBase64String(signedBytes);
             return signedText;
         }
         public static byte[] GenerateSignatureBytes(byte[] bytes, AsymmetricAlgorithm asymmetricAlgorithm, XmlSignatureAlgorithmType signatureAlgorithm)
@@ -44,7 +44,7 @@ namespace Zerra.Identity.Cryptography
                 return false;
 
             var textBytes = Encoding.UTF8.GetBytes(text);
-            var signatureBytes = base64UrlEncoding ? Base64UrlEncoder.FromBase64String(signature) : Convert.FromBase64String(signature);
+            var signatureBytes = base64UrlEncoding ? Base64UrlEncoder.FromBase64UrlString(signature) : Convert.FromBase64String(signature);
             var valid = Validate(textBytes, signatureBytes, asymmetricAlgorithm, signatureAlgorithm);
             return valid;
         }

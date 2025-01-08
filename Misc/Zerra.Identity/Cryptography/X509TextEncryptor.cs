@@ -21,7 +21,7 @@ namespace Zerra.Identity.Cryptography
         {
             var bytes = Encoding.UTF8.GetBytes(text);
             var encrypyedBytes = EncryptBytes(bytes, cert);
-            return base64UrlEncoding ? Base64UrlEncoder.ToBase64String(encrypyedBytes) : Convert.ToBase64String(encrypyedBytes);
+            return base64UrlEncoding ? Base64UrlEncoder.ToBase64UrlString(encrypyedBytes) : Convert.ToBase64String(encrypyedBytes);
         }
         public static byte[] EncryptBytes(byte[] bytes, X509Certificate2 cert)
         {
@@ -35,7 +35,7 @@ namespace Zerra.Identity.Cryptography
 
         public static string DecryptString(string text, X509Certificate2 cert, bool base64UrlEncoding)
         {
-            var bytes = base64UrlEncoding ? Base64UrlEncoder.FromBase64String(text) : Convert.FromBase64String(text);
+            var bytes = base64UrlEncoding ? Base64UrlEncoder.FromBase64UrlString(text) : Convert.FromBase64String(text);
             var decryptedBytes = DecryptBytes(bytes, cert);
             return Encoding.UTF8.GetString(decryptedBytes);
         }

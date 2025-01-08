@@ -8,6 +8,9 @@ using System.Text;
 
 namespace Zerra.Encryption
 {
+    /// <summary>
+    /// Performs asymmetric encryption and decryption.
+    /// </summary>
     public static class AsynmmetricEncryptor
     {
         public static AsymmetricKeyPair GenerateKey()
@@ -18,7 +21,12 @@ namespace Zerra.Encryption
                 return keys;
             }
         }
-
+        /// <summary>
+        /// Performs an asymmetric encryption using the Rivest, Shamir, and Adleman (RSA) algorithm.
+        /// </summary>
+        /// <param name="publicKey">The public key shared by the encrytor and decryptor.</param>
+        /// <param name="plainData">The data to encrypt.</param>
+        /// <returns>The encrypted data.</returns>
         public static string RSAEncrypt(string publicKey, string plainData)
         {
             using (var rsa = new RSACryptoServiceProvider())
@@ -30,6 +38,12 @@ namespace Zerra.Encryption
                 return encryptedData;
             }
         }
+        /// <summary>
+        /// Performs an asymmetric decryption using the Rivest, Shamir, and Adleman (RSA) algorithm.
+        /// </summary>
+        /// <param name="privateKey">The secret private key shared by the encrytor and decryptor.</param>
+        /// <param name="encryptedData">The data to decrypt.</param>
+        /// <returns>The decrypted data.</returns>
         public static string RSADecrypt(string privateKey, string encryptedData)
         {
             using (var rsa = new RSACryptoServiceProvider())

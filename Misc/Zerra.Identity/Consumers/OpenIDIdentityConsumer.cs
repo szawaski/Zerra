@@ -212,8 +212,8 @@ namespace Zerra.Identity.Consumers
             {
                 var rsaParams = new RSAParameters()
                 {
-                    Modulus = Base64UrlEncoder.FromBase64String(key.Modulus),
-                    Exponent = Base64UrlEncoder.FromBase64String(key.Exponent)
+                    Modulus = Base64UrlEncoder.FromBase64UrlString(key.Modulus),
+                    Exponent = Base64UrlEncoder.FromBase64UrlString(key.Exponent)
                 };
                 rsa = RSA.Create();
                 rsa.ImportParameters(rsaParams);

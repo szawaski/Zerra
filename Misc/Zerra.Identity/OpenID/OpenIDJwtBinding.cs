@@ -293,12 +293,12 @@ namespace Zerra.Identity.OpenID
         protected static string EncodeJwt(string jwt)
         {
             var bytes = Encoding.UTF8.GetBytes(jwt);
-            return Base64UrlEncoder.ToBase64String(bytes);
+            return Base64UrlEncoder.ToBase64UrlString(bytes);
         }
 
         protected static string DecodeJwt(string base64)
         {
-            var bytes = Base64UrlEncoder.FromBase64String(base64);
+            var bytes = Base64UrlEncoder.FromBase64UrlString(base64);
             return Encoding.UTF8.GetString(bytes);
         }
     }

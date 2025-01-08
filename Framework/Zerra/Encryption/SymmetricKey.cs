@@ -6,12 +6,34 @@ using System;
 
 namespace Zerra.Encryption
 {
+    /// <summary>
+    /// Standard symmetric key for encryption with key and initialization vector.
+    /// </summary>
     public sealed class SymmetricKey
     {
+        /// <summary>
+        /// The key.
+        /// </summary>
         public byte[] Key { get; }
+        /// <summary>
+        /// The initialization vector.
+        /// </summary>
         public byte[] IV { get; }
+        /// <summary>
+        /// The size of the key in bytes.
+        /// </summary>
         public int KeySize { get; }
+        /// <summary>
+        /// The size of each encrypted block in bytes.
+        /// </summary>
         public int BlockSize { get; }
+
+        /// <summary>
+        /// Constructs a new symmetric key.
+        /// </summary>
+        /// <param name="key">The bytes of the key.</param>
+        /// <param name="iv">The bytes of the initialization vector.</param>
+        /// <exception cref="ArgumentNullException"></exception>
         public SymmetricKey(byte[] key, byte[] iv)
         {
             this.Key = key ?? throw new ArgumentNullException(nameof(key));
@@ -20,6 +42,7 @@ namespace Zerra.Encryption
             this.BlockSize = iv.Length * 8;
         }
 
+        /// <inheritdoc/>
         public override bool Equals(object? obj)
         {
             if (obj is not SymmetricKey casted)
@@ -33,6 +56,7 @@ namespace Zerra.Encryption
             return true;
         }
 
+        /// <inheritdoc/>
         public override int GetHashCode()
         {
 #if !NETSTANDARD2_0

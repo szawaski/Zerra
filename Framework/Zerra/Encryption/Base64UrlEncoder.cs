@@ -7,23 +7,31 @@ using Zerra.Buffers;
 
 namespace Zerra.Encryption
 {
+    /// <summary>
+    /// Deals with base64 URL-safe string encoding.
+    /// </summary>
     public static class Base64UrlEncoder
     {
-        public static string ToBase64String(byte[] inArray)
+        /// <summary>
+        /// Converts bytes into a base64 URL-safe string.
+        /// </summary>
+        /// <param name="inArray">The bytes to convert.</param>
+        /// <returns>The resulting string.</returns>
+        public static string ToBase64UrlString(byte[] inArray)
         {
             var arrayString = Convert.ToBase64String(inArray);
             var chars = arrayString.AsSpan();
 
-            var filteredLength = chars.Length;
+            var length = chars.Length;
             if (chars.Length > 0 && chars[chars.Length - 1] == '=')
             {
-                filteredLength--;
+                length--;
                 if (chars.Length > 1 && chars[chars.Length - 2] == '=')
-                    filteredLength--;
+                    length--;
             }
 
-            var filtered = ArrayPoolHelper<char>.Rent(filteredLength);
-            for (var i = 0; i < filteredLength; i++)
+            var filtered = ArrayPoolHelper<char>.Rent(length);
+            for (var i = 0; i < length; i++)
             {
                 var c = chars[i];
                 filtered[i] = c switch
@@ -33,12 +41,18 @@ namespace Zerra.Encryption
                     _ => c,
                 };
             }
-            var filteredString = new string(filtered, 0, filteredLength);
+            var filteredString = new string(filtered, 0, length);
             ArrayPoolHelper<char>.Return(filtered);
             return filteredString;
         }
 
-        public static byte[] FromBase64String(string s)
+        /// <summary>
+        /// Converts a URL-safe base64 string into bytes.
+        /// </summary>
+        /// <param name="s">The string to convert.</param>
+        /// <returns>The resulting bytes.</returns>
+        /// <exception cref="FormatException"></exception>
+        public static byte[] FromBase64UrlString(string s)
         {
             var chars = s.AsSpan();
             var filteredLength = (chars.Length % 4) switch

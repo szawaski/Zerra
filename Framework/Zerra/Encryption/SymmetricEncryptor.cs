@@ -9,6 +9,9 @@ using System.Text;
 
 namespace Zerra.Encryption
 {
+    /// <summary>
+    /// Performs symmetric encryption and decryption.
+    /// </summary>
     public static class SymmetricEncryptor
     {
         private static readonly byte[] defaultSalt = Encoding.UTF8.GetBytes("ενγρυπτιον"); //20 bytes
@@ -24,6 +27,15 @@ namespace Zerra.Encryption
             return hashBytes;
         }
 
+        /// <summary>
+        /// Gets a symmetric key from a string password using <see cref="Rfc2898DeriveBytes"/>.
+        /// </summary>
+        /// <param name="password">The string to produce a symmetric key.</param>
+        /// <param name="salt">An optional salt for the key.</param>
+        /// <param name="keySize">The size of the key.</param>
+        /// <param name="blockSize">The size of each encrypted block.</param>
+        /// <param name="iterations">The number of itterations</param>
+        /// <returns>The new symmetric key</returns>
         public static SymmetricKey GetKey(string password, string? salt = null, SymmetricKeySize keySize = defaultKeySize, SymmetricBlockSize blockSize = defaultBlockSize, int iterations = defaultDeriveBytesIterations)
         {
             var saltBytes = SaltFromPassword(password, salt);
@@ -44,7 +56,13 @@ namespace Zerra.Encryption
             }
         }
 
-        public static SymmetricKey GenerateKey(SymmetricConfig symmetricConfig, SymmetricKeySize keySize = defaultKeySize, SymmetricBlockSize blockSize = defaultBlockSize) => GenerateKey(symmetricConfig.Algorithm, keySize, blockSize);
+        /// <summary>
+        /// Generates a new random symmetric key.
+        /// </summary>
+        /// <param name="symmetricAlgorithmType">The algoritm for the symmetric key.</param>
+        /// <param name="keySize">The size of the key.</param>
+        /// <param name="blockSize">The size of each encrypted block.</param>
+        /// <returns>The new symmetric key</returns>
         public static SymmetricKey GenerateKey(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKeySize keySize = defaultKeySize, SymmetricBlockSize blockSize = defaultBlockSize)
         {
             var (symmetricAlgorithm, _) = GetAlgorithm(symmetricAlgorithmType);
@@ -81,13 +99,46 @@ namespace Zerra.Encryption
             };
         }
 
+        /// <summary>
+        /// Performs a symmetric encryption
+        /// </summary>
+        /// <param name="symmetricConfig">The symmetric encryption information which contains the algorithm and key.</param>
+        /// <param name="plainData">The data to encrypt.</param>
+        /// <returns>The encrypted data.</returns>
         public static string? Encrypt(SymmetricConfig symmetricConfig, string? plainData) => Encrypt(symmetricConfig.Algorithm, symmetricConfig.Key, plainData);
+        /// <summary>
+        /// Performs a symmetric encryption
+        /// </summary>
+        /// <param name="symmetricConfig">The symmetric encryption information which contains the algorithm and key.</param>
+        /// <param name="plainBytes">The data to encrypt.</param>
+        /// <returns>The encrypted data.</returns>
         public static byte[] Encrypt(SymmetricConfig symmetricConfig, byte[] plainBytes) => Encrypt(symmetricConfig.Algorithm, symmetricConfig.Key, plainBytes);
 #if !NETSTANDARD2_0
-        public static Span<byte> Encrypt(SymmetricConfig symmetricConfig, ReadOnlySpan<byte> plainBytes) => Encrypt(symmetricConfig.Algorithm, symmetricConfig.Key, plainBytes); 
+        /// <summary>
+        /// Performs a symmetric encryption
+        /// </summary>
+        /// <param name="symmetricConfig">The symmetric encryption information which contains the algorithm and key.</param>
+        /// <param name="plainBytes">The data to encrypt.</param>
+        /// <returns>The encrypted data.</returns>
+        public static Span<byte> Encrypt(SymmetricConfig symmetricConfig, ReadOnlySpan<byte> plainBytes) => Encrypt(symmetricConfig.Algorithm, symmetricConfig.Key, plainBytes);
 #endif
-        public static CryptoFlushStream Encrypt(SymmetricConfig symmetricConfig, Stream stream, bool write, bool leaveOpen = false) => Encrypt(symmetricConfig.Algorithm, symmetricConfig.Key, stream, write, leaveOpen); 
+        /// <summary>
+        /// Performs a symmetric encryption
+        /// </summary>
+        /// <param name="symmetricConfig">The symmetric encryption information which contains the algorithm and key.</param>
+        /// <param name="stream">The stream to encrypt.</param>
+        /// <param name="write">Indicates the stream is for writing.</param>
+        /// <param name="leaveOpen">Indicates if the original stream will stay open after the returning stream is closed or disposed.</param>
+        /// <returns>The stream that will encrypt the data.</returns>
+        public static CryptoFlushStream Encrypt(SymmetricConfig symmetricConfig, Stream stream, bool write, bool leaveOpen = false) => Encrypt(symmetricConfig.Algorithm, symmetricConfig.Key, stream, write, leaveOpen);
 
+        /// <summary>
+        /// Performs a symmetric encryption
+        /// </summary>
+        /// <param name="symmetricAlgorithmType">The symmetric algorith type.</param>
+        /// <param name="key">The key for encryption.</param>
+        /// <param name="plainData">The data to encrypt.</param>
+        /// <returns>The encrypted data.</returns>
         public static string? Encrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, string? plainData)
         {
             if (key is null)
@@ -100,6 +151,13 @@ namespace Zerra.Encryption
             var encryptedData = Convert.ToBase64String(encryptedBytes);
             return encryptedData;
         }
+        /// <summary>
+        /// Performs a symmetric encryption
+        /// </summary>
+        /// <param name="symmetricAlgorithmType">The symmetric algorith type.</param>
+        /// <param name="key">The key for encryption.</param>
+        /// <param name="plainBytes">The data to encrypt.</param>
+        /// <returns>The encrypted data.</returns>
         public static byte[] Encrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, byte[] plainBytes)
         {
             if (key is null)
@@ -120,6 +178,13 @@ namespace Zerra.Encryption
             }
         }
 #if !NETSTANDARD2_0
+        /// <summary>
+        /// Performs a symmetric encryption
+        /// </summary>
+        /// <param name="symmetricAlgorithmType">The symmetric algorith type.</param>
+        /// <param name="key">The key for encryption.</param>
+        /// <param name="plainBytes">The data to encrypt.</param>
+        /// <returns>The encrypted data.</returns>
         public static Span<byte> Encrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, ReadOnlySpan<byte> plainBytes)
         {
             if (key is null)
@@ -138,6 +203,15 @@ namespace Zerra.Encryption
             }
         }
 #endif
+        /// <summary>
+        /// Performs a symmetric encryption
+        /// </summary>
+        /// <param name="symmetricAlgorithmType">The symmetric encryption information which contains the algorithm and key.</param>
+        /// <param name="key">The key for encryption.</param>
+        /// <param name="stream">The stream to encrypt.</param>
+        /// <param name="write">Indicates the stream is for writing.</param>
+        /// <param name="leaveOpen">Indicates if the original stream will stay open after the returning stream is closed or disposed.</param>
+        /// <returns>The stream that will encrypt the data.</returns>
         public static CryptoFlushStream Encrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, Stream stream, bool write, bool leaveOpen = false)
         {
             if (key is null)
@@ -208,14 +282,46 @@ namespace Zerra.Encryption
 #endif
         }
 
-        public static string? Decrypt(SymmetricConfig symmetricConfig, string? encryptedData) => Decrypt(symmetricConfig.Algorithm, symmetricConfig.Key, encryptedData); 
-        public static byte[] Decrypt(SymmetricConfig symmetricConfig, byte[] encryptedBytes) => Decrypt(symmetricConfig.Algorithm, symmetricConfig.Key, encryptedBytes); 
+        /// <summary>
+        /// Performs a symmetric decryption
+        /// </summary>
+        /// <param name="symmetricConfig">The symmetric encryption information which contains the algorithm and key.</param>
+        /// <param name="encryptedData">The data to decrypt.</param>
+        /// <returns>The decrypted data.</returns>
+        public static string? Decrypt(SymmetricConfig symmetricConfig, string? encryptedData) => Decrypt(symmetricConfig.Algorithm, symmetricConfig.Key, encryptedData);
+        /// <summary>
+        /// Performs a symmetric decryption
+        /// </summary>
+        /// <param name="symmetricConfig">The symmetric encryption information which contains the algorithm and key.</param>
+        /// <param name="encryptedBytes">The data to decrypt.</param>
+        /// <returns>The decrypted data.</returns>
+        public static byte[] Decrypt(SymmetricConfig symmetricConfig, byte[] encryptedBytes) => Decrypt(symmetricConfig.Algorithm, symmetricConfig.Key, encryptedBytes);
 #if !NETSTANDARD2_0
-        public static Span<byte> Decrypt(SymmetricConfig symmetricConfig, ReadOnlySpan<byte> encryptedBytes) => Decrypt(symmetricConfig.Algorithm, symmetricConfig.Key, encryptedBytes); 
+        /// <summary>
+        /// Performs a symmetric decryption
+        /// </summary>
+        /// <param name="symmetricConfig">The symmetric encryption information which contains the algorithm and key.</param>
+        /// <param name="encryptedBytes">The data to decrypt.</param>
+        /// <returns>The decrypted data.</returns>
+        public static Span<byte> Decrypt(SymmetricConfig symmetricConfig, ReadOnlySpan<byte> encryptedBytes) => Decrypt(symmetricConfig.Algorithm, symmetricConfig.Key, encryptedBytes);
 #endif
-        public static CryptoFlushStream Decrypt(SymmetricConfig symmetricConfig, Stream stream, bool write, bool leaveOpen = false) => Decrypt(symmetricConfig.Algorithm, symmetricConfig.Key, stream, write, leaveOpen); 
+        /// <summary>
+        /// Performs a symmetric decryption
+        /// </summary>
+        /// <param name="symmetricConfig">The symmetric encryption information which contains the algorithm and key.</param>
+        /// <param name="stream">The stream to decrypt.</param>
+        /// <param name="write">Indicates the stream is for writing.</param>
+        /// <param name="leaveOpen">Indicates if the original stream will stay open after the returning stream is closed or disposed.</param>
+        /// <returns>The stream that will decrypt the data.</returns>
+        public static CryptoFlushStream Decrypt(SymmetricConfig symmetricConfig, Stream stream, bool write, bool leaveOpen = false) => Decrypt(symmetricConfig.Algorithm, symmetricConfig.Key, stream, write, leaveOpen);
 
-
+        /// <summary>
+        /// Performs a symmetric decryption
+        /// </summary>
+        /// <param name="symmetricAlgorithmType">The symmetric encryption information which contains the algorithm and key.</param>
+        /// <param name="key">The key for encryption.</param>
+        /// <param name="encryptedData">The data to decrypt.</param>
+        /// <returns>The decrypted data.</returns>
         public static string? Decrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, string? encryptedData)
         {
             if (key is null)
@@ -250,6 +356,13 @@ namespace Zerra.Encryption
             }
         }
 #if !NETSTANDARD2_0
+        /// <summary>
+        /// Performs a symmetric decryption
+        /// </summary>
+        /// <param name="symmetricAlgorithmType">The symmetric encryption information which contains the algorithm and key.</param>
+        /// <param name="key">The key for encryption.</param>
+        /// <param name="encryptedBytes">The data to decrypt.</param>
+        /// <returns>The decrypted data.</returns>
         public static Span<byte> Decrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, ReadOnlySpan<byte> encryptedBytes)
         {
             if (key is null)
@@ -268,6 +381,15 @@ namespace Zerra.Encryption
             }
         }
 #endif
+        /// <summary>
+        /// Performs a symmetric decryption
+        /// </summary>
+        /// <param name="symmetricAlgorithmType">The symmetric encryption information which contains the algorithm and key.</param>
+        /// <param name="key">The key for encryption.</param>
+        /// <param name="stream">The stream to decrypt.</param>
+        /// <param name="write">Indicates the stream is for writing.</param>
+        /// <param name="leaveOpen">Indicates if the original stream will stay open after the returning stream is closed or disposed.</param>
+        /// <returns>The stream that will decrypt the data.</returns>
         public static CryptoFlushStream Decrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, Stream stream, bool write, bool leaveOpen = false)
         {
             if (key is null)

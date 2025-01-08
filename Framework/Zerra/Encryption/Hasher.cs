@@ -9,9 +9,17 @@ using System.Text;
 
 namespace Zerra.Encryption
 {
+    /// <summary>
+    /// Generates and validates hashes.
+    /// </summary>
     public static class Hasher
     {
         private const int saltByteLength = 16;
+        /// <summary>
+        /// Generates a random salt.
+        /// </summary>
+        /// <param name="saltLength">The length of the salt.</param>
+        /// <returns>The new random salt bytes.</returns>
         public static byte[] GenerateSaltBytes(int saltLength = saltByteLength)
         {
             using (var rng = RandomNumberGenerator.Create())
@@ -35,6 +43,13 @@ namespace Zerra.Encryption
             };
         }
 
+        /// <summary>
+        /// Generates a hash from the plain input.
+        /// </summary>
+        /// <param name="hashAlgoritmType">The hash algorithm type.</param>
+        /// <param name="plain">The input to hash.</param>
+        /// <param name="salt">The optional salt.</param>
+        /// <returns>The resulting hash from the plain input.</returns>
         public static string GenerateHash(HashAlgoritmType hashAlgoritmType, string plain, string? salt = null)
         {
             var plainBytes = Encoding.UTF8.GetBytes(plain);
@@ -43,6 +58,13 @@ namespace Zerra.Encryption
             var hash = Convert.ToBase64String(hashedBytes);
             return hash;
         }
+        /// <summary>
+        /// Generates a hash from the plain input.
+        /// </summary>
+        /// <param name="hashAlgoritmType">The hash algorithm type.</param>
+        /// <param name="plainBytes">The input to hash.</param>
+        /// <param name="saltBytes">The optional salt.</param>
+        /// <returns>The resulting hash from the plain input.</returns>
         public static byte[] GenerateHash(HashAlgoritmType hashAlgoritmType, byte[] plainBytes, byte[]? saltBytes = null)
         {
             using (var hashAlgorithm = GetHashAlgorithm(hashAlgoritmType))
@@ -64,6 +86,13 @@ namespace Zerra.Encryption
                 return hashWithSaltBytes;
             }
         }
+        /// <summary>
+        /// Verifies a hash is valid from the original plain input.
+        /// </summary>
+        /// <param name="hashAlgoritmType">The hash algorithm type.</param>
+        /// <param name="plain">The original input.</param>
+        /// <param name="hash">The hash value.</param>
+        /// <returns>True if the hash matches the original plain input; otherwise False.</returns>
         public static bool VerifyHash(HashAlgoritmType hashAlgoritmType, string plain, string hash)
         {
             if (String.IsNullOrWhiteSpace(hash))
@@ -79,6 +108,13 @@ namespace Zerra.Encryption
                 return false;
             }
         }
+        /// <summary>
+        /// Verifies a hash is valid from the original plain input.
+        /// </summary>
+        /// <param name="hashAlgoritmType">The hash algorithm type.</param>
+        /// <param name="plainBytes">The original input.</param>
+        /// <param name="hashWithSaltBytes">The hash value.</param>
+        /// <returns>True if the hash matches the original plain input; otherwise False.</returns>
         public static bool VerifyHash(HashAlgoritmType hashAlgoritmType, byte[] plainBytes, byte[] hashWithSaltBytes)
         {
             using (var hashAlgorithm = GetHashAlgorithm(hashAlgoritmType))
@@ -106,6 +142,12 @@ namespace Zerra.Encryption
 
         private const int pbkdf2HashByteSize = 64;
         private const int rfc2898HashItterations = 1000; //default per source code
+        /// <summary>
+        /// Generates a hash from the plain input using Password-Based Key Derivation Function 2 (PBKDF-2).
+        /// </summary>
+        /// <param name="plain">The input to hash.</param>
+        /// <param name="salt">The optional salt.</param>
+        /// <returns>The resulting hash from the plain input.</returns>
         public static string PBKDF2GenerateHash(string plain, string? salt = null)
         {
             var plainBytes = Encoding.UTF8.GetBytes(plain);
@@ -114,6 +156,12 @@ namespace Zerra.Encryption
             var hash = Convert.ToBase64String(hashedBytes);
             return hash;
         }
+        /// <summary>
+        /// Generates a hash from the plain input using Password-Based Key Derivation Function 2 (PBKDF-2).
+        /// </summary>
+        /// <param name="plainBytes">The input to hash.</param>
+        /// <param name="saltBytes">The optional salt.</param>
+        /// <returns>The resulting hash from the plain input.</returns>
         public static byte[] PBKDF2GenerateHash(byte[] plainBytes, byte[]? saltBytes = null)
         {
             saltBytes ??= GenerateSaltBytes();
@@ -134,6 +182,12 @@ namespace Zerra.Encryption
                 return hashWithSaltBytes;
             }
         }
+        /// <summary>
+        /// Verifies a hash is valid from the original plain input using Password-Based Key Derivation Function 2 (PBKDF-2).
+        /// </summary>
+        /// <param name="plain">The original input.</param>
+        /// <param name="hash">The hash value.</param>
+        /// <returns>True if the hash matches the original plain input; otherwise False.</returns>
         public static bool PBKDF2VerifyHash(string plain, string hash)
         {
             try
@@ -147,6 +201,12 @@ namespace Zerra.Encryption
                 return false;
             }
         }
+        /// <summary>
+        /// Verifies a hash is valid from the original plain input using Password-Based Key Derivation Function 2 (PBKDF-2).
+        /// </summary>
+        /// <param name="plainBytes">The original input.</param>
+        /// <param name="hashWithSaltBytes">The hash value.</param>
+        /// <returns>True if the hash matches the original plain input; otherwise False.</returns>
         public static bool PBKDF2VerifyHash(byte[] plainBytes, byte[] hashWithSaltBytes)
         {
             if (hashWithSaltBytes.Length < pbkdf2HashByteSize)

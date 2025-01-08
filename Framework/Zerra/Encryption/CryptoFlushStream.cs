@@ -10,19 +10,22 @@ using Zerra.IO;
 
 namespace Zerra.Encryption
 {
+    /// <summary>
+    /// Abstracts different streams that require calling FlushFinalBlockAsync.
+    /// </summary>
     public sealed class CryptoFlushStream : StreamWrapper
     {
         private readonly CryptoStream? cryptoStream;
         private readonly ICryptoTransform transform;
         private readonly CryptoShiftStream? cryptoShiftStream;
-        public CryptoFlushStream(CryptoStream stream, ICryptoTransform transform, bool leaveOpen) 
+        internal CryptoFlushStream(CryptoStream stream, ICryptoTransform transform, bool leaveOpen)
             : base(stream, leaveOpen)
         {
             this.cryptoStream = stream;
             this.transform = transform;
             this.cryptoShiftStream = null;
         }
-        public CryptoFlushStream(CryptoShiftStream stream, ICryptoTransform transform, bool leaveOpen) 
+        internal CryptoFlushStream(CryptoShiftStream stream, ICryptoTransform transform, bool leaveOpen)
             : base(stream, leaveOpen)
         {
             this.cryptoStream = null;
@@ -30,6 +33,9 @@ namespace Zerra.Encryption
             this.cryptoShiftStream = stream;
         }
 
+        /// <summary>
+        /// Calls the underlying FlushFinalBlockAsync
+        /// </summary>
         public void FlushFinalBlock()
         {
             if (cryptoStream is not null)
@@ -39,6 +45,9 @@ namespace Zerra.Encryption
         }
 
 #if NET5_0_OR_GREATER
+        /// <summary>
+        /// Calls the underlying FlushFinalBlockAsync
+        /// </summary>
         public ValueTask FlushFinalBlockAsync()
         {
             if (cryptoStream is not null)
@@ -49,6 +58,7 @@ namespace Zerra.Encryption
         }
 #endif
 
+        ///<inheritdoc />
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);

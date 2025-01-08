@@ -88,8 +88,8 @@ namespace Zerra.Identity.OpenID.Documents
                     Use = "sig",
                     KeyType = "RSA",
                     X509Thumbprint = cert.Thumbprint, //same as KeyID
-                    Exponent = Base64UrlEncoder.ToBase64String(parameters.Exponent),
-                    Modulus = Base64UrlEncoder.ToBase64String(parameters.Modulus),
+                    Exponent = Base64UrlEncoder.ToBase64UrlString(parameters.Exponent),
+                    Modulus = Base64UrlEncoder.ToBase64UrlString(parameters.Modulus),
                     X509Certificates = new string[]
                     {
                             certString
