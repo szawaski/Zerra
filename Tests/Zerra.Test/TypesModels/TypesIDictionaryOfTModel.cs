@@ -14,6 +14,8 @@ namespace Zerra.Test
         public CustomIDictionary DictionaryThing2 { get; set; }
         public CustomIDictionary DictionaryThing3 { get; set; }
         public CustomIDictionary DictionaryThing4 { get; set; }
+        public CustomIDictionary DictionaryThingEmpty { get; set; }
+        public CustomIDictionary DictionaryThingNull { get; set; }
 
         public sealed class CustomIDictionary : IDictionary
         {
@@ -52,6 +54,8 @@ namespace Zerra.Test
                 DictionaryThing2 = new CustomIDictionary() { { 1, new SimpleModel() { Value1 = 1, Value2 = "A" } }, { 2, new SimpleModel() { Value1 = 2, Value2 = "B" } }, { 3, new SimpleModel() { Value1 = 3, Value2 = "C" } }, { 4, null } },
                 DictionaryThing3 = new CustomIDictionary() { { new SimpleModel() { Value1 = 1, Value2 = "A" }, 1 }, { new SimpleModel() { Value1 = 2, Value2 = "B" }, 2 }, { new SimpleModel() { Value1 = 3, Value2 = "C" }, 3 }, { new SimpleModel() { Value1 = 4, Value2 = "D" }, null } },
                 DictionaryThing4 = new CustomIDictionary() { { "A", "1" }, { "B", "2" }, { "C", "3" }, { "D", null } },
+                DictionaryThingEmpty = new CustomIDictionary(),
+                DictionaryThingNull = null
             };
             return model;
         }

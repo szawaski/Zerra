@@ -13,6 +13,8 @@ namespace Zerra.Test
         public ConcurrentDictionary<int, SimpleModel> DictionaryThing2 { get; set; }
         public ConcurrentDictionary<SimpleModel, int?> DictionaryThing3 { get; set; }
         public ConcurrentDictionary<string, string> DictionaryThing4 { get; set; }
+        public ConcurrentDictionary<string, string> DictionaryThingEmpty { get; set; }
+        public ConcurrentDictionary<string, string> DictionaryThingNull { get; set; }
 
         public static TypesIDictionaryTOfTModel Create()
         {
@@ -21,7 +23,9 @@ namespace Zerra.Test
                 DictionaryThing1 = new ConcurrentDictionary<int, string>(new Dictionary<int, string>() { { 1, "A" }, { 2, "B" }, { 3, "C" }, { 4, null } }),
                 DictionaryThing2 = new ConcurrentDictionary<int, SimpleModel>(new Dictionary<int, SimpleModel>() { { 1, new() { Value1 = 1, Value2 = "A" } }, { 2, new() { Value1 = 2, Value2 = "B" } }, { 3, new() { Value1 = 3, Value2 = "C" } }, { 4, null } }),
                 DictionaryThing3 = new ConcurrentDictionary<SimpleModel, int?>(),
-                DictionaryThing4 = new ConcurrentDictionary<string, string>()
+                DictionaryThing4 = new ConcurrentDictionary<string, string>(),
+                DictionaryThingEmpty = new ConcurrentDictionary<string, string>(),
+                DictionaryThingNull = null
             };
             model.DictionaryThing3.TryAdd(new SimpleModel() { Value1 = 1, Value2 = "A" }, 1);
             model.DictionaryThing3.TryAdd(new SimpleModel() { Value1 = 2, Value2 = "B" }, 2);

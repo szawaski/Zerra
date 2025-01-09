@@ -73,7 +73,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
 
                     if (c == '}')
                     {
-                        value = default;
+                        value = (TDictionary)accessor.Dictionary;
                         return true;
                     }
 
