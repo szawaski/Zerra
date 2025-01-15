@@ -3,22 +3,49 @@
 // Licensed to you under the MIT license
 
 using System;
+using Zerra.Reflection;
 using Zerra.Serialization.Bytes;
 
 namespace Zerra.CQRS.Network
 {
+    /// <summary>
+    /// A response from a service that a CQRS operation was completed and if it was successful.
+    /// This may contain a result or an exception.
+    /// </summary>
     public sealed class Acknowledgement
     {
-        public bool Success { get; set; }
-        public string? ErrorMessage { get; set; }
-        public Type? DataType { get; set; }
-        public byte[]? Data { get; set; }
+        /// <summary>
+        /// Indicates if the acknowledgment was a success.
+        /// </summary>
+        public bool Success { get; private set; }
+        /// <summary>
+        /// The error message text if the acknowledgment was a failure.
+        /// </summary>
+        public string? ErrorMessage { get; private set; }
+        /// <summary>
+        /// The data type of the result or the exception.
+        /// </summary>
+        public string? DataType { get; private set; }
+        /// <summary>
+        /// The serialized data of the result or the exception.
+        /// </summary>
+        public byte[]? Data { get; private set; }
 
+        /// <summary>
+        /// Creates a acknowledgement response that indicates a failure.
+        /// </summary>
+        /// <param name="errorMessage">The error message describing the failure.</param>
         public Acknowledgement(string errorMessage)
         {
             this.Success = false;
             this.ErrorMessage = errorMessage;
         }
+
+        /// <summary>
+        /// Creates a acknowledgement response that either has a successful result or failure with an exception.
+        /// </summary>
+        /// <param name="result">The successful result.</param>
+        /// <param name="ex">The exception indicating a failure.</param>
         public Acknowledgement(object? result, Exception? ex)
         {
             this.Success = ex is null;
@@ -26,14 +53,16 @@ namespace Zerra.CQRS.Network
             {
                 this.Success = false;
                 this.ErrorMessage = ex.Message;
-                this.DataType = ex.GetType();
-                this.Data = ByteSerializer.Serialize(ex, this.DataType, byteSerializerOptions);
+                var type = ex.GetType();
+                this.DataType = type.FullName;
+                this.Data = ByteSerializer.Serialize(ex, type, byteSerializerOptions);
             }
             else if (result is not null)
             {
                 this.Success = true;
-                this.DataType = result.GetType();
-                this.Data = ByteSerializer.Serialize(result, byteSerializerOptions);
+                var type = result.GetType();
+                this.DataType = type.FullName;
+                this.Data = ByteSerializer.Serialize(result, type, byteSerializerOptions);
             }
             else
             {
@@ -47,28 +76,13 @@ namespace Zerra.CQRS.Network
             IgnoreIndexAttribute = true
         };
 
-        public static void ApplyException(Acknowledgement? ack, Exception? ex)
-        {
-            if (ack is null)
-                return;
-
-            if (ex is null)
-            {
-                ack.Success = true;
-                ack.ErrorMessage = null;
-                ack.DataType = null;
-                ack.Data = null;
-            }
-            else
-            {
-                var type = ex.GetType();
-                ack.Success = false;
-                ack.ErrorMessage = ex.Message;
-                ack.DataType = type;
-                ack.Data = ByteSerializer.Serialize(ex, type, byteSerializerOptions);
-            }
-        }
-
+        /// <summary>
+        /// Throws an exception if the acknowledgement indicates a failure.
+        /// The inner exception will be the original exception.
+        /// If the original exception type is not know to this assembly, the inner exception will be null.
+        /// </summary>
+        /// <param name="ack">The acknowledgement to check for a failure.</param>
+        /// <exception cref="RemoteServiceException"></exception>
         public static void ThrowIfFailed(Acknowledgement? ack)
         {
             if (ack is null)
@@ -81,17 +95,27 @@ namespace Zerra.CQRS.Network
             {
                 try
                 {
-                    ex = (Exception?)ByteSerializer.Deserialize(ack.DataType, ack.Data, byteSerializerOptions);
+                    var type = Discovery.GetTypeFromName(ack.DataType);
+                    ex = (Exception?)ByteSerializer.Deserialize(type, ack.Data, byteSerializerOptions);
                 }
                 catch { }
             }
             throw new RemoteServiceException(ack.ErrorMessage, ex);
         }
 
+        /// <summary>
+        /// Extracts the result if acknowledgement is successful; otherwise throws an exception.
+        /// The inner exception will be the original exception.
+        /// If the original exception type is not know to this assembly, the inner exception will be null.
+        /// </summary>
+        /// <param name="ack">The acknowledgement for the result or failure.</param>
+        /// <returns>The result if successful which may be a null.  A failure will throw an exception.</returns>
+        /// <exception cref="RemoteServiceException"></exception>
         public static object? GetResultOrThrowIfFailed(Acknowledgement? ack)
         {
             if (ack is null)
                 throw new RemoteServiceException("Acknowledgement Failed");
+
             if (!ack.Success)
             {
                 Exception? ex = null;
@@ -99,7 +123,8 @@ namespace Zerra.CQRS.Network
                 {
                     try
                     {
-                        ex = (Exception?)ByteSerializer.Deserialize(ack.DataType, ack.Data, byteSerializerOptions);
+                        var type = Discovery.GetTypeFromName(ack.DataType);
+                        ex = (Exception?)ByteSerializer.Deserialize(type, ack.Data, byteSerializerOptions);
                     }
                     catch { }
                 }
@@ -111,7 +136,8 @@ namespace Zerra.CQRS.Network
             {
                 try
                 {
-                    result = ByteSerializer.Deserialize(ack.DataType, ack.Data, byteSerializerOptions);
+                    var type = Discovery.GetTypeFromName(ack.DataType);
+                    result = ByteSerializer.Deserialize(type, ack.Data, byteSerializerOptions);
                 }
                 catch { }
             }
