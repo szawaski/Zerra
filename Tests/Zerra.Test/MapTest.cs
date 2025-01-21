@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Zerra.Map;
+using Zerra.Reflection;
 using Zerra.Test.Map;
 
 namespace Zerra.Test
@@ -14,6 +15,63 @@ namespace Zerra.Test
     [TestClass]
     public class MapTest
     {
+        [TestMethod]
+        public void StringTypes()
+        {
+            var value1 = "Test";
+            var result1 = value1.Copy();
+            Assert.AreEqual(value1, result1);
+        }
+        [TestMethod]
+        public void StringTypesLogger()
+        {
+            var log = new MapperLog();
+
+            var value1 = "Test";
+            var result1 = value1.Copy(log);
+            Assert.AreEqual(value1, result1);
+        }
+
+        [TestMethod]
+        public void NumberTypes()
+        {
+            var value1 = 12345.6789m;
+            var result1 = value1.Copy();
+            Assert.AreEqual(value1, result1);
+
+            var result2 = value1.Map<int>();
+            Assert.AreEqual((int)TypeAnalyzer.Convert(value1, typeof(int)), result2);
+        }
+        [TestMethod]
+        public void NumberTypesLogger()
+        {
+            var log = new MapperLog();
+
+            var value1 = 12345.6789m;
+            var result1 = value1.Copy(log);
+            Assert.AreEqual(value1, result1);
+
+            var result2 = value1.Map<int>(log);
+            Assert.AreEqual((int)TypeAnalyzer.Convert(value1, typeof(int)), result2);
+        }
+
+        [TestMethod]
+        public void EnumTypes()
+        {
+            var value1 = EnumModel.EnumItem2;
+            var result1 = value1.Copy();
+            Assert.AreEqual(value1, result1);
+        }
+        [TestMethod]
+        public void EnumTypesLogger()
+        {
+            var log = new MapperLog();
+
+            var value1 = EnumModel.EnumItem2;
+            var result1 = value1.Copy(log);
+            Assert.AreEqual(value1, result1);
+        }
+
         [TestMethod]
         public void ValueTypes()
         {
@@ -26,6 +84,7 @@ namespace Zerra.Test
             Assert.AreEqual(value2.P1, result2.P1);
             Assert.AreEqual(value2.P2, result2.P2);
         }
+
         [TestMethod]
         public void ValueTypesLogger()
         {

@@ -34,7 +34,7 @@ namespace Zerra.Map
             if (source is null)
                 throw new ArgumentNullException(nameof(source));
 
-            var map = Zerra.Map.MapGenerator<TSource, TTarget>.GetMap();
+            var map = MapGenerator<TSource, TTarget>.GetMap();
             return map.Copy(source, graph);
         }
 
@@ -54,7 +54,7 @@ namespace Zerra.Map
             if (target is null)
                 throw new ArgumentNullException(nameof(target));
 
-            var map = Zerra.Map.MapGenerator<TSource, TTarget>.GetMap();
+            var map = MapGenerator<TSource, TTarget>.GetMap();
             _ = map.CopyTo(source, target, graph);
         }
 

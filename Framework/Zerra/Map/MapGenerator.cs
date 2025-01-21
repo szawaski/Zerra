@@ -142,6 +142,15 @@ namespace Zerra.Map
                 throw new ArgumentNullException(nameof(source));
 
             TTarget target;
+
+            if (sourceType.CoreType.HasValue || targetType.CoreType.HasValue || sourceType.Type.IsEnum || targetType.Type.IsEnum)
+            {
+                if (targetType.Type == sourceType.Type)
+                    return (TTarget)(object)source;
+                else
+                    return (TTarget)TypeAnalyzer.Convert(source, targetType.Type)!;
+            }
+            
             if (sourceType.HasIEnumerable && targetType.HasIEnumerable)
             {
                 if (targetType.Type.IsArray)
