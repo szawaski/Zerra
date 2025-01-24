@@ -313,6 +313,21 @@ namespace Zerra.Test
         }
 
         [TestMethod]
+        public void TypesCustomCollections()
+        {
+            var options = new ByteSerializerOptions()
+            {
+                UseTypes = true
+            };
+
+            var model1 = TypesCustomCollectionsModel.Create();
+            var bytes = ByteSerializer.Serialize(model1, options);
+            //Assert.AreEqual(254, bytes.Length);
+            var model2 = ByteSerializer.Deserialize<TypesCustomCollectionsModel>(bytes, options);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
         public void TypesOther()
         {
             var model1 = TypesOtherModel.Create();

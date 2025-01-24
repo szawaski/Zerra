@@ -85,7 +85,7 @@ namespace Zerra.Serialization.Json.Converters
 
             //IList<T> of type - specific types that inherit this
             if (typeDetail.HasIListGeneric)
-                return typeof(JsonConverterIListTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerType);
+                return typeof(JsonConverterIListTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.IEnumerableGenericInnerType);
 
             //IList of type - specific types that inherit this
             if (typeDetail.HasIList)
@@ -93,11 +93,11 @@ namespace Zerra.Serialization.Json.Converters
 
             //ISet<T> of type - specific types that inherit this
             if (typeDetail.HasISetGeneric)
-                return typeof(JsonConverterISetTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerType);
+                return typeof(JsonConverterISetTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.IEnumerableGenericInnerType);
 
             //IDictionary<,> of type - specific types that inherit this
             if (typeDetail.HasIDictionaryGeneric)
-                return typeof(JsonConverterIDictionaryTOfT<,,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerTypes[0], typeDetail.InnerTypes[1]);
+                return typeof(JsonConverterIDictionaryTOfT<,,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.DictionaryInnerTypeDetail.InnerTypes[0], typeDetail.DictionaryInnerTypeDetail.InnerTypes[1]);
 
             //IDictionary of type - specific types that inherit this
             if (typeDetail.HasIDictionary)
@@ -105,7 +105,7 @@ namespace Zerra.Serialization.Json.Converters
 
             //ICollection<T> of type - specific types that inherit this
             if (typeDetail.HasICollectionGeneric)
-                return typeof(JsonConverterICollectionTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.InnerType);
+                return typeof(JsonConverterICollectionTOfT<,,>).GetGenericTypeDetail(parentType, typeDetail.Type, typeDetail.IEnumerableGenericInnerType);
 
             //IEnumerable<T> of type  - specific types that inherit this (This cannot read because we have no interface to populate the collection)
             if (typeDetail.HasIEnumerableGeneric)

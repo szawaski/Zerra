@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -14,6 +15,29 @@ namespace Zerra.Reflection
 {
     public abstract class TypeDetail
     {
+        internal static readonly string nullaleTypeName = typeof(Nullable<>).Name;
+        internal static readonly string enumberableTypeName = nameof(IEnumerable);
+        internal static readonly string enumberableGenericTypeName = typeof(IEnumerable<>).Name;
+
+        internal static readonly string collectionTypeName = nameof(ICollection);
+        internal static readonly string collectionGenericTypeName = typeof(ICollection<>).Name;
+        internal static readonly string readOnlyCollectionGenericTypeName = typeof(IReadOnlyCollection<>).Name;
+        internal static readonly string listTypeName = nameof(IList);
+        internal static readonly string listGenericTypeName = typeof(IList<>).Name;
+        internal static readonly string readOnlyListTypeName = typeof(IReadOnlyList<>).Name;
+        internal static readonly string setGenericTypeName = typeof(ISet<>).Name;
+#if NET5_0_OR_GREATER
+        internal static readonly string readOnlySetGenericTypeName = typeof(IReadOnlySet<>).Name;
+#else
+        internal static readonly string readOnlySetGenericTypeName = "IReadOnlySet`1";
+#endif
+        internal static readonly string dictionaryTypeName = typeof(IDictionary).Name;
+        internal static readonly string dictionaryGenericTypeName = typeof(IDictionary<,>).Name;
+        internal static readonly string readOnlyDictionaryGenericTypeName = typeof(IReadOnlyDictionary<,>).Name;
+
+        internal static readonly Type keyValuePairType = typeof(KeyValuePair<,>);
+        internal static readonly Type dictionaryEntryType = typeof(DictionaryEntry);
+
         public abstract bool IsGenerated { get; }
 
         public Type Type { get; }

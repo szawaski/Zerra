@@ -291,6 +291,15 @@ namespace Zerra.Test
         //}
 
         [TestMethod]
+        public void StringTypesCustomCollections()
+        {
+            var model1 = TypesCustomCollectionsModel.Create();
+            var bytes = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TypesCustomCollectionsModel>(bytes);
+            AssertHelper.AreEqual(model1, model2);
+        }
+
+        [TestMethod]
         public void StringTypesOther()
         {
             var model1 = TypesOtherModel.Create();
@@ -1298,6 +1307,17 @@ namespace Zerra.Test
         //    var model2 = await JsonSerializer.DeserializeAsync<TypesIDictionaryOfTModel>(stream);
         //    AssertHelper.AreEqual(model1, model2);
         //}
+
+        [TestMethod]
+        public async Task StreamTypesCustomCollections()
+        {
+            var model1 = TypesCustomCollectionsModel.Create();
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, model1);
+            stream.Position = 0;
+            var model2 = await JsonSerializer.DeserializeAsync<TypesCustomCollectionsModel>(stream);
+            AssertHelper.AreEqual(model1, model2);
+        }
 
         [TestMethod]
         public async Task StreamTypesOther()

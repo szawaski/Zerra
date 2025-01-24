@@ -69,21 +69,69 @@ namespace Zerra.Reflection.Compiletime
             }
         }
 
+        private bool iEnumerableGenericInnerTypeDetailLoaded = false;
         private TypeDetail? iEnumerableGenericInnerTypeDetail = null;
         public override sealed TypeDetail IEnumerableGenericInnerTypeDetail
         {
             get
             {
-                if (IEnumerableGenericInnerType is null)
-                    throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name.GetType()} is not an IEnumerableGeneric");
-                if (iEnumerableGenericInnerTypeDetail is null)
+                if (!iEnumerableGenericInnerTypeDetailLoaded)
                 {
                     lock (locker)
                     {
-                        iEnumerableGenericInnerTypeDetail ??= TypeAnalyzer.GetTypeDetail(IEnumerableGenericInnerType);
+                        if (!iEnumerableGenericInnerTypeDetailLoaded)
+                        {
+                            if (IEnumerableGenericInnerType is not null)
+                                iEnumerableGenericInnerTypeDetail ??= TypeAnalyzer.GetTypeDetail(IEnumerableGenericInnerType);
+                            iEnumerableGenericInnerTypeDetailLoaded = true;
+                        }
                     }
                 }
-                return iEnumerableGenericInnerTypeDetail;
+                return iEnumerableGenericInnerTypeDetail ?? throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name.GetType()} is not an IEnumerableGeneric or has multiple");
+            }
+        }
+
+        private bool dictionartyInnerTypeLoaded = false;
+        private Type? dictionaryInnerType = null;
+        public override sealed Type DictionaryInnerType
+        {
+            get
+            {
+                if (!dictionartyInnerTypeLoaded)
+                {
+                    lock (locker)
+                    {
+                        if (!dictionartyInnerTypeLoaded)
+                        {
+                            if (IsIDictionaryGeneric || IsIReadOnlyDictionaryGeneric)
+                            {
+                                dictionaryInnerType = TypeAnalyzer.GetGenericType(keyValuePairType, (Type[])InnerTypes);
+                            }
+                            else if (HasIDictionaryGeneric)
+                            {
+                                var interfaceFound = Interfaces.Where(x => x.Name == dictionaryGenericTypeName).ToArray();
+                                if (interfaceFound.Length == 1)
+                                {
+                                    dictionaryInnerType = TypeAnalyzer.GetGenericType(keyValuePairType, interfaceFound[0].GetGenericArguments());
+                                }
+                            }
+                            else if (HasIReadOnlyDictionaryGeneric)
+                            {
+                                var interfaceFound = Interfaces.Where(x => x.Name == readOnlyDictionaryGenericTypeName).ToArray();
+                                if (interfaceFound.Length == 1)
+                                {
+                                    dictionaryInnerType = TypeAnalyzer.GetGenericType(keyValuePairType, interfaceFound[0].GetGenericArguments());
+                                }
+                            }
+                            else if (HasIDictionary)
+                            {
+                                dictionaryInnerType = dictionaryEntryType;
+                            }
+                            dictionartyInnerTypeLoaded = true;
+                        }
+                    }
+                }
+                return dictionaryInnerType ?? throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name.GetType()} is not a Dictionary or has multiple");
             }
         }
 
@@ -100,41 +148,11 @@ namespace Zerra.Reflection.Compiletime
                         if (!dictionaryInnerTypeDetailLoaded)
                         {
                             dictionaryInnerTypesDetail = DictionaryInnerType.GetTypeDetail();
-                        }
-                        innerTypeDetailLoaded = true;
-                    }
-                }
-                return dictionaryInnerTypesDetail ?? throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name} does not have a {nameof(DictionaryInnerTypeDetail)}");
-            }
-        }
-
-        private static readonly Type keyValuePairType = typeof(KeyValuePair<,>);
-        private static readonly Type dictionaryEntryType = typeof(DictionaryEntry);
-        private bool dictionartyInnerTypeLoaded = false;
-        private Type? dictionaryInnerType = null;
-        public override sealed Type DictionaryInnerType
-        {
-            get
-            {
-                if (!dictionartyInnerTypeLoaded)
-                {
-                    lock (locker)
-                    {
-                        if (!dictionartyInnerTypeLoaded)
-                        {
-                            if (HasIDictionaryGeneric || HasIReadOnlyDictionaryGeneric)
-                            {
-                                dictionaryInnerType = TypeAnalyzer.GetGenericType(keyValuePairType, (Type[])InnerTypes);
-                            }
-                            else if (HasIDictionary)
-                            {
-                                dictionaryInnerType = dictionaryEntryType;
-                            }
-                            dictionartyInnerTypeLoaded = true;
+                            dictionaryInnerTypeDetailLoaded = true;
                         }
                     }
                 }
-                return dictionaryInnerType ?? throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name} does not have a {nameof(DictionaryInnerType)}");
+                return dictionaryInnerTypesDetail ?? throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name.GetType()} is not a Dictionary or has multiple");
             }
         }
 

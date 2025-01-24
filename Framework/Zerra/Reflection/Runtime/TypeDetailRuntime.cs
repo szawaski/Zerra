@@ -15,29 +15,6 @@ namespace Zerra.Reflection.Runtime
 {
     internal sealed class TypeDetailRuntime : TypeDetail
     {
-        private static readonly string nullaleTypeName = typeof(Nullable<>).Name;
-        private static readonly string enumberableTypeName = nameof(IEnumerable);
-        private static readonly string enumberableGenericTypeName = typeof(IEnumerable<>).Name;
-
-        private static readonly string collectionTypeName = nameof(ICollection);
-        private static readonly string collectionGenericTypeName = typeof(ICollection<>).Name;
-        private static readonly string readOnlyCollectionGenericTypeName = typeof(IReadOnlyCollection<>).Name;
-        private static readonly string listTypeName = nameof(IList);
-        private static readonly string listGenericTypeName = typeof(IList<>).Name;
-        private static readonly string readOnlyListTypeName = typeof(IReadOnlyList<>).Name;
-        private static readonly string setGenericTypeName = typeof(ISet<>).Name;
-#if NET5_0_OR_GREATER
-        private static readonly string readOnlySetGenericTypeName = typeof(IReadOnlySet<>).Name;
-#else
-        private static readonly string readOnlySetGenericTypeName = "IReadOnlySet`1";
-#endif
-        private static readonly string dictionaryTypeName = typeof(IDictionary).Name;
-        private static readonly string dictionaryGenericTypeName = typeof(IDictionary<,>).Name;
-        private static readonly string readOnlyDictionaryGenericTypeName = typeof(IReadOnlyDictionary<,>).Name;
-
-        private static readonly Type keyValuePairType = typeof(KeyValuePair<,>);
-        private static readonly Type dictionaryEntryType = typeof(DictionaryEntry);
-
         public override bool IsGenerated => false;
 
         public override bool IsNullable { get; }
@@ -952,56 +929,57 @@ namespace Zerra.Reflection.Runtime
             }
         }
 
+        private bool iEnumerableGenericInnerTypeLoaded = false;
         private Type? iEnumerableGenericInnerType = null;
         public override Type IEnumerableGenericInnerType
         {
             get
             {
-                if (!HasIEnumerable)
-                    throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name.GetType()} is not an IEnumerableGeneric");
-                if (iEnumerableGenericInnerType is null)
-                    LoadIEnumerableGeneric();
-                return iEnumerableGenericInnerType ?? throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name.GetType()} is not an IEnumerableGeneric"); ;
-            }
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void LoadIEnumerableGeneric()
-        {
-            lock (locker)
-            {
-                if (iEnumerableGenericInnerType is null)
+                if (!iEnumerableGenericInnerTypeLoaded)
                 {
-                    if (Type.Name == enumberableGenericTypeName)
+                    lock (locker)
                     {
-                        iEnumerableGenericInnerType = Type.GetGenericArguments()[0];
-                    }
-                    else
-                    {
-                        var enumerableGeneric = Interfaces.Where(x => x.Name == enumberableGenericTypeName).ToArray();
-                        if (enumerableGeneric.Length == 1)
+                        if (!iEnumerableGenericInnerTypeLoaded)
                         {
-                            iEnumerableGenericInnerType = enumerableGeneric[0].GetGenericArguments()[0];
+                            if (isIEnumerableGeneric)
+                            {
+                                iEnumerableGenericInnerType = Type.GetGenericArguments()[0];
+                            }
+                            else
+                            {
+                                var interfaceFound = Interfaces.Where(x => x.Name == enumberableGenericTypeName).ToArray();
+                                if (interfaceFound.Length == 1)
+                                {
+                                    iEnumerableGenericInnerType = interfaceFound[0].GetGenericArguments()[0];
+                                }
+                            }
+                            iEnumerableGenericInnerTypeLoaded = true;
                         }
                     }
                 }
+                return iEnumerableGenericInnerType ?? throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name.GetType()} is not an IEnumerableGeneric or has multiple");
             }
         }
 
+        private bool iEnumerableGenericInnerTypeDetailLoaded = false;
         private TypeDetail? iEnumerableGenericInnerTypeDetail = null;
         public override TypeDetail IEnumerableGenericInnerTypeDetail
         {
             get
             {
-                if (IEnumerableGenericInnerType is null)
-                    throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name.GetType()} is not an IEnumerableGeneric");
-                if (iEnumerableGenericInnerTypeDetail is null)
+                if (!iEnumerableGenericInnerTypeDetailLoaded)
                 {
                     lock (locker)
                     {
-                        iEnumerableGenericInnerTypeDetail ??= TypeAnalyzer.GetTypeDetail(IEnumerableGenericInnerType);
+                        if (!iEnumerableGenericInnerTypeDetailLoaded)
+                        {
+                            if (IEnumerableGenericInnerType is not null)
+                                iEnumerableGenericInnerTypeDetail ??= TypeAnalyzer.GetTypeDetail(IEnumerableGenericInnerType);
+                            iEnumerableGenericInnerTypeDetailLoaded = true;
+                        }
                     }
                 }
-                return iEnumerableGenericInnerTypeDetail;
+                return iEnumerableGenericInnerTypeDetail ?? throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name.GetType()} is not an IEnumerableGeneric or has multiple");
             }
         }
 
@@ -1017,9 +995,25 @@ namespace Zerra.Reflection.Runtime
                     {
                         if (!dictionartyInnerTypeLoaded)
                         {
-                            if (HasIDictionaryGeneric || HasIReadOnlyDictionaryGeneric)
+                            if (IsIDictionaryGeneric || IsIReadOnlyDictionaryGeneric)
                             {
                                 dictionaryInnerType = TypeAnalyzer.GetGenericType(keyValuePairType, (Type[])InnerTypes);
+                            }
+                            else if (HasIDictionaryGeneric)
+                            {
+                                var interfaceFound = Interfaces.Where(x => x.Name == dictionaryGenericTypeName).ToArray();
+                                if (interfaceFound.Length == 1)
+                                {
+                                    dictionaryInnerType = TypeAnalyzer.GetGenericType(keyValuePairType, interfaceFound[0].GetGenericArguments());
+                                }
+                            }
+                            else if (HasIReadOnlyDictionaryGeneric)
+                            {
+                                var interfaceFound = Interfaces.Where(x => x.Name == readOnlyDictionaryGenericTypeName).ToArray();
+                                if (interfaceFound.Length == 1)
+                                {
+                                    dictionaryInnerType = TypeAnalyzer.GetGenericType(keyValuePairType, interfaceFound[0].GetGenericArguments());
+                                }
                             }
                             else if (HasIDictionary)
                             {
@@ -1029,7 +1023,7 @@ namespace Zerra.Reflection.Runtime
                         }
                     }
                 }
-                return dictionaryInnerType ?? throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name} does not have a {nameof(DictionaryInnerType)}");
+                return dictionaryInnerType ?? throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name.GetType()} is not a Dictionary or has multiple");
             }
         }
 
@@ -1046,11 +1040,11 @@ namespace Zerra.Reflection.Runtime
                         if (!dictionaryInnerTypeDetailLoaded)
                         {
                             dictionaryInnerTypesDetail = DictionaryInnerType.GetTypeDetail();
+                            dictionaryInnerTypeDetailLoaded = true;
                         }
-                        innerTypeDetailLoaded = true;
                     }
                 }
-                return dictionaryInnerTypesDetail ?? throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name} does not have a {nameof(DictionaryInnerTypeDetail)}");
+                return dictionaryInnerTypesDetail ?? throw new NotSupportedException($"{nameof(TypeDetail)} {Type.Name.GetType()} is not a Dictionary or has multiple");
             }
         }
 
