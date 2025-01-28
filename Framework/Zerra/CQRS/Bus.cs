@@ -603,7 +603,7 @@ namespace Zerra.CQRS
             }
             else
             {
-                if (producerList!.Count > 1)
+                if (producerList?.Count > 1)
                 {
                     var tasks = new Task[producerList.Count];
                     var i = 0;
@@ -615,13 +615,10 @@ namespace Zerra.CQRS
                 }
                 else
                 {
-                    var producer = producerList.First();
+                    var producer = producerList?.FirstOrDefault();
                     result = HandleEventTaskLogged(handled, producer, cacheProviderDispatchAsync, @event, eventType, networkType, source);
                 }
             }
-
-            if (networkType == NetworkType.Local)
-                result = Task.CompletedTask;
 
             return result;
         }

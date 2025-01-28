@@ -174,7 +174,10 @@ namespace Zerra.Providers
             if (!interfaceType.IsInterface)
                 throw new ArgumentException("Generic parameter must be an interface");
 
-            var providerType = Discovery.GetClassByInterface(interfaceType, interfaceStack, 0, ignoreInterface, true);
+            var providerType = Discovery.GetClassByInterface(interfaceType, interfaceStack, 0, ignoreInterface, false);
+            if (providerType is null)
+                return null;
+
             return providerType;
         }
 
@@ -187,8 +190,8 @@ namespace Zerra.Providers
             var providerType = Discovery.GetClassByInterface(interfaceType, interfaceStack, interfaceStack.Length - 1, ignoreInterface, true);
             if (providerType is null)
                 return null;
-            var provider = Instantiator.GetSingle(providerType);
 
+            var provider = Instantiator.GetSingle(providerType);
             return provider;
         }
         public static Type? GetTypeBaseOrDefault(Type interfaceType)
@@ -196,7 +199,9 @@ namespace Zerra.Providers
             if (!interfaceType.IsInterface)
                 throw new ArgumentException("Generic parameter must be an interface");
 
-            var providerType = Discovery.GetClassByInterface(interfaceType, interfaceStack, interfaceStack.Length - 1, ignoreInterface, true);
+            var providerType = Discovery.GetClassByInterface(interfaceType, interfaceStack, interfaceStack.Length - 1, ignoreInterface, false);
+            if (providerType is null)
+                return null;
 
             return providerType;
         }
@@ -222,7 +227,10 @@ namespace Zerra.Providers
                 throw new ArgumentException("Generic parameter must be an interface");
 
             var index = GetInterfaceIndex(secondaryInterfaceType);
-            var providerType = Discovery.GetClassByInterface(interfaceType, interfaceStack, index, ignoreInterface, true);
+            var providerType = Discovery.GetClassByInterface(interfaceType, interfaceStack, index, ignoreInterface, false);
+            if (providerType is null)
+                return null;
+
             return providerType;
         }
 
