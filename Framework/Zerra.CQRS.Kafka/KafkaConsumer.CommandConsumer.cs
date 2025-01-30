@@ -154,7 +154,7 @@ namespace Zerra.CQRS.Kafka
                         inHandlerContext = true;
                         if (message.HasResult)
                             result = await handlerWithResultAwaitAsync(command, message.Source, false);
-                        if (awaitResponse)
+                        else if (awaitResponse)
                             await handlerAwaitAsync(command, message.Source, false);
                         else
                             await handlerAsync(command, message.Source, false);
