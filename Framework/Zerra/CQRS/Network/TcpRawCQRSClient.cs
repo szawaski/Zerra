@@ -123,7 +123,10 @@ namespace Zerra.CQRS.Network
                     }
                     var responseHeader = TcpRawCommon.ReadHeader(buffer, headerPosition, headerLength);
 
-                    responseBodyStream = new TcpRawProtocolBodyStream(stream, responseHeader.BodyStartBuffer, false);
+                    if (isStream)
+                        responseBodyStream = new TcpRawProtocolBodyStream(stream, responseHeader.BodyStartBuffer.ToArray(), false);
+                    else
+                        responseBodyStream = new TcpRawProtocolBodyStream(stream, responseHeader.BodyStartBuffer, false);
 
                     if (symmetricConfig is not null)
                         responseBodyStream = SymmetricEncryptor.Decrypt(symmetricConfig, responseBodyStream, false);
