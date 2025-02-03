@@ -131,7 +131,10 @@ namespace Zerra.CQRS.Network
                     var responseHeader = HttpCommon.ReadHeader(buffer, headerPosition, headerLength);
 
                     //Response Body
-                    responseBodyStream = new HttpProtocolBodyStream(null, stream, responseHeader.BodyStartBuffer, false);
+                    if (isStream)
+                        responseBodyStream = new HttpProtocolBodyStream(null, stream, responseHeader.BodyStartBuffer.ToArray(), false);
+                    else
+                        responseBodyStream = new HttpProtocolBodyStream(null, stream, responseHeader.BodyStartBuffer, false);
 
                     if (symmetricConfig is not null)
                         responseBodyStream = SymmetricEncryptor.Decrypt(symmetricConfig, responseBodyStream, false);
