@@ -5,6 +5,7 @@ using Zerra.CQRS.Settings;
 using Zerra.Logging;
 using Zerra.Logger;
 using System;
+using System.Linq;
 
 namespace ZerraDemo.Common
 {
@@ -25,7 +26,11 @@ namespace ZerraDemo.Common
             var serviceSettings = CQRSSettings.Get(false);
 
             var messageHost = Config.GetSetting("MessageHost")!;
-            serviceSettings.SetAllMessageHosts(messageHost);
+            foreach( var item in serviceSettings.Messages)
+            {
+                item.SetMessageHost(serviceSettings.Queries.First(x => x.Service == item.Service).ExternalUrl);
+            }
+            //serviceSettings.SetAllMessageHosts(messageHost);
 
             IServiceCreator serviceCreator;
 
@@ -46,7 +51,7 @@ namespace ZerraDemo.Common
             //----------------------------------------------------------
 
             //Option2A: Enable this using RabbitMQ for commands/events
-            serviceCreator = new Zerra.CQRS.RabbitMQ.RabbitMQServiceCreator(serviceCreator, Config.EnvironmentName);
+            //serviceCreator = new Zerra.CQRS.RabbitMQ.RabbitMQServiceCreator(serviceCreator, Config.EnvironmentName);
 
             //Option2B: Enable this using Kafka for commands/events
             //serviceCreator = new Zerra.CQRS.Kafka.KafkaServiceCreator(serviceCreator, Config.EnvironmentName);
