@@ -143,7 +143,7 @@ public sealed class EnumName : Attribute
                         longValue = (long)(uint)enumValue;
                         break;
                     case CoreType.Int64:
-                        longValue = (long)(long)enumValue;
+                        longValue = (long)enumValue;
                         break;
                     case CoreType.UInt64:
                         longValue = (long)(ulong)enumValue;
