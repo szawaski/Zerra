@@ -60,99 +60,7 @@ public sealed class EnumName : Attribute
             var values = Enum.GetValues(type);
             if (HasFlagsAttribute(type))
             {
-                long maxValue = 0;
-                foreach (var enumValue in values)
-                {
-                    unchecked
-                    {
-#pragma warning disable CS0675 // Bitwise-or operator used on a sign-extended operand
-                        switch (underlyingType)
-                        {
-                            case CoreType.Byte: maxValue |= (byte)enumValue; break;
-                            case CoreType.SByte: maxValue |= (sbyte)enumValue; break;
-                            case CoreType.Int16: maxValue |= (short)enumValue; break;
-                            case CoreType.UInt16: maxValue |= (ushort)enumValue; break;
-                            case CoreType.Int32: maxValue |= (int)enumValue; break;
-                            case CoreType.UInt32: maxValue |= (uint)enumValue; break;
-                            case CoreType.Int64: maxValue |= (long)enumValue; break;
-                            case CoreType.UInt64: maxValue |= (long)(ulong)enumValue; break;
-                            default: throw new NotImplementedException();
-                        }
-#pragma warning restore CS0675 // Bitwise-or operator used on a sign-extended operand
-                    }
-                }
-
-                var sb = new StringBuilder();
-                for (long value = 0; value < maxValue; value++)
-                {
-                    foreach (var enumValue in values)
-                    {
-                        unchecked
-                        {
-                            switch (underlyingType)
-                            {
-                                case CoreType.Byte:
-                                    var byteValue = (byte)enumValue;
-                                    if ((byteValue > 0 || value == 0) && (value & byteValue) == byteValue)
-                                        break;
-                                    continue;
-                                case CoreType.SByte:
-                                    var sbyteValue = (sbyte)enumValue;
-                                    if ((sbyteValue > 0 || value == 0) && (value & sbyteValue) == sbyteValue)
-                                        break;
-                                    continue;
-                                case CoreType.Int16:
-                                    var shortValue = (short)enumValue;
-                                    if ((shortValue > 0 || value == 0) && (value & shortValue) == shortValue)
-                                        break;
-                                    continue;
-                                case CoreType.UInt16:
-                                    var ushortValue = (ushort)enumValue;
-                                    if ((ushortValue > 0 || value == 0) && (value & ushortValue) == ushortValue)
-                                        break;
-                                    continue;
-                                case CoreType.Int32:
-                                    var intValue = (int)enumValue;
-                                    if ((intValue > 0 || value == 0) && (value & intValue) == intValue)
-                                        break;
-                                    continue;
-                                case CoreType.UInt32:
-                                    var uintValue = (uint)enumValue;
-                                    if ((uintValue > 0 || value == 0) && (value & uintValue) == uintValue)
-                                        break;
-                                    continue;
-                                case CoreType.Int64:
-                                    var longValue = (long)enumValue;
-                                    if ((longValue > 0 || value == 0) && (value & longValue) == longValue)
-                                        break;
-                                    continue;
-                                case CoreType.UInt64:
-                                    var ulongValue = (long)(ulong)enumValue;
-                                    if ((ulongValue > 0 || value == 0) && (value & ulongValue) == ulongValue)
-                                        break;
-                                    continue;
-                                default: throw new NotImplementedException();
-                            }
-                        }
-
-                        var name = enumValue.ToString();
-                        if (name is null)
-                            continue;
-
-                        var field = fields.First(x => x.Name == name);
-                        var attribute = field.GetCustomAttribute<EnumName>(false);
-                        if (attribute is not null && attribute.Text is not null)
-                            name = attribute.Text;
-
-                        if (sb.Length != 0)
-                            _ = sb.Append(seperator);
-                        _ = sb.Append(name);
-                    }
-
-                    var valueString = sb.ToString();
-                    items.Add(value, valueString);
-                    sb.Clear();
-                }
+                GetNamesForTypeAllPermutations(items, fields, new Stack<string>(), values, 0, underlyingType, null);
             }
             else
             {
@@ -204,6 +112,67 @@ public sealed class EnumName : Attribute
             return items;
         });
         return nameLookup;
+    }
+
+    private static void GetNamesForTypeAllPermutations(Dictionary<long, string> items, FieldInfo[] fields, Stack<string> strings, Array values, int i, CoreType underlyingType, long? lastValue)
+    {
+        for (; i < values.Length; i++)
+        {
+            var enumValue = values.GetValue(i)!;
+            long longValue;
+            unchecked
+            {
+                switch (underlyingType)
+                {
+                    case CoreType.Byte:
+                        longValue = (long)(byte)enumValue;
+                        break;
+                    case CoreType.SByte:
+                        longValue = (long)(sbyte)enumValue;
+                        break;
+                    case CoreType.Int16:
+                        longValue = (long)(short)enumValue;
+                        break;
+                    case CoreType.UInt16:
+                        longValue = (long)(ushort)enumValue;
+                        break;
+                    case CoreType.Int32:
+                        longValue = (long)(int)enumValue;
+                        break;
+                    case CoreType.UInt32:
+                        longValue = (long)(uint)enumValue;
+                        break;
+                    case CoreType.Int64:
+                        longValue = (long)(long)enumValue;
+                        break;
+                    case CoreType.UInt64:
+                        longValue = (long)(ulong)enumValue;
+                        break;
+                    default: throw new NotImplementedException();
+                }
+
+                if (lastValue.HasValue)
+                    longValue = lastValue.Value | longValue;
+            }
+
+            var name = enumValue.ToString();
+            if (name is null)
+                continue;
+
+            var field = fields.First(x => x.Name == name);
+            var attribute = field.GetCustomAttribute<EnumName>(false);
+            if (attribute is not null && attribute.Text is not null)
+                name = attribute.Text;
+
+            strings.Push(name);
+            var str = String.Join("|", strings.Reverse());
+
+            items.Add(longValue, str);
+            if (i + 1 < values.Length && longValue != 0)
+                GetNamesForTypeAllPermutations(items, fields, strings, values, i + 1, underlyingType, longValue);
+
+            strings.Pop();
+        }
     }
 
     /// <summary>

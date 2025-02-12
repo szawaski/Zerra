@@ -51,15 +51,15 @@ namespace Zerra.Test
         private enum TestFlagsEnum : int
         {
             None = 0,
-            Thing1 = 1,
+            Thing1 = 65536,
             [EnumName("Thing 2")]
-            Thing2 = 2,
+            Thing2 = 131072,
             [EnumName("Thing 3")]
-            Thing3 = 4,
+            Thing3 = 262144,
             [EnumName("Thing 4")]
-            Thing4 = 8,
+            Thing4 = 524288,
             [EnumName("Thing 5")]
-            Thing5 = 16,
+            Thing5 = 1048576,
         }
 
         [TestMethod]
