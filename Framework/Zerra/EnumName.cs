@@ -66,10 +66,9 @@ public sealed class EnumName : Attribute
         var nameLookup = nameCache.GetOrAdd(type, static (type) =>
         {
             var items = new Dictionary<long, string>();
-            var typeDetail = type.GetTypeDetail();
             var underlyingType = GetUnderlyingType(type);
 
-            var fields = type.GetFields();
+            var typeDetail = type.GetTypeDetail();
             var values = Enum.GetValues(type);
 
             foreach (var enumValue in values)
@@ -78,10 +77,12 @@ public sealed class EnumName : Attribute
                 if (name is null)
                     continue;
 
-                var field = fields.First(x => x.Name == name);
-                var attribute = field.GetCustomAttribute<EnumName>(false);
-                if (attribute is not null && attribute.Text is not null)
-                    name = attribute.Text;
+                var field = typeDetail.GetMember(name);
+                foreach (var attribute in field.Attributes)
+                {
+                    if (attribute is EnumName enumNameAttribute && enumNameAttribute.Text is not null)
+                        name = enumNameAttribute.Text;
+                }
 
                 long longValue;
                 unchecked
@@ -212,10 +213,13 @@ public sealed class EnumName : Attribute
                     continue;
 
                 var enumNameWithAttribute = enumName;
-                var field = type.GetField(enumName)!;
-                var attribute = field.GetCustomAttribute<EnumName>(false);
-                if (attribute is not null && attribute.Text is not null)
-                    enumNameWithAttribute = attribute.Text;
+                var typeDetail = type.GetTypeDetail();
+                var field = typeDetail.GetMember(enumName);
+                foreach (var attribute in field.Attributes)
+                {
+                    if (attribute is EnumName enumNameAttribute && enumNameAttribute.Text is not null)
+                        enumNameWithAttribute = enumNameAttribute.Text;
+                }
 
                 if (sb.Length > 0)
                     _ = sb.Append(seperator);
@@ -276,13 +280,10 @@ public sealed class EnumName : Attribute
         var valueLookup = valueLookups.GetOrAdd(type, static (type) =>
         {
             var items = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
-            var fields = type.GetFields();
             var typeDetail = type.GetTypeDetail();
             foreach (var enumName in Enum.GetNames(type))
             {
                 var enumValue = Enum.Parse(type, enumName);
-
-                var field = fields.First(x => x.Name == enumName);
 
                 items[enumName] = enumValue;
 
@@ -322,14 +323,21 @@ public sealed class EnumName : Attribute
                         break;
                 }
 
-                var attribute = field.GetCustomAttribute<EnumName>(false);
-                if (attribute is not null)
+                var field = typeDetail.GetMember(enumName);
+
+                string? enumNameWithAttribute = null;
+                foreach (var attribute in field.Attributes)
+                {
+                    if (attribute is EnumName enumNameAttribute && enumNameAttribute.Text is not null)
+                        enumNameWithAttribute = enumNameAttribute.Text;
+                }
+                if (enumNameWithAttribute is not null)
                 {
 #if NETSTANDARD2_0
-                    if (!items.ContainsKey(attribute.Text))
-                        items.Add(attribute.Text, enumValue);
+                    if (!items.ContainsKey(enumNameWithAttribute))
+                        items.Add(enumNameWithAttribute, enumValue);
 #else
-                    _ = items.TryAdd(attribute.Text, enumValue);
+                    _ = items.TryAdd(enumNameWithAttribute, enumValue);
 #endif
                 }
             }

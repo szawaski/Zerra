@@ -121,7 +121,7 @@ namespace Zerra.Test
             }
 
             var valid = true;
-            foreach (var member1 in type1.MemberDetails)
+            foreach (var member1 in type1.SerializableMemberDetails)
             {
                 if (!type2.TryGetMember(member1.Name, out var member2))
                     continue;

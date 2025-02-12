@@ -618,8 +618,6 @@ namespace Zerra.Reflection.Runtime
 
                                 foreach (var field in fields.Where(x => !items.Any(y => y.BackingFieldDetailBoxed?.MemberInfo == x)))
                                 {
-                                    if (field.IsLiteral)
-                                        continue;
                                     items.Add(MemberDetailRuntime<object, object>.New(Type, field.FieldType, field.Name, field, null, false, locker));
                                 }
                             }
@@ -743,7 +741,7 @@ namespace Zerra.Reflection.Runtime
                     return true;
                 }
                 var field = Type.GetField(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
-                if (field is not null && !field.IsLiteral)
+                if (field is not null)
                 {
                     member = MemberDetailRuntime<object, object>.New(Type, field.FieldType, field.Name, field, null, false, locker);
                     membersByName!.Add(member.Name, member);
