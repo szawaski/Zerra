@@ -58,6 +58,8 @@ namespace Zerra.Test
             Thing3 = 262144,
             [EnumName("Thing 4")]
             Thing4 = 524288,
+            [EnumName("Thing Duplicate")]
+            ThingDuplicate = 1048576,
             [EnumName("Thing 5")]
             Thing5 = 1048576,
         }
@@ -79,6 +81,10 @@ namespace Zerra.Test
 
             var test1235 = EnumName.GetName(TestFlagsEnum.Thing1 | TestFlagsEnum.Thing2 | TestFlagsEnum.Thing3 | TestFlagsEnum.Thing5);
             Assert.AreEqual("Thing1|Thing 2|Thing 3|Thing 5", test1235);
+
+            Assert.AreEqual("Thing5", TestFlagsEnum.ThingDuplicate.ToString()); //Last assigned takes priority
+            var testDuplicate = EnumName.GetName(TestFlagsEnum.ThingDuplicate);
+            Assert.AreEqual("Thing 5", testDuplicate);
         }
 
         [TestMethod]
@@ -104,6 +110,10 @@ namespace Zerra.Test
             Assert.IsTrue(test1235.HasFlag(TestFlagsEnum.Thing2));
             Assert.IsTrue(test1235.HasFlag(TestFlagsEnum.Thing3));
             Assert.IsTrue(test1235.HasFlag(TestFlagsEnum.Thing5));
+
+            var testDuplicate = EnumName.Parse<TestFlagsEnum>("Thing Duplicate");
+            Assert.IsTrue(testDuplicate.HasFlag(TestFlagsEnum.Thing5));
+            Assert.IsTrue(testDuplicate.HasFlag(TestFlagsEnum.ThingDuplicate));
         }
     }
 }

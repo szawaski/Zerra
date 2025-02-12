@@ -75,37 +75,41 @@ public sealed class EnumName : Attribute
                     if (attribute is not null && attribute.Text is not null)
                         name = attribute.Text;
 
+
+                    long longValue;
                     unchecked
                     {
                         switch (underlyingType)
                         {
                             case CoreType.Byte:
-                                items.Add((byte)enumValue, name);
+                                longValue = (long)(byte)enumValue;
                                 break;
                             case CoreType.SByte:
-                                items.Add((sbyte)enumValue, name);
+                                longValue = (long)(sbyte)enumValue;
                                 break;
                             case CoreType.Int16:
-                                items.Add((short)enumValue, name);
+                                longValue = (long)(short)enumValue;
                                 break;
                             case CoreType.UInt16:
-                                items.Add((ushort)enumValue, name);
+                                longValue = (long)(ushort)enumValue;
                                 break;
                             case CoreType.Int32:
-                                items.Add((int)enumValue, name);
+                                longValue = (long)(int)enumValue;
                                 break;
                             case CoreType.UInt32:
-                                items.Add((uint)enumValue, name);
+                                longValue = (long)(uint)enumValue;
                                 break;
                             case CoreType.Int64:
-                                items.Add((long)enumValue, name);
+                                longValue = (long)enumValue;
                                 break;
                             case CoreType.UInt64:
-                                items.Add((long)(ulong)enumValue, name);
+                                longValue = (long)(ulong)enumValue;
                                 break;
                             default: throw new NotImplementedException();
                         }
                     }
+
+                    items[longValue] = name;
                 }
             }
 
@@ -167,7 +171,7 @@ public sealed class EnumName : Attribute
             strings.Push(name);
             var str = String.Join("|", strings.Reverse());
 
-            items.Add(longValue, str);
+            items[longValue] = str;
             if (i + 1 < values.Length && longValue != 0)
                 GetNamesForTypeAllPermutations(items, fields, strings, values, i + 1, underlyingType, longValue);
 
@@ -281,49 +285,47 @@ public sealed class EnumName : Attribute
             var items = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             var fields = type.GetFields();
             var typeDetail = type.GetTypeDetail();
-            foreach (var enumValue in Enum.GetValues(type))
+            foreach (var enumName in Enum.GetNames(type))
             {
-                var name = enumValue.ToString();
-                if (name is null)
-                    continue;
+                var enumValue = Enum.Parse(type, enumName);
 
-                var field = fields.First(x => x.Name == name);
+                var field = fields.First(x => x.Name == enumName);
 
-                items.Add(name, enumValue);
+                items[enumName] = enumValue;
 
                 switch (typeDetail.EnumUnderlyingType!.Value)
                 {
                     case CoreEnumType.Byte:
                     case CoreEnumType.ByteNullable:
-                        items.Add(((byte)enumValue).ToString(), enumValue);
+                        items[((byte)enumValue).ToString()]= enumValue;
                         break;
                     case CoreEnumType.SByte:
                     case CoreEnumType.SByteNullable:
-                        items.Add(((sbyte)enumValue).ToString(), enumValue);
+                        items[((sbyte)enumValue).ToString()] = enumValue;
                         break;
                     case CoreEnumType.Int16:
                     case CoreEnumType.Int16Nullable:
-                        items.Add(((short)enumValue).ToString(), enumValue);
+                        items[((short)enumValue).ToString()] = enumValue;
                         break;
                     case CoreEnumType.UInt16:
                     case CoreEnumType.UInt16Nullable:
-                        items.Add(((ushort)enumValue).ToString(), enumValue);
+                        items[((ushort)enumValue).ToString()] = enumValue;
                         break;
                     case CoreEnumType.Int32:
                     case CoreEnumType.Int32Nullable:
-                        items.Add(((int)enumValue).ToString(), enumValue);
+                        items[((int)enumValue).ToString()] = enumValue;
                         break;
                     case CoreEnumType.UInt32:
                     case CoreEnumType.UInt32Nullable:
-                        items.Add(((uint)enumValue).ToString(), enumValue);
+                        items[((uint)enumValue).ToString()] = enumValue;
                         break;
                     case CoreEnumType.Int64:
                     case CoreEnumType.Int64Nullable:
-                        items.Add(((long)enumValue).ToString(), enumValue);
+                        items[((long)enumValue).ToString()] = enumValue;
                         break;
                     case CoreEnumType.UInt64:
                     case CoreEnumType.UInt64Nullable:
-                        items.Add(((ulong)enumValue).ToString(), enumValue);
+                        items[((ulong)enumValue).ToString()] = enumValue;
                         break;
                 }
 
