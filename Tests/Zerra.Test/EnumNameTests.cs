@@ -80,7 +80,7 @@ namespace Zerra.Test
             Assert.AreEqual("Thing1|Thing 2|Thing 3", test123);
 
             var test1235 = EnumName.GetName(TestFlagsEnum.Thing1 | TestFlagsEnum.Thing2 | TestFlagsEnum.Thing3 | TestFlagsEnum.Thing5);
-            Assert.AreEqual("Thing1|Thing 2|Thing 3|Thing 5", test1235);
+            Assert.AreEqual("Thing1|Thing 2|Thing 3|Thing Duplicate|Thing 5", test1235);
 
             Assert.AreEqual("Thing5", TestFlagsEnum.ThingDuplicate.ToString()); //Last assigned takes priority
             var testDuplicate = EnumName.GetName(TestFlagsEnum.ThingDuplicate);
