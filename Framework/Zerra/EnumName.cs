@@ -34,7 +34,7 @@ public sealed class EnumName : Attribute
     private static readonly ConcurrentFactoryDictionary<Type, bool> hasFlags = new();
     private static bool HasFlagsAttribute(Type type)
     {
-        return hasFlags.GetOrAdd(type, static (type) => type.GetCustomAttribute<FlagsAttribute>() is not null);
+        return hasFlags.GetOrAdd(type, static (type) => type.GetTypeDetail().Attributes.Any(x => x is FlagsAttribute));
     }
 
     private static readonly ConcurrentFactoryDictionary<Type, CoreType> underlyingTypes = new();
@@ -161,74 +161,77 @@ public sealed class EnumName : Attribute
         if (nameLookup.TryGetValue(longValue, out var name))
             return name;
 
-        lock (nameLookup)
+        if (HasFlagsAttribute(type))
         {
-            if (nameLookup.TryGetValue(longValue, out name))
-                return name;
-
-            var enumNames = Enum.GetNames(type);
-            var sb = new StringBuilder();
-            foreach (var enumName in enumNames)
+            lock (nameLookup)
             {
-                var enumValue = Enum.Parse(type, enumName);
+                if (nameLookup.TryGetValue(longValue, out name))
+                    return name;
 
-                long longEnumValue;
-                unchecked
+                var enumNames = Enum.GetNames(type);
+                var sb = new StringBuilder();
+                foreach (var enumName in enumNames)
                 {
-                    switch (underlyingType)
+                    var enumValue = Enum.Parse(type, enumName);
+
+                    long longEnumValue;
+                    unchecked
                     {
-                        case CoreType.Byte:
-                            longEnumValue = (long)(byte)enumValue;
-                            break;
-                        case CoreType.SByte:
-                            longEnumValue = (long)(sbyte)enumValue;
-                            break;
-                        case CoreType.Int16:
-                            longEnumValue = (long)(short)enumValue;
-                            break;
-                        case CoreType.UInt16:
-                            longEnumValue = (long)(ushort)enumValue;
-                            break;
-                        case CoreType.Int32:
-                            longEnumValue = (long)(int)enumValue;
-                            break;
-                        case CoreType.UInt32:
-                            longEnumValue = (long)(uint)enumValue;
-                            break;
-                        case CoreType.Int64:
-                            longEnumValue = (long)enumValue;
-                            break;
-                        case CoreType.UInt64:
-                            longEnumValue = (long)(ulong)enumValue;
-                            break;
-                        default: throw new NotImplementedException();
+                        switch (underlyingType)
+                        {
+                            case CoreType.Byte:
+                                longEnumValue = (long)(byte)enumValue;
+                                break;
+                            case CoreType.SByte:
+                                longEnumValue = (long)(sbyte)enumValue;
+                                break;
+                            case CoreType.Int16:
+                                longEnumValue = (long)(short)enumValue;
+                                break;
+                            case CoreType.UInt16:
+                                longEnumValue = (long)(ushort)enumValue;
+                                break;
+                            case CoreType.Int32:
+                                longEnumValue = (long)(int)enumValue;
+                                break;
+                            case CoreType.UInt32:
+                                longEnumValue = (long)(uint)enumValue;
+                                break;
+                            case CoreType.Int64:
+                                longEnumValue = (long)enumValue;
+                                break;
+                            case CoreType.UInt64:
+                                longEnumValue = (long)(ulong)enumValue;
+                                break;
+                            default: throw new NotImplementedException();
+                        }
                     }
+
+                    if (longEnumValue == 0)
+                        continue;
+
+                    var hasFlag = (longValue & longEnumValue) == longEnumValue;
+                    if (!hasFlag)
+                        continue;
+
+                    var enumNameWithAttribute = enumName;
+                    var typeDetail = type.GetTypeDetail();
+                    var field = typeDetail.GetMember(enumName);
+                    foreach (var attribute in field.Attributes)
+                    {
+                        if (attribute is EnumName enumNameAttribute && enumNameAttribute.Text is not null)
+                            enumNameWithAttribute = enumNameAttribute.Text;
+                    }
+
+                    if (sb.Length > 0)
+                        _ = sb.Append(seperator);
+                    _ = sb.Append(enumNameWithAttribute);
                 }
 
-                if (longEnumValue == 0)
-                    continue;
-
-                var hasFlag = (longValue & longEnumValue) == longEnumValue;
-                if (!hasFlag)
-                    continue;
-
-                var enumNameWithAttribute = enumName;
-                var typeDetail = type.GetTypeDetail();
-                var field = typeDetail.GetMember(enumName);
-                foreach (var attribute in field.Attributes)
-                {
-                    if (attribute is EnumName enumNameAttribute && enumNameAttribute.Text is not null)
-                        enumNameWithAttribute = enumNameAttribute.Text;
-                }
-
-                if (sb.Length > 0)
-                    _ = sb.Append(seperator);
-                _ = sb.Append(enumNameWithAttribute);
+                name = sb.ToString();
+                nameLookup.Add(longValue, name);
+                return name;
             }
-
-            name = sb.ToString();
-            nameLookup.Add(longValue, name);
-            return name;
         }
 
         throw new InvalidOperationException($"Value {value.ToString()} is not found in enum {type.Name}");
