@@ -32,7 +32,7 @@
         <Company>KaKush LLC</Company>
         <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
         <LangVersion>12.0</LangVersion>
-        <Version>5.0.7</Version>
+        <Version>5.0.8</Version>
     </PropertyGroup>
 
     <PropertyGroup>
