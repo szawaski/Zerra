@@ -1109,6 +1109,9 @@ namespace Zerra.CQRS
             setupLock.Wait();
             try
             {
+                commandConsumer.Setup(commandCounter, RemoteHandleCommandDispatchAsync, RemoteHandleCommandDispatchAwaitAsync, RemoteHandleCommandWithResultDispatchAwaitAsync);
+                _ = commandConsumers.Add(commandConsumer);
+
                 var exposedTypes = Discovery.GetTypesFromAttribute(typeof(ServiceExposedAttribute));
                 foreach (var commandType in exposedTypes)
                 {
@@ -1138,8 +1141,6 @@ namespace Zerra.CQRS
                     }
                 }
 
-                commandConsumer.Setup(commandCounter, RemoteHandleCommandDispatchAsync, RemoteHandleCommandDispatchAwaitAsync, RemoteHandleCommandWithResultDispatchAwaitAsync);
-                _ = commandConsumers.Add(commandConsumer);
                 commandConsumer.Open();
             }
             finally
@@ -1196,6 +1197,9 @@ namespace Zerra.CQRS
             setupLock.Wait();
             try
             {
+                eventConsumer.Setup(RemoteHandleEventDispatchAsync);
+                _ = eventConsumers.Add(eventConsumer);
+
                 var exposedTypes = Discovery.GetTypesFromAttribute(typeof(ServiceExposedAttribute));
                 foreach (var eventType in exposedTypes)
                 {
@@ -1219,9 +1223,7 @@ namespace Zerra.CQRS
                         }
                     }
                 }
-
-                eventConsumer.Setup(RemoteHandleEventDispatchAsync);
-                _ = eventConsumers.Add(eventConsumer);
+                
                 eventConsumer.Open();
             }
             finally
@@ -1273,6 +1275,9 @@ namespace Zerra.CQRS
             setupLock.Wait();
             try
             {
+                queryServer.Setup(commandCounter, RemoteHandleQueryCallAsync);
+                _ = queryServers.Add(queryServer);
+
                 var exposedTypes = Discovery.GetTypesFromAttribute(typeof(ServiceExposedAttribute));
                 foreach (var interfaceType in exposedTypes)
                 {
@@ -1297,9 +1302,7 @@ namespace Zerra.CQRS
                         }
                     }
                 }
-
-                queryServer.Setup(commandCounter, RemoteHandleQueryCallAsync);
-                _ = queryServers.Add(queryServer);
+                
                 queryServer.Open();
             }
             finally
