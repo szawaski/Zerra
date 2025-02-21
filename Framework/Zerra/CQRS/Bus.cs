@@ -811,7 +811,7 @@ namespace Zerra.CQRS
 
             if (metadata.ExposedNetworkType < networkType)
                 throw new Exception($"Not Exposed Interface {interfaceType.GetNiceName()} for {nameof(NetworkType)}.{networkType.EnumName()}");
-            if (methodMetadata.BlockedNetworkType != NetworkType.Local && methodMetadata.BlockedNetworkType >= networkType)
+            if (methodMetadata.BlockedNetworkType != NetworkType.Local && methodMetadata.BlockedNetworkType < networkType)
                 throw new Exception($"Blocked Method {interfaceType.GetNiceName()}.{methodName} for {nameof(NetworkType)}.{networkType.EnumName()}");
 
             if (metadata.Authenticate)
