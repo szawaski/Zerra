@@ -1066,15 +1066,18 @@ namespace Zerra.CQRS
         /// It's recommended to use <see cref="StartServices"/> instead unless there is some special case.
         /// Discovery will host commands with the <see cref="ServiceExposedAttribute"/>.
         /// </summary>
-        /// <typeparam name="TInterface">An interface inheriting command handler interfaces for the types of commands to send.</typeparam>
+        /// <typeparam name="TInterface">An interface inheriting command handler interface(s) for the types of commands to send.</typeparam>
         /// <param name="commandProducer">The command producer service.</param>
         public static void AddCommandProducer<TInterface>(ICommandProducer commandProducer)
         {
+            var interfaceType = typeof(TInterface);
+            if (!interfaceType.IsInterface)
+                throw new Exception($"{interfaceType.GetNiceName()} is not an interface");
+
             setupLock.Wait();
             try
             {
-                var type = typeof(TInterface);
-                var commandTypes = GetExposedCommandTypesFromInterface(type);
+                var commandTypes = GetExposedCommandTypesFromInterface(interfaceType);
                 foreach (var commandType in commandTypes)
                 {
                     if (handledTypes.Contains(commandType))
@@ -1103,35 +1106,37 @@ namespace Zerra.CQRS
         /// Manually add a command consumer service to receive commands.
         /// It's recommended to use <see cref="StartServices"/> instead unless there is some special case.
         /// </summary>
+        /// <typeparam name="TInterface">An interface inheriting command handler interface(s) for the types of commands to receive.</typeparam>
         /// <param name="commandConsumer">The command consumer service.</param>
-        public static void AddCommandConsumer(ICommandConsumer commandConsumer)
+        public static void AddCommandConsumer<TInterface>(ICommandConsumer commandConsumer)
         {
+            var interfaceType = typeof(TInterface);
+            if (!interfaceType.IsInterface)
+                throw new Exception($"{interfaceType.GetNiceName()} is not an interface");
+
             setupLock.Wait();
             try
             {
                 commandConsumer.Setup(commandCounter, RemoteHandleCommandDispatchAsync, RemoteHandleCommandDispatchAwaitAsync, RemoteHandleCommandWithResultDispatchAwaitAsync);
                 _ = commandConsumers.Add(commandConsumer);
 
-                var exposedTypes = Discovery.GetTypesFromAttribute(typeof(ServiceExposedAttribute));
-                foreach (var commandType in exposedTypes)
+                var commandTypes = GetExposedCommandTypesFromInterface(interfaceType);
+                foreach (var commandType in commandTypes)
                 {
-                    if (commandType.IsClass)
+                    if (TypeAnalyzer.GetTypeDetail(commandType).Interfaces.Any(x => x == typeof(ICommand)))
                     {
-                        if (TypeAnalyzer.GetTypeDetail(commandType).Interfaces.Any(x => x == typeof(ICommand)))
+                        var hasHandler = ProviderResolver.HasBase(TypeAnalyzer.GetGenericType(typeof(ICommandHandler<>), commandType));
+                        if (hasHandler)
                         {
-                            var hasHandler = ProviderResolver.HasBase(TypeAnalyzer.GetGenericType(typeof(ICommandHandler<>), commandType));
-                            if (hasHandler)
+                            if (commandProducers.ContainsKey(commandType))
                             {
-                                if (commandProducers.ContainsKey(commandType))
-                                {
-                                    _ = Log.ErrorAsync($"Cannot add Command Consumer: type already added as Producer {commandType.GetNiceName()}");
-                                    continue;
-                                }
-                                var topic = GetCommandTopic(commandType);
-                                commandConsumer.RegisterCommandType(maxConcurrentCommandsPerTopic, topic, commandType);
-                                _ = handledTypes.Add(commandType);
-                                _ = Log.InfoAsync($"{commandConsumer.GetType().GetNiceName()} at {commandConsumer.MessageHost} - {commandType.GetNiceName()}");
+                                _ = Log.ErrorAsync($"Cannot add Command Consumer: type already added as Producer {commandType.GetNiceName()}");
+                                continue;
                             }
+                            var topic = GetCommandTopic(commandType);
+                            commandConsumer.RegisterCommandType(maxConcurrentCommandsPerTopic, topic, commandType);
+                            _ = handledTypes.Add(commandType);
+                            _ = Log.InfoAsync($"{commandConsumer.GetType().GetNiceName()} at {commandConsumer.MessageHost} - {commandType.GetNiceName()}");
                         }
                     }
                 }
@@ -1149,15 +1154,18 @@ namespace Zerra.CQRS
         /// It's recommended to use <see cref="StartServices"/> instead unless there is some special case.
         /// Discovery will host events with the <see cref="ServiceExposedAttribute"/>.
         /// </summary>
-        /// <typeparam name="TInterface">An interface inheriting event handler interfaces for the types of events to send.</typeparam>
+        /// <typeparam name="TInterface">An interface inheriting event handler interface(s) for the types of events to send.</typeparam>
         /// <param name="eventProducer">The event producer service.</param>
         public static void AddEventProducer<TInterface>(IEventProducer eventProducer)
         {
+            var interfaceType = typeof(TInterface);
+            if (!interfaceType.IsInterface)
+                throw new Exception($"{interfaceType.GetNiceName()} is not an interface");
+
             setupLock.Wait();
             try
             {
-                var type = typeof(TInterface);
-                var eventTypes = GetExposedEventTypesFromInterface(type);
+                var eventTypes = GetExposedEventTypesFromInterface(interfaceType);
                 foreach (var eventType in eventTypes)
                 {
                     if (eventProducers.ContainsKey(eventType))
@@ -1186,34 +1194,36 @@ namespace Zerra.CQRS
         /// Manually add an event consumer service to receive commands.
         /// It's recommended to use <see cref="StartServices"/> instead unless there is some special case.
         /// </summary>
+        /// <typeparam name="TInterface">An interface inheriting event handler interface(s) for the types of events to receive.</typeparam>
         /// <param name="eventConsumer">The event consumer service.</param>
-        public static void AddEventConsumer(IEventConsumer eventConsumer)
+        public static void AddEventConsumer<TInterface>(IEventConsumer eventConsumer)
         {
+            var interfaceType = typeof(TInterface);
+            if (!interfaceType.IsInterface)
+                throw new Exception($"{interfaceType.GetNiceName()} is not an interface");
+
             setupLock.Wait();
             try
             {
                 eventConsumer.Setup(RemoteHandleEventDispatchAsync);
                 _ = eventConsumers.Add(eventConsumer);
 
-                var exposedTypes = Discovery.GetTypesFromAttribute(typeof(ServiceExposedAttribute));
-                foreach (var eventType in exposedTypes)
+                var eventTypes = GetExposedEventTypesFromInterface(interfaceType);
+                foreach (var eventType in eventTypes)
                 {
-                    if (eventType.IsClass)
+                    if (TypeAnalyzer.GetTypeDetail(eventType).Interfaces.Any(x => x == typeof(IEvent)))
                     {
-                        if (TypeAnalyzer.GetTypeDetail(eventType).Interfaces.Any(x => x == typeof(IEvent)))
+                        var hasHandler = ProviderResolver.HasBase(TypeAnalyzer.GetGenericType(typeof(IEventHandler<>), eventType));
+                        if (hasHandler)
                         {
-                            var hasHandler = ProviderResolver.HasBase(TypeAnalyzer.GetGenericType(typeof(IEventHandler<>), eventType));
-                            if (hasHandler)
-                            {
-                                var topic = GetEventTopic(eventType);
-                                eventConsumer.RegisterEventType(maxConcurrentEventsPerTopic, topic, eventType);
-                                _ = handledTypes.Add(eventType);
-                                _ = Log.InfoAsync($"{eventConsumer.GetType().GetNiceName()} at {eventConsumer.MessageHost} - {eventType.GetNiceName()}");
-                            }
+                            var topic = GetEventTopic(eventType);
+                            eventConsumer.RegisterEventType(maxConcurrentEventsPerTopic, topic, eventType);
+                            _ = handledTypes.Add(eventType);
+                            _ = Log.InfoAsync($"{eventConsumer.GetType().GetNiceName()} at {eventConsumer.MessageHost} - {eventType.GetNiceName()}");
                         }
                     }
                 }
-                
+
                 eventConsumer.Open();
             }
             finally
@@ -1230,10 +1240,13 @@ namespace Zerra.CQRS
         /// <param name="queryClient">The query client service.</param>
         public static void AddQueryClient<TInterface>(IQueryClient queryClient)
         {
+            var interfaceType = typeof(TInterface);
+            if (!interfaceType.IsInterface)
+                throw new Exception($"{interfaceType.GetNiceName()} is not an interface");
+
             setupLock.Wait();
             try
             {
-                var interfaceType = typeof(TInterface);
                 if (handledTypes.Contains(interfaceType))
                 {
                     _ = Log.ErrorAsync($"Cannot add Query Client: type already added as Server {interfaceType.GetNiceName()}");
@@ -1259,35 +1272,36 @@ namespace Zerra.CQRS
         /// It's recommended to use <see cref="StartServices"/> instead unless there is some special case.
         /// Discovery will host implementations with the <see cref="ServiceExposedAttribute"/> on the interface.
         /// </summary>
+        /// <typeparam name="TInterface">An interface of queries.</typeparam>
         /// <param name="queryServer">The query server service.</param>
-        public static void AddQueryServer(IQueryServer queryServer)
+        public static void AddQueryServer<TInterface>(IQueryServer queryServer)
         {
+            var interfaceType = typeof(TInterface);
+            if (!interfaceType.IsInterface)
+                throw new Exception($"{interfaceType.GetNiceName()} is not an interface");
+
             setupLock.Wait();
             try
             {
                 queryServer.Setup(commandCounter, RemoteHandleQueryCallAsync);
                 _ = queryServers.Add(queryServer);
 
-                var exposedTypes = Discovery.GetTypesFromAttribute(typeof(ServiceExposedAttribute));
-                foreach (var interfaceType in exposedTypes)
+                if (interfaceType.IsInterface)
                 {
-                    if (interfaceType.IsInterface)
+                    var hasImplementation = ProviderResolver.HasBase(interfaceType);
+                    if (hasImplementation)
                     {
-                        var hasImplementation = ProviderResolver.HasBase(interfaceType);
-                        if (hasImplementation)
+                        if (queryClients.ContainsKey(interfaceType))
                         {
-                            if (queryClients.ContainsKey(interfaceType))
-                            {
-                                _ = Log.ErrorAsync($"Cannot add Query Client: type already added as Client {interfaceType.GetNiceName()}");
-                                continue;
-                            }
-                            queryServer.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
-                            _ = handledTypes.Add(interfaceType);
-                            _ = Log.InfoAsync($"{queryServer.GetType().GetNiceName()} at {queryServer.ServiceUrl} - {interfaceType.GetNiceName()}");
+                            _ = Log.ErrorAsync($"Cannot add Query Client: type already added as Client {interfaceType.GetNiceName()}");
+                            return;
                         }
+                        queryServer.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
+                        _ = handledTypes.Add(interfaceType);
+                        _ = Log.InfoAsync($"{queryServer.GetType().GetNiceName()} at {queryServer.ServiceUrl} - {interfaceType.GetNiceName()}");
                     }
                 }
-                
+
                 queryServer.Open();
             }
             finally
@@ -1369,12 +1383,12 @@ namespace Zerra.CQRS
                         {
                             if (String.IsNullOrEmpty(serviceType))
                                 throw new Exception($"{serviceType ?? "null"} is not an interface");
-                            var type = Discovery.GetTypeFromName(serviceType);
-                            if (!type.IsInterface)
-                                throw new Exception($"{type.GetNiceName()} is not an interface");
+                            var interfaceType = Discovery.GetTypeFromName(serviceType);
+                            if (!interfaceType.IsInterface)
+                                throw new Exception($"{interfaceType.GetNiceName()} is not an interface");
 
-                            if (type.GetTypeDetail().Attributes.Any(x => x is ServiceExposedAttribute))
-                                _ = thisServerTypes.Add(type);
+                            if (interfaceType.GetTypeDetail().Attributes.Any(x => x is ServiceExposedAttribute))
+                                _ = thisServerTypes.Add(interfaceType);
                         }
                     }
                 }
@@ -1390,15 +1404,15 @@ namespace Zerra.CQRS
                         {
                             if (String.IsNullOrEmpty(serviceType))
                                 throw new Exception($"{serviceType ?? "null"} is not an interface");
-                            var type = Discovery.GetTypeFromName(serviceType);
-                            if (!type.IsInterface)
-                                throw new Exception($"{type.GetNiceName()} is not an interface");
+                            var interfaceType = Discovery.GetTypeFromName(serviceType);
+                            if (!interfaceType.IsInterface)
+                                throw new Exception($"{interfaceType.GetNiceName()} is not an interface");
 
-                            var commandTypes = GetExposedCommandTypesFromInterface(type);
+                            var commandTypes = GetExposedCommandTypesFromInterface(interfaceType);
                             foreach (var commandType in commandTypes)
                                 _ = thisServerTypes.Add(commandType);
 
-                            var eventTypes = GetExposedEventTypesFromInterface(type);
+                            var eventTypes = GetExposedEventTypesFromInterface(interfaceType);
                             foreach (var eventType in eventTypes)
                                 _ = thisServerTypes.Add(eventType);
                         }
