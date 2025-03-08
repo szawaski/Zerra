@@ -25,7 +25,7 @@ using Zerra.Serialization.Json;
 namespace Zerra.CQRS
 {
     /// <summary>
-    /// Responsible for sending commands, events, and queries to the correct destination.
+    /// Responsible for sending commands, events, and queries to the configured destination.
     /// A destination may be an implementation in the same assembly or calling a remote service.
     /// Discovery will host commands and events with the <see cref="ServiceExposedAttribute"/>.
     /// Discovery will also host queries whose interface has <see cref="ServiceExposedAttribute"/>.
@@ -229,7 +229,7 @@ namespace Zerra.CQRS
             => _DispatchEventInternalAsync(@event, @event.GetType(), isApi ? NetworkType.Api : NetworkType.Internal, false, source);
 
         /// <summary>
-        /// Send a command to the correct destination.
+        /// Send a command to the configured destination.
         /// This follows the eventual consistency pattern so the sender does not know when the command is processed.
         /// A destination may be an implementation in the same assembly or calling a remote service.
         /// </summary>
@@ -237,7 +237,7 @@ namespace Zerra.CQRS
         /// <returns>A task to complete sending the command.</returns>
         public static Task DispatchAsync(ICommand command) => _DispatchCommandInternalAsync(command, command.GetType(), false, NetworkType.Local, false, Config.ApplicationIdentifier);
         /// <summary>
-        /// Send a command to the correct destination and wait for it to process.
+        /// Send a command to the configured destination and wait for it to process.
         /// This will await until the reciever has returned a signal or an exception that the command has been processed.
         /// A destination may be an implementation in the same assembly or calling a remote service.
         /// </summary>
@@ -245,7 +245,7 @@ namespace Zerra.CQRS
         /// <returns>A task to await processing of the command.</returns>
         public static Task DispatchAwaitAsync(ICommand command) => _DispatchCommandInternalAsync(command, command.GetType(), true, NetworkType.Local, false, Config.ApplicationIdentifier);
         /// <summary>
-        /// Send an event to the correct destination.
+        /// Send an event to the configured destination.
         /// Events will go to any number of destinations that wish to recieve the event.
         /// It is not possible to recieve information back from destinations.
         /// A destination may be an implementation in the same assembly or calling a remote service.
@@ -254,7 +254,7 @@ namespace Zerra.CQRS
         /// <returns>A task to complete sending the event.</returns>
         public static Task DispatchAsync(IEvent @event) => _DispatchEventInternalAsync(@event, @event.GetType(), NetworkType.Local, false, Config.ApplicationIdentifier);
         /// <summary>
-        /// Send a command to the correct destination and wait for a result.
+        /// Send a command to the configured destination and wait for a result.
         /// This will await until the reciever has returned a result or an exception.
         /// A destination may be an implementation in the same assembly or calling a remote service.
         /// </summary>
@@ -733,14 +733,14 @@ namespace Zerra.CQRS
         }
 
         /// <summary>
-        /// Returns in instance of an interface that will route a query to the correct destination.
+        /// Returns in instance of an interface that will route a query to the configured destination.
         /// A destination may be an implementation in the same assembly or calling a remote service.
         /// </summary>
         /// <typeparam name="TInterface">The interface type.</typeparam>
         /// <returns>An instance of the interface to route queries.</returns>
         public static TInterface Call<TInterface>() => (TInterface)BusRouters.GetProviderToCallMethodInternalInstance(typeof(TInterface), NetworkType.Local, false, Config.ApplicationIdentifier);
         /// <summary>
-        /// Returns in instance of an interface that will route a query to the correct destination.
+        /// Returns in instance of an interface that will route a query to the configured destination.
         /// A destination may be an implementation in the same assembly or calling a remote service.
         /// </summary>
         /// <param name="interfaceType">The interface type.</param>
