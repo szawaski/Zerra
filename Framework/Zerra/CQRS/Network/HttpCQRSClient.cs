@@ -58,9 +58,9 @@ namespace Zerra.CQRS.Network
                 };
                 data.AddProviderArguments(arguments);
 
-                IDictionary<string, IList<string?>>? authHeaders = null;
+                Dictionary<string, List<string?>>? authHeaders = null;
                 if (authorizer is not null)
-                    authHeaders = authorizer.BuildAuthHeaders();
+                    authHeaders = authorizer.GetAuthorizationHeadersAsync().GetAwaiter().GetResult();
 
                 var buffer = bufferOwner.AsMemory();
 
@@ -218,9 +218,9 @@ namespace Zerra.CQRS.Network
                 };
                 data.AddProviderArguments(arguments);
 
-                IDictionary<string, IList<string?>>? authHeaders = null;
+                Dictionary<string, List<string?>>? authHeaders = null;
                 if (authorizer is not null)
-                    authHeaders = authorizer.BuildAuthHeaders();
+                    authHeaders = await authorizer.GetAuthorizationHeadersAsync();
 
                 var buffer = bufferOwner.AsMemory();
 
@@ -418,9 +418,9 @@ namespace Zerra.CQRS.Network
                     Source = source
                 };
 
-                IDictionary<string, IList<string?>>? authHeaders = null;
+                Dictionary<string, List<string?>>? authHeaders = null;
                 if (authorizer is not null)
-                    authHeaders = authorizer.BuildAuthHeaders();
+                    authHeaders = await authorizer.GetAuthorizationHeadersAsync();
 
                 var buffer = bufferOwner.AsMemory();
 
@@ -606,9 +606,9 @@ namespace Zerra.CQRS.Network
                     Source = source
                 };
 
-                IDictionary<string, IList<string?>>? authHeaders = null;
+                Dictionary<string, List<string?>>? authHeaders = null;
                 if (authorizer is not null)
-                    authHeaders = authorizer.BuildAuthHeaders();
+                    authHeaders = await authorizer.GetAuthorizationHeadersAsync();
 
                 var buffer = bufferOwner.AsMemory();
 
@@ -804,9 +804,9 @@ namespace Zerra.CQRS.Network
                     Source = source
                 };
 
-                IDictionary<string, IList<string?>>? authHeaders = null;
+                Dictionary<string, List<string?>>? authHeaders = null;
                 if (authorizer is not null)
-                    authHeaders = authorizer.BuildAuthHeaders();
+                    authHeaders = await authorizer.GetAuthorizationHeadersAsync();
 
                 var buffer = bufferOwner.AsMemory();
 

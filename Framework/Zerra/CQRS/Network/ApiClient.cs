@@ -24,7 +24,7 @@ namespace Zerra.CQRS.Network
         private readonly HttpClientHandler handler;
         private readonly HttpClient client;
 
-        public ApiClient(string endpoint, ContentType contentType, ICqrsAuthorizer? authorizer, string? route) : base(endpoint)
+        public ApiClient(string endpoint, ContentType contentType, ICqrsAuthorizer? authorizer, string? route = null) : base(endpoint)
         {
             this.requestContentType = contentType;
             this.authorizer = authorizer;
@@ -158,7 +158,7 @@ namespace Zerra.CQRS.Network
 
                 if (authorizer is not null)
                 {
-                    var authHeaders = authorizer.BuildAuthHeaders();
+                    var authHeaders = authorizer.GetAuthorizationHeadersAsync().GetAwaiter().GetResult();
                     foreach (var authHeader in authHeaders)
                         request.Headers.Add(authHeader.Key, authHeader.Value);
                 }
@@ -245,7 +245,7 @@ namespace Zerra.CQRS.Network
 
                 if (authorizer is not null)
                 {
-                    var authHeaders = authorizer.BuildAuthHeaders();
+                    var authHeaders = await authorizer.GetAuthorizationHeadersAsync();
                     foreach (var authHeader in authHeaders)
                         request.Headers.Add(authHeader.Key, authHeader.Value);
                 }

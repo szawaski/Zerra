@@ -3,12 +3,13 @@
 // Licensed to you under the MIT license
 
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Zerra.CQRS.Network
 {
     public interface ICqrsAuthorizer
     {
-        void Authorize(IDictionary<string, IList<string?>> headers);
-        IDictionary<string, IList<string?>> BuildAuthHeaders();
+        void Authorize(Dictionary<string, List<string?>> headers);
+        ValueTask<Dictionary<string, List<string?>>> GetAuthorizationHeadersAsync();
     }
 }

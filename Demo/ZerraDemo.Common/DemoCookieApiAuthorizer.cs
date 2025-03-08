@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.Text;
+using System.Threading.Tasks;
 using Zerra;
 using Zerra.CQRS.Network;
 using Zerra.Encryption;
@@ -24,7 +25,7 @@ namespace ZerraDemo.Common
             this.encryptionKey = SymmetricEncryptor.GetKey(authenticationKey);
         }
 
-        public void Authorize(IDictionary<string, IList<string?>> headers)
+        public void Authorize(Dictionary<string, List<string?>> headers)
         {
             if (!headers.TryGetValue(cookieHeader, out var cookieHeaderValue))
             {
@@ -60,7 +61,7 @@ namespace ZerraDemo.Common
             }
         }
 
-        public IDictionary<string, IList<string?>> BuildAuthHeaders()
+        public ValueTask<Dictionary<string, List<string?>>> GetAuthorizationHeadersAsync()
         {
             var authCookieData = "I can access this";
             var authCookieDataBytes = Encoding.UTF8.GetBytes(authCookieData);
@@ -73,12 +74,12 @@ namespace ZerraDemo.Common
             };
 
             var cookieHeaderValue = CookieParser.CookiesToString(cookies);
-            var headers = new Dictionary<string, IList<string?>>
+            var headers = new Dictionary<string, List<string?>>
             {
                 { cookieHeader, new List<string?>() { cookieHeaderValue } }
             };
 
-            return headers;
+            return ValueTask.FromResult(headers);
         }
     }
 }

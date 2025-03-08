@@ -202,7 +202,7 @@ namespace Zerra.Web
 
                 if (authorizer is not null)
                 {
-                    var authHeaders = authorizer.BuildAuthHeaders();
+                    var authHeaders = authorizer.GetAuthorizationHeadersAsync().GetAwaiter().GetResult();
                     foreach (var authHeader in authHeaders)
                         request.Headers.Add(authHeader.Key, authHeader.Value);
                 }
@@ -310,7 +310,7 @@ namespace Zerra.Web
 
                 if (authorizer is not null)
                 {
-                    var authHeaders = authorizer.BuildAuthHeaders();
+                    var authHeaders = await authorizer.GetAuthorizationHeadersAsync();
                     foreach (var authHeader in authHeaders)
                         request.Headers.Add(authHeader.Key, authHeader.Value);
                 }

@@ -141,7 +141,7 @@ namespace Zerra.Web
                 //------------------------------------------------------------------------------------------------------------
                 if (settings.Authorizer is not null)
                 {
-                    var headers = context.Request.Headers.ToDictionary<KeyValuePair<string, StringValues>, string, IList<string?>>(x => x.Key, x => x.Value.ToArray());
+                    var headers = context.Request.Headers.ToDictionary(x => x.Key, x => x.Value.ToList());
                     settings.Authorizer.Authorize(headers);
                 }
                 else
