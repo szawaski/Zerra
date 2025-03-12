@@ -11,6 +11,9 @@ using Zerra.Serialization.Json;
 
 namespace Zerra.CQRS.Network
 {
+    /// <summary>
+    /// A helper class to serialize data using the specified ContentType to determine the data format.
+    /// </summary>
     public static class ContentTypeSerializer
     {
         private static readonly ByteSerializerOptions byteSerializerOptions = new()
@@ -24,6 +27,12 @@ namespace Zerra.CQRS.Network
             Nameless = true
         };
 
+        /// <summary>
+        /// Serializes data selecting a serializer from the specified ContentType
+        /// </summary>
+        /// <param name="contentType">Determines which serializer will be used for this data format.</param>
+        /// <param name="obj">The object to be serialized.</param>
+        /// <returns>The serialized data in bytes.</returns>
         public static byte[] Serialize(ContentType contentType, object? obj)
         {
             return contentType switch
@@ -34,6 +43,13 @@ namespace Zerra.CQRS.Network
                 _ => throw new NotImplementedException(),
             };
         }
+        /// <summary>
+        /// Deserializes data selecting a serializer from the specified ContentType
+        /// </summary>
+        /// <typeparam name="T">The type to which the data will deserialize.</typeparam>
+        /// <param name="contentType">Determines which serializer will be used for this data format.</param>
+        /// <param name="bytes">The serialized data in bytes.</param>
+        /// <returns>The deserialized data object.</returns>
         public static T? Deserialize<T>(ContentType contentType, byte[] bytes)
         {
             return contentType switch
@@ -44,6 +60,13 @@ namespace Zerra.CQRS.Network
                 _ => throw new NotImplementedException(),
             };
         }
+        /// <summary>
+        /// Deserializes data selecting a serializer from the specified ContentType
+        /// </summary>
+        /// <param name="contentType">Determines which serializer will be used for this data format.</param>
+        /// <param name="type">The type to which the data will deserialize.</param>
+        /// <param name="bytes">The serialized data in bytes.</param>
+        /// <returns>The deserialized data object.</returns>
         public static object? Deserialize(ContentType contentType, Type type, byte[] bytes)
         {
             return contentType switch
@@ -55,6 +78,12 @@ namespace Zerra.CQRS.Network
             };
         }
 
+        /// <summary>
+        /// Serializes data selecting a serializer from the specified ContentType
+        /// </summary>
+        /// <param name="contentType">Determines which serializer will be used for this data format.</param>
+        /// <param name="stream">The destination stream of the bytes.</param>
+        /// <param name="obj">The object to be serialized.</param>
         public static void Serialize(ContentType contentType, Stream stream, object? obj)
         {
             switch (contentType)
@@ -72,6 +101,13 @@ namespace Zerra.CQRS.Network
                     throw new NotImplementedException();
             }
         }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <typeparam name="T">The type to which the data will deserialize.</typeparam>
+        /// <param name="contentType">Determines which serializer will be used for this data format.</param>
+        /// <param name="stream">The source stream of the bytes.</param>
+        /// <returns>The deserialized data object.</returns>
         public static T? Deserialize<T>(ContentType contentType, Stream stream)
         {
             return contentType switch
@@ -82,6 +118,13 @@ namespace Zerra.CQRS.Network
                 _ => throw new NotImplementedException(),
             };
         }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="contentType">Determines which serializer will be used for this data format.</param>
+        /// <param name="type">The type to which the data will deserialize.</param>
+        /// <param name="stream">The source stream of the bytes.</param>
+        /// <returns>The deserialized data object.</returns>
         public static object? Deserialize(ContentType contentType, Type type, Stream stream)
         {
             return contentType switch
@@ -93,6 +136,13 @@ namespace Zerra.CQRS.Network
             };
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="contentType">Determines which serializer will be used for this data format.</param>
+        /// <param name="stream">The source stream of the bytes.</param>
+        /// <param name="obj">The object to be serialized.</param>
+        /// <returns></returns>
         public static Task SerializeAsync(ContentType contentType, Stream stream, object? obj)
         {
             return contentType switch
@@ -103,6 +153,13 @@ namespace Zerra.CQRS.Network
                 _ => throw new NotImplementedException(),
             };
         }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <typeparam name="T">The type to which the data will deserialize.</typeparam>
+        /// <param name="contentType">Determines which serializer will be used for this data format.</param>
+        /// <param name="stream">The source stream of the bytes.</param>
+        /// <returns>The deserialized data object.</returns>
         public static Task<T?> DeserializeAsync<T>(ContentType contentType, Stream stream)
         {
             return contentType switch
@@ -113,6 +170,13 @@ namespace Zerra.CQRS.Network
                 _ => throw new NotImplementedException(),
             };
         }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="contentType">Determines which serializer will be used for this data format.</param>
+        /// <param name="type">The type to which the data will deserialize.</param>
+        /// <param name="stream">The source stream of the bytes.</param>
+        /// <returns>The deserialized data object.</returns>
         public static Task<object?> DeserializeAsync(ContentType contentType, Type type, Stream stream)
         {
             return contentType switch
@@ -124,6 +188,12 @@ namespace Zerra.CQRS.Network
             };
         }
 
+        /// <summary>
+        /// Serializes an Exception selecting a serializer from the specified ContentType
+        /// </summary>
+        /// <param name="contentType">Determines which serializer will be used for this data format.</param>
+        /// <param name="stream">The destination stream of the bytes.</param>
+        /// <param name="ex">The Exception to be serialized.</param>
         public static void SerializeException(ContentType contentType, Stream stream, Exception ex)
         {
             var errorType = ex.GetType();
@@ -151,6 +221,12 @@ namespace Zerra.CQRS.Network
                     throw new NotImplementedException();
             }
         }
+        /// <summary>
+        /// Deserializes an Exception selecting a serializer from the specified ContentType
+        /// </summary>
+        /// <param name="contentType">Determines which serializer will be used for this data format.</param>
+        /// <param name="stream">The source stream of the bytes.</param>
+        /// <returns>The deserialized Exception.</returns>
         public static Exception DeserializeException(ContentType contentType, Stream stream)
         {
             ExceptionContent? content = contentType switch
@@ -191,6 +267,13 @@ namespace Zerra.CQRS.Network
             return new RemoteServiceException(content?.ErrorMessage, ex);
         }
 
+        /// <summary>
+        /// Serializes an Exception selecting a serializer from the specified ContentType
+        /// </summary>
+        /// <param name="contentType">Determines which serializer will be used for this data format.</param>
+        /// <param name="stream">The destination stream of the bytes.</param>
+        /// <param name="ex">The Exception to be serialized.</param>
+        /// <returns>The deserialized Exception.</returns>
         public static Task SerializeExceptionAsync(ContentType contentType, Stream stream, Exception ex)
         {
             var errorType = ex.GetType();
@@ -215,6 +298,12 @@ namespace Zerra.CQRS.Network
                     throw new NotImplementedException();
             }
         }
+        /// <summary>
+        /// Deserializes an Exception selecting a serializer from the specified ContentType
+        /// </summary>
+        /// <param name="contentType">Determines which serializer will be used for this data format.</param>
+        /// <param name="stream">The source stream of the bytes.</param>
+        /// <returns>The deserialized Exception.</returns>
         public static async Task<Exception> DeserializeExceptionAsync(ContentType contentType, Stream stream)
         {
             ExceptionContent? content = contentType switch
