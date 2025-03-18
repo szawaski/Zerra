@@ -16,6 +16,9 @@ using Zerra.Serialization.Json;
 
 namespace Zerra.CQRS.Network
 {
+    /// <summary>
+    /// A client for making API requests to externaly exposed CQRS services or Gateways.
+    /// </summary>
     public sealed class ApiClient : CqrsClientBase
     {
         private readonly ContentType requestContentType;
@@ -24,6 +27,13 @@ namespace Zerra.CQRS.Network
         private readonly HttpClientHandler handler;
         private readonly HttpClient client;
 
+        /// <summary>
+        /// Creates a new API client.
+        /// </summary>
+        /// <param name="endpoint">The url of the service receiving CQRS requests.</param>
+        /// <param name="contentType">The content type of the communications.</param>
+        /// <param name="authorizer">An authorizer for adding headers needed for the server to validate requests.</param>
+        /// <param name="route">Adds n route argument to the base endpoint url if needed.</param>
         public ApiClient(string endpoint, ContentType contentType, ICqrsAuthorizer? authorizer, string? route = null) : base(endpoint)
         {
             this.requestContentType = contentType;
@@ -41,6 +51,7 @@ namespace Zerra.CQRS.Network
             this.client = new HttpClient(this.handler);
         }
 
+        /// <inheritdoc />
         protected override TReturn? CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source) where TReturn : default
         {
             var providerName = interfaceType.Name;
@@ -60,6 +71,7 @@ namespace Zerra.CQRS.Network
             var model = Request<TReturn>(throttle, isStream, routeUri, providerName, requestContentType, data, true);
             return model;
         }
+        /// <inheritdoc />
         protected override Task<TReturn?> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source) where TReturn : default
         {
             var providerName = interfaceType.Name;
@@ -80,6 +92,7 @@ namespace Zerra.CQRS.Network
             return model;
         }
 
+        /// <inheritdoc />
         protected override Task DispatchInternal(SemaphoreSlim throttle, Type commandType, ICommand command, bool messageAwait, string source)
         {
             var commendTypeName = commandType.GetNiceFullName();
@@ -96,6 +109,7 @@ namespace Zerra.CQRS.Network
 
             return RequestAsync<object>(throttle, false, routeUri, commendTypeName, requestContentType, data, false);
         }
+        /// <inheritdoc />
         protected override Task<TResult?> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source) where TResult : default
         {
             var commendTypeName = commandType.GetNiceFullName();
@@ -113,6 +127,7 @@ namespace Zerra.CQRS.Network
             return RequestAsync<TResult>(throttle, isStream, routeUri, commendTypeName, requestContentType, data, true);
         }
 
+        /// <inheritdoc />
         protected override Task DispatchInternal(SemaphoreSlim throttle, Type eventType, IEvent @event, string source)
         {
             var commendTypeName = eventType.GetNiceFullName();
@@ -313,6 +328,7 @@ namespace Zerra.CQRS.Network
             }
         }
 
+        /// <inheritdoc />
         public new void Dispose()
         {
             base.Dispose();

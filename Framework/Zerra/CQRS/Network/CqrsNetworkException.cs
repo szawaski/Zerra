@@ -7,7 +7,7 @@ using System;
 namespace Zerra.CQRS.Network
 {
     /// <summary>
-    /// A error ooccured between CQRS services
+    /// A error occured between CQRS services
     /// </summary>
     public class CqrsNetworkException : Exception
     {

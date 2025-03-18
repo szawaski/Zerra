@@ -14,16 +14,32 @@ using Zerra.Reflection;
 
 namespace Zerra.CQRS.Network
 {
+    /// <summary>
+    /// The base class for a CQRS client.
+    /// </summary>
     public abstract class CqrsClientBase : IQueryClient, ICommandProducer, IEventProducer, IDisposable
     {
         private readonly string serviceUrl;
+        /// <summary>
+        /// The URI of the target server.
+        /// </summary>
         protected readonly Uri serviceUri;
+        /// <summary>
+        /// The server host.
+        /// </summary>
         protected readonly string host;
+        /// <summary>
+        /// The server port.
+        /// </summary>
         protected readonly int port;
         private readonly ConcurrentDictionary<Type, SemaphoreSlim> throttleByInterfaceType;
         private readonly ConcurrentDictionary<Type, string> topicsByMessageType;
         private readonly ConcurrentDictionary<string, SemaphoreSlim> throttleByTopic;
 
+        /// <summary>
+        /// Required by the inheriting class to call this constructor for information the connection needs.
+        /// </summary>
+        /// <param name="serviceUrl">The url of the server to connect.</param>
         public CqrsClientBase(string serviceUrl)
         {
             if (String.IsNullOrWhiteSpace(serviceUrl))
@@ -111,7 +127,29 @@ namespace Zerra.CQRS.Network
             }
         }
 
+        /// <summary>
+        /// Sends CQRS queries and returns the result from the server.
+        /// </summary>
+        /// <typeparam name="TReturn">The type returned from the server.</typeparam>
+        /// <param name="throttle">Used to limit simultaneous requests.</param>
+        /// <param name="isStream">Indicates the result is a stream.</param>
+        /// <param name="interfaceType">The interface type of the query.</param>
+        /// <param name="methodName">The query method to call in the interface type.</param>
+        /// <param name="arguments">The raw arguments for the query method.</param>
+        /// <param name="source">A description of where the request came from.</param>
+        /// <returns>The result from the server.</returns>
         protected abstract TReturn? CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source);
+        /// <summary>
+        /// Sends CQRS queries and returns the result from the server asyncronously.
+        /// </summary>
+        /// <typeparam name="TReturn">The type returned from the server.</typeparam>
+        /// <param name="throttle">Used to limit simultaneous requests.</param>
+        /// <param name="isStream">Indicates the result is a stream.</param>
+        /// <param name="interfaceType">The interface type of the query.</param>
+        /// <param name="methodName">The query method to call in the interface type.</param>
+        /// <param name="arguments">The raw arguments for the query method.</param>
+        /// <param name="source">A description of where the request came from.</param>
+        /// <returns>A task to await the result from the server.</returns>
         protected abstract Task<TReturn?> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source);
 
         Task ICommandProducer.DispatchAsync(ICommand command, string source)
@@ -191,11 +229,39 @@ namespace Zerra.CQRS.Network
             }
         }
 
+        /// <summary>
+        /// Sends a CQRS command.
+        /// </summary>
+        /// <param name="throttle">Used to limit simultaneous requests.</param>
+        /// <param name="commandType">The command type.</param>
+        /// <param name="command">The command object itself.</param>
+        /// <param name="messageAwait">If the request will wait for a response from the server when the command is completed.</param>
+        /// <param name="source">A description of where the request came from.</param>
+        /// <returns>A Task to await sending or await completion of the command.</returns>
         protected abstract Task DispatchInternal(SemaphoreSlim throttle, Type commandType, ICommand command, bool messageAwait, string source);
+        /// <summary>
+        /// Sends a CQRS command and gets a result.
+        /// </summary>
+        /// <typeparam name="TResult">The type of the result returned from the server.</typeparam>
+        /// <param name="throttle">Used to limit simultaneous requests.</param>
+        /// <param name="isStream">Indicates the result is a stream.</param>
+        /// <param name="commandType">The command type.</param>
+        /// <param name="command">The command object itself.</param>
+        /// <param name="source">A description of where the request came from.</param>
+        /// <returns>A Task to await the result of the command from the server.</returns>
         protected abstract Task<TResult?> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source);
 
+        /// <summary>
+        /// Sends a CQRS event.
+        /// </summary>
+        /// <param name="throttle">Used to limit simultaneous requests.</param>
+        /// <param name="eventType">The event type.</param>
+        /// <param name="event">The event object itself.</param>
+        /// <param name="source">A description of where the request came from.</param>
+        /// <returns>A Task to await sending the event.</returns>
         protected abstract Task DispatchInternal(SemaphoreSlim throttle, Type eventType, IEvent @event, string source);
 
+        /// <inheritdoc />
         public void Dispose()
         {
             foreach (var throttle in throttleByInterfaceType.Values)

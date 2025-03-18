@@ -15,12 +15,21 @@ using System.Threading.Tasks;
 using Zerra.Buffers;
 
 namespace Zerra.CQRS.Network
-{
+{    
+    /// <summary>
+     /// A CQRS Server using Custom TCP communication.
+     /// </summary>
     public sealed class TcpRawCqrsServer : CqrsServerBase
     {
         private readonly ContentType? contentType;
         private readonly SymmetricConfig? symmetricConfig;
 
+        /// <summary>
+        /// Creates a new TCP Server
+        /// </summary>
+        /// <param name="contentType">The format of the body of the request and response.</param>
+        /// <param name="serverUrl">The url of the server.</param>
+        /// <param name="symmetricConfig">If provided, information to encrypt the data.</param>
         public TcpRawCqrsServer(ContentType? contentType, string serverUrl, SymmetricConfig? symmetricConfig)
             : base(serverUrl)
         {
@@ -28,6 +37,7 @@ namespace Zerra.CQRS.Network
             this.symmetricConfig = symmetricConfig;
         }
 
+        /// <inheritdoc />
         protected override async Task Handle(Socket socket, CancellationToken cancellationToken)
         {
             if (throttle is null) throw new InvalidOperationException($"{nameof(TcpRawCqrsServer)} is not setup");

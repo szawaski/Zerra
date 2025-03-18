@@ -16,6 +16,9 @@ using Zerra.Buffers;
 
 namespace Zerra.CQRS.Network
 {
+    /// <summary>
+    /// A CQRS Client using basic HTTP communication.
+    /// </summary>
     public sealed class HttpCqrsClient : CqrsClientBase
     {
         private readonly ContentType contentType;
@@ -23,6 +26,13 @@ namespace Zerra.CQRS.Network
         private readonly ICqrsAuthorizer? authorizer;
         private readonly SocketClientPool socketPool;
 
+        /// <summary>
+        /// Creates a new HTTP Client.
+        /// </summary>
+        /// <param name="contentType">The format of the body of the request and response.</param>
+        /// <param name="serviceUrl">The url of the server.</param>
+        /// <param name="symmetricConfig">If provided, information to encrypt the data.</param>
+        /// <param name="authorizer">An authorizer for adding headers needed for the server to validate requests.</param>
         public HttpCqrsClient(ContentType contentType, string serviceUrl, SymmetricConfig? symmetricConfig, ICqrsAuthorizer? authorizer)
             : base(serviceUrl)
         {
@@ -32,6 +42,7 @@ namespace Zerra.CQRS.Network
             this.socketPool = SocketClientPool.Shared;
         }
 
+        /// <inheritdoc />
         protected override TReturn? CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source) where TReturn : default
         {
             throttle.Wait();
@@ -192,6 +203,7 @@ namespace Zerra.CQRS.Network
                 throttle.Release();
             }
         }
+        /// <inheritdoc />
         protected override async Task<TReturn?> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source) where TReturn : default
         {
             await throttle.WaitAsync();
@@ -387,6 +399,7 @@ namespace Zerra.CQRS.Network
             }
         }
 
+        /// <inheritdoc />
         protected override async Task DispatchInternal(SemaphoreSlim throttle, Type commandType, ICommand command, bool messageAwait, string source)
         {
             await throttle.WaitAsync();
@@ -575,6 +588,7 @@ namespace Zerra.CQRS.Network
                 throttle.Release();
             }
         }
+        /// <inheritdoc />
         protected override async Task<TResult?> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source) where TResult : default
         {
             await throttle.WaitAsync();
@@ -773,6 +787,7 @@ namespace Zerra.CQRS.Network
             }
         }
 
+        /// <inheritdoc />
         protected override async Task DispatchInternal(SemaphoreSlim throttle, Type eventType, IEvent @event, string source)
         {
             await throttle.WaitAsync();

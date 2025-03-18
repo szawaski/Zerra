@@ -16,6 +16,9 @@ using Zerra.Buffers;
 
 namespace Zerra.CQRS.Network
 {
+    /// <summary>
+    /// A CQRS Server using basic HTTP communication.
+    /// </summary>
     public sealed class HttpCqrsServer : CqrsServerBase
     {
         private readonly ContentType? contentType;
@@ -23,6 +26,14 @@ namespace Zerra.CQRS.Network
         private readonly ICqrsAuthorizer? authorizer;
         private readonly string[]? allowOrigins;
 
+        /// <summary>
+        /// Creates a new HTTP Server
+        /// </summary>
+        /// <param name="contentType">The format of the body of the request and response.</param>
+        /// <param name="serverUrl">The url of the server.</param>
+        /// <param name="symmetricConfig">If provided, information to encrypt the data.</param>
+        /// <param name="authorizer">An authorizer for the server to validate requests.</param>
+        /// <param name="allowOrigins">CORS HTTP headers for Allow-Origins</param>
         public HttpCqrsServer(ContentType? contentType, string serverUrl, SymmetricConfig? symmetricConfig, ICqrsAuthorizer? authorizer, string[]? allowOrigins)
             : base(serverUrl)
         {
@@ -35,6 +46,7 @@ namespace Zerra.CQRS.Network
                 allowOrigins = null;
         }
 
+        /// <inheritdoc />
         protected override async Task Handle(Socket socket, CancellationToken cancellationToken)
         {
             if (throttle is null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");

@@ -12,26 +12,57 @@ using System.Threading.Tasks;
 
 namespace Zerra.CQRS.Network
 {
+    /// <summary>
+    /// The base class for a CQRS Server using Sockets.
+    /// </summary>
     public abstract class CqrsServerBase : IQueryServer, ICommandConsumer, IEventConsumer, IDisposable
     {
+        /// <summary>
+        /// The types registered for this server to handle.
+        /// </summary>
         protected readonly ConcurrentReadWriteHashSet<Type> types;
         private readonly Type thisType;
         
         private SocketListener[]? listeners = null;
+        /// <summary>
+        /// Delegate to the <see cref="Bus"/> to handle queries.
+        /// </summary>
         protected QueryHandlerDelegate? providerHandlerAsync = null;
+        /// <summary>
+        /// Delegate to the <see cref="Bus"/> to handle commands without response.
+        /// </summary>
         protected HandleRemoteCommandDispatch? commandHandlerAsync = null;
+        /// <summary>
+        /// Delegate to the <see cref="Bus"/> to handle commands that will wait to respond when completed.
+        /// </summary>
         protected HandleRemoteCommandDispatch? commandHandlerAwaitAsync = null;
+        /// <summary>
+        /// Delegate to the <see cref="Bus"/> to handle commands that will respond with a result.
+        /// </summary>
         protected HandleRemoteCommandWithResultDispatch? commandHandlerWithResultAwaitAsync = null;
+        /// <summary>
+        /// Delegate to the <see cref="Bus"/> to handle events.
+        /// </summary>
         protected HandleRemoteEventDispatch? eventHandlerAsync = null;
 
         private bool started = false;
         private bool disposed = false;
 
+        /// <summary>
+        /// A counter to limit the number commands the running service will receive before termination.
+        /// </summary>
         protected CommandCounter? commandCounter = null;
+        /// <summary>
+        /// A throttle to limit the number of requests processed simulataneously.
+        /// </summary>
         protected SemaphoreSlim? throttle = null;
 
         private readonly string serviceUrl;
 
+        /// <summary>
+        /// Required by the inheriting class to call this constructor for information the Socket needs.
+        /// </summary>
+        /// <param name="serviceUrl">The url under which the Socket will be listening.</param>
         public CqrsServerBase(string serviceUrl)
         {
             this.serviceUrl = serviceUrl;
@@ -104,7 +135,7 @@ namespace Zerra.CQRS.Network
             Open();
             _ = Log.InfoAsync($"{thisType.GetNiceName()} Event Consumer Started On {this.serviceUrl}");
         }
-        protected void Open()
+        private void Open()
         {
             lock (types)
             {
@@ -139,6 +170,12 @@ namespace Zerra.CQRS.Network
             }
         }
 
+        /// <summary>
+        /// Handles all incomming CQRS requests.
+        /// </summary>
+        /// <param name="socket">The raw socket connection</param>
+        /// <param name="cancellationToken">The Cancellation Token to observe.</param>
+        /// <returns>A Task to await completion of handling the request.</returns>
         protected abstract Task Handle(Socket socket, CancellationToken cancellationToken);
 
         void IQueryServer.Close()
@@ -157,6 +194,7 @@ namespace Zerra.CQRS.Network
             _ = Log.InfoAsync($"{thisType.GetNiceName()} Event Consumer Closed On {this.serviceUrl}");
         }
 
+        /// <inheritdoc />
         public void Dispose()
         {
             lock (types)
