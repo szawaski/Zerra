@@ -184,7 +184,7 @@ namespace Zerra.CQRS.Network
             return cookies;
         }
 
-        public async Task Login() => GetCookiesRequest(endpoint, loginRequestBody, contentType);
+        public Task Login() => GetCookiesRequest(endpoint, loginRequestBody, contentType);
 
         public CookieCollection? Cookies => cookies;
 
