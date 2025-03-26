@@ -26,9 +26,14 @@ namespace ZerraDemo.Common
             var serviceSettings = CQRSSettings.Get(false);
 
             var messageHost = Config.GetSetting("MessageHost")!;
-            foreach( var item in serviceSettings.Messages)
+            if (serviceSettings.Messages is not null && serviceSettings.Queries is not null)
             {
-                item.SetMessageHost(serviceSettings.Queries.First(x => x.Service == item.Service).ExternalUrl);
+                foreach (var item in serviceSettings.Messages)
+                {
+                    var querySetting = serviceSettings.Queries.FirstOrDefault(x => x.Service == item.Service);
+                    if (querySetting?.ExternalUrl is not null)
+                    item.SetMessageHost(querySetting.ExternalUrl);
+                }
             }
             //serviceSettings.SetAllMessageHosts(messageHost);
 
