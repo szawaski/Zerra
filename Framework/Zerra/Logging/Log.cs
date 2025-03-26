@@ -71,7 +71,7 @@ namespace Zerra.Logging
         /// Log an event with a level of Error.
         /// </summary>
         /// <param name="message">The message to log.</param>
-        /// <param name="ex">The exception to log.</param>
+        /// <param name="exception">The exception to log.</param>
         /// <returns>A task to await completing of the logging.</returns>
         public static Task ErrorAsync(string message, Exception? exception = null)
         {
@@ -84,7 +84,7 @@ namespace Zerra.Logging
         /// <summary>
         /// Log an event with a level of Error.
         /// </summary>
-        /// <param name="ex">The exception to log.</param>
+        /// <param name="exception">The exception to log.</param>
         /// <returns>A task to await completing of the logging.</returns>
         public static Task ErrorAsync(Exception exception)
         {
@@ -98,7 +98,7 @@ namespace Zerra.Logging
         /// Log an event with a level of Critical.
         /// </summary>
         /// <param name="message">The message to log.</param>
-        /// <param name="ex">The exception to log.</param>
+        /// <param name="exception">The exception to log.</param>
         /// <returns>A task to await completing of the logging.</returns>
         public static Task CriticalAsync(string message, Exception? exception = null)
         {
@@ -111,7 +111,7 @@ namespace Zerra.Logging
         /// <summary>
         /// Log an event with a level of Critical.
         /// </summary>
-        /// <param name="ex">The exception to log.</param>
+        /// <param name="exception">The exception to log.</param>
         /// <returns>A task to await completing of the logging.</returns>
         public static Task CriticalAsync(Exception exception)
         {

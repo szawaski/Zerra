@@ -170,7 +170,7 @@ namespace Zerra
         /// <summary>
         /// Adds a members to include in the graph.
         /// </summary>
-        /// <param name="members">The member to include.</param>
+        /// <param name="member">The member to include.</param>
         public void AddMember(Expression<Func<T, object?>> member)
         {
             if (member is null)
@@ -187,7 +187,7 @@ namespace Zerra
         /// <summary>
         /// Removes a member from the graph. This overrides IncludeAllMembers.
         /// </summary>
-        /// <param name="members">The member to remove.</param>
+        /// <param name="member">The member to remove.</param>
         public void RemoveMember(Expression<Func<T, object?>> member)
         {
             if (member is null)

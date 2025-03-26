@@ -253,7 +253,7 @@ namespace Zerra
         /// <summary>
         /// Adds a members to include in the graph.
         /// </summary>
-        /// <param name="members">The member to include.</param>
+        /// <param name="member">The member to include.</param>
         public void AddMember(string member)
         {
             if (String.IsNullOrWhiteSpace(member))
@@ -276,7 +276,7 @@ namespace Zerra
         /// <summary>
         /// Removes a member from the graph. This overrides IncludeAllMembers.
         /// </summary>
-        /// <param name="members">The member to remove.</param>
+        /// <param name="member">The member to remove.</param>
         public void RemoveMember(string member)
         {
             if (String.IsNullOrWhiteSpace(member))
@@ -292,7 +292,7 @@ namespace Zerra
         /// <summary>
         /// Adds a child graph. If there is an existing child graph the members of the child will be merged.
         /// </summary>
-        /// <param name="members">The member of the child graph.</param>
+        /// <param name="member">The member of the child graph.</param>
         /// <param name="graph">The child graph for the member.</param>
         public void AddChildGraph(string member, Graph graph)
         {
@@ -333,7 +333,7 @@ namespace Zerra
         /// <summary>
         /// Adds a child graph. If there is an existing child graph it will be replaced.
         /// </summary>
-        /// <param name="members">The member of the child graph.</param>
+        /// <param name="member">The member of the child graph.</param>
         /// <param name="graph">The child graph for the member.</param>
         public void AddOrReplaceChildGraph(string member, Graph graph)
         {

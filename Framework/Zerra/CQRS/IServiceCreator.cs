@@ -30,7 +30,7 @@ namespace Zerra.CQRS.Settings
         /// <summary>
         /// Creates a new query server
         /// </summary>
-        /// <param name="messageHost">The service url to bind.</param>
+        /// <param name="serviceUrl">The service url to bind.</param>
         /// <param name="symmetricConfig">The encryption information supplied by <see cref="Bus.StartServices(ServiceSettings, IServiceCreator)"/></param>
         /// <returns>The new query server.</returns>
         public IQueryServer? CreateQueryServer(string serviceUrl, SymmetricConfig? symmetricConfig);
@@ -52,7 +52,7 @@ namespace Zerra.CQRS.Settings
         /// <summary>
         /// Creates a new query client
         /// </summary>
-        /// <param name="messageHost">The service url to call.</param>
+        /// <param name="serviceUrl">The service url to call.</param>
         /// <param name="symmetricConfig">The encryption information supplied by <see cref="Bus.StartServices(ServiceSettings, IServiceCreator)"/></param>
         /// <returns>The new query client.</returns>
         public IQueryClient? CreateQueryClient(string serviceUrl, SymmetricConfig? symmetricConfig);
