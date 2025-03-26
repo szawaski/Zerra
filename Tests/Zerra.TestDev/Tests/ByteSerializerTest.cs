@@ -62,157 +62,157 @@ namespace Zerra.TestDev
             return testList;
         }
 
-        public static Task CompareTestSpeed()
-        {
-            var options = new ByteSerializerOptions()
-            {
-                IndexType = ByteSerializerIndexType.UInt16
-            };
-            var item = TypesAllModel.Create();
-            var data = ByteSerializer.Serialize(item, options);
-            var dataOld = ByteSerializerOld.Serialize(item, options);
+        //public static Task CompareTestSpeed()
+        //{
+        //    var options = new ByteSerializerOptions()
+        //    {
+        //        IndexType = ByteSerializerIndexType.UInt16
+        //    };
+        //    var item = TypesAllModel.Create();
+        //    var data = ByteSerializer.Serialize(item, options);
+        //    var dataOld = ByteSerializerOld.Serialize(item, options);
 
-            var method = typeof(ByteSerializerTest).GetMethod(nameof(CompareTestSpeed2), BindingFlags.Static | BindingFlags.NonPublic).MakeGenericMethod(item.GetType());
-            return (Task)method.Invoke(null, [item, data, dataOld, options, 5000, 5]);
-        }
+        //    var method = typeof(ByteSerializerTest).GetMethod(nameof(CompareTestSpeed2), BindingFlags.Static | BindingFlags.NonPublic).MakeGenericMethod(item.GetType());
+        //    return (Task)method.Invoke(null, [item, data, dataOld, options, 5000, 5]);
+        //}
 
-        private static async Task CompareTestSpeed2<T>(T item, byte[] data, byte[] dataOld, ByteSerializerOptions options, int iterations, int loops)
-        {
-            using var readStream = new MemoryStream(data);
-            using var readOldStream = new MemoryStream(dataOld);
-            using var writeStream = new MemoryStream();
+        //private static async Task CompareTestSpeed2<T>(T item, byte[] data, byte[] dataOld, ByteSerializerOptions options, int iterations, int loops)
+        //{
+        //    using var readStream = new MemoryStream(data);
+        //    using var readOldStream = new MemoryStream(dataOld);
+        //    using var writeStream = new MemoryStream();
 
-            Console.WriteLine($"Warmup");
+        //    Console.WriteLine($"Warmup");
 
-            var timer = Stopwatch.StartNew();
-            for (var i = 0; i < 100; i++)
-            {
-                readOldStream.Position = 0;
-                _ = await ByteSerializerOld.DeserializeAsync<T>(readOldStream, options);
-                readStream.Position = 0;
-                _ = await ByteSerializer.DeserializeAsync<T>(readStream, options);
-                _ = ByteSerializerOld.Deserialize<T>(dataOld, options);
-                _ = ByteSerializer.Deserialize<T>(data, options);
+        //    var timer = Stopwatch.StartNew();
+        //    for (var i = 0; i < 100; i++)
+        //    {
+        //        readOldStream.Position = 0;
+        //        _ = await ByteSerializerOld.DeserializeAsync<T>(readOldStream, options);
+        //        readStream.Position = 0;
+        //        _ = await ByteSerializer.DeserializeAsync<T>(readStream, options);
+        //        _ = ByteSerializerOld.Deserialize<T>(dataOld, options);
+        //        _ = ByteSerializer.Deserialize<T>(data, options);
 
-                writeStream.Position = 0;
-                await ByteSerializerOld.SerializeAsync(writeStream, item, options);
-                writeStream.Position = 0;
-                await ByteSerializer.SerializeAsync(writeStream, item, options);
-                _ = ByteSerializerOld.Serialize(item, options);
-                _ = ByteSerializer.Serialize(item, options);
+        //        writeStream.Position = 0;
+        //        await ByteSerializerOld.SerializeAsync(writeStream, item, options);
+        //        writeStream.Position = 0;
+        //        await ByteSerializer.SerializeAsync(writeStream, item, options);
+        //        _ = ByteSerializerOld.Serialize(item, options);
+        //        _ = ByteSerializer.Serialize(item, options);
 
-                GC.Collect();
-            }
-            Console.WriteLine();
-            Console.WriteLine();
-            Console.WriteLine($"Done {timer.ElapsedMilliseconds:n0}ms");
+        //        GC.Collect();
+        //    }
+        //    Console.WriteLine();
+        //    Console.WriteLine();
+        //    Console.WriteLine($"Done {timer.ElapsedMilliseconds:n0}ms");
 
-            Console.WriteLine();
-            Console.WriteLine($"Running");
+        //    Console.WriteLine();
+        //    Console.WriteLine($"Running");
 
-            var totalsOld = new Dictionary<string, long>();
-            var totals = new Dictionary<string, long>();
+        //    var totalsOld = new Dictionary<string, long>();
+        //    var totals = new Dictionary<string, long>();
 
-            totalsOld["1 DeserializeAsync"] = 0;
-            totalsOld["2 Deserialize"] = 0;
-            totalsOld["3 SerializeAsync"] = 0;
-            totalsOld["4 Serialize"] = 0;
+        //    totalsOld["1 DeserializeAsync"] = 0;
+        //    totalsOld["2 Deserialize"] = 0;
+        //    totalsOld["3 SerializeAsync"] = 0;
+        //    totalsOld["4 Serialize"] = 0;
 
-            totals["1 DeserializeAsync"] = 0;
-            totals["2 Deserialize"] = 0;
-            totals["3 SerializeAsync"] = 0;
-            totals["4 Serialize"] = 0;
+        //    totals["1 DeserializeAsync"] = 0;
+        //    totals["2 Deserialize"] = 0;
+        //    totals["3 SerializeAsync"] = 0;
+        //    totals["4 Serialize"] = 0;
 
-            for (var j = 0; j < loops; j++)
-            {
-                Console.Write(".");
+        //    for (var j = 0; j < loops; j++)
+        //    {
+        //        Console.Write(".");
 
-                GC.Collect();
-                timer = Stopwatch.StartNew();
-                for (var i = 0; i < iterations; i++)
-                {
-                    readOldStream.Position = 0;
-                    _ = await ByteSerializerOld.DeserializeAsync<T>(readOldStream, options);
-                }
-                timer.Stop();
-                totalsOld["1 DeserializeAsync"] += timer.ElapsedMilliseconds;
+        //        GC.Collect();
+        //        timer = Stopwatch.StartNew();
+        //        for (var i = 0; i < iterations; i++)
+        //        {
+        //            readOldStream.Position = 0;
+        //            _ = await ByteSerializerOld.DeserializeAsync<T>(readOldStream, options);
+        //        }
+        //        timer.Stop();
+        //        totalsOld["1 DeserializeAsync"] += timer.ElapsedMilliseconds;
 
-                GC.Collect();
-                timer = Stopwatch.StartNew();
-                for (var i = 0; i < iterations; i++)
-                {
-                    readStream.Position = 0;
-                    _ = await ByteSerializer.DeserializeAsync<T>(readStream, options);
-                }
-                timer.Stop();
-                totals["1 DeserializeAsync"] += timer.ElapsedMilliseconds;
+        //        GC.Collect();
+        //        timer = Stopwatch.StartNew();
+        //        for (var i = 0; i < iterations; i++)
+        //        {
+        //            readStream.Position = 0;
+        //            _ = await ByteSerializer.DeserializeAsync<T>(readStream, options);
+        //        }
+        //        timer.Stop();
+        //        totals["1 DeserializeAsync"] += timer.ElapsedMilliseconds;
 
-                GC.Collect();
-                timer = Stopwatch.StartNew();
-                for (var i = 0; i < iterations; i++)
-                {
-                    _ = ByteSerializerOld.Deserialize<T>(dataOld, options);
-                }
-                timer.Stop();
-                totalsOld["2 Deserialize"] += timer.ElapsedMilliseconds;
+        //        GC.Collect();
+        //        timer = Stopwatch.StartNew();
+        //        for (var i = 0; i < iterations; i++)
+        //        {
+        //            _ = ByteSerializerOld.Deserialize<T>(dataOld, options);
+        //        }
+        //        timer.Stop();
+        //        totalsOld["2 Deserialize"] += timer.ElapsedMilliseconds;
 
-                GC.Collect();
-                timer = Stopwatch.StartNew();
-                for (var i = 0; i < iterations; i++)
-                {
-                    _ = ByteSerializer.Deserialize<T>(data, options);
-                }
-                timer.Stop();
-                totals["2 Deserialize"] += timer.ElapsedMilliseconds;
+        //        GC.Collect();
+        //        timer = Stopwatch.StartNew();
+        //        for (var i = 0; i < iterations; i++)
+        //        {
+        //            _ = ByteSerializer.Deserialize<T>(data, options);
+        //        }
+        //        timer.Stop();
+        //        totals["2 Deserialize"] += timer.ElapsedMilliseconds;
 
-                GC.Collect();
-                timer = Stopwatch.StartNew();
-                for (var i = 0; i < iterations; i++)
-                {
-                    writeStream.Position = 0;
-                    await ByteSerializerOld.SerializeAsync(writeStream, item, options);
-                }
-                timer.Stop();
-                totalsOld["3 SerializeAsync"] += timer.ElapsedMilliseconds;
+        //        GC.Collect();
+        //        timer = Stopwatch.StartNew();
+        //        for (var i = 0; i < iterations; i++)
+        //        {
+        //            writeStream.Position = 0;
+        //            await ByteSerializerOld.SerializeAsync(writeStream, item, options);
+        //        }
+        //        timer.Stop();
+        //        totalsOld["3 SerializeAsync"] += timer.ElapsedMilliseconds;
 
-                GC.Collect();
-                timer = Stopwatch.StartNew();
-                for (var i = 0; i < iterations; i++)
-                {
-                    writeStream.Position = 0;
-                    await ByteSerializer.SerializeAsync(writeStream, item, options);
-                }
-                timer.Stop();
-                totals["3 SerializeAsync"] += timer.ElapsedMilliseconds;
+        //        GC.Collect();
+        //        timer = Stopwatch.StartNew();
+        //        for (var i = 0; i < iterations; i++)
+        //        {
+        //            writeStream.Position = 0;
+        //            await ByteSerializer.SerializeAsync(writeStream, item, options);
+        //        }
+        //        timer.Stop();
+        //        totals["3 SerializeAsync"] += timer.ElapsedMilliseconds;
 
-                GC.Collect();
-                timer = Stopwatch.StartNew();
-                for (var i = 0; i < iterations; i++)
-                {
-                    _ = ByteSerializerOld.Serialize(item, options);
-                }
-                timer.Stop();
-                totalsOld["4 Serialize"] += timer.ElapsedMilliseconds;
+        //        GC.Collect();
+        //        timer = Stopwatch.StartNew();
+        //        for (var i = 0; i < iterations; i++)
+        //        {
+        //            _ = ByteSerializerOld.Serialize(item, options);
+        //        }
+        //        timer.Stop();
+        //        totalsOld["4 Serialize"] += timer.ElapsedMilliseconds;
 
-                GC.Collect();
-                timer = Stopwatch.StartNew();
-                for (var i = 0; i < iterations; i++)
-                {
-                    _ = ByteSerializer.Serialize(item, options);
-                }
-                timer.Stop();
-                totals["4 Serialize"] += timer.ElapsedMilliseconds;
-            }
+        //        GC.Collect();
+        //        timer = Stopwatch.StartNew();
+        //        for (var i = 0; i < iterations; i++)
+        //        {
+        //            _ = ByteSerializer.Serialize(item, options);
+        //        }
+        //        timer.Stop();
+        //        totals["4 Serialize"] += timer.ElapsedMilliseconds;
+        //    }
 
-            Console.WriteLine();
-            foreach (var total in totals.OrderBy(x => x.Key))
-            {
-                var totalOld = totalsOld[total.Key];
-                Console.WriteLine($"{total.Key} {total.Value / loops}/{totalOld / loops} {Math.Round((((decimal)total.Value / loops) / ((decimal)totalOld / loops)) * 100, 2)}%");
-            }
+        //    Console.WriteLine();
+        //    foreach (var total in totals.OrderBy(x => x.Key))
+        //    {
+        //        var totalOld = totalsOld[total.Key];
+        //        Console.WriteLine($"{total.Key} {total.Value / loops}/{totalOld / loops} {Math.Round((((decimal)total.Value / loops) / ((decimal)totalOld / loops)) * 100, 2)}%");
+        //    }
 
-            Console.WriteLine();
-        }
+        //    Console.WriteLine();
+        //}
 
         public static void TestSpeed()
         {
