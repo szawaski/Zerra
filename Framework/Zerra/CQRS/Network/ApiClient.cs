@@ -110,7 +110,7 @@ namespace Zerra.CQRS.Network
             return RequestAsync<object>(throttle, false, routeUri, commendTypeName, requestContentType, data, false);
         }
         /// <inheritdoc />
-        protected override Task<TResult?> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source) where TResult : default
+        protected override Task<TResult> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source) where TResult : default
         {
             var commendTypeName = commandType.GetNiceFullName();
             var commandData = JsonSerializer.Serialize(command, commandType);
@@ -124,7 +124,7 @@ namespace Zerra.CQRS.Network
                 Source = source
             };
 
-            return RequestAsync<TResult>(throttle, isStream, routeUri, commendTypeName, requestContentType, data, true);
+            return RequestAsync<TResult>(throttle, isStream, routeUri, commendTypeName, requestContentType, data, true)!;
         }
 
         /// <inheritdoc />

@@ -188,7 +188,7 @@ namespace Zerra.CQRS.Network
                 throw;
             }
         }
-        Task<TResult?> ICommandProducer.DispatchAwaitAsync<TResult>(ICommand<TResult> command, string source) where TResult : default
+        Task<TResult> ICommandProducer.DispatchAwaitAsync<TResult>(ICommand<TResult> command, string source) where TResult : default
         {
             var commandType = command.GetType();
             if (!topicsByMessageType.TryGetValue(commandType, out var topic))
@@ -249,7 +249,7 @@ namespace Zerra.CQRS.Network
         /// <param name="command">The command object itself.</param>
         /// <param name="source">A description of where the request came from.</param>
         /// <returns>A Task to await the result of the command from the server.</returns>
-        protected abstract Task<TResult?> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source);
+        protected abstract Task<TResult> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source);
 
         /// <summary>
         /// Sends a CQRS event.

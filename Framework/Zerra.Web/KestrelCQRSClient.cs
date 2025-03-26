@@ -118,7 +118,7 @@ namespace Zerra.Web
 
             return RequestAsync<object>(throttle, false, routeUri, messageType, requestContentType, data, false);
         }
-        protected override Task<TResult?> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source) where TResult : default
+        protected override Task<TResult> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source) where TResult : default
         {
             var messageType = commandType.GetNiceFullName();
             var messageData = ContentTypeSerializer.Serialize(requestContentType, command);
@@ -138,7 +138,7 @@ namespace Zerra.Web
                 Source = source
             };
 
-            return RequestAsync<TResult>(throttle, isStream, routeUri, messageType, requestContentType, data, true);
+            return RequestAsync<TResult>(throttle, isStream, routeUri, messageType, requestContentType, data, true)!;
         }
 
         protected override Task DispatchInternal(SemaphoreSlim throttle, Type eventType, IEvent @event, string source)

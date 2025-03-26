@@ -131,17 +131,21 @@ namespace Zerra.CQRS.Network
                 throw new RemoteServiceException(ack.ErrorMessage, ex);
             }
 
-            object? result = null;
             if (ack.DataType is not null && ack.Data is not null && ack.Data.Length > 0)
             {
                 try
                 {
                     var type = Discovery.GetTypeFromName(ack.DataType);
-                    result = ByteSerializer.Deserialize(type, ack.Data, byteSerializerOptions);
+                    var result = ByteSerializer.Deserialize(type, ack.Data, byteSerializerOptions);
+                    return result;
                 }
-                catch { }
+                catch(Exception ex)
+                {
+                    throw new RemoteServiceException($"Failed to deserialize result type {ack.DataType}", ex);
+                }
             }
-            return result;
+
+            return null;
         }
     }
 }

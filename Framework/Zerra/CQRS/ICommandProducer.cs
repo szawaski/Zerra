@@ -44,6 +44,6 @@ namespace Zerra.CQRS
         /// <param name="command">The command to send.</param>
         /// <param name="source">A description of where the command came from.</param>
         /// <returns>A task to await the result of the command.</returns>
-        Task<TResult?> DispatchAwaitAsync<TResult>(ICommand<TResult> command, string source);
+        Task<TResult> DispatchAwaitAsync<TResult>(ICommand<TResult> command, string source);
     }
 }

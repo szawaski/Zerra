@@ -587,7 +587,7 @@ namespace Zerra.CQRS.Network
             }
         }
         /// <inheritdoc />
-        protected override async Task<TResult?> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source) where TResult : default
+        protected override async Task<TResult> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source) where TResult : default
         {
             await throttle.WaitAsync();
 
@@ -727,7 +727,7 @@ namespace Zerra.CQRS.Network
                             await responseBodyStream.DisposeAsync();
 #endif
                         }
-                        return model;
+                        return model!;
                     }
                 }
                 catch (Exception ex)

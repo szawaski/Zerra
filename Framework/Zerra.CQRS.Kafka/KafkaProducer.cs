@@ -71,10 +71,10 @@ namespace Zerra.CQRS.Kafka
         string ICommandProducer.MessageHost => "[Host has Secrets]";
         string IEventProducer.MessageHost => "[Host has Secrets]";
 
-        Task ICommandProducer.DispatchAsync(ICommand command, string source) { return SendAsync(command, false, source); }
-        Task ICommandProducer.DispatchAwaitAsync(ICommand command, string source) { return SendAsync(command, true, source); }
-        Task<TResult?> ICommandProducer.DispatchAwaitAsync<TResult>(ICommand<TResult> command, string source) where TResult : default { return SendAsync(command, source); }
-        Task IEventProducer.DispatchAsync(IEvent @event, string source) { return SendAsync(@event, source); }
+        Task ICommandProducer.DispatchAsync(ICommand command, string source) => SendAsync(command, false, source);
+        Task ICommandProducer.DispatchAwaitAsync(ICommand command, string source) => SendAsync(command, true, source);
+        Task<TResult> ICommandProducer.DispatchAwaitAsync<TResult>(ICommand<TResult> command, string source) where TResult : default => SendAsync(command, source);
+        Task IEventProducer.DispatchAsync(IEvent @event, string source) => SendAsync(@event, source);
 
         private async Task SendAsync(ICommand command, bool requireAcknowledgement, string source)
         {
@@ -180,7 +180,7 @@ namespace Zerra.CQRS.Kafka
             }
         }
 
-        private async Task<TResult?> SendAsync<TResult>(ICommand<TResult> command, string source)
+        private async Task<TResult> SendAsync<TResult>(ICommand<TResult> command, string source)
         {
             var commandType = command.GetType();
             if (!topicsByCommandType.TryGetValue(commandType, out var topic))
@@ -256,7 +256,7 @@ namespace Zerra.CQRS.Kafka
 
                     await waiter.WaitAsync();
 
-                    var result = (TResult?)Acknowledgement.GetResultOrThrowIfFailed(acknowledgement);
+                    var result = (TResult)Acknowledgement.GetResultOrThrowIfFailed(acknowledgement)!;
 
                     return result;
                 }
