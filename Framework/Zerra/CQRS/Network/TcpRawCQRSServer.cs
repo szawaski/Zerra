@@ -46,8 +46,6 @@ namespace Zerra.CQRS.Network
             {
                 for (; ; )
                 {
-                    await throttle.WaitAsync(cancellationToken);
-
                     TcpRequestHeader? requestHeader = null;
                     var responseStarted = false;
 
@@ -61,6 +59,7 @@ namespace Zerra.CQRS.Network
                     var isCommand = false;
 
                     var inHandlerContext = false;
+                    var throttlerUsed = false;
                     try
                     {
                         //Read Request Header
@@ -123,6 +122,9 @@ namespace Zerra.CQRS.Network
                         {
                             Thread.CurrentPrincipal = null;
                         }
+
+                        await throttle.WaitAsync(cancellationToken);
+                        throttlerUsed = true;
 
                         //Process and Respond
                         //----------------------------------------------------------------------------------------------------
@@ -400,10 +402,13 @@ namespace Zerra.CQRS.Network
 #endif
                         }
                         ArrayPoolHelper<byte>.Return(bufferOwner);
-                        if (isCommand && commandCounter is not null)
-                            commandCounter.CompleteReceive(throttle);
-                        else
-                            throttle.Release();
+                        if (throttlerUsed)
+                        {
+                            if (isCommand && commandCounter is not null)
+                                commandCounter.CompleteReceive(throttle);
+                            else
+                                throttle.Release();
+                        }
                     }
                 }
             }

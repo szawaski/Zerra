@@ -40,7 +40,7 @@ namespace Zerra.CQRS.Network
 
                 this.canceller = new CancellationTokenSource();
 
-                _ = AcceptConnections();
+                _ = Task.Run(AcceptConnections);
 
                 started = true;
             }
