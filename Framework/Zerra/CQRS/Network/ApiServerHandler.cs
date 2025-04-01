@@ -12,7 +12,7 @@ namespace Zerra.CQRS.Network
 {
     /// <summary>
     /// Helper class to handle external API requests.
-    /// Used by <see cref="Zerra.Web.CqrsApiGatewayMiddleware"/>
+    /// Used by Zerra.Web.CqrsApiGatewayMiddleware
     /// </summary>
     public static class ApiServerHandler
     {
