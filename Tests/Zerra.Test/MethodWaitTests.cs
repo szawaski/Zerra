@@ -12,12 +12,12 @@ namespace Zerra.Test
     public class MethodWaitTests
     {
         [TestMethod]
-        public void WaitTimeout()
+        public void WaitActionTimeout()
         {
-            Exception exception = null;
+            TimeoutException exception = null;
             try
             {
-                _ = MethodWait.Wait(DoSomething, TimeSpan.FromMilliseconds(1000), TimeSpan.FromMilliseconds(500));
+                MethodWait.Wait(() => DoSomethingAction(TimeSpan.FromMilliseconds(1000)), TimeSpan.FromMilliseconds(500));
             }
             catch (TimeoutException ex)
             {
@@ -27,19 +27,18 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void WaitCompletion()
+        public void WaitActionCompletion()
         {
-            var result = MethodWait.Wait(DoSomething, TimeSpan.FromMilliseconds(500), TimeSpan.FromMilliseconds(1000));
-            Assert.IsTrue(result);
+            MethodWait.Wait(() => DoSomethingAction(TimeSpan.FromMilliseconds(500)), TimeSpan.FromMilliseconds(1000));
         }
 
         [TestMethod]
-        public void WaitException()
+        public void WaitActionException()
         {
-            Exception exception = null;
+            ArgumentException exception = null;
             try
             {
-                _ = MethodWait.Wait(DoSomething, TimeSpan.FromMilliseconds(-500), TimeSpan.FromMilliseconds(5000));
+                MethodWait.Wait(() => DoSomethingAction(TimeSpan.FromMilliseconds(-500)), TimeSpan.FromMilliseconds(5000));
             }
             catch (ArgumentException ex)
             {
@@ -48,7 +47,51 @@ namespace Zerra.Test
             Assert.IsNotNull(exception);
         }
 
-        private bool DoSomething(TimeSpan timer)
+        [TestMethod]
+        public void WaitFuncTimeout()
+        {
+            TimeoutException exception = null;
+            try
+            {
+                _ = MethodWait.Wait(() => DoSomethingFunc(TimeSpan.FromMilliseconds(1000)), TimeSpan.FromMilliseconds(500));
+            }
+            catch (TimeoutException ex)
+            {
+                exception = ex;
+            }
+            Assert.IsNotNull(exception);
+        }
+
+        [TestMethod]
+        public void WaitFuncCompletion()
+        {
+            var result = MethodWait.Wait(() => DoSomethingFunc(TimeSpan.FromMilliseconds(500)), TimeSpan.FromMilliseconds(1000));
+            Assert.IsTrue(result);
+        }
+
+        [TestMethod]
+        public void WaitFuncException()
+        {
+            ArgumentException exception = null;
+            try
+            {
+                _ = MethodWait.Wait(() => DoSomethingFunc(TimeSpan.FromMilliseconds(-500)), TimeSpan.FromMilliseconds(5000));
+            }
+            catch (ArgumentException ex)
+            {
+                exception = ex;
+            }
+            Assert.IsNotNull(exception);
+        }
+
+        private static void DoSomethingAction(TimeSpan timer)
+        {
+            if (timer.TotalMilliseconds < 0)
+                throw new ArgumentException();
+            Thread.Sleep(timer);
+        }
+
+        private static bool DoSomethingFunc(TimeSpan timer)
         {
             if (timer.TotalMilliseconds < 0)
                 throw new ArgumentException();

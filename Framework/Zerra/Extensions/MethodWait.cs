@@ -5,232 +5,63 @@
 using System;
 using System.Threading.Tasks;
 
+/// <summary>
+/// Functionality to wait execution of a method with a timeout.
+/// Note that the method will continue to run and needs to be delt with after a timeout event.
+/// </summary>
 public static class MethodWait
 {
+    /// <summary>
+    /// Waits for a method to complete or throws a <see cref="TimeoutException"/>.
+    /// Note that the method will continue to run and needs to be delt with after a timeout event.
+    /// </summary>
+    /// <param name="it">The method to wait upon.</param>
+    /// <param name="timeout">The time to wait before throwing a <see cref="TimeoutException"/>.</param>
     public static void Wait(this Action it, TimeSpan timeout)
     {
-        Exception? exception = null;
-
-        var task = Task.Run(() =>
+        var task = Task.Run(it);
+        var succeed = false;
+        try
         {
-            try
-            {
-                it();
-            }
-            catch (Exception ex)
-            {
-                exception = ex;
-            }
-        });
-
-        if (!task.Wait(timeout))
-            throw new TimeoutException();
-        if (exception is not null)
-            throw exception;
-    }
-    public static void Wait<TArg>(this Action<TArg> it, TArg arg, TimeSpan timeout)
-    {
-        Exception? exception = null;
-
-        var task = Task.Run(() =>
+            succeed = task.Wait(timeout);
+        }
+        catch (Exception ex)
         {
-            try
-            {
-                it(arg);
-            }
-            catch (Exception ex)
-            {
-                exception = ex;
-            }
-        });
+            if (ex.InnerException is not null)
+                throw ex.InnerException;
+            throw;
+        }
 
-        if (!task.Wait(timeout))
+        if (!succeed)
             throw new TimeoutException();
-        if (exception is not null)
-            throw exception;
-    }
-    public static void Wait<TArg1, TArg2>(this Action<TArg1, TArg2> it, TArg1 arg1, TArg2 arg2, TimeSpan timeout)
-    {
-        Exception? exception = null;
-
-        var task = Task.Run(() =>
-        {
-            try
-            {
-                it(arg1, arg2);
-            }
-            catch (Exception ex)
-            {
-                exception = ex;
-            }
-        });
-
-        if (!task.Wait(timeout))
-            throw new TimeoutException();
-        if (exception is not null)
-            throw exception;
-    }
-    public static void Wait<TArg1, TArg2, TArg3>(this Action<TArg1, TArg2, TArg3> it, TArg1 arg1, TArg2 arg2, TArg3 arg3, TimeSpan timeout)
-    {
-        Exception? exception = null;
-
-        var task = Task.Run(() =>
-        {
-            try
-            {
-                it(arg1, arg2, arg3);
-            }
-            catch (Exception ex)
-            {
-                exception = ex;
-            }
-        });
-
-        if (!task.Wait(timeout))
-            throw new TimeoutException();
-        if (exception is not null)
-            throw exception;
-    }
-    public static void Wait<TArg1, TArg2, TArg3, TArg4>(this Action<TArg1, TArg2, TArg3, TArg4> it, TArg1 arg1, TArg2 arg2, TArg3 arg3, TArg4 arg4, TimeSpan timeout)
-    {
-        Exception? exception = null;
-
-        var task = Task.Run(() =>
-        {
-            try
-            {
-                it(arg1, arg2, arg3, arg4);
-            }
-            catch (Exception ex)
-            {
-                exception = ex;
-            }
-        });
-
-        if (!task.Wait(timeout))
-            throw new TimeoutException();
-        if (exception is not null)
-            throw exception;
     }
 
+    /// <summary>
+    /// Waits for a method to complete or throws a <see cref="TimeoutException"/>.
+    /// Note that the method will continue to run and needs to be delt with after a timeout event.
+    /// </summary>
+    /// <typeparam name="T">The return type of the method.</typeparam>
+    /// <param name="it">The method to wait upon.</param>
+    /// <param name="timeout">The time to wait before throwing a <see cref="TimeoutException"/>.</param>
+    /// <returns>The result of the method</returns>
     public static T Wait<T>(this Func<T> it, TimeSpan timeout)
     {
-        T result = default!;
-        Exception? exception = null;
-
-        var task = Task.Run(() =>
+        var task = Task.Run(it);
+        var succeed = false;
+        try
         {
-            try
-            {
-                result = it();
-            }
-            catch (Exception ex)
-            {
-                exception = ex;
-            }
-        });
-
-        if (!task.Wait(timeout))
-            throw new TimeoutException();
-        if (exception is not null)
-            throw exception;
-
-        return result;
-    }
-    public static T Wait<TArg, T>(this Func<TArg, T> it, TArg arg, TimeSpan timeout)
-    {
-        T result = default!;
-        Exception? exception = null;
-
-        var task = Task.Run(() =>
+            succeed = task.Wait(timeout);
+        }
+        catch (Exception ex)
         {
-            try
-            {
-                result = it(arg);
-            }
-            catch (Exception ex)
-            {
-                exception = ex;
-            }
-        });
+            if (ex.InnerException is not null)
+                throw ex.InnerException;
+            throw;
+        }
 
-        if (!task.Wait(timeout))
+        if (!succeed)
             throw new TimeoutException();
-        if (exception is not null)
-            throw exception;
 
-        return result;
-    }
-    public static T Wait<TArg1, TArg2, T>(this Func<TArg1, TArg2, T> it, TArg1 arg1, TArg2 arg2, TimeSpan timeout)
-    {
-        T result = default!;
-        Exception? exception = null;
-
-        var task = Task.Run(() =>
-        {
-            try
-            {
-                result = it(arg1, arg2);
-            }
-            catch (Exception ex)
-            {
-                exception = ex;
-            }
-        });
-
-        if (!task.Wait(timeout))
-            throw new TimeoutException();
-        if (exception is not null)
-            throw exception;
-
-        return result;
-    }
-    public static T Wait<TArg1, TArg2, TArg3, T>(this Func<TArg1, TArg2, TArg3, T> it, TArg1 arg1, TArg2 arg2, TArg3 arg3, TimeSpan timeout)
-    {
-        T result = default!;
-        Exception? exception = null;
-
-        var task = Task.Run(() =>
-        {
-            try
-            {
-                result = it(arg1, arg2, arg3);
-            }
-            catch (Exception ex)
-            {
-                exception = ex;
-            }
-        });
-
-        if (!task.Wait(timeout))
-            throw new TimeoutException();
-        if (exception is not null)
-            throw exception;
-
-        return result;
-    }
-    public static T Wait<TArg1, TArg2, TArg3, TArg4, T>(this Func<TArg1, TArg2, TArg3, TArg4, T> it, TArg1 arg1, TArg2 arg2, TArg3 arg3, TArg4 arg4, TimeSpan timeout)
-    {
-        T result = default!;
-        Exception? exception = null;
-
-        var task = Task.Run(() =>
-        {
-            try
-            {
-                result = it(arg1, arg2, arg3, arg4);
-            }
-            catch (Exception ex)
-            {
-                exception = ex;
-            }
-        });
-
-        if (!task.Wait(timeout))
-            throw new TimeoutException();
-        if (exception is not null)
-            throw exception;
-
-        return result;
+        return task.Result;
     }
 }

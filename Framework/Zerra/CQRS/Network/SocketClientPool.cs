@@ -109,7 +109,7 @@ namespace Zerra.CQRS.Network
                 {
                     try
                     {
-                        MethodWait.Wait(stream.Write, buffer, offset, count, connectionTimeout);
+                        MethodWait.Wait(() => stream.Write(buffer, offset, count), connectionTimeout);
                         if (!stream.Connected)
                         {
                             stream.Dispose();
@@ -131,7 +131,7 @@ namespace Zerra.CQRS.Network
                     }
                 }
 
-                var ips = MethodWait.Wait(Dns.GetHostAddresses, hostAndPort.Host, connectionTimeout);
+                var ips = MethodWait.Wait(() => Dns.GetHostAddresses(hostAndPort.Host), connectionTimeout);
 
                 Exception? lastex = null;
                 foreach (var ip in ips)
@@ -147,10 +147,10 @@ namespace Zerra.CQRS.Network
                         socket = new Socket(endPoint.AddressFamily, SocketType.Stream, protocol);
                         socket.NoDelay = true;
 
-                        MethodWait.Wait(socket.Connect, endPoint, connectionTimeout);
+                        MethodWait.Wait(() => socket.Connect(endPoint), connectionTimeout);
 
                         stream = new SocketPoolStream(socket, hostAndPort, ReturnSocket, true);
-                        MethodWait.Wait(stream.Write, buffer, offset, count, connectionTimeout);
+                        MethodWait.Wait(() => stream.Write(buffer, offset, count), connectionTimeout);
                         if (!stream.Connected)
                         {
                             socket.Dispose();
@@ -215,7 +215,8 @@ namespace Zerra.CQRS.Network
                 {
                     try
                     {
-                        MethodWait.Wait(stream.Write, buffer.ToArray(), 0, buffer.Length, connectionTimeout);
+                        var bufferArray = buffer.ToArray();
+                        MethodWait.Wait(() => stream.Write(bufferArray, 0, bufferArray.Length), connectionTimeout);
                         if (!stream.Connected)
                         {
                             stream.Dispose();
@@ -237,7 +238,7 @@ namespace Zerra.CQRS.Network
                     }
                 }
 
-                var ips = MethodWait.Wait(Dns.GetHostAddresses, hostAndPort.Host, connectionTimeout);
+                var ips = MethodWait.Wait(() => Dns.GetHostAddresses(hostAndPort.Host), connectionTimeout);
 
                 Exception? lastex = null;
                 foreach (var ip in ips)
@@ -253,10 +254,11 @@ namespace Zerra.CQRS.Network
                         socket = new Socket(endPoint.AddressFamily, SocketType.Stream, protocol);
                         socket.NoDelay = true;
 
-                        MethodWait.Wait(socket.Connect, endPoint, connectionTimeout);
+                        MethodWait.Wait(() => socket.Connect(endPoint), connectionTimeout);
 
                         stream = new SocketPoolStream(socket, hostAndPort, ReturnSocket, true);
-                        MethodWait.Wait(stream.Write, buffer.ToArray(), 0, buffer.Length, connectionTimeout);
+                        var bufferArray = buffer.ToArray();
+                        MethodWait.Wait(() => stream.Write(bufferArray, 0, bufferArray.Length), connectionTimeout);
                         if (!stream.Connected)
                         {
                             socket.Dispose();
