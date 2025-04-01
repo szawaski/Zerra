@@ -9,7 +9,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Zerra.Buffers;
-using Zerra.Extensions;
 using Zerra.IO;
 
 namespace Zerra.CQRS.Network

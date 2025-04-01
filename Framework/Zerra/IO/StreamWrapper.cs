@@ -73,10 +73,10 @@ namespace Zerra.IO
 
 #if !NETSTANDARD2_0
         public override int Read(Span<byte> buffer) => stream.Read(buffer);
-        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default) { return stream.ReadAsync(buffer, cancellationToken); }
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default) => stream.ReadAsync(buffer, cancellationToken);
 
         public override void Write(ReadOnlySpan<byte> buffer) => stream.Write(buffer);
-        public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default) { return stream.WriteAsync(buffer, cancellationToken); }
+        public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default) => stream.WriteAsync(buffer, cancellationToken);
 
         public override void CopyTo(Stream destination, int bufferSize) => stream.CopyTo(destination, bufferSize);
 

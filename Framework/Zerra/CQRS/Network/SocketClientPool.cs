@@ -16,8 +16,17 @@ namespace Zerra.CQRS.Network
     {
         public static readonly SocketClientPool Shared = new();
 
-        private const int pollMicroseconds = 1000;
-        private const SelectMode pollSelectMode = SelectMode.SelectWrite;
+        private TimeSpan connectionTimeout = TimeSpan.FromSeconds(5);
+        public TimeSpan ConnectionTimeout
+        {
+            get => connectionTimeout;
+            set
+            {
+                if (value.TotalMilliseconds < 0)
+                    throw new ArgumentOutOfRangeException(nameof(ConnectionTimeout));
+                connectionTimeout = value;
+            }
+        }
 
         private TimeSpan pooledConnectionLifetime = TimeSpan.FromMinutes(10);
         public TimeSpan PooledConnectionLifetime
@@ -31,15 +40,15 @@ namespace Zerra.CQRS.Network
             }
         }
 
-        private TimeSpan pooledConnectionIdleTimeout = TimeSpan.FromMinutes(2);
-        public TimeSpan PooledConnectionIdleTimeout
+        private TimeSpan lifetimeTimeoutCheckInterval = TimeSpan.FromMinutes(2);
+        public TimeSpan LifetimeTimeoutCheckInterval
         {
-            get => pooledConnectionIdleTimeout;
+            get => lifetimeTimeoutCheckInterval;
             set
             {
                 if (value.TotalMilliseconds < 0)
-                    throw new ArgumentOutOfRangeException(nameof(PooledConnectionIdleTimeout));
-                pooledConnectionIdleTimeout = value;
+                    throw new ArgumentOutOfRangeException(nameof(LifetimeTimeoutCheckInterval));
+                lifetimeTimeoutCheckInterval = value;
             }
         }
 
@@ -59,7 +68,7 @@ namespace Zerra.CQRS.Network
         public SocketClientPool()
         {
             this.canceller = new();
-            _ = Timeout(canceller.Token);
+            _ = LifetimeTimeout(canceller.Token);
         }
 
         private readonly ConcurrentFactoryDictionary<HostAndPort, ConcurrentQueue<SocketHolder>> poolByHostAndPort = new();
@@ -100,7 +109,7 @@ namespace Zerra.CQRS.Network
                 {
                     try
                     {
-                        stream.Write(buffer, offset, count);
+                        MethodWait.Wait(stream.Write, buffer, offset, count, connectionTimeout);
                         if (!stream.Connected)
                         {
                             stream.Dispose();
@@ -122,7 +131,7 @@ namespace Zerra.CQRS.Network
                     }
                 }
 
-                var ips = Dns.GetHostAddresses(hostAndPort.Host);
+                var ips = MethodWait.Wait(Dns.GetHostAddresses, hostAndPort.Host, connectionTimeout);
 
                 Exception? lastex = null;
                 foreach (var ip in ips)
@@ -138,10 +147,10 @@ namespace Zerra.CQRS.Network
                         socket = new Socket(endPoint.AddressFamily, SocketType.Stream, protocol);
                         socket.NoDelay = true;
 
-                        socket.Connect(endPoint);
+                        MethodWait.Wait(socket.Connect, endPoint, connectionTimeout);
 
                         stream = new SocketPoolStream(socket, hostAndPort, ReturnSocket, true);
-                        stream.Write(buffer, offset, count);
+                        MethodWait.Wait(stream.Write, buffer, offset, count, connectionTimeout);
                         if (!stream.Connected)
                         {
                             socket.Dispose();
@@ -206,7 +215,7 @@ namespace Zerra.CQRS.Network
                 {
                     try
                     {
-                        stream.Write(buffer);
+                        MethodWait.Wait(stream.Write, buffer.ToArray(), 0, buffer.Length, connectionTimeout);
                         if (!stream.Connected)
                         {
                             stream.Dispose();
@@ -228,7 +237,7 @@ namespace Zerra.CQRS.Network
                     }
                 }
 
-                var ips = Dns.GetHostAddresses(hostAndPort.Host);
+                var ips = MethodWait.Wait(Dns.GetHostAddresses, hostAndPort.Host, connectionTimeout);
 
                 Exception? lastex = null;
                 foreach (var ip in ips)
@@ -244,10 +253,10 @@ namespace Zerra.CQRS.Network
                         socket = new Socket(endPoint.AddressFamily, SocketType.Stream, protocol);
                         socket.NoDelay = true;
 
-                        socket.Connect(endPoint);
+                        MethodWait.Wait(socket.Connect, endPoint, connectionTimeout);
 
                         stream = new SocketPoolStream(socket, hostAndPort, ReturnSocket, true);
-                        stream.Write(buffer);
+                        MethodWait.Wait(stream.Write, buffer.ToArray(), 0, buffer.Length, connectionTimeout);
                         if (!stream.Connected)
                         {
                             socket.Dispose();
@@ -314,9 +323,9 @@ namespace Zerra.CQRS.Network
                     try
                     {
 #if !NETSTANDARD2_0
-                        await stream.WriteAsync(buffer, cancellationToken);
+                        await stream.WriteAsync(buffer, cancellationToken).WaitAsync(connectionTimeout, cancellationToken);
 #else
-                        await stream.WriteAsync(buffer, offset, count, cancellationToken);
+                        await stream.WriteAsync(buffer, offset, count, cancellationToken).WaitAsync(connectionTimeout, cancellationToken);
 #endif
                         if (!stream.Connected)
                         {
@@ -340,9 +349,9 @@ namespace Zerra.CQRS.Network
                 }
 
 #if NET6_0_OR_GREATER
-                var ips = await Dns.GetHostAddressesAsync(host, cancellationToken);
+                var ips = await Dns.GetHostAddressesAsync(host, cancellationToken).WaitAsync(connectionTimeout, cancellationToken);
 #else
-                var ips = await Dns.GetHostAddressesAsync(host);
+                var ips = await Dns.GetHostAddressesAsync(host).WaitAsync(connectionTimeout, cancellationToken);
 #endif
 
                 Exception? lastex = null;
@@ -359,17 +368,17 @@ namespace Zerra.CQRS.Network
                         socket = new Socket(endPoint.AddressFamily, SocketType.Stream, protocol);
                         socket.NoDelay = true;
 #if NET5_0_OR_GREATER
-                        await socket.ConnectAsync(endPoint, cancellationToken).AsTask();
+                        await socket.ConnectAsync(endPoint, cancellationToken).WaitAsync(connectionTimeout, cancellationToken);
 #else
-                        await socket.ConnectAsync(endPoint);
+                        await socket.ConnectAsync(endPoint).WaitAsync(connectionTimeout, cancellationToken);
 #endif
 
                         stream = new SocketPoolStream(socket, hostAndPort, ReturnSocket, true);
 
 #if !NETSTANDARD2_0
-                        await stream.WriteAsync(buffer, cancellationToken);
+                        await stream.WriteAsync(buffer, cancellationToken).WaitAsync(connectionTimeout, cancellationToken);
 #else
-                        await stream.WriteAsync(buffer, offset, count, cancellationToken);
+                        await stream.WriteAsync(buffer, offset, count, cancellationToken).WaitAsync(connectionTimeout, cancellationToken);
 #endif
 
                         if (!stream.Connected)
@@ -459,9 +468,9 @@ namespace Zerra.CQRS.Network
                 }
 
 #if NET6_0_OR_GREATER
-                var ips = await Dns.GetHostAddressesAsync(host, cancellationToken);
+                var ips = await Dns.GetHostAddressesAsync(host, cancellationToken).WaitAsync(connectionTimeout, cancellationToken);
 #else
-                var ips = await Dns.GetHostAddressesAsync(host);
+                var ips = await Dns.GetHostAddressesAsync(host).WaitAsync(connectionTimeout, cancellationToken);
 #endif
 
                 Exception? lastex = null;
@@ -479,13 +488,13 @@ namespace Zerra.CQRS.Network
                         socket.NoDelay = true;
 
 #if NET5_0_OR_GREATER
-                        await socket.ConnectAsync(endPoint, cancellationToken).AsTask();
+                        await socket.ConnectAsync(endPoint, cancellationToken).WaitAsync(connectionTimeout, cancellationToken);
 #else
-                        await socket.ConnectAsync(endPoint);
+                        await socket.ConnectAsync(endPoint).WaitAsync(connectionTimeout, cancellationToken);
 #endif
 
                         stream = new SocketPoolStream(socket, hostAndPort, ReturnSocket, true);
-                        await stream.WriteAsync(buffer, cancellationToken);
+                        await stream.WriteAsync(buffer, cancellationToken).WaitAsync(connectionTimeout, cancellationToken);
                         if (!stream.Connected)
                         {
                             socket.Dispose();
@@ -518,12 +527,6 @@ namespace Zerra.CQRS.Network
 
         private void ReturnSocket(Socket socket, HostAndPort hostAndPort, bool closeSocket)
         {
-            if (canceller.IsCancellationRequested)
-            {
-                socket.Dispose();
-                return;
-            }
-
             if (!closeSocket && socket.Connected)
             {
                 if (poolByHostAndPort.TryGetValue(hostAndPort, out var pool))
@@ -553,11 +556,11 @@ namespace Zerra.CQRS.Network
                 throttle.Release();
         }
 
-        private async Task Timeout(CancellationToken cancellationToken)
+        private async Task LifetimeTimeout(CancellationToken cancellationToken)
         {
             for (; ; )
             {
-                await Task.Delay(pooledConnectionIdleTimeout, cancellationToken);
+                await Task.Delay(lifetimeTimeoutCheckInterval, cancellationToken);
 
                 var now = DateTime.UtcNow;
                 foreach (var pool in poolByHostAndPort.Values)
@@ -569,12 +572,7 @@ namespace Zerra.CQRS.Network
                             if (holder.Used)
                                 continue;
 
-                            if (holder.Timestamp.Add(pooledConnectionLifetime) < now)
-                            {
-                                holder.Socket.Dispose();
-                                holder.MarkUsed();
-                            }
-                            else if (!holder.Socket.Connected)
+                            if (!holder.Socket.Connected || holder.Timestamp.Add(pooledConnectionLifetime) < now)
                             {
                                 holder.Socket.Dispose();
                                 holder.MarkUsed();

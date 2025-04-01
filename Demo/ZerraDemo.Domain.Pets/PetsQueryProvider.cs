@@ -7,11 +7,6 @@ using ZerraDemo.Domain.Pets.DataModels;
 using ZerraDemo.Domain.Pets.Models;
 using ZerraDemo.Common;
 using Zerra.Map;
-using ZerraDemo.Domain.Weather;
-using System.IO;
-using System.Text;
-using Zerra.CQRS;
-using Zerra.Extensions;
 
 namespace ZerraDemo.Domain.Pets
 {
