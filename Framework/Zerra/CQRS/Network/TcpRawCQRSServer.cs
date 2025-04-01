@@ -325,13 +325,13 @@ namespace Zerra.CQRS.Network
                     }
                     catch (Exception ex)
                     {
-                        if (!inHandlerContext)
+                        if (!inHandlerContext || !socket.Connected)
                         {
                             _ = Log.ErrorAsync(ex);
                             return; //aborted or network error
                         }
 
-                        if (socket.Connected && !responseStarted && requestHeader is not null && requestHeader.ContentType.HasValue)
+                        if (!responseStarted && requestHeader is not null && requestHeader.ContentType.HasValue)
                         {
                             try
                             {

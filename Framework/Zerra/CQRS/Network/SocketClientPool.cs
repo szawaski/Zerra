@@ -16,7 +16,7 @@ namespace Zerra.CQRS.Network
     {
         public static readonly SocketClientPool Shared = new();
 
-        private TimeSpan connectionTimeout = TimeSpan.FromSeconds(5);
+        private TimeSpan connectionTimeout = TimeSpan.FromSeconds(3);
         public TimeSpan ConnectionTimeout
         {
             get => connectionTimeout;
@@ -145,6 +145,8 @@ namespace Zerra.CQRS.Network
                         var endPoint = new IPEndPoint(ip, port);
 
                         socket = new Socket(endPoint.AddressFamily, SocketType.Stream, protocol);
+                        socket.ReceiveTimeout = (int)connectionTimeout.TotalMilliseconds;
+                        socket.SendTimeout = (int)connectionTimeout.TotalMilliseconds;
                         socket.NoDelay = true;
 
                         MethodWait.Wait(() => socket.Connect(endPoint), connectionTimeout);
@@ -252,6 +254,8 @@ namespace Zerra.CQRS.Network
                         var endPoint = new IPEndPoint(ip, port);
 
                         socket = new Socket(endPoint.AddressFamily, SocketType.Stream, protocol);
+                        socket.ReceiveTimeout = (int)connectionTimeout.TotalMilliseconds;
+                        socket.SendTimeout = (int)connectionTimeout.TotalMilliseconds;
                         socket.NoDelay = true;
 
                         MethodWait.Wait(() => socket.Connect(endPoint), connectionTimeout);
@@ -368,6 +372,8 @@ namespace Zerra.CQRS.Network
                         var endPoint = new IPEndPoint(ip, port);
 
                         socket = new Socket(endPoint.AddressFamily, SocketType.Stream, protocol);
+                        socket.ReceiveTimeout = (int)connectionTimeout.TotalMilliseconds;
+                        socket.SendTimeout = (int)connectionTimeout.TotalMilliseconds;
                         socket.NoDelay = true;
 #if NET5_0_OR_GREATER
                         await socket.ConnectAsync(endPoint, cancellationToken).WaitAsync(connectionTimeout, cancellationToken);
@@ -487,6 +493,8 @@ namespace Zerra.CQRS.Network
                         var endPoint = new IPEndPoint(ip, port);
 
                         socket = new Socket(endPoint.AddressFamily, SocketType.Stream, protocol);
+                        socket.ReceiveTimeout = (int)connectionTimeout.TotalMilliseconds;
+                        socket.SendTimeout = (int)connectionTimeout.TotalMilliseconds;
                         socket.NoDelay = true;
 
 #if NET5_0_OR_GREATER
