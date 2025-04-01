@@ -269,25 +269,31 @@ namespace Zerra.Map
 
             var sourceParameter = Expression.Parameter(sourceType.Type, "source");
             var targetParameter = Expression.Parameter(targetType.Type, "target");
-            foreach (var memberT in sourceType.MemberDetails)
+            foreach (var sourceMember in sourceType.MemberDetails)
             {
-                if (memberT.IsExplicitFromInterface)
+                if (sourceMember.IsExplicitFromInterface)
                     continue;
-                if (targetType.TryGetMember(memberT.Name, out var memberU))
+                if (!sourceMember.HasGetterBoxed)
+                    continue;
+
+                if (targetType.TryGetMember(sourceMember.Name, out var targetMember))
                 {
+                    if (!targetMember.HasSetterBoxed)
+                        continue;
+
                     Expression sourceMemberAccess;
-                    if (memberT.MemberInfo.MemberType == MemberTypes.Property)
-                        sourceMemberAccess = Expression.Property(sourceParameter, (PropertyInfo)memberT.MemberInfo);
+                    if (sourceMember.MemberInfo.MemberType == MemberTypes.Property)
+                        sourceMemberAccess = Expression.Property(sourceParameter, (PropertyInfo)sourceMember.MemberInfo);
                     else
-                        sourceMemberAccess = Expression.Field(sourceParameter, (FieldInfo)memberT.MemberInfo);
+                        sourceMemberAccess = Expression.Field(sourceParameter, (FieldInfo)sourceMember.MemberInfo);
                     var convertSourceMemberAccess = Expression.Convert(sourceMemberAccess, objectType);
                     var sourceLambda = Expression.Lambda<Func<TSource, object?>>(convertSourceMemberAccess, sourceParameter);
 
                     Expression targetMemberAccess;
-                    if (memberU.MemberInfo.MemberType == MemberTypes.Property)
-                        targetMemberAccess = Expression.Property(targetParameter, (PropertyInfo)memberU.MemberInfo);
+                    if (targetMember.MemberInfo.MemberType == MemberTypes.Property)
+                        targetMemberAccess = Expression.Property(targetParameter, (PropertyInfo)targetMember.MemberInfo);
                     else
-                        targetMemberAccess = Expression.Field(targetParameter, (FieldInfo)memberU.MemberInfo);
+                        targetMemberAccess = Expression.Field(targetParameter, (FieldInfo)targetMember.MemberInfo);
                     var convertTargetMemberAccess = Expression.Convert(targetMemberAccess, objectType);
                     var targetLambda = Expression.Lambda<Func<TTarget, object?>>(convertTargetMemberAccess, targetParameter);
 
