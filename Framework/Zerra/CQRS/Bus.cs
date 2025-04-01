@@ -1332,11 +1332,11 @@ namespace Zerra.CQRS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void Authenticate(IPrincipal? principal, IReadOnlyCollection<string>? roles, Func<string> message)
+        private static void Authenticate(IPrincipal? principal, string[]? roles, Func<string> message)
         {
             if (principal is null || principal.Identity is null || !principal.Identity.IsAuthenticated)
                 throw new SecurityException(message());
-            if (roles is not null && roles.Count > 0)
+            if (roles is not null && roles.Length > 0)
             {
                 foreach (var role in roles)
                 {
