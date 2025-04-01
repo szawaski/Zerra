@@ -31,8 +31,12 @@ namespace ZerraDemo.Common
                 foreach (var item in serviceSettings.Messages)
                 {
                     var querySetting = serviceSettings.Queries.FirstOrDefault(x => x.Service == item.Service);
-                    if (querySetting?.ExternalUrl is not null)
-                    item.SetMessageHost(querySetting.ExternalUrl);
+                    if (querySetting is null)
+                        continue;
+                    if (querySetting.ExternalUrl is not null)
+                        item.SetMessageHost(querySetting.ExternalUrl);
+                    if (querySetting.EncryptionKey is not null)
+                        item.SetEncryptionKey(querySetting.EncryptionKey);
                 }
             }
             //serviceSettings.SetAllMessageHosts(messageHost);

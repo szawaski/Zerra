@@ -44,24 +44,22 @@ namespace ZerraDemo.Domain.Pets
         {
             Access.CheckRole("Admin");
 
-            int loops = 50;
-            var streamTasks = new Task[loops];
-            for (var i = 0; i < loops; i++)
-            {
-                streamTasks[i] = Task.Run(async () =>
-                {
-                    using (var testStream = await Bus.Call<IWeatherQueryProvider>().TestStreams())
-                    {
-                        var bytes = await testStream.ToArrayAsync();
-                        var result = Encoding.UTF8.GetString(bytes);
-                        if (result.Length != 57)
-                            throw new Exception();
-                        if (result != "Last Name,First Name,Gross Total,Net Pay,Reimbursements\r\n")
-                            throw new Exception();
-                    }
-                });
-            }
-            await Task.WhenAll(streamTasks);
+            //int loops = 50;
+            //var streamTasks = new Task[loops];
+            //for (var i = 0; i < loops; i++)
+            //{
+            //    streamTasks[i] = Task.Run(async () =>
+            //    {
+            //        using (var testStream = await Bus.Call<IWeatherQueryProvider>().TestStreams())
+            //        {
+            //            var bytes = await testStream.ToArrayAsync();
+            //            var result = Encoding.UTF8.GetString(bytes);
+            //            if (result.Length != 1000000)
+            //                throw new Exception();
+            //        }
+            //    });
+            //}
+            //await Task.WhenAll(streamTasks);
 
             var items = await Repo.QueryAsync(new QueryMany<PetDataModel>(
                 new Graph<PetDataModel>(
