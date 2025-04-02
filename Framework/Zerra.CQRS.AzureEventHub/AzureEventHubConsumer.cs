@@ -155,7 +155,7 @@ namespace Zerra.CQRS.AzureEventHub
                                 throw new Exception($"{nameof(AzureEventHubConsumer)} is not setup");
                         }
 
-                        _ = HandleEvent(throttle, typeName, isCommand, isEvent, partitionEvent);
+                        _ = Task.Run(() => HandleEvent(throttle, typeName, isCommand, isEvent, partitionEvent));
                     }
                 }
             }

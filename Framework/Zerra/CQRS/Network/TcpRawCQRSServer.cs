@@ -15,10 +15,10 @@ using System.Threading.Tasks;
 using Zerra.Buffers;
 
 namespace Zerra.CQRS.Network
-{    
+{
     /// <summary>
-     /// A CQRS Server using Custom TCP communication.
-     /// </summary>
+    /// A CQRS Server using Custom TCP communication.
+    /// </summary>
     public sealed class TcpRawCqrsServer : CqrsServerBase
     {
         private readonly ContentType? contentType;
@@ -259,7 +259,7 @@ namespace Zerra.CQRS.Network
                                 else
                                 {
                                     if (commandHandlerAsync is null) throw new InvalidOperationException($"{nameof(TcpRawCqrsServer)} is not setup");
-                                    await commandHandlerAsync(command, data.Source, false);
+                                    _ = Task.Run(() => commandHandlerAsync(command, data.Source, false));
                                     hasResult = false;
                                 }
                                 inHandlerContext = false;
@@ -271,8 +271,9 @@ namespace Zerra.CQRS.Network
                                     throw new Exception($"Invalid {nameof(data.MessageData)}");
 
                                 inHandlerContext = true;
-                                if (eventHandlerAsync is null) throw new InvalidOperationException($"{nameof(TcpRawCqrsServer)} is not setup");
-                                await eventHandlerAsync(@event, data.Source, false);
+                                if (eventHandlerAsync is null) 
+                                    throw new InvalidOperationException($"{nameof(TcpRawCqrsServer)} is not setup");
+                                _ = Task.Run(() => eventHandlerAsync(@event, data.Source, false));
                                 hasResult = false;
                                 inHandlerContext = false;
                             }

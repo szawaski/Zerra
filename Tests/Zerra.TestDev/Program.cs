@@ -21,12 +21,14 @@ namespace Zerra.TestDev
             System.Threading.Thread.CurrentThread.Priority = System.Threading.ThreadPriority.Highest;
             var timer = Stopwatch.StartNew();
 
+            TestTaskRun.Test().GetAwaiter().GetResult();
+
             //UtfTest();
 
             //TestMe();
             //TestMe2();
             //TestMe3();
-            JsonSerializerTest.CompareTestSpeed();
+            //JsonSerializerTest.CompareTestSpeed();
             //ByteSerializerTest.CompareTestSpeed();
 
             //TestMemory.TryFinallyOrDisposed();

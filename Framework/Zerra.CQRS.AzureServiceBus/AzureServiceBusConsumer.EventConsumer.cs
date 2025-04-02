@@ -75,7 +75,7 @@ namespace Zerra.CQRS.AzureServiceBus
                                 continue;
                             }
 
-                            _ = HandleMessage(throttle, client, serviceBusMessage, handlerAsync);
+                            _ = Task.Run(() => HandleMessage(throttle, client, serviceBusMessage, handlerAsync));
 
                             if (canceller.IsCancellationRequested)
                                 break;

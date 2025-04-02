@@ -95,7 +95,7 @@ namespace Zerra.CQRS.Kafka
                                 var consumerResult = consumer.Consume(canceller.Token);
                                 consumer.Commit(consumerResult);
 
-                                _ = HandleMessage(throttle, host, consumerResult);
+                                _ = Task.Run(() => HandleMessage(throttle, host, consumerResult));
 
                                 if (canceller.IsCancellationRequested)
                                     break;
