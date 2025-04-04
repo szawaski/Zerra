@@ -202,6 +202,7 @@ namespace Zerra
             signature = null;
         }
 
+        /// <inheritdoc />
         protected override Type GetModelType()
         {
             return typeof(T);
