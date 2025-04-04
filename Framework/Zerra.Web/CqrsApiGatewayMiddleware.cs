@@ -90,12 +90,12 @@ namespace Zerra.Web
             var inHandlerContext = false;
             try
             {
-                var data = await ContentTypeSerializer.DeserializeAsync<ApiRequestData>(contentType, context.Request.Body);
+                var data = await ContentTypeSerializer.DeserializeAsync<ApiRequestData>(contentType, context.Request.Body, context.RequestAborted);
                 if (data is null)
                     throw new Exception("Invalid Request");
 
                 inHandlerContext = true;
-                var response = await ApiServerHandler.HandleRequestAsync(acceptContentType, data);
+                var response = await ApiServerHandler.HandleRequestAsync(acceptContentType, data, context.RequestAborted);
                 inHandlerContext = false;
 
                 if (response is null)
@@ -118,19 +118,23 @@ namespace Zerra.Web
                     };
 
                     context.Response.ContentLength = response.Bytes.Length;
-                    await context.Response.Body.WriteAsync(response.Bytes.AsMemory(0, response.Bytes.Length));
+                    await context.Response.Body.WriteAsync(response.Bytes.AsMemory(0, response.Bytes.Length), context.RequestAborted);
                 }
                 else if (response.Stream is not null)
                 {
                     context.Response.ContentType = "application/octet-stream";
 
-                    await response.Stream.CopyToAsync(context.Response.Body);
-                    await context.Response.Body.FlushAsync();
+                    await response.Stream.CopyToAsync(context.Response.Body, context.RequestAborted);
+                    await context.Response.Body.FlushAsync(context.RequestAborted);
                 }
                 else
                 {
                     throw new NotImplementedException("Should not happen");
                 }
+            }
+            catch (OperationCanceledException ex)
+            {
+                _ = Log.ErrorAsync(ex);
             }
             catch (Exception ex)
             {
@@ -153,8 +157,8 @@ namespace Zerra.Web
                     _ => throw new NotImplementedException(),
                 };
 
-                await ContentTypeSerializer.SerializeExceptionAsync(acceptContentType ?? ContentType.Json, context.Response.Body, ex);
-                await context.Response.Body.FlushAsync();
+                await ContentTypeSerializer.SerializeExceptionAsync(acceptContentType ?? ContentType.Json, context.Response.Body, ex, context.RequestAborted);
+                await context.Response.Body.FlushAsync(context.RequestAborted);
             }
         }
     }

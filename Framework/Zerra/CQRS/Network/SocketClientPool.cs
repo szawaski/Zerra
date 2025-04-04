@@ -303,7 +303,7 @@ namespace Zerra.CQRS.Network
         }
 #endif
 
-        public async Task<SocketPoolStream> BeginStreamAsync(string host, int port, ProtocolType protocol, byte[] buffer, int offset, int count, CancellationToken cancellationToken = default)
+        public async Task<SocketPoolStream> BeginStreamAsync(string host, int port, ProtocolType protocol, byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
             if (canceller.IsCancellationRequested)
                 throw new ObjectDisposedException(nameof(SocketClientPool));
@@ -428,7 +428,7 @@ namespace Zerra.CQRS.Network
             }
         }
 #if !NETSTANDARD2_0
-        public async Task<SocketPoolStream> BeginStreamAsync(string host, int port, ProtocolType protocol, Memory<byte> buffer, CancellationToken cancellationToken = default)
+        public async Task<SocketPoolStream> BeginStreamAsync(string host, int port, ProtocolType protocol, Memory<byte> buffer, CancellationToken cancellationToken)
         {
             if (canceller.IsCancellationRequested)
                 throw new ObjectDisposedException(nameof(SocketClientPool));

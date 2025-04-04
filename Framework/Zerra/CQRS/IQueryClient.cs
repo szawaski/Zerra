@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Threading;
 
 namespace Zerra.CQRS
 {
@@ -29,7 +30,8 @@ namespace Zerra.CQRS
         /// <param name="methodName">The method name on the query interface.</param>
         /// <param name="arguments">The arguments needed for the method.</param>
         /// <param name="source">A description of where the query came from.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>The result of the query.</returns>
-        TReturn? Call<TReturn>(Type interfaceType, string methodName, object[] arguments, string source);
+        TReturn? Call<TReturn>(Type interfaceType, string methodName, object[] arguments, string source, CancellationToken cancellationToken);
     }
 }

@@ -71,12 +71,12 @@ namespace Zerra.CQRS.Kafka
         string ICommandProducer.MessageHost => "[Host has Secrets]";
         string IEventProducer.MessageHost => "[Host has Secrets]";
 
-        Task ICommandProducer.DispatchAsync(ICommand command, string source) => SendAsync(command, false, source);
-        Task ICommandProducer.DispatchAwaitAsync(ICommand command, string source) => SendAsync(command, true, source);
-        Task<TResult> ICommandProducer.DispatchAwaitAsync<TResult>(ICommand<TResult> command, string source) where TResult : default => SendAsync(command, source);
-        Task IEventProducer.DispatchAsync(IEvent @event, string source) => SendAsync(@event, source);
+        Task ICommandProducer.DispatchAsync(ICommand command, string source, CancellationToken cancellationToken) => SendAsync(command, false, source, cancellationToken);
+        Task ICommandProducer.DispatchAwaitAsync(ICommand command, string source, CancellationToken cancellationToken) => SendAsync(command, true, source, cancellationToken);
+        Task<TResult> ICommandProducer.DispatchAwaitAsync<TResult>(ICommand<TResult> command, string source, CancellationToken cancellationToken) where TResult : default => SendAsync(command, source, cancellationToken);
+        Task IEventProducer.DispatchAsync(IEvent @event, string source, CancellationToken cancellationToken) => SendAsync(@event, source, cancellationToken);
 
-        private async Task SendAsync(ICommand command, bool requireAcknowledgement, string source)
+        private async Task SendAsync(ICommand command, bool requireAcknowledgement, string source, CancellationToken cancellationToken)
         {
             var commandType = command.GetType();
             if (!topicsByCommandType.TryGetValue(commandType, out var topic))
@@ -84,7 +84,7 @@ namespace Zerra.CQRS.Kafka
             if (!throttleByTopic.TryGetValue(topic, out var throttle))
                 throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(KafkaProducer)}");
 
-            await throttle.WaitAsync();
+            await throttle.WaitAsync(cancellationToken);
 
             try
             {
@@ -97,9 +97,10 @@ namespace Zerra.CQRS.Kafka
                 {
                     if (!listenerStarted)
                     {
-                        await listenerStartedLock.WaitAsync();
                         try
                         {
+                            await listenerStartedLock.WaitAsync(cancellationToken);
+
                             if (!listenerStarted)
                             {
                                 await KafkaCommon.EnsureTopic(host, userName, password, ackTopic);
@@ -151,11 +152,11 @@ namespace Zerra.CQRS.Kafka
                             _ = waiter.Release();
                         });
 
-                        var producerResult = await producer.ProduceAsync(topic, new Message<string, byte[]> { Headers = headers, Key = key, Value = body });
+                        var producerResult = await producer.ProduceAsync(topic, new Message<string, byte[]> { Headers = headers, Key = key, Value = body }, cancellationToken);
                         if (producerResult.Status != PersistenceStatus.Persisted)
                             throw new Exception($"{nameof(KafkaProducer)} failed: {producerResult.Status}");
 
-                        await waiter.WaitAsync();
+                        await waiter.WaitAsync(cancellationToken);
 
                         Acknowledgement.ThrowIfFailed(acknowledgement);
                     }
@@ -180,7 +181,7 @@ namespace Zerra.CQRS.Kafka
             }
         }
 
-        private async Task<TResult> SendAsync<TResult>(ICommand<TResult> command, string source)
+        private async Task<TResult> SendAsync<TResult>(ICommand<TResult> command, string source, CancellationToken cancellationToken)
         {
             var commandType = command.GetType();
             if (!topicsByCommandType.TryGetValue(commandType, out var topic))
@@ -188,7 +189,7 @@ namespace Zerra.CQRS.Kafka
             if (!throttleByTopic.TryGetValue(topic, out var throttle))
                 throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(KafkaProducer)}");
 
-            await throttle.WaitAsync();
+            await throttle.WaitAsync(cancellationToken);
 
             try
             {
@@ -199,9 +200,10 @@ namespace Zerra.CQRS.Kafka
 
                 if (!listenerStarted)
                 {
-                    await listenerStartedLock.WaitAsync();
                     try
                     {
+                        await listenerStartedLock.WaitAsync(cancellationToken);
+
                         if (!listenerStarted)
                         {
                             await KafkaCommon.EnsureTopic(host, userName, password, ackTopic);
@@ -250,11 +252,11 @@ namespace Zerra.CQRS.Kafka
                         _ = waiter.Release();
                     });
 
-                    var producerResult = await producer.ProduceAsync(topic, new Message<string, byte[]> { Headers = headers, Key = key, Value = body });
+                    var producerResult = await producer.ProduceAsync(topic, new Message<string, byte[]> { Headers = headers, Key = key, Value = body }, cancellationToken);
                     if (producerResult.Status != PersistenceStatus.Persisted)
                         throw new Exception($"{nameof(KafkaProducer)} failed: {producerResult.Status}");
 
-                    await waiter.WaitAsync();
+                    await waiter.WaitAsync(cancellationToken);
 
                     var result = (TResult)Acknowledgement.GetResultOrThrowIfFailed(acknowledgement)!;
 
@@ -272,7 +274,7 @@ namespace Zerra.CQRS.Kafka
             }
         }
 
-        private async Task SendAsync(IEvent @event, string source)
+        private async Task SendAsync(IEvent @event, string source, CancellationToken cancellationToken)
         {
             var eventType = @event.GetType();
             if (!topicsByEventType.TryGetValue(eventType, out var topic))
@@ -280,10 +282,10 @@ namespace Zerra.CQRS.Kafka
             if (!throttleByTopic.TryGetValue(topic, out var throttle))
                 throw new Exception($"{eventType.GetNiceName()} is not registered with {nameof(KafkaProducer)}");
 
-            await throttle.WaitAsync();
-
             try
             {
+                await listenerStartedLock.WaitAsync(cancellationToken);
+
                 if (!String.IsNullOrWhiteSpace(environment))
                     topic = StringExtensions.Join(KafkaCommon.TopicMaxLength, "_", environment, topic);
                 else
@@ -306,7 +308,7 @@ namespace Zerra.CQRS.Kafka
                 if (symmetricConfig is not null)
                     body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
 
-                var producerResult = await producer.ProduceAsync(topic, new Message<string, byte[]> { Key = KafkaCommon.MessageKey, Value = body });
+                var producerResult = await producer.ProduceAsync(topic, new Message<string, byte[]> { Key = KafkaCommon.MessageKey, Value = body }, cancellationToken);
                 if (producerResult.Status != PersistenceStatus.Persisted)
                     throw new Exception($"{nameof(KafkaProducer)} failed: {producerResult.Status}");
             }

@@ -11,27 +11,24 @@ namespace Zerra.TestDev
     {
         public static async Task Test()
         {
-            Console.WriteLine("Call Method Await");
+            Console.WriteLine("Call Method Await (Regular)");
             await DoThings();
             Console.WriteLine("Resumed");
+
             await Task.Delay(500);
             Console.WriteLine();
 
-            Console.WriteLine("Call Method Discard");
+            Console.WriteLine("Call Method Discard Await");
             _ = DoThings();
             Console.WriteLine("Resumed");
+
             await Task.Delay(500);
             Console.WriteLine();
 
-            Console.WriteLine("Task Run Await");
-            await Task.Run(() => DoThings());
-            Console.WriteLine("Resumed");
-            await Task.Delay(500);
-            Console.WriteLine();
-
-            Console.WriteLine("Task Run Discard");
+            Console.WriteLine("Task Run Discard Await");
             _ = Task.Run(DoThings);
             Console.WriteLine("Resumed");
+
             await Task.Delay(500);
             Console.WriteLine();
         }

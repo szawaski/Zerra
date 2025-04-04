@@ -98,7 +98,7 @@ namespace Zerra.CQRS.Network
                 throttle.Dispose();
         }
 
-        TReturn? IQueryClient.Call<TReturn>(Type interfaceType, string methodName, object[] arguments, string source) where TReturn : default
+        TReturn? IQueryClient.Call<TReturn>(Type interfaceType, string methodName, object[] arguments, string source, CancellationToken cancellationToken) where TReturn : default
         {
             if (!throttleByInterfaceType.TryGetValue(interfaceType, out var throttle))
                 throw new Exception($"{interfaceType.GetNiceName()} is not registered with {this.GetType().GetNiceName()}");
@@ -111,7 +111,7 @@ namespace Zerra.CQRS.Network
                 {
                     var isStream = returnTypeDetails.InnerType == streamType || returnTypeDetails.InnerTypeDetail.BaseTypes.Contains(streamType);
                     var callRequestMethodGeneric = TypeAnalyzer.GetGenericMethodDetail(callRequestAsyncMethod, returnTypeDetails.InnerTypes.ToArray());
-                    return (TReturn?)callRequestMethodGeneric.CallerBoxed(this, [throttle, isStream, interfaceType, methodName, arguments, source])!;
+                    return (TReturn?)callRequestMethodGeneric.CallerBoxed(this, [throttle, isStream, interfaceType, methodName, arguments, source, cancellationToken])!;
                 }
                 else
                 {
@@ -149,10 +149,11 @@ namespace Zerra.CQRS.Network
         /// <param name="methodName">The query method to call in the interface type.</param>
         /// <param name="arguments">The raw arguments for the query method.</param>
         /// <param name="source">A description of where the request came from.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>A task to await the result from the server.</returns>
-        protected abstract Task<TReturn?> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source);
+        protected abstract Task<TReturn?> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source, CancellationToken cancellationToken);
 
-        Task ICommandProducer.DispatchAsync(ICommand command, string source)
+        Task ICommandProducer.DispatchAsync(ICommand command, string source, CancellationToken cancellationToken)
         {
             var commandType = command.GetType();
             if (!topicsByMessageType.TryGetValue(commandType, out var topic))
@@ -162,7 +163,7 @@ namespace Zerra.CQRS.Network
 
             try
             {
-                return DispatchInternal(throttle, commandType, command, false, source);
+                return DispatchInternal(throttle, commandType, command, false, source, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -170,7 +171,7 @@ namespace Zerra.CQRS.Network
                 throw;
             }
         }
-        Task ICommandProducer.DispatchAwaitAsync(ICommand command, string source)
+        Task ICommandProducer.DispatchAwaitAsync(ICommand command, string source, CancellationToken cancellationToken)
         {
             var commandType = command.GetType();
             if (!topicsByMessageType.TryGetValue(commandType, out var topic))
@@ -180,7 +181,7 @@ namespace Zerra.CQRS.Network
 
             try
             {
-                return DispatchInternal(throttle, commandType, command, true, source);
+                return DispatchInternal(throttle, commandType, command, true, source, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -188,7 +189,7 @@ namespace Zerra.CQRS.Network
                 throw;
             }
         }
-        Task<TResult> ICommandProducer.DispatchAwaitAsync<TResult>(ICommand<TResult> command, string source) where TResult : default
+        Task<TResult> ICommandProducer.DispatchAwaitAsync<TResult>(ICommand<TResult> command, string source, CancellationToken cancellationToken) where TResult : default
         {
             var commandType = command.GetType();
             if (!topicsByMessageType.TryGetValue(commandType, out var topic))
@@ -201,7 +202,7 @@ namespace Zerra.CQRS.Network
 
             try
             {
-                return DispatchInternal<TResult>(throttle, isStream, commandType, command, source);
+                return DispatchInternal<TResult>(throttle, isStream, commandType, command, source, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -210,7 +211,7 @@ namespace Zerra.CQRS.Network
             }
         }
 
-        Task IEventProducer.DispatchAsync(IEvent @event, string source)
+        Task IEventProducer.DispatchAsync(IEvent @event, string source, CancellationToken cancellationToken)
         {
             var commandType = @event.GetType();
             if (!topicsByMessageType.TryGetValue(commandType, out var topic))
@@ -220,7 +221,7 @@ namespace Zerra.CQRS.Network
 
             try
             {
-                return DispatchInternal(throttle, commandType, @event, source);
+                return DispatchInternal(throttle, commandType, @event, source, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -237,8 +238,9 @@ namespace Zerra.CQRS.Network
         /// <param name="command">The command object itself.</param>
         /// <param name="messageAwait">If the request will wait for a response from the server when the command is completed.</param>
         /// <param name="source">A description of where the request came from.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>A Task to await sending or await completion of the command.</returns>
-        protected abstract Task DispatchInternal(SemaphoreSlim throttle, Type commandType, ICommand command, bool messageAwait, string source);
+        protected abstract Task DispatchInternal(SemaphoreSlim throttle, Type commandType, ICommand command, bool messageAwait, string source, CancellationToken cancellationToken);
         /// <summary>
         /// Sends a CQRS command and gets a result.
         /// </summary>
@@ -248,8 +250,9 @@ namespace Zerra.CQRS.Network
         /// <param name="commandType">The command type.</param>
         /// <param name="command">The command object itself.</param>
         /// <param name="source">A description of where the request came from.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>A Task to await the result of the command from the server.</returns>
-        protected abstract Task<TResult> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source);
+        protected abstract Task<TResult> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source, CancellationToken cancellationToken);
 
         /// <summary>
         /// Sends a CQRS event.
@@ -258,8 +261,9 @@ namespace Zerra.CQRS.Network
         /// <param name="eventType">The event type.</param>
         /// <param name="event">The event object itself.</param>
         /// <param name="source">A description of where the request came from.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>A Task to await sending the event.</returns>
-        protected abstract Task DispatchInternal(SemaphoreSlim throttle, Type eventType, IEvent @event, string source);
+        protected abstract Task DispatchInternal(SemaphoreSlim throttle, Type eventType, IEvent @event, string source, CancellationToken cancellationToken);
 
         /// <inheritdoc />
         public void Dispose()

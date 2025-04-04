@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Zerra;
 using Zerra.CQRS.Network;
@@ -61,7 +62,7 @@ namespace ZerraDemo.Common
             }
         }
 
-        public ValueTask<Dictionary<string, List<string?>>> GetAuthorizationHeadersAsync()
+        public ValueTask<Dictionary<string, List<string?>>> GetAuthorizationHeadersAsync(CancellationToken cancellationToken)
         {
             var authCookieData = "I can access this";
             var authCookieDataBytes = Encoding.UTF8.GetBytes(authCookieData);

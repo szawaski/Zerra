@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Zerra.CQRS.Network
@@ -24,6 +25,6 @@ namespace Zerra.CQRS.Network
         /// The client side adds headers needed by the server side to validate the request.
         /// </summary>
         /// <returns>A dictionary of outgoing headers.</returns>
-        ValueTask<Dictionary<string, List<string?>>> GetAuthorizationHeadersAsync();
+        ValueTask<Dictionary<string, List<string?>>> GetAuthorizationHeadersAsync(CancellationToken cancellationToken = default);
     }
 }

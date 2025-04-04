@@ -72,7 +72,7 @@ namespace Zerra.CQRS.Network
             return model;
         }
         /// <inheritdoc />
-        protected override Task<TReturn?> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source) where TReturn : default
+        protected override Task<TReturn?> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source, CancellationToken cancellationToken) where TReturn : default
         {
             var providerName = interfaceType.Name;
             var stringArguments = new string?[arguments.Length];
@@ -88,12 +88,12 @@ namespace Zerra.CQRS.Network
             };
             data.AddProviderArguments(arguments);
 
-            var model = RequestAsync<TReturn>(throttle, isStream, routeUri, providerName, requestContentType, data, true);
+            var model = RequestAsync<TReturn>(throttle, isStream, routeUri, providerName, requestContentType, data, true, cancellationToken);
             return model;
         }
 
         /// <inheritdoc />
-        protected override Task DispatchInternal(SemaphoreSlim throttle, Type commandType, ICommand command, bool messageAwait, string source)
+        protected override Task DispatchInternal(SemaphoreSlim throttle, Type commandType, ICommand command, bool messageAwait, string source, CancellationToken cancellationToken)
         {
             var commendTypeName = commandType.GetNiceFullName();
             var commandData = JsonSerializer.Serialize(command, commandType);
@@ -107,10 +107,10 @@ namespace Zerra.CQRS.Network
                 Source = source
             };
 
-            return RequestAsync<object>(throttle, false, routeUri, commendTypeName, requestContentType, data, false);
+            return RequestAsync<object>(throttle, false, routeUri, commendTypeName, requestContentType, data, false, cancellationToken);
         }
         /// <inheritdoc />
-        protected override Task<TResult> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source) where TResult : default
+        protected override Task<TResult> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source, CancellationToken cancellationToken) where TResult : default
         {
             var commendTypeName = commandType.GetNiceFullName();
             var commandData = JsonSerializer.Serialize(command, commandType);
@@ -124,11 +124,11 @@ namespace Zerra.CQRS.Network
                 Source = source
             };
 
-            return RequestAsync<TResult>(throttle, isStream, routeUri, commendTypeName, requestContentType, data, true)!;
+            return RequestAsync<TResult>(throttle, isStream, routeUri, commendTypeName, requestContentType, data, true, cancellationToken)!;
         }
 
         /// <inheritdoc />
-        protected override Task DispatchInternal(SemaphoreSlim throttle, Type eventType, IEvent @event, string source)
+        protected override Task DispatchInternal(SemaphoreSlim throttle, Type eventType, IEvent @event, string source, CancellationToken cancellationToken)
         {
             var commendTypeName = eventType.GetNiceFullName();
             var commandData = JsonSerializer.Serialize(@event, eventType);
@@ -142,7 +142,7 @@ namespace Zerra.CQRS.Network
                 Source = source
             };
 
-            return RequestAsync<object>(throttle, false, routeUri, commendTypeName, requestContentType, data, false);
+            return RequestAsync<object>(throttle, false, routeUri, commendTypeName, requestContentType, data, false, cancellationToken);
         }
 
         private static readonly MethodInfo requestAsyncMethod = TypeAnalyzer.GetTypeDetail(typeof(ApiClient)).MethodDetailsBoxed.First(x => x.MethodInfo.Name == nameof(ApiClient.RequestAsync)).MethodInfo;
@@ -233,9 +233,9 @@ namespace Zerra.CQRS.Network
                 throttle.Release();
             }
         }
-        private async Task<TReturn?> RequestAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, string? providerType, ContentType contentType, ApiRequestData data, bool getResponseData)
+        private async Task<TReturn?> RequestAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, string? providerType, ContentType contentType, ApiRequestData data, bool getResponseData, CancellationToken cancellationToken)
         {
-            await throttle.WaitAsync();
+            await throttle.WaitAsync(cancellationToken);
 
             Stream? responseStream = null;
             try
@@ -244,7 +244,7 @@ namespace Zerra.CQRS.Network
 
                 request.Content = new WriteStreamContent(async (postStream) =>
                 {
-                    await ContentTypeSerializer.SerializeAsync(contentType, postStream, data);
+                    await ContentTypeSerializer.SerializeAsync(contentType, postStream, data, cancellationToken);
                 });
                 request.Content.Headers.ContentType = contentType switch
                 {
@@ -274,7 +274,7 @@ namespace Zerra.CQRS.Network
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseStream);
+                    var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseStream, cancellationToken);
                     throw responseException;
                 }
 
@@ -295,7 +295,7 @@ namespace Zerra.CQRS.Network
                 }
                 else
                 {
-                    var result = await ContentTypeSerializer.DeserializeAsync<TReturn>(contentType, responseStream);
+                    var result = await ContentTypeSerializer.DeserializeAsync<TReturn>(contentType, responseStream, cancellationToken);
 #if NETSTANDARD2_0
                     responseStream.Dispose();
 #else

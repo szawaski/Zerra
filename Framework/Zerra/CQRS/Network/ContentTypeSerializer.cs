@@ -4,6 +4,7 @@
 
 using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using Zerra.Reflection;
 using Zerra.Serialization.Bytes;
@@ -142,14 +143,15 @@ namespace Zerra.CQRS.Network
         /// <param name="contentType">Determines which serializer will be used for this data format.</param>
         /// <param name="stream">The source stream of the bytes.</param>
         /// <param name="obj">The object to be serialized.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns></returns>
-        public static Task SerializeAsync(ContentType contentType, Stream stream, object? obj)
+        public static Task SerializeAsync(ContentType contentType, Stream stream, object? obj, CancellationToken cancellationToken)
         {
             return contentType switch
             {
-                ContentType.Bytes => ByteSerializer.SerializeAsync(stream, obj, byteSerializerOptions),
-                ContentType.Json => JsonSerializer.SerializeAsync(stream, obj),
-                ContentType.JsonNameless => JsonSerializer.SerializeAsync(stream, obj, jsonSerializerNamelessOptions),
+                ContentType.Bytes => ByteSerializer.SerializeAsync(stream, obj, byteSerializerOptions, cancellationToken),
+                ContentType.Json => JsonSerializer.SerializeAsync(stream, obj, null, null, cancellationToken),
+                ContentType.JsonNameless => JsonSerializer.SerializeAsync(stream, obj, jsonSerializerNamelessOptions, null, cancellationToken),
                 _ => throw new NotImplementedException(),
             };
         }
@@ -159,14 +161,15 @@ namespace Zerra.CQRS.Network
         /// <typeparam name="T">The type to which the data will deserialize.</typeparam>
         /// <param name="contentType">Determines which serializer will be used for this data format.</param>
         /// <param name="stream">The source stream of the bytes.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>The deserialized data object.</returns>
-        public static Task<T?> DeserializeAsync<T>(ContentType contentType, Stream stream)
+        public static Task<T?> DeserializeAsync<T>(ContentType contentType, Stream stream, CancellationToken cancellationToken)
         {
             return contentType switch
             {
-                ContentType.Bytes => ByteSerializer.DeserializeAsync<T>(stream, byteSerializerOptions),
-                ContentType.Json => JsonSerializer.DeserializeAsync<T>(stream),
-                ContentType.JsonNameless => JsonSerializer.DeserializeAsync<T>(stream, jsonSerializerNamelessOptions),
+                ContentType.Bytes => ByteSerializer.DeserializeAsync<T>(stream, byteSerializerOptions, cancellationToken),
+                ContentType.Json => JsonSerializer.DeserializeAsync<T>(stream, null, null, cancellationToken),
+                ContentType.JsonNameless => JsonSerializer.DeserializeAsync<T>(stream, jsonSerializerNamelessOptions, null, cancellationToken),
                 _ => throw new NotImplementedException(),
             };
         }
@@ -176,14 +179,15 @@ namespace Zerra.CQRS.Network
         /// <param name="contentType">Determines which serializer will be used for this data format.</param>
         /// <param name="type">The type to which the data will deserialize.</param>
         /// <param name="stream">The source stream of the bytes.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>The deserialized data object.</returns>
-        public static Task<object?> DeserializeAsync(ContentType contentType, Type type, Stream stream)
+        public static Task<object?> DeserializeAsync(ContentType contentType, Type type, Stream stream, CancellationToken cancellationToken)
         {
             return contentType switch
             {
-                ContentType.Bytes => ByteSerializer.DeserializeAsync(type, stream, byteSerializerOptions),
-                ContentType.Json => JsonSerializer.DeserializeAsync(type, stream),
-                ContentType.JsonNameless => JsonSerializer.DeserializeAsync(type, stream, jsonSerializerNamelessOptions),
+                ContentType.Bytes => ByteSerializer.DeserializeAsync(type, stream, byteSerializerOptions, cancellationToken),
+                ContentType.Json => JsonSerializer.DeserializeAsync(type, stream, null, null, cancellationToken),
+                ContentType.JsonNameless => JsonSerializer.DeserializeAsync(type, stream, jsonSerializerNamelessOptions, null, cancellationToken),
                 _ => throw new NotImplementedException(),
             };
         }
@@ -273,8 +277,9 @@ namespace Zerra.CQRS.Network
         /// <param name="contentType">Determines which serializer will be used for this data format.</param>
         /// <param name="stream">The destination stream of the bytes.</param>
         /// <param name="ex">The Exception to be serialized.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>The deserialized Exception.</returns>
-        public static Task SerializeExceptionAsync(ContentType contentType, Stream stream, Exception ex)
+        public static Task SerializeExceptionAsync(ContentType contentType, Stream stream, Exception ex, CancellationToken cancellationToken)
         {
             var errorType = ex.GetType();
             var content = new ExceptionContent()
@@ -303,8 +308,9 @@ namespace Zerra.CQRS.Network
         /// </summary>
         /// <param name="contentType">Determines which serializer will be used for this data format.</param>
         /// <param name="stream">The source stream of the bytes.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>The deserialized Exception.</returns>
-        public static async Task<Exception> DeserializeExceptionAsync(ContentType contentType, Stream stream)
+        public static async Task<Exception> DeserializeExceptionAsync(ContentType contentType, Stream stream, CancellationToken cancellationToken)
         {
             ExceptionContent? content = contentType switch
             {

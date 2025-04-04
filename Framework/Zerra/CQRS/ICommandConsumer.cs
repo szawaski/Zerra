@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Zerra.CQRS
@@ -45,11 +46,11 @@ namespace Zerra.CQRS
     /// A delegate that a command consumer will use to handle a received command.
     /// <see cref="Bus"/> will provide the delegate.
     /// </summary>
-    public delegate Task HandleRemoteCommandDispatch(ICommand command, string source, bool isApi);
+    public delegate Task HandleRemoteCommandDispatch(ICommand command, string source, bool isApi, CancellationToken cancellationToken);
 
     /// <summary>
     /// A delegate that a command consumer will use to handle a received command with a result.
     /// <see cref="Bus"/> will provide the delegate.
     /// </summary>
-    public delegate Task<object?> HandleRemoteCommandWithResultDispatch(ICommand command, string source, bool isApi);
+    public delegate Task<object?> HandleRemoteCommandWithResultDispatch(ICommand command, string source, bool isApi, CancellationToken cancellationToken);
 }

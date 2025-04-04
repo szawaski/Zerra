@@ -3,6 +3,8 @@
 // Licensed to you under the MIT license
 
 using System.Security.Cryptography;
+using System.Threading;
+
 #if NET5_0_OR_GREATER
 using System.Threading.Tasks;
 #endif
@@ -48,10 +50,10 @@ namespace Zerra.Encryption
         /// <summary>
         /// Calls the underlying FlushFinalBlockAsync
         /// </summary>
-        public ValueTask FlushFinalBlockAsync()
+        public ValueTask FlushFinalBlockAsync(CancellationToken cancellationToken = default)
         {
             if (cryptoStream is not null)
-                return cryptoStream.FlushFinalBlockAsync();
+                return cryptoStream.FlushFinalBlockAsync(cancellationToken);
             else if (cryptoShiftStream is not null)
                 return cryptoShiftStream.FlushFinalBlockAsync();
             return ValueTask.CompletedTask;

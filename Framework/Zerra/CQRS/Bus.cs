@@ -164,10 +164,15 @@ namespace Zerra.CQRS
                    queryServers.Count != 0;
         }
 
-        internal static async Task<RemoteQueryCallResponse> RemoteHandleQueryCallAsync(Type interfaceType, string methodName, string?[] arguments, string source, bool isApi)
+        /// <summary>
+        /// The time to wait on a dispatch before a cancellation request unless otherwise specified per dispatch. Null (default) indicates infinite time.
+        /// </summary>
+        public static TimeSpan? DefaultDispatchTimeout { get; set; }
+
+        internal static async Task<RemoteQueryCallResponse> RemoteHandleQueryCallAsync(Type interfaceType, string methodName, string?[] arguments, string source, bool isApi, CancellationToken cancellationToken)
         {
             var networkType = isApi ? NetworkType.Api : NetworkType.Internal;
-            var callerProvider = BusRouters.GetProviderToCallMethodInternalInstance(interfaceType, networkType, false, source);
+            var callerProvider = BusRouters.GetProviderToCallMethodInternalInstance(interfaceType, networkType, false, source, cancellationToken);
 
             var methodDetail = TypeAnalyzer.GetMethodDetail(interfaceType, methodName);
 
@@ -207,12 +212,12 @@ namespace Zerra.CQRS
             else
                 return new RemoteQueryCallResponse(model);
         }
-        internal static Task RemoteHandleCommandDispatchAsync(ICommand command, string source, bool isApi)
-            => _DispatchCommandInternalAsync(command, command.GetType(), false, isApi ? NetworkType.Api : NetworkType.Internal, false, source);
-        internal static Task RemoteHandleCommandDispatchAwaitAsync(ICommand command, string source, bool isApi)
-            => _DispatchCommandInternalAsync(command, command.GetType(), true, isApi ? NetworkType.Api : NetworkType.Internal, false, source);
+        internal static Task RemoteHandleCommandDispatchAsync(ICommand command, string source, bool isApi, CancellationToken cancellationToken)
+            => _DispatchCommandInternalAsync(command, command.GetType(), false, isApi ? NetworkType.Api : NetworkType.Internal, false, source, cancellationToken);
+        internal static Task RemoteHandleCommandDispatchAwaitAsync(ICommand command, string source, bool isApi, CancellationToken cancellationToken)
+            => _DispatchCommandInternalAsync(command, command.GetType(), true, isApi ? NetworkType.Api : NetworkType.Internal, false, source, cancellationToken);
         private static readonly MethodDetail dispatchCommandWithResultInternalAsyncMethod = typeof(Bus).GetMethodDetail(nameof(_DispatchCommandWithResultInternalAsync));
-        internal static async Task<object?> RemoteHandleCommandWithResultDispatchAwaitAsync(ICommand command, string source, bool isApi)
+        internal static async Task<object?> RemoteHandleCommandWithResultDispatchAwaitAsync(ICommand command, string source, bool isApi, CancellationToken cancellationToken)
         {
             var networkType = isApi ? NetworkType.Api : NetworkType.Internal;
             var commandType = command.GetType().GetTypeDetail();
@@ -220,13 +225,13 @@ namespace Zerra.CQRS
 
             var dispatchCommandWithResultInternalAsyncMethodGeneric = dispatchCommandWithResultInternalAsyncMethod.GetGenericMethodDetail([commandInterfaceType.InnerType]);
 
-            var task = (Task)dispatchCommandWithResultInternalAsyncMethodGeneric.CallerBoxed(null, [command, command.GetType(), networkType, false, source])!;
+            var task = (Task)dispatchCommandWithResultInternalAsyncMethodGeneric.CallerBoxed(null, [command, command.GetType(), networkType, false, source, cancellationToken])!;
             await task;
             var model = dispatchCommandWithResultInternalAsyncMethodGeneric.ReturnTypeDetailBoxed.TaskResultGetter(task);
             return model;
         }
-        internal static Task RemoteHandleEventDispatchAsync(IEvent @event, string source, bool isApi)
-            => _DispatchEventInternalAsync(@event, @event.GetType(), isApi ? NetworkType.Api : NetworkType.Internal, false, source);
+        internal static Task RemoteHandleEventDispatchAsync(IEvent @event, string source, bool isApi, CancellationToken cancellationToken)
+            => _DispatchEventInternalAsync(@event, @event.GetType(), isApi ? NetworkType.Api : NetworkType.Internal, false, source, cancellationToken);
 
         /// <summary>
         /// Send a command to the configured destination.
@@ -234,16 +239,40 @@ namespace Zerra.CQRS
         /// A destination may be an implementation in the same assembly or calling a remote service.
         /// </summary>
         /// <param name="command">The command to send.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>A task to complete sending the command.</returns>
-        public static Task DispatchAsync(ICommand command) => _DispatchCommandInternalAsync(command, command.GetType(), false, NetworkType.Local, false, Config.ApplicationIdentifier);
+        public static Task DispatchAsync(ICommand command, CancellationToken? cancellationToken = null)
+        {
+            if (cancellationToken.HasValue)
+                return _DispatchCommandInternalAsync(command, command.GetType(), false, NetworkType.Local, false, Config.ApplicationIdentifier, cancellationToken.Value);
+            if (!DefaultDispatchTimeout.HasValue)
+                return _DispatchCommandInternalAsync(command, command.GetType(), false, NetworkType.Local, false, Config.ApplicationIdentifier, default);
+            return Task.Run(async () =>
+            {
+                using var cancellationTokenSource = new CancellationTokenSource(DefaultDispatchTimeout.Value);
+                await _DispatchCommandInternalAsync(command, command.GetType(), false, NetworkType.Local, false, Config.ApplicationIdentifier, cancellationTokenSource.Token);
+            });
+        }
         /// <summary>
         /// Send a command to the configured destination and wait for it to process.
         /// This will await until the reciever has returned a signal or an exception that the command has been processed.
         /// A destination may be an implementation in the same assembly or calling a remote service.
         /// </summary>
         /// <param name="command">The command to send.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>A task to await processing of the command.</returns>
-        public static Task DispatchAwaitAsync(ICommand command) => _DispatchCommandInternalAsync(command, command.GetType(), true, NetworkType.Local, false, Config.ApplicationIdentifier);
+        public static Task DispatchAwaitAsync(ICommand command, CancellationToken? cancellationToken = null)
+        {
+            if (cancellationToken.HasValue)
+                return _DispatchCommandInternalAsync(command, command.GetType(), true, NetworkType.Local, false, Config.ApplicationIdentifier, cancellationToken.Value);
+            if (!DefaultDispatchTimeout.HasValue)
+                return _DispatchCommandInternalAsync(command, command.GetType(), true, NetworkType.Local, false, Config.ApplicationIdentifier, default);
+            return Task.Run(async () =>
+            {
+                using var cancellationTokenSource = new CancellationTokenSource(DefaultDispatchTimeout.Value);
+                await _DispatchCommandInternalAsync(command, command.GetType(), true, NetworkType.Local, false, Config.ApplicationIdentifier, cancellationTokenSource.Token);
+            });
+        }
         /// <summary>
         /// Send an event to the configured destination.
         /// Events will go to any number of destinations that wish to recieve the event.
@@ -251,22 +280,100 @@ namespace Zerra.CQRS
         /// A destination may be an implementation in the same assembly or calling a remote service.
         /// </summary>
         /// <param name="event">The command to send.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>A task to complete sending the event.</returns>
-        public static Task DispatchAsync(IEvent @event) => _DispatchEventInternalAsync(@event, @event.GetType(), NetworkType.Local, false, Config.ApplicationIdentifier);
+        public static Task DispatchAsync(IEvent @event, CancellationToken? cancellationToken = null)
+        {
+            if (cancellationToken.HasValue)
+                return _DispatchEventInternalAsync(@event, @event.GetType(), NetworkType.Local, false, Config.ApplicationIdentifier, cancellationToken.Value);
+            if (!DefaultDispatchTimeout.HasValue)
+                return _DispatchEventInternalAsync(@event, @event.GetType(), NetworkType.Local, false, Config.ApplicationIdentifier, default);
+            return Task.Run(async () =>
+            {
+                using var cancellationTokenSource = new CancellationTokenSource(DefaultDispatchTimeout.Value);
+                await _DispatchEventInternalAsync(@event, @event.GetType(), NetworkType.Local, false, Config.ApplicationIdentifier, cancellationTokenSource.Token);
+            });
+        }
         /// <summary>
         /// Send a command to the configured destination and wait for a result.
         /// This will await until the reciever has returned a result or an exception.
         /// A destination may be an implementation in the same assembly or calling a remote service.
         /// </summary>
         /// <param name="command">The command to send.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>A task to await the result of the command.</returns>
-        public static Task<TResult> DispatchAwaitAsync<TResult>(ICommand<TResult> command) => _DispatchCommandWithResultInternalAsync(command, command.GetType(), NetworkType.Local, false, Config.ApplicationIdentifier);
+        public static Task<TResult> DispatchAwaitAsync<TResult>(ICommand<TResult> command, CancellationToken? cancellationToken = null)
+        {
+            if (cancellationToken.HasValue)
+                return _DispatchCommandWithResultInternalAsync(command, command.GetType(), NetworkType.Local, false, Config.ApplicationIdentifier, cancellationToken.Value);
+            if (!DefaultDispatchTimeout.HasValue)
+                return _DispatchCommandWithResultInternalAsync(command, command.GetType(), NetworkType.Local, false, Config.ApplicationIdentifier, default);
+            return Task.Run(async () =>
+            {
+                using var cancellationTokenSource = new CancellationTokenSource(DefaultDispatchTimeout.Value);
+                return await _DispatchCommandWithResultInternalAsync(command, command.GetType(), NetworkType.Local, false, Config.ApplicationIdentifier, cancellationTokenSource.Token);
+            });
+        }
 
         /// <summary>
-        /// Internal Use Only. Do not call this method except by generated types.
+        /// Send a command to the configured destination.
+        /// This follows the eventual consistency pattern so the sender does not know when the command is processed.
+        /// A destination may be an implementation in the same assembly or calling a remote service.
+        /// </summary>
+        /// <param name="command">The command to send.</param>
+        /// <param name="timeout">The time to wait before a cancellation request.</param>
+        /// <returns>A task to complete sending the command.</returns>
+        public static async Task DispatchAsync(ICommand command, TimeSpan timeout)
+        {
+            using var cancellationTokenSource = new CancellationTokenSource(timeout);
+            await _DispatchCommandInternalAsync(command, command.GetType(), false, NetworkType.Local, false, Config.ApplicationIdentifier, cancellationTokenSource.Token);
+        }
+        /// <summary>
+        /// Send a command to the configured destination and wait for it to process.
+        /// This will await until the reciever has returned a signal or an exception that the command has been processed.
+        /// A destination may be an implementation in the same assembly or calling a remote service.
+        /// </summary>
+        /// <param name="command">The command to send.</param>
+        /// <param name="timeout">The time to wait before a cancellation request.</param>
+        /// <returns>A task to await processing of the command.</returns>
+        public static async Task DispatchAwaitAsync(ICommand command, TimeSpan timeout)
+        {
+            using var cancellationTokenSource = new CancellationTokenSource(timeout);
+            await _DispatchCommandInternalAsync(command, command.GetType(), true, NetworkType.Local, false, Config.ApplicationIdentifier, cancellationTokenSource.Token);
+        }
+        /// <summary>
+        /// Send an event to the configured destination.
+        /// Events will go to any number of destinations that wish to recieve the event.
+        /// It is not possible to recieve information back from destinations.
+        /// A destination may be an implementation in the same assembly or calling a remote service.
+        /// </summary>
+        /// <param name="event">The command to send.</param>
+        /// <param name="timeout">The time to wait before a cancellation request.</param>
+        /// <returns>A task to complete sending the event.</returns>
+        public static async Task DispatchAsync(IEvent @event, TimeSpan timeout)
+        {
+            using var cancellationTokenSource = new CancellationTokenSource(timeout);
+            await _DispatchEventInternalAsync(@event, @event.GetType(), NetworkType.Local, false, Config.ApplicationIdentifier, cancellationTokenSource.Token);
+        }
+        /// <summary>
+        /// Send a command to the configured destination and wait for a result.
+        /// This will await until the reciever has returned a result or an exception.
+        /// A destination may be an implementation in the same assembly or calling a remote service.
+        /// </summary>
+        /// <param name="command">The command to send.</param>
+        /// <param name="timeout">The time to wait before a cancellation request.</param>
+        /// <returns>A task to await the result of the command.</returns>
+        public static async Task<TResult> DispatchAwaitAsync<TResult>(ICommand<TResult> command, TimeSpan timeout)
+        {
+            using var cancellationTokenSource = new CancellationTokenSource(timeout);
+            return await _DispatchCommandWithResultInternalAsync(command, command.GetType(), NetworkType.Local, false, Config.ApplicationIdentifier, cancellationTokenSource.Token);
+        }
+
+        /// <summary>
+        /// Internal Use Only.
         /// </summary>
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-        public static Task _DispatchCommandInternalAsync(ICommand command, Type commandType, bool requireAffirmation, NetworkType networkType, bool isFinalLayer, string source)
+        public static Task _DispatchCommandInternalAsync(ICommand command, Type commandType, bool requireAffirmation, NetworkType networkType, bool isFinalLayer, string source, CancellationToken cancellationToken)
         {
             var metadata = messageMetadata.GetOrAdd(commandType, (Func<Type, MessageMetadata>)(static (commandType) =>
             {
@@ -301,7 +408,7 @@ namespace Zerra.CQRS
             Func<ICommand, Task>? cacheProviderDispatchAsync = null;
             if (!isFinalLayer)
             {
-                cacheProviderDispatchAsync = commandCacheProviders.GetOrAdd(commandType, requireAffirmation, networkType, source, metadata, static (commandType, requireAffirmation, networkType, source, metadata) =>
+                cacheProviderDispatchAsync = commandCacheProviders.GetOrAdd(commandType, requireAffirmation, networkType, source, cancellationToken, metadata, static (commandType, requireAffirmation, networkType, source, cancellationToken, metadata) =>
                 {
                     var handlerTypeDetail = TypeAnalyzer.GetGenericTypeDetail(iCommandHandlerType, commandType);
 
@@ -319,7 +426,7 @@ namespace Zerra.CQRS
                     var methodGetProviderInterfaceType = busCacheTypeDetail.GetMethodBoxed(nameof(LayerProvider<object>.GetProviderInterfaceType));
                     var interfaceType = (Type)methodGetProviderInterfaceType.CallerBoxed(cacheInstance, null)!;
 
-                    var messageHandlerToDispatchProvider = BusRouters.GetHandlerToDispatchInternalInstance(interfaceType, requireAffirmation, networkType, true, source);
+                    var messageHandlerToDispatchProvider = BusRouters.GetHandlerToDispatchInternalInstance(interfaceType, requireAffirmation, networkType, true, source, cancellationToken);
                     _ = methodSetNextProvider.CallerBoxed(cacheInstance, [messageHandlerToDispatchProvider]);
 
                     var method = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(ICommandHandler<ICommand>.Handle), [commandType]);
@@ -361,14 +468,14 @@ namespace Zerra.CQRS
                 else
                 {
                     if (requireAffirmation)
-                        return producer!.DispatchAwaitAsync(command, source);
+                        return producer!.DispatchAwaitAsync(command, source, cancellationToken);
                     else
-                        return producer!.DispatchAsync(command, source);
+                        return producer!.DispatchAsync(command, source, cancellationToken);
                 }
             }
             else
             {
-                result = HandleCommandTaskLogged(handled, producer, cacheProviderDispatchAsync, command, commandType, requireAffirmation, networkType, source);
+                result = HandleCommandTaskLogged(handled, producer, cacheProviderDispatchAsync, command, commandType, requireAffirmation, networkType, source, cancellationToken);
             }
 
             if (!requireAffirmation && networkType == NetworkType.Local)
@@ -377,10 +484,10 @@ namespace Zerra.CQRS
             return result;
         }
         /// <summary>
-        /// Internal Use Only. Do not call this method except by generated types.
+        /// Internal Use Only.
         /// </summary>
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-        public static Task<TResult> _DispatchCommandWithResultInternalAsync<TResult>(ICommand<TResult> command, Type commandType, NetworkType networkType, bool isFinalLayer, string source)
+        public static Task<TResult> _DispatchCommandWithResultInternalAsync<TResult>(ICommand<TResult> command, Type commandType, NetworkType networkType, bool isFinalLayer, string source, CancellationToken cancellationToken)
         {
             var metadata = messageMetadata.GetOrAdd(commandType, networkType, (Func<Type, NetworkType, MessageMetadata>)(static (commandType, networkType) =>
             {
@@ -415,7 +522,7 @@ namespace Zerra.CQRS
             Func<ICommand<TResult>, Task<TResult>>? cacheProviderDispatchAsync = null;
             if (!isFinalLayer)
             {
-                cacheProviderDispatchAsync = (Func<ICommand<TResult>, Task<TResult>>?)commandWithResultCacheProviders.GetOrAdd(commandType, networkType, source, metadata, static (commandType, networkType, source, metadata) =>
+                cacheProviderDispatchAsync = (Func<ICommand<TResult>, Task<TResult>>?)commandWithResultCacheProviders.GetOrAdd(commandType, networkType, source, cancellationToken, metadata, static (commandType, networkType, source, cancellationToken, metadata) =>
                 {
                     var handlerTypeDetail = TypeAnalyzer.GetGenericTypeDetail(iCommandHandlerWithResultType, commandType, typeof(TResult));
 
@@ -433,7 +540,7 @@ namespace Zerra.CQRS
                     var methodGetProviderInterfaceType = busCacheTypeDetail.GetMethodBoxed(nameof(LayerProvider<object>.GetProviderInterfaceType));
                     var interfaceType = (Type)methodGetProviderInterfaceType.CallerBoxed(cacheInstance, null)!;
 
-                    var messageHandlerToDispatchProvider = BusRouters.GetHandlerToDispatchInternalInstance(interfaceType, false, networkType, true, source);
+                    var messageHandlerToDispatchProvider = BusRouters.GetHandlerToDispatchInternalInstance(interfaceType, false, networkType, true, source, cancellationToken);
                     _ = methodSetNextProvider.CallerBoxed(cacheInstance, [messageHandlerToDispatchProvider]);
 
                     var method = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(ICommandHandler<ICommand<TResult>, TResult>.Handle), [commandType, typeof(TResult)]);
@@ -474,21 +581,21 @@ namespace Zerra.CQRS
                 }
                 else
                 {
-                    result = producer!.DispatchAwaitAsync(command, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source);
+                    result = producer!.DispatchAwaitAsync(command, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source, cancellationToken);
                 }
             }
             else
             {
-                result = HandleCommandWithResultTaskLogged(handled, producer, cacheProviderDispatchAsync, command, commandType, networkType, source);
+                result = HandleCommandWithResultTaskLogged(handled, producer, cacheProviderDispatchAsync, command, commandType, networkType, source, cancellationToken);
             }
 
             return result;
         }
         /// <summary>
-        /// Internal Use Only. Do not call this method except by generated types.
+        /// Internal Use Only.
         /// </summary>
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-        public static Task _DispatchEventInternalAsync(IEvent @event, Type eventType, NetworkType networkType, bool isFinalLayer, string source)
+        public static Task _DispatchEventInternalAsync(IEvent @event, Type eventType, NetworkType networkType, bool isFinalLayer, string source, CancellationToken cancellationToken)
         {
             var metadata = messageMetadata.GetOrAdd(eventType, networkType, (Func<Type, NetworkType, MessageMetadata>)(static (eventType, networkType) =>
             {
@@ -523,7 +630,7 @@ namespace Zerra.CQRS
             Func<IEvent, Task>? cacheProviderDispatchAsync = null;
             if (!isFinalLayer)
             {
-                cacheProviderDispatchAsync = eventCacheProviders.GetOrAdd(eventType, networkType, source, metadata, static (eventType, networkType, source, metadata) =>
+                cacheProviderDispatchAsync = eventCacheProviders.GetOrAdd(eventType, networkType, source, cancellationToken, metadata, static (eventType, networkType, source, cancellationToken, metadata) =>
                 {
                     var handlerTypeDetail = TypeAnalyzer.GetGenericTypeDetail(iEventHandlerType, eventType);
 
@@ -541,7 +648,7 @@ namespace Zerra.CQRS
                     var methodGetProviderInterfaceType = busCacheTypeDetail.GetMethodBoxed(nameof(LayerProvider<object>.GetProviderInterfaceType));
                     var interfaceType = (Type)methodGetProviderInterfaceType.CallerBoxed(cacheInstance, null)!;
 
-                    var messageHandlerToDispatchProvider = BusRouters.GetHandlerToDispatchInternalInstance(interfaceType, false, networkType, true, source);
+                    var messageHandlerToDispatchProvider = BusRouters.GetHandlerToDispatchInternalInstance(interfaceType, false, networkType, true, source, cancellationToken);
                     _ = methodSetNextProvider.CallerBoxed(cacheInstance, [messageHandlerToDispatchProvider]);
 
                     var method = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(IEventHandler<IEvent>.Handle), [eventType]);
@@ -590,14 +697,14 @@ namespace Zerra.CQRS
                         var newSource = networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source;
                         foreach (var producer in producerList)
                         {
-                            tasks[i++] = producer!.DispatchAsync(@event, newSource);
+                            tasks[i++] = producer!.DispatchAsync(@event, newSource, cancellationToken);
                         }
                         result = Task.WhenAll(tasks);
                     }
                     else
                     {
                         var producer = producerList.First();
-                        result = producer!.DispatchAsync(@event, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source);
+                        result = producer!.DispatchAsync(@event, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source, cancellationToken);
                     }
                 }
             }
@@ -609,21 +716,21 @@ namespace Zerra.CQRS
                     var i = 0;
                     foreach (var producer in producerList)
                     {
-                        tasks[i++] = HandleEventTaskLogged(handled, producer, cacheProviderDispatchAsync, @event, eventType, networkType, source);
+                        tasks[i++] = HandleEventTaskLogged(handled, producer, cacheProviderDispatchAsync, @event, eventType, networkType, source, cancellationToken);
                     }
                     result = Task.WhenAll(tasks);
                 }
                 else
                 {
                     var producer = producerList?.FirstOrDefault();
-                    result = HandleEventTaskLogged(handled, producer, cacheProviderDispatchAsync, @event, eventType, networkType, source);
+                    result = HandleEventTaskLogged(handled, producer, cacheProviderDispatchAsync, @event, eventType, networkType, source, cancellationToken);
                 }
             }
 
             return result;
         }
 
-        private static async Task HandleCommandTaskLogged(bool handled, ICommandProducer? producer, Func<ICommand, Task>? cacheProviderDispatchAsync, ICommand command, Type commandType, bool requireAffirmation, NetworkType networkType, string source)
+        private static async Task HandleCommandTaskLogged(bool handled, ICommandProducer? producer, Func<ICommand, Task>? cacheProviderDispatchAsync, ICommand command, Type commandType, bool requireAffirmation, NetworkType networkType, string source, CancellationToken cancellationToken)
         {
             busLogger?.BeginCommand(commandType, command, source, handled);
 
@@ -645,9 +752,9 @@ namespace Zerra.CQRS
                 else
                 {
                     if (requireAffirmation)
-                        await producer!.DispatchAwaitAsync(command, source);
+                        await producer!.DispatchAwaitAsync(command, source, cancellationToken);
                     else
-                        await producer!.DispatchAsync(command, source);
+                        await producer!.DispatchAsync(command, source, cancellationToken);
                 }
             }
             catch (Exception ex)
@@ -660,7 +767,7 @@ namespace Zerra.CQRS
             timer.Stop();
             busLogger?.EndCommand(commandType, command, source, handled, timer.ElapsedMilliseconds, null);
         }
-        private static async Task<TResult> HandleCommandWithResultTaskLogged<TResult>(bool handled, ICommandProducer? producer, Func<ICommand<TResult>, Task<TResult>>? cacheProviderDispatchAsync, ICommand<TResult> command, Type commandType, NetworkType networkType, string source)
+        private static async Task<TResult> HandleCommandWithResultTaskLogged<TResult>(bool handled, ICommandProducer? producer, Func<ICommand<TResult>, Task<TResult>>? cacheProviderDispatchAsync, ICommand<TResult> command, Type commandType, NetworkType networkType, string source, CancellationToken cancellationToken)
         {
             busLogger?.BeginCommand(commandType, command, source, handled);
 
@@ -682,7 +789,7 @@ namespace Zerra.CQRS
                 }
                 else
                 {
-                    result = await producer!.DispatchAwaitAsync(command, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source);
+                    result = await producer!.DispatchAwaitAsync(command, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source, cancellationToken);
                 }
             }
             catch (Exception ex)
@@ -697,7 +804,7 @@ namespace Zerra.CQRS
 
             return result;
         }
-        private static async Task HandleEventTaskLogged(bool handled, IEventProducer? producer, Func<IEvent, Task>? cacheProviderDispatchAsync, IEvent @event, Type eventType, NetworkType networkType, string source)
+        private static async Task HandleEventTaskLogged(bool handled, IEventProducer? producer, Func<IEvent, Task>? cacheProviderDispatchAsync, IEvent @event, Type eventType, NetworkType networkType, string source, CancellationToken cancellationToken)
         {
             busLogger?.BeginEvent(eventType, @event, source, handled);
 
@@ -718,7 +825,7 @@ namespace Zerra.CQRS
                 }
                 else
                 {
-                    await producer!.DispatchAsync(@event, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source);
+                    await producer!.DispatchAsync(@event, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source, cancellationToken);
                 }
             }
             catch (Exception ex)
@@ -737,21 +844,33 @@ namespace Zerra.CQRS
         /// A destination may be an implementation in the same assembly or calling a remote service.
         /// </summary>
         /// <typeparam name="TInterface">The interface type.</typeparam>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>An instance of the interface to route queries.</returns>
-        public static TInterface Call<TInterface>() => (TInterface)BusRouters.GetProviderToCallMethodInternalInstance(typeof(TInterface), NetworkType.Local, false, Config.ApplicationIdentifier);
+        public static TInterface Call<TInterface>(CancellationToken? cancellationToken = null)
+        {
+            if (cancellationToken.HasValue)
+                return (TInterface)BusRouters.GetProviderToCallMethodInternalInstance(typeof(TInterface), NetworkType.Local, false, Config.ApplicationIdentifier, cancellationToken.Value);
+            return (TInterface)BusRouters.GetProviderToCallMethodInternalInstance(typeof(TInterface), NetworkType.Local, false, Config.ApplicationIdentifier, default);
+        }
         /// <summary>
         /// Returns in instance of an interface that will route a query to the configured destination.
         /// A destination may be an implementation in the same assembly or calling a remote service.
         /// </summary>
         /// <param name="interfaceType">The interface type.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>An instance of the interface to route queries.</returns>
-        public static object Call(Type interfaceType) => BusRouters.GetProviderToCallMethodInternalInstance(interfaceType, NetworkType.Local, false, Config.ApplicationIdentifier);
+        public static object Call(Type interfaceType, CancellationToken? cancellationToken = null)
+        {
+            if (cancellationToken.HasValue)
+                return BusRouters.GetProviderToCallMethodInternalInstance(interfaceType, NetworkType.Local, false, Config.ApplicationIdentifier, cancellationToken.Value);
+            return BusRouters.GetProviderToCallMethodInternalInstance(interfaceType, NetworkType.Local, false, Config.ApplicationIdentifier, default);
+        }
 
         /// <summary>
-        /// Internal Use Only. Do not call this method except by generated types.
+        /// Internal Use Only.
         /// </summary>
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-        public static TReturn _CallMethod<TReturn>(Type interfaceType, string methodName, object[] arguments, NetworkType networkType, bool isFinalLayer, string source)
+        public static TReturn _CallMethod<TReturn>(Type interfaceType, string methodName, object[] arguments, NetworkType networkType, bool isFinalLayer, string source, CancellationToken cancellationToken)
         {
             var metadata = callMetadata.GetOrAdd(interfaceType, networkType, (Func<Type, NetworkType, CallMetadata>)(static (interfaceType, networkType) =>
             {
@@ -822,7 +941,7 @@ namespace Zerra.CQRS
             object? cacheProvider = null;
             if (!isFinalLayer)
             {
-                cacheProvider = cacheProviders.GetOrAdd(interfaceType, networkType, source, static (interfaceType, networkType, source) =>
+                cacheProvider = cacheProviders.GetOrAdd(interfaceType, networkType, source, cancellationToken, static (interfaceType, networkType, source, cancellationToken) =>
                 {
                     var busCacheType = Discovery.GetClassByInterface(interfaceType, iBusCacheType, false);
                     if (busCacheType is not null)
@@ -830,7 +949,7 @@ namespace Zerra.CQRS
                         var methodSetNextProvider = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(LayerProvider<object>.SetNextProvider)).MethodInfo;
                         if (methodSetNextProvider is not null)
                         {
-                            var callerProvider = BusRouters.GetProviderToCallMethodInternalInstance(interfaceType, networkType, true, source);
+                            var callerProvider = BusRouters.GetProviderToCallMethodInternalInstance(interfaceType, networkType, true, source, cancellationToken);
 
                             var cacheInstance = Instantiator.Create(busCacheType);
 
@@ -868,7 +987,7 @@ namespace Zerra.CQRS
                     }
                     else
                     {
-                        result = queryClient!.Call<TReturn>(interfaceType, methodName, arguments, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source)!;
+                        result = queryClient!.Call<TReturn>(interfaceType, methodName, arguments, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source, cancellationToken)!;
                     }
                 }
             }
@@ -877,11 +996,11 @@ namespace Zerra.CQRS
                 if (methodMetadata.MethodDetail.ReturnTypeDetailBoxed.Type.IsGenericType)
                 {
                     var method = callMethodTaskGenericLoggedMethod.GetGenericMethodDetail(methodMetadata.MethodDetail.ReturnTypeDetailBoxed.InnerType);
-                    result = (TReturn)method.CallerBoxed(null, [handled, queryClient, cacheProvider, interfaceType, methodMetadata.MethodDetail, arguments, networkType, source])!;
+                    result = (TReturn)method.CallerBoxed(null, [handled, queryClient, cacheProvider, interfaceType, methodMetadata.MethodDetail, arguments, networkType, source, cancellationToken])!;
                 }
                 else
                 {
-                    result = (TReturn)(object)CallMethodTaskLogged(handled, queryClient, cacheProvider, interfaceType, methodMetadata.MethodDetail, arguments, networkType, source);
+                    result = (TReturn)(object)CallMethodTaskLogged(handled, queryClient, cacheProvider, interfaceType, methodMetadata.MethodDetail, arguments, networkType, source, cancellationToken);
                 }
             }
             else
@@ -902,7 +1021,7 @@ namespace Zerra.CQRS
                     }
                     else
                     {
-                        result = queryClient!.Call<TReturn>(interfaceType, methodName, arguments, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source)!;
+                        result = queryClient!.Call<TReturn>(interfaceType, methodName, arguments, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source, cancellationToken)!;
                     }
                 }
                 catch (Exception ex)
@@ -919,7 +1038,7 @@ namespace Zerra.CQRS
             return result;
         }
 
-        private static async Task CallMethodTaskLogged(bool handled, IQueryClient? queryClient, object? cacheProvider, Type interfaceType, MethodDetail methodDetail, object[] arguments, NetworkType networkType, string source)
+        private static async Task CallMethodTaskLogged(bool handled, IQueryClient? queryClient, object? cacheProvider, Type interfaceType, MethodDetail methodDetail, object[] arguments, NetworkType networkType, string source, CancellationToken cancellationToken)
         {
             busLogger?.BeginCall(interfaceType, methodDetail.Name, arguments, null, source, handled);
 
@@ -938,7 +1057,7 @@ namespace Zerra.CQRS
                 }
                 else
                 {
-                    task = queryClient!.Call<Task>(interfaceType, methodDetail.Name, arguments, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source)!;
+                    task = queryClient!.Call<Task>(interfaceType, methodDetail.Name, arguments, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source, cancellationToken)!;
                 }
 
                 await task;
@@ -954,7 +1073,7 @@ namespace Zerra.CQRS
             busLogger?.EndCall(interfaceType, methodDetail.Name, arguments, null, source, handled, timer.ElapsedMilliseconds, null);
         }
         private static readonly MethodDetail callMethodTaskGenericLoggedMethod = typeof(Bus).GetMethodDetail(nameof(CallMethodTaskGenericLogged));
-        private static async Task<TReturn> CallMethodTaskGenericLogged<TReturn>(bool handled, IQueryClient? queryClient, object? cacheProvider, Type interfaceType, MethodDetail methodDetail, object[] arguments, NetworkType networkType, string source)
+        private static async Task<TReturn> CallMethodTaskGenericLogged<TReturn>(bool handled, IQueryClient? queryClient, object? cacheProvider, Type interfaceType, MethodDetail methodDetail, object[] arguments, NetworkType networkType, string source, CancellationToken cancellationToken)
         {
             busLogger?.BeginCall(interfaceType, methodDetail.Name, arguments, null, source, handled);
 
@@ -974,7 +1093,7 @@ namespace Zerra.CQRS
                 }
                 else
                 {
-                    task = queryClient!.Call<Task<TReturn>>(interfaceType, methodDetail.Name, arguments, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source)!;
+                    task = queryClient!.Call<Task<TReturn>>(interfaceType, methodDetail.Name, arguments, networkType != NetworkType.Local ? $"{source} - {Config.ApplicationIdentifier}" : source, cancellationToken)!;
                 }
 
                 taskresult = await task;

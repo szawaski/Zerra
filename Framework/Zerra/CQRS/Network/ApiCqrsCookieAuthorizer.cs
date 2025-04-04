@@ -11,6 +11,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Zerra.Reflection;
 
@@ -36,7 +37,7 @@ namespace Zerra.CQRS.Network
             this.contentType = contentType;
         }
 
-        private static async Task<CookieCollection> GetCookiesRequest(Uri endpoint, string body, string contentType)
+        private static async Task<CookieCollection> GetCookiesRequest(Uri endpoint, string body, string contentType, CancellationToken cancellationToken)
         {
             using var handler = new HttpClientHandler()
             {
@@ -51,7 +52,7 @@ namespace Zerra.CQRS.Network
                 request.Content = new WriteStreamContent(async (postStream) =>
                 {
                     var data = System.Text.Encoding.UTF8.GetBytes(body);
-                    await ContentTypeSerializer.SerializeAsync(ContentType.Json, postStream, data);
+                    await ContentTypeSerializer.SerializeAsync(ContentType.Json, postStream, data, cancellationToken);
                 });
                 request.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
 
@@ -59,13 +60,13 @@ namespace Zerra.CQRS.Network
                 request.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
                 request.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
 
-                using var response = await client.SendAsync(request);
+                using var response = await client.SendAsync(request, cancellationToken);
 
                 responseStream = await response.Content.ReadAsStreamAsync();
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(ContentType.Json, responseStream);
+                    var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(ContentType.Json, responseStream, cancellationToken);
                     throw responseException;
                 }
 
@@ -184,7 +185,7 @@ namespace Zerra.CQRS.Network
             return cookies;
         }
 
-        public Task Login() => GetCookiesRequest(endpoint, loginRequestBody, contentType);
+        public Task Login(CancellationToken cancellationToken = default) => GetCookiesRequest(endpoint, loginRequestBody, contentType, cancellationToken);
 
         public CookieCollection? Cookies => cookies;
 
@@ -198,9 +199,9 @@ namespace Zerra.CQRS.Network
             AuthorizeCookies(cookies);
         }
 
-        public async ValueTask<Dictionary<string, List<string?>>> GetAuthorizationHeadersAsync()
+        public async ValueTask<Dictionary<string, List<string?>>> GetAuthorizationHeadersAsync(CancellationToken cancellationToken = default)
         {
-            cookies ??= await GetCookiesRequest(endpoint, loginRequestBody, contentType);
+            cookies ??= await GetCookiesRequest(endpoint, loginRequestBody, contentType, cancellationToken);
 
             var sb = new StringBuilder();
             foreach (Cookie cookie in cookies)

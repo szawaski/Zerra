@@ -5,6 +5,7 @@
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 using Zerra.Buffers;
 using Zerra.Reflection;
@@ -206,7 +207,7 @@ namespace Zerra.Serialization.Bytes
             }
         }
 
-        public static async Task SerializeAsync<T>(Stream stream, T? obj, ByteSerializerOptions? options = null)
+        public static async Task SerializeAsync<T>(Stream stream, T? obj, ByteSerializerOptions? options = null, CancellationToken cancellationToken = default)
         {
             if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
@@ -229,9 +230,9 @@ namespace Zerra.Serialization.Bytes
                     var usedBytes = Write(converter, buffer, ref state, obj);
 
 #if NETSTANDARD2_0
-                    await stream.WriteAsync(buffer, 0, usedBytes);
+                    await stream.WriteAsync(buffer, 0, usedBytes, cancellationToken);
 #else
-                    await stream.WriteAsync(buffer.AsMemory(0, usedBytes));
+                    await stream.WriteAsync(buffer.AsMemory(0, usedBytes), cancellationToken);
 #endif
 
                     if (state.BytesNeeded == 0)
@@ -248,7 +249,7 @@ namespace Zerra.Serialization.Bytes
                 ArrayPoolHelper<byte>.Return(buffer);
             }
         }
-        public static async Task SerializeAsync(Stream stream, object? obj, ByteSerializerOptions? options = null)
+        public static async Task SerializeAsync(Stream stream, object? obj, ByteSerializerOptions? options = null, CancellationToken cancellationToken = default)
         {
             if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
@@ -276,9 +277,9 @@ namespace Zerra.Serialization.Bytes
                     var usedBytes = WriteBoxed(converter, buffer, ref state, obj);
 
 #if NETSTANDARD2_0
-                    await stream.WriteAsync(buffer, 0, usedBytes);
+                    await stream.WriteAsync(buffer, 0, usedBytes, cancellationToken);
 #else
-                    await stream.WriteAsync(buffer.AsMemory(0, usedBytes));
+                    await stream.WriteAsync(buffer.AsMemory(0, usedBytes), cancellationToken);
 #endif
 
                     if (state.BytesNeeded == 0)
@@ -295,7 +296,7 @@ namespace Zerra.Serialization.Bytes
                 ArrayPoolHelper<byte>.Return(buffer);
             }
         }
-        public static async Task SerializeAsync(Stream stream, object? obj, Type type, ByteSerializerOptions? options = null)
+        public static async Task SerializeAsync(Stream stream, object? obj, Type type, ByteSerializerOptions? options = null, CancellationToken cancellationToken = default)
         {
             if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
@@ -325,9 +326,9 @@ namespace Zerra.Serialization.Bytes
                     var usedBytes = WriteBoxed(converter, buffer, ref state, obj);
 
 #if NETSTANDARD2_0
-                    await stream.WriteAsync(buffer, 0, usedBytes);
+                    await stream.WriteAsync(buffer, 0, usedBytes, cancellationToken);
 #else
-                    await stream.WriteAsync(buffer.AsMemory(0, usedBytes));
+                    await stream.WriteAsync(buffer.AsMemory(0, usedBytes), cancellationToken);
 #endif
 
                     if (state.BytesNeeded == 0)

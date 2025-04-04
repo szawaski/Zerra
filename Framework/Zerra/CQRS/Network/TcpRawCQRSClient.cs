@@ -199,7 +199,7 @@ namespace Zerra.CQRS.Network
             }
         }
         /// <inheritdoc />
-        protected override async Task<TReturn?> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source) where TReturn : default
+        protected override async Task<TReturn?> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source, CancellationToken cancellationToken) where TReturn : default
         {
             await throttle.WaitAsync();
 
@@ -234,9 +234,9 @@ namespace Zerra.CQRS.Network
                     var requestHeaderLength = TcpRawCommon.BufferHeader(buffer, data.ProviderType, contentType);
 
 #if NETSTANDARD2_0
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength);
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength, cancellationToken);
 #else
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength));
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength), cancellationToken);
 #endif
 
                     requestBodyStream = new TcpRawProtocolBodyStream(stream, null, true);
@@ -244,7 +244,7 @@ namespace Zerra.CQRS.Network
                     if (symmetricConfig is not null)
                     {
                         requestBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, requestBodyStream, true);
-                        await ContentTypeSerializer.SerializeAsync(contentType, requestBodyCryptoStream, data);
+                        await ContentTypeSerializer.SerializeAsync(contentType, requestBodyCryptoStream, data, cancellationToken);
 #if NET5_0_OR_GREATER
                         await requestBodyCryptoStream.FlushFinalBlockAsync();
 #else
@@ -259,8 +259,8 @@ namespace Zerra.CQRS.Network
                     }
                     else
                     {
-                        await ContentTypeSerializer.SerializeAsync(contentType, requestBodyStream, data);
-                        await requestBodyStream.FlushAsync();
+                        await ContentTypeSerializer.SerializeAsync(contentType, requestBodyStream, data, cancellationToken);
+                        await requestBodyStream.FlushAsync(cancellationToken);
 #if NETSTANDARD2_0
                         requestBodyStream.Dispose();
 #else
@@ -280,9 +280,9 @@ namespace Zerra.CQRS.Network
                             throw new CqrsNetworkException($"{nameof(TcpRawCqrsClient)} Header Too Long");
 
 #if NETSTANDARD2_0
-                        var bytesRead = await stream.ReadAsync(bufferOwner, headerPosition, buffer.Length - headerPosition);
+                        var bytesRead = await stream.ReadAsync(bufferOwner, headerPosition, buffer.Length - headerPosition, cancellationToken);
 #else
-                        var bytesRead = await stream.ReadAsync(buffer.Slice(headerPosition, buffer.Length - headerPosition));
+                        var bytesRead = await stream.ReadAsync(buffer.Slice(headerPosition, buffer.Length - headerPosition), cancellationToken);
 #endif
 
                         if (bytesRead == 0)
@@ -316,7 +316,7 @@ namespace Zerra.CQRS.Network
 
                     if (responseHeader.IsError)
                     {
-                        var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseBodyStream);
+                        var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseBodyStream, cancellationToken);
                         isThrowingRemote = true;
                         throw responseException;
                     }
@@ -327,7 +327,7 @@ namespace Zerra.CQRS.Network
                     }
                     else
                     {
-                        var model = await ContentTypeSerializer.DeserializeAsync<TReturn>(contentType, responseBodyStream);
+                        var model = await ContentTypeSerializer.DeserializeAsync<TReturn>(contentType, responseBodyStream, cancellationToken);
                         if (responseBodyStream is not null)
                         {
 #if NETSTANDARD2_0
@@ -399,9 +399,9 @@ namespace Zerra.CQRS.Network
         }
 
         /// <inheritdoc />
-        protected override async Task DispatchInternal(SemaphoreSlim throttle, Type commandType, ICommand command, bool messageAwait, string source)
+        protected override async Task DispatchInternal(SemaphoreSlim throttle, Type commandType, ICommand command, bool messageAwait, string source, CancellationToken cancellationToken)
         {
-            await throttle.WaitAsync();
+            await throttle.WaitAsync(cancellationToken);
 
             SocketPoolStream? stream = null;
             Stream? requestBodyStream = null;
@@ -439,9 +439,9 @@ namespace Zerra.CQRS.Network
                     var requestHeaderLength = TcpRawCommon.BufferHeader(buffer, data.MessageType, contentType);
 
 #if NETSTANDARD2_0
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength);
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength, cancellationToken);
 #else
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength));
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength), cancellationToken);
 #endif
 
                     requestBodyStream = new TcpRawProtocolBodyStream(stream, null, true);
@@ -449,9 +449,9 @@ namespace Zerra.CQRS.Network
                     if (symmetricConfig is not null)
                     {
                         requestBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, requestBodyStream, true);
-                        await ContentTypeSerializer.SerializeAsync(contentType, requestBodyCryptoStream, data);
+                        await ContentTypeSerializer.SerializeAsync(contentType, requestBodyCryptoStream, data, cancellationToken);
 #if NET5_0_OR_GREATER
-                        await requestBodyCryptoStream.FlushFinalBlockAsync();
+                        await requestBodyCryptoStream.FlushFinalBlockAsync(cancellationToken);
 #else
                         requestBodyCryptoStream.FlushFinalBlock();
 #endif
@@ -464,8 +464,8 @@ namespace Zerra.CQRS.Network
                     }
                     else
                     {
-                        await ContentTypeSerializer.SerializeAsync(contentType, requestBodyStream, data);
-                        await requestBodyStream.FlushAsync();
+                        await ContentTypeSerializer.SerializeAsync(contentType, requestBodyStream, data, cancellationToken);
+                        await requestBodyStream.FlushAsync(cancellationToken);
 
 #if NETSTANDARD2_0
                         requestBodyStream.Dispose();
@@ -486,9 +486,9 @@ namespace Zerra.CQRS.Network
                             throw new CqrsNetworkException($"{nameof(TcpRawCqrsClient)} Header Too Long");
 
 #if NETSTANDARD2_0
-                        var bytesRead = await stream.ReadAsync(bufferOwner, headerPosition, buffer.Length - headerPosition);
+                        var bytesRead = await stream.ReadAsync(bufferOwner, headerPosition, buffer.Length - headerPosition, cancellationToken);
 #else
-                        var bytesRead = await stream.ReadAsync(buffer.Slice(headerPosition, buffer.Length - headerPosition));
+                        var bytesRead = await stream.ReadAsync(buffer.Slice(headerPosition, buffer.Length - headerPosition), cancellationToken);
 #endif
 
                         if (bytesRead == 0)
@@ -519,7 +519,7 @@ namespace Zerra.CQRS.Network
 
                     if (responseHeader.IsError)
                     {
-                        var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseBodyStream);
+                        var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseBodyStream, cancellationToken);
                         isThrowingRemote = true;
                         throw responseException;
                     }
@@ -587,9 +587,9 @@ namespace Zerra.CQRS.Network
             }
         }
         /// <inheritdoc />
-        protected override async Task<TResult> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source) where TResult : default
+        protected override async Task<TResult> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source, CancellationToken cancellationToken) where TResult : default
         {
-            await throttle.WaitAsync();
+            await throttle.WaitAsync(cancellationToken);
 
             SocketPoolStream? stream = null;
             Stream? requestBodyStream = null;
@@ -627,9 +627,9 @@ namespace Zerra.CQRS.Network
                     var requestHeaderLength = TcpRawCommon.BufferHeader(buffer, data.MessageType, contentType);
 
 #if NETSTANDARD2_0
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength);
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength, cancellationToken);
 #else
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength));
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength), cancellationToken);
 #endif
 
                     requestBodyStream = new TcpRawProtocolBodyStream(stream, null, true);
@@ -637,9 +637,9 @@ namespace Zerra.CQRS.Network
                     if (symmetricConfig is not null)
                     {
                         requestBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, requestBodyStream, true);
-                        await ContentTypeSerializer.SerializeAsync(contentType, requestBodyCryptoStream, data);
+                        await ContentTypeSerializer.SerializeAsync(contentType, requestBodyCryptoStream, data, cancellationToken);
 #if NET5_0_OR_GREATER
-                        await requestBodyCryptoStream.FlushFinalBlockAsync();
+                        await requestBodyCryptoStream.FlushFinalBlockAsync(cancellationToken);
 #else
                         requestBodyCryptoStream.FlushFinalBlock();
 #endif
@@ -652,8 +652,8 @@ namespace Zerra.CQRS.Network
                     }
                     else
                     {
-                        await ContentTypeSerializer.SerializeAsync(contentType, requestBodyStream, data);
-                        await requestBodyStream.FlushAsync();
+                        await ContentTypeSerializer.SerializeAsync(contentType, requestBodyStream, data, cancellationToken);
+                        await requestBodyStream.FlushAsync(cancellationToken);
 
 #if NETSTANDARD2_0
                         requestBodyStream.Dispose();
@@ -674,9 +674,9 @@ namespace Zerra.CQRS.Network
                             throw new CqrsNetworkException($"{nameof(TcpRawCqrsClient)} Header Too Long");
 
 #if NETSTANDARD2_0
-                        var bytesRead = await stream.ReadAsync(bufferOwner, headerPosition, buffer.Length - headerPosition);
+                        var bytesRead = await stream.ReadAsync(bufferOwner, headerPosition, buffer.Length - headerPosition, cancellationToken);
 #else
-                        var bytesRead = await stream.ReadAsync(buffer.Slice(headerPosition, buffer.Length - headerPosition));
+                        var bytesRead = await stream.ReadAsync(buffer.Slice(headerPosition, buffer.Length - headerPosition), cancellationToken);
 #endif
 
                         if (bytesRead == 0)
@@ -707,7 +707,7 @@ namespace Zerra.CQRS.Network
 
                     if (responseHeader.IsError)
                     {
-                        var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseBodyStream);
+                        var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseBodyStream, cancellationToken);
                         isThrowingRemote = true;
                         throw responseException;
                     }
@@ -718,7 +718,7 @@ namespace Zerra.CQRS.Network
                     }
                     else
                     {
-                        var model = await ContentTypeSerializer.DeserializeAsync<TResult>(contentType, responseBodyStream);
+                        var model = await ContentTypeSerializer.DeserializeAsync<TResult>(contentType, responseBodyStream, cancellationToken);
                         if (responseBodyStream is not null)
                         {
 #if NETSTANDARD2_0
@@ -785,9 +785,9 @@ namespace Zerra.CQRS.Network
         }
 
         /// <inheritdoc />
-        protected override async Task DispatchInternal(SemaphoreSlim throttle, Type eventType, IEvent @event, string source)
+        protected override async Task DispatchInternal(SemaphoreSlim throttle, Type eventType, IEvent @event, string source, CancellationToken cancellationToken)
         {
-            await throttle.WaitAsync();
+            await throttle.WaitAsync(cancellationToken);
 
             SocketPoolStream? stream = null;
             Stream? requestBodyStream = null;
@@ -825,9 +825,9 @@ namespace Zerra.CQRS.Network
                     var requestHeaderLength = TcpRawCommon.BufferHeader(buffer, data.MessageType, contentType);
 
 #if NETSTANDARD2_0
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength);
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength, cancellationToken);
 #else
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength));
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength), cancellationToken);
 #endif
 
                     requestBodyStream = new TcpRawProtocolBodyStream(stream, null, true);
@@ -835,9 +835,9 @@ namespace Zerra.CQRS.Network
                     if (symmetricConfig is not null)
                     {
                         requestBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, requestBodyStream, true);
-                        await ContentTypeSerializer.SerializeAsync(contentType, requestBodyCryptoStream, data);
+                        await ContentTypeSerializer.SerializeAsync(contentType, requestBodyCryptoStream, data, cancellationToken);
 #if NET5_0_OR_GREATER
-                        await requestBodyCryptoStream.FlushFinalBlockAsync();
+                        await requestBodyCryptoStream.FlushFinalBlockAsync(cancellationToken);
 #else
                         requestBodyCryptoStream.FlushFinalBlock();
 #endif
@@ -850,8 +850,8 @@ namespace Zerra.CQRS.Network
                     }
                     else
                     {
-                        await ContentTypeSerializer.SerializeAsync(contentType, requestBodyStream, data);
-                        await requestBodyStream.FlushAsync();
+                        await ContentTypeSerializer.SerializeAsync(contentType, requestBodyStream, data, cancellationToken);
+                        await requestBodyStream.FlushAsync(cancellationToken);
 
 #if NETSTANDARD2_0
                         requestBodyStream.Dispose();
@@ -872,9 +872,9 @@ namespace Zerra.CQRS.Network
                             throw new CqrsNetworkException($"{nameof(TcpRawCqrsClient)} Header Too Long");
 
 #if NETSTANDARD2_0
-                        var bytesRead = await stream.ReadAsync(bufferOwner, headerPosition, buffer.Length - headerPosition);
+                        var bytesRead = await stream.ReadAsync(bufferOwner, headerPosition, buffer.Length - headerPosition, cancellationToken);
 #else
-                        var bytesRead = await stream.ReadAsync(buffer.Slice(headerPosition, buffer.Length - headerPosition));
+                        var bytesRead = await stream.ReadAsync(buffer.Slice(headerPosition, buffer.Length - headerPosition), cancellationToken);
 #endif
 
                         if (bytesRead == 0)
@@ -905,7 +905,7 @@ namespace Zerra.CQRS.Network
 
                     if (responseHeader.IsError)
                     {
-                        var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseBodyStream);
+                        var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseBodyStream, cancellationToken);
                         isThrowingRemote = true;
                         throw responseException;
                     }

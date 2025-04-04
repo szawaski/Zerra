@@ -12,6 +12,7 @@ using Zerra.Serialization.Json.Converters;
 using Zerra.Serialization.Json.State;
 using System.Text;
 using Zerra.Buffers;
+using System.Threading;
 
 namespace Zerra.Serialization.Json
 {
@@ -270,7 +271,7 @@ namespace Zerra.Serialization.Json
             }
         }
 
-        public static async Task SerializeAsync<T>(Stream stream, T? obj, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static async Task SerializeAsync<T>(Stream stream, T? obj, JsonSerializerOptions? options = null, Graph? graph = null, CancellationToken cancellationToken = default)
         {
             if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
@@ -300,9 +301,9 @@ namespace Zerra.Serialization.Json
                     var usedBytes = Write(converter, buffer, ref state, obj);
 
 #if NETSTANDARD2_0
-                    await stream.WriteAsync(buffer, 0, usedBytes);
+                    await stream.WriteAsync(buffer, 0, usedBytes, cancellationToken);
 #else
-                    await stream.WriteAsync(buffer.AsMemory(0, usedBytes));
+                    await stream.WriteAsync(buffer.AsMemory(0, usedBytes), cancellationToken);
 #endif
 
                     if (state.SizeNeeded == 0)
@@ -319,7 +320,7 @@ namespace Zerra.Serialization.Json
                 ArrayPoolHelper<byte>.Return(buffer);
             }
         }
-        public static async Task SerializeAsync(Stream stream, object? obj, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static async Task SerializeAsync(Stream stream, object? obj, JsonSerializerOptions? options = null, Graph? graph = null, CancellationToken cancellationToken = default)
         {
             if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
@@ -349,9 +350,9 @@ namespace Zerra.Serialization.Json
                     var usedBytes = WriteBoxed(converter, buffer, ref state, obj);
 
 #if NETSTANDARD2_0
-                    await stream.WriteAsync(buffer, 0, usedBytes);
+                    await stream.WriteAsync(buffer, 0, usedBytes, cancellationToken);
 #else
-                    await stream.WriteAsync(buffer.AsMemory(0, usedBytes));
+                    await stream.WriteAsync(buffer.AsMemory(0, usedBytes), cancellationToken);
 #endif
 
                     if (state.SizeNeeded == 0)
@@ -368,7 +369,7 @@ namespace Zerra.Serialization.Json
                 ArrayPoolHelper<byte>.Return(buffer);
             }
         }
-        public static async Task SerializeAsync(Stream stream, object? obj, Type type, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static async Task SerializeAsync(Stream stream, object? obj, Type type, JsonSerializerOptions? options = null, Graph? graph = null, CancellationToken cancellationToken = default)
         {
             if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
@@ -400,9 +401,9 @@ namespace Zerra.Serialization.Json
                     var usedBytes = WriteBoxed(converter, buffer, ref state, obj);
 
 #if NETSTANDARD2_0
-                    await stream.WriteAsync(buffer, 0, usedBytes);
+                    await stream.WriteAsync(buffer, 0, usedBytes, cancellationToken);
 #else
-                    await stream.WriteAsync(buffer.AsMemory(0, usedBytes));
+                    await stream.WriteAsync(buffer.AsMemory(0, usedBytes), cancellationToken);
 #endif
 
                     if (state.SizeNeeded == 0)

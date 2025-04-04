@@ -4,6 +4,7 @@
 
 using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Zerra.Reflection;
 using Zerra.Serialization.Json;
@@ -21,15 +22,16 @@ namespace Zerra.CQRS.Network
         /// </summary>
         /// <param name="contentType">The serialized content type of the request.</param>
         /// <param name="data">The data received for the API request.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>The response from the API request.</returns>
-        public static async Task<ApiResponseData?> HandleRequestAsync(ContentType? contentType, ApiRequestData data)
+        public static async Task<ApiResponseData?> HandleRequestAsync(ContentType? contentType, ApiRequestData data, CancellationToken cancellationToken)
         {
             if (!String.IsNullOrWhiteSpace(data.ProviderType))
             {
                 if (contentType is null)
                     return null;
 
-                var response = await Call(data);
+                var response = await Call(data, cancellationToken);
 
                 if (response.Stream is not null)
                 {
@@ -52,13 +54,13 @@ namespace Zerra.CQRS.Network
                     if (contentType is null)
                         return null;
 
-                    var result = await DispatchWithResult(data);
+                    var result = await DispatchWithResult(data, cancellationToken);
                     var bytes = ContentTypeSerializer.Serialize(contentType.Value, result);
                     return new ApiResponseData(bytes);
                 }
                 else
                 {
-                    await Dispatch(data);
+                    await Dispatch(data, cancellationToken);
                     return new ApiResponseData();
                 }
             }
@@ -66,7 +68,7 @@ namespace Zerra.CQRS.Network
             return null;
         }
 
-        private static Task<RemoteQueryCallResponse> Call(ApiRequestData data)
+        private static Task<RemoteQueryCallResponse> Call(ApiRequestData data, CancellationToken cancellationToken)
         {
             if (String.IsNullOrWhiteSpace(data.ProviderType)) throw new ArgumentNullException(nameof(ApiRequestData.ProviderType));
             if (String.IsNullOrWhiteSpace(data.ProviderMethod)) throw new ArgumentNullException(nameof(ApiRequestData.ProviderMethod));
@@ -78,10 +80,10 @@ namespace Zerra.CQRS.Network
                 throw new ArgumentException($"Provider {data.ProviderType} is not an interface type");
             var typeDetail = TypeAnalyzer.GetTypeDetail(providerType);
 
-            return Bus.RemoteHandleQueryCallAsync(providerType, data.ProviderMethod, data.ProviderArguments, data.Source, true);
+            return Bus.RemoteHandleQueryCallAsync(providerType, data.ProviderMethod, data.ProviderArguments, data.Source, true, cancellationToken);
         }
 
-        private static Task Dispatch(ApiRequestData data)
+        private static Task Dispatch(ApiRequestData data, CancellationToken cancellationToken)
         {
             if (String.IsNullOrWhiteSpace(data.MessageType)) throw new ArgumentNullException(nameof(ApiRequestData.MessageType));
             if (data.MessageData is null) throw new ArgumentNullException(nameof(ApiRequestData.MessageData));
@@ -97,11 +99,11 @@ namespace Zerra.CQRS.Network
                 throw new Exception($"Invalid {nameof(data.MessageData)}");
 
             if (data.MessageAwait)
-                return Bus.RemoteHandleCommandDispatchAwaitAsync(command, data.Source, true);
+                return Bus.RemoteHandleCommandDispatchAwaitAsync(command, data.Source, true, cancellationToken);
             else
-                return Bus.RemoteHandleCommandDispatchAsync(command, data.Source, true);
+                return Bus.RemoteHandleCommandDispatchAsync(command, data.Source, true, cancellationToken);
         }
-        private static Task<object?> DispatchWithResult(ApiRequestData data)
+        private static Task<object?> DispatchWithResult(ApiRequestData data, CancellationToken cancellationToken)
         {
             if (String.IsNullOrWhiteSpace(data.MessageType)) throw new ArgumentNullException(nameof(ApiRequestData.MessageType));
             if (data.MessageData is null) throw new ArgumentNullException(nameof(ApiRequestData.MessageData));
@@ -116,7 +118,7 @@ namespace Zerra.CQRS.Network
             if (command is null)
                 throw new Exception($"Invalid {nameof(data.MessageData)}");
 
-            return Bus.RemoteHandleCommandWithResultDispatchAwaitAsync(command, data.Source, true);
+            return Bus.RemoteHandleCommandWithResultDispatchAwaitAsync(command, data.Source, true, cancellationToken);
         }
     }
 }

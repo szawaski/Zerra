@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Zerra.CQRS
@@ -28,22 +29,25 @@ namespace Zerra.CQRS
         /// </summary>
         /// <param name="command">The command to send.</param>
         /// <param name="source">A description of where the command came from.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>A task to await sending the command.</returns>
-        Task DispatchAsync(ICommand command, string source);
+        Task DispatchAsync(ICommand command, string source, CancellationToken cancellationToken);
         /// <summary>
         /// Executes sending a command and await a response when the command has processed.
         /// </summary>
         /// <param name="command">The command to send.</param>
         /// <param name="source">A description of where the command came from.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>A task to await sending and processing of the command.</returns>
-        Task DispatchAwaitAsync(ICommand command, string source);
+        Task DispatchAwaitAsync(ICommand command, string source, CancellationToken cancellationToken);
         /// <summary>
         /// Executes sending a command and returns a result.
         /// </summary>
         /// <typeparam name="TResult">The type of the result.</typeparam>
         /// <param name="command">The command to send.</param>
         /// <param name="source">A description of where the command came from.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>A task to await the result of the command.</returns>
-        Task<TResult> DispatchAwaitAsync<TResult>(ICommand<TResult> command, string source);
+        Task<TResult> DispatchAwaitAsync<TResult>(ICommand<TResult> command, string source, CancellationToken cancellationToken);
     }
 }

@@ -14,6 +14,11 @@ namespace Zerra.CQRS
     /// <typeparam name="TResult">The result type.</typeparam>
     public interface ICommandHandler<T, TResult> where T : ICommand<TResult>
     {
+        /// <summary>
+        /// Handles processing the command and returns a result.
+        /// </summary>
+        /// <param name="command">The command to process.</param>
+        /// <returns>A <see cref="Task"/> to await processing the command and retreiving the result.</returns>
         Task<TResult> Handle(T command);
     }
 }

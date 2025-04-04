@@ -52,12 +52,12 @@ namespace Zerra.CQRS.AzureServiceBus
         string ICommandProducer.MessageHost => "[Host has Secrets]";
         string IEventProducer.MessageHost => "[Host has Secrets]";
 
-        Task ICommandProducer.DispatchAsync(ICommand command, string source) => SendAsync(command, false, source);
-        Task ICommandProducer.DispatchAwaitAsync(ICommand command, string source) => SendAsync(command, true, source);
-        Task<TResult> ICommandProducer.DispatchAwaitAsync<TResult>(ICommand<TResult> command, string source) where TResult : default => SendAsync(command, source);
-        Task IEventProducer.DispatchAsync(IEvent @event, string source) => SendAsync(@event, source);
+        Task ICommandProducer.DispatchAsync(ICommand command, string source, CancellationToken cancellationToken) => SendAsync(command, false, source, cancellationToken);
+        Task ICommandProducer.DispatchAwaitAsync(ICommand command, string source, CancellationToken cancellationToken) => SendAsync(command, true, source, cancellationToken);
+        Task<TResult> ICommandProducer.DispatchAwaitAsync<TResult>(ICommand<TResult> command, string source, CancellationToken cancellationToken) where TResult : default => SendAsync(command, source, cancellationToken);
+        Task IEventProducer.DispatchAsync(IEvent @event, string source, CancellationToken cancellationToken) => SendAsync(@event, source, cancellationToken);
 
-        private async Task SendAsync(ICommand command, bool requireAcknowledgement, string source)
+        private async Task SendAsync(ICommand command, bool requireAcknowledgement, string source, CancellationToken cancellationToken)
         {
             var commandType = command.GetType();
             if (!queueByCommandType.TryGetValue(commandType, out var queue))
@@ -65,7 +65,7 @@ namespace Zerra.CQRS.AzureServiceBus
             if (!throttleByQueueOrTopic.TryGetValue(queue, out var throttle))
                 throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(AzureServiceBusProducer)}");
 
-            await throttle.WaitAsync();
+            await throttle.WaitAsync(cancellationToken);
 
             try
             {
@@ -133,10 +133,10 @@ namespace Zerra.CQRS.AzureServiceBus
                         serviceBusMessage.ReplyToSessionId = ackKey;
                         await using (var sender = client.CreateSender(queue))
                         {
-                            await sender.SendMessageAsync(serviceBusMessage);
+                            await sender.SendMessageAsync(serviceBusMessage, cancellationToken);
                         }
 
-                        await waiter.WaitAsync();
+                        await waiter.WaitAsync(cancellationToken);
 
                         Acknowledgement.ThrowIfFailed(acknowledgement);
                     }
@@ -161,7 +161,7 @@ namespace Zerra.CQRS.AzureServiceBus
             }
         }
 
-        private async Task<TResult> SendAsync<TResult>(ICommand<TResult> command, string source)
+        private async Task<TResult> SendAsync<TResult>(ICommand<TResult> command, string source, CancellationToken cancellationToken)
         {
             var commandType = command.GetType();
             if (!queueByCommandType.TryGetValue(commandType, out var queue))
@@ -169,7 +169,7 @@ namespace Zerra.CQRS.AzureServiceBus
             if (!throttleByQueueOrTopic.TryGetValue(queue, out var throttle))
                 throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(AzureServiceBusProducer)}");
 
-            await throttle.WaitAsync();
+            await throttle.WaitAsync(cancellationToken);
 
             try
             {
@@ -232,10 +232,10 @@ namespace Zerra.CQRS.AzureServiceBus
                     serviceBusMessage.ReplyToSessionId = ackKey;
                     await using (var sender = client.CreateSender(queue))
                     {
-                        await sender.SendMessageAsync(serviceBusMessage);
+                        await sender.SendMessageAsync(serviceBusMessage, cancellationToken);
                     }
 
-                    await waiter.WaitAsync();
+                    await waiter.WaitAsync(cancellationToken);
 
                     var result = (TResult)Acknowledgement.GetResultOrThrowIfFailed(acknowledgement)!;
 
@@ -253,7 +253,7 @@ namespace Zerra.CQRS.AzureServiceBus
             }
         }
 
-        private async Task SendAsync(IEvent @event, string source)
+        private async Task SendAsync(IEvent @event, string source, CancellationToken cancellationToken)
         {
             var eventType = @event.GetType();
             if (!topicByEventType.TryGetValue(eventType, out var topic))
@@ -261,7 +261,7 @@ namespace Zerra.CQRS.AzureServiceBus
             if (!throttleByQueueOrTopic.TryGetValue(topic, out var throttle))
                 throw new Exception($"{eventType.GetNiceName()} is not registered with {nameof(AzureServiceBusProducer)}");
 
-            await throttle.WaitAsync();
+            await throttle.WaitAsync(cancellationToken);
 
             try
             {
@@ -290,7 +290,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 var serviceBusMessage = new ServiceBusMessage(body);
                 await using (var sender = client.CreateSender(topic))
                 {
-                    await sender.SendMessageAsync(serviceBusMessage);
+                    await sender.SendMessageAsync(serviceBusMessage, cancellationToken);
                 }
             }
             finally

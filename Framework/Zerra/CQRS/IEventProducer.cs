@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Zerra.CQRS
@@ -28,7 +29,8 @@ namespace Zerra.CQRS
         /// </summary>
         /// <param name="event">The event to send.</param>
         /// <param name="source">A description of where the command came from.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>A task to await sending the event.</returns>
-        Task DispatchAsync(IEvent @event, string source);
+        Task DispatchAsync(IEvent @event, string source, CancellationToken cancellationToken);
     }
 }

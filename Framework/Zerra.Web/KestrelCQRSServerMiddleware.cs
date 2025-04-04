@@ -127,7 +127,7 @@ namespace Zerra.Web
                     if (symmetricConfig is not null)
                         body = SymmetricEncryptor.Decrypt(symmetricConfig, body, false);
 
-                    data = await ContentTypeSerializer.DeserializeAsync<CqrsRequestData>(contentType.Value, body);
+                    data = await ContentTypeSerializer.DeserializeAsync<CqrsRequestData>(contentType.Value, body, context.RequestAborted);
 
                     if (data is null)
                         throw new Exception("Invalid Request");
@@ -172,10 +172,10 @@ namespace Zerra.Web
                     if (!settings.Types.TryGetValue(providerType, out throttle))
                         throw new Exception($"{providerType.GetNiceName()} is not registered with {nameof(KestrelCqrsServerMiddleware)}");
 
-                    await throttle.WaitAsync();
+                    await throttle.WaitAsync(context.RequestAborted);
 
                     inHandlerContext = true;
-                    var result = await settings.ProviderHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, data.Source, false);
+                    var result = await settings.ProviderHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, data.Source, false, context.RequestAborted);
                     inHandlerContext = false;
 
                     //Response Header
@@ -215,8 +215,8 @@ namespace Zerra.Web
                                     responseBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, responseBodyStream, true);
 
                                     while ((bytesRead = await result.Stream.ReadAsync(buffer)) > 0)
-                                        await responseBodyCryptoStream.WriteAsync(buffer.Slice(0, bytesRead));
-                                    await responseBodyCryptoStream.FlushFinalBlockAsync();
+                                        await responseBodyCryptoStream.WriteAsync(buffer.Slice(0, bytesRead), context.RequestAborted);
+                                    await responseBodyCryptoStream.FlushFinalBlockAsync(context.RequestAborted);
                                 }
                                 finally
                                 {
@@ -229,15 +229,15 @@ namespace Zerra.Web
                             else
                             {
                                 while ((bytesRead = await result.Stream.ReadAsync(buffer)) > 0)
-                                    await responseBodyStream.WriteAsync(buffer.Slice(0, bytesRead));
-                                await responseBodyStream.FlushAsync();
+                                    await responseBodyStream.WriteAsync(buffer.Slice(0, bytesRead), context.RequestAborted);
+                                await responseBodyStream.FlushAsync(context.RequestAborted);
                             }
                         }
                         finally
                         {
                             ArrayPoolHelper<byte>.Return(bufferOwner);
                         }
-                        await context.Response.Body.FlushAsync();
+                        await context.Response.Body.FlushAsync(context.RequestAborted);
 
                         return;
                     }
@@ -250,8 +250,8 @@ namespace Zerra.Web
                             {
                                 responseBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, responseBodyStream, true);
 
-                                await ContentTypeSerializer.SerializeAsync(contentType.Value, responseBodyCryptoStream, result.Model);
-                                await responseBodyCryptoStream.FlushFinalBlockAsync();
+                                await ContentTypeSerializer.SerializeAsync(contentType.Value, responseBodyCryptoStream, result.Model, context.RequestAborted);
+                                await responseBodyCryptoStream.FlushFinalBlockAsync(context.RequestAborted);
                                 return;
                             }
                             finally
@@ -264,8 +264,8 @@ namespace Zerra.Web
                         }
                         else
                         {
-                            await ContentTypeSerializer.SerializeAsync(contentType.Value, responseBodyStream, result.Model);
-                            await responseBodyStream.FlushAsync();
+                            await ContentTypeSerializer.SerializeAsync(contentType.Value, responseBodyStream, result.Model, context.RequestAborted);
+                            await responseBodyStream.FlushAsync(context.RequestAborted);
                             return;
                         }
                     }
@@ -281,7 +281,7 @@ namespace Zerra.Web
                     if (!settings.Types.TryGetValue(messageType, out throttle))
                         throw new Exception($"{messageType.GetNiceName()} is not registered with {nameof(KestrelCqrsServerMiddleware)}");
 
-                    await throttle.WaitAsync();
+                    await throttle.WaitAsync(context.RequestAborted);
 
                     bool hasResult;
                     object? result = null;
@@ -302,19 +302,19 @@ namespace Zerra.Web
                         if (data.MessageResult == true)
                         {
                             if (settings.CommandHandlerWithResultAwaitAsync is null) throw new InvalidOperationException($"{nameof(KestrelCqrsServerMiddleware)} is not setup");
-                            result = await settings.CommandHandlerWithResultAwaitAsync(command, data.Source, false);
+                            result = await settings.CommandHandlerWithResultAwaitAsync(command, data.Source, false, context.RequestAborted);
                             hasResult = true;
                         }
                         else if (data.MessageAwait == true)
                         {
                             if (settings.CommandHandlerAwaitAsync is null) throw new InvalidOperationException($"{nameof(KestrelCqrsServerMiddleware)} is not setup");
-                            await settings.CommandHandlerAwaitAsync(command, data.Source, false);
+                            await settings.CommandHandlerAwaitAsync(command, data.Source, false, context.RequestAborted);
                             hasResult = false;
                         }
                         else
                         {
                             if (settings.CommandHandlerAsync is null) throw new InvalidOperationException($"{nameof(KestrelCqrsServerMiddleware)} is not setup");
-                            await settings.CommandHandlerAsync(command, data.Source, false);
+                            await settings.CommandHandlerAsync(command, data.Source, false, context.RequestAborted);
                             hasResult = false;
                         }
                         inHandlerContext = false;
@@ -327,7 +327,7 @@ namespace Zerra.Web
 
                         inHandlerContext = true;
                         if (settings.EventHandlerAsync is null) throw new InvalidOperationException($"{nameof(KestrelCqrsServerMiddleware)} is not setup");
-                        await settings.EventHandlerAsync(@event, data.Source, false);
+                        await settings.EventHandlerAsync(@event, data.Source, false, context.RequestAborted);
                         hasResult = false;
                         inHandlerContext = false;
                     }
@@ -381,14 +381,14 @@ namespace Zerra.Web
                         if (symmetricConfig is not null)
                         {
                             var responseBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, responseBodyStream, true);
-                            await ContentTypeSerializer.SerializeAsync(contentType.Value, responseBodyCryptoStream, result);
-                            await responseBodyCryptoStream.FlushFinalBlockAsync();
+                            await ContentTypeSerializer.SerializeAsync(contentType.Value, responseBodyCryptoStream, result, context.RequestAborted);
+                            await responseBodyCryptoStream.FlushFinalBlockAsync(context.RequestAborted);
                             await responseBodyCryptoStream.DisposeAsync();
                         }
                         else
                         {
-                            await ContentTypeSerializer.SerializeAsync(contentType.Value, responseBodyStream, result);
-                            await responseBodyStream.FlushAsync();
+                            await ContentTypeSerializer.SerializeAsync(contentType.Value, responseBodyStream, result, context.RequestAborted);
+                            await responseBodyStream.FlushAsync(context.RequestAborted);
                         }
                     }
 
@@ -398,6 +398,10 @@ namespace Zerra.Web
                 {
                     context.Response.StatusCode = 400;
                 }
+            }
+            catch (OperationCanceledException ex)
+            {
+                _ = Log.ErrorAsync(ex);
             }
             catch (Exception ex)
             {
@@ -429,14 +433,14 @@ namespace Zerra.Web
                 if (symmetricConfig is not null)
                 {
                     var responseBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, responseBodyStream, true);
-                    await ContentTypeSerializer.SerializeExceptionAsync(contentType.Value, responseBodyCryptoStream, ex);
+                    await ContentTypeSerializer.SerializeExceptionAsync(contentType.Value, responseBodyCryptoStream, ex, context.RequestAborted);
                     await responseBodyCryptoStream.FlushFinalBlockAsync();
                     await responseBodyCryptoStream.DisposeAsync();
                 }
                 else
                 {
-                    await ContentTypeSerializer.SerializeExceptionAsync(contentType.Value, responseBodyStream, ex);
-                    await responseBodyStream.FlushAsync();
+                    await ContentTypeSerializer.SerializeExceptionAsync(contentType.Value, responseBodyStream, ex, context.RequestAborted);
+                    await responseBodyStream.FlushAsync(context.RequestAborted);
                 }
             }
             finally

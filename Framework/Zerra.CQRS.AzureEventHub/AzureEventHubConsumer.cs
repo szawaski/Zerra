@@ -155,7 +155,7 @@ namespace Zerra.CQRS.AzureEventHub
                                 throw new Exception($"{nameof(AzureEventHubConsumer)} is not setup");
                         }
 
-                        _ = Task.Run(() => HandleEvent(throttle, typeName, isCommand, isEvent, partitionEvent));
+                        _ = Task.Run(() => HandleEvent(throttle, typeName, isCommand, isEvent, partitionEvent, canceller.Token));
                     }
                 }
             }
@@ -177,7 +177,7 @@ namespace Zerra.CQRS.AzureEventHub
             }
         }
 
-        private async Task HandleEvent(SemaphoreSlim throttle, string typeName, bool isCommand, bool isEvent, PartitionEvent partitionEvent)
+        private async Task HandleEvent(SemaphoreSlim throttle, string typeName, bool isCommand, bool isEvent, PartitionEvent partitionEvent, CancellationToken cancellationToken)
         {
             object? result = null;
             Exception? error = null;
@@ -218,15 +218,15 @@ namespace Zerra.CQRS.AzureEventHub
                 if (isCommand)
                 {
                     if (message.HasResult)
-                        result = await handlerWithResultAwaitAsync!((ICommand)commandOrEvent, message.Source, false);
+                        result = await handlerWithResultAwaitAsync!((ICommand)commandOrEvent, message.Source, false, cancellationToken);
                     else if (awaitResponse)
-                        await handlerAwaitAsync!((ICommand)commandOrEvent, message.Source, false);
+                        await handlerAwaitAsync!((ICommand)commandOrEvent, message.Source, false, cancellationToken);
                     else
-                        await handlerAsync!((ICommand)commandOrEvent, message.Source, false);
+                        await handlerAsync!((ICommand)commandOrEvent, message.Source, false, cancellationToken);
                 }
                 else if (isEvent)
                 {
-                    await eventHandlerAsync!((IEvent)commandOrEvent, message.Source, false);
+                    await eventHandlerAsync!((IEvent)commandOrEvent, message.Source, false, cancellationToken);
                 }
                 inHandlerContext = false;
             }

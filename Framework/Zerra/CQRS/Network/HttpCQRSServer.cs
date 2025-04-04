@@ -138,7 +138,7 @@ namespace Zerra.CQRS.Network
                         if (symmetricConfig is not null)
                             requestBodyStream = SymmetricEncryptor.Decrypt(symmetricConfig, requestBodyStream, false);
 
-                        var data = await ContentTypeSerializer.DeserializeAsync<CqrsRequestData>(requestHeader.ContentType.Value, requestBodyStream);
+                        var data = await ContentTypeSerializer.DeserializeAsync<CqrsRequestData>(requestHeader.ContentType.Value, requestBodyStream, cancellationToken);
                         if (data is null)
                             throw new CqrsNetworkException("Empty request body");
 
@@ -190,7 +190,7 @@ namespace Zerra.CQRS.Network
                                 throw new CqrsNetworkException($"Unhandled Provider Type {providerType.FullName}");
 
                             inHandlerContext = true;
-                            var result = await this.providerHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, socket.AddressFamily.ToString(), false);
+                            var result = await this.providerHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, socket.AddressFamily.ToString(), false, cancellationToken);
                             inHandlerContext = false;
 
                             responseStarted = true;
@@ -221,7 +221,7 @@ namespace Zerra.CQRS.Network
                                         await responseBodyCryptoStream.WriteAsync(buffer.Slice(0, bytesRead), cancellationToken);
 #endif
 #if NET5_0_OR_GREATER
-                                    await responseBodyCryptoStream.FlushFinalBlockAsync();
+                                    await responseBodyCryptoStream.FlushFinalBlockAsync(cancellationToken);
 #else
                                     responseBodyCryptoStream.FlushFinalBlock();
 #endif
@@ -246,9 +246,9 @@ namespace Zerra.CQRS.Network
                                 {
                                     responseBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, responseBodyStream, true);
 
-                                    await ContentTypeSerializer.SerializeAsync(requestHeader.ContentType.Value, responseBodyCryptoStream, result.Model);
+                                    await ContentTypeSerializer.SerializeAsync(requestHeader.ContentType.Value, responseBodyCryptoStream, result.Model, cancellationToken);
 #if NET5_0_OR_GREATER
-                                    await responseBodyCryptoStream.FlushFinalBlockAsync();
+                                    await responseBodyCryptoStream.FlushFinalBlockAsync(cancellationToken);
 #else
                                     responseBodyCryptoStream.FlushFinalBlock();
 #endif
@@ -256,7 +256,7 @@ namespace Zerra.CQRS.Network
                                 }
                                 else
                                 {
-                                    await ContentTypeSerializer.SerializeAsync(requestHeader.ContentType.Value, responseBodyStream, result.Model);
+                                    await ContentTypeSerializer.SerializeAsync(requestHeader.ContentType.Value, responseBodyStream, result.Model, cancellationToken);
                                     await responseBodyStream.FlushAsync(cancellationToken);
                                     continue;
                                 }
@@ -293,19 +293,19 @@ namespace Zerra.CQRS.Network
                                 if (data.MessageResult == true)
                                 {
                                     if (commandHandlerWithResultAwaitAsync is null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
-                                    result = await commandHandlerWithResultAwaitAsync(command, data.Source, false);
+                                    result = await commandHandlerWithResultAwaitAsync(command, data.Source, false, cancellationToken);
                                     hasResult = true;
                                 }
                                 if (data.MessageAwait == true)
                                 {
                                     if (commandHandlerAwaitAsync is null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
-                                    await commandHandlerAwaitAsync(command, data.Source, false);
+                                    await commandHandlerAwaitAsync(command, data.Source, false, cancellationToken);
                                     hasResult = false;
                                 }
                                 else
                                 {
                                     if (commandHandlerAsync is null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
-                                    _ = Task.Run(() => commandHandlerAsync(command, data.Source, false));
+                                    _ = Task.Run(() => commandHandlerAsync(command, data.Source, false, cancellationToken));
                                     hasResult = false;
                                 }
                                 inHandlerContext = false;
@@ -318,7 +318,7 @@ namespace Zerra.CQRS.Network
 
                                 inHandlerContext = true;
                                 if (eventHandlerAsync is null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
-                                _ = Task.Run(() => eventHandlerAsync(@event, data.Source, false));
+                                _ = Task.Run(() => eventHandlerAsync(@event, data.Source, false, cancellationToken));
                                 hasResult = false;
                                 inHandlerContext = false;
                             }
@@ -345,16 +345,16 @@ namespace Zerra.CQRS.Network
                                 {
                                     responseBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, responseBodyStream, true);
 
-                                    await ContentTypeSerializer.SerializeAsync(requestHeader.ContentType.Value, responseBodyCryptoStream, result);
+                                    await ContentTypeSerializer.SerializeAsync(requestHeader.ContentType.Value, responseBodyCryptoStream, result, cancellationToken);
 #if NET5_0_OR_GREATER
-                                    await responseBodyCryptoStream.FlushFinalBlockAsync();
+                                    await responseBodyCryptoStream.FlushFinalBlockAsync(cancellationToken);
 #else
                                     responseBodyCryptoStream.FlushFinalBlock();
 #endif
                                 }
                                 else
                                 {
-                                    await ContentTypeSerializer.SerializeAsync(requestHeader.ContentType.Value, responseBodyStream, result);
+                                    await ContentTypeSerializer.SerializeAsync(requestHeader.ContentType.Value, responseBodyStream, result, cancellationToken);
                                 }
                             }
                             else
@@ -395,16 +395,16 @@ namespace Zerra.CQRS.Network
                                 {
                                     responseBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, responseBodyStream, true);
 
-                                    await ContentTypeSerializer.SerializeExceptionAsync(requestHeader.ContentType.Value, responseBodyCryptoStream, ex);
+                                    await ContentTypeSerializer.SerializeExceptionAsync(requestHeader.ContentType.Value, responseBodyCryptoStream, ex, cancellationToken);
 #if NET5_0_OR_GREATER
-                                    await responseBodyCryptoStream.FlushFinalBlockAsync();
+                                    await responseBodyCryptoStream.FlushFinalBlockAsync(cancellationToken);
 #else
                                     responseBodyCryptoStream.FlushFinalBlock();
 #endif
                                 }
                                 else
                                 {
-                                    await ContentTypeSerializer.SerializeExceptionAsync(requestHeader.ContentType.Value, responseBodyStream, ex);
+                                    await ContentTypeSerializer.SerializeExceptionAsync(requestHeader.ContentType.Value, responseBodyStream, ex, cancellationToken);
                                 }
                             }
                             catch (Exception ex2)

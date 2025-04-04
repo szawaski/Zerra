@@ -5,6 +5,7 @@
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 using Zerra.Buffers;
 using Zerra.Reflection;
@@ -239,7 +240,7 @@ namespace Zerra.Serialization.Bytes
             }
         }
 
-        public static async Task<T?> DeserializeAsync<T>(Stream stream, ByteSerializerOptions? options = null)
+        public static async Task<T?> DeserializeAsync<T>(Stream stream, ByteSerializerOptions? options = null, CancellationToken cancellationToken = default)
         {
             if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
@@ -259,9 +260,9 @@ namespace Zerra.Serialization.Bytes
                 while (length < buffer.Length)
                 {
 #if NETSTANDARD2_0
-                    read = await stream.ReadAsync(buffer, length, buffer.Length - length);
+                    read = await stream.ReadAsync(buffer, length, buffer.Length - length, cancellationToken);
 #else
-                    read = await stream.ReadAsync(buffer.AsMemory(length));
+                    read = await stream.ReadAsync(buffer.AsMemory(length), cancellationToken);
 #endif
                     if (read == 0)
                     {
@@ -302,9 +303,9 @@ namespace Zerra.Serialization.Bytes
                     while (length < buffer.Length)
                     {
 #if NETSTANDARD2_0
-                        read = await stream.ReadAsync(buffer, length, buffer.Length - length);
+                        read = await stream.ReadAsync(buffer, length, buffer.Length - length, cancellationToken);
 #else
-                        read = await stream.ReadAsync(buffer.AsMemory(length));
+                        read = await stream.ReadAsync(buffer.AsMemory(length), cancellationToken);
 #endif
 
                         if (read == 0)
@@ -329,7 +330,7 @@ namespace Zerra.Serialization.Bytes
                 ArrayPoolHelper<byte>.Return(buffer);
             }
         }
-        public static async Task<object?> DeserializeAsync(Type type, Stream stream, ByteSerializerOptions? options = null)
+        public static async Task<object?> DeserializeAsync(Type type, Stream stream, ByteSerializerOptions? options = null, CancellationToken cancellationToken = default)
         {
             if (type is null)
                 throw new ArgumentNullException(nameof(type));
@@ -351,9 +352,9 @@ namespace Zerra.Serialization.Bytes
                 while (length < buffer.Length)
                 {
 #if NETSTANDARD2_0
-                    read = await stream.ReadAsync(buffer, length, buffer.Length - length);
+                    read = await stream.ReadAsync(buffer, length, buffer.Length - length, cancellationToken);
 #else
-                    read = await stream.ReadAsync(buffer.AsMemory(length));
+                    read = await stream.ReadAsync(buffer.AsMemory(length), cancellationToken);
 #endif
                     if (read == 0)
                     {
@@ -375,6 +376,8 @@ namespace Zerra.Serialization.Bytes
                 {
                     var bytesUsed = ReadBoxed(converter, buffer.AsSpan().Slice(0, length), ref state, out result);
 
+                    cancellationToken.ThrowIfCancellationRequested();
+
                     if (state.SizeNeeded == 0)
                     {
                         if (!isFinalBlock)
@@ -394,9 +397,9 @@ namespace Zerra.Serialization.Bytes
                     while (length < buffer.Length)
                     {
 #if NETSTANDARD2_0
-                        read = await stream.ReadAsync(buffer, length, buffer.Length - length);
+                        read = await stream.ReadAsync(buffer, length, buffer.Length - length, cancellationToken);
 #else
-                        read = await stream.ReadAsync(buffer.AsMemory(length));
+                        read = await stream.ReadAsync(buffer.AsMemory(length), cancellationToken);
 #endif
 
                         if (read == 0)

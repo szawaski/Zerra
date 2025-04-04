@@ -13,6 +13,11 @@ namespace Zerra.CQRS
     /// <typeparam name="T">The event type</typeparam>
     public interface IEventHandler<T> where T : IEvent
     {
+        /// <summary>
+        /// Handles processing the event.
+        /// </summary>
+        /// <param name="event">The event to process.</param>
+        /// <returns>A <see cref="Task"/> to await processing the event.</returns>
         Task Handle(T @event);
     }
 }

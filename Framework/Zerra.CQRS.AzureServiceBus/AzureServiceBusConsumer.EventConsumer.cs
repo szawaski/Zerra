@@ -138,7 +138,7 @@ namespace Zerra.CQRS.AzureServiceBus
                     }
 
                     inHandlerContext = true;
-                    await handlerAsync(@event, message.Source, false);
+                    await handlerAsync(@event, message.Source, false, canceller.Token);
                     inHandlerContext = false;
                 }
                 catch (Exception ex)

@@ -151,17 +151,16 @@ namespace Zerra.TestDev
         public sealed class CallThings : ICallThings
         {
             private readonly NetworkType networkType;
+            private readonly bool isFinalLayer;
             private readonly string source;
             public CallThings(NetworkType networkType, string source)
             {
                 this.networkType = networkType;
+                this.isFinalLayer = false;
                 this.source = source;
             }
 
-            public Task GetThings(int stuff)
-            {
-                return Bus._CallMethod<Task>(typeof(ICallThings), "GetThings", [stuff], networkType, true, source);
-            }
+            public Task GetThings(int stuff) => Bus._CallMethod<Task>(typeof(ICallThings), "GetThings", [stuff], networkType, isFinalLayer, source, default);
         }
     }
 }

@@ -71,7 +71,7 @@ namespace Zerra.Web
             var model = Request<TReturn>(throttle, isStream, routeUri, providerName, requestContentType, data, true);
             return model;
         }
-        protected override Task<TReturn?> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source) where TReturn : default
+        protected override Task<TReturn?> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source, CancellationToken cancellationToken) where TReturn : default
         {
             var providerName = interfaceType.Name;
             var stringArguments = new string?[arguments.Length];
@@ -92,11 +92,11 @@ namespace Zerra.Web
             };
             data.AddProviderArguments(arguments);
 
-            var model = RequestAsync<TReturn>(throttle, isStream, routeUri, providerName, requestContentType, data, true);
+            var model = RequestAsync<TReturn>(throttle, isStream, routeUri, providerName, requestContentType, data, true, cancellationToken);
             return model;
         }
 
-        protected override Task DispatchInternal(SemaphoreSlim throttle, Type commandType, ICommand command, bool messageAwait, string source)
+        protected override Task DispatchInternal(SemaphoreSlim throttle, Type commandType, ICommand command, bool messageAwait, string source, CancellationToken cancellationToken)
         {
             var messageType = commandType.GetNiceFullName();
             var messageData = ContentTypeSerializer.Serialize(requestContentType, command);
@@ -116,9 +116,9 @@ namespace Zerra.Web
                 Source = source
             };
 
-            return RequestAsync<object>(throttle, false, routeUri, messageType, requestContentType, data, false);
+            return RequestAsync<object>(throttle, false, routeUri, messageType, requestContentType, data, false, cancellationToken);
         }
-        protected override Task<TResult> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source) where TResult : default
+        protected override Task<TResult> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source, CancellationToken cancellationToken) where TResult : default
         {
             var messageType = commandType.GetNiceFullName();
             var messageData = ContentTypeSerializer.Serialize(requestContentType, command);
@@ -138,10 +138,10 @@ namespace Zerra.Web
                 Source = source
             };
 
-            return RequestAsync<TResult>(throttle, isStream, routeUri, messageType, requestContentType, data, true)!;
+            return RequestAsync<TResult>(throttle, isStream, routeUri, messageType, requestContentType, data, true, cancellationToken)!;
         }
 
-        protected override Task DispatchInternal(SemaphoreSlim throttle, Type eventType, IEvent @event, string source)
+        protected override Task DispatchInternal(SemaphoreSlim throttle, Type eventType, IEvent @event, string source, CancellationToken cancellationToken)
         {
             var messageType = eventType.GetNiceFullName();
             var messageData = ContentTypeSerializer.Serialize(requestContentType, @event);
@@ -161,7 +161,7 @@ namespace Zerra.Web
                 Source = source
             };
 
-            return RequestAsync<object>(throttle, false, routeUri, messageType, requestContentType, data, false);
+            return RequestAsync<object>(throttle, false, routeUri, messageType, requestContentType, data, false, cancellationToken);
         }
 
         private static readonly MethodInfo requestAsyncMethod = TypeAnalyzer.GetTypeDetail(typeof(KestrelCqrsClient)).MethodDetailsBoxed.First(x => x.MethodInfo.Name == nameof(KestrelCqrsClient.RequestAsync)).MethodInfo;
@@ -216,7 +216,7 @@ namespace Zerra.Web
                 responseStream = response.Content.ReadAsStream();
 #else
                 using var response = client.SendAsync(request).GetAwaiter().GetResult();
-                responseStream = response.Content.ReadAsStreamAsync().GetAwaiter().GetResult();
+                responseStream = response.Content.ReadAsStreamAsync(cancellationToken).GetAwaiter().GetResult();
 #endif
 
                 if (symmetricConfig is not null)
@@ -265,9 +265,9 @@ namespace Zerra.Web
                 throttle.Release();
             }
         }
-        private async Task<TReturn?> RequestAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, string? providerType, ContentType contentType, CqrsRequestData data, bool getResponseData)
+        private async Task<TReturn?> RequestAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, string? providerType, ContentType contentType, CqrsRequestData data, bool getResponseData, CancellationToken cancellationToken)
         {
-            await throttle.WaitAsync();
+            await throttle.WaitAsync(cancellationToken);
 
             Stream? responseStream = null;
             try
@@ -279,9 +279,9 @@ namespace Zerra.Web
                     if (symmetricConfig is not null)
                     {
                         var cryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, postStream, true);
-                        await ContentTypeSerializer.SerializeAsync(contentType, cryptoStream, data);
+                        await ContentTypeSerializer.SerializeAsync(contentType, cryptoStream, data, cancellationToken);
 #if NETCOREAPP
-                        await cryptoStream.FlushFinalBlockAsync();
+                        await cryptoStream.FlushFinalBlockAsync(cancellationToken);
 #else
                         cryptoStream.FlushFinalBlock();
 #endif
@@ -293,7 +293,7 @@ namespace Zerra.Web
                     }
                     else
                     {
-                        await ContentTypeSerializer.SerializeAsync(contentType, postStream, data);
+                        await ContentTypeSerializer.SerializeAsync(contentType, postStream, data, cancellationToken);
                     }
                 });
                 request.Content.Headers.ContentType = contentType switch
@@ -318,16 +318,16 @@ namespace Zerra.Web
                 if (!String.IsNullOrWhiteSpace(providerType))
                     request.Headers.Add(HttpCommon.ProviderTypeHeader, providerType);
 
-                using var response = await client.SendAsync(request);
+                using var response = await client.SendAsync(request, cancellationToken);
 
-                responseStream = await response.Content.ReadAsStreamAsync();
+                responseStream = await response.Content.ReadAsStreamAsync(cancellationToken);
 
                 if (symmetricConfig is not null)
                     responseStream = SymmetricEncryptor.Decrypt(symmetricConfig, responseStream, false);
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseStream);
+                    var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseStream, cancellationToken);
                     throw responseException;
                 }
 
@@ -348,7 +348,7 @@ namespace Zerra.Web
                 }
                 else
                 {
-                    var result = await ContentTypeSerializer.DeserializeAsync<TReturn>(contentType, responseStream);
+                    var result = await ContentTypeSerializer.DeserializeAsync<TReturn>(contentType, responseStream, cancellationToken);
 #if NETSTANDARD2_0
                     responseStream.Dispose();
 #else

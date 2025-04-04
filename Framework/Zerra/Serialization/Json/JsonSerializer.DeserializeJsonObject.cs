@@ -10,6 +10,7 @@ using Zerra.Serialization.Json.Converters;
 using Zerra.Serialization.Json.State;
 using Zerra.Serialization.Json.IO;
 using Zerra.Buffers;
+using System.Threading;
 
 namespace Zerra.Serialization.Json
 {
@@ -169,7 +170,7 @@ namespace Zerra.Serialization.Json
             }
         }
 
-        public static async Task<JsonObject?> DeserializeJsonObjectAsync(Stream stream, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static async Task<JsonObject?> DeserializeJsonObjectAsync(Stream stream, JsonSerializerOptions? options = null, Graph? graph = null, CancellationToken cancellationToken = default)
         {
             if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
@@ -187,9 +188,9 @@ namespace Zerra.Serialization.Json
                 while (position < buffer.Length)
                 {
 #if NETSTANDARD2_0
-                    read = await stream.ReadAsync(buffer, position, buffer.Length - position);
+                    read = await stream.ReadAsync(buffer, position, buffer.Length - position, cancellationToken);
 #else
-                    read = await stream.ReadAsync(buffer.AsMemory(position));
+                    read = await stream.ReadAsync(buffer.AsMemory(position), cancellationToken);
 #endif
                     if (read == 0)
                     {
@@ -236,9 +237,9 @@ namespace Zerra.Serialization.Json
                     while (position < buffer.Length)
                     {
 #if NETSTANDARD2_0
-                        read = await stream.ReadAsync(buffer, position, buffer.Length - position);
+                        read = await stream.ReadAsync(buffer, position, buffer.Length - position, cancellationToken);
 #else
-                        read = await stream.ReadAsync(buffer.AsMemory(position));
+                        read = await stream.ReadAsync(buffer.AsMemory(position), cancellationToken);
 #endif
 
                         if (read == 0)
