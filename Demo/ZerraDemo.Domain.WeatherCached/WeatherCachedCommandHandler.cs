@@ -20,10 +20,8 @@ namespace ZerraDemo.Domain.WeatherCached
             var @event = new WeatherChangedEvent() { WeatherType = command.WeatherType };
 
 
-            using (var timeoutCancellationToken = new CancellationTokenSource(TimeSpan.FromMilliseconds(1)))
-            {
-                await Bus.DispatchAsync(@event, timeoutCancellationToken.Token);
-            }
+            await Bus.DispatchAsync(@event, TimeSpan.FromMilliseconds(100));
+
 
             await Bus.DispatchAsync(@event);
             await Bus.DispatchAsync(@event);
