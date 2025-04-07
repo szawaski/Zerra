@@ -627,6 +627,10 @@ namespace Zerra
             }
         }
 
+        /// <summary>
+        /// If the graph members are directed an object type, this returns that type.
+        /// </summary>
+        /// <returns>The object type to which the graph members are directed.</returns>
         protected virtual Type? GetModelType() => null;
 
         //private static readonly byte maxRecursiveDepth = 2;
