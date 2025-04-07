@@ -199,7 +199,7 @@ namespace Zerra.CQRS.Network
             var errorType = ex.GetType();
             var content = new ExceptionContent()
             {
-                ErrorMessage = ex.Message,
+                ErrorMessage = ex.GetBaseException().Message,
                 ErrorType = errorType.FullName
             };
 
@@ -279,7 +279,7 @@ namespace Zerra.CQRS.Network
             var errorType = ex.GetType();
             var content = new ExceptionContent()
             {
-                ErrorMessage = ex.Message,
+                ErrorMessage = ex.GetBaseException().Message,
                 ErrorType = errorType.FullName
             };
 
