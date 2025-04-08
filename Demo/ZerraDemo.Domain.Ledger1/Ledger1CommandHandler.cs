@@ -6,6 +6,7 @@ using Zerra.Threading;
 using ZerraDemo.Domain.Ledger1.Command;
 using ZerraDemo.Domain.Ledger1.DataModels;
 using ZerraDemo.Common;
+using System.Threading;
 
 namespace ZerraDemo.Domain.Ledger1
 {
@@ -13,7 +14,7 @@ namespace ZerraDemo.Domain.Ledger1
     {
         private const string lockPurpose = "Transaction";
 
-        public async Task Handle(Deposit1Command command)
+        public async Task Handle(Deposit1Command command, CancellationToken cancellationToken)
         {
             Access.CheckRole("Admin");
 
@@ -61,7 +62,7 @@ namespace ZerraDemo.Domain.Ledger1
             }
         }
 
-        public async Task Handle(Withdraw1Command command)
+        public async Task Handle(Withdraw1Command command, CancellationToken cancellationToken)
         {
             Access.CheckRole("Admin");
 
@@ -110,7 +111,7 @@ namespace ZerraDemo.Domain.Ledger1
             }
         }
 
-        public async Task Handle(Transfer1Command command)
+        public async Task Handle(Transfer1Command command, CancellationToken cancellationToken)
         {
             Access.CheckRole("Admin");
 

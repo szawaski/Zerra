@@ -10,7 +10,7 @@ namespace ZerraDemo.Domain.WeatherCached
 {
     public class WeatherCachedCommandHandler : IWeatherCachedCommandHandler
     {
-        public async Task Handle(SetWeatherCachedCommand command)
+        public async Task Handle(SetWeatherCachedCommand command, CancellationToken cancellationToken)
         {
             Access.CheckRole("Admin");
 

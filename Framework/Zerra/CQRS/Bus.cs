@@ -41,6 +41,7 @@ namespace Zerra.CQRS
         private static readonly Type iEventHandlerType = typeof(IEventHandler<>);
         private static readonly Type iBusCacheType = typeof(IBusCache);
         private static readonly Type streamType = typeof(Stream);
+        private static readonly Type cancellationTokenType = typeof(CancellationToken);
 
         private static readonly object exitLock = new();
         private static bool exited = false;
@@ -442,8 +443,8 @@ namespace Zerra.CQRS
                     var messageHandlerToDispatchProvider = BusRouters.GetHandlerToDispatchInternalInstance(interfaceType, requireAffirmation, networkType, true, source, cancellationToken);
                     _ = methodSetNextProvider.CallerBoxed(cacheInstance, [messageHandlerToDispatchProvider]);
 
-                    var method = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(ICommandHandler<ICommand>.Handle), [commandType]);
-                    Task caller(ICommand arg) => (Task)method.CallerBoxed(cacheInstance, [arg])!;
+                    var method = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(ICommandHandler<ICommand>.Handle), [commandType, cancellationTokenType]);
+                    Task caller(ICommand arg) => (Task)method.CallerBoxed(cacheInstance, [arg, cancellationToken])!;
 
                     return caller;
                 });
@@ -474,9 +475,9 @@ namespace Zerra.CQRS
                 {
                     var interfaceType = TypeAnalyzer.GetGenericType(iCommandHandlerType, commandType);
                     var providerType = ProviderResolver.GetTypeFirst(interfaceType);
-                    var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(ICommandHandler<ICommand>.Handle), [commandType]);
+                    var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(ICommandHandler<ICommand>.Handle), [commandType, cancellationTokenType]);
                     var provider = Instantiator.GetSingle(providerType);
-                    result = (Task)method.CallerBoxed(provider, [command])!;
+                    result = (Task)method.CallerBoxed(provider, [command, cancellationToken])!;
                 }
                 else
                 {
@@ -556,8 +557,8 @@ namespace Zerra.CQRS
                     var messageHandlerToDispatchProvider = BusRouters.GetHandlerToDispatchInternalInstance(interfaceType, false, networkType, true, source, cancellationToken);
                     _ = methodSetNextProvider.CallerBoxed(cacheInstance, [messageHandlerToDispatchProvider]);
 
-                    var method = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(ICommandHandler<ICommand<TResult>, TResult>.Handle), [commandType, typeof(TResult)]);
-                    Task<TResult?> caller(ICommand<TResult> arg) => (Task<TResult?>)method.CallerBoxed(cacheInstance, [arg])!;
+                    var method = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(ICommandHandler<ICommand<TResult>, TResult>.Handle), [commandType, cancellationTokenType]);
+                    Task<TResult?> caller(ICommand<TResult> arg) => (Task<TResult?>)method.CallerBoxed(cacheInstance, [arg, cancellationToken])!;
 
                     return caller;
                 });
@@ -588,9 +589,9 @@ namespace Zerra.CQRS
                 {
                     var interfaceType = TypeAnalyzer.GetGenericType(iCommandHandlerWithResultType, commandType, typeof(TResult));
                     var providerType = ProviderResolver.GetTypeFirst(interfaceType);
-                    var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(ICommandHandler<ICommand<TResult>, TResult>.Handle), [commandType]);
+                    var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(ICommandHandler<ICommand<TResult>, TResult>.Handle), [commandType, cancellationTokenType]);
                     var provider = Instantiator.GetSingle(providerType);
-                    result = (Task<TResult>)method.CallerBoxed(provider, [command])!;
+                    result = (Task<TResult>)method.CallerBoxed(provider, [command, cancellationToken])!;
                 }
                 else
                 {
@@ -664,8 +665,8 @@ namespace Zerra.CQRS
                     var messageHandlerToDispatchProvider = BusRouters.GetHandlerToDispatchInternalInstance(interfaceType, false, networkType, true, source, cancellationToken);
                     _ = methodSetNextProvider.CallerBoxed(cacheInstance, [messageHandlerToDispatchProvider]);
 
-                    var method = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(IEventHandler<IEvent>.Handle), [eventType]);
-                    Task caller(IEvent arg) => (Task)method.CallerBoxed(cacheInstance, [arg])!;
+                    var method = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(IEventHandler<IEvent>.Handle), [eventType, cancellationTokenType]);
+                    Task caller(IEvent arg) => (Task)method.CallerBoxed(cacheInstance, [arg, cancellationToken])!;
 
                     return caller;
                 });
@@ -697,9 +698,9 @@ namespace Zerra.CQRS
                 {
                     var interfaceType = TypeAnalyzer.GetGenericType(iEventHandlerType, eventType);
                     var providerType = ProviderResolver.GetTypeFirst(interfaceType);
-                    var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(IEventHandler<IEvent>.Handle), [eventType]);
+                    var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(IEventHandler<IEvent>.Handle), [eventType, cancellationTokenType]);
                     var provider = Instantiator.GetSingle(providerType);
-                    result = (Task)method.CallerBoxed(provider, [@event])!;
+                    result = (Task)method.CallerBoxed(provider, [@event, cancellationToken])!;
                 }
                 else
                 {
@@ -758,9 +759,9 @@ namespace Zerra.CQRS
                 {
                     var interfaceType = TypeAnalyzer.GetGenericType(iCommandHandlerType, commandType);
                     var providerType = ProviderResolver.GetTypeFirst(interfaceType);
-                    var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(ICommandHandler<ICommand>.Handle), [commandType]);
+                    var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(ICommandHandler<ICommand>.Handle), [commandType, cancellationTokenType]);
                     var provider = Instantiator.GetSingle(providerType);
-                    await (Task)method.CallerBoxed(provider, [command])!;
+                    await (Task)method.CallerBoxed(provider, [command, cancellationToken])!;
                 }
                 else
                 {
@@ -796,9 +797,9 @@ namespace Zerra.CQRS
                 {
                     var interfaceType = TypeAnalyzer.GetGenericType(iCommandHandlerWithResultType, commandType, typeof(TResult));
                     var providerType = ProviderResolver.GetTypeFirst(interfaceType);
-                    var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(ICommandHandler<ICommand<TResult>, TResult>.Handle), [commandType]);
+                    var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(ICommandHandler<ICommand<TResult>, TResult>.Handle), [commandType, cancellationTokenType]);
                     var provider = Instantiator.GetSingle(providerType);
-                    result = await (Task<TResult>)method.CallerBoxed(provider, [command])!;
+                    result = await (Task<TResult>)method.CallerBoxed(provider, [command, cancellationToken])!;
                 }
                 else
                 {
@@ -832,9 +833,9 @@ namespace Zerra.CQRS
                 {
                     var interfaceType = TypeAnalyzer.GetGenericType(iEventHandlerType, eventType);
                     var providerType = ProviderResolver.GetTypeFirst(interfaceType);
-                    var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(IEventHandler<IEvent>.Handle), [eventType]);
+                    var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(IEventHandler<IEvent>.Handle), [eventType, cancellationTokenType]);
                     var provider = Instantiator.GetSingle(providerType);
-                    await (Task)method.CallerBoxed(provider, [@event])!;
+                    await (Task)method.CallerBoxed(provider, [@event, cancellationToken])!;
                 }
                 else
                 {

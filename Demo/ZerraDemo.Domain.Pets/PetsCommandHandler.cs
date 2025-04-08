@@ -11,6 +11,7 @@ using ZerraDemo.Domain.Weather;
 using ZerraDemo.Domain.Weather.Constants;
 using ZerraDemo.Common;
 using ZerraDemo.Domain.Pets.Exceptions;
+using System.Threading;
 
 namespace ZerraDemo.Domain.Pets
 {
@@ -21,7 +22,7 @@ namespace ZerraDemo.Domain.Pets
             PetsAssureData.AssureData();
         }
 
-        public async Task Handle(AdoptPetCommand command)
+        public async Task Handle(AdoptPetCommand command, CancellationToken cancellationToken)
         {
             Access.CheckRole("Admin");
 
@@ -34,7 +35,7 @@ namespace ZerraDemo.Domain.Pets
             await Repo.PersistAsync(new Create<PetDataModel>(item));
         }
 
-        public async Task<FeedPetCommandResult> Handle(FeedPetCommand command)
+        public async Task<FeedPetCommandResult> Handle(FeedPetCommand command, CancellationToken cancellationToken)
         {
             Access.CheckRole("Admin");
 
@@ -67,7 +68,7 @@ namespace ZerraDemo.Domain.Pets
             };
         }
 
-        public async Task Handle(LetPetOutToPoopCommand command)
+        public async Task Handle(LetPetOutToPoopCommand command, CancellationToken cancellationToken)
         {
             Access.CheckRole("Admin");
 

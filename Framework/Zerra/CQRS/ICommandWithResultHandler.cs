@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Zerra.CQRS
@@ -18,7 +19,8 @@ namespace Zerra.CQRS
         /// Handles processing the command and returns a result.
         /// </summary>
         /// <param name="command">The command to process.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>A <see cref="Task"/> to await processing the command and retreiving the result.</returns>
-        Task<TResult> Handle(T command);
+        Task<TResult> Handle(T command, CancellationToken cancellationToken);
     }
 }

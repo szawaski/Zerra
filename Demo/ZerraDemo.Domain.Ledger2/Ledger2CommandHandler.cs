@@ -2,12 +2,13 @@
 using ZerraDemo.Domain.Ledger2.Aggregates;
 using ZerraDemo.Domain.Ledger2.Command;
 using ZerraDemo.Common;
+using System.Threading;
 
 namespace ZerraDemo.Domain.Ledger2
 {
     public class Ledger2CommandHandler : ILedger2CommandHandler
     {
-        public async Task Handle(Deposit2Command command)
+        public async Task Handle(Deposit2Command command, CancellationToken cancellationToken)
         {
             Access.CheckRole("Admin");
 
@@ -15,7 +16,7 @@ namespace ZerraDemo.Domain.Ledger2
             await aggregate.Deposit(command.Amount, command.Description);
         }
 
-        public async Task Handle(Withdraw2Command command)
+        public async Task Handle(Withdraw2Command command, CancellationToken cancellationToken)
         {
             Access.CheckRole("Admin");
 
@@ -23,7 +24,7 @@ namespace ZerraDemo.Domain.Ledger2
             await aggregate.Withdraw(command.Amount, command.Description);
         }
 
-        public async Task Handle(Transfer2Command command)
+        public async Task Handle(Transfer2Command command, CancellationToken cancellationToken)
         {
             Access.CheckRole("Admin");
 
