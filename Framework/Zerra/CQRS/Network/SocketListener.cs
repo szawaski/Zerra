@@ -27,6 +27,10 @@ namespace Zerra.CQRS.Network
             this.socketPool = SocketClientPool.Shared;
             this.started = false;
             this.disposed = false;
+
+            socket.NoDelay = true;
+            socket.ReceiveTimeout = (int)socketPool.ConnectionTimeout.TotalMilliseconds;
+            socket.SendTimeout = (int)socketPool.ConnectionTimeout.TotalMilliseconds;
         }
 
         public void Open()
@@ -93,9 +97,7 @@ namespace Zerra.CQRS.Network
             _ = beginAcceptWaiter.Release();
 
             var incommingSocket = socket.EndAccept(result);
-            incommingSocket.ReceiveTimeout = (int)socketPool.ConnectionTimeout.TotalMilliseconds;
-            incommingSocket.SendTimeout = (int)socketPool.ConnectionTimeout.TotalMilliseconds;
-            //incommingSocket.NoDelay = socket.NoDelay; listener copies settings
+            //incommingSocket copies settings of socket (ReceiveTimeout,SendTimeout,NoDelay,etc)
 
             _ = handler(incommingSocket, canceller!.Token);
         }

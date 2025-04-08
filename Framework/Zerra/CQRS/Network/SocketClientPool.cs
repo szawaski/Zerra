@@ -16,7 +16,7 @@ namespace Zerra.CQRS.Network
     {
         public static readonly SocketClientPool Shared = new();
 
-        private readonly TimeSpan dnsTimeout = TimeSpan.FromSeconds(5);
+        private readonly TimeSpan dnsTimeout = TimeSpan.FromSeconds(15);
         public TimeSpan DnsTimeout
         {
             get => dnsTimeout;
@@ -28,7 +28,7 @@ namespace Zerra.CQRS.Network
             //}
         }
 
-        private readonly TimeSpan connectionTimeout = TimeSpan.FromSeconds(3);
+        private readonly TimeSpan connectionTimeout = TimeSpan.FromSeconds(15);
         public TimeSpan ConnectionTimeout
         {
             get => connectionTimeout;
