@@ -39,7 +39,7 @@ namespace Zerra.CQRS.Network
         }
 
         /// <inheritdoc />
-        protected override TReturn? CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source) where TReturn : default
+        protected override TReturn? CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source, CancellationToken cancellationToken) where TReturn : default
         {
             throttle.Wait();
 
@@ -185,6 +185,8 @@ namespace Zerra.CQRS.Network
                             {
                                 _ = Log.ErrorAsync(ex);
                                 stream = null;
+                                if (cancellationToken.IsCancellationRequested)
+                                    throw;
                                 goto newconnection;
                             }
                         }
@@ -384,6 +386,8 @@ namespace Zerra.CQRS.Network
                             {
                                 _ = Log.ErrorAsync(ex);
                                 stream = null;
+                                if (cancellationToken.IsCancellationRequested)
+                                    throw;
                                 goto newconnection;
                             }
                         }
@@ -573,6 +577,8 @@ namespace Zerra.CQRS.Network
                             {
                                 _ = Log.ErrorAsync(ex);
                                 stream = null;
+                                if (cancellationToken.IsCancellationRequested)
+                                    throw;
                                 goto newconnection;
                             }
                         }
@@ -770,6 +776,8 @@ namespace Zerra.CQRS.Network
                             {
                                 _ = Log.ErrorAsync(ex);
                                 stream = null;
+                                if (cancellationToken.IsCancellationRequested)
+                                    throw;
                                 goto newconnection;
                             }
                         }
@@ -959,6 +967,8 @@ namespace Zerra.CQRS.Network
                             {
                                 _ = Log.ErrorAsync(ex);
                                 stream = null;
+                                if (cancellationToken.IsCancellationRequested)
+                                    throw;
                                 goto newconnection;
                             }
                         }

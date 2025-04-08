@@ -167,12 +167,12 @@ namespace Zerra.CQRS
         /// <summary>
         /// The time to wait on a dispatch before a cancellation request unless otherwise specified per dispatch. Null indicates infinite time. The default is 30 seconds.
         /// </summary>
-        public static TimeSpan? DefaultDispatchTimeout { get; set; } = TimeSpan.FromSeconds(30);
+        public static TimeSpan? DefaultDispatchTimeout { get; set; }
 
         /// <summary>
         /// The time to wait on a call before a cancellation request unless otherwise specified per dispatch. Null indicates infinite time. The default is 30 seconds.
         /// </summary>
-        public static TimeSpan? DefaultCallTimeout { get; set; } = TimeSpan.FromSeconds(30);
+        public static TimeSpan? DefaultCallTimeout { get; set; }
 
         internal static async Task<RemoteQueryCallResponse> RemoteHandleQueryCallAsync(Type interfaceType, string methodName, string?[] arguments, string source, bool isApi, CancellationToken cancellationToken)
         {

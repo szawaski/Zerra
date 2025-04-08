@@ -116,7 +116,7 @@ namespace Zerra.CQRS.Network
                 else
                 {
                     var isStream = returnTypeDetails.InnerType == streamType || returnTypeDetails.InnerTypeDetail.BaseTypes.Contains(streamType);
-                    var model = CallInternal<TReturn>(throttle, isStream, interfaceType, methodName, arguments, source);
+                    var model = CallInternal<TReturn>(throttle, isStream, interfaceType, methodName, arguments, source, cancellationToken);
                     return model;
                 }
             }
@@ -138,7 +138,7 @@ namespace Zerra.CQRS.Network
         /// <param name="arguments">The raw arguments for the query method.</param>
         /// <param name="source">A description of where the request came from.</param>
         /// <returns>The result from the server.</returns>
-        protected abstract TReturn? CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source);
+        protected abstract TReturn? CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source, CancellationToken cancellationToken);
         /// <summary>
         /// Sends CQRS queries and returns the result from the server asyncronously.
         /// </summary>

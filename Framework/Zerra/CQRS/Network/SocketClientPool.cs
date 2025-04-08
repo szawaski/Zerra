@@ -17,52 +17,9 @@ namespace Zerra.CQRS.Network
         public static readonly SocketClientPool Shared = new();
 
         private readonly TimeSpan dnsTimeout = TimeSpan.FromSeconds(15);
-        public TimeSpan DnsTimeout
-        {
-            get => dnsTimeout;
-            //set
-            //{
-            //    if (value.TotalMilliseconds < 0)
-            //        throw new ArgumentOutOfRangeException(nameof(DnsTimeout));
-            //    dnsTimeout = value;
-            //}
-        }
-
         private readonly TimeSpan connectionTimeout = TimeSpan.FromSeconds(15);
-        public TimeSpan ConnectionTimeout
-        {
-            get => connectionTimeout;
-            //set
-            //{
-            //    if (value.TotalMilliseconds < 0)
-            //        throw new ArgumentOutOfRangeException(nameof(ConnectionTimeout));
-            //    connectionTimeout = value;
-            //}
-        }
-
         private readonly TimeSpan pooledConnectionLifetime = TimeSpan.FromMinutes(10);
-        public TimeSpan PooledConnectionLifetime
-        {
-            get => pooledConnectionLifetime;
-            //set
-            //{
-            //    if (value.TotalMilliseconds < 0)
-            //        throw new ArgumentOutOfRangeException(nameof(PooledConnectionLifetime));
-            //    pooledConnectionLifetime = value;
-            //}
-        }
-
         private readonly TimeSpan lifetimeTimeoutCheckInterval = TimeSpan.FromMinutes(2);
-        public TimeSpan LifetimeTimeoutCheckInterval
-        {
-            get => lifetimeTimeoutCheckInterval;
-            //set
-            //{
-            //    if (value.TotalMilliseconds < 0)
-            //        throw new ArgumentOutOfRangeException(nameof(LifetimeTimeoutCheckInterval));
-            //    lifetimeTimeoutCheckInterval = value;
-            //}
-        }
 
         private int maxConnectionsPerHost = Environment.ProcessorCount * 8;
         public int MaxConnectionsPerHost
@@ -157,8 +114,6 @@ namespace Zerra.CQRS.Network
                         var endPoint = new IPEndPoint(ip, port);
 
                         socket = new Socket(endPoint.AddressFamily, SocketType.Stream, protocol);
-                        socket.ReceiveTimeout = (int)connectionTimeout.TotalMilliseconds;
-                        socket.SendTimeout = (int)connectionTimeout.TotalMilliseconds;
                         socket.NoDelay = true;
 
                         MethodWait.Wait(() => socket.Connect(endPoint), connectionTimeout);
@@ -265,8 +220,6 @@ namespace Zerra.CQRS.Network
                         var endPoint = new IPEndPoint(ip, port);
 
                         socket = new Socket(endPoint.AddressFamily, SocketType.Stream, protocol);
-                        socket.ReceiveTimeout = (int)connectionTimeout.TotalMilliseconds;
-                        socket.SendTimeout = (int)connectionTimeout.TotalMilliseconds;
                         socket.NoDelay = true;
 
                         MethodWait.Wait(() => socket.Connect(endPoint), connectionTimeout);
@@ -305,8 +258,7 @@ namespace Zerra.CQRS.Network
 
         public async Task<SocketPoolStream> BeginStreamAsync(string host, int port, ProtocolType protocol, byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
-            if (canceller.IsCancellationRequested)
-                throw new ObjectDisposedException(nameof(SocketClientPool));
+            cancellationToken.ThrowIfCancellationRequested();
 
             var hostAndPort = new HostAndPort(host, port);
 
@@ -382,8 +334,6 @@ namespace Zerra.CQRS.Network
                         var endPoint = new IPEndPoint(ip, port);
 
                         socket = new Socket(endPoint.AddressFamily, SocketType.Stream, protocol);
-                        socket.ReceiveTimeout = (int)connectionTimeout.TotalMilliseconds;
-                        socket.SendTimeout = (int)connectionTimeout.TotalMilliseconds;
                         socket.NoDelay = true;
 #if NET5_0_OR_GREATER
                         await socket.ConnectAsync(endPoint, cancellationToken).WaitAsync(connectionTimeout, cancellationToken);
@@ -430,8 +380,7 @@ namespace Zerra.CQRS.Network
 #if !NETSTANDARD2_0
         public async Task<SocketPoolStream> BeginStreamAsync(string host, int port, ProtocolType protocol, Memory<byte> buffer, CancellationToken cancellationToken)
         {
-            if (canceller.IsCancellationRequested)
-                throw new ObjectDisposedException(nameof(SocketClientPool));
+            cancellationToken.ThrowIfCancellationRequested();
 
             var hostAndPort = new HostAndPort(host, port);
 
@@ -503,8 +452,6 @@ namespace Zerra.CQRS.Network
                         var endPoint = new IPEndPoint(ip, port);
 
                         socket = new Socket(endPoint.AddressFamily, SocketType.Stream, protocol);
-                        socket.ReceiveTimeout = (int)connectionTimeout.TotalMilliseconds;
-                        socket.SendTimeout = (int)connectionTimeout.TotalMilliseconds;
                         socket.NoDelay = true;
 
 #if NET5_0_OR_GREATER

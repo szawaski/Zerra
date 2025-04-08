@@ -155,6 +155,7 @@ namespace Zerra.CQRS.Network
                 {
                     var endpoint = endpoints[i];
                     var socket = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+                    socket.NoDelay = true;
                     socket.Bind(endpoint);
                     var listener = new SocketListener(socket, Handle);
                     this.listeners[i] = listener;

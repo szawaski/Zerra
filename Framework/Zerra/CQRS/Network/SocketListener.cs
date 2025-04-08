@@ -27,10 +27,6 @@ namespace Zerra.CQRS.Network
             this.socketPool = SocketClientPool.Shared;
             this.started = false;
             this.disposed = false;
-
-            socket.NoDelay = true;
-            socket.ReceiveTimeout = (int)socketPool.ConnectionTimeout.TotalMilliseconds;
-            socket.SendTimeout = (int)socketPool.ConnectionTimeout.TotalMilliseconds;
         }
 
         public void Open()
