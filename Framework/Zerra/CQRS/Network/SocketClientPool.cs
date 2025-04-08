@@ -16,8 +16,6 @@ namespace Zerra.CQRS.Network
     {
         public static readonly SocketClientPool Shared = new();
 
-        private readonly TimeSpan dnsTimeout = TimeSpan.FromSeconds(15);
-        private readonly TimeSpan connectionTimeout = TimeSpan.FromSeconds(15);
         private readonly TimeSpan pooledConnectionLifetime = TimeSpan.FromMinutes(10);
         private readonly TimeSpan lifetimeTimeoutCheckInterval = TimeSpan.FromMinutes(2);
 
@@ -42,219 +40,6 @@ namespace Zerra.CQRS.Network
 
         private readonly ConcurrentFactoryDictionary<HostAndPort, ConcurrentQueue<SocketHolder>> poolByHostAndPort = new();
         private readonly ConcurrentFactoryDictionary<HostAndPort, SemaphoreSlim> throttleByHostAndPort = new();
-
-        public SocketPoolStream BeginStream(string host, int port, ProtocolType protocol, byte[] buffer, int offset, int count)
-        {
-            if (canceller.IsCancellationRequested)
-                throw new ObjectDisposedException(nameof(SocketClientPool));
-
-            var hostAndPort = new HostAndPort(host, port);
-
-            var throttle = throttleByHostAndPort.GetOrAdd(hostAndPort, maxConnectionsPerHost, static (maxConnectionsPerHost) => new(maxConnectionsPerHost, maxConnectionsPerHost));
-            var pool = poolByHostAndPort.GetOrAdd(hostAndPort, static () => new());
-
-        getstream:
-            var noRelease = false;
-            throttle.Wait(canceller.Token); //disposing stream releases throttle so we enter again
-            try
-            {
-                SocketPoolStream? stream = null;
-                while (pool.TryDequeue(out var holder))
-                {
-                    lock (holder)
-                    {
-                        if (holder.Used)
-                            continue;
-                        holder.MarkUsed();
-                    }
-                    if (holder.Socket.Connected)
-                    {
-                        stream = new SocketPoolStream(holder.Socket, hostAndPort, ReturnSocket, false);
-                        break;
-                    }
-                    holder.Socket.Dispose();
-                }
-                if (stream is not null)
-                {
-                    try
-                    {
-                        stream.Write(buffer, offset, count);
-                        if (!stream.Connected)
-                        {
-                            stream.Dispose();
-                            noRelease = true;
-                            goto getstream;
-                        }
-                        noRelease = true;
-                        return stream;
-                    }
-                    catch (Exception ex)
-                    {
-                        if (ex.GetBaseException() is SocketException)
-                        {
-                            stream.Dispose();
-                            noRelease = true;
-                            goto getstream;
-                        }
-                        throw;
-                    }
-                }
-
-                var ips = MethodWait.Wait(() => Dns.GetHostAddresses(hostAndPort.Host), dnsTimeout);
-
-                Exception? lastex = null;
-                foreach (var ip in ips)
-                {
-                    if (ip.AddressFamily != AddressFamily.InterNetwork && ip.AddressFamily != AddressFamily.InterNetworkV6)
-                        continue;
-
-                    Socket? socket = null;
-                    try
-                    {
-                        var endPoint = new IPEndPoint(ip, port);
-
-                        socket = new Socket(endPoint.AddressFamily, SocketType.Stream, protocol);
-                        socket.NoDelay = true;
-
-                        MethodWait.Wait(() => socket.Connect(endPoint), connectionTimeout);
-
-                        stream = new SocketPoolStream(socket, hostAndPort, ReturnSocket, true);
-                        stream.Write(buffer, offset, count);
-                        if (!stream.Connected)
-                        {
-                            socket.Dispose();
-                            stream.DisposeNoReturnSocket();
-                            continue;
-                        }
-                        noRelease = true;
-                        return stream;
-                    }
-                    catch (Exception ex)
-                    {
-                        socket?.Dispose();
-                        stream?.DisposeNoReturnSocket();
-                        lastex = ex;
-                    }
-                }
-
-                if (lastex is not null)
-                    throw new ConnectionFailedException(lastex);
-                else
-                    throw new ConnectionFailedException();
-            }
-            finally
-            {
-                if (!noRelease)
-                    _ = throttle.Release();
-            }
-        }
-#if !NETSTANDARD2_0
-        public SocketPoolStream BeginStream(string host, int port, ProtocolType protocol, Span<byte> buffer)
-        {
-            if (canceller.IsCancellationRequested)
-                throw new ObjectDisposedException(nameof(SocketClientPool));
-
-            var hostAndPort = new HostAndPort(host, port);
-
-            var throttle = throttleByHostAndPort.GetOrAdd(hostAndPort, maxConnectionsPerHost, static (maxConnectionsPerHost) => new(maxConnectionsPerHost, maxConnectionsPerHost));
-            var pool = poolByHostAndPort.GetOrAdd(hostAndPort, static () => new());
-
-        getstream:
-            var noRelease = false;
-            throttle.Wait(canceller.Token); //disposing stream releases throttle so we enter again
-            try
-            {
-                SocketPoolStream? stream = null;
-                while (pool.TryDequeue(out var holder))
-                {
-                    lock (holder)
-                    {
-                        if (holder.Used)
-                            continue;
-                        holder.MarkUsed();
-                    }
-                    if (holder.Socket.Connected)
-                    {
-                        stream = new SocketPoolStream(holder.Socket, hostAndPort, ReturnSocket, false);
-                        break;
-                    }
-                    holder.Socket.Dispose();
-                }
-                if (stream is not null)
-                {
-                    try
-                    {
-                        stream.Write(buffer);
-                        if (!stream.Connected)
-                        {
-                            stream.Dispose();
-                            noRelease = true;
-                            goto getstream;
-                        }
-                        noRelease = true;
-                        return stream;
-                    }
-                    catch (Exception ex)
-                    {
-                        if (ex.GetBaseException() is SocketException)
-                        {
-                            stream.Dispose();
-                            noRelease = true;
-                            goto getstream;
-                        }
-                        throw;
-                    }
-                }
-
-                var ips = MethodWait.Wait(() => Dns.GetHostAddresses(hostAndPort.Host), dnsTimeout);
-
-                Exception? lastex = null;
-                foreach (var ip in ips)
-                {
-                    if (ip.AddressFamily != AddressFamily.InterNetwork && ip.AddressFamily != AddressFamily.InterNetworkV6)
-                        continue;
-
-                    Socket? socket = null;
-                    try
-                    {
-                        var endPoint = new IPEndPoint(ip, port);
-
-                        socket = new Socket(endPoint.AddressFamily, SocketType.Stream, protocol);
-                        socket.NoDelay = true;
-
-                        MethodWait.Wait(() => socket.Connect(endPoint), connectionTimeout);
-
-                        stream = new SocketPoolStream(socket, hostAndPort, ReturnSocket, true);
-                        stream.Write(buffer);
-                        if (!stream.Connected)
-                        {
-                            socket.Dispose();
-                            stream.DisposeNoReturnSocket();
-                            continue;
-                        }
-                        noRelease = true;
-                        return stream;
-                    }
-                    catch (Exception ex)
-                    {
-                        socket?.Dispose();
-                        stream?.DisposeNoReturnSocket();
-                        lastex = ex;
-                    }
-                }
-
-                if (lastex is not null)
-                    throw new ConnectionFailedException(lastex);
-                else
-                    throw new ConnectionFailedException();
-            }
-            finally
-            {
-                if (!noRelease)
-                    _ = throttle.Release();
-            }
-        }
-#endif
 
         public async Task<SocketPoolStream> BeginStreamAsync(string host, int port, ProtocolType protocol, byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
@@ -317,9 +102,9 @@ namespace Zerra.CQRS.Network
                 }
 
 #if NET6_0_OR_GREATER
-                var ips = await Dns.GetHostAddressesAsync(host, cancellationToken).WaitAsync(dnsTimeout, cancellationToken);
+                var ips = await Dns.GetHostAddressesAsync(host, cancellationToken);
 #else
-                var ips = await Dns.GetHostAddressesAsync(host).WaitAsync(dnsTimeout, cancellationToken);
+                var ips = await Dns.GetHostAddressesAsync(host);
 #endif
 
                 Exception? lastex = null;
@@ -336,9 +121,9 @@ namespace Zerra.CQRS.Network
                         socket = new Socket(endPoint.AddressFamily, SocketType.Stream, protocol);
                         socket.NoDelay = true;
 #if NET5_0_OR_GREATER
-                        await socket.ConnectAsync(endPoint, cancellationToken).WaitAsync(connectionTimeout, cancellationToken);
+                        await socket.ConnectAsync(endPoint, cancellationToken);
 #else
-                        await socket.ConnectAsync(endPoint).WaitAsync(connectionTimeout, cancellationToken);
+                        await socket.ConnectAsync(endPoint);
 #endif
 
                         stream = new SocketPoolStream(socket, hostAndPort, ReturnSocket, true);
@@ -435,9 +220,9 @@ namespace Zerra.CQRS.Network
                 }
 
 #if NET6_0_OR_GREATER
-                var ips = await Dns.GetHostAddressesAsync(host, cancellationToken).WaitAsync(dnsTimeout, cancellationToken);
+                var ips = await Dns.GetHostAddressesAsync(host, cancellationToken);
 #else
-                var ips = await Dns.GetHostAddressesAsync(host).WaitAsync(dnsTimeout, cancellationToken);
+                var ips = await Dns.GetHostAddressesAsync(host);
 #endif
 
                 Exception? lastex = null;
@@ -455,9 +240,9 @@ namespace Zerra.CQRS.Network
                         socket.NoDelay = true;
 
 #if NET5_0_OR_GREATER
-                        await socket.ConnectAsync(endPoint, cancellationToken).WaitAsync(connectionTimeout, cancellationToken);
+                        await socket.ConnectAsync(endPoint, cancellationToken);
 #else
-                        await socket.ConnectAsync(endPoint).WaitAsync(connectionTimeout, cancellationToken);
+                        await socket.ConnectAsync(endPoint);
 #endif
 
                         stream = new SocketPoolStream(socket, hostAndPort, ReturnSocket, true);

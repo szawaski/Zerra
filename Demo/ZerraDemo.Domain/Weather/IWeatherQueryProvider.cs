@@ -9,6 +9,7 @@ namespace ZerraDemo.Domain.Weather
     public interface IWeatherQueryProvider
     {
         Task<WeatherModel> GetWeather();
+        WeatherModel GetWeatherSync();
         Task<Stream> TestStreams();
     }
 }

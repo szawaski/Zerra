@@ -21,6 +21,18 @@ namespace ZerraDemo.Domain.Weather
             };
         }
 
+        public WeatherModel GetWeatherSync()
+        {
+            Access.CheckRole("Admin");
+
+            var weatherType = WeatherServer.GetWeather().GetAwaiter().GetResult();
+            return new WeatherModel
+            {
+                Date = DateTime.UtcNow,
+                WeatherType = weatherType
+            };
+        }
+
         public Task<Stream> TestStreams()
         {
             Access.CheckRole("Admin");

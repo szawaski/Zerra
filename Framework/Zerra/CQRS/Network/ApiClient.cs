@@ -52,26 +52,6 @@ namespace Zerra.CQRS.Network
         }
 
         /// <inheritdoc />
-        protected override TReturn? CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source, CancellationToken cancellationToken) where TReturn : default
-        {
-            var providerName = interfaceType.Name;
-            var stringArguments = new string?[arguments.Length];
-            for (var i = 0; i < arguments.Length; i++)
-                stringArguments[i] = JsonSerializer.Serialize(arguments);
-
-            var data = new ApiRequestData()
-            {
-                ProviderType = providerName,
-                ProviderMethod = methodName,
-
-                Source = source
-            };
-            data.AddProviderArguments(arguments);
-
-            var model = Request<TReturn>(throttle, isStream, routeUri, providerName, requestContentType, data, true);
-            return model;
-        }
-        /// <inheritdoc />
         protected override Task<TReturn?> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source, CancellationToken cancellationToken) where TReturn : default
         {
             var providerName = interfaceType.Name;
