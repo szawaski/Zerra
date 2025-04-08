@@ -6,6 +6,8 @@ using Zerra.Reflection;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Zerra.CQRS;
+using System;
+using System.Threading;
 
 namespace Zerra.TestDev
 {
@@ -145,7 +147,7 @@ namespace Zerra.TestDev
 
         public interface ICallThings
         {
-            Task GetThings(int stuff);
+            Task<Stuff> GetThings(int stuff);
         }
 
         public sealed class CallThings : ICallThings
@@ -153,14 +155,19 @@ namespace Zerra.TestDev
             private readonly NetworkType networkType;
             private readonly bool isFinalLayer;
             private readonly string source;
-            public CallThings(NetworkType networkType, string source)
+            private readonly TimeSpan? timeout;
+            private readonly CancellationToken? cancellationToken;
+            public CallThings(NetworkType networkType, bool isFinalLayer, string source, TimeSpan? timeout, CancellationToken? cancellationToken)
             {
                 this.networkType = networkType;
-                this.isFinalLayer = false;
+                this.isFinalLayer = isFinalLayer;
                 this.source = source;
+                this.timeout = timeout;
+                this.cancellationToken = cancellationToken;
             }
 
-            public Task GetThings(int stuff) => Bus._CallMethod<Task>(typeof(ICallThings), "GetThings", [stuff], networkType, isFinalLayer, source, default);
+            public Task<Stuff> GetThings(int stuff)
+                => Bus._CallMethod<Task<Stuff>>(typeof(ICallThings), "GetThings", [stuff], networkType, isFinalLayer, source, timeout, cancellationToken);
         }
     }
 }

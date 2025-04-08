@@ -17,11 +17,11 @@ namespace Zerra.CQRS
     {
         private static readonly ConcurrentFactoryDictionary<Type, Type> interfaceRouterClasses = new();
 
-        private static readonly Type[] getProviderToCallMethodInternalInstanceSignature = [typeof(NetworkType), typeof(bool), typeof(string), typeof(CancellationToken)];
-        public static object GetProviderToCallMethodInternalInstance(Type interfaceType, NetworkType networkType, bool isFinalLayer, string source, CancellationToken cancellationToken)
+        private static readonly Type[] getProviderToCallMethodInternalInstanceSignature = [typeof(NetworkType), typeof(bool), typeof(string), typeof(TimeSpan?), typeof(CancellationToken?)];
+        public static object GetProviderToCallMethodInternalInstance(Type interfaceType, NetworkType networkType, bool isFinalLayer, string source, TimeSpan? timeout, CancellationToken? cancellationToken)
         {
             var callerClassType = interfaceRouterClasses.GetOrAdd(interfaceType, GenerateProviderToCallMethodInternalClass);
-            return Instantiator.Create(callerClassType, getProviderToCallMethodInternalInstanceSignature, networkType, isFinalLayer, source, cancellationToken);
+            return Instantiator.Create(callerClassType, getProviderToCallMethodInternalInstanceSignature, networkType, isFinalLayer, source, timeout, cancellationToken);
         }
         private static Type GenerateProviderToCallMethodInternalClass(Type interfaceType)
         {
@@ -43,14 +43,16 @@ namespace Zerra.CQRS
             var networkTypeField = typeBuilder.DefineField("networkType", typeof(NetworkType), FieldAttributes.Private | FieldAttributes.InitOnly);
             var isFinalLayerField = typeBuilder.DefineField("isFinalLayer", typeof(bool), FieldAttributes.Private | FieldAttributes.InitOnly);
             var sourceField = typeBuilder.DefineField("source", typeof(string), FieldAttributes.Private | FieldAttributes.InitOnly);
-            var cancellationTokenField = typeBuilder.DefineField("cancellationToken", typeof(CancellationToken), FieldAttributes.Private | FieldAttributes.InitOnly);
+            var timeoutTokenField = typeBuilder.DefineField("timeout", typeof(TimeSpan?), FieldAttributes.Private | FieldAttributes.InitOnly);
+            var cancellationTokenField = typeBuilder.DefineField("cancellationToken", typeof(CancellationToken?), FieldAttributes.Private | FieldAttributes.InitOnly);
 
-            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Standard, [typeof(NetworkType), typeof(bool), typeof(string), typeof(CancellationToken)]);
+            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Standard, [typeof(NetworkType), typeof(bool), typeof(string), typeof(TimeSpan?), typeof(CancellationToken?)]);
             {
-                constructorBuilder.DefineParameter(0, ParameterAttributes.None, "networkType");
-                constructorBuilder.DefineParameter(1, ParameterAttributes.None, "isFinalLayer");
-                constructorBuilder.DefineParameter(2, ParameterAttributes.None, "source");
-                constructorBuilder.DefineParameter(3, ParameterAttributes.None, "cancellationToken");
+                _ = constructorBuilder.DefineParameter(0, ParameterAttributes.None, "networkType");
+                _ = constructorBuilder.DefineParameter(1, ParameterAttributes.None, "isFinalLayer");
+                _ = constructorBuilder.DefineParameter(2, ParameterAttributes.None, "source");
+                _ = constructorBuilder.DefineParameter(3, ParameterAttributes.None, "timeout");
+                _ = constructorBuilder.DefineParameter(4, ParameterAttributes.None, "cancellationToken");
 
                 var il = constructorBuilder.GetILGenerator();
                 il.Emit(OpCodes.Ldarg_0);
@@ -72,6 +74,10 @@ namespace Zerra.CQRS
 
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldarg, 4);
+                il.Emit(OpCodes.Stfld, timeoutTokenField);
+
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Ldarg, 5);
                 il.Emit(OpCodes.Stfld, cancellationTokenField);
 
                 il.Emit(OpCodes.Ret);
@@ -103,7 +109,7 @@ namespace Zerra.CQRS
 
                 il.Emit(OpCodes.Nop);
 
-                //_CallInternal<TReturn>(Type interfaceType, string methodName, object[] arguments, NetworkType networkType, bool isFinalLayer, string source, CancellationToken cancellationToken)
+                //_CallInternal<TReturn>(Type interfaceType, string methodName, object[] arguments, NetworkType networkType, bool isFinalLayer, string source, TimeSpan? timeout CancellationToken? cancellationToken)
 
                 il.Emit(OpCodes.Ldtoken, interfaceType);
                 il.Emit(OpCodes.Call, BusRouterMethods.TypeOfMethod); //typeof(TInterface)
@@ -130,6 +136,9 @@ namespace Zerra.CQRS
 
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldfld, sourceField); //source
+
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Ldfld, timeoutTokenField); //timeout
 
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldfld, cancellationTokenField); //cancellationToken
@@ -191,11 +200,11 @@ namespace Zerra.CQRS
 
             var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Standard, [typeof(bool), typeof(NetworkType), typeof(bool), typeof(string), typeof(CancellationToken)]);
             {
-                constructorBuilder.DefineParameter(0, ParameterAttributes.None, "requireAffirmation");
-                constructorBuilder.DefineParameter(1, ParameterAttributes.None, "networkType");
-                constructorBuilder.DefineParameter(2, ParameterAttributes.None, "isFinalLayer");
-                constructorBuilder.DefineParameter(3, ParameterAttributes.None, "source");
-                constructorBuilder.DefineParameter(4, ParameterAttributes.None, "cancellationToken");
+                _ = constructorBuilder.DefineParameter(0, ParameterAttributes.None, "requireAffirmation");
+                _ = constructorBuilder.DefineParameter(1, ParameterAttributes.None, "networkType");
+                _ = constructorBuilder.DefineParameter(2, ParameterAttributes.None, "isFinalLayer");
+                _ = constructorBuilder.DefineParameter(3, ParameterAttributes.None, "source");
+                _ = constructorBuilder.DefineParameter(4, ParameterAttributes.None, "cancellationToken");
 
                 var il = constructorBuilder.GetILGenerator();
                 il.Emit(OpCodes.Ldarg_0);
@@ -239,6 +248,8 @@ namespace Zerra.CQRS
                 methodBuilder.SetImplementationFlags(MethodImplAttributes.Managed);
 
                 var il = methodBuilder.GetILGenerator();
+                il.DeclareLocal(method.ReturnType);
+                il.DeclareLocal(method.ReturnType);
 
                 var genericInterface = method.DeclaringType?.IsGenericType == true ? method.DeclaringType.GetGenericTypeDefinition() : null;
 

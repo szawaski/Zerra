@@ -87,14 +87,14 @@ namespace ZerraDemo.Domain.Pets
                 }
             }
 
-            var tasks = new Task[10];
-            for (var i = 0; i < 10; i++)
-            {
-                tasks[i] = Bus.Call<IWeatherQueryProvider>().GetWeather();
-            }
-            await Task.WhenAll(tasks);
+            //var tasks = new Task[10];
+            //for (var i = 0; i < 10; i++)
+            //{
+            //    tasks[i] = Bus.Call<IWeatherQueryProvider>(TimeSpan.FromSeconds(1)).GetWeather();
+            //}
+            //await Task.WhenAll(tasks);
 
-            var weather = await Bus.Call<IWeatherQueryProvider>().GetWeather();
+            var weather = await Bus.Call<IWeatherQueryProvider>(TimeSpan.FromMilliseconds(200)).GetWeather();
 
             if (
                 (weather.WeatherType & WeatherType.Rain) == WeatherType.Rain ||
