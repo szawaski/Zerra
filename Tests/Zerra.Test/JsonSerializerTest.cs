@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Zerra.Serialization.Json;
 
@@ -957,6 +958,25 @@ namespace Zerra.Test
             Assert.IsNotNull(model2.Value);
             Assert.AreEqual(model1.Value.Things1, model2.Value.Things1);
             Assert.AreEqual(model1.Value.Things2, model2.Value.Things2);
+        }
+
+        [TestMethod]
+        public void StringCancellationToken()
+        {
+            var model1 = CancellationToken.None;
+            var json1 = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<CancellationToken>(json1);
+            AssertHelper.AreEqual(model1, model2);
+
+            CancellationToken? model3 = CancellationToken.None;
+            var json2 = JsonSerializer.Serialize(model3);
+            var model4 = JsonSerializer.Deserialize<CancellationToken?>(json2);
+            AssertHelper.AreEqual(model3, model4);
+
+            CancellationToken? model5 = null;
+            var json3 = JsonSerializer.Serialize(model5);
+            var model6 = JsonSerializer.Deserialize<CancellationToken?>(json3);
+            AssertHelper.AreEqual(model5, model6);
         }
 
         [TestMethod]
@@ -2128,6 +2148,31 @@ namespace Zerra.Test
             Assert.IsNotNull(model2.Value);
             Assert.AreEqual(model1.Value.Things1, model2.Value.Things1);
             Assert.AreEqual(model1.Value.Things2, model2.Value.Things2);
+        }
+
+        [TestMethod]
+        public async Task StreamCancellationToken()
+        {
+            var model1 = CancellationToken.None;
+            using var stream1 = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream1, model1);
+            stream1.Position = 0;
+            var model2 = await JsonSerializer.DeserializeAsync<CancellationToken>(stream1);
+            AssertHelper.AreEqual(model1, model2);
+
+            CancellationToken? model3 = CancellationToken.None;
+            using var stream2 = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream2, model3);
+            stream2.Position = 0;
+            var model4 = await JsonSerializer.DeserializeAsync<CancellationToken?>(stream2);
+            AssertHelper.AreEqual(model3, model4);
+
+            CancellationToken? model5 = null;
+            using var stream3 = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream3, model5);
+            stream3.Position = 0;
+            var model6 = await JsonSerializer.DeserializeAsync<CancellationToken?>(stream3);
+            AssertHelper.AreEqual(model5, model6);
         }
     }
 }

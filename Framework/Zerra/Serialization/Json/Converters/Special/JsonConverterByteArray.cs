@@ -6,7 +6,7 @@ using System;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 
-namespace Zerra.Serialization.Json.Converters.Collections
+namespace Zerra.Serialization.Json.Converters.Special
 {
     internal sealed class JsonConverterByteArray<TParent> : JsonConverter<TParent, byte[]>
     {

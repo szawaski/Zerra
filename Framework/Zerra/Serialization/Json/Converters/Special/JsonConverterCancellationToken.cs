@@ -3,21 +3,19 @@
 // Licensed to you under the MIT license
 
 using System;
-using Zerra.Reflection;
+using System.Threading;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 
-namespace Zerra.Serialization.Json.Converters.General
+namespace Zerra.Serialization.Json.Converters.Special
 {
-    internal sealed class JsonConverterType<TParent> : JsonConverter<TParent, Type?>
+    internal sealed class JsonConverterCancellationToken<TParent> : JsonConverter<TParent, CancellationToken>
     {
-        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out Type? value)
+        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out CancellationToken value)
         {
             switch (valueType)
             {
                 case JsonValueType.Object:
-                    if (state.ErrorOnTypeMismatch)
-                        ThrowCannotConvert(ref reader);
                     value = default;
                     return DrainObject(ref reader, ref state);
                 case JsonValueType.Array:
@@ -26,20 +24,18 @@ namespace Zerra.Serialization.Json.Converters.General
                     value = default;
                     return DrainArray(ref reader, ref state);
                 case JsonValueType.String:
-                    if (!reader.TryReadStringEscapedQuoted(true, out var str, out state.SizeNeeded))
-                    {
-                        value = default;
-                        return false;
-                    }
-
-                    value = Discovery.GetTypeFromName(str);
-                    return true;
+                    if (state.ErrorOnTypeMismatch)
+                        ThrowCannotConvert(ref reader);
+                    value = default;
+                    return DrainString(ref reader, ref state);
                 case JsonValueType.Number:
                     if (state.ErrorOnTypeMismatch)
                         ThrowCannotConvert(ref reader);
                     value = default;
                     return DrainNumber(ref reader, ref state);
                 case JsonValueType.Null_Completed:
+                    if (state.ErrorOnTypeMismatch)
+                        ThrowCannotConvert(ref reader);
                     value = default;
                     return true;
                 case JsonValueType.False_Completed:
@@ -57,7 +53,8 @@ namespace Zerra.Serialization.Json.Converters.General
             }
         }
 
-        protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, in Type? value)
-            => value is null ? writer.TryWriteNull(out state.SizeNeeded) : writer.TryWriteQuoted(value.FullName, out state.SizeNeeded);
+        private static readonly char[] emptyObjectChars = ['{', '}'];
+        protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, in CancellationToken value)
+            => writer.TryWrite(emptyObjectChars, out state.SizeNeeded);
     }
 }

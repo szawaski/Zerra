@@ -5,7 +5,6 @@
 using System;
 using System.Collections.Generic;
 using Zerra.Reflection;
-using Zerra.Serialization.Json.Converters.Collections;
 using Zerra.Serialization.Json.Converters.Collections.Collections;
 using Zerra.Serialization.Json.Converters.Collections.Dictionaries;
 using Zerra.Serialization.Json.Converters.Collections.Enumerables;
@@ -13,6 +12,7 @@ using Zerra.Serialization.Json.Converters.Collections.Lists;
 using Zerra.Serialization.Json.Converters.Collections.Sets;
 using Zerra.Serialization.Json.Converters.CoreTypes.Values;
 using Zerra.Serialization.Json.Converters.General;
+using Zerra.Serialization.Json.Converters.Special;
 
 namespace Zerra.Serialization.Json.Converters
 {
@@ -101,8 +101,11 @@ namespace Zerra.Serialization.Json.Converters
                 { "System.String", typeof(JsonConverterString<>) },
                 #endregion
 
-                { "System.Byte[]", typeof(JsonConverterByteArray<>) },
                 { "System.Type", typeof(JsonConverterType<>) },
+
+                { "System.Byte[]", typeof(JsonConverterByteArray<>) },
+                { "System.Threading.CancellationToken", typeof(JsonConverterCancellationToken<>) },
+                { "System.Nullable<System.Threading.CancellationToken>", typeof(JsonConverterCancellationTokenNullable<>) },
             };
 
         }

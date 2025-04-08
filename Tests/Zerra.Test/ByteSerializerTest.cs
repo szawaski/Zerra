@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 using Zerra.Serialization.Bytes;
 
@@ -634,6 +635,25 @@ namespace Zerra.Test
                 var model2 = await ByteSerializer.DeserializeAsync<TypesAllModel>(ms, options);
                 AssertHelper.AreEqual(model1, model2);
             }
+        }
+
+        [TestMethod]
+        public void CancellationTokens()
+        {
+            var model1 = CancellationToken.None;
+            var bytes1 = ByteSerializer.Serialize(model1);
+            var model2 = ByteSerializer.Deserialize<CancellationToken>(bytes1);
+            Assert.AreEqual(model1, model2);
+
+            CancellationToken? model3 = CancellationToken.None;
+            var bytes2 = ByteSerializer.Serialize(model3);
+            var model4 = ByteSerializer.Deserialize<CancellationToken?>(bytes2);
+            Assert.AreEqual(model3, model4);
+
+            CancellationToken? model5 = CancellationToken.None;
+            var bytes3 = ByteSerializer.Serialize(model5);
+            var model6 = ByteSerializer.Deserialize<CancellationToken?>(bytes3);
+            Assert.AreEqual(model5, model6);
         }
     }
 }

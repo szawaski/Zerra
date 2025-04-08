@@ -193,8 +193,15 @@ namespace Zerra.CQRS
                 var i = 0;
                 foreach (var argument in arguments)
                 {
-                    var parameter = JsonSerializer.Deserialize(methodDetail.ParameterDetails[i].Type, argument);
-                    args[i++] = parameter;
+                    if (i == args.Length - 1 && methodDetail.ParameterDetails[i].Type == cancellationTokenType)
+                    {
+                        args[i++] = cancellationToken;
+                    }
+                    else
+                    {
+                        var parameter = JsonSerializer.Deserialize(methodDetail.ParameterDetails[i].Type, argument);
+                        args[i++] = parameter;
+                    }
                 }
             }
 
@@ -905,27 +912,6 @@ namespace Zerra.CQRS
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         public static TReturn _CallMethod<TReturn>(Type interfaceType, string methodName, object[] arguments, NetworkType networkType, bool isFinalLayer, string source, TimeSpan? timeout, CancellationToken? cancellationTokenNullable)
         {
-            CancellationTokenSource? cancellationTokenSource = null;
-            CancellationToken cancellationToken;
-            if (timeout.HasValue)
-            {
-                cancellationTokenSource = new CancellationTokenSource(timeout.Value);
-                cancellationToken = cancellationTokenSource.Token;
-            }
-            else if (cancellationTokenNullable.HasValue)
-            {
-                cancellationToken = cancellationTokenNullable.Value;
-            }
-            else if (DefaultCallTimeout.HasValue)
-            {
-                cancellationTokenSource = new CancellationTokenSource(DefaultCallTimeout.Value);
-                cancellationToken = cancellationTokenSource.Token;
-            }
-            else
-            {
-                cancellationToken = default;
-            }
-
             var metadata = callMetadata.GetOrAdd(interfaceType, networkType, (Func<Type, NetworkType, CallMetadata>)(static (interfaceType, networkType) =>
             {
                 NetworkType exposedNetworkType = NetworkType.Local;
@@ -991,6 +977,48 @@ namespace Zerra.CQRS
                 Authenticate(Thread.CurrentPrincipal, metadata.Roles, () => $"Access Denied for Interface {interfaceType.GetNiceName()}");
             if (methodMetadata.Authenticate)
                 Authenticate(Thread.CurrentPrincipal, methodMetadata.Roles, () => $"Access Denied for Method {interfaceType.GetNiceName()}.{methodName}");
+
+            CancellationTokenSource? cancellationTokenSource = null;
+            CancellationToken cancellationToken;
+            if (timeout.HasValue)
+            {
+                cancellationTokenSource = new CancellationTokenSource(timeout.Value);
+                cancellationToken = cancellationTokenSource.Token;
+                if (methodMetadata.MethodDetail.ParameterDetails.Count > 0 && methodMetadata.MethodDetail.ParameterDetails[methodMetadata.MethodDetail.ParameterDetails.Count - 1].Type == cancellationTokenType)
+                    arguments[arguments.Length - 1] = cancellationToken;
+            }
+            else if (cancellationTokenNullable.HasValue)
+            {
+                cancellationToken = cancellationTokenNullable.Value;
+                if (methodMetadata.MethodDetail.ParameterDetails.Count > 0 && methodMetadata.MethodDetail.ParameterDetails[methodMetadata.MethodDetail.ParameterDetails.Count - 1].Type == cancellationTokenType)
+                    arguments[arguments.Length - 1] = cancellationToken;
+            }
+            else if (methodMetadata.MethodDetail.ParameterDetails.Count > 0 && methodMetadata.MethodDetail.ParameterDetails[methodMetadata.MethodDetail.ParameterDetails.Count - 1].Type == cancellationTokenType)
+            {
+                var argumentCancellationToken = (CancellationToken)arguments[arguments.Length - 1];
+                if (argumentCancellationToken != CancellationToken.None)
+                {
+                    cancellationToken = argumentCancellationToken;
+                }
+                else if (DefaultCallTimeout.HasValue)
+                {
+                    cancellationTokenSource = new CancellationTokenSource(DefaultCallTimeout.Value);
+                    cancellationToken = cancellationTokenSource.Token;
+                }
+                else
+                {
+                    cancellationToken = default;
+                }
+            }
+            else if (DefaultCallTimeout.HasValue)
+            {
+                cancellationTokenSource = new CancellationTokenSource(DefaultCallTimeout.Value);
+                cancellationToken = cancellationTokenSource.Token;
+            }
+            else
+            {
+                cancellationToken = default;
+            }
 
             object? cacheProvider = null;
             if (!isFinalLayer)

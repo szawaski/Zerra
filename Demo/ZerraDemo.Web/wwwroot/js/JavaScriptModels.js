@@ -137,8 +137,8 @@ const IWeatherQueryProvider = {
     GetWeather: function(onComplete, onFail) {
         Bus.Call("IWeatherQueryProvider", "GetWeather", [], WeatherModelType, false, onComplete, onFail);
     },
-    GetWeatherSync: function(onComplete, onFail) {
-        Bus.Call("IWeatherQueryProvider", "GetWeatherSync", [], WeatherModelType, false, onComplete, onFail);
+    GetWeatherSync: function(cancellationToken, onComplete, onFail) {
+        Bus.Call("IWeatherQueryProvider", "GetWeatherSync", [cancellationToken], WeatherModelType, false, onComplete, onFail);
     },
     TestStreams: function(onComplete, onFail) {
         Bus.Call("IWeatherQueryProvider", "TestStreams", [], null, false, onComplete, onFail);

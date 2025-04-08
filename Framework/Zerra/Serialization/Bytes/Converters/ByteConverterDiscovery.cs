@@ -23,6 +23,7 @@ using Zerra.Serialization.Bytes.Converters.CoreTypes.ISetTs;
 using Zerra.Serialization.Bytes.Converters.CoreTypes.ListTs;
 using Zerra.Serialization.Bytes.Converters.CoreTypes.Values;
 using Zerra.Serialization.Bytes.Converters.General;
+using Zerra.Serialization.Bytes.Converters.Special;
 
 namespace Zerra.Serialization.Bytes.Converters
 {
@@ -511,6 +512,9 @@ namespace Zerra.Serialization.Bytes.Converters
 #endif
 
                 { "System.Type", typeof(ByteConverterType<>) },
+
+                { "System.Threading.CancellationToken", typeof(ByteConverterCancellationToken<>) },
+                { "System.Nullable<System.Threading.CancellationToken>", typeof(ByteConverterCancellationTokenNullable<>) },
             };
         }
 

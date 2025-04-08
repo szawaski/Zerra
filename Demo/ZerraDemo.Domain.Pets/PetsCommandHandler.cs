@@ -95,7 +95,7 @@ namespace ZerraDemo.Domain.Pets
             }
             await Task.WhenAll(tasks);
 
-            var weatherSync = Bus.Call<IWeatherQueryProvider>(TimeSpan.FromMilliseconds(200)).GetWeatherSync();
+            var weatherSync = Bus.Call<IWeatherQueryProvider>(TimeSpan.FromMilliseconds(20000)).GetWeatherSync(default);
 
             var weather = await Bus.Call<IWeatherQueryProvider>(TimeSpan.FromMilliseconds(200)).GetWeather();
 

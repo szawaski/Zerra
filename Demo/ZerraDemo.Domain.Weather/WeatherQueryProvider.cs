@@ -4,6 +4,7 @@ using System.Text;
 using System.Threading.Tasks;
 using ZerraDemo.Domain.Weather.Models;
 using ZerraDemo.Common;
+using System.Threading;
 
 namespace ZerraDemo.Domain.Weather
 {
@@ -21,7 +22,7 @@ namespace ZerraDemo.Domain.Weather
             };
         }
 
-        public WeatherModel GetWeatherSync()
+        public WeatherModel GetWeatherSync(CancellationToken cancellationToken)
         {
             Access.CheckRole("Admin");
 
