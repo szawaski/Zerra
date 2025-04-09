@@ -16,7 +16,7 @@
         <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
         <Description>Basic Console and File Logging for the Zerra Framework for a quick start.  Ideally replaced with a custom implementation of ILoggingProvider and IMessageLogger later on.</Description>
         <LangVersion>12.0</LangVersion>
-        <Version>5.1.0</Version>
+        <Version>5.1.1</Version>
     </PropertyGroup>
 
     <ItemGroup>

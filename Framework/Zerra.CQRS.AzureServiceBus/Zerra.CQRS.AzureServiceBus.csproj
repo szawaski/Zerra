@@ -16,7 +16,7 @@
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <LangVersion>12.0</LangVersion>
-        <Version>5.1.0</Version>
+        <Version>5.1.1</Version>
     </PropertyGroup>
 
     <ItemGroup>

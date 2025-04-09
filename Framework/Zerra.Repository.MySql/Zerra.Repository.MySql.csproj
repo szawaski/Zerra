@@ -20,7 +20,7 @@ Zerra.Repository.MySql.MySqlDataContext
         <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, SQL</PackageTags>
         <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
         <LangVersion>12.0</LangVersion>
-        <Version>5.1.0</Version>
+        <Version>5.1.1</Version>
     </PropertyGroup>
 
     <ItemGroup>
