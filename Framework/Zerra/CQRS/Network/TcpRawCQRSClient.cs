@@ -215,6 +215,19 @@ namespace Zerra.CQRS.Network
                         if (stream is not null)
                             stream.Dispose();
                     }
+                    else if (cancellationToken.IsCancellationRequested)
+                    {
+                        _ = Log.ErrorAsync(ex);
+                        if (stream is not null)
+                        {
+                            var abortSent = await SocketAbortMonitor.SendAbortMessage(stream);
+                            if (abortSent)
+                                stream?.Dispose();
+                            else
+                                stream?.DisposeSocket();
+                        }
+                        throw;
+                    }
                     else
                     {
                         if (stream is not null)
@@ -224,8 +237,6 @@ namespace Zerra.CQRS.Network
                             {
                                 _ = Log.ErrorAsync(ex);
                                 stream = null;
-                                if (cancellationToken.IsCancellationRequested)
-                                    throw;
                                 goto newconnection;
                             }
                         }
@@ -404,7 +415,20 @@ namespace Zerra.CQRS.Network
                     if (isThrowingRemote)
                     {
                         if (stream is not null)
-                            stream.Dispose();
+                            stream?.Dispose();
+                    }
+                    else if (cancellationToken.IsCancellationRequested)
+                    {
+                        _ = Log.ErrorAsync(ex);
+                        if (stream is not null)
+                        {
+                            var abortSent = await SocketAbortMonitor.SendAbortMessage(stream);
+                            if (abortSent)
+                                stream?.Dispose();
+                            else
+                                stream?.DisposeSocket();
+                        }
+                        throw;
                     }
                     else
                     {
@@ -415,8 +439,6 @@ namespace Zerra.CQRS.Network
                             {
                                 _ = Log.ErrorAsync(ex);
                                 stream = null;
-                                if (cancellationToken.IsCancellationRequested)
-                                    throw;
                                 goto newconnection;
                             }
                         }
@@ -605,6 +627,19 @@ namespace Zerra.CQRS.Network
                         if (stream is not null)
                             stream.Dispose();
                     }
+                    else if (cancellationToken.IsCancellationRequested)
+                    {
+                        _ = Log.ErrorAsync(ex);
+                        if (stream is not null)
+                        {
+                            var abortSent = await SocketAbortMonitor.SendAbortMessage(stream);
+                            if (abortSent)
+                                stream?.Dispose();
+                            else
+                                stream?.DisposeSocket();
+                        }
+                        throw;
+                    }
                     else
                     {
                         if (stream is not null)
@@ -614,8 +649,6 @@ namespace Zerra.CQRS.Network
                             {
                                 _ = Log.ErrorAsync(ex);
                                 stream = null;
-                                if (cancellationToken.IsCancellationRequested)
-                                    throw;
                                 goto newconnection;
                             }
                         }
@@ -796,6 +829,19 @@ namespace Zerra.CQRS.Network
                         if (stream is not null)
                             stream.Dispose();
                     }
+                    else if (cancellationToken.IsCancellationRequested)
+                    {
+                        _ = Log.ErrorAsync(ex);
+                        if (stream is not null)
+                        {
+                            var abortSent = await SocketAbortMonitor.SendAbortMessage(stream);
+                            if (abortSent)
+                                stream?.Dispose();
+                            else
+                                stream?.DisposeSocket();
+                        }
+                        throw;
+                    }
                     else
                     {
                         if (stream is not null)
@@ -805,8 +851,6 @@ namespace Zerra.CQRS.Network
                             {
                                 _ = Log.ErrorAsync(ex);
                                 stream = null;
-                                if (cancellationToken.IsCancellationRequested)
-                                    throw;
                                 goto newconnection;
                             }
                         }

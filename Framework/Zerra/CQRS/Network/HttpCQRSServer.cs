@@ -69,6 +69,7 @@ namespace Zerra.CQRS.Network
 
                     var inHandlerContext = false;
                     var throttleUsed = false;
+                    CancellationToken monitorCancellationToken = default;
                     try
                     {
                         //Read Request Header
@@ -190,7 +191,12 @@ namespace Zerra.CQRS.Network
                                 throw new CqrsNetworkException($"Unhandled Provider Type {providerType.FullName}");
 
                             inHandlerContext = true;
-                            var result = await this.providerHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, socket.AddressFamily.ToString(), false, cancellationToken);
+                            RemoteQueryCallResponse result;
+                            using (var monitor = new SocketAbortMonitor(socket, cancellationToken))
+                            {
+                                monitorCancellationToken = monitor.Token;
+                                result = await this.providerHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, socket.AddressFamily.ToString(), false, monitor.Token);
+                            }
                             inHandlerContext = false;
 
                             responseStarted = true;
@@ -293,13 +299,21 @@ namespace Zerra.CQRS.Network
                                 if (data.MessageResult == true)
                                 {
                                     if (commandHandlerWithResultAwaitAsync is null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
-                                    result = await commandHandlerWithResultAwaitAsync(command, data.Source, false, cancellationToken);
+                                    using (var monitor = new SocketAbortMonitor(socket, cancellationToken))
+                                    {
+                                        monitorCancellationToken = monitor.Token;
+                                        result = await commandHandlerWithResultAwaitAsync(command, data.Source, false, monitor.Token);
+                                    }
                                     hasResult = true;
                                 }
                                 if (data.MessageAwait == true)
                                 {
                                     if (commandHandlerAwaitAsync is null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
-                                    await commandHandlerAwaitAsync(command, data.Source, false, cancellationToken);
+                                    using (var monitor = new SocketAbortMonitor(socket, cancellationToken))
+                                    {
+                                        monitorCancellationToken = monitor.Token;
+                                        await commandHandlerAwaitAsync(command, data.Source, false, monitor.Token);
+                                    }
                                     hasResult = false;
                                 }
                                 else
@@ -325,6 +339,12 @@ namespace Zerra.CQRS.Network
                             else
                             {
                                 throw new CqrsNetworkException($"Unhandled Message Type {messageType.FullName}");
+                            }
+
+                            if (monitorCancellationToken.IsCancellationRequested)
+                            {
+                                _ = Log.ErrorAsync(new TaskCanceledException());
+                                return;
                             }
 
                             responseStarted = true;
@@ -371,7 +391,7 @@ namespace Zerra.CQRS.Network
                     }
                     catch (Exception ex)
                     {
-                        if (!inHandlerContext || !socket.Connected)
+                        if (!inHandlerContext || !socket.Connected || monitorCancellationToken.IsCancellationRequested)
                         {
                             _ = Log.ErrorAsync(ex);
                             return; //aborted or network error
