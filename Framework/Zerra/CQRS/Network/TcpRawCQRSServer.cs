@@ -144,7 +144,11 @@ namespace Zerra.CQRS.Network
                                 throw new CqrsNetworkException($"Unhandled Provider Type {providerType.FullName}");
 
                             inHandlerContext = true;
-                            var result = await this.providerHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, data.Source, false, cancellationToken);
+                            RemoteQueryCallResponse result;
+                            using (var monitor = new SocketAliveMonitor(socket, cancellationToken))
+                            {
+                                result = await this.providerHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, data.Source, false, monitor.Token);
+                            }
                             inHandlerContext = false;
 
                             responseStarted = true;
@@ -247,13 +251,19 @@ namespace Zerra.CQRS.Network
                                 if (data.MessageResult)
                                 {
                                     if (commandHandlerWithResultAwaitAsync is null) throw new InvalidOperationException($"{nameof(TcpRawCqrsServer)} is not setup");
-                                    result = await commandHandlerWithResultAwaitAsync(command, data.Source, false, cancellationToken);
+                                    using (var monitor = new SocketAliveMonitor(socket, cancellationToken))
+                                    {
+                                        result = await commandHandlerWithResultAwaitAsync(command, data.Source, false, monitor.Token);
+                                    }
                                     hasResult = true;
                                 }
                                 else if (data.MessageAwait)
                                 {
                                     if (commandHandlerAwaitAsync is null) throw new InvalidOperationException($"{nameof(TcpRawCqrsServer)} is not setup");
-                                    await commandHandlerAwaitAsync(command, data.Source, false, cancellationToken);
+                                    using (var monitor = new SocketAliveMonitor(socket, cancellationToken))
+                                    {
+                                        await commandHandlerAwaitAsync(command, data.Source, false, monitor.Token);
+                                    }
                                     hasResult = false;
                                 }
                                 else
@@ -271,7 +281,7 @@ namespace Zerra.CQRS.Network
                                     throw new Exception($"Invalid {nameof(data.MessageData)}");
 
                                 inHandlerContext = true;
-                                if (eventHandlerAsync is null) 
+                                if (eventHandlerAsync is null)
                                     throw new InvalidOperationException($"{nameof(TcpRawCqrsServer)} is not setup");
                                 _ = Task.Run(() => eventHandlerAsync(@event, data.Source, false));
                                 hasResult = false;
