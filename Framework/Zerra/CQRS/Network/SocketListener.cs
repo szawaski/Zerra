@@ -95,7 +95,7 @@ namespace Zerra.CQRS.Network
             var incommingSocket = socket.EndAccept(result);
             //incommingSocket copies settings of socket (ReceiveTimeout,SendTimeout,NoDelay,etc)
 
-            _ = handler(incommingSocket, canceller!.Token);
+            _ = Task.Run(() => handler(incommingSocket, canceller!.Token));
         }
 
         ~SocketListener()
