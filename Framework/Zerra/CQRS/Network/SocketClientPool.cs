@@ -14,6 +14,8 @@ namespace Zerra.CQRS.Network
 {
     internal class SocketClientPool : IDisposable
     {
+        private const int pollWaitMicroseconds = 1000;
+
         public static readonly SocketClientPool Shared = new();
 
         private readonly TimeSpan pooledConnectionLifetime = TimeSpan.FromMinutes(10);
@@ -64,7 +66,7 @@ namespace Zerra.CQRS.Network
                             continue;
                         holder.MarkUsed();
                     }
-                    if (holder.Socket.Connected)
+                    if (IsConnected(holder.Socket))
                     {
                         stream = new SocketPoolStream(holder.Socket, hostAndPort, ReturnSocket, false);
                         break;
@@ -80,12 +82,12 @@ namespace Zerra.CQRS.Network
 #else
                         await stream.WriteAsync(buffer, offset, count, cancellationToken);
 #endif
-                        if (!stream.Connected)
-                        {
-                            stream.Dispose();
-                            noRelease = true;
-                            goto getstream;
-                        }
+                        //if (!stream.Connected)
+                        //{
+                        //    stream.Dispose();
+                        //    noRelease = true;
+                        //    goto getstream;
+                        //}
                         noRelease = true;
                         return stream;
                     }
@@ -134,12 +136,12 @@ namespace Zerra.CQRS.Network
                         await stream.WriteAsync(buffer, offset, count, cancellationToken);
 #endif
 
-                        if (!stream.Connected)
-                        {
-                            socket.Dispose();
-                            stream.DisposeNoReturnSocket();
-                            continue;
-                        }
+                        //if (!stream.Connected)
+                        //{
+                        //    socket.Dispose();
+                        //    stream.DisposeNoReturnSocket();
+                        //    continue;
+                        //}
                         noRelease = true;
                         return stream;
                     }
@@ -186,7 +188,7 @@ namespace Zerra.CQRS.Network
                             continue;
                         holder.MarkUsed();
                     }
-                    if (holder.Socket.Connected)
+                    if (IsConnected(holder.Socket))
                     {
                         stream = new SocketPoolStream(holder.Socket, hostAndPort, ReturnSocket, false);
                         break;
@@ -198,12 +200,12 @@ namespace Zerra.CQRS.Network
                     try
                     {
                         await stream.WriteAsync(buffer, cancellationToken);
-                        if (!stream.Connected)
-                        {
-                            stream.Dispose();
-                            noRelease = true;
-                            goto getstream;
-                        }
+                        //if (!stream.Connected)
+                        //{
+                        //    stream.Dispose();
+                        //    noRelease = true;
+                        //    goto getstream;
+                        //}
                         noRelease = true;
                         return stream;
                     }
@@ -247,12 +249,12 @@ namespace Zerra.CQRS.Network
 
                         stream = new SocketPoolStream(socket, hostAndPort, ReturnSocket, true);
                         await stream.WriteAsync(buffer, cancellationToken);
-                        if (!stream.Connected)
-                        {
-                            socket.Dispose();
-                            stream.DisposeNoReturnSocket();
-                            continue;
-                        }
+                        //if (!stream.Connected)
+                        //{
+                        //    socket.Dispose();
+                        //    stream.DisposeNoReturnSocket();
+                        //    continue;
+                        //}
                         noRelease = true;
                         return stream;
                     }
@@ -333,6 +335,12 @@ namespace Zerra.CQRS.Network
                     }
                 }
             }
+        }
+
+        private static bool IsConnected(Socket socket)
+        {
+            var connected = !(socket.Poll(pollWaitMicroseconds, SelectMode.SelectRead) && socket.Available == 0);
+            return connected;
         }
 
         public void Dispose()
