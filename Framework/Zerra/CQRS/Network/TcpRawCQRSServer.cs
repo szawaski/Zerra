@@ -259,7 +259,7 @@ namespace Zerra.CQRS.Network
                                 else
                                 {
                                     if (commandHandlerAsync is null) throw new InvalidOperationException($"{nameof(TcpRawCqrsServer)} is not setup");
-                                    _ = Task.Run(() => commandHandlerAsync(command, data.Source, false, cancellationToken));
+                                    _ = Task.Run(() => commandHandlerAsync(command, data.Source, false, default));
                                     hasResult = false;
                                 }
                                 inHandlerContext = false;
@@ -273,7 +273,7 @@ namespace Zerra.CQRS.Network
                                 inHandlerContext = true;
                                 if (eventHandlerAsync is null) 
                                     throw new InvalidOperationException($"{nameof(TcpRawCqrsServer)} is not setup");
-                                _ = Task.Run(() => eventHandlerAsync(@event, data.Source, false, cancellationToken));
+                                _ = Task.Run(() => eventHandlerAsync(@event, data.Source, false));
                                 hasResult = false;
                                 inHandlerContext = false;
                             }

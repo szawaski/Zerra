@@ -26,6 +26,8 @@ namespace ZerraDemo.Domain.Weather
         {
             Access.CheckRole("Admin");
 
+            //Task.Delay(20000, cancellationToken).GetAwaiter().GetResult();
+
             var weatherType = WeatherServer.GetWeather().GetAwaiter().GetResult();
             return new WeatherModel
             {

@@ -11,6 +11,8 @@ namespace ZerraDemo.Domain.Weather
         {
             Access.CheckRole("Admin");
 
+            //await Task.Delay(30000, cancellationToken);
+
             await WeatherServer.SetWeather(command.WeatherType);
         }
     }

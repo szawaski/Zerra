@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Zerra.CQRS;
 using ZerraDemo.Common;
+using ZerraDemo.Domain.Weather.Commands;
 using ZerraDemo.Domain.WeatherCached.Commands;
 using ZerraDemo.Domain.WeatherCached.Events;
 
@@ -19,10 +20,9 @@ namespace ZerraDemo.Domain.WeatherCached
             //testing ack uniqueness
             var @event = new WeatherChangedEvent() { WeatherType = command.WeatherType };
 
+            await Bus.DispatchAwaitAsync(new SetWeatherCommand() { WeatherType = Weather.Constants.WeatherType.Asteroid }, TimeSpan.FromMilliseconds(1000));
 
             await Bus.DispatchAsync(@event, TimeSpan.FromMilliseconds(100));
-
-
             await Bus.DispatchAsync(@event);
             await Bus.DispatchAsync(@event);
         }

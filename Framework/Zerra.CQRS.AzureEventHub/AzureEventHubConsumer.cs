@@ -222,11 +222,11 @@ namespace Zerra.CQRS.AzureEventHub
                     else if (awaitResponse)
                         await handlerAwaitAsync!((ICommand)commandOrEvent, message.Source, false, cancellationToken);
                     else
-                        await handlerAsync!((ICommand)commandOrEvent, message.Source, false, cancellationToken);
+                        await handlerAsync!((ICommand)commandOrEvent, message.Source, false, default);
                 }
                 else if (isEvent)
                 {
-                    await eventHandlerAsync!((IEvent)commandOrEvent, message.Source, false, cancellationToken);
+                    await eventHandlerAsync!((IEvent)commandOrEvent, message.Source, false);
                 }
                 inHandlerContext = false;
             }

@@ -243,8 +243,8 @@ namespace Zerra.CQRS
             var model = dispatchCommandWithResultInternalAsyncMethodGeneric.ReturnTypeDetailBoxed.TaskResultGetter(task);
             return model;
         }
-        internal static Task RemoteHandleEventDispatchAsync(IEvent @event, string source, bool isApi, CancellationToken cancellationToken)
-            => _DispatchEventInternalAsync(@event, @event.GetType(), isApi ? NetworkType.Api : NetworkType.Internal, false, source, cancellationToken);
+        internal static Task RemoteHandleEventDispatchAsync(IEvent @event, string source, bool isApi)
+            => _DispatchEventInternalAsync(@event, @event.GetType(), isApi ? NetworkType.Api : NetworkType.Internal, false, source, default);
 
         /// <summary>
         /// Send a command to the configured destination.
@@ -672,8 +672,8 @@ namespace Zerra.CQRS
                     var messageHandlerToDispatchProvider = BusRouters.GetHandlerToDispatchInternalInstance(interfaceType, false, networkType, true, source, cancellationToken);
                     _ = methodSetNextProvider.CallerBoxed(cacheInstance, [messageHandlerToDispatchProvider]);
 
-                    var method = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(IEventHandler<IEvent>.Handle), [eventType, cancellationTokenType]);
-                    Task caller(IEvent arg) => (Task)method.CallerBoxed(cacheInstance, [arg, cancellationToken])!;
+                    var method = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(IEventHandler<IEvent>.Handle), [eventType]);
+                    Task caller(IEvent arg) => (Task)method.CallerBoxed(cacheInstance, [arg])!;
 
                     return caller;
                 });
@@ -705,9 +705,9 @@ namespace Zerra.CQRS
                 {
                     var interfaceType = TypeAnalyzer.GetGenericType(iEventHandlerType, eventType);
                     var providerType = ProviderResolver.GetTypeFirst(interfaceType);
-                    var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(IEventHandler<IEvent>.Handle), [eventType, cancellationTokenType]);
+                    var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(IEventHandler<IEvent>.Handle), [eventType]);
                     var provider = Instantiator.GetSingle(providerType);
-                    result = (Task)method.CallerBoxed(provider, [@event, cancellationToken])!;
+                    result = (Task)method.CallerBoxed(provider, [@event])!;
                 }
                 else
                 {
@@ -840,9 +840,9 @@ namespace Zerra.CQRS
                 {
                     var interfaceType = TypeAnalyzer.GetGenericType(iEventHandlerType, eventType);
                     var providerType = ProviderResolver.GetTypeFirst(interfaceType);
-                    var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(IEventHandler<IEvent>.Handle), [eventType, cancellationTokenType]);
+                    var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(IEventHandler<IEvent>.Handle), [eventType]);
                     var provider = Instantiator.GetSingle(providerType);
-                    await (Task)method.CallerBoxed(provider, [@event, cancellationToken])!;
+                    await (Task)method.CallerBoxed(provider, [@event])!;
                 }
                 else
                 {

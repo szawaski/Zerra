@@ -138,7 +138,7 @@ namespace Zerra.CQRS.Kafka
                         }
 
                         inHandlerContext = true;
-                        await handlerAsync(@event, message.Source, false, canceller.Token);
+                        await handlerAsync(@event, message.Source, false);
                         inHandlerContext = false;
                     }
                     else

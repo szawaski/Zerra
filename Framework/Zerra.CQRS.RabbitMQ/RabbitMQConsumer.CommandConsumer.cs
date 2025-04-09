@@ -125,7 +125,7 @@ namespace Zerra.CQRS.RabbitMQ
                             else if (awaitResponse)
                                 await handlerAwaitAsync(command, message.Source, false, canceller.Token);
                             else
-                                await handlerAsync(command, message.Source, false, canceller.Token);
+                                await handlerAsync(command, message.Source, false, default);
                             inHandlerContext = false;
                         }
                         catch (Exception ex)

@@ -157,7 +157,7 @@ namespace Zerra.CQRS.Kafka
                         else if (awaitResponse)
                             await handlerAwaitAsync(command, message.Source, false, canceller.Token);
                         else
-                            await handlerAsync(command, message.Source, false, canceller.Token);
+                            await handlerAsync(command, message.Source, false, default);
                         inHandlerContext = false;
                     }
                     else

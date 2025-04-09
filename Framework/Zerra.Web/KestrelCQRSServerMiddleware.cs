@@ -314,7 +314,7 @@ namespace Zerra.Web
                         else
                         {
                             if (settings.CommandHandlerAsync is null) throw new InvalidOperationException($"{nameof(KestrelCqrsServerMiddleware)} is not setup");
-                            await settings.CommandHandlerAsync(command, data.Source, false, context.RequestAborted);
+                            await settings.CommandHandlerAsync(command, data.Source, false, default);
                             hasResult = false;
                         }
                         inHandlerContext = false;
@@ -327,7 +327,7 @@ namespace Zerra.Web
 
                         inHandlerContext = true;
                         if (settings.EventHandlerAsync is null) throw new InvalidOperationException($"{nameof(KestrelCqrsServerMiddleware)} is not setup");
-                        await settings.EventHandlerAsync(@event, data.Source, false, context.RequestAborted);
+                        await settings.EventHandlerAsync(@event, data.Source, false);
                         hasResult = false;
                         inHandlerContext = false;
                     }

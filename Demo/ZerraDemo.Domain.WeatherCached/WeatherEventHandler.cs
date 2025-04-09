@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Threading;
 using System.Threading.Tasks;
 using ZerraDemo.Domain.WeatherCached.Events;
 
@@ -7,7 +6,7 @@ namespace ZerraDemo.Domain.WeatherCached
 {
     public class WeatherEventHandler : IWeatherEventHandler
     {
-        public async Task Handle(WeatherChangedEvent @event, CancellationToken cancellationToken)
+        public async Task Handle(WeatherChangedEvent @event)
         {
             var model = await WeatherCachedServer.GetWeather();
             if (@event.WeatherType != model)

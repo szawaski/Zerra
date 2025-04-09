@@ -18,8 +18,7 @@ namespace Zerra.CQRS
         /// Handles processing the event.
         /// </summary>
         /// <param name="event">The event to process.</param>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>A <see cref="Task"/> to await processing the event.</returns>
-        Task Handle(T @event, CancellationToken cancellationToken);
+        Task Handle(T @event);
     }
 }
