@@ -45,6 +45,8 @@ namespace Zerra.CQRS.AzureServiceBus
             {
                 var properties = await client.GetNamespacePropertiesAsync();
                 var premium = properties.Value.MessagingSku == MessagingSku.Premium;
+                var maxMessageSizeInKilobytes = premium ? maxMessageSizeForPremium : (int?)null;
+                var autoDeleteOnIdle = deleteWhenIdle ? deleteWhenIdleTimeout : TimeSpan.MaxValue;
 
                 if (!await client.QueueExistsAsync(queue))
                 {
@@ -53,16 +55,18 @@ namespace Zerra.CQRS.AzureServiceBus
 
                     var options = new CreateQueueOptions(queue)
                     {
-                        AutoDeleteOnIdle = deleteWhenIdle ? deleteWhenIdleTimeout : TimeSpan.MaxValue,
-                        MaxMessageSizeInKilobytes = premium ? maxMessageSizeForPremium : null
+                        AutoDeleteOnIdle = autoDeleteOnIdle,
+                        MaxMessageSizeInKilobytes = maxMessageSizeInKilobytes
                     };
                     _ = await client.CreateQueueAsync(options);
                 }
-                else if (premium)
+                else
                 {
                     var existing = await client.GetQueueAsync(queue);
-                    if (existing.Value.MaxMessageSizeInKilobytes != maxMessageSizeForPremium)
+                    if (existing.Value.AutoDeleteOnIdle != autoDeleteOnIdle ||
+                        existing.Value.MaxMessageSizeInKilobytes != maxMessageSizeForPremium)
                     {
+                        existing.Value.AutoDeleteOnIdle = autoDeleteOnIdle;
                         existing.Value.MaxMessageSizeInKilobytes = maxMessageSizeForPremium;
                         _ = await client.UpdateQueueAsync(existing.Value);
                     }
@@ -99,6 +103,8 @@ namespace Zerra.CQRS.AzureServiceBus
             {
                 var properties = await client.GetNamespacePropertiesAsync();
                 var premium = properties.Value.MessagingSku == MessagingSku.Premium;
+                var maxMessageSizeInKilobytes = premium ? maxMessageSizeForPremium : (int?)null;
+                var autoDeleteOnIdle = deleteWhenIdle ? deleteWhenIdleTimeout : TimeSpan.MaxValue;
 
                 if (!await client.TopicExistsAsync(topic))
                 {
@@ -107,16 +113,18 @@ namespace Zerra.CQRS.AzureServiceBus
 
                     var options = new CreateTopicOptions(topic)
                     {
-                        AutoDeleteOnIdle = deleteWhenIdle ? deleteWhenIdleTimeout : TimeSpan.MaxValue,
-                        MaxMessageSizeInKilobytes = premium ? maxMessageSizeForPremium : null
+                        AutoDeleteOnIdle = autoDeleteOnIdle,
+                        MaxMessageSizeInKilobytes = maxMessageSizeInKilobytes
                     };
                     _ = await client.CreateTopicAsync(options);
                 }
-                else if (premium)
+                else
                 {
                     var existing = await client.GetTopicAsync(topic);
-                    if (existing.Value.MaxMessageSizeInKilobytes != maxMessageSizeForPremium)
+                    if (existing.Value.AutoDeleteOnIdle != autoDeleteOnIdle ||
+                        existing.Value.MaxMessageSizeInKilobytes != maxMessageSizeForPremium)
                     {
+                        existing.Value.AutoDeleteOnIdle = autoDeleteOnIdle;
                         existing.Value.MaxMessageSizeInKilobytes = maxMessageSizeForPremium;
                         _ = await client.UpdateTopicAsync(existing.Value);
                     }
