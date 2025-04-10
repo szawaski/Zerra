@@ -87,7 +87,7 @@ namespace Zerra.CQRS
                 }
                 finally
                 {
-                    setupLock.Release();
+                    _ = setupLock.Release();
                 }
             }
         }
@@ -108,7 +108,7 @@ namespace Zerra.CQRS
                 }
                 finally
                 {
-                    setupLock.Release();
+                    _ = setupLock.Release();
                 }
             }
         }
@@ -129,7 +129,7 @@ namespace Zerra.CQRS
                 }
                 finally
                 {
-                    setupLock.Release();
+                    _ = setupLock.Release();
                 }
             }
         }
@@ -151,7 +151,7 @@ namespace Zerra.CQRS
                 }
                 finally
                 {
-                    setupLock.Release();
+                    _ = setupLock.Release();
                 }
             }
         }
@@ -252,7 +252,7 @@ namespace Zerra.CQRS
         /// A destination may be an implementation in the same assembly or calling a remote service.
         /// </summary>
         /// <param name="command">The command to send.</param>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests. This overrides <see cref="Bus.DefaultDispatchTimeout"/>.</param>
         /// <returns>A task to complete sending the command.</returns>
         public static Task DispatchAsync(ICommand command, CancellationToken? cancellationToken = null)
         {
@@ -272,7 +272,7 @@ namespace Zerra.CQRS
         /// A destination may be an implementation in the same assembly or calling a remote service.
         /// </summary>
         /// <param name="command">The command to send.</param>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests. This overrides <see cref="Bus.DefaultDispatchTimeout"/>.</param>
         /// <returns>A task to await processing of the command.</returns>
         public static Task DispatchAwaitAsync(ICommand command, CancellationToken? cancellationToken = null)
         {
@@ -293,7 +293,7 @@ namespace Zerra.CQRS
         /// A destination may be an implementation in the same assembly or calling a remote service.
         /// </summary>
         /// <param name="event">The command to send.</param>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests. This overrides <see cref="Bus.DefaultDispatchTimeout"/>.</param>
         /// <returns>A task to complete sending the event.</returns>
         public static Task DispatchAsync(IEvent @event, CancellationToken? cancellationToken = null)
         {
@@ -313,7 +313,7 @@ namespace Zerra.CQRS
         /// A destination may be an implementation in the same assembly or calling a remote service.
         /// </summary>
         /// <param name="command">The command to send.</param>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests. This overrides <see cref="Bus.DefaultDispatchTimeout"/>.</param>
         /// <returns>A task to await the result of the command.</returns>
         public static Task<TResult> DispatchAwaitAsync<TResult>(ICommand<TResult> command, CancellationToken? cancellationToken = null)
         {
@@ -334,10 +334,12 @@ namespace Zerra.CQRS
         /// A destination may be an implementation in the same assembly or calling a remote service.
         /// </summary>
         /// <param name="command">The command to send.</param>
-        /// <param name="timeout">The time to wait before a cancellation request.</param>
+        /// <param name="timeout">The time to wait before a cancellation request. Use <see cref="Timeout.InfiniteTimeSpan"/> for no timeout. This overrides <see cref="Bus.DefaultDispatchTimeout"/>.</param>
         /// <returns>A task to complete sending the command.</returns>
         public static Task DispatchAsync(ICommand command, TimeSpan timeout)
         {
+            if (timeout == Timeout.InfiniteTimeSpan)
+                return _DispatchCommandInternalAsync(command, command.GetType(), false, NetworkType.Local, false, Config.ApplicationIdentifier, default);
             var cancellationTokenSource = new CancellationTokenSource(timeout);
             var task = _DispatchCommandInternalAsync(command, command.GetType(), false, NetworkType.Local, false, Config.ApplicationIdentifier, cancellationTokenSource.Token);
             _ = task.ContinueWith((_) => cancellationTokenSource.Dispose());
@@ -349,10 +351,12 @@ namespace Zerra.CQRS
         /// A destination may be an implementation in the same assembly or calling a remote service.
         /// </summary>
         /// <param name="command">The command to send.</param>
-        /// <param name="timeout">The time to wait before a cancellation request.</param>
+        /// <param name="timeout">The time to wait before a cancellation request. Use <see cref="Timeout.InfiniteTimeSpan"/> for no timeout. This overrides <see cref="Bus.DefaultDispatchTimeout"/>.</param>
         /// <returns>A task to await processing of the command.</returns>
         public static Task DispatchAwaitAsync(ICommand command, TimeSpan timeout)
         {
+            if (timeout == Timeout.InfiniteTimeSpan)
+                return _DispatchCommandInternalAsync(command, command.GetType(), true, NetworkType.Local, false, Config.ApplicationIdentifier, default);
             var cancellationTokenSource = new CancellationTokenSource(timeout);
             var task = _DispatchCommandInternalAsync(command, command.GetType(), true, NetworkType.Local, false, Config.ApplicationIdentifier, cancellationTokenSource.Token);
             _ = task.ContinueWith((_) => cancellationTokenSource.Dispose());
@@ -365,13 +369,15 @@ namespace Zerra.CQRS
         /// A destination may be an implementation in the same assembly or calling a remote service.
         /// </summary>
         /// <param name="event">The command to send.</param>
-        /// <param name="timeout">The time to wait before a cancellation request.</param>
+        /// <param name="timeout">The time to wait before a cancellation request. Use <see cref="Timeout.InfiniteTimeSpan"/> for no timeout. This overrides <see cref="Bus.DefaultDispatchTimeout"/>.</param>
         /// <returns>A task to complete sending the event.</returns>
         public static Task DispatchAsync(IEvent @event, TimeSpan timeout)
         {
+            if (timeout == Timeout.InfiniteTimeSpan)
+                return _DispatchEventInternalAsync(@event, @event.GetType(), NetworkType.Local, false, Config.ApplicationIdentifier, default);
             var cancellationTokenSource = new CancellationTokenSource(timeout);
             var task = _DispatchEventInternalAsync(@event, @event.GetType(), NetworkType.Local, false, Config.ApplicationIdentifier, cancellationTokenSource.Token);
-            task.ContinueWith((_) => cancellationTokenSource.Dispose());
+            _ = task.ContinueWith((_) => cancellationTokenSource.Dispose());
             return task;
         }
         /// <summary>
@@ -380,10 +386,12 @@ namespace Zerra.CQRS
         /// A destination may be an implementation in the same assembly or calling a remote service.
         /// </summary>
         /// <param name="command">The command to send.</param>
-        /// <param name="timeout">The time to wait before a cancellation request.</param>
+        /// <param name="timeout">The time to wait before a cancellation request. Use <see cref="Timeout.InfiniteTimeSpan"/> for no timeout. This overrides <see cref="Bus.DefaultDispatchTimeout"/>.</param>
         /// <returns>A task to await the result of the command.</returns>
         public static Task<TResult> DispatchAwaitAsync<TResult>(ICommand<TResult> command, TimeSpan timeout)
         {
+            if (timeout == Timeout.InfiniteTimeSpan)
+                return _DispatchCommandWithResultInternalAsync(command, command.GetType(), NetworkType.Local, false, Config.ApplicationIdentifier, default);
             var cancellationTokenSource = new CancellationTokenSource(timeout);
             var task = _DispatchCommandWithResultInternalAsync(command, command.GetType(), NetworkType.Local, false, Config.ApplicationIdentifier, cancellationTokenSource.Token);
             _ = task.ContinueWith((_) => cancellationTokenSource.Dispose());
@@ -865,7 +873,7 @@ namespace Zerra.CQRS
         /// A destination may be an implementation in the same assembly or calling a remote service.
         /// </summary>
         /// <typeparam name="TInterface">The interface type.</typeparam>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests. This overrides <see cref="Bus.DefaultCallTimeout"/>.</param>
         /// <returns>An instance of the interface to route queries.</returns>
         public static TInterface Call<TInterface>(CancellationToken? cancellationToken = null)
         {
@@ -876,7 +884,7 @@ namespace Zerra.CQRS
         /// A destination may be an implementation in the same assembly or calling a remote service.
         /// </summary>
         /// <param name="interfaceType">The interface type.</param>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests. This overrides <see cref="Bus.DefaultCallTimeout"/>.</param>
         /// <returns>An instance of the interface to route queries.</returns>
         public static object Call(Type interfaceType, CancellationToken? cancellationToken = null)
         {
@@ -888,7 +896,7 @@ namespace Zerra.CQRS
         /// A destination may be an implementation in the same assembly or calling a remote service.
         /// </summary>
         /// <typeparam name="TInterface">The interface type.</typeparam>
-        /// <param name="timeout">The time to wait before a cancellation request.</param>
+        /// <param name="timeout">The time to wait before a cancellation request. Use <see cref="Timeout.InfiniteTimeSpan"/> for no timeout. This overrides <see cref="Bus.DefaultCallTimeout"/>.</param>
         /// <returns>An instance of the interface to route queries.</returns>
         public static TInterface Call<TInterface>(TimeSpan timeout)
         {
@@ -899,7 +907,7 @@ namespace Zerra.CQRS
         /// A destination may be an implementation in the same assembly or calling a remote service.
         /// </summary>
         /// <param name="interfaceType">The interface type.</param>
-        /// <param name="timeout">The time to wait before a cancellation request.</param>
+        /// <param name="timeout">The time to wait before a cancellation request. Use <see cref="Timeout.InfiniteTimeSpan"/> for no timeout. This overrides <see cref="Bus.DefaultCallTimeout"/>.</param>
         /// <returns>An instance of the interface to route queries.</returns>
         public static object Call(Type interfaceType, TimeSpan timeout)
         {
@@ -982,8 +990,15 @@ namespace Zerra.CQRS
             CancellationToken cancellationToken;
             if (timeout.HasValue)
             {
-                cancellationTokenSource = new CancellationTokenSource(timeout.Value);
-                cancellationToken = cancellationTokenSource.Token;
+                if (timeout != Timeout.InfiniteTimeSpan)
+                {
+                    cancellationTokenSource = new CancellationTokenSource(timeout.Value);
+                    cancellationToken = cancellationTokenSource.Token;
+                }
+                else
+                {
+                    cancellationToken = default;
+                }
                 if (methodMetadata.MethodDetail.ParameterDetails.Count > 0 && methodMetadata.MethodDetail.ParameterDetails[methodMetadata.MethodDetail.ParameterDetails.Count - 1].Type == cancellationTokenType)
                     arguments[arguments.Length - 1] = cancellationToken;
             }
@@ -1311,7 +1326,7 @@ namespace Zerra.CQRS
             }
             finally
             {
-                setupLock.Release();
+                _ = setupLock.Release();
             }
         }
 
@@ -1358,7 +1373,7 @@ namespace Zerra.CQRS
             }
             finally
             {
-                setupLock.Release();
+                _ = setupLock.Release();
             }
         }
 
@@ -1399,7 +1414,7 @@ namespace Zerra.CQRS
             }
             finally
             {
-                setupLock.Release();
+                _ = setupLock.Release();
             }
         }
 
@@ -1441,7 +1456,7 @@ namespace Zerra.CQRS
             }
             finally
             {
-                setupLock.Release();
+                _ = setupLock.Release();
             }
         }
 
@@ -1476,7 +1491,7 @@ namespace Zerra.CQRS
             }
             finally
             {
-                setupLock.Release();
+                _ = setupLock.Release();
             }
         }
 
@@ -1519,7 +1534,7 @@ namespace Zerra.CQRS
             }
             finally
             {
-                setupLock.Release();
+                _ = setupLock.Release();
             }
         }
 
@@ -1540,7 +1555,7 @@ namespace Zerra.CQRS
             }
             finally
             {
-                setupLock.Release();
+                _ = setupLock.Release();
             }
         }
 
@@ -2009,7 +2024,7 @@ namespace Zerra.CQRS
             }
             finally
             {
-                setupLock.Release();
+                _ = setupLock.Release();
             }
         }
 
