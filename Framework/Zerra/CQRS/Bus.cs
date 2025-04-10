@@ -171,6 +171,11 @@ namespace Zerra.CQRS
         public static TimeSpan? DefaultDispatchTimeout { get; set; }
 
         /// <summary>
+        /// The time to wait on a dispatch await before a cancellation request unless otherwise specified per dispatch. Null indicates infinite time. The default is 30 seconds.
+        /// </summary>
+        public static TimeSpan? DefaultDispatchAwaitTimeout { get; set; }
+
+        /// <summary>
         /// The time to wait on a call before a cancellation request unless otherwise specified per dispatch. Null indicates infinite time. The default is 30 seconds.
         /// </summary>
         public static TimeSpan? DefaultCallTimeout { get; set; }
@@ -272,16 +277,16 @@ namespace Zerra.CQRS
         /// A destination may be an implementation in the same assembly or calling a remote service.
         /// </summary>
         /// <param name="command">The command to send.</param>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests. This overrides <see cref="Bus.DefaultDispatchTimeout"/>.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests. This overrides <see cref="Bus.DefaultDispatchAwaitTimeout"/>.</param>
         /// <returns>A task to await processing of the command.</returns>
         public static Task DispatchAwaitAsync(ICommand command, CancellationToken? cancellationToken = null)
         {
             if (cancellationToken.HasValue)
                 return _DispatchCommandInternalAsync(command, command.GetType(), true, NetworkType.Local, false, Config.ApplicationIdentifier, cancellationToken.Value);
-            if (!DefaultDispatchTimeout.HasValue)
+            if (!DefaultDispatchAwaitTimeout.HasValue)
                 return _DispatchCommandInternalAsync(command, command.GetType(), true, NetworkType.Local, false, Config.ApplicationIdentifier, default);
 
-            var cancellationTokenSource = new CancellationTokenSource(DefaultDispatchTimeout.Value);
+            var cancellationTokenSource = new CancellationTokenSource(DefaultDispatchAwaitTimeout.Value);
             var task = _DispatchCommandInternalAsync(command, command.GetType(), true, NetworkType.Local, false, Config.ApplicationIdentifier, cancellationTokenSource.Token);
             _ = task.ContinueWith((_) => cancellationTokenSource.Dispose());
             return task;
@@ -313,16 +318,16 @@ namespace Zerra.CQRS
         /// A destination may be an implementation in the same assembly or calling a remote service.
         /// </summary>
         /// <param name="command">The command to send.</param>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests. This overrides <see cref="Bus.DefaultDispatchTimeout"/>.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests. This overrides <see cref="Bus.DefaultDispatchAwaitTimeout"/>.</param>
         /// <returns>A task to await the result of the command.</returns>
         public static Task<TResult> DispatchAwaitAsync<TResult>(ICommand<TResult> command, CancellationToken? cancellationToken = null)
         {
             if (cancellationToken.HasValue)
                 return _DispatchCommandWithResultInternalAsync(command, command.GetType(), NetworkType.Local, false, Config.ApplicationIdentifier, cancellationToken.Value);
-            if (!DefaultDispatchTimeout.HasValue)
+            if (!DefaultDispatchAwaitTimeout.HasValue)
                 return _DispatchCommandWithResultInternalAsync(command, command.GetType(), NetworkType.Local, false, Config.ApplicationIdentifier, default);
 
-            var cancellationTokenSource = new CancellationTokenSource(DefaultDispatchTimeout.Value);
+            var cancellationTokenSource = new CancellationTokenSource(DefaultDispatchAwaitTimeout.Value);
             var task = _DispatchCommandWithResultInternalAsync(command, command.GetType(), NetworkType.Local, false, Config.ApplicationIdentifier, cancellationTokenSource.Token);
             _ = task.ContinueWith((_) => cancellationTokenSource.Dispose());
             return task;
