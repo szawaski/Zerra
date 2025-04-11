@@ -69,7 +69,7 @@ namespace Zerra.CQRS.Network
 
                     var inHandlerContext = false;
                     var throttleUsed = false;
-                    CancellationToken monitorCancellationToken = default;
+                    var monitorIsCancellationRequested = false;
                     try
                     {
                         //Read Request Header
@@ -192,12 +192,22 @@ namespace Zerra.CQRS.Network
 
                             inHandlerContext = true;
                             RemoteQueryCallResponse result;
-                            using (var monitor = new SocketAbortMonitor(socket, cancellationToken))
+                            var monitor = new SocketAbortMonitor(socket, cancellationToken);
+                            try
                             {
-                                monitorCancellationToken = monitor.Token;
                                 result = await this.providerHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, socket.AddressFamily.ToString(), false, monitor.Token);
                             }
+                            finally
+                            {
+                                monitorIsCancellationRequested = monitor.DisposeAndGetIsCancellationRequested();
+                            }
                             inHandlerContext = false;
+
+                            if (monitorIsCancellationRequested)
+                            {
+                                _ = Log.ErrorAsync(new OperationCanceledException());
+                                continue;
+                            }
 
                             responseStarted = true;
 
@@ -299,20 +309,28 @@ namespace Zerra.CQRS.Network
                                 if (data.MessageResult == true)
                                 {
                                     if (commandHandlerWithResultAwaitAsync is null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
-                                    using (var monitor = new SocketAbortMonitor(socket, cancellationToken))
+                                    var monitor = new SocketAbortMonitor(socket, cancellationToken);
+                                    try
                                     {
-                                        monitorCancellationToken = monitor.Token;
                                         result = await commandHandlerWithResultAwaitAsync(command, data.Source, false, monitor.Token);
+                                    }
+                                    finally
+                                    {
+                                        monitorIsCancellationRequested = monitor.DisposeAndGetIsCancellationRequested();
                                     }
                                     hasResult = true;
                                 }
                                 if (data.MessageAwait == true)
                                 {
                                     if (commandHandlerAwaitAsync is null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
-                                    using (var monitor = new SocketAbortMonitor(socket, cancellationToken))
+                                    var monitor = new SocketAbortMonitor(socket, cancellationToken);
+                                    try
                                     {
-                                        monitorCancellationToken = monitor.Token;
                                         await commandHandlerAwaitAsync(command, data.Source, false, monitor.Token);
+                                    }
+                                    finally
+                                    {
+                                        monitorIsCancellationRequested = monitor.DisposeAndGetIsCancellationRequested();
                                     }
                                     hasResult = false;
                                 }
@@ -341,10 +359,10 @@ namespace Zerra.CQRS.Network
                                 throw new CqrsNetworkException($"Unhandled Message Type {messageType.FullName}");
                             }
 
-                            if (monitorCancellationToken.IsCancellationRequested)
+                            if (monitorIsCancellationRequested)
                             {
-                                _ = Log.ErrorAsync(new TaskCanceledException());
-                                return;
+                                _ = Log.ErrorAsync(new OperationCanceledException());
+                                continue;
                             }
 
                             responseStarted = true;
@@ -391,7 +409,13 @@ namespace Zerra.CQRS.Network
                     }
                     catch (Exception ex)
                     {
-                        if (!inHandlerContext || !socket.Connected || monitorCancellationToken.IsCancellationRequested)
+                        if (inHandlerContext && monitorIsCancellationRequested)
+                        {
+                            _ = Log.ErrorAsync(new OperationCanceledException());
+                            continue;
+                        }
+
+                        if (!inHandlerContext || !socket.Connected)
                         {
                             _ = Log.ErrorAsync(ex);
                             return; //aborted or network error

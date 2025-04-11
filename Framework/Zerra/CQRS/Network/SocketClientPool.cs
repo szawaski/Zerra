@@ -337,11 +337,7 @@ namespace Zerra.CQRS.Network
             }
         }
 
-        private static bool IsConnected(Socket socket)
-        {
-            var connected = !(socket.Poll(pollWaitMicroseconds, SelectMode.SelectRead) && socket.Available == 0);
-            return connected;
-        }
+        private static bool IsConnected(Socket socket) => !(socket.Poll(pollWaitMicroseconds, SelectMode.SelectRead) && socket.Available == 0);
 
         public void Dispose()
         {

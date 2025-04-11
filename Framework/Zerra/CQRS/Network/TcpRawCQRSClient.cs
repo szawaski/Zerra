@@ -220,8 +220,8 @@ namespace Zerra.CQRS.Network
                         _ = Log.ErrorAsync(ex);
                         if (stream is not null)
                         {
-                            var abortSent = await SocketAbortMonitor.SendAbortMessage(stream);
-                            if (abortSent)
+                            var abortAcknowledged = await SocketAbortMonitor.SendAndAcknowledgeAbort(stream);
+                            if (abortAcknowledged)
                                 stream?.Dispose();
                             else
                                 stream?.DisposeSocket();
@@ -422,8 +422,8 @@ namespace Zerra.CQRS.Network
                         _ = Log.ErrorAsync(ex);
                         if (stream is not null)
                         {
-                            var abortSent = await SocketAbortMonitor.SendAbortMessage(stream);
-                            if (abortSent)
+                            var abortAcknowledged = await SocketAbortMonitor.SendAndAcknowledgeAbort(stream);
+                            if (abortAcknowledged)
                                 stream?.Dispose();
                             else
                                 stream?.DisposeSocket();
@@ -632,8 +632,8 @@ namespace Zerra.CQRS.Network
                         _ = Log.ErrorAsync(ex);
                         if (stream is not null)
                         {
-                            var abortSent = await SocketAbortMonitor.SendAbortMessage(stream);
-                            if (abortSent)
+                            var abortAcknowledged = await SocketAbortMonitor.SendAndAcknowledgeAbort(stream);
+                            if (abortAcknowledged)
                                 stream?.Dispose();
                             else
                                 stream?.DisposeSocket();
@@ -834,8 +834,8 @@ namespace Zerra.CQRS.Network
                         _ = Log.ErrorAsync(ex);
                         if (stream is not null)
                         {
-                            var abortSent = await SocketAbortMonitor.SendAbortMessage(stream);
-                            if (abortSent)
+                            var abortAcknowledged = await SocketAbortMonitor.SendAndAcknowledgeAbort(stream);
+                            if (abortAcknowledged)
                                 stream?.Dispose();
                             else
                                 stream?.DisposeSocket();

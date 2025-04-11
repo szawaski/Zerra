@@ -10,13 +10,19 @@ namespace Zerra.CQRS.Network
     {
         private static readonly TimeSpan sendAbortMessageTimeout = TimeSpan.FromMilliseconds(1000);
 
+        private static readonly byte[] abortMessageBytes = new byte[1];
+
         private readonly Stream stream;
         private readonly CancellationTokenSource cancellationTokenSource;
+        private readonly SemaphoreSlim monitorCompleteWaiter;
+
+        private bool isCancellationRequested;
 
         public SocketAbortMonitor(Socket socket, CancellationToken cancellationToken)
         {
             this.stream = new NetworkStream(socket, false);
             this.cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            this.monitorCompleteWaiter = new(0, 1);
             _ = Task.Run(Monitor);
         }
 
@@ -26,48 +32,84 @@ namespace Zerra.CQRS.Network
         {
             try
             {
-                var buffer = new byte[1];
+                //receive abort
+                var buffer = new byte[2];
 #if NET6_0_OR_GREATER
                 var result = await stream.ReadAsync(buffer, cancellationTokenSource.Token);
 #else
-                var result = await stream.ReadAsync(buffer, 0, 1, cancellationTokenSource.Token);
+                var result = await stream.ReadAsync(buffer, 0, 2, cancellationTokenSource.Token);
 #endif
-                if (result == 1)
+
+                if (result != 1 || buffer[0] != 0)
+                    return; //invalid message ignore, something else will throw
+
+                isCancellationRequested = true;
+
+                //send abort acknowledged
+                try
                 {
-#if NET8_0_OR_GREATER
-                    await cancellationTokenSource.CancelAsync();
+#if NET6_0_OR_GREATER
+                    _ = stream.WriteAsync(abortMessageBytes, cancellationTokenSource.Token).AsTask();
 #else
-                    cancellationTokenSource.Cancel();
+                    _ = stream.WriteAsync(abortMessageBytes, 0, 1, cancellationTokenSource.Token);
 #endif
                 }
+                finally { }
+
+
+#if NET8_0_OR_GREATER
+                await cancellationTokenSource.CancelAsync();
+#else
+                cancellationTokenSource.Cancel();
+#endif
             }
-            finally { }
+            finally
+            {
+                monitorCompleteWaiter.Release();
+            }
         }
 
-        private static readonly byte[] abortMessageBytes = new byte[1];
-        public static async Task<bool> SendAbortMessage(Stream stream)
+        public static async Task<bool> SendAndAcknowledgeAbort(Stream stream)
         {
             using var source = new CancellationTokenSource(sendAbortMessageTimeout);
             try
             {
+                //send abort
 #if NET6_0_OR_GREATER
                 await stream.WriteAsync(abortMessageBytes, source.Token);
 #else
                 await stream.WriteAsync(abortMessageBytes, 0, 1, source.Token);
 #endif
-                return true;
+
+                //receive abort acknowledged
+                var buffer = new byte[2];
+#if NET6_0_OR_GREATER
+                var result = await stream.ReadAsync(buffer, source.Token);
+#else
+                var result = await stream.ReadAsync(buffer, 0, 2, source.Token);
+#endif
+                if (result == 1 && buffer[0] == 0)
+                    return true;
             }
-            catch
-            {
-                return false;
-            }
+            finally { }
+
+            return false;
+        }
+
+        public bool DisposeAndGetIsCancellationRequested()
+        {
+            Dispose();
+            return isCancellationRequested;
         }
 
         public void Dispose()
         {
-            stream.Dispose();
             cancellationTokenSource.Cancel();
+            monitorCompleteWaiter.Wait();
+
+            stream.Dispose();
             cancellationTokenSource.Dispose();
+            monitorCompleteWaiter.Dispose();
         }
     }
 }

@@ -88,8 +88,8 @@ namespace ZerraDemo.Domain.Pets
                 }
             }
 
-            var tasks = new Task[10];
-            for (var i = 0; i < 10; i++)
+            var tasks = new Task[20];
+            for (var i = 0; i < tasks.Length; i++)
             {
                 tasks[i] = Bus.Call<IWeatherQueryProvider>().GetWeather();
             }
