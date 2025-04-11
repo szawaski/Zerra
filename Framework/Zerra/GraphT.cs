@@ -17,9 +17,6 @@ namespace Zerra
     /// <typeparam name="T">The object type for expressions to specify members.</typeparam>
     public sealed class Graph<T> : Graph
     {
-        private Stack<MemberInfo>? memberInfoBuilder;
-        private const int memberInfoBuilderDefaultCapacity = 4;
-
         /// <summary>
         /// Creates a Graph copy from another graph.
         /// </summary>
@@ -73,19 +70,18 @@ namespace Zerra
                 AddMembers(members);
         }
 
-        private static void ReadMemberExpression(Expression expression, Stack<MemberInfo> memberInfos)
+        private static bool TryReadMemberExpression(Expression expression, bool canCreateGraph, out string memberName, ref Graph graph)
         {
+            //returning false means we did not have canCreateGraph OR the child was explicitly removed already.
             if (expression.NodeType != ExpressionType.Lambda || expression is not LambdaExpression lambda)
                 throw new ArgumentException("Invalid member expression");
-            ReadMemberExpressionMember(lambda.Body, memberInfos);
+            var result = ReadMemberExpressionInnerLambda(lambda.Body, canCreateGraph, out var memberInfo, ref graph);
+            memberName = memberInfo.Name;
+            return result;
         }
-        private static void ReadMemberExpressionMember(Expression expression, Stack<MemberInfo> memberInfos)
+        private static bool ReadMemberExpressionInnerLambda(Expression expression, bool canCreateGraph, out MemberInfo memberInfo, ref Graph graph)
         {
-            if (expression.NodeType == ExpressionType.Parameter)
-            {
-                return;
-            }
-            else if (expression.NodeType == ExpressionType.Call && expression is MethodCallExpression call)
+            if (expression.NodeType == ExpressionType.Call && expression is MethodCallExpression call)
             {
                 if (call.Arguments.Count != 2 || call.Object is not null)
                     throw new ArgumentException("Invalid member expression");
@@ -96,24 +92,38 @@ namespace Zerra
                 if (member.Expression is null)
                     throw new ArgumentException("Invalid member expression");
 
-                ReadMemberExpressionMember(lambda.Body, memberInfos);
+                if (!ReadMemberExpressionInnerLambda(member, canCreateGraph, out memberInfo, ref graph))
+                    return false;
+                var childGraph = InternalGetChildGraph(graph, memberInfo, canCreateGraph);
+                if (childGraph is null)
+                    return false;
+                graph = childGraph;
 
-                memberInfos.Push(member.Member);
-                ReadMemberExpressionMember(member.Expression, memberInfos);
+                if (!ReadMemberExpressionInnerLambda(lambda.Body, canCreateGraph, out memberInfo, ref graph))
+                    return false;
+                return true;
             }
             else
             {
                 if (expression.NodeType == ExpressionType.Convert && expression is UnaryExpression convert)
-                {
                     expression = convert.Operand;
-                }
                 if (expression.NodeType != ExpressionType.MemberAccess || expression is not MemberExpression member)
                     throw new ArgumentException("Invalid member expression");
                 if (member.Expression is null)
                     throw new ArgumentException("Invalid member expression");
 
-                memberInfos.Push(member.Member);
-                ReadMemberExpressionMember(member.Expression, memberInfos);
+                if (member.Expression.NodeType != ExpressionType.Parameter)
+                {
+                    if (!ReadMemberExpressionInnerLambda(member.Expression, canCreateGraph, out memberInfo, ref graph))
+                        return false;
+                    var childGraph = InternalGetChildGraph(graph, memberInfo, canCreateGraph);
+                    if (childGraph is null)
+                        return false;
+                    graph = childGraph;
+                }
+
+                memberInfo = member.Member;
+                return true;
             }
         }
 
@@ -131,13 +141,12 @@ namespace Zerra
             if (members is null)
                 throw new ArgumentNullException(nameof(members));
 
-            memberInfoBuilder ??= new(memberInfoBuilderDefaultCapacity);
-
             foreach (var member in members)
             {
-                ReadMemberExpression(member, memberInfoBuilder);
-                AddMemberInfos(memberInfoBuilder);
-                //stack will be empty at this point, no need to clear for reuse
+                Graph referenceGraph = this;
+                if (!TryReadMemberExpression(member, true, out var memberName, ref referenceGraph))
+                    continue;
+                referenceGraph.AddMember(memberName);
             }
             signature = null;
         }
@@ -156,13 +165,12 @@ namespace Zerra
             if (members is null)
                 throw new ArgumentNullException(nameof(members));
 
-            memberInfoBuilder ??= new(memberInfoBuilderDefaultCapacity);
-
             foreach (var member in members)
             {
-                ReadMemberExpression(member, memberInfoBuilder);
-                RemoveMemberInfos(memberInfoBuilder);
-                //stack will be empty at this point, no need to clear for reuse
+                Graph referenceGraph = this;
+                if (!TryReadMemberExpression(member, true, out var memberName, ref referenceGraph))
+                    continue;
+                referenceGraph.RemoveMember(memberName);
             }
             signature = null;
         }
@@ -176,11 +184,10 @@ namespace Zerra
             if (member is null)
                 throw new ArgumentNullException(nameof(member));
 
-            memberInfoBuilder ??= new(memberInfoBuilderDefaultCapacity);
-
-            ReadMemberExpression(member, memberInfoBuilder);
-            AddMemberInfos(memberInfoBuilder);
-            //stack will be empty at this point, no need to clear for reuse
+            Graph referenceGraph = this;
+            if (!TryReadMemberExpression(member, true, out var memberName, ref referenceGraph))
+                return;
+            referenceGraph.AddMember(memberName);
 
             signature = null;
         }
@@ -193,13 +200,101 @@ namespace Zerra
             if (member is null)
                 throw new ArgumentNullException(nameof(member));
 
-            memberInfoBuilder ??= new(memberInfoBuilderDefaultCapacity);
-
-            ReadMemberExpression(member, memberInfoBuilder);
-            RemoveMemberInfos(memberInfoBuilder);
-            //stack will be empty at this point, no need to clear for reuse
+            Graph referenceGraph = this;
+            if (!TryReadMemberExpression(member, true, out var memberName, ref referenceGraph))
+                return;
+            referenceGraph.RemoveMember(memberName);
 
             signature = null;
+        }
+        /// <summary>
+        /// Adds a child graph. If there is an existing child graph the members of the child will be merged.
+        /// </summary>
+        /// <param name="member">The member of the child graph.</param>
+        /// <param name="graph">The child graph for the member.</param>
+        public void AddChildGraph(Expression<Func<T, object?>> member, Graph graph)
+        {
+            if (member is null)
+                throw new ArgumentNullException(nameof(member));
+
+            Graph referenceGraph = this;
+            if (!TryReadMemberExpression(member, true, out var memberName, ref referenceGraph))
+                return;
+            referenceGraph.AddChildGraph(memberName, graph);
+
+            signature = null;
+        }
+        /// <summary>
+        /// Adds a child graph. If there is an existing child graph it will be replaced.
+        /// </summary>
+        /// <param name="member">The member of the child graph.</param>
+        /// <param name="graph">The child graph for the member.</param>
+        public void AddOrReplaceChildGraph(Expression<Func<T, object?>> member, Graph graph)
+        {
+            if (member is null)
+                throw new ArgumentNullException(nameof(member));
+
+            Graph referenceGraph = this;
+            if (!TryReadMemberExpression(member, true, out var memberName, ref referenceGraph))
+                return;
+            referenceGraph.AddOrReplaceChildGraph(memberName, graph);
+
+            signature = null;
+        }
+
+        /// <summary>
+        /// Indicates if the graph includes a member
+        /// </summary>
+        /// <param name="member">The member to see if it is included.</param>
+        /// <returns>True if the graph has the member; otherwise, False.</returns>
+        public bool HasMember(Expression<Func<T, object?>> member)
+        {
+            if (member is null)
+                throw new ArgumentNullException(nameof(member));
+
+            Graph referenceGraph = this;
+            if (!TryReadMemberExpression(member, false, out var memberName, ref referenceGraph))
+                return false;
+            return referenceGraph.HasMember(memberName);
+        }
+
+        /// <summary>
+        /// Returns the child graph of a member if the child graph exists.
+        /// </summary>
+        /// <param name="member">The member for the child graph.</param>
+        /// <returns>The child graph of the member if it exists; otherwise, null.</returns>
+        public Graph? GetChildGraph(Expression<Func<T, object?>> member)
+        {
+            Graph referenceGraph = this;
+            if (!TryReadMemberExpression(member, false, out var memberName, ref referenceGraph))
+                return null;
+            return referenceGraph.GetChildGraph(memberName);
+        }
+        /// <summary>
+        /// Returns the generic child graph of a member if the child graph exists.
+        /// </summary>
+        /// <param name="member">The member for the child graph.</param>
+        /// <param name="type">The generic type of the child graph.</param>
+        /// <returns>The child graph of the member if it exists; otherwise, null.</returns>
+        public Graph? GetChildGraph(Expression<Func<T, object?>> member, Type type)
+        {
+            Graph referenceGraph = this;
+            if (!TryReadMemberExpression(member, false, out var memberName, ref referenceGraph))
+                return null;
+            return referenceGraph.GetChildGraph(memberName, type);
+        }
+        /// <summary>
+        /// Returns the generic child graph of a member if the child graph exists.
+        /// </summary>
+        /// <typeparam name="TGraph">The generic type of the child graph.</typeparam>
+        /// <param name="member">The member for the child graph.</param>
+        /// <returns>The child graph of the member if it exists; otherwise, null.</returns>
+        public Graph<TGraph>? GetChildGraph<TGraph>(Expression<Func<T, object?>> member)
+        {
+            Graph referenceGraph = this;
+            if (!TryReadMemberExpression(member, false, out var memberName, ref referenceGraph))
+                return null;
+            return referenceGraph.GetChildGraph<TGraph>(memberName);
         }
 
         /// <inheritdoc />

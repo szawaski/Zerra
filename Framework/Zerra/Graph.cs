@@ -207,7 +207,7 @@ namespace Zerra
             {
                 foreach (var graph in childGraphs.OrderBy(x => x.Key))
                 {
-                    _ = sb.Append("G:(");
+                    _ = sb.Append("G:").Append(graph.Key).Append(":(");
                     graph.Value.GenerateSignatureBuilder(sb);
                     _ = sb.Append(")");
                 }
@@ -380,60 +380,6 @@ namespace Zerra
             signature = null;
         }
 
-        protected void AddMemberInfos(Stack<MemberInfo> members)
-        {
-            if (members.Count == 0)
-                return;
-
-            var member = members.Pop();
-            if (members.Count == 0)
-            {
-                AddMember(member.Name);
-            }
-            else
-            {
-                childGraphs ??= new();
-                if (!childGraphs.TryGetValue(member.Name, out var childGraph))
-                {
-                    if (member.MemberType == MemberTypes.Property)
-                    {
-                        var graphTTypeGeneric = graphTType.GetGenericTypeDetail(((PropertyInfo)member).PropertyType);
-                        childGraph = (Graph)graphTTypeGeneric.CreatorBoxed();
-                    }
-                    else
-                    {
-                        var graphTTypeGeneric = graphTType.GetGenericTypeDetail(((FieldInfo)member).FieldType);
-                        childGraph = (Graph)graphTTypeGeneric.CreatorBoxed();
-                    }
-
-                    childGraphs.Add(member.Name, childGraph);
-                }
-                if (this.addedMembers is not null && this.addedMembers.Contains(member.Name))
-                {
-                    childGraph.includeAllMembers = true;
-                    _ = this.addedMembers.Remove(member.Name);
-                    childGraph.signature = null;
-                }
-                childGraph.AddMemberInfos(members);
-            }
-        }
-        protected void RemoveMemberInfos(Stack<MemberInfo> members)
-        {
-            if (members.Count == 0)
-                return;
-
-            var member = members.Pop();
-            if (members.Count == 0)
-            {
-                RemoveMember(member.Name);
-            }
-            else
-            {
-                if (childGraphs is not null && childGraphs.TryGetValue(member.Name, out var childGraph))
-                    childGraph.RemoveMemberInfos(members);
-            }
-        }
-
         /// <summary>
         /// Indicates if the graph includes a member
         /// </summary>
@@ -476,18 +422,18 @@ namespace Zerra
         /// <summary>
         /// Returns the generic child graph of a member if the child graph exists.
         /// </summary>
-        /// <typeparam name="T">The generic type of the child graph.</typeparam>
+        /// <typeparam name="TGraph">The generic type of the child graph.</typeparam>
         /// <param name="member">The member for the child graph.</param>
         /// <returns>The child graph of the member if it exists; otherwise, null.</returns>
-        public Graph<T>? GetChildGraph<T>(string member)
+        public Graph<TGraph>? GetChildGraph<TGraph>(string member)
         {
             if (childGraphs is null || childGraphs.Count == 0)
                 return null;
             if (!childGraphs.TryGetValue(member, out var nonGenericGraph))
                 return null;
-            if (nonGenericGraph.GetModelType() == typeof(T))
-                return (Graph<T>)nonGenericGraph;
-            return new Graph<T>(nonGenericGraph);
+            if (nonGenericGraph.GetModelType() == typeof(TGraph))
+                return (Graph<TGraph>)nonGenericGraph;
+            return new Graph<TGraph>(nonGenericGraph);
         }
 
         /// <summary>
@@ -541,11 +487,11 @@ namespace Zerra
         /// <summary>
         /// Returns the generic child graph specific for an instance. If there is none, the containing child graph will be returned.
         /// </summary>
-        /// <typeparam name="T">The generic type of the child graph.</typeparam>
+        /// <typeparam name="TGraph">The generic type of the child graph.</typeparam>
         /// <param name="member">The member for the child graph.</param>
         /// <param name="instance">The instance for whoms graph should be returned.</param>
         /// <returns>The generic child graph for the instance.</returns>
-        public Graph<T>? GetChildInstanceGraph<T>(string member, object instance)
+        public Graph<TGraph>? GetChildInstanceGraph<TGraph>(string member, object instance)
         {
             if (childGraphs is null || childGraphs.Count == 0)
                 return null;
@@ -554,13 +500,13 @@ namespace Zerra
 
             if (nonGenericGraph.instanceGraphs is not null && nonGenericGraph.instanceGraphs.TryGetValue(instance, out var instanceGraph))
             {
-                if (instanceGraph.GetModelType() == typeof(T))
-                    return (Graph<T>)instanceGraph;
-                return new Graph<T>(instanceGraph);
+                if (instanceGraph.GetModelType() == typeof(TGraph))
+                    return (Graph<TGraph>)instanceGraph;
+                return new Graph<TGraph>(instanceGraph);
             }
-            if (nonGenericGraph.GetModelType() == typeof(T))
-                return (Graph<T>)nonGenericGraph;
-            return new Graph<T>(nonGenericGraph);
+            if (nonGenericGraph.GetModelType() == typeof(TGraph))
+                return (Graph<TGraph>)nonGenericGraph;
+            return new Graph<TGraph>(nonGenericGraph);
         }
 
         private static Graph Convert(Graph graph, Type type)
@@ -632,6 +578,35 @@ namespace Zerra
         /// </summary>
         /// <returns>The object type to which the graph members are directed.</returns>
         protected virtual Type? GetModelType() => null;
+
+        protected static Graph? InternalGetChildGraph(Graph graph, MemberInfo member, bool canCreate)
+        {
+            graph.childGraphs ??= new();
+            if (!graph.childGraphs.TryGetValue(member.Name, out var childGraph))
+            {
+                if (!canCreate)
+                    return null;
+                if (graph.removedMembers is not null && graph.removedMembers.Contains(member.Name))
+                    return null;
+
+                if (member.MemberType == MemberTypes.Property)
+                {
+                    var graphTTypeGeneric = graphTType.GetGenericTypeDetail(((PropertyInfo)member).PropertyType);
+                    childGraph = (Graph)graphTTypeGeneric.CreatorBoxed();
+                }
+                else
+                {
+                    var graphTTypeGeneric = graphTType.GetGenericTypeDetail(((FieldInfo)member).FieldType);
+                    childGraph = (Graph)graphTTypeGeneric.CreatorBoxed();
+                }
+
+                graph.childGraphs.Add(member.Name, childGraph);
+            }
+            if ((childGraph.includeAllMembers && (graph.removedMembers is null || !graph.removedMembers.Contains(member.Name))) || (graph.addedMembers is not null && graph.addedMembers.Contains(member.Name)))
+                childGraph.includeAllMembers = true;
+            _ = graph.addedMembers?.Remove(member.Name);
+            return childGraph;
+        }
 
         //private static readonly byte maxRecursiveDepth = 2;
         //private static readonly MethodInfo selectMethod = typeof(Enumerable).GetMethods().Where(m => m.Name == "Select" && m.GetParameters().Length == 2).First();
