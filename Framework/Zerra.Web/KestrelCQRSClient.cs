@@ -178,7 +178,7 @@ namespace Zerra.Web
 
                 if (authorizer is not null)
                 {
-                    var authHeaders = authorizer.GetAuthorizationHeadersAsync().GetAwaiter().GetResult();
+                    var authHeaders = Task.Run(() => authorizer.GetAuthorizationHeadersAsync().AsTask()).GetAwaiter().GetResult();
                     foreach (var authHeader in authHeaders)
                         request.Headers.Add(authHeader.Key, authHeader.Value);
                 }
@@ -186,14 +186,8 @@ namespace Zerra.Web
                 if (!String.IsNullOrWhiteSpace(providerType))
                     request.Headers.Add(HttpCommon.ProviderTypeHeader, providerType);
 
-
-#if NET5_0_OR_GREATER
                 using var response = client.Send(request);
                 responseStream = response.Content.ReadAsStream();
-#else
-                using var response = client.SendAsync(request).GetAwaiter().GetResult();
-                responseStream = response.Content.ReadAsStreamAsync(cancellationToken).GetAwaiter().GetResult();
-#endif
 
                 if (symmetricConfig is not null)
                     responseStream = SymmetricEncryptor.Decrypt(symmetricConfig, responseStream, false);
@@ -256,16 +250,8 @@ namespace Zerra.Web
                     {
                         var cryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, postStream, true);
                         await ContentTypeSerializer.SerializeAsync(contentType, cryptoStream, data, cancellationToken);
-#if NETCOREAPP
                         await cryptoStream.FlushFinalBlockAsync(cancellationToken);
-#else
-                        cryptoStream.FlushFinalBlock();
-#endif
-#if NETSTANDARD2_0
-                        cryptoStream.Dispose();
-#else
                         await cryptoStream.DisposeAsync();
-#endif
                     }
                     else
                     {
@@ -309,11 +295,7 @@ namespace Zerra.Web
 
                 if (!getResponseData)
                 {
-#if NETSTANDARD2_0
-                    responseStream.Dispose();
-#else
                     await responseStream.DisposeAsync();
-#endif
                     client.Dispose();
                     return default!;
                 }
@@ -325,11 +307,7 @@ namespace Zerra.Web
                 else
                 {
                     var result = await ContentTypeSerializer.DeserializeAsync<TReturn>(contentType, responseStream, cancellationToken);
-#if NETSTANDARD2_0
-                    responseStream.Dispose();
-#else
                     await responseStream.DisposeAsync();
-#endif
                     client.Dispose();
                     return result;
                 }
@@ -340,11 +318,7 @@ namespace Zerra.Web
                 {
                     try
                     {
-#if NETSTANDARD2_0
-                        responseStream.Dispose();
-#else
                         await responseStream.DisposeAsync();
-#endif
                     }
                     catch { }
                     client?.Dispose();

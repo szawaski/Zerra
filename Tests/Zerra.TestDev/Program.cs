@@ -10,6 +10,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading.Tasks;
 using Zerra.Reflection;
 
 namespace Zerra.TestDev
@@ -21,7 +22,7 @@ namespace Zerra.TestDev
             System.Threading.Thread.CurrentThread.Priority = System.Threading.ThreadPriority.Highest;
             var timer = Stopwatch.StartNew();
 
-            TestTaskRun.Test().GetAwaiter().GetResult();
+            Task.Run(TestTaskRun.Test).GetAwaiter().GetResult();
 
             //UtfTest();
 
@@ -34,7 +35,7 @@ namespace Zerra.TestDev
             //TestMemory.TryFinallyOrDisposed();
             //InlineTest.Test();
 
-            //JsonSerializerTest.TestSpeed().GetAwaiter().GetResult();
+            //Task.Run(JsonSerializerTest.TestSpeed).GetAwaiter().GetResult();
             //ByteSerializerTest.TestSpeed();
 
             //TestMath.Test();

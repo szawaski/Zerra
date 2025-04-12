@@ -268,8 +268,7 @@ namespace Zerra.Repository.EventStoreDB
 
             try
             {
-                _ = client.AppendToStreamAsync("ValidateDataSource", StreamState.Any, new EventData[] { eventData })
-                    .GetAwaiter().GetResult();
+                Task.Run(() => client.AppendToStreamAsync("ValidateDataSource", StreamState.Any, new EventData[] { eventData })).GetAwaiter().GetResult();
 
                 return true;
             }

@@ -56,7 +56,7 @@ namespace Zerra.CQRS.Network
         protected override void SerializeToStream(Stream stream, TransportContext? context, CancellationToken cancellationToken)
         {
             if (streamAsyncDelegate is not null)
-                streamAsyncDelegate(stream).GetAwaiter().GetResult();
+                Task.Run(() => streamAsyncDelegate(stream)).Wait();
             else if (streamDelegate is not null)
                 streamDelegate(stream);
             else

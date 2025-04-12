@@ -2038,7 +2038,7 @@ namespace Zerra.CQRS
         /// </summary>
         public static void StopServices()
         {
-            StopServicesAsync().GetAwaiter().GetResult();
+            Task.Run(StopServicesAsync).GetAwaiter().GetResult();
         }
         /// <summary>
         /// Manually stop all the services. This is not necessary if using <see cref="WaitForExit"/> or <see cref="WaitForExitAsync"/>.
@@ -2205,7 +2205,7 @@ namespace Zerra.CQRS
                 processWaiter.Wait(cancellationToken);
             }
             catch { }
-            StopServicesAsync().GetAwaiter().GetResult();
+            Task.Run(StopServicesAsync).GetAwaiter().GetResult();
         }
 
         /// <summary>

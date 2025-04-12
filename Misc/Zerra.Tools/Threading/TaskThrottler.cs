@@ -141,7 +141,7 @@ namespace Zerra.Threading
                 var waiter = new TaskCompletionSource<object>();
                 _ = cancellationToken.Register(() => { _ = waiter.TrySetCanceled(cancellationToken); });
                 waiters.Add(waiter);
-                _ = waiter.Task.GetAwaiter().GetResult();
+                Task.Run(() => waiter.Task).GetAwaiter().GetResult();
             }
         }
 

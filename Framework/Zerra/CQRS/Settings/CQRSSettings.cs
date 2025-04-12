@@ -5,6 +5,7 @@
 using System;
 using System.IO;
 using System.Text;
+using System.Threading.Tasks;
 using Zerra.Logging;
 using Zerra.Serialization.Json;
 
@@ -81,7 +82,7 @@ namespace Zerra.CQRS.Settings
             if (filePath is null || fileName is null)
             {
                 var notFound = $"Config {serviceName} did not find {settingsFileName}";
-                Log.InfoAsync(notFound).GetAwaiter().GetResult();
+                Task.Run(() => Log.InfoAsync(notFound)).GetAwaiter().GetResult();
                 throw new Exception(notFound);
             }
 
@@ -93,7 +94,7 @@ namespace Zerra.CQRS.Settings
             }
             catch (Exception ex)
             {
-                Log.InfoAsync($"Invalid {filePath}").GetAwaiter().GetResult();
+                Task.Run(() => Log.InfoAsync($"Invalid {filePath}")).GetAwaiter().GetResult();
                 throw new Exception($"Invalid {filePath}", ex);
             }
 

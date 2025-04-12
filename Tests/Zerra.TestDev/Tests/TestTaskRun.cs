@@ -11,6 +11,7 @@ namespace Zerra.TestDev
     {
         public static async Task Test()
         {
+            throw new InvalidOperationException("Boop");
             Console.WriteLine("Call Method Await (Regular)");
             await DoThings();
             Console.WriteLine("Resumed");

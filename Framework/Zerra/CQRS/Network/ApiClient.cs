@@ -153,7 +153,7 @@ namespace Zerra.CQRS.Network
 
                 if (authorizer is not null)
                 {
-                    var authHeaders = authorizer.GetAuthorizationHeadersAsync().GetAwaiter().GetResult();
+                    var authHeaders = Task.Run(() => authorizer.GetAuthorizationHeadersAsync().AsTask()).GetAwaiter().GetResult();
                     foreach (var authHeader in authHeaders)
                         request.Headers.Add(authHeader.Key, authHeader.Value);
                 }
@@ -166,8 +166,8 @@ namespace Zerra.CQRS.Network
                 using var response = client.Send(request);
                 responseStream = response.Content.ReadAsStream();
 #else
-                using var response = client.SendAsync(request).GetAwaiter().GetResult();
-                responseStream = response.Content.ReadAsStreamAsync().GetAwaiter().GetResult();
+                using var response = Task.Run(() => client.SendAsync(request)).GetAwaiter().GetResult();
+                responseStream = Task.Run(() => response.Content.ReadAsStreamAsync()).GetAwaiter().GetResult();
 #endif
 
                 if (!response.IsSuccessStatusCode)

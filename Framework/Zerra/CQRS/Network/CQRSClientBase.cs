@@ -117,7 +117,7 @@ namespace Zerra.CQRS.Network
                 {
                     var isStream = returnTypeDetails.Type == streamType || returnTypeDetails.BaseTypes.Contains(streamType);
                     var task = CallInternalAsync<TReturn>(throttle, isStream, interfaceType, methodName, arguments, source, cancellationToken);
-                    var model = task.GetAwaiter().GetResult();
+                    var model = Task.Run(() => task).GetAwaiter().GetResult();
                     return model;
                 }
             }

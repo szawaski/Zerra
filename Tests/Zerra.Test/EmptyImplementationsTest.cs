@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Threading.Tasks;
 using Zerra.Reflection;
 
 namespace Zerra.Test
@@ -57,8 +58,8 @@ namespace Zerra.Test
             Assert.AreEqual(default, resultR);
             Assert.AreEqual(default, resultS);
 
-            thingy.Method3().GetAwaiter().GetResult();
-            var result3 = thingy.Method4().GetAwaiter().GetResult();
+            Task.Run(thingy.Method3).GetAwaiter().GetResult();
+            var result3 = Task.Run(thingy.Method4).GetAwaiter().GetResult();
             Assert.AreEqual(0, result3);
 
             thingy.Property1 = 5;
