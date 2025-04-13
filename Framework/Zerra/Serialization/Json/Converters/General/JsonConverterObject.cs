@@ -74,6 +74,10 @@ namespace Zerra.Serialization.Json.Converters.General
                         ignoreCondition = JsonIgnoreCondition.Always;
 #endif
                     }
+                    else if (attribute is NonSerializedAttribute)
+                    {
+                        ignoreCondition = JsonIgnoreCondition.Always;
+                    }
 
                     if (ignoreCondition == JsonIgnoreCondition.Always)
                         break;
