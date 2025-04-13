@@ -18,11 +18,11 @@ namespace Zerra
     /// </summary>
     public class Graph
     {
-        protected bool includeAllMembers;
-        protected HashSet<string>? addedMembers;
-        protected HashSet<string>? removedMembers;
-        protected Dictionary<string, Graph>? childGraphs;
-        protected Dictionary<object, Graph>? instanceGraphs;
+        private bool includeAllMembers;
+        private HashSet<string>? addedMembers;
+        private HashSet<string>? removedMembers;
+        private Dictionary<string, Graph>? childGraphs;
+        private Dictionary<object, Graph>? instanceGraphs;
 
         /// <summary>
         /// All members that were explicity added and not removed.

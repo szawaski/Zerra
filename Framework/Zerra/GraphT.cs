@@ -37,10 +37,7 @@ namespace Zerra
         /// Creates an empty graph with the to option to include all memebers.
         /// </summary>
         /// <param name="includeAllMembers">Indiciates if all members should be included.</param>
-        public Graph(bool includeAllMembers) : this(includeAllMembers, (IEnumerable<Expression<Func<T, object?>>>?)null)
-        {
-            this.signature = "A";
-        }
+        public Graph(bool includeAllMembers) : base(includeAllMembers) { }
 
         /// <summary>
         /// Creates a graph with the specified members included.
