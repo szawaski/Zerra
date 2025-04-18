@@ -110,7 +110,24 @@ namespace Zerra
         /// </summary>
         /// <param name="members">The members to include</param>
         public Graph(IEnumerable<string>? members) : this(false, members) { }
-        protected Graph(bool includeAllMembers, IEnumerable<string>? members)
+        /// <summary>
+        /// Creates a graph with the specified members included.
+        /// </summary>
+        /// <param name="includeAllMembers">Indiciates if all members should be included.</param>
+        /// <param name="members">The members to include</param>
+        public Graph(bool includeAllMembers, params string[] members)
+        {
+            this.includeAllMembers = includeAllMembers;
+
+            if (members is not null)
+                AddMembers(members);
+        }
+        /// <summary>
+        /// Creates a graph with the specified members included.
+        /// </summary>
+        /// <param name="includeAllMembers">Indiciates if all members should be included.</param>
+        /// <param name="members">The members to include</param>
+        public Graph(bool includeAllMembers, IEnumerable<string>? members)
         {
             this.includeAllMembers = includeAllMembers;
 
@@ -579,6 +596,10 @@ namespace Zerra
         /// <returns>The object type to which the graph members are directed.</returns>
         protected virtual Type? GetModelType() => null;
 
+        /// <summary>
+        /// Internal Use Only.
+        /// </summary>
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         protected static Graph? InternalGetChildGraph(Graph graph, MemberInfo member, bool canCreate)
         {
             graph.childGraphs ??= new();
