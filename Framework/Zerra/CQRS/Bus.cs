@@ -497,7 +497,16 @@ namespace Zerra.CQRS
                     var providerType = ProviderResolver.GetTypeFirst(interfaceType);
                     var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(ICommandHandler<ICommand>.Handle), [commandType, cancellationTokenType]);
                     var provider = Instantiator.GetSingle(providerType);
-                    result = (Task)method.CallerBoxed(provider, [command, cancellationToken])!;
+
+                    if (!requireAffirmation && networkType == NetworkType.Local)
+                    {
+                        _ = Task.Run(() => (Task)method.CallerBoxed(provider, [command, default])!);
+                        result = Task.CompletedTask;
+                    }
+                    else
+                    {
+                        result = (Task)method.CallerBoxed(provider, [command, cancellationToken])!;
+                    }
                 }
                 else
                 {
@@ -509,11 +518,16 @@ namespace Zerra.CQRS
             }
             else
             {
-                result = HandleCommandTaskLogged(handled, producer, cacheProviderDispatchAsync, command, commandType, requireAffirmation, networkType, source, cancellationToken);
+                if (handled && !requireAffirmation && networkType == NetworkType.Local)
+                {
+                    _ = Task.Run(() => HandleCommandTaskLogged(handled, producer, cacheProviderDispatchAsync, command, commandType, requireAffirmation, networkType, source, default));
+                    result = Task.CompletedTask;
+                }
+                else
+                {
+                    result = HandleCommandTaskLogged(handled, producer, cacheProviderDispatchAsync, command, commandType, requireAffirmation, networkType, source, cancellationToken);
+                }
             }
-
-            if (!requireAffirmation && networkType == NetworkType.Local)
-                result = Task.CompletedTask;
 
             return result;
         }
@@ -720,7 +734,16 @@ namespace Zerra.CQRS
                     var providerType = ProviderResolver.GetTypeFirst(interfaceType);
                     var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(IEventHandler<IEvent>.Handle), [eventType]);
                     var provider = Instantiator.GetSingle(providerType);
-                    result = (Task)method.CallerBoxed(provider, [@event])!;
+
+                    if (networkType == NetworkType.Local)
+                    {
+                        _ = Task.Run(() => (Task)method.CallerBoxed(provider, [@event])!);
+                        result = Task.CompletedTask;
+                    }
+                    else
+                    {
+                        result = (Task)method.CallerBoxed(provider, [@event])!;
+                    }
                 }
                 else
                 {
@@ -757,7 +780,15 @@ namespace Zerra.CQRS
                 else
                 {
                     var producer = producerList?.FirstOrDefault();
-                    result = HandleEventTaskLogged(handled, producer, cacheProviderDispatchAsync, @event, eventType, networkType, source, cancellationToken);
+                    if (handled && networkType == NetworkType.Local)
+                    {
+                        _ = Task.Run(() => HandleEventTaskLogged(handled, producer, cacheProviderDispatchAsync, @event, eventType, networkType, source, default));
+                        result = Task.CompletedTask;
+                    }
+                    else
+                    {
+                        result = HandleEventTaskLogged(handled, producer, cacheProviderDispatchAsync, @event, eventType, networkType, source, cancellationToken);
+                    }
                 }
             }
 
@@ -781,7 +812,7 @@ namespace Zerra.CQRS
                     var providerType = ProviderResolver.GetTypeFirst(interfaceType);
                     var method = TypeAnalyzer.GetMethodDetail(providerType, nameof(ICommandHandler<ICommand>.Handle), [commandType, cancellationTokenType]);
                     var provider = Instantiator.GetSingle(providerType);
-                    await (Task)method.CallerBoxed(provider, [command, cancellationToken])!;
+                    await (Task)method.MethodInfo.Invoke(provider, [command, cancellationToken])!;
                 }
                 else
                 {
