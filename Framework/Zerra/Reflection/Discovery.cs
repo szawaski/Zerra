@@ -6,6 +6,7 @@ using System;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -25,7 +26,7 @@ namespace Zerra.Reflection
 
         private static readonly ConcurrentDictionary<Type, List<Type>> interfaceByType = new();
 
-        private static readonly ConcurrentDictionary<string, ConcurrentReadWriteList<Type>> typeByName = new();
+        private static readonly ConcurrentDictionary<string, ConcurrentReadWriteList<Type?>> typeByName = new();
 
         private static readonly ConcurrentFactoryDictionary<Type, string> niceNames = new();
         private static readonly ConcurrentFactoryDictionary<Type, string> niceFullNames = new();
@@ -1026,30 +1027,64 @@ namespace Zerra.Reflection
             if (!typeByName.TryGetValue(name, out var matches))
             {
                 var type = Type.GetType(name);
-                if (type is null)
-                    type = ParseType(name);
-                matches = typeByName.GetOrAdd(name, static (key) => new ConcurrentReadWriteList<Type>());
+                type ??= ParseType(name);
+                matches = typeByName.GetOrAdd(name, static (key) => new());
                 lock (matches)
                 {
-                    if (!matches.Contains(type))
-                    {
+                    //only add null if it's new and will be the only item
+                    if (matches.Count == 0 || (type is not null && !matches.Contains(type)))
                         matches.Add(type);
-                    }
                 }
+                if (type is null)
+                    throw new Exception($"Could not find type {name}. Remember discovery finds assemblies with the same first namespace segment. Additional assemblies must be added with Config class.");
                 return type;
             }
             else if (matches.Count == 1)
             {
                 var type = matches[0];
+                if (type is null)
+                    throw new Exception($"Could not find type {name}. Remember discovery finds assemblies with the same first namespace segment. Additional assemblies must be added with Config class.");
                 return type;
             }
             else
             {
-                throw new Exception($"More than one type matches {name} - {String.Join(", ", matches.Select(x => x.AssemblyQualifiedName).ToArray())}");
+                throw new Exception($"More than one type matches {name} - {String.Join(", ", matches.Where(x => x is not null).Select(x => x!.AssemblyQualifiedName).ToArray())}");
+            }
+        }
+        public static bool TryGetTypeFromName(string name,
+#if NET5_0_OR_GREATER
+            [MaybeNullWhen(false)]
+#endif
+        out Type type)
+        {
+            if (String.IsNullOrWhiteSpace(name))
+                throw new ArgumentNullException(nameof(name));
+
+            if (!typeByName.TryGetValue(name, out var matches))
+            {
+                type = Type.GetType(name);
+                type ??= ParseType(name);
+                matches = typeByName.GetOrAdd(name, static (key) => new());
+                lock (matches)
+                {
+                    if ((matches.Count == 0 || type is not null) && !matches.Contains(type))
+                        matches.Add(type);
+                }
+                return type is not null;
+            }
+            else if (matches.Count == 1)
+            {
+                type = matches[0];
+                return type is not null;
+            }
+            else
+            {
+                type = null;
+                return false;
             }
         }
 
-        private static unsafe Type ParseType(string name)
+        private static unsafe Type? ParseType(string name)
         {
             var index = 0;
             var chars = name.AsSpan();
@@ -1245,6 +1280,9 @@ namespace Zerra.Reflection
                 currentName ??= current.Slice(0, i).ToString();
 
                 var type = GetTypeFromNameWithoutParse(currentName);
+                if (type is null)
+                    return null;
+
                 if (genericArguments.Count > 0)
                 {
                     type = type.MakeGenericType(genericArguments.ToArray());
@@ -1268,23 +1306,18 @@ namespace Zerra.Reflection
             }
         }
 
-        private static Type GetTypeFromNameWithoutParse(string name)
+        private static Type? GetTypeFromNameWithoutParse(string name)
         {
             if (!typeByName.TryGetValue(name, out var matches))
             {
                 var type = Type.GetType(name);
-                if (type is null)
-                {
-                    throw new Exception($"Could not find type {name}.  Remember discovery finds assemblies with the same first namespace segment.  Additional assemblies must be added with Config class.");
-                }
 
-                matches = typeByName.GetOrAdd(name, static (key) => new ConcurrentReadWriteList<Type>());
+                matches = typeByName.GetOrAdd(name, static (key) => new());
                 lock (matches)
                 {
-                    if (!matches.Contains(type))
-                    {
+                    //only add null if it's new and will be the only item
+                    if (matches.Count == 0 || (type is not null && !matches.Contains(type)))
                         matches.Add(type);
-                    }
                 }
                 return type;
             }
@@ -1295,7 +1328,7 @@ namespace Zerra.Reflection
             }
             else
             {
-                throw new Exception($"More than one type matches {name} - {String.Join(", ", matches.Select(x => x.AssemblyQualifiedName).ToArray())}");
+                throw new Exception($"More than one type matches {name} - {String.Join(", ", matches.Where(x => x is not null).Select(x => x!.AssemblyQualifiedName).ToArray())}");
             }
         }
 

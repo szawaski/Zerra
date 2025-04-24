@@ -248,21 +248,23 @@ namespace Zerra.CQRS.Network
             {
                 try
                 {
-                    var type = Discovery.GetTypeFromName(content.ErrorType);
-                    switch (contentType)
+                    if (Discovery.TryGetTypeFromName(content.ErrorType, out var type))
                     {
-                        case ContentType.Bytes:
-                            if (content.ErrorBytes is not null && content.ErrorBytes.Length > 0)
-                                ex = (Exception?)ByteSerializer.Deserialize(type, content.ErrorBytes, byteSerializerOptions);
-                            break;
-                        case ContentType.Json:
-                            if (!String.IsNullOrEmpty(content.ErrorString))
-                                ex = (Exception?)JsonSerializer.Deserialize(type, content.ErrorString);
-                            break;
-                        case ContentType.JsonNameless:
-                            if (!String.IsNullOrEmpty(content.ErrorString))
-                                ex = (Exception?)JsonSerializer.Deserialize(type, content.ErrorString, jsonSerializerNamelessOptions);
-                            break;
+                        switch (contentType)
+                        {
+                            case ContentType.Bytes:
+                                if (content.ErrorBytes is not null && content.ErrorBytes.Length > 0)
+                                    ex = (Exception?)ByteSerializer.Deserialize(type, content.ErrorBytes, byteSerializerOptions);
+                                break;
+                            case ContentType.Json:
+                                if (!String.IsNullOrEmpty(content.ErrorString))
+                                    ex = (Exception?)JsonSerializer.Deserialize(type, content.ErrorString);
+                                break;
+                            case ContentType.JsonNameless:
+                                if (!String.IsNullOrEmpty(content.ErrorString))
+                                    ex = (Exception?)JsonSerializer.Deserialize(type, content.ErrorString, jsonSerializerNamelessOptions);
+                                break;
+                        }
                     }
                 }
                 catch { }
@@ -327,21 +329,23 @@ namespace Zerra.CQRS.Network
             {
                 try
                 {
-                    var type = Discovery.GetTypeFromName(content.ErrorType);
-                    switch (contentType)
+                    if (Discovery.TryGetTypeFromName(content.ErrorType, out var type))
                     {
-                        case ContentType.Bytes:
-                            if (content.ErrorBytes is not null && content.ErrorBytes.Length > 0)
-                                ex = (Exception?)ByteSerializer.Deserialize(type, content.ErrorBytes, byteSerializerOptions);
-                            break;
-                        case ContentType.Json:
-                            if (!String.IsNullOrEmpty(content.ErrorString))
-                                ex = (Exception?)JsonSerializer.Deserialize(type, content.ErrorString);
-                            break;
-                        case ContentType.JsonNameless:
-                            if (!String.IsNullOrEmpty(content.ErrorString))
-                                ex = (Exception?)JsonSerializer.Deserialize(type, content.ErrorString, jsonSerializerNamelessOptions);
-                            break;
+                        switch (contentType)
+                        {
+                            case ContentType.Bytes:
+                                if (content.ErrorBytes is not null && content.ErrorBytes.Length > 0)
+                                    ex = (Exception?)ByteSerializer.Deserialize(type, content.ErrorBytes, byteSerializerOptions);
+                                break;
+                            case ContentType.Json:
+                                if (!String.IsNullOrEmpty(content.ErrorString))
+                                    ex = (Exception?)JsonSerializer.Deserialize(type, content.ErrorString);
+                                break;
+                            case ContentType.JsonNameless:
+                                if (!String.IsNullOrEmpty(content.ErrorString))
+                                    ex = (Exception?)JsonSerializer.Deserialize(type, content.ErrorString, jsonSerializerNamelessOptions);
+                                break;
+                        }
                     }
                 }
                 catch { }

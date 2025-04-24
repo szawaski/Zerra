@@ -95,8 +95,8 @@ namespace Zerra.CQRS.Network
             {
                 try
                 {
-                    var type = Discovery.GetTypeFromName(ack.DataType);
-                    ex = (Exception?)ByteSerializer.Deserialize(type, ack.Data, byteSerializerOptions);
+                    if (Discovery.TryGetTypeFromName(ack.DataType, out var type))
+                        ex = (Exception?)ByteSerializer.Deserialize(type, ack.Data, byteSerializerOptions);
                 }
                 catch { }
             }
@@ -123,8 +123,8 @@ namespace Zerra.CQRS.Network
                 {
                     try
                     {
-                        var type = Discovery.GetTypeFromName(ack.DataType);
-                        ex = (Exception?)ByteSerializer.Deserialize(type, ack.Data, byteSerializerOptions);
+                        if (Discovery.TryGetTypeFromName(ack.DataType, out var type))
+                            ex = (Exception?)ByteSerializer.Deserialize(type, ack.Data, byteSerializerOptions);
                     }
                     catch { }
                 }
@@ -139,7 +139,7 @@ namespace Zerra.CQRS.Network
                     var result = ByteSerializer.Deserialize(type, ack.Data, byteSerializerOptions);
                     return result;
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     throw new RemoteServiceException($"Failed to deserialize result type {ack.DataType}", ex);
                 }
