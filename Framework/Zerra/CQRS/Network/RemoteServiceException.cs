@@ -18,7 +18,7 @@ namespace Zerra.CQRS.Network
         /// </summary>
         /// <param name="message">The error text.</param>
         public RemoteServiceException(string? message)
-            : base(GetMessage(message))
+            : base(message)
         { }
 
         /// <summary>
@@ -27,9 +27,7 @@ namespace Zerra.CQRS.Network
         /// <param name="message">The error text.</param>
         /// <param name="innerException">The actual inner exception.</param>
         public RemoteServiceException(string? message, Exception? innerException) 
-            : base(GetMessage(message), innerException)
+            : base(message, innerException)
         { }
-
-        private static string GetMessage(string? message) => $"Error From Remote Service: {(String.IsNullOrWhiteSpace(message) ? "(Unknown)" : message)}";
     }
 }
