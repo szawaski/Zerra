@@ -169,11 +169,11 @@ namespace Zerra.CQRS
                 throw new InvalidOperationException($"Caller for {interfaceType.GetNiceName()} is already registered");
         }
 
-        private static readonly Type[] getHandlerToDispatchInternalInstanceSignature = [typeof(bool), typeof(NetworkType), typeof(bool), typeof(string), typeof(CancellationToken)];
-        public static object GetHandlerToDispatchInternalInstance(Type interfaceType, bool requireAffirmation, NetworkType networkType, bool isFinalLayer, string source, CancellationToken cancellationToken)
+        private static readonly Type[] getHandlerToDispatchInternalInstanceSignature = [typeof(bool), typeof(NetworkType), typeof(bool), typeof(string)];
+        public static object GetHandlerToDispatchInternalInstance(Type interfaceType, bool requireAffirmation, NetworkType networkType, bool isFinalLayer, string source)
         {
             var dispatcherClassType = interfaceRouterClasses.GetOrAdd(interfaceType, GenerateHandlerToDispatchInternalClass);
-            return Instantiator.Create(dispatcherClassType, getHandlerToDispatchInternalInstanceSignature, requireAffirmation, networkType, isFinalLayer, source, cancellationToken);
+            return Instantiator.Create(dispatcherClassType, getHandlerToDispatchInternalInstanceSignature, requireAffirmation, networkType, isFinalLayer, source);
         }
         private static Type GenerateHandlerToDispatchInternalClass(Type interfaceType)
         {
@@ -196,7 +196,6 @@ namespace Zerra.CQRS
             var networkTypeField = typeBuilder.DefineField("networkType", typeof(NetworkType), FieldAttributes.Private | FieldAttributes.InitOnly);
             var isFinalLayerField = typeBuilder.DefineField("isFinalLayer", typeof(bool), FieldAttributes.Private | FieldAttributes.InitOnly);
             var sourceField = typeBuilder.DefineField("source", typeof(string), FieldAttributes.Private | FieldAttributes.InitOnly);
-            var cancellationTokenField = typeBuilder.DefineField("cancellationToken", typeof(CancellationToken), FieldAttributes.Private | FieldAttributes.InitOnly);
 
             var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Standard, [typeof(bool), typeof(NetworkType), typeof(bool), typeof(string), typeof(CancellationToken)]);
             {
@@ -204,7 +203,6 @@ namespace Zerra.CQRS
                 _ = constructorBuilder.DefineParameter(1, ParameterAttributes.None, "networkType");
                 _ = constructorBuilder.DefineParameter(2, ParameterAttributes.None, "isFinalLayer");
                 _ = constructorBuilder.DefineParameter(3, ParameterAttributes.None, "source");
-                _ = constructorBuilder.DefineParameter(4, ParameterAttributes.None, "cancellationToken");
 
                 var il = constructorBuilder.GetILGenerator();
                 il.Emit(OpCodes.Ldarg_0);
@@ -227,10 +225,6 @@ namespace Zerra.CQRS
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldarg, 4);
                 il.Emit(OpCodes.Stfld, sourceField);
-
-                il.Emit(OpCodes.Ldarg_0);
-                il.Emit(OpCodes.Ldarg, 4);
-                il.Emit(OpCodes.Stfld, cancellationTokenField);
 
                 il.Emit(OpCodes.Ret);
             }
@@ -274,9 +268,6 @@ namespace Zerra.CQRS
                     il.Emit(OpCodes.Ldarg_0);
                     il.Emit(OpCodes.Ldfld, sourceField); //source
 
-                    il.Emit(OpCodes.Ldarg_0);
-                    il.Emit(OpCodes.Ldfld, cancellationTokenField); //cancellationToken
-
                     il.Emit(OpCodes.Call, BusRouterMethods.DispatchCommandInternalAsyncMethod);
                     il.Emit(OpCodes.Ret);
 
@@ -300,9 +291,6 @@ namespace Zerra.CQRS
                     il.Emit(OpCodes.Ldarg_0);
                     il.Emit(OpCodes.Ldfld, sourceField); //source
 
-                    il.Emit(OpCodes.Ldarg_0);
-                    il.Emit(OpCodes.Ldfld, cancellationTokenField); //cancellationToken
-
                     il.Emit(OpCodes.Call, BusRouterMethods.DispatchCommandInternalAsyncMethod);
                     il.Emit(OpCodes.Ret);
 
@@ -325,9 +313,6 @@ namespace Zerra.CQRS
 
                     il.Emit(OpCodes.Ldarg_0);
                     il.Emit(OpCodes.Ldfld, sourceField); //source
-
-                    il.Emit(OpCodes.Ldarg_0);
-                    il.Emit(OpCodes.Ldfld, cancellationTokenField); //cancellationToken
 
                     il.Emit(OpCodes.Call, BusRouterMethods.DispatchCommandInternalAsyncMethod);
                     il.Emit(OpCodes.Ret);

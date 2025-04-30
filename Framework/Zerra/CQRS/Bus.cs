@@ -55,11 +55,11 @@ namespace Zerra.CQRS
         private static CommandCounter commandCounter = new();
 
         private static readonly ConcurrentFactoryDictionary<Type, MessageMetadata> messageMetadata = new();
-        private static readonly ConcurrentFactoryDictionary<Type, Func<ICommand, Task>?> commandCacheProviders = new();
+        private static readonly ConcurrentFactoryDictionary<Type, Func<ICommand, CancellationToken, Task>?> commandCacheProviders = new();
         private static readonly ConcurrentFactoryDictionary<Type, Delegate?> commandWithResultCacheProviders = new();
         private static readonly ConcurrentFactoryDictionary<Type, Func<IEvent, Task>?> eventCacheProviders = new();
         private static readonly ConcurrentFactoryDictionary<Type, CallMetadata> callMetadata = new();
-        private static readonly ConcurrentFactoryDictionary<Type, object?> cacheProviders = new();
+        private static readonly ConcurrentFactoryDictionary<Type, (Type, MethodDetail)?> cacheProviders = new();
 
         private static readonly Dictionary<Type, ICommandProducer> commandProducers = new();
         private static readonly HashSet<ICommandConsumer> commandConsumers = new();
@@ -439,7 +439,7 @@ namespace Zerra.CQRS
             if (metadata.Authenticate)
                 Authenticate(Thread.CurrentPrincipal, metadata.Roles, () => $"Access Denied for Command {commandType.GetNiceName()}");
 
-            Func<ICommand, Task>? cacheProviderDispatchAsync = null;
+            Func<ICommand, CancellationToken, Task>? cacheProviderDispatchAsync = null;
             if (!isFinalLayer)
             {
                 cacheProviderDispatchAsync = commandCacheProviders.GetOrAdd(commandType, requireAffirmation, networkType, source, cancellationToken, metadata, static (commandType, requireAffirmation, networkType, source, cancellationToken, metadata) =>
@@ -460,11 +460,11 @@ namespace Zerra.CQRS
                     var methodGetProviderInterfaceType = busCacheTypeDetail.GetMethodBoxed(nameof(LayerProvider<object>.GetProviderInterfaceType));
                     var interfaceType = (Type)methodGetProviderInterfaceType.CallerBoxed(cacheInstance, null)!;
 
-                    var messageHandlerToDispatchProvider = BusRouters.GetHandlerToDispatchInternalInstance(interfaceType, requireAffirmation, networkType, true, source, cancellationToken);
+                    var messageHandlerToDispatchProvider = BusRouters.GetHandlerToDispatchInternalInstance(interfaceType, requireAffirmation, networkType, true, source);
                     _ = methodSetNextProvider.CallerBoxed(cacheInstance, [messageHandlerToDispatchProvider]);
 
                     var method = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(ICommandHandler<ICommand>.Handle), [commandType, cancellationTokenType]);
-                    Task caller(ICommand arg) => (Task)method.CallerBoxed(cacheInstance, [arg, cancellationToken])!;
+                    Task caller(ICommand arg, CancellationToken ct) => (Task)method.CallerBoxed(cacheInstance, [arg, ct])!;
 
                     return caller;
                 });
@@ -489,7 +489,7 @@ namespace Zerra.CQRS
             {
                 if (cacheProviderDispatchAsync is not null)
                 {
-                    result = cacheProviderDispatchAsync(command);
+                    result = cacheProviderDispatchAsync(command, cancellationToken);
                 }
                 else if (handled)
                 {
@@ -567,10 +567,10 @@ namespace Zerra.CQRS
             if (metadata.Authenticate)
                 Authenticate(Thread.CurrentPrincipal, metadata.Roles, () => $"Access Denied for Command {commandType.GetNiceName()}");
 
-            Func<ICommand<TResult>, Task<TResult>>? cacheProviderDispatchAsync = null;
+            Func<ICommand<TResult>, CancellationToken, Task<TResult>>? cacheProviderDispatchAsync = null;
             if (!isFinalLayer)
             {
-                cacheProviderDispatchAsync = (Func<ICommand<TResult>, Task<TResult>>?)commandWithResultCacheProviders.GetOrAdd(commandType, networkType, source, cancellationToken, metadata, static (commandType, networkType, source, cancellationToken, metadata) =>
+                cacheProviderDispatchAsync = (Func<ICommand<TResult>, CancellationToken, Task<TResult>>?)commandWithResultCacheProviders.GetOrAdd(commandType, networkType, source, cancellationToken, metadata, static (commandType, networkType, source, cancellationToken, metadata) =>
                 {
                     var handlerTypeDetail = TypeAnalyzer.GetGenericTypeDetail(iCommandHandlerWithResultType, commandType, typeof(TResult));
 
@@ -588,11 +588,11 @@ namespace Zerra.CQRS
                     var methodGetProviderInterfaceType = busCacheTypeDetail.GetMethodBoxed(nameof(LayerProvider<object>.GetProviderInterfaceType));
                     var interfaceType = (Type)methodGetProviderInterfaceType.CallerBoxed(cacheInstance, null)!;
 
-                    var messageHandlerToDispatchProvider = BusRouters.GetHandlerToDispatchInternalInstance(interfaceType, false, networkType, true, source, cancellationToken);
+                    var messageHandlerToDispatchProvider = BusRouters.GetHandlerToDispatchInternalInstance(interfaceType, false, networkType, true, source);
                     _ = methodSetNextProvider.CallerBoxed(cacheInstance, [messageHandlerToDispatchProvider]);
 
                     var method = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(ICommandHandler<ICommand<TResult>, TResult>.Handle), [commandType, cancellationTokenType]);
-                    Task<TResult?> caller(ICommand<TResult> arg) => (Task<TResult?>)method.CallerBoxed(cacheInstance, [arg, cancellationToken])!;
+                    Task<TResult?> caller(ICommand<TResult> arg, CancellationToken ct) => (Task<TResult?>)method.CallerBoxed(cacheInstance, [arg, ct])!;
 
                     return caller;
                 });
@@ -617,7 +617,7 @@ namespace Zerra.CQRS
             {
                 if (cacheProviderDispatchAsync is not null)
                 {
-                    result = cacheProviderDispatchAsync(command);
+                    result = cacheProviderDispatchAsync(command, cancellationToken);
                 }
                 else if (handled)
                 {
@@ -696,7 +696,7 @@ namespace Zerra.CQRS
                     var methodGetProviderInterfaceType = busCacheTypeDetail.GetMethodBoxed(nameof(LayerProvider<object>.GetProviderInterfaceType));
                     var interfaceType = (Type)methodGetProviderInterfaceType.CallerBoxed(cacheInstance, null)!;
 
-                    var messageHandlerToDispatchProvider = BusRouters.GetHandlerToDispatchInternalInstance(interfaceType, false, networkType, true, source, cancellationToken);
+                    var messageHandlerToDispatchProvider = BusRouters.GetHandlerToDispatchInternalInstance(interfaceType, false, networkType, true, source);
                     _ = methodSetNextProvider.CallerBoxed(cacheInstance, [messageHandlerToDispatchProvider]);
 
                     var method = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(IEventHandler<IEvent>.Handle), [eventType]);
@@ -795,7 +795,7 @@ namespace Zerra.CQRS
             return result;
         }
 
-        private static async Task HandleCommandTaskLogged(bool handled, ICommandProducer? producer, Func<ICommand, Task>? cacheProviderDispatchAsync, ICommand command, Type commandType, bool requireAffirmation, NetworkType networkType, string source, CancellationToken cancellationToken)
+        private static async Task HandleCommandTaskLogged(bool handled, ICommandProducer? producer, Func<ICommand, CancellationToken, Task>? cacheProviderDispatchAsync, ICommand command, Type commandType, bool requireAffirmation, NetworkType networkType, string source, CancellationToken cancellationToken)
         {
             busLogger?.BeginCommand(commandType, command, source, handled);
 
@@ -804,7 +804,7 @@ namespace Zerra.CQRS
             {
                 if (cacheProviderDispatchAsync is not null)
                 {
-                    await cacheProviderDispatchAsync(command);
+                    await cacheProviderDispatchAsync(command, cancellationToken);
                 }
                 else if (handled)
                 {
@@ -832,7 +832,7 @@ namespace Zerra.CQRS
             timer.Stop();
             busLogger?.EndCommand(commandType, command, source, handled, timer.ElapsedMilliseconds, null);
         }
-        private static async Task<TResult> HandleCommandWithResultTaskLogged<TResult>(bool handled, ICommandProducer? producer, Func<ICommand<TResult>, Task<TResult>>? cacheProviderDispatchAsync, ICommand<TResult> command, Type commandType, NetworkType networkType, string source, CancellationToken cancellationToken)
+        private static async Task<TResult> HandleCommandWithResultTaskLogged<TResult>(bool handled, ICommandProducer? producer, Func<ICommand<TResult>, CancellationToken, Task<TResult>>? cacheProviderDispatchAsync, ICommand<TResult> command, Type commandType, NetworkType networkType, string source, CancellationToken cancellationToken)
         {
             busLogger?.BeginCommand(commandType, command, source, handled);
 
@@ -842,7 +842,7 @@ namespace Zerra.CQRS
             {
                 if (cacheProviderDispatchAsync is not null)
                 {
-                    result = await cacheProviderDispatchAsync(command);
+                    result = await cacheProviderDispatchAsync(command, cancellationToken);
                 }
                 else if (handled)
                 {
@@ -1022,6 +1022,8 @@ namespace Zerra.CQRS
             if (methodMetadata.Authenticate)
                 Authenticate(Thread.CurrentPrincipal, methodMetadata.Roles, () => $"Access Denied for Method {interfaceType.GetNiceName()}.{methodName}");
 
+            var lastArgumentIsCancellationToken = methodMetadata.MethodDetail.ParameterDetails.Count > 0 && methodMetadata.MethodDetail.ParameterDetails[methodMetadata.MethodDetail.ParameterDetails.Count - 1].Type == cancellationTokenType;
+
             CancellationTokenSource? cancellationTokenSource = null;
             CancellationToken cancellationToken;
             if (timeout.HasValue)
@@ -1035,16 +1037,16 @@ namespace Zerra.CQRS
                 {
                     cancellationToken = default;
                 }
-                if (methodMetadata.MethodDetail.ParameterDetails.Count > 0 && methodMetadata.MethodDetail.ParameterDetails[methodMetadata.MethodDetail.ParameterDetails.Count - 1].Type == cancellationTokenType)
+                if (lastArgumentIsCancellationToken)
                     arguments[arguments.Length - 1] = cancellationToken;
             }
             else if (cancellationTokenNullable.HasValue)
             {
                 cancellationToken = cancellationTokenNullable.Value;
-                if (methodMetadata.MethodDetail.ParameterDetails.Count > 0 && methodMetadata.MethodDetail.ParameterDetails[methodMetadata.MethodDetail.ParameterDetails.Count - 1].Type == cancellationTokenType)
+                if (lastArgumentIsCancellationToken)
                     arguments[arguments.Length - 1] = cancellationToken;
             }
-            else if (methodMetadata.MethodDetail.ParameterDetails.Count > 0 && methodMetadata.MethodDetail.ParameterDetails[methodMetadata.MethodDetail.ParameterDetails.Count - 1].Type == cancellationTokenType)
+            else if (lastArgumentIsCancellationToken)
             {
                 var argumentCancellationToken = (CancellationToken)arguments[arguments.Length - 1];
                 if (argumentCancellationToken != CancellationToken.None)
@@ -1074,26 +1076,21 @@ namespace Zerra.CQRS
             object? cacheProvider = null;
             if (!isFinalLayer)
             {
-                cacheProvider = cacheProviders.GetOrAdd(interfaceType, networkType, source, cancellationToken, static (interfaceType, networkType, source, cancellationToken) =>
+                var cacheProviderSet = cacheProviders.GetOrAdd(interfaceType, networkType, source, cancellationToken, static (interfaceType, networkType, source, cancellationToken) =>
                 {
-                    var busCacheType = Discovery.GetClassByInterface(interfaceType, iBusCacheType, false);
-                    if (busCacheType is not null)
-                    {
-                        var methodSetNextProvider = TypeAnalyzer.GetMethodDetail(busCacheType, nameof(LayerProvider<object>.SetNextProvider)).MethodInfo;
-                        if (methodSetNextProvider is not null)
-                        {
-                            var callerProvider = BusRouters.GetProviderToCallMethodInternalInstance(interfaceType, networkType, true, source, null, cancellationToken);
-
-                            var cacheInstance = Instantiator.Create(busCacheType);
-
-                            _ = methodSetNextProvider.Invoke(cacheInstance, [callerProvider]);
-
-                            return cacheInstance;
-                        }
-                    }
-
-                    return null;
+                    var cacheProviderType = Discovery.GetClassByInterface(interfaceType, iBusCacheType, false);
+                    if (cacheProviderType is null)
+                        return null;
+                    var methodSetNextProvider = TypeAnalyzer.GetMethodDetail(cacheProviderType, nameof(LayerProvider<object>.SetNextProvider));
+                    return (cacheProviderType, methodSetNextProvider);
                 });
+
+                if (cacheProviderSet.HasValue)
+                {
+                    var callerProvider = BusRouters.GetProviderToCallMethodInternalInstance(interfaceType, networkType, true, source, null, lastArgumentIsCancellationToken ? null : cancellationToken);
+                    cacheProvider = Instantiator.Create(cacheProviderSet.Value.Item1);
+                    _ = cacheProviderSet.Value.Item2.CallerBoxed(cacheProvider, [callerProvider]);
+                }
             }
 
             IQueryClient? queryClient = null;
