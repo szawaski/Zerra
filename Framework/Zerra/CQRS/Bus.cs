@@ -500,7 +500,7 @@ namespace Zerra.CQRS
 
                     if (!requireAffirmation && networkType == NetworkType.Local)
                     {
-                        _ = Task.Run(() => (Task)method.CallerBoxed(provider, [command, default])!);
+                        _ = Task.Run(() => (Task)method.CallerBoxed(provider, [command, CancellationToken.None])!);
                         result = Task.CompletedTask;
                     }
                     else
