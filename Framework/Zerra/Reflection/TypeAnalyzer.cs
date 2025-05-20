@@ -13,8 +13,8 @@ namespace Zerra.Reflection
 {
     public static class TypeAnalyzer
     {
-        public static T? Convert<T>(object obj) { return (T?)Convert(obj, typeof(T)); }
-        public static object? Convert(object obj, Type type)
+        public static T? Convert<T>(object? obj) { return (T?)Convert(obj, typeof(T)); }
+        public static object? Convert(object? obj, Type type)
         {
             if (!TypeLookup.CoreTypeLookup(type, out var coreType))
                 throw new NotImplementedException($"Type convert not available for {type.Name}");
@@ -121,7 +121,7 @@ namespace Zerra.Reflection
             }
         }
 
-        private static Guid ConvertToGuid(object obj)
+        private static Guid ConvertToGuid(object? obj)
         {
             if (obj is null)
                 return Guid.Empty;
@@ -129,20 +129,20 @@ namespace Zerra.Reflection
         }
 
 
-        private static TimeSpan ConvertToTimeSpan(object obj)
+        private static TimeSpan ConvertToTimeSpan(object? obj)
         {
             if (obj is null)
                 return TimeSpan.MinValue;
             return TimeSpan.Parse(obj.ToString() ?? String.Empty, System.Globalization.CultureInfo.InvariantCulture);
         }
 #if NET6_0_OR_GREATER
-        private static DateOnly ConvertToDateOnly(object obj)
+        private static DateOnly ConvertToDateOnly(object? obj)
         {
             if (obj is null)
                 return DateOnly.MinValue;
             return DateOnly.Parse(obj.ToString() ?? String.Empty, System.Globalization.CultureInfo.InvariantCulture);
         }
-        private static TimeOnly ConvertToTimeOnly(object obj)
+        private static TimeOnly ConvertToTimeOnly(object? obj)
         {
             if (obj is null)
                 return TimeOnly.MinValue;
@@ -150,7 +150,7 @@ namespace Zerra.Reflection
         }
 #endif
 
-        private static DateTimeOffset ConvertToDateTimeOffset(object obj)
+        private static DateTimeOffset ConvertToDateTimeOffset(object? obj)
         {
             if (obj is null)
                 return DateTimeOffset.MinValue;
