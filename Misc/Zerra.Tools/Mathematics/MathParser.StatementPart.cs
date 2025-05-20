@@ -17,6 +17,10 @@ namespace Zerra.Mathematics
                         return UnaryOperator.Token;
                     if (BinaryOperator is not null)
                         return BinaryOperator.Token;
+                    if (TertiaryOperator1 is not null)
+                        return TertiaryOperator1.Token1;
+                    if (TertiaryOperator2 is not null)
+                        return TertiaryOperator2.Token2;
                     if (MethodOperator is not null)
                         return MethodOperator.Token;
                     if (Number is not null)
@@ -28,6 +32,8 @@ namespace Zerra.Mathematics
             }
             public UnaryOperator? UnaryOperator { get; }
             public BinaryOperator? BinaryOperator { get; }
+            public TertiaryOperator? TertiaryOperator1 { get; }
+            public TertiaryOperator? TertiaryOperator2 { get; }
             public MethodOperator? MethodOperator { get; }
             public string? Number { get; set; }
             public string? Variable { get; set; }
@@ -44,6 +50,14 @@ namespace Zerra.Mathematics
                 this.Index = index;
                 this.BinaryOperator = binaryOperator;
             }
+            public StatementPart(int index, TertiaryOperator tertiaryOperator, bool part2)
+            {
+                this.Index = index;
+                if (!part2)
+                    this.TertiaryOperator1 = tertiaryOperator;
+                else
+                    this.TertiaryOperator2 = tertiaryOperator;
+            }
             public StatementPart(int index, UnaryOperator unaryOperator, BinaryOperator binaryOperator)
             {
                 this.Index = index;
@@ -53,7 +67,7 @@ namespace Zerra.Mathematics
             public StatementPart(int index, string numbersAndVariables)
             {
                 this.Index = index;
-                if (numbersAndVariables.All(x => numbers.Contains(x)))
+                if (numbersAndVariables.All(numbers.Contains))
                 {
                     Number = numbersAndVariables;
                 }

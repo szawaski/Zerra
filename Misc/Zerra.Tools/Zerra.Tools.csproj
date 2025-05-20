@@ -15,7 +15,7 @@
         <Description>Random Assortment of Tools and Experiments</Description>
         <Company>KaKush LLC</Company>
         <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
-        <LangVersion>10.0</LangVersion>
+        <LangVersion>12.0</LangVersion>
         <Version>4.8.0</Version>
     </PropertyGroup>
 

@@ -9,16 +9,16 @@ namespace Zerra.Mathematics
         {
             public string Token { get; }
             public LambdaExpression Operation { get; }
-            public BinaryOperator(string tokens, Expression<Func<double, double, double>> operation)
+            public BinaryOperator(string token, Expression<Func<double, double, double>> operation)
             {
-                this.Token = tokens;
+                this.Token = token;
                 this.Operation = operation;
             }
-            public BinaryOperator(string tokens, LambdaExpression operation)
+            public BinaryOperator(string token, LambdaExpression operation)
             {
                 if (operation.ReturnType != typeof(double) || operation.Parameters.Count != 2 || operation.Parameters[0].Type != typeof(double) || operation.Parameters[1].Type != typeof(double))
                     throw new ArgumentException($"{nameof(LambdaExpression)} must be of Expression<Func<double, double, double>>");
-                this.Token = tokens;
+                this.Token = token;
                 this.Operation = operation;
             }
 
