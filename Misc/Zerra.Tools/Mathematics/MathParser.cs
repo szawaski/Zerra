@@ -423,17 +423,21 @@ namespace Zerra.Mathematics
 
                 var replacements = new Dictionary<string, Expression>();
 
+                var arrayInitializers = new Expression[part.SubParts.Count];
                 for (var j = 0; j < part.SubParts.Count; j++)
                 {
                     var operand = BuildLinqExpression(ref context, part.SubParts[j]);
+                    arrayInitializers[j] = operand;
                     var expressionString = Expression.ArrayIndex(part.MethodOperator.Operation.Parameters[0], Expression.Constant(j, typeof(int))).ToString();
                     replacements.Add(expressionString, operand);
                 }
 
                 foreach (var parameter in part.MethodOperator.Operation.Parameters)
                 {
-                    replacements.Add(parameter.ToString(), Expression.Constant(Array.Empty<double>(), typeof(double[])));
+                    var array = Expression.NewArrayInit(typeof(double), arrayInitializers);
+                    replacements.Add(parameter.ToString(), array);
                 }
+
                 var expressionArrayLengthString = Expression.ArrayLength(part.MethodOperator.Operation.Parameters[0]).ToString();
                 replacements.Add(expressionArrayLengthString, Expression.Constant(part.SubParts.Count, typeof(int)));
                 var expression = LinqRebinder.Rebind(part.MethodOperator.Operation.Body, replacements);
