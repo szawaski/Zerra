@@ -421,6 +421,9 @@ namespace Zerra.Mathematics
                 if (part.SubParts is null || part.MethodOperator is null)
                     continue;
 
+                if (part.SubParts.Count < part.MethodOperator.MinArgumentCount || part.SubParts.Count > part.MethodOperator.MaxArgumentCount)
+                    throw new MathParserException($"Method {part.MethodOperator.Token} as the incorrect number of arguments");
+
                 var replacements = new Dictionary<string, Expression>();
 
                 var arrayInitializers = new Expression[part.SubParts.Count];

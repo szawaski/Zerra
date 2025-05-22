@@ -65,31 +65,31 @@ namespace Zerra.Mathematics
                 ), parameters);
             }
 
-            methodOperators.Add(new MethodOperator("e", static (args) => Math.Exp(args[0])));
-            methodOperators.Add(new MethodOperator("log", static (args) => Math.Log(args[0], args.Length > 1 ? args[1] : 10)));
-            methodOperators.Add(new MethodOperator("ln", static (args) => Math.Log(args[0])));
-            methodOperators.Add(new MethodOperator("sin", static (args) => Math.Sin(args[0])));
-            methodOperators.Add(new MethodOperator("cos", static (args) => Math.Cos(args[0])));
-            methodOperators.Add(new MethodOperator("tan", static (args) => Math.Tan(args[0])));
-            methodOperators.Add(new MethodOperator("asin", static (args) => Math.Asin(args[0])));
-            methodOperators.Add(new MethodOperator("acos", static (args) => Math.Acos(args[0])));
-            methodOperators.Add(new MethodOperator("atan", static (args) => Math.Atan(args[0])));
-            methodOperators.Add(new MethodOperator("sinh", static (args) => Math.Sinh(args[0])));
-            methodOperators.Add(new MethodOperator("cosh", static (args) => Math.Cosh(args[0])));
-            methodOperators.Add(new MethodOperator("tanh", static (args) => Math.Tanh(args[0])));
+            methodOperators.Add(new MethodOperator("e", 1, 1, static (args) => Math.Exp(args[0])));
+            methodOperators.Add(new MethodOperator("log", 1, 2, static (args) => Math.Log(args[0], args.Length > 1 ? args[1] : 10)));
+            methodOperators.Add(new MethodOperator("ln", 1, 1, static (args) => Math.Log(args[0])));
+            methodOperators.Add(new MethodOperator("sin", 1, 1, static (args) => Math.Sin(args[0])));
+            methodOperators.Add(new MethodOperator("cos", 1, 1, static (args) => Math.Cos(args[0])));
+            methodOperators.Add(new MethodOperator("tan", 1, 1, static (args) => Math.Tan(args[0])));
+            methodOperators.Add(new MethodOperator("asin", 1, 1, static (args) => Math.Asin(args[0])));
+            methodOperators.Add(new MethodOperator("acos", 1, 1, static (args) => Math.Acos(args[0])));
+            methodOperators.Add(new MethodOperator("atan", 1, 1, static (args) => Math.Atan(args[0])));
+            methodOperators.Add(new MethodOperator("sinh", 1, 1, static (args) => Math.Sinh(args[0])));
+            methodOperators.Add(new MethodOperator("cosh", 1, 1, static (args) => Math.Cosh(args[0])));
+            methodOperators.Add(new MethodOperator("tanh", 1, 1, static (args) => Math.Tanh(args[0])));
 #if !NETSTANDARD2_0
-            methodOperators.Add(new MethodOperator("asinh", static (args) => Math.Asinh(args[0])));
-            methodOperators.Add(new MethodOperator("acosh", static (args) => Math.Acosh(args[0])));
-            methodOperators.Add(new MethodOperator("atanh", static (args) => Math.Atanh(args[0])));
+            methodOperators.Add(new MethodOperator("asinh", 1, 1, static (args) => Math.Asinh(args[0])));
+            methodOperators.Add(new MethodOperator("acosh", 1, 1, static (args) => Math.Acosh(args[0])));
+            methodOperators.Add(new MethodOperator("atanh", 1, 1, static (args) => Math.Atanh(args[0])));
 #endif
-            methodOperators.Add(new MethodOperator("abs", static (args) => Math.Abs(args[0])));
-            methodOperators.Add(new MethodOperator("round", static (args) => Math.Round(args[0], args.Length > 1 ? (int)args[1] : 0)));
-            methodOperators.Add(new MethodOperator("ceiling", static (args) => Math.Ceiling(args[0])));
-            methodOperators.Add(new MethodOperator("floor", static (args) => Math.Floor(args[0])));
-            methodOperators.Add(new MethodOperator("truncate", static (args) => Math.Truncate(args[0])));
-            methodOperators.Add(new MethodOperator("min", static (args) => Math.Min(args[0], args[1])));
-            methodOperators.Add(new MethodOperator("max", static (args) => Math.Max(args[0], args[1])));
-            methodOperators.Add(new MethodOperator("if", static (args) => args[0] > 0 ? args[1] : args[2]));
+            methodOperators.Add(new MethodOperator("abs", 1, 1, static (args) => Math.Abs(args[0])));
+            methodOperators.Add(new MethodOperator("round", 1, 2, static (args) => Math.Round(args[0], args.Length > 1 ? (int)args[1] : 0)));
+            methodOperators.Add(new MethodOperator("ceiling", 1, 1, static (args) => Math.Ceiling(args[0])));
+            methodOperators.Add(new MethodOperator("floor", 1, 1, static (args) => Math.Floor(args[0])));
+            methodOperators.Add(new MethodOperator("truncate", 1, 1, static (args) => Math.Truncate(args[0])));
+            methodOperators.Add(new MethodOperator("min", 2, 2, static (args) => Math.Min(args[0], args[1])));
+            methodOperators.Add(new MethodOperator("max", 2, 2, static (args) => Math.Max(args[0], args[1])));
+            methodOperators.Add(new MethodOperator("if", 3, 3, static (args) => args[0] > 0 ? args[1] : args[2]));
 
             //Last To First Order of Operations
             unaryOperators.Add(new UnaryOperator("!", true, exponential));
@@ -157,13 +157,13 @@ namespace Zerra.Mathematics
             unaryOperators.Insert(0, new UnaryOperator(token, leftSideOperand, operation));
             CalculateMaxOperationLength();
         }
-        public static void AddMethod(string token, Expression<Func<double[], double>> operation)
+        public static void AddMethod(string token, int minArgumentCount, int maxArgumentCount, Expression<Func<double[], double>> operation)
         {
             if (cache.Count > 0)
                 throw new MathParserException($"Operators must be added before creating any instances");
             if (methodOperators.Select(x => x.Token).Contains(token))
                 throw new MathParserException($"Method already exisist \"{token}\"");
-            methodOperators.Add(new MethodOperator(token, operation));
+            methodOperators.Add(new MethodOperator(token, minArgumentCount, maxArgumentCount, operation));
             CalculateMaxOperationLength();
         }
 
@@ -203,13 +203,13 @@ namespace Zerra.Mathematics
             unaryOperators.Insert(0, new UnaryOperator(token, leftSideOperand, operation));
             CalculateMaxOperationLength();
         }
-        public static void AddMethod(string token, LambdaExpression operation)
+        public static void AddMethod(string token, int minArgumentCount, int maxArgumentCount, LambdaExpression operation)
         {
             if (cache.Count > 0)
                 throw new MathParserException($"Operators must be added before creating any instances");
             if (methodOperators.Select(x => x.Token).Contains(token))
                 throw new MathParserException($"Method already exisist \"{token}\"");
-            methodOperators.Add(new MethodOperator(token, operation));
+            methodOperators.Add(new MethodOperator(token, minArgumentCount, maxArgumentCount, operation));
             CalculateMaxOperationLength();
         }
 
