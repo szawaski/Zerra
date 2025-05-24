@@ -34,4 +34,17 @@ public static class EnumNameExtensions
             return null;
         return global::EnumName.GetName<T>(value.Value);
     }
+
+    public static T ToEnum<T>(this string? it)
+    where T : Enum
+    {
+        return global::EnumName.Parse<T>(it);
+    }
+    public static T? ToEnumNullable<T>(this string? it)
+        where T : Enum
+    {
+        if (global::EnumName.TryParse<T>(it, out var value))
+            return value;
+        return default;
+    }
 }

@@ -356,7 +356,7 @@ public sealed class EnumName : Attribute
     /// <param name="enumString">The string to parse to an Enum.</param>
     /// <returns>The resulting Enum value.</returns>
     /// <exception cref="InvalidOperationException">Throw if the Enum could not be parsed</exception>
-    public static T Parse<T>(string enumString)
+    public static T Parse<T>(string? enumString)
     {
         return (T)Parse(enumString, typeof(T));
     }
@@ -367,7 +367,7 @@ public sealed class EnumName : Attribute
     /// <param name="type">The Enum type.</param>
     /// <returns>The resulting Enum value.</returns>
     /// <exception cref="InvalidOperationException">Throw if the Enum could not be parsed</exception>
-    public static object Parse(string enumString, Type type)
+    public static object Parse(string? enumString, Type type)
     {
         if (TryParse(enumString, type, out var value))
             return value;
@@ -382,7 +382,7 @@ public sealed class EnumName : Attribute
     /// <param name="enumString">The string to parse to an Enum.</param>
     /// <param name="value">The resulting Enum value if succesfully parsed.</param>
     /// <returns>True if the value was parsed; otherwise, False</returns>
-    public static bool TryParse<T>(string enumString,
+    public static bool TryParse<T>(string? enumString,
 #if !NETSTANDARD2_0
         [NotNullWhen(true)]
 #endif
@@ -407,12 +407,17 @@ public sealed class EnumName : Attribute
     /// <param name="type">The Enum type.</param>
     /// <param name="value">The resulting Enum value if succesfully parsed.</param>
     /// <returns>True if the value was parsed; otherwise, False</returns>
-    public static bool TryParse(string enumString, Type type,
+    public static bool TryParse(string? enumString, Type type,
 #if !NETSTANDARD2_0
         [NotNullWhen(true)]
 #endif
     out object? value)
     {
+        if (enumString is null)
+        {
+            value = null;
+            return false;
+        }
         var valueLookup = GetValuesForType(type);
         if (HasFlagsAttribute(type))
         {
