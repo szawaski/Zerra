@@ -21,7 +21,7 @@ namespace Zerra.Serialization.Json.Converters.General
         {
             if (collectedValuesPool.TryPop(out var collectedValues))
                 return collectedValues;
-            return new();
+            return new(MemberNameComparer.Instance);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ReturnCollectedValues(Dictionary<string, object?> collectedValues)
@@ -335,7 +335,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     {
                         if (reader.UseBytes)
                         {
-                            if (state.IgnoreCase)
+                            if (state.IgnoreCase || collectValues)
                             {
                                 //slow path
                                 if (!reader.TryReadStringEscapedQuoted(false, out var name, out state.SizeNeeded))
@@ -433,7 +433,7 @@ namespace Zerra.Serialization.Json.Converters.General
                         }
                         else
                         {
-                            if (state.IgnoreCase)
+                            if (state.IgnoreCase || collectValues)
                             {
                                 //slow path
                                 if (!reader.TryReadStringEscapedQuoted(false, out var name, out state.SizeNeeded))
@@ -591,10 +591,7 @@ namespace Zerra.Serialization.Json.Converters.General
                                     state.Current.HasReadProperty = true;
                                     state.Current.HasReadSeperator = true;
                                     state.Current.Property = member;
-                                    if (collectValues)
-                                        state.Current.Object = collectedValues;
-                                    else
-                                        state.Current.Object = value;
+                                    state.Current.Object = value;
                                     return false;
                                 }
                             }

@@ -655,5 +655,16 @@ namespace Zerra.Test
             var model6 = ByteSerializer.Deserialize<CancellationToken?>(bytes3);
             Assert.AreEqual(model5, model6);
         }
+
+        [TestMethod]
+        public void Constructors()
+        {
+            var model1 = new TestSerializerConstructor("Five", 5);
+            var bytes1 = ByteSerializer.Serialize(model1);
+            var model2 = ByteSerializer.Deserialize<TestSerializerConstructor>(bytes1);
+            Assert.IsNotNull(model2);
+            Assert.AreEqual(model1._Value1, model2._Value1);
+            Assert.AreEqual(model1.value2, model2.value2);
+        }
     }
 }

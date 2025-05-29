@@ -980,6 +980,17 @@ namespace Zerra.Test
         }
 
         [TestMethod]
+        public void StringConstructorParameters()
+        {
+            var model1 = new TestSerializerConstructor("Five", 5);
+            var json1 = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TestSerializerConstructor>(json1);
+            Assert.IsNotNull(model2);
+            Assert.AreEqual(model1._Value1, model2._Value1);
+            Assert.AreEqual(model1.value2, model2.value2);
+        }
+
+        [TestMethod]
         public async Task StreamMatchesNewtonsoft()
         {
             var baseModel = TypesAllModel.Create();
@@ -2173,6 +2184,19 @@ namespace Zerra.Test
             stream3.Position = 0;
             var model6 = await JsonSerializer.DeserializeAsync<CancellationToken?>(stream3);
             AssertHelper.AreEqual(model5, model6);
+        }
+
+        [TestMethod]
+        public async Task StreamConstructorParameters()
+        {
+            var model1 = new TestSerializerConstructor("Five", 5);
+            using var stream1 = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream1, model1);
+            stream1.Position = 0;
+            var model2 = await JsonSerializer.DeserializeAsync<TestSerializerConstructor>(stream1);
+            Assert.IsNotNull(model2);
+            Assert.AreEqual(model1._Value1, model2._Value1);
+            Assert.AreEqual(model1.value2, model2.value2);
         }
     }
 }
