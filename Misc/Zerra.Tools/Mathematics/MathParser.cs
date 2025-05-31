@@ -30,82 +30,77 @@ namespace Zerra.Mathematics
 
         private static readonly ConcurrentFactoryDictionary<string, CompiledExpression> cache = new();
 
-        private readonly CompiledExpression mathExpression;
+        private readonly CompiledExpression compiledExpression;
 
-        public IEnumerable<string> Parameters { get { return mathExpression.Parameters.Select(x => x.Name ?? throw new InvalidOperationException("Parameter does not have a name")); } }
-        public string Equation { get { return mathExpression.ExpressionString; } }
+        public IEnumerable<string> Parameters { get { return compiledExpression.Parameters.Select(x => x.Name ?? throw new InvalidOperationException("Parameter does not have a name")); } }
+        public string Equation { get { return compiledExpression.ExpressionString; } }
 
         public MathParser(string expression)
         {
-            mathExpression = BuildMathExpression(expression);
+            compiledExpression = cache.GetOrAdd(expression, Compile);
         }
 
         public double Evalutate(IDictionary<string, double> parameters)
         {
-            var args = new object[mathExpression.Parameters.Length];
-            for (var i = 0; i < mathExpression.Parameters.Length; i++)
+            var args = new object[compiledExpression.Parameters.Length];
+            for (var i = 0; i < compiledExpression.Parameters.Length; i++)
             {
-                var name = mathExpression.Parameters[i].Name;
+                var name = compiledExpression.Parameters[i].Name;
                 if (name is null)
                     throw new MathParserException($"Parameter has no name");
                 if (!parameters.TryGetValue(name, out var arg))
                     throw new MathParserException($"Missing parameter {name}");
                 args[i] = arg;
             }
-            var result = (double)mathExpression.Expression.DynamicInvoke(args)!;
+            var result = (double)compiledExpression.Expression.DynamicInvoke(args)!;
             return result;
         }
 
         public double Evalutate(params double[] parameters)
         {
-            if (parameters.Length != mathExpression.Parameters.Length)
+            if (parameters.Length != compiledExpression.Parameters.Length)
                 throw new MathParserException($"Invalid number of parameters");
 
-            var args = new object[mathExpression.Parameters.Length];
-            for (var i = 0; i < mathExpression.Parameters.Length; i++)
+            var args = new object[compiledExpression.Parameters.Length];
+            for (var i = 0; i < compiledExpression.Parameters.Length; i++)
                 args[i] = parameters[i];
-            var result = (double)mathExpression.Expression.DynamicInvoke(args)!;
+            var result = (double)compiledExpression.Expression.DynamicInvoke(args)!;
             return result;
         }
 
-        private static CompiledExpression BuildMathExpression(string expression)
+        private static CompiledExpression Compile(string expression)
         {
-            var compiledExpression = cache.GetOrAdd(expression, (key) =>
+            var context = new ParserContext(expression);
+            context.Next();
+            var part = ParseParts(ref context);
+            if (context.GroupStack.Count > 0)
             {
-                var context = new ParserContext(key);
-                context.Next();
-                var part = ParseParts(ref context);
-                if (context.GroupStack.Count > 0)
-                {
-                    var lastGroupToken = context.GroupStack.Pop();
-                    var groupEnder = groupSets[lastGroupToken];
-                    throw new MathParserException($"Ended without closing group {groupEnder}");
-                }
-                var body = BuildLinqExpression(ref context, part);
-                var parameters = context.LinqParameters.OrderBy(x => x.Name).ToArray();
-                var lambda = Expression.Lambda(body, parameters);
-                var compiled = lambda.Compile();
+                var lastGroupToken = context.GroupStack.Pop();
+                var groupEnder = groupSets[lastGroupToken];
+                throw new MathParserException($"Ended without closing group {groupEnder}");
+            }
+            var body = BuildLinqExpression(ref context, part);
+            var parameters = context.LinqParameters.OrderBy(x => x.Name).ToArray();
+            var lambda = Expression.Lambda(body, parameters);
+            var compiled = lambda.Compile();
 
-                var sb = new StringBuilder();
-                _ = sb.Append("f(");
-                for (var i = 0; i < parameters.Length; i++)
-                {
-                    if (i > 0)
-                        _ = sb.Append(',');
-                    _ = sb.Append(parameters[i].Name);
-                }
-                _ = sb.Append(") = ");
-                _ = sb.Append(part);
+            var sb = new StringBuilder();
+            _ = sb.Append("f(");
+            for (var i = 0; i < parameters.Length; i++)
+            {
+                if (i > 0)
+                    _ = sb.Append(',');
+                _ = sb.Append(parameters[i].Name);
+            }
+            _ = sb.Append(") = ");
+            _ = sb.Append(part);
 
-                return new CompiledExpression()
-                {
-                    ExpressionString = sb.ToString(),
-                    Expression = compiled,
-                    Parameters = parameters
-                };
-            });
-
-            return compiledExpression;
+            return new CompiledExpression()
+            {
+                ExpressionString = sb.ToString(),
+                Expression = compiled,
+                Parameters = parameters
+            };
         }
 
         private static StatementPart ParseParts(ref ParserContext context)
@@ -457,7 +452,7 @@ namespace Zerra.Mathematics
 
         public override string ToString()
         {
-            return mathExpression.ExpressionString;
+            return compiledExpression.ExpressionString;
         }
     }
 }
