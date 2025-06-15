@@ -206,16 +206,9 @@ namespace Zerra.Mathematics
             if (unaryFound is not null && binaryFound is not null)
             {
                 if (unaryFound.Token.Length < binaryFound.Token.Length)
-                    binaryFound = null;
-                else if (binaryFound.Token.Length > unaryFound.Token.Length)
                     unaryFound = null;
-
-                if (unaryFound is not null && binaryFound is not null)
-                {
-                    context.Reset(startIndex + unaryFound.Token.Length); //possibly looked for a longer operator name
-                    var part = new StatementPart(startIndex, unaryFound, binaryFound);
-                    return part;
-                }
+                else
+                    binaryFound = null;
             }
             if (unaryFound is not null)
             {
