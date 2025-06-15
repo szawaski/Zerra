@@ -18,10 +18,10 @@ namespace Zerra.CQRS.Network
 
         public static readonly SocketClientPool Shared = new();
 
-        private readonly TimeSpan pooledConnectionLifetime = TimeSpan.FromMinutes(10);
-        private readonly TimeSpan lifetimeTimeoutCheckInterval = TimeSpan.FromMinutes(2);
+        private readonly TimeSpan pooledConnectionIdleLifetime = TimeSpan.FromMinutes(10);
+        private readonly TimeSpan idleLifetimeTimeoutCheckInterval = TimeSpan.FromMinutes(2);
 
-        private int maxConnectionsPerHost = Environment.ProcessorCount * 8;
+        private int maxConnectionsPerHost = Environment.ProcessorCount * 16;
         public int MaxConnectionsPerHost
         {
             get => maxConnectionsPerHost;
@@ -43,6 +43,7 @@ namespace Zerra.CQRS.Network
         private readonly ConcurrentFactoryDictionary<HostAndPort, ConcurrentQueue<SocketHolder>> poolByHostAndPort = new();
         private readonly ConcurrentFactoryDictionary<HostAndPort, SemaphoreSlim> throttleByHostAndPort = new();
 
+#if NETSTANDARD2_0
         public async Task<SocketPoolStream> BeginStreamAsync(string host, int port, ProtocolType protocol, byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -52,7 +53,6 @@ namespace Zerra.CQRS.Network
             var throttle = throttleByHostAndPort.GetOrAdd(hostAndPort, maxConnectionsPerHost, static (maxConnectionsPerHost) => new(maxConnectionsPerHost, maxConnectionsPerHost));
             var pool = poolByHostAndPort.GetOrAdd(hostAndPort, static () => new());
 
-        getstream:
             var noRelease = false;
             await throttle.WaitAsync(canceller.Token); //disposing stream releases throttle so we enter again
             try
@@ -69,32 +69,25 @@ namespace Zerra.CQRS.Network
                     if (IsConnected(holder.Socket))
                     {
                         stream = new SocketPoolStream(holder.Socket, hostAndPort, ReturnSocket, false);
-                        break;
-                    }
-                    holder.Socket.Dispose();
-                }
-                if (stream is not null)
-                {
-                    try
-                    {
+                        try
+                        {
 #if !NETSTANDARD2_0
                         await stream.WriteAsync(buffer, cancellationToken);
 #else
-                        await stream.WriteAsync(buffer, offset, count, cancellationToken);
+                            await stream.WriteAsync(buffer, offset, count, cancellationToken);
 #endif
-                        noRelease = true;
-                        return stream;
-                    }
-                    catch (Exception ex)
-                    {
-                        if (ex.GetBaseException() is SocketException)
-                        {
-                            stream.Dispose();
                             noRelease = true;
-                            goto getstream;
+                            return stream;
                         }
-                        throw;
+                        catch (Exception ex)
+                        {
+                            if (ex.GetBaseException() is not SocketException)
+                                throw;
+
+                            stream.Dispose();
+                        }
                     }
+                    holder.Socket.Dispose();
                 }
 
 #if NET6_0_OR_GREATER
@@ -152,7 +145,7 @@ namespace Zerra.CQRS.Network
                     _ = throttle.Release();
             }
         }
-#if !NETSTANDARD2_0
+#else
         public async Task<SocketPoolStream> BeginStreamAsync(string host, int port, ProtocolType protocol, Memory<byte> buffer, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -162,7 +155,6 @@ namespace Zerra.CQRS.Network
             var throttle = throttleByHostAndPort.GetOrAdd(hostAndPort, maxConnectionsPerHost, static (maxConnectionsPerHost) => new(maxConnectionsPerHost, maxConnectionsPerHost));
             var pool = poolByHostAndPort.GetOrAdd(hostAndPort, static (maxConnectionsPerHost) => new());
 
-        getstream:
             var noRelease = false;
             await throttle.WaitAsync(canceller.Token); //disposing stream releases throttle so we enter again
             try
@@ -179,29 +171,23 @@ namespace Zerra.CQRS.Network
                     if (IsConnected(holder.Socket))
                     {
                         stream = new SocketPoolStream(holder.Socket, hostAndPort, ReturnSocket, false);
-                        break;
+
+                        try
+                        {
+                            await stream.WriteAsync(buffer, cancellationToken);
+
+                            noRelease = true;
+                            return stream;
+                        }
+                        catch (Exception ex)
+                        {
+                            if (ex.GetBaseException() is not SocketException)
+                                throw;
+
+                            stream.Dispose();
+                        }
                     }
                     holder.Socket.Dispose();
-                }
-                if (stream is not null)
-                {
-                    try
-                    {
-                        await stream.WriteAsync(buffer, cancellationToken);
-
-                        noRelease = true;
-                        return stream;
-                    }
-                    catch (Exception ex)
-                    {
-                        if (ex.GetBaseException() is SocketException)
-                        {
-                            stream.Dispose();
-                            noRelease = true;
-                            goto getstream;
-                        }
-                        throw;
-                    }
                 }
 
 #if NET6_0_OR_GREATER
@@ -294,7 +280,7 @@ namespace Zerra.CQRS.Network
         {
             for (; ; )
             {
-                await Task.Delay(lifetimeTimeoutCheckInterval, cancellationToken);
+                await Task.Delay(idleLifetimeTimeoutCheckInterval, cancellationToken);
 
                 var now = DateTime.UtcNow;
                 foreach (var pool in poolByHostAndPort.Values)
@@ -306,7 +292,7 @@ namespace Zerra.CQRS.Network
                             if (holder.Used)
                                 continue;
 
-                            if (holder.Timestamp.Add(pooledConnectionLifetime) < now)
+                            if (holder.Timestamp.Add(pooledConnectionIdleLifetime) < now)
                             {
                                 holder.Socket.Dispose();
                                 holder.MarkUsed();
