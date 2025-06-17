@@ -12,7 +12,6 @@ namespace Zerra.CQRS.Network
         private readonly Socket socket;
         private readonly Func<Socket, CancellationToken, Task> handler;
         private readonly SemaphoreSlim beginAcceptWaiter;
-        private readonly SocketClientPool socketPool;
 
         private bool started;
         private bool disposed;
@@ -24,7 +23,6 @@ namespace Zerra.CQRS.Network
             this.socket = socket;
             this.handler = handler;
             this.beginAcceptWaiter = new SemaphoreSlim(0, 1);
-            this.socketPool = SocketClientPool.Shared;
             this.started = false;
             this.disposed = false;
         }
