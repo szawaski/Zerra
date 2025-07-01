@@ -11,7 +11,7 @@ namespace ZerraDemo.Domain.Pets.DataModels
         public Guid ID { get; set; }
         public string? Name { get; set; }
 
-        [Relation("SpeciesID")]
+        [Relation(nameof(BreedDataModel.SpeciesID))]
         public ICollection<BreedDataModel>? Breeds { get; set; }
     }
 }

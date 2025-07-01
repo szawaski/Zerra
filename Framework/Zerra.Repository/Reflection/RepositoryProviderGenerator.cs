@@ -33,7 +33,7 @@ namespace Zerra.Repository.Reflection
 
             var entityTypeDetail = TypeAnalyzer.GetTypeDetail(entityType);
             if (!entityTypeDetail.Attributes.Select(x => x.GetType()).Contains(entityAttributeType))
-                throw new Exception($"{nameof(TransactStoreEntityAttribute<T>)} {nameof(entityType)} argument {type.Name} does not inherit {entityAttributeType.Name}");
+                throw new Exception($"{nameof(TransactStoreEntityAttribute<T>)} argument {entityType.Name} does not have the attribute {entityAttributeType.Name}");
 
             var typeDetail = TypeAnalyzer.GetTypeDetail(type);
             if (!typeDetail.BaseTypes.Contains(dataContextType))

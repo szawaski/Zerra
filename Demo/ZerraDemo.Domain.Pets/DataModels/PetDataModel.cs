@@ -16,7 +16,7 @@ namespace ZerraDemo.Domain.Pets.DataModels
 
         public DateTime? LastPooped { get; set; }
 
-        [Relation("BreedID")]
+        [Relation(nameof(BreedID))]
         public BreedDataModel? Breed { get; set; }
     }
 }
