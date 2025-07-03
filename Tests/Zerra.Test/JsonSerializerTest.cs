@@ -594,12 +594,14 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public void StringCharEscaping()
+        public void StringEscaping()
         {
-            for (var i = 0; i < (int)byte.MaxValue; i++)
+            for (ushort i = 0; i < ushort.MaxValue; i++)
             {
                 var c = (char)i;
                 var json = JsonSerializer.Serialize(c);
+                var utf8Valid = Encoding.UTF8.GetString(Encoding.UTF8.GetBytes(json));
+                Assert.AreEqual(json, utf8Valid); //not encoding surrogates would fail
                 var result = JsonSerializer.Deserialize<char>(json);
                 Assert.AreEqual(c, result);
 
@@ -619,48 +621,28 @@ namespace Zerra.Test
                             Assert.AreEqual(8, json.Length);
                         break;
                 }
-            }
-        }
 
-        [TestMethod]
-        public void StringStringEscaping()
-        {
-            for (var i = 0; i < (int)byte.MaxValue; i++)
-            {
-                var str = new string((char)i, 1);
-                var json = JsonSerializer.Serialize(str);
-                var result = JsonSerializer.Deserialize<string>(json);
-                Assert.AreEqual(str, result);
-
-                switch (str)
-                {
-                    case "\\":
-                    case "\"":
-                    case "\b":
-                    case "\t":
-                    case "\n":
-                    case "\f":
-                    case "\r":
-                        Assert.AreEqual(4, json.Length);
-                        break;
-                    default:
-                        if (str[0] < ' ')
-                            Assert.AreEqual(8, json.Length);
-                        break;
-                }
+                var str = new string([c]);
+                json = JsonSerializer.Serialize(str);
+                utf8Valid = Encoding.UTF8.GetString(Encoding.UTF8.GetBytes(json));
+                Assert.AreEqual(json, utf8Valid); //not encoding surrogates would fail
+                var resultStr = JsonSerializer.Deserialize<string>(json);
+                Assert.AreEqual(str, resultStr);
             }
 
-            for (var i = 0; i < (int)byte.MaxValue; i++)
+            //deserialize will include all unicode escapes, some serialize differently
+            for (ushort i = 0; i < ushort.MaxValue; i++)
             {
-                var str = new string((char)i, 1);
+                var c = (char)i;
 
-                var json = $"\"\\u{i.ToString("X4")}\"";
-                var result = JsonSerializer.Deserialize<string>(json);
-                Assert.AreEqual(str, result);
+                var charsLower = $"\"\\u{i:x4}\"";
+                var charsUpper = $"\"\\u{i:X4}\"";
 
-                var json2 = $"\"\\u{i.ToString("x4")}\"";
-                var result2 = JsonSerializer.Deserialize<string>(json2);
-                Assert.AreEqual(str, result2);
+                var result = JsonSerializer.Deserialize<char>(charsLower);
+                Assert.AreEqual(c, result);
+
+                result = JsonSerializer.Deserialize<char>(charsUpper);
+                Assert.AreEqual(c, result);
             }
         }
 
@@ -1718,11 +1700,15 @@ namespace Zerra.Test
         }
 
         [TestMethod]
-        public async Task StreamCharEscaping()
+        public async Task StreamEscaping()
         {
-            for (var i = 0; i < (int)byte.MaxValue; i++)
+            for (ushort i = 0; i < ushort.MaxValue; i++)
             {
                 var c = (char)i;
+
+                var checker = Encoding.UTF8.GetBytes([c]);
+                var check = Encoding.UTF8.GetString(checker);
+
                 using var stream = new MemoryStream();
                 await JsonSerializer.SerializeAsync(stream, c);
                 using var sr = new StreamReader(stream, Encoding.UTF8);
@@ -1748,55 +1734,30 @@ namespace Zerra.Test
                             Assert.AreEqual(8, json.Length);
                         break;
                 }
-            }
-        }
 
-        [TestMethod]
-        public async Task StreamStringEscaping()
-        {
-            for (var i = 0; i < (int)byte.MaxValue; i++)
-            {
-                var str = new string((char)i, 1);
-                using var stream = new MemoryStream();
-                await JsonSerializer.SerializeAsync(stream, str);
-                using var sr = new StreamReader(stream, Encoding.UTF8);
-                stream.Position = 0;
-                var json = await sr.ReadToEndAsync();
-                stream.Position = 0;
-                var result = await JsonSerializer.DeserializeAsync<string>(stream);
-                Assert.AreEqual(str, result);
-
-                switch (str)
-                {
-                    case "\\":
-                    case "\"":
-                    case "\b":
-                    case "\t":
-                    case "\n":
-                    case "\f":
-                    case "\r":
-                        Assert.AreEqual(4, json.Length);
-                        break;
-                    default:
-                        if (str[0] < ' ')
-                            Assert.AreEqual(8, json.Length);
-                        break;
-                }
+                var str = new string([c]);
+                using var streamStr = new MemoryStream();
+                await JsonSerializer.SerializeAsync(streamStr, str);
+                using var srStr = new StreamReader(streamStr, Encoding.UTF8);
+                streamStr.Position = 0;
+                json = await srStr.ReadToEndAsync();
+                streamStr.Position = 0;
+                var resultStr = await JsonSerializer.DeserializeAsync<string>(streamStr);
+                Assert.AreEqual(str, resultStr);
             }
 
-            for (var i = 0; i < (int)byte.MaxValue; i++)
+            //deserialize will include all unicode escapes, some serialize differently
+            for (ushort i = 0; i < ushort.MaxValue; i++)
             {
-                var str = new string((char)i, 1);
+                var c = (char)i;
+                using var charsLowerStream = new MemoryStream(Encoding.UTF8.GetBytes($"\"\\u{i:x4}\""));
+                using var charsUpperStream = new MemoryStream(Encoding.UTF8.GetBytes($"\"\\u{i:x4}\""));
 
-                var json = $"\"\\u{i.ToString("X4")}\"";
-                using var stream = new MemoryStream(Encoding.UTF8.GetBytes(json));
-                var result = await JsonSerializer.DeserializeAsync<string>(stream);
-                Assert.AreEqual(str, result);
+                var result = await JsonSerializer.DeserializeAsync<char>(charsLowerStream);
+                Assert.AreEqual(c, result);
 
-                var json2 = $"\"\\u{i.ToString("X4")}\"";
-                using var stream2 = new MemoryStream(Encoding.UTF8.GetBytes(json2));
-                var result2 = await JsonSerializer.DeserializeAsync<string>(stream2);
-                Assert.AreEqual(str, result2);
+                result = await JsonSerializer.DeserializeAsync<char>(charsUpperStream);
+                Assert.AreEqual(c, result);
             }
         }
 

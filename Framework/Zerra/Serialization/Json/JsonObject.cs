@@ -13,6 +13,10 @@ namespace Zerra.Serialization.Json
 {
     public class JsonObject : IEnumerable
     {
+        //invalid UTF8 surrogate characters
+        private const char lowerSurrogate = (char)55296; //D800
+        private const char upperSurrogate = (char)57343; //DFFF
+
         private readonly JsonObjectType jsonType;
         private readonly bool valueBoolean;
         private readonly decimal valueNumber;
@@ -223,7 +227,22 @@ namespace Zerra.Serialization.Json
                         break;
                     default:
                         if (c >= ' ')
+                        {
+                            if (c >= lowerSurrogate && c <= upperSurrogate)
+                            {
+#if NETSTANDARD2_0
+                                _ = sb.Append(chars.Slice(start, i - start).ToArray());
+#else
+                                _ = sb.Append(chars.Slice(start, i - start));
+#endif
+                                start = i + 1;
+                                var surrogateCode = StringHelper.SurrogateIntToEncodedHexChars[c];
+                                _ = sb.Append(surrogateCode);
+                                continue;
+                            }
                             continue;
+                        }
+
 
 #if NETSTANDARD2_0
                         _ = sb.Append(chars.Slice(start, i - start).ToArray());

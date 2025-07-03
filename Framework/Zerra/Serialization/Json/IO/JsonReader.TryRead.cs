@@ -501,7 +501,7 @@ namespace Zerra.Serialization.Json.IO
                                 else if (escaping)
                                     escaping = false;
                                 else
-                                    quoted = false; 
+                                    quoted = false;
                                 continue;
                             case '\\':
                                 if (quoted)
@@ -636,7 +636,7 @@ namespace Zerra.Serialization.Json.IO
                         escapeBuffer = stackalloc char[maxSize];
                     }
 
-                    var uChars = stackalloc char[4];
+                    var pUnicodeChar = stackalloc char[1];
 
                     fixed (char* pEscapeBuffer = escapeBuffer)
                     {
@@ -681,9 +681,9 @@ namespace Zerra.Serialization.Json.IO
                                     continue;
                                 case uByte:
                                     var key = Unsafe.ReadUnaligned<uint>(&pBuffer[++i]);
-                                    i += 3;
                                     if (!StringHelper.LowUnicodeByteHexToChar.TryGetValue(key, out var unicodeChar))
                                         throw CreateException("Invalid escape sequence");
+                                    i += 3;
                                     pEscapeBuffer[bufferIndex++] = unicodeChar;
                                     start = i + 5;
                                     break;
@@ -804,8 +804,6 @@ namespace Zerra.Serialization.Json.IO
                         escapeBuffer = stackalloc char[maxSize];
                     }
 
-                    var uChars = stackalloc char[4];
-
                     fixed (char* pEscapeBuffer = escapeBuffer)
                     {
                         var bufferIndex = 0;
@@ -849,10 +847,10 @@ namespace Zerra.Serialization.Json.IO
                                     start = i + 1;
                                     continue;
                                 case 'u':
-                                    var key = Unsafe.ReadUnaligned<uint>(&pBuffer[++i + 2]);
-                                    i += 3;
+                                    var key = Unsafe.ReadUnaligned<ulong>(&pBuffer[++i]);
                                     if (!StringHelper.LowUnicodeCharHexToChar.TryGetValue(key, out var unicodeChar))
                                         throw CreateException("Invalid escape sequence");
+                                    i += 3;
                                     pEscapeBuffer[bufferIndex++] = unicodeChar;
                                     start = i + 5;
                                     break;

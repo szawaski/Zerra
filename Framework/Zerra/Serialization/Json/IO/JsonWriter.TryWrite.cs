@@ -54,6 +54,11 @@ namespace Zerra.Serialization.Json.IO
         private const byte sByte = (byte)'s';
         private const byte bByte = (byte)'b';
 
+        //invalid UTF8 surrogate characters
+        private const char lowerSurrogate = (char)55296; //D800
+        private const char upperSurrogate = (char)57343; //DFFF
+
+
 #if DEBUG
         public static bool Testing = false;
 
@@ -1484,12 +1489,12 @@ namespace Zerra.Serialization.Json.IO
         private unsafe void WriteInt32Chars(int value)
         {
 #if NETSTANDARD2_0
-                var str = value.ToString();
-                fixed (char* pSource = str, pBuffer = &bufferChars[position])
-                {
-                    Buffer.MemoryCopy(pSource, pBuffer, (bufferChars.Length - position) * 2, str.Length * 2);
-                }
-                position += str.Length;
+            var str = value.ToString();
+            fixed (char* pSource = str, pBuffer = &bufferChars[position])
+            {
+                Buffer.MemoryCopy(pSource, pBuffer, (bufferChars.Length - position) * 2, str.Length * 2);
+            }
+            position += str.Length;
 #else
             _ = value.TryFormat(bufferChars.Slice(position), out var consumed);
             position += consumed;
@@ -1499,12 +1504,12 @@ namespace Zerra.Serialization.Json.IO
         private unsafe void WriteInt64Chars(long value)
         {
 #if NETSTANDARD2_0
-                var str = value.ToString();
-                fixed (char* pSource = str, pBuffer = &bufferChars[position])
-                {
-                    Buffer.MemoryCopy(pSource, pBuffer, (bufferChars.Length - position) * 2, str.Length * 2);
-                }
-                position += str.Length;
+            var str = value.ToString();
+            fixed (char* pSource = str, pBuffer = &bufferChars[position])
+            {
+                Buffer.MemoryCopy(pSource, pBuffer, (bufferChars.Length - position) * 2, str.Length * 2);
+            }
+            position += str.Length;
 #else
             _ = value.TryFormat(bufferChars.Slice(position), out var consumed);
             position += consumed;
@@ -1925,7 +1930,7 @@ namespace Zerra.Serialization.Json.IO
                     for (; i < value.Length; i++)
                     {
                         var c = pValue[i];
-                        if (c < ' ' || c == '"' || c == '\\')
+                        if (c < ' ' || c == '"' || c == '\\' || (c >= lowerSurrogate && c <= upperSurrogate))
                         {
                             needsEscaped = true;
                             break;
@@ -1983,7 +1988,21 @@ namespace Zerra.Serialization.Json.IO
                                 case '\\':
                                     escapedByte = escapeByte;
                                     break;
-                                case >= ' ': //32
+                                case >= ' ':
+                                    if (c >= lowerSurrogate && c <= upperSurrogate)
+                                    {
+                                        position += encoding.GetBytes(&pValue[start], i - start, &pBuffer[position], length - position);
+
+                                        var surrogateCode = StringHelper.SurrogateIntToEncodedHexBytes[c];
+                                        fixed (byte* pCode = surrogateCode)
+                                        {
+                                            Buffer.MemoryCopy(pCode, &pBuffer[position], (length - position) * 2, surrogateCode.Length);
+                                            position += surrogateCode.Length;
+                                        }
+
+                                        start = i + 1;
+                                        continue;
+                                    }
                                     continue;
                                 case '\b':
                                     escapedByte = bByte;
@@ -2042,7 +2061,7 @@ namespace Zerra.Serialization.Json.IO
                     for (; i < value.Length; i++)
                     {
                         var c = pValue[i];
-                        if (c < ' ' || c == '"' || c == '\\')
+                        if (c < ' ' || c == '"' || c == '\\' || (c >= lowerSurrogate && c <= upperSurrogate))
                         {
                             needsEscaped = true;
                             break;
@@ -2101,7 +2120,22 @@ namespace Zerra.Serialization.Json.IO
                                 case '\\':
                                     escapedChar = '\\';
                                     break;
-                                case >= ' ': //32
+                                case >= ' ':
+                                    if (c >= lowerSurrogate && c <= upperSurrogate)
+                                    {
+                                        Buffer.MemoryCopy(&pValue[start], &pBuffer[position], (length - position) * 2, (i - start) * 2);
+                                        position += i - start;
+
+                                        var surrogateCode = StringHelper.SurrogateIntToEncodedHexChars[c];
+                                        fixed (char* pCode = surrogateCode)
+                                        {
+                                            Buffer.MemoryCopy(pCode, &pBuffer[position], (length - position) * 2, surrogateCode.Length * 2);
+                                        }
+                                        position += surrogateCode.Length;
+
+                                        start = i + 1;
+                                        continue;
+                                    }
                                     continue;
                                 case '\b':
                                     escapedChar = 'b';
@@ -2247,6 +2281,30 @@ namespace Zerra.Serialization.Json.IO
                 }
                 else
                 {
+                    if (value >= lowerSurrogate && value <= upperSurrogate)
+                    {
+                        var surrogateCode = StringHelper.SurrogateIntToEncodedHexBytes[value];
+
+                        sizeNeeded = surrogateCode.Length + 2;
+                        if (length - position < sizeNeeded)
+                        {
+                            if (!Grow(sizeNeeded))
+                                return false;
+                        }
+#if DEBUG
+                        if (Skip())
+                            return false;
+#endif
+                        fixed (byte* pCode = surrogateCode, pBuffer = bufferBytes)
+                        {
+                            pBuffer[position++] = quoteByte;
+                            Buffer.MemoryCopy(pCode, &pBuffer[position], length - position, surrogateCode.Length);
+                            position += surrogateCode.Length;
+                            pBuffer[position++] = quoteByte;
+                        }
+                        return true;
+                    }
+
                     sizeNeeded = 6;
                     if (length - position < sizeNeeded)
                     {
@@ -2280,7 +2338,31 @@ namespace Zerra.Serialization.Json.IO
                     case '\\':
                         escapedChar = '\\';
                         break;
-                    case >= ' ': //32
+                    case >= ' ':
+                        if (value >= lowerSurrogate && value <= upperSurrogate)
+                        {
+                            var surrogateCode = StringHelper.SurrogateIntToEncodedHexChars[value];
+
+                            sizeNeeded = surrogateCode.Length + 2;
+                            if (length - position < sizeNeeded)
+                            {
+                                if (!Grow(sizeNeeded))
+                                    return false;
+                            }
+#if DEBUG
+                            if (Skip())
+                                return false;
+#endif
+
+                            fixed (char* pCode = surrogateCode, pBuffer = bufferChars)
+                            {
+                                pBuffer[position++] = '"';
+                                Buffer.MemoryCopy(pCode, &pBuffer[position], (length - position) * 2, surrogateCode.Length * 2);
+                                position += surrogateCode.Length;
+                                pBuffer[position++] = '"';
+                            }
+                            return true;
+                        }
 
                         sizeNeeded = 3;
                         if (length - position < sizeNeeded)
