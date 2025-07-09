@@ -1751,7 +1751,7 @@ namespace Zerra.Test
             {
                 var c = (char)i;
                 using var charsLowerStream = new MemoryStream(Encoding.UTF8.GetBytes($"\"\\u{i:x4}\""));
-                using var charsUpperStream = new MemoryStream(Encoding.UTF8.GetBytes($"\"\\u{i:x4}\""));
+                using var charsUpperStream = new MemoryStream(Encoding.UTF8.GetBytes($"\"\\u{i:X4}\""));
 
                 var result = await JsonSerializer.DeserializeAsync<char>(charsLowerStream);
                 Assert.AreEqual(c, result);
