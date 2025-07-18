@@ -50,7 +50,7 @@ namespace Zerra.CQRS.Settings
             var settingsName = Config.EntryAssemblyName;
             if (settingsName is null)
                 throw new Exception($"Entry Assembly is null, {nameof(CQRSSettings)} cannot identify which service is running");
-            return Get(settingsName, bindingUrlFromStandardVariables);
+            return Get(settingsName, Config.EnvironmentName, bindingUrlFromStandardVariables);
         }
         /// <summary>
         /// Loads the cqrssettings.json settings file.
@@ -65,8 +65,22 @@ namespace Zerra.CQRS.Settings
         /// <returns>The the settings deserialized with updated urls.</returns>
         public static ServiceSettings Get(string serviceName, bool bindingUrlFromStandardVariables)
         {
-            var environmentName = Config.EnvironmentName;
-
+            return Get(serviceName, Config.EnvironmentName, bindingUrlFromStandardVariables);
+        }
+        /// <summary>
+        /// Loads the cqrssettings.json settings file.
+        /// If not supplied, the <see cref="ServiceQuerySetting.BindingUrl"/> can be searched for if specified by the parameter or will fall back to defaults.
+        /// If not supplied, the <see cref="ServiceQuerySetting.ExternalUrl"/> value will be searched for by service name in configuration and environmental variables.
+        /// </summary>
+        /// <param name="serviceName">The name of this service to be matched in <see cref="ServiceSettings"/>.</param>
+        /// <param name="environmentName">The application environment.</param>
+        /// <param name="bindingUrlFromStandardVariables">
+        /// If a binding url is not supplied, True will mean to search for the url from the standard variables from configuration and environmental variables.
+        /// These variables include: urls, ASPNETCORE_URLS, ASPNETCORE_SERVER, DOTNET_URLS, WEBSITE_SITE_NAME
+        /// </param>
+        /// <returns>The the settings deserialized with updated urls.</returns>
+        public static ServiceSettings Get(string serviceName, string? environmentName, bool bindingUrlFromStandardVariables)
+        {
             string? filePath = null;
             string? fileName = null;
             if (!String.IsNullOrWhiteSpace(environmentName))
@@ -79,7 +93,7 @@ namespace Zerra.CQRS.Settings
                 fileName = settingsFileName;
                 filePath = Config.GetEnvironmentFilePath(fileName);
             }
-            if (filePath is null || fileName is null)
+            if (filePath is null)
             {
                 var notFound = $"Config {serviceName} did not find {settingsFileName}";
                 Task.Run(() => Log.InfoAsync(notFound)).GetAwaiter().GetResult();
