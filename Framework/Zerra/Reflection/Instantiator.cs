@@ -11,7 +11,6 @@ namespace Zerra.Reflection
     public static class Instantiator
     {
         private static readonly ConcurrentFactoryDictionary<Type, object> singleInstancesByType = new();
-        private static readonly ConcurrentFactoryDictionary<string, object> singleInstancesByKey = new();
 
         public static T GetSingle<T>()
             where T : class
@@ -63,6 +62,12 @@ namespace Zerra.Reflection
             return instance;
         }
 
+        public static void SetSingle<T>(T value)
+        {
+            var type = typeof(T);
+            singleInstancesByType[type] = value;
+        }
+
         public static object GetSingle(Type type)
         {
             if (!type.IsClass)
@@ -106,35 +111,9 @@ namespace Zerra.Reflection
             return instance;
         }
 
-        public static object GetSingle(string key, Func<object> factory)
+        public static void SetSingle(Type type, object value)
         {
-            var instance = singleInstancesByKey.GetOrAdd(key, factory);
-            return instance;
-        }
-        public static object GetSingle<TArg1>(string key, TArg1 arg1, Func<TArg1, object> factory)
-        {
-            var instance = singleInstancesByKey.GetOrAdd(key, arg1, factory);
-            return instance;
-        }
-        public static object GetSingle<TArg1, TArg2>(string key, TArg1 arg1, TArg2 arg2, Func<TArg1, TArg2, object> factory)
-        {
-            var instance = singleInstancesByKey.GetOrAdd(key, arg1, arg2, factory);
-            return instance;
-        }
-        public static object GetSingle<TArg1, TArg2, TArg3>(string key, TArg1 arg1, TArg2 arg2, TArg3 arg3, Func<TArg1, TArg2, TArg3, object> factory)
-        {
-            var instance = singleInstancesByKey.GetOrAdd(key, arg1, arg2, arg3, factory);
-            return instance;
-        }
-        public static object GetSingle<TArg1, TArg2, TArg3, TArg4>(string key, TArg1 arg1, TArg2 arg2, TArg3 arg3, TArg4 arg4, Func<TArg1, TArg2, TArg3, TArg4, object> factory)
-        {
-            var instance = singleInstancesByKey.GetOrAdd(key, arg1, arg2, arg3, arg4, factory);
-            return instance;
-        }
-        public static object GetSingle<TArg1, TArg2, TArg3, TArg4, TArg5>(string key, TArg1 arg1, TArg2 arg2, TArg3 arg3, TArg4 arg4, TArg5 arg5, Func<TArg1, TArg2, TArg3, TArg4, TArg5, object> factory)
-        {
-            var instance = singleInstancesByKey.GetOrAdd(key, arg1, arg2, arg3, arg4, arg5, factory);
-            return instance;
+            singleInstancesByType[type] = value;
         }
 
         private static readonly ConcurrentFactoryDictionary<TypeKey, Func<object?[]?, object>?> creatorsByType = new();
