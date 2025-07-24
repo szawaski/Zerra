@@ -80,6 +80,9 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                     reader.BackOne();
 
                     state.Current.HasCreated = true;
+
+                    if (state.IncludeReturnGraph)
+                        state.Current.ReturnGraph = new Graph();
                 }
                 else
                 {
@@ -114,7 +117,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
 
                     if (!state.Current.HasReadValue)
                     {
-                        if (!readValueConverter.TryReadFromParent(ref reader, ref state, accessor))
+                        if (!readValueConverter.TryReadFromParent(ref reader, ref state, accessor, state.IncludeReturnGraph ? accessor.CurrentKeyString : null))
                         {
                             state.Current.HasReadProperty = true;
                             state.Current.HasReadSeperator = true;

@@ -336,6 +336,9 @@ namespace Zerra.Serialization.Json.Converters
                     if (setter is not null && parent is not null)
                         setter(parent, default);
 
+                    if (state.IncludeReturnGraph && propertyName is not null)
+                        state.Current.ReturnGraph!.AddMember(propertyName);
+
                     state.Current.ChildValueType = JsonValueType.NotDetermined;
                     return true;
                 }
@@ -418,7 +421,29 @@ namespace Zerra.Serialization.Json.Converters
             if (setter is not null && parent is not null)
                 setter(parent, value);
             if (StackRequired)
-                state.EndFrame();
+            {
+                if (state.IncludeReturnGraph && propertyName is not null)
+                {
+                    var childReturnGraph = state.Current.ReturnGraph;
+                    state.EndFrame();
+                    if (state.Current.ReturnGraph is not null)
+                    {
+                        if (childReturnGraph is not null)
+                            state.Current.ReturnGraph.AddChildGraph(propertyName, childReturnGraph);
+                        else
+                            state.Current.ReturnGraph.AddMember(propertyName);
+                    }
+                }
+                else
+                {
+                    state.EndFrame();
+                }
+            }
+            else
+            {
+                if (state.IncludeReturnGraph && state.Current.ReturnGraph is not null && propertyName is not null)
+                    state.Current.ReturnGraph.AddMember(propertyName);
+            }
             state.Current.ChildValueType = JsonValueType.NotDetermined;
             return true;
         }

@@ -11,6 +11,8 @@ namespace Zerra.Serialization.Json.Converters.General
 {
     internal sealed class JsonConverterType<TParent> : JsonConverter<TParent, Type?>
     {
+        protected override bool StackRequired => false;
+
         protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out Type? value)
         {
             switch (valueType)

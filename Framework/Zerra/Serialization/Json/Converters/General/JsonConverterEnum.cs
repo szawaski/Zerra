@@ -12,6 +12,8 @@ namespace Zerra.Serialization.Json.Converters.General
 {
     internal sealed class JsonConverterEnum<TParent, TValue> : JsonConverter<TParent, TValue>
     {
+        protected override bool StackRequired => false;
+
         protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out TValue? value)
         {
             if (!typeDetail.EnumUnderlyingType.HasValue)

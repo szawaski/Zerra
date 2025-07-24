@@ -50,10 +50,16 @@ namespace Zerra.Test
 
             TestBasic(graph);
 
-            graph.AddMember(x => x.Array);
-
             var childGraph1 = graph.GetChildGraph<SimpleModel>(x => x.Array);
             Assert.IsNotNull(childGraph1);
+            Assert.IsTrue(childGraph1.HasMember(x => x.Value1));
+            Assert.IsFalse(childGraph1.HasMember(x => x.Value2));
+
+            graph.AddMember(x => x.Array);
+
+            childGraph1 = graph.GetChildGraph<SimpleModel>(x => x.Array);
+            Assert.IsNotNull(childGraph1);
+            Assert.IsTrue(childGraph1.HasMember(x => x.Value1));
             Assert.IsTrue(childGraph1.HasMember(x => x.Value2));
         }
 

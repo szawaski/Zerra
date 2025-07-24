@@ -308,6 +308,9 @@ namespace Zerra.Serialization.Json.Converters.General
                     reader.BackOne();
 
                     state.Current.HasCreated = true;
+
+                    if (state.IncludeReturnGraph)
+                        state.Current.ReturnGraph = new Graph();
                 }
                 else
                 {

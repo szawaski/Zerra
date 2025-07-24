@@ -6,9 +6,11 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Zerra.Reflection;
 using Zerra.Serialization.Json;
 
 namespace Zerra.Test
@@ -970,6 +972,43 @@ namespace Zerra.Test
             Assert.IsNotNull(model2);
             Assert.AreEqual(model1._Value1, model2._Value1);
             Assert.AreEqual(model1.value2, model2.value2);
+        }
+
+        [TestMethod]
+        public void StringPatch()
+        {
+            var model1 = TypesBasicModel.Create();
+            var json = JsonSerializer.Serialize(model1);
+            (var model2, var graph) = JsonSerializer.DeserializePatch<TypesAllModel>(json);
+
+            var validMembers = TypeAnalyzer<TypesBasicModel>.GetTypeDetail().MemberDetails.Select(x => x.Name).ToHashSet();
+            foreach (var member in TypeAnalyzer<TypesAllModel>.GetTypeDetail().MemberDetails)
+            {
+                if (validMembers.Contains(member.Name))
+                    Assert.IsTrue(graph.HasMember(member.Name));
+                else
+                    Assert.IsFalse(graph.HasMember(member.Name));
+                if (member.Name == nameof(TypesBasicModel.ClassThing))
+                {
+                    var childGraph = graph.GetChildGraph(member.Name);
+                    foreach (var childMember in TypeAnalyzer<SimpleModel>.GetTypeDetail().MemberDetails)
+                        Assert.IsTrue(childGraph.HasMember(childMember.Name));
+                }
+            }
+        }
+
+        [TestMethod]
+        public void StringPatchDictionary()
+        {
+            var model1 = new Dictionary<string, string>()
+            {
+                { "One", "Uno" },
+                { "Two", "Dos" }
+            };
+            var json = JsonSerializer.Serialize(model1);
+            (var model2, var graph) = JsonSerializer.DeserializePatch<Dictionary<string, string>>(json);
+            Assert.IsTrue(graph.HasMember("One"));
+            Assert.IsTrue(graph.HasMember("Two"));
         }
 
         [TestMethod]
@@ -2158,6 +2197,47 @@ namespace Zerra.Test
             Assert.IsNotNull(model2);
             Assert.AreEqual(model1._Value1, model2._Value1);
             Assert.AreEqual(model1.value2, model2.value2);
+        }
+
+        [TestMethod]
+        public async Task StreamPatch()
+        {
+            var model1 = TypesBasicModel.Create();
+            using var stream1 = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream1, model1);
+            stream1.Position = 0;
+            (var model2, var graph) = await JsonSerializer.DeserializePatchAsync<TypesAllModel>(stream1);
+
+            var validMembers = TypeAnalyzer<TypesBasicModel>.GetTypeDetail().MemberDetails.Select(x => x.Name).ToHashSet();
+            foreach (var member in TypeAnalyzer<TypesAllModel>.GetTypeDetail().MemberDetails)
+            {
+                if (validMembers.Contains(member.Name))
+                    Assert.IsTrue(graph.HasMember(member.Name));
+                else
+                    Assert.IsFalse(graph.HasMember(member.Name));
+                if (member.Name == nameof(TypesBasicModel.ClassThing))
+                {
+                    var childGraph = graph.GetChildGraph(member.Name);
+                    foreach (var childMember in TypeAnalyzer<SimpleModel>.GetTypeDetail().MemberDetails)
+                        Assert.IsTrue(childGraph.HasMember(childMember.Name));
+                }
+            }
+        }
+
+        [TestMethod]
+        public async Task StreamPatchDictionary()
+        {
+            var model1 = new Dictionary<string, string>()
+            {
+                { "One", "Uno" },
+                { "Two", "Dos" }
+            };
+            using var stream1 = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream1, model1);
+            stream1.Position = 0;
+            (var model2, var graph) = await JsonSerializer.DeserializePatchAsync<Dictionary<string, string>> (stream1);
+            Assert.IsTrue(graph.HasMember("One"));
+            Assert.IsTrue(graph.HasMember("Two"));
         }
     }
 }

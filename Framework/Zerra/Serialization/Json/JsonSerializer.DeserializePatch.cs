@@ -4,32 +4,30 @@
 
 using System;
 using System.IO;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Zerra.Serialization.Json.Converters;
 using Zerra.Serialization.Json.State;
-using Zerra.Serialization.Json.IO;
-using Zerra.Reflection;
 using Zerra.Buffers;
 using System.Threading;
+using Zerra.Reflection;
 
 namespace Zerra.Serialization.Json
 {
     public partial class JsonSerializer
     {
 #if NETSTANDARD2_0
-        public static T? Deserialize<T>(string? str, JsonSerializerOptions? options = null, Graph? graph = null)
-            => Deserialize<T>(str.AsSpan(), options, graph);
-        public static object? Deserialize(Type type, string? str, JsonSerializerOptions? options = null, Graph? graph = null)
-            => Deserialize(type, str.AsSpan(), options, graph);
+        public static (T?, Graph?) DeserializePatch<T>(string? str, JsonSerializerOptions? options = null, Graph? graph = null)
+            => DeserializePatch<T>(str.AsSpan(), options, graph);
+        public static (object?, Graph?) DeserializePatch(Type type, string? str, JsonSerializerOptions? options = null, Graph? graph = null)
+            => DeserializePatch(type, str.AsSpan(), options, graph);
 #endif
 
-        public static T? Deserialize<T>(ReadOnlySpan<char> chars, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static (T?, Graph?) DeserializePatch<T>(ReadOnlySpan<char> chars, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (chars.Length == 0)
             {
                 if (typeof(T) == typeof(string))
-                    return (T)(object)String.Empty;
+                    return ((T)(object)String.Empty, null);
                 return default;
             }
 
@@ -38,7 +36,7 @@ namespace Zerra.Serialization.Json
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
             var converter = (JsonConverter<object, T>)JsonConverterFactory<object>.GetRoot(typeDetail);
 
-            var state = new ReadState(options, graph, true, false);
+            var state = new ReadState(options, graph, true, true);
 
             T? result;
 
@@ -47,16 +45,16 @@ namespace Zerra.Serialization.Json
             if (state.SizeNeeded > 0)
                 throw new EndOfStreamException();
 
-            return result;
+            return (result, state.Current.ReturnGraph);
         }
-        public static object? Deserialize(Type type, ReadOnlySpan<char> chars, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static (object?, Graph?) DeserializePatch(Type type, ReadOnlySpan<char> chars, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (type is null)
                 throw new ArgumentNullException(nameof(type));
             if (chars.Length == 0)
             {
                 if (type == typeof(string))
-                    return String.Empty;
+                    return (String.Empty, null);
                 return default;
             }
 
@@ -65,7 +63,7 @@ namespace Zerra.Serialization.Json
             var typeDetail = type.GetTypeDetail();
             var converter = JsonConverterFactory<object>.GetRoot(typeDetail);
 
-            var state = new ReadState(options, graph, true, false);
+            var state = new ReadState(options, graph, true, true);
 
             object? result;
 
@@ -74,15 +72,15 @@ namespace Zerra.Serialization.Json
             if (state.SizeNeeded > 0)
                 throw new EndOfStreamException();
 
-            return result;
+            return (result, state.Current.ReturnGraph);
         }
 
-        public static T? Deserialize<T>(ReadOnlySpan<byte> bytes, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static (T?, Graph?) DeserializePatch<T>(ReadOnlySpan<byte> bytes, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (bytes.Length == 0)
             {
                 if (typeof(T) == typeof(string))
-                    return (T)(object)String.Empty;
+                    return ((T)(object)String.Empty, null);
                 return default;
             }
 
@@ -91,7 +89,7 @@ namespace Zerra.Serialization.Json
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
             var converter = (JsonConverter<object, T>)JsonConverterFactory<object>.GetRoot(typeDetail);
 
-            var state = new ReadState(options, graph, true, false);
+            var state = new ReadState(options, graph, true, true);
 
             T? result;
 
@@ -100,16 +98,16 @@ namespace Zerra.Serialization.Json
             if (state.SizeNeeded > 0)
                 throw new EndOfStreamException();
 
-            return result;
+            return (result, state.Current.ReturnGraph);
         }
-        public static object? Deserialize(Type type, ReadOnlySpan<byte> bytes, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static (object?, Graph?) DeserializePatch(Type type, ReadOnlySpan<byte> bytes, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (type is null)
                 throw new ArgumentNullException(nameof(type));
             if (bytes.Length == 0)
             {
                 if (type == typeof(string))
-                    return String.Empty;
+                    return (String.Empty, null);
                 return default;
             }
 
@@ -118,7 +116,7 @@ namespace Zerra.Serialization.Json
             var typeDetail = type.GetTypeDetail();
             var converter = JsonConverterFactory<object>.GetRoot(typeDetail);
 
-            var state = new ReadState(options, graph, true, false);
+            var state = new ReadState(options, graph, true, true);
 
             object? result;
 
@@ -127,10 +125,10 @@ namespace Zerra.Serialization.Json
             if (state.SizeNeeded > 0)
                 throw new EndOfStreamException();
 
-            return result;
+            return (result, state.Current.ReturnGraph);
         }
 
-        public static T? Deserialize<T>(Stream stream, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static (T?, Graph?) DeserializePatch<T>(Stream stream, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
@@ -165,11 +163,11 @@ namespace Zerra.Serialization.Json
                 if (length == 0)
                 {
                     if (typeof(T) == typeof(string))
-                        return (T)(object)String.Empty;
+                        return ((T)(object)String.Empty, null);
                     return default;
                 }
 
-                var state = new ReadState(options, graph, isFinalBlock, false);
+                var state = new ReadState(options, graph, isFinalBlock, true);
 
                 T? result;
 
@@ -215,7 +213,7 @@ namespace Zerra.Serialization.Json
                     state.SizeNeeded = 0;
                 }
 
-                return result;
+                return (result, state.Current.ReturnGraph);
             }
             finally
             {
@@ -223,7 +221,7 @@ namespace Zerra.Serialization.Json
                 ArrayPoolHelper<byte>.Return(buffer);
             }
         }
-        public static object? Deserialize(Type type, Stream stream, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static (object?, Graph?) DeserializePatch(Type type, Stream stream, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (type is null)
                 throw new ArgumentNullException(nameof(type));
@@ -260,11 +258,11 @@ namespace Zerra.Serialization.Json
                 if (length == 0)
                 {
                     if (type == typeof(string))
-                        return String.Empty;
+                        return (String.Empty, null);
                     return default;
                 }
 
-                var state = new ReadState(options, graph, isFinalBlock, false);
+                var state = new ReadState(options, graph, isFinalBlock, true);
 
                 object? result;
 
@@ -313,7 +311,7 @@ namespace Zerra.Serialization.Json
                     state.SizeNeeded = 0;
                 }
 
-                return result;
+                return (result, state.Current.ReturnGraph);
             }
             finally
             {
@@ -322,7 +320,7 @@ namespace Zerra.Serialization.Json
             }
         }
 
-        public static async Task<T?> DeserializeAsync<T>(Stream stream, JsonSerializerOptions? options = null, Graph? graph = null, CancellationToken cancellationToken = default)
+        public static async Task<(T?, Graph?)> DeserializePatchAsync<T>(Stream stream, JsonSerializerOptions? options = null, Graph? graph = null, CancellationToken cancellationToken = default)
         {
             if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
@@ -357,11 +355,11 @@ namespace Zerra.Serialization.Json
                 if (length == 0)
                 {
                     if (typeof(T) == typeof(string))
-                        return (T)(object)String.Empty;
+                        return ((T)(object)String.Empty, null);
                     return default;
                 }
 
-                var state = new ReadState(options, graph, isFinalBlock, false);
+                var state = new ReadState(options, graph, isFinalBlock, true);
 
                 T? result;
 
@@ -410,7 +408,7 @@ namespace Zerra.Serialization.Json
                     state.SizeNeeded = 0;
                 }
 
-                return result;
+                return (result, state.Current.ReturnGraph);
             }
             finally
             {
@@ -418,7 +416,7 @@ namespace Zerra.Serialization.Json
                 ArrayPoolHelper<byte>.Return(buffer);
             }
         }
-        public static async Task<object?> DeserializeAsync(Type type, Stream stream, JsonSerializerOptions? options = null, Graph? graph = null, CancellationToken cancellationToken = default)
+        public static async Task<(object?, Graph?)> DeserializePatchAsync(Type type, Stream stream, JsonSerializerOptions? options = null, Graph? graph = null, CancellationToken cancellationToken = default)
         {
             if (type is null)
                 throw new ArgumentNullException(nameof(type));
@@ -455,11 +453,11 @@ namespace Zerra.Serialization.Json
                 if (length == 0)
                 {
                     if (type == typeof(string))
-                        return String.Empty;
+                        return (String.Empty, null);
                     return default;
                 }
 
-                var state = new ReadState(options, graph, isFinalBlock, false);
+                var state = new ReadState(options, graph, isFinalBlock, true);
 
                 object? result;
 
@@ -508,127 +506,12 @@ namespace Zerra.Serialization.Json
                     state.SizeNeeded = 0;
                 }
 
-                return result;
+                return (result, state.Current.ReturnGraph);
             }
             finally
             {
                 Array.Clear(buffer, 0, buffer.Length);
                 ArrayPoolHelper<byte>.Return(buffer);
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int Read<T>(JsonConverter<object, T> converter, ReadOnlySpan<byte> buffer, ref ReadState state, out T? result)
-        {
-            var reader = new JsonReader(buffer, state.IsFinalBlock);
-#if DEBUG
-        again:
-#endif
-            var read = converter.TryRead(ref reader, ref state, out result);
-            if (read)
-            {
-                state.SizeNeeded = 0;
-            }
-            else if (state.SizeNeeded == 0)
-            {
-#if DEBUG
-                throw new Exception($"{nameof(state.SizeNeeded)} not indicated");
-#else
-                state.SizeNeeded = 1;
-#endif
-            }
-#if DEBUG
-            if (!read && JsonReader.Testing && reader.Position + state.SizeNeeded <= reader.Length)
-                goto again;
-#endif
-            return reader.Position;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int ReadBoxed(JsonConverter converter, ReadOnlySpan<byte> buffer, ref ReadState state, out object? result)
-        {
-            var reader = new JsonReader(buffer, state.IsFinalBlock);
-#if DEBUG
-        again:
-#endif
-            var read = converter.TryReadBoxed(ref reader, ref state, out result);
-            if (read)
-            {
-                state.SizeNeeded = 0;
-            }
-            else if (state.SizeNeeded == 0)
-            {
-#if DEBUG
-                throw new Exception($"{nameof(state.SizeNeeded)} not indicated");
-#else
-                state.SizeNeeded = 1;
-#endif
-            }
-#if DEBUG
-            if (!read && JsonReader.Testing && reader.Position + state.SizeNeeded <= reader.Length)
-                goto again;
-#endif
-            return reader.Position;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int Read<T>(JsonConverter<object, T> converter, ReadOnlySpan<char> buffer, ref ReadState state, out T? result)
-        {
-            var reader = new JsonReader(buffer, state.IsFinalBlock);
-#if DEBUG
-        again:
-#endif
-            var read = converter.TryRead(ref reader, ref state, out result);
-            if (read)
-            {
-                state.SizeNeeded = 0;
-            }
-            else if (state.SizeNeeded == 0)
-            {
-#if DEBUG
-                throw new Exception($"{nameof(state.SizeNeeded)} not indicated");
-#else
-                state.SizeNeeded = 1;
-#endif
-            }
-#if DEBUG
-            if (!read && JsonReader.Testing && reader.Position + state.SizeNeeded <= reader.Length)
-                goto again;
-#endif
-            return reader.Position;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int ReadBoxed(JsonConverter converter, ReadOnlySpan<char> buffer, ref ReadState state, out object? result)
-        {
-            var reader = new JsonReader(buffer, state.IsFinalBlock);
-#if DEBUG
-        again:
-#endif
-            var read = converter.TryReadBoxed(ref reader, ref state, out result);
-            if (read)
-            {
-                state.SizeNeeded = 0;
-            }
-            else if (state.SizeNeeded == 0)
-            {
-#if DEBUG
-                throw new Exception($"{nameof(state.SizeNeeded)} not indicated");
-#else
-                state.SizeNeeded = 1;
-#endif
-            }
-#if DEBUG
-            if (!read && JsonReader.Testing && reader.Position + state.SizeNeeded <= reader.Length)
-                goto again;
-#endif
-            return reader.Position;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private unsafe static void BufferShift(byte[] buffer, int position)
-        {
-            fixed (byte* pBuffer = buffer)
-            {
-                Buffer.MemoryCopy(&pBuffer[position], pBuffer, buffer.Length, buffer.Length - position);
             }
         }
     }

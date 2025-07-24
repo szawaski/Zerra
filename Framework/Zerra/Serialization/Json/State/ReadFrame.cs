@@ -23,5 +23,6 @@ namespace Zerra.Serialization.Json.State
         public object? Property;
 
         public Graph? Graph;
+        public Graph? ReturnGraph;
     }
 }

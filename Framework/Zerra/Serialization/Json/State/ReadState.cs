@@ -21,6 +21,7 @@ namespace Zerra.Serialization.Json.State
         public int SizeNeeded;
 
         public bool IsFinalBlock;
+        public bool IncludeReturnGraph;
 
         public JsonValueType EntryValueType;
         public bool Nameless { get; set; }
@@ -50,7 +51,7 @@ namespace Zerra.Serialization.Json.State
         public Graph? Graph;
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
-        public ReadState(JsonSerializerOptions options, Graph? graph, bool isFinalBlock)
+        public ReadState(JsonSerializerOptions options, Graph? graph, bool isFinalBlock, bool hasReturnGraph)
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
         {
             Nameless = options.Nameless;
@@ -58,6 +59,7 @@ namespace Zerra.Serialization.Json.State
             ErrorOnTypeMismatch = options.ErrorOnTypeMismatch;
             Graph = graph;
             IsFinalBlock = isFinalBlock;
+            IncludeReturnGraph = hasReturnGraph;
             IgnoreCase = options.IgnoreCase;
         }
         

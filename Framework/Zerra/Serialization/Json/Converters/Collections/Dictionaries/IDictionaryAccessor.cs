@@ -9,6 +9,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
         public IDictionary<TKey, TValue> Dictionary => dictionary;
 
         private TKey? key;
+        public string? CurrentKeyString => key?.ToString();
 
         public IDictionaryAccessor(IDictionary<TKey, TValue> dictionary)
         {
