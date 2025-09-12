@@ -596,13 +596,10 @@ namespace Zerra
         /// <returns>The object type to which the graph members are directed.</returns>
         protected virtual Type? GetModelType() => null;
 
-        /// <summary>
-        /// Internal Use Only.
-        /// </summary>
-        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-        protected static Graph? InternalGetChildGraph(Graph graph, MemberInfo member, bool canCreate)
+        internal static Graph? InternalGetChildGraph(Graph graph, MemberInfo member, bool canCreate)
         {
             graph.childGraphs ??= new();
+
             if (!graph.childGraphs.TryGetValue(member.Name, out var childGraph))
             {
                 if (!canCreate)
@@ -621,11 +618,13 @@ namespace Zerra
                     childGraph = (Graph)graphTTypeGeneric.CreatorBoxed();
                 }
 
+                if (graph.includeAllMembers || (graph.addedMembers is not null && graph.addedMembers.Contains(member.Name)))
+                    childGraph.includeAllMembers = true;
+
                 graph.childGraphs.Add(member.Name, childGraph);
+                _ = graph.addedMembers?.Remove(member.Name);
             }
-            if ((childGraph.includeAllMembers && (graph.removedMembers is null || !graph.removedMembers.Contains(member.Name))) || (graph.addedMembers is not null && graph.addedMembers.Contains(member.Name)))
-                childGraph.includeAllMembers = true;
-            _ = graph.addedMembers?.Remove(member.Name);
+
             return childGraph;
         }
 
