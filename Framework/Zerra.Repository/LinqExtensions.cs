@@ -18,7 +18,7 @@ namespace Zerra.Repository
         //    where TModel : class, new()
         //{
         //    IQueryable<TSource> result = source;
-        //    foreach (var order in linqOrder.OrderExpressions.Reverse())
+        //    foreach (var order in linqOrder.OrderExpressions.AsEnumerable().Reverse())
         //    {
         //        var sourceOrder = LinqRebinder.RebindType(order.Expression, typeof(TModel), typeof(TSource));
         //        var propertyType = ((LambdaExpression)sourceOrder).ReturnType;
@@ -39,7 +39,7 @@ namespace Zerra.Repository
             where TModel : class, new()
         {
             var result = source;
-            foreach (var order in linqOrder.OrderExpressions.Reverse())
+            foreach (var order in linqOrder.OrderExpressions.AsEnumerable().Reverse())
             {
                 var propertyType = ((LambdaExpression)order.Expression).ReturnType;
                 if (order.Descending)

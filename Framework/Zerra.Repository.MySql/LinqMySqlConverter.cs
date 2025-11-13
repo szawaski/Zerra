@@ -86,7 +86,7 @@ namespace Zerra.Repository.MySql
             }
             else if (call.Method.DeclaringType is not null)
             {
-                if (call.Method.DeclaringType == typeof(Enumerable) || call.Method.DeclaringType == typeof(Queryable))
+                if (call.Method.DeclaringType == typeof(Enumerable) || call.Method.DeclaringType == typeof(MemoryExtensions) || call.Method.DeclaringType == typeof(Queryable))
                 {
                     switch (call.Method.Name)
                     {
@@ -751,7 +751,7 @@ namespace Zerra.Repository.MySql
                 return false;
             }
 
-            if (type.IsArray)
+            if (type.IsArray || type.Name == "ReadOnlySpan`1" || type.Name == "Span`1")
             {
                 var arrayType = typeDetails.InnerType;
                 if (arrayType == typeof(byte))

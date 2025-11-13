@@ -14,10 +14,9 @@ namespace Zerra.SourceGeneration.Test
         //[TestMethod]
         public void Test()
         {
-            //RunGenerator(6.0m);
-            RunGenerator(7.0m);
             RunGenerator(8.0m);
             RunGenerator(9.0m);
+            RunGenerator(10.0m);
         }
 
         private static void RunGenerator(decimal netVersion)

@@ -571,8 +571,8 @@ namespace Zerra.Reflection.Runtime
 
                                 if (hasInterfaces)
                                 {
-                                    foreach (var field in fields)
-                                        names!.Add(field.Name);
+                                    foreach (var @field in fields)
+                                        names!.Add(@field.Name);
 
                                     foreach (var i in Interfaces)
                                     {
@@ -616,9 +616,9 @@ namespace Zerra.Reflection.Runtime
                                     }
                                 }
 
-                                foreach (var field in fields.Where(x => !items.Any(y => y.BackingFieldDetailBoxed?.MemberInfo == x)))
+                                foreach (var @field in fields.Where(x => !items.Any(y => y.BackingFieldDetailBoxed?.MemberInfo == x)))
                                 {
-                                    items.Add(MemberDetailRuntime<object, object>.New(Type, field.FieldType, field.Name, field, null, false, locker));
+                                    items.Add(MemberDetailRuntime<object, object>.New(Type, @field.FieldType, @field.Name, @field, null, false, locker));
                                 }
                             }
 

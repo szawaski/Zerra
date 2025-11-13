@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>net7.0;net8.0;net9.0</TargetFrameworks>
+        <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
         <Nullable>enable</Nullable>
         <CheckEolTargetFramework>false</CheckEolTargetFramework>
         <Authors>Steven Zawaski</Authors>
@@ -19,7 +19,7 @@ Zerra.Repository.MySql.MySqlDataContext
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, SQL</PackageTags>
         <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
-        <LangVersion>12.0</LangVersion>
+        <LangVersion>14.0</LangVersion>
         <Version>5.1.12</Version>
     </PropertyGroup>
 
@@ -31,7 +31,7 @@ Zerra.Repository.MySql.MySqlDataContext
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="MySql.Data" Version="8.2.0" />
+        <PackageReference Include="MySql.Data" Version="9.5.0" />
     </ItemGroup>
 
     <ItemGroup>

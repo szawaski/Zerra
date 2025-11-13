@@ -404,7 +404,7 @@ namespace Zerra.Repository
                     case TemporalOrder.Newest:
                         {
                             var modelStates = new List<TModel>();
-                            foreach (var eventData in eventDatas.Reverse())
+                            foreach (var eventData in eventDatas.AsEnumerable().Reverse())
                             {
                                 var eventModel = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
                                 if (eventModel is null)
@@ -447,7 +447,7 @@ namespace Zerra.Repository
                         {
                             var modelStates = new List<TModel>();
                             var skipCount = 0;
-                            foreach (var eventData in eventDatas.Reverse())
+                            foreach (var eventData in eventDatas.AsEnumerable().Reverse())
                             {
                                 var eventModel = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
                                 if (eventModel is null)
@@ -489,7 +489,7 @@ namespace Zerra.Repository
                 {
                     case TemporalOrder.Newest:
                         {
-                            foreach (var eventData in eventDatas.Reverse())
+                            foreach (var eventData in eventDatas.AsEnumerable().Reverse())
                             {
                                 var eventModel = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
                                 if (eventModel is null)
@@ -506,7 +506,7 @@ namespace Zerra.Repository
                         }
                     case TemporalOrder.Oldest:
                         {
-                            foreach (var eventData in eventDatas.Reverse())
+                            foreach (var eventData in eventDatas.AsEnumerable().Reverse())
                             {
                                 var eventModel = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
                                 if (eventModel is null)
@@ -540,7 +540,7 @@ namespace Zerra.Repository
                     case TemporalOrder.Newest:
                         {
                             var eventModels = new List<EventModel<TModel>>();
-                            foreach (var eventData in eventDatas.Reverse())
+                            foreach (var eventData in eventDatas.AsEnumerable().Reverse())
                             {
                                 var eventModelData = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
                                 if (eventModelData is null)
@@ -597,7 +597,7 @@ namespace Zerra.Repository
                         {
                             var eventModels = new List<EventModel<TModel>>();
                             var skipCount = 0;
-                            foreach (var eventData in eventDatas.Reverse())
+                            foreach (var eventData in eventDatas.AsEnumerable().Reverse())
                             {
                                 var eventModelData = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
                                 if (eventModelData is null)
@@ -651,7 +651,7 @@ namespace Zerra.Repository
                         {
                             EventStoreEventModelData<TModel>? eventModelData = null;
                             EventStoreEventData? thisEventData = null;
-                            foreach (var eventData in eventDatas.Reverse())
+                            foreach (var eventData in eventDatas.AsEnumerable().Reverse())
                             {
                                 thisEventData = eventData;
                                 eventModelData = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
@@ -690,7 +690,7 @@ namespace Zerra.Repository
                         {
                             EventStoreEventModelData<TModel>? eventModelData = null;
                             EventStoreEventData? thisEventData = null;
-                            foreach (var eventData in eventDatas.Reverse())
+                            foreach (var eventData in eventDatas.AsEnumerable().Reverse())
                             {
                                 thisEventData = eventData;
                                 eventModelData = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);

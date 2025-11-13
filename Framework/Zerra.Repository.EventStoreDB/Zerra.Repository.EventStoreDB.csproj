@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>net7.0;net8.0;net9.0</TargetFrameworks>
+        <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
         <Nullable>enable</Nullable>
         <CheckEolTargetFramework>false</CheckEolTargetFramework>
         <Authors>Steven Zawaski</Authors>
@@ -20,7 +20,7 @@ Zerra.Repository.EventStore.EventStoreDB.EventStoreDBProvider
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, EventStore</PackageTags>
         <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
-        <LangVersion>12.0</LangVersion>
+        <LangVersion>14.0</LangVersion>
         <Version>5.1.12</Version>
     </PropertyGroup>
 
@@ -37,7 +37,13 @@ Zerra.Repository.EventStore.EventStoreDB.EventStoreDBProvider
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="EventStore.Client.Grpc.Streams" Version="23.1.0" />
+        <PackageReference Include="EventStore.Client.Grpc.Streams" Version="23.3.9" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+        <PackageReference Include="System.Linq.Async" Version="6.0.1">
+            <ExcludeAssets>compile</ExcludeAssets>
+        </PackageReference>
     </ItemGroup>
 
 </Project>

@@ -343,7 +343,7 @@ namespace Zerra.Test
         {
             var model1 = TypeModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
-            Assert.AreEqual(185, bytes.Length);
+            Assert.AreEqual(186, bytes.Length);
             var model2 = ByteSerializer.Deserialize<TypeModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }

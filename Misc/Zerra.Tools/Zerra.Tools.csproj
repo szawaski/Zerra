@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>net9.0</TargetFrameworks>
+        <TargetFramework>net10.0</TargetFramework>
         <CheckEolTargetFramework>false</CheckEolTargetFramework>
         <Nullable>enable</Nullable>
         <Authors>Steven Zawaski</Authors>
@@ -15,7 +15,7 @@
         <Description>Random Assortment of Tools and Experiments</Description>
         <Company>KaKush LLC</Company>
         <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
-        <LangVersion>12.0</LangVersion>
+        <LangVersion>14.0</LangVersion>
         <Version>4.8.0</Version>
     </PropertyGroup>
 
