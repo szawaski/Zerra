@@ -1359,7 +1359,11 @@ namespace Zerra.Reflection
                         break;
                 }
 
+#if NETSTANDARD2_0
                 var name = span.Slice(0, i).ToString();
+#else
+                var name = span.Slice(0, i);
+#endif
 
                 //Have to inspect because inner generics or partially constructed generics won't work
                 var parameters = type.GetGenericArguments();
@@ -1367,23 +1371,23 @@ namespace Zerra.Reflection
                 var sb = new StringBuilder();
 
                 if (includeNamespace && type.Namespace is not null)
-                    sb.Append(type.Namespace).Append('.');
-                sb.Append(name).Append('<');
+                    _ = sb.Append(type.Namespace).Append('.');
+                _ = sb.Append(name).Append('<');
 
                 for (var j = 0; j < parameters.Length; j++)
                 {
                     if (j > 0)
-                        sb.Append(',');
+                        _ = sb.Append(',');
                     var parameter = parameters[j];
                     if (parameter.IsGenericParameter)
-                        sb.Append('T');
+                        _ = sb.Append('T');
                     else if (includeNamespace)
-                        sb.Append(GetNiceFullName(parameter));
+                        _ = sb.Append(GetNiceFullName(parameter));
                     else
-                        sb.Append(GetNiceName(parameter));
+                        _ = sb.Append(GetNiceName(parameter));
                 }
 
-                sb.Append('>');
+                _ = sb.Append('>');
                 return sb.ToString();
             }
             else if ((type.IsGenericType || type.IsArray) && type.FullName is not null)
@@ -1529,24 +1533,32 @@ namespace Zerra.Reflection
                     case '<':
                         depth++;
                         if (depth == 1)
-                            sb.Append(chars.Slice(start, i + 1 - start).ToString());
+#if NETSTANDARD2_0
+                            _ = sb.Append(chars.Slice(start, i + 1 - start).ToString());
+#else
+                            _ = sb.Append(chars.Slice(start, i + 1 - start));
+#endif
                         break;
                     case ',':
                         if (depth == 1)
-                            sb.Append("T,");
+                            _ = sb.Append("T,");
                         break;
                     case '>':
                         depth--;
                         if (depth == 0)
                         {
-                            sb.Append('T');
+                            _ = sb.Append('T');
                             start = i;
                         }
                         break;
                 }
             }
 
-            sb.Append(chars.Slice(start, chars.Length - start).ToString());
+#if NETSTANDARD2_0
+            _ = sb.Append(chars.Slice(start, chars.Length - start).ToString());
+#else
+            _ = sb.Append(chars.Slice(start));
+#endif
 
             return sb.ToString();
         }
