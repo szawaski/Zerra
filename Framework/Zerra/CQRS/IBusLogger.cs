@@ -13,7 +13,7 @@ namespace Zerra.CQRS
     {
         void BeginCommand(Type commandType, ICommand command, string source, bool handled);
         void BeginEvent(Type eventType, IEvent @event, string source, bool handled);
-        void BeginCall(Type interfaceType, string methodName, object[] arguments, object? result, string source, bool handled);
+        void BeginCall(Type interfaceType, string methodName, object[] arguments, string source, bool handled);
 
         void EndCommand(Type commandType, ICommand command, string source, bool handled, long milliseconds, Exception? ex);
         void EndEvent(Type eventType, IEvent @event, string source, bool handled, long milliseconds, Exception? ex);

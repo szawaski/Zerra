@@ -54,7 +54,7 @@ namespace Zerra.Logger
                 _ = LogFile.Log(file, eventCategory, message);
         }
 
-        public void BeginCall(Type interfaceType, string methodName, object[] arguments, object? result, string source, bool handled)
+        public void BeginCall(Type interfaceType, string methodName, object[] arguments, string source, bool handled)
         {
             var interfaceName = interfaceType.GetNiceName();
             var user = System.Threading.Thread.CurrentPrincipal?.Identity?.Name ?? anonymous;

@@ -1135,7 +1135,7 @@ namespace Zerra.CQRS
             }
             else
             {
-                busLogger?.BeginCall(interfaceType, methodName, arguments, null, source, handled);
+                busLogger?.BeginCall(interfaceType, methodName, arguments, source, handled);
 
                 var timer = Stopwatch.StartNew();
                 try
@@ -1182,7 +1182,7 @@ namespace Zerra.CQRS
 
         private static async Task CallMethodTaskLogged(bool handled, IQueryClient? queryClient, object? cacheProvider, Type interfaceType, MethodDetail methodDetail, object[] arguments, NetworkType networkType, string source, CancellationToken cancellationToken)
         {
-            busLogger?.BeginCall(interfaceType, methodDetail.Name, arguments, null, source, handled);
+            busLogger?.BeginCall(interfaceType, methodDetail.Name, arguments, source, handled);
 
             var timer = Stopwatch.StartNew();
             try
@@ -1217,7 +1217,7 @@ namespace Zerra.CQRS
         private static readonly MethodDetail callMethodTaskGenericLoggedMethod = typeof(Bus).GetMethodDetail(nameof(CallMethodTaskGenericLogged));
         private static async Task<TReturn> CallMethodTaskGenericLogged<TReturn>(bool handled, IQueryClient? queryClient, object? cacheProvider, Type interfaceType, MethodDetail methodDetail, object[] arguments, NetworkType networkType, string source, CancellationToken cancellationToken)
         {
-            busLogger?.BeginCall(interfaceType, methodDetail.Name, arguments, null, source, handled);
+            busLogger?.BeginCall(interfaceType, methodDetail.Name, arguments, source, handled);
 
             TReturn taskresult;
             var timer = Stopwatch.StartNew();
@@ -1384,21 +1384,18 @@ namespace Zerra.CQRS
                 var commandTypes = GetExposedCommandTypesFromInterface(interfaceType);
                 foreach (var commandType in commandTypes)
                 {
-                    if (TypeAnalyzer.GetTypeDetail(commandType).Interfaces.Any(x => x == typeof(ICommand)))
+                    var hasHandler = ProviderResolver.HasBase(TypeAnalyzer.GetGenericType(typeof(ICommandHandler<>), commandType));
+                    if (hasHandler)
                     {
-                        var hasHandler = ProviderResolver.HasBase(TypeAnalyzer.GetGenericType(typeof(ICommandHandler<>), commandType));
-                        if (hasHandler)
+                        if (commandProducers.ContainsKey(commandType))
                         {
-                            if (commandProducers.ContainsKey(commandType))
-                            {
-                                _ = Log.ErrorAsync($"Cannot add Command Consumer: type already added as Producer {commandType.GetNiceName()}");
-                                continue;
-                            }
-                            var topic = GetCommandTopic(commandType);
-                            commandConsumer.RegisterCommandType(maxConcurrentCommandsPerTopic, topic, commandType);
-                            _ = handledTypes.Add(commandType);
-                            _ = Log.InfoAsync($"{commandConsumer.GetType().GetNiceName()} at {commandConsumer.MessageHost} - {commandType.GetNiceName()}");
+                            _ = Log.ErrorAsync($"Cannot add Command Consumer: type already added as Producer {commandType.GetNiceName()}");
+                            continue;
                         }
+                        var topic = GetCommandTopic(commandType);
+                        commandConsumer.RegisterCommandType(maxConcurrentCommandsPerTopic, topic, commandType);
+                        _ = handledTypes.Add(commandType);
+                        _ = Log.InfoAsync($"{commandConsumer.GetType().GetNiceName()} at {commandConsumer.MessageHost} - {commandType.GetNiceName()}");
                     }
                 }
 
@@ -1472,16 +1469,13 @@ namespace Zerra.CQRS
                 var eventTypes = GetExposedEventTypesFromInterface(interfaceType);
                 foreach (var eventType in eventTypes)
                 {
-                    if (TypeAnalyzer.GetTypeDetail(eventType).Interfaces.Any(x => x == typeof(IEvent)))
+                    var hasHandler = ProviderResolver.HasBase(TypeAnalyzer.GetGenericType(typeof(IEventHandler<>), eventType));
+                    if (hasHandler)
                     {
-                        var hasHandler = ProviderResolver.HasBase(TypeAnalyzer.GetGenericType(typeof(IEventHandler<>), eventType));
-                        if (hasHandler)
-                        {
-                            var topic = GetEventTopic(eventType);
-                            eventConsumer.RegisterEventType(maxConcurrentEventsPerTopic, topic, eventType);
-                            _ = handledTypes.Add(eventType);
-                            _ = Log.InfoAsync($"{eventConsumer.GetType().GetNiceName()} at {eventConsumer.MessageHost} - {eventType.GetNiceName()}");
-                        }
+                        var topic = GetEventTopic(eventType);
+                        eventConsumer.RegisterEventType(maxConcurrentEventsPerTopic, topic, eventType);
+                        _ = handledTypes.Add(eventType);
+                        _ = Log.InfoAsync($"{eventConsumer.GetType().GetNiceName()} at {eventConsumer.MessageHost} - {eventType.GetNiceName()}");
                     }
                 }
 
@@ -2129,7 +2123,7 @@ namespace Zerra.CQRS
                         _ = disposed.Add(disposable);
                     }
                 }
-                commandProducers.Clear();
+                eventProducers.Clear();
 
                 foreach (var eventConsumer in eventConsumers)
                 {
@@ -2145,7 +2139,7 @@ namespace Zerra.CQRS
                         _ = disposed.Add(disposable);
                     }
                 }
-                commandConsumers.Clear();
+                eventConsumers.Clear();
 
                 if (busLogger is not null)
                 {
@@ -2191,7 +2185,7 @@ namespace Zerra.CQRS
                         _ = disposed.Add(disposable);
                     }
                 }
-                queryClients.Clear();
+                queryServers.Clear();
             }
             finally
             {
