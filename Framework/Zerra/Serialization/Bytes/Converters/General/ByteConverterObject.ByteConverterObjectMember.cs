@@ -11,9 +11,9 @@ namespace Zerra.Serialization.Bytes.Converters.General
 {
     internal sealed partial class ByteConverterObject<TParent, TValue>
     {
-        private abstract class ByteConverterObjectMember
+        private sealed class ByteConverterObjectMember
         {
-            protected readonly string memberKey;
+            private readonly string memberKey;
 
             public readonly MemberDetail Member;
 
@@ -52,20 +52,28 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 }
             }
 
-            public abstract ByteConverter<Dictionary<string, object?>> ConverterSetCollectedValues { get; }
+            private void SetterForConverterSetValues(Dictionary<string, object?> parent, object? value) => parent.Add(Member.Name.TrimStart('_'), value);
+
+            private ByteConverter<Dictionary<string, object?>>? converterSetValues;
+            public ByteConverter<Dictionary<string, object?>> ConverterSetCollectedValues
+            {
+                get
+                {
+                    if (converterSetValues is null)
+                    {
+                        lock (this)
+                        {
+                            converterSetValues ??= ByteConverterFactory<Dictionary<string, object?>>.Get(Member.TypeDetailBoxed, memberKey, null, SetterForConverterSetValues);
+                        }
+                    }
+                    return converterSetValues;
+                }
+            }
 
             //helps with debug
             public override sealed string ToString()
             {
                 return Member.Name;
-            }
-
-            private static readonly Type byteConverterObjectMemberT = typeof(ByteConverterObjectMember<>);
-            public static ByteConverterObjectMember New(TypeDetail parentTypeDetail, MemberDetail member, ushort index)
-            {
-                var generic = byteConverterObjectMemberT.GetGenericTypeDetail(typeof(TParent), typeof(TValue), member.Type);
-                var obj = generic.ConstructorDetailsBoxed[0].CreatorWithArgsBoxed([parentTypeDetail, member, index]);
-                return (ByteConverterObjectMember)obj;
             }
         }
     }

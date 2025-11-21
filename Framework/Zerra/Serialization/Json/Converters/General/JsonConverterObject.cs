@@ -84,7 +84,7 @@ namespace Zerra.Serialization.Json.Converters.General
 
                     if (attribute is JsonPropertyNameAttribute jsonPropertyName)
                     {
-                        var detail = JsonConverterObjectMember.New(typeDetail, member, jsonPropertyName.Name, ignoreCondition);
+                        var detail = new JsonConverterObjectMember(typeDetail, member, jsonPropertyName.Name, ignoreCondition);
                         membersByName.Add(jsonPropertyName.Name, detail);
                         members.Add(detail);
                         found = true;
@@ -92,7 +92,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     }
                     else if (attribute is System.Text.Json.Serialization.JsonPropertyNameAttribute jsonPropertyName2)
                     {
-                        var detail = JsonConverterObjectMember.New(typeDetail, member, jsonPropertyName2.Name, ignoreCondition);
+                        var detail = new JsonConverterObjectMember(typeDetail, member, jsonPropertyName2.Name, ignoreCondition);
                         membersByName.Add(jsonPropertyName2.Name, detail);
                         members.Add(detail);
                         found = true;
@@ -104,7 +104,7 @@ namespace Zerra.Serialization.Json.Converters.General
 
                 if (!found)
                 {
-                    var detail = JsonConverterObjectMember.New(typeDetail, member, member.Name, ignoreCondition);
+                    var detail = new JsonConverterObjectMember(typeDetail, member, member.Name, ignoreCondition);
                     membersByName.Add(member.Name, detail);
                     members.Add(detail);
                 }

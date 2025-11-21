@@ -65,7 +65,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 if (index > ushort.MaxValue)
                     throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has an {nameof(SerializerIndexAttribute)} index too high");
 
-                var detail = ByteConverterObjectMember.New(typeDetail, member, index);
+                var detail = new ByteConverterObjectMember(typeDetail, member, index);
                 membersByIndex.Add(index, detail);
             }
 
@@ -81,7 +81,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 if (index > ushort.MaxValue)
                     throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members to serialize");
 
-                var detail = ByteConverterObjectMember.New(typeDetail, member, index);
+                var detail = new ByteConverterObjectMember(typeDetail, member, index);
                 if (!hasAttributes)
                 {
                     membersByIndex.Add(index, detail);

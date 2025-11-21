@@ -10,9 +10,9 @@ namespace Zerra.Serialization.Json.Converters.General
 {
     internal sealed partial class JsonConverterObject<TParent, TValue>
     {
-        private abstract class JsonConverterObjectMember
+        private sealed class JsonConverterObjectMember
         {
-            protected readonly string memberKey;
+            private readonly string memberKey;
 
             public readonly MemberDetail Member;
 
@@ -84,20 +84,28 @@ namespace Zerra.Serialization.Json.Converters.General
                 }
             }
 
-            public abstract JsonConverter<Dictionary<string, object?>> ConverterSetCollectedValues { get; }
+            private void SetterForConverterSetValues(Dictionary<string, object?> parent, object? value) => parent.Add(Member.Name.TrimStart('_'), value);
+
+            private JsonConverter<Dictionary<string, object?>>? converterSetValues;
+            public JsonConverter<Dictionary<string, object?>> ConverterSetCollectedValues
+            {
+                get
+                {
+                    if (converterSetValues is null)
+                    {
+                        lock (this)
+                        {
+                            converterSetValues ??= JsonConverterFactory<Dictionary<string, object?>>.Get(Member.TypeDetailBoxed, memberKey, null, SetterForConverterSetValues);
+                        }
+                    }
+                    return converterSetValues;
+                }
+            }
 
             //helps with debug
             public override sealed string ToString()
             {
                 return Member.Name;
-            }
-
-            private static readonly Type byteConverterObjectMemberT = typeof(JsonConverterObjectMember<>);
-            public static JsonConverterObjectMember New(TypeDetail parentTypeDetail, MemberDetail member, string jsonName, JsonIgnoreCondition ignoreCondition)
-            {
-                var generic = byteConverterObjectMemberT.GetGenericTypeDetail(typeof(TParent), typeof(TValue), member.Type);
-                var obj = generic.ConstructorDetailsBoxed[0].CreatorWithArgsBoxed([parentTypeDetail, member, jsonName, ignoreCondition]);
-                return (JsonConverterObjectMember)obj;
             }
         }
     }
