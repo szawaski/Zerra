@@ -294,7 +294,7 @@ namespace Zerra.Web
                         if (!settings.CommandCounter.BeginReceive())
                             throw new Exception("Cannot receive any more commands");
 
-                        var command = (ICommand?)JsonSerializer.Deserialize(messageType, data.MessageData);
+                        var command = (ICommand?)JsonSerializer.Deserialize(data.MessageData, messageType);
                         if (command is null)
                             throw new Exception("Invalid Request");
 
@@ -321,7 +321,7 @@ namespace Zerra.Web
                     }
                     else if (typeDetail.Interfaces.Contains(typeof(ICommand)))
                     {
-                        var @event = (IEvent?)JsonSerializer.Deserialize(messageType, data.MessageData);
+                        var @event = (IEvent?)JsonSerializer.Deserialize(data.MessageData, messageType);
                         if (@event is null)
                             throw new Exception("Invalid Request");
 

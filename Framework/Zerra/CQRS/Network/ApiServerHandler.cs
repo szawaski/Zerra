@@ -94,7 +94,7 @@ namespace Zerra.CQRS.Network
             if (!typeDetail.Interfaces.Contains(typeof(ICommand)))
                 throw new Exception($"Type {data.MessageType} is not a command");
 
-            var command = (ICommand?)JsonSerializer.Deserialize(commandType, data.MessageData);
+            var command = (ICommand?)JsonSerializer.Deserialize(data.MessageData, commandType);
             if (command is null)
                 throw new Exception($"Invalid {nameof(data.MessageData)}");
 
@@ -114,7 +114,7 @@ namespace Zerra.CQRS.Network
             if (!typeDetail.Interfaces.Contains(typeof(ICommand)))
                 throw new Exception($"Type {data.MessageType} is not a command");
 
-            var command = (ICommand?)JsonSerializer.Deserialize(commandType, data.MessageData);
+            var command = (ICommand?)JsonSerializer.Deserialize(data.MessageData, commandType);
             if (command is null)
                 throw new Exception($"Invalid {nameof(data.MessageData)}");
 

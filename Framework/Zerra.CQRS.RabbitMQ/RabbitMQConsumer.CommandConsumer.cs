@@ -109,7 +109,7 @@ namespace Zerra.CQRS.RabbitMQ
                             if (message is null || message.MessageType is null || message.MessageData is null || message.Source is null)
                                 throw new Exception("Invalid Message");
 
-                            var command = RabbitMQCommon.Deserialize(message.MessageType, message.MessageData) as ICommand;
+                            var command = RabbitMQCommon.Deserialize(message.MessageData, message.MessageType) as ICommand;
                             if (command is null)
                                 throw new Exception("Invalid Message");
 

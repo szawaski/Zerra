@@ -72,9 +72,9 @@ namespace Zerra.CQRS.Network
         {
             return contentType switch
             {
-                ContentType.Bytes => ByteSerializer.Deserialize(type, bytes, byteSerializerOptions),
-                ContentType.Json => JsonSerializer.Deserialize(type, bytes),
-                ContentType.JsonNameless => JsonSerializer.Deserialize(type, bytes, jsonSerializerNamelessOptions),
+                ContentType.Bytes => ByteSerializer.Deserialize(bytes, type, byteSerializerOptions),
+                ContentType.Json => JsonSerializer.Deserialize(bytes, type),
+                ContentType.JsonNameless => JsonSerializer.Deserialize(bytes, type, jsonSerializerNamelessOptions),
                 _ => throw new NotImplementedException(),
             };
         }
@@ -130,9 +130,9 @@ namespace Zerra.CQRS.Network
         {
             return contentType switch
             {
-                ContentType.Bytes => ByteSerializer.Deserialize(type, stream, byteSerializerOptions),
-                ContentType.Json => JsonSerializer.Deserialize(type, stream),
-                ContentType.JsonNameless => JsonSerializer.Deserialize(type, stream, jsonSerializerNamelessOptions),
+                ContentType.Bytes => ByteSerializer.Deserialize(stream, type, byteSerializerOptions),
+                ContentType.Json => JsonSerializer.Deserialize(stream, type),
+                ContentType.JsonNameless => JsonSerializer.Deserialize(stream, type, jsonSerializerNamelessOptions),
                 _ => throw new NotImplementedException(),
             };
         }
@@ -185,9 +185,9 @@ namespace Zerra.CQRS.Network
         {
             return contentType switch
             {
-                ContentType.Bytes => ByteSerializer.DeserializeAsync(type, stream, byteSerializerOptions, cancellationToken),
-                ContentType.Json => JsonSerializer.DeserializeAsync(type, stream, null, null, cancellationToken),
-                ContentType.JsonNameless => JsonSerializer.DeserializeAsync(type, stream, jsonSerializerNamelessOptions, null, cancellationToken),
+                ContentType.Bytes => ByteSerializer.DeserializeAsync(stream, type, byteSerializerOptions, cancellationToken),
+                ContentType.Json => JsonSerializer.DeserializeAsync(stream, type, null, null, cancellationToken),
+                ContentType.JsonNameless => JsonSerializer.DeserializeAsync(stream, type, jsonSerializerNamelessOptions, null, cancellationToken),
                 _ => throw new NotImplementedException(),
             };
         }
@@ -254,15 +254,15 @@ namespace Zerra.CQRS.Network
                         {
                             case ContentType.Bytes:
                                 if (content.ErrorBytes is not null && content.ErrorBytes.Length > 0)
-                                    ex = (Exception?)ByteSerializer.Deserialize(type, content.ErrorBytes, byteSerializerOptions);
+                                    ex = (Exception?)ByteSerializer.Deserialize(content.ErrorBytes, type, byteSerializerOptions);
                                 break;
                             case ContentType.Json:
                                 if (!String.IsNullOrEmpty(content.ErrorString))
-                                    ex = (Exception?)JsonSerializer.Deserialize(type, content.ErrorString);
+                                    ex = (Exception?)JsonSerializer.Deserialize(content.ErrorString, type);
                                 break;
                             case ContentType.JsonNameless:
                                 if (!String.IsNullOrEmpty(content.ErrorString))
-                                    ex = (Exception?)JsonSerializer.Deserialize(type, content.ErrorString, jsonSerializerNamelessOptions);
+                                    ex = (Exception?)JsonSerializer.Deserialize(content.ErrorString, type, jsonSerializerNamelessOptions);
                                 break;
                         }
                     }
@@ -335,15 +335,15 @@ namespace Zerra.CQRS.Network
                         {
                             case ContentType.Bytes:
                                 if (content.ErrorBytes is not null && content.ErrorBytes.Length > 0)
-                                    ex = (Exception?)ByteSerializer.Deserialize(type, content.ErrorBytes, byteSerializerOptions);
+                                    ex = (Exception?)ByteSerializer.Deserialize(content.ErrorBytes, type, byteSerializerOptions);
                                 break;
                             case ContentType.Json:
                                 if (!String.IsNullOrEmpty(content.ErrorString))
-                                    ex = (Exception?)JsonSerializer.Deserialize(type, content.ErrorString);
+                                    ex = (Exception?)JsonSerializer.Deserialize(content.ErrorString, type);
                                 break;
                             case ContentType.JsonNameless:
                                 if (!String.IsNullOrEmpty(content.ErrorString))
-                                    ex = (Exception?)JsonSerializer.Deserialize(type, content.ErrorString, jsonSerializerNamelessOptions);
+                                    ex = (Exception?)JsonSerializer.Deserialize(content.ErrorString, type, jsonSerializerNamelessOptions);
                                 break;
                         }
                     }

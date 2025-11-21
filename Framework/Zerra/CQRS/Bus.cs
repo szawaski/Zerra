@@ -204,7 +204,7 @@ namespace Zerra.CQRS
                     }
                     else
                     {
-                        var parameter = JsonSerializer.Deserialize(methodDetail.ParameterDetails[i].Type, argument);
+                        var parameter = JsonSerializer.Deserialize(argument, methodDetail.ParameterDetails[i].Type);
                         args[i++] = parameter;
                     }
                 }

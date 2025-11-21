@@ -37,7 +37,7 @@ namespace Zerra.Serialization.Bytes
 
             return result;
         }
-        public static object? Deserialize(Type type, ReadOnlySpan<byte> bytes, ByteSerializerOptions? options = null)
+        public static object? Deserialize(ReadOnlySpan<byte> bytes, Type type, ByteSerializerOptions? options = null)
         {
             if (type is null) throw new ArgumentNullException(nameof(type));
 
@@ -147,7 +147,7 @@ namespace Zerra.Serialization.Bytes
                 ArrayPoolHelper<byte>.Return(buffer);
             }
         }
-        public static object? Deserialize(Type type, Stream stream, ByteSerializerOptions? options = null)
+        public static object? Deserialize(Stream stream, Type type, ByteSerializerOptions? options = null)
         {
             if (type is null)
                 throw new ArgumentNullException(nameof(type));
@@ -330,7 +330,7 @@ namespace Zerra.Serialization.Bytes
                 ArrayPoolHelper<byte>.Return(buffer);
             }
         }
-        public static async Task<object?> DeserializeAsync(Type type, Stream stream, ByteSerializerOptions? options = null, CancellationToken cancellationToken = default)
+        public static async Task<object?> DeserializeAsync(Stream stream, Type type, ByteSerializerOptions? options = null, CancellationToken cancellationToken = default)
         {
             if (type is null)
                 throw new ArgumentNullException(nameof(type));

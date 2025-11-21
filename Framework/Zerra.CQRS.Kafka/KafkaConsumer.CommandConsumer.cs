@@ -141,7 +141,7 @@ namespace Zerra.CQRS.Kafka
                         if (message is null || message.MessageType is null || message.MessageData is null || message.Source is null)
                             throw new Exception("Invalid Message");
 
-                        var command = KafkaCommon.Deserialize(message.MessageType, message.MessageData) as ICommand;
+                        var command = KafkaCommon.Deserialize(message.MessageData, message.MessageType) as ICommand;
                         if (command is null)
                             throw new Exception("Invalid Message");
 

@@ -204,7 +204,7 @@ namespace Zerra.CQRS.AzureEventHub
                 if (message is null || message.MessageType is null || message.MessageData is null || message.Source is null)
                     throw new Exception("Invalid Message");
 
-                var commandOrEvent = AzureEventHubCommon.Deserialize(message.MessageType, message.MessageData);
+                var commandOrEvent = AzureEventHubCommon.Deserialize(message.MessageData, message.MessageType);
                 if (commandOrEvent is null)
                     throw new Exception("Invalid Message");
 

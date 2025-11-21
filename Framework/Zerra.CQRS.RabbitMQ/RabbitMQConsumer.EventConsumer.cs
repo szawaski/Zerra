@@ -91,7 +91,7 @@ namespace Zerra.CQRS.RabbitMQ
                             if (message is null || message.MessageType is null || message.MessageData is null || message.Source is null)
                                 throw new Exception("Invalid Message");
 
-                            var @event = RabbitMQCommon.Deserialize(message.MessageType, message.MessageData) as IEvent;
+                            var @event = RabbitMQCommon.Deserialize(message.MessageData, message.MessageType) as IEvent;
                             if (@event is null)
                                 throw new Exception("Invalid Message");
 

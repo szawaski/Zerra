@@ -96,7 +96,7 @@ namespace Zerra.CQRS.Network
                 try
                 {
                     if (Discovery.TryGetTypeFromName(ack.DataType, out var type))
-                        ex = (Exception?)ByteSerializer.Deserialize(type, ack.Data, byteSerializerOptions);
+                        ex = (Exception?)ByteSerializer.Deserialize(ack.Data, type, byteSerializerOptions);
                 }
                 catch { }
             }
@@ -124,7 +124,7 @@ namespace Zerra.CQRS.Network
                     try
                     {
                         if (Discovery.TryGetTypeFromName(ack.DataType, out var type))
-                            ex = (Exception?)ByteSerializer.Deserialize(type, ack.Data, byteSerializerOptions);
+                            ex = (Exception?)ByteSerializer.Deserialize(ack.Data, type, byteSerializerOptions);
                     }
                     catch { }
                 }
@@ -136,7 +136,7 @@ namespace Zerra.CQRS.Network
                 try
                 {
                     var type = Discovery.GetTypeFromName(ack.DataType);
-                    var result = ByteSerializer.Deserialize(type, ack.Data, byteSerializerOptions);
+                    var result = ByteSerializer.Deserialize(ack.Data, type, byteSerializerOptions);
                     return result;
                 }
                 catch (Exception ex)

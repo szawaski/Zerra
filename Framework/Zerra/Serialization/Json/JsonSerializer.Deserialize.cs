@@ -21,7 +21,7 @@ namespace Zerra.Serialization.Json
         public static T? Deserialize<T>(string? str, JsonSerializerOptions? options = null, Graph? graph = null)
             => Deserialize<T>(str.AsSpan(), options, graph);
         public static object? Deserialize(Type type, string? str, JsonSerializerOptions? options = null, Graph? graph = null)
-            => Deserialize(type, str.AsSpan(), options, graph);
+            => Deserialize(str.AsSpan(), type, options, graph);
 #endif
 
         public static T? Deserialize<T>(ReadOnlySpan<char> chars, JsonSerializerOptions? options = null, Graph? graph = null)
@@ -49,7 +49,7 @@ namespace Zerra.Serialization.Json
 
             return result;
         }
-        public static object? Deserialize(Type type, ReadOnlySpan<char> chars, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static object? Deserialize(ReadOnlySpan<char> chars, Type type, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (type is null)
                 throw new ArgumentNullException(nameof(type));
@@ -102,7 +102,7 @@ namespace Zerra.Serialization.Json
 
             return result;
         }
-        public static object? Deserialize(Type type, ReadOnlySpan<byte> bytes, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static object? Deserialize(ReadOnlySpan<byte> bytes, Type type, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (type is null)
                 throw new ArgumentNullException(nameof(type));
@@ -223,7 +223,7 @@ namespace Zerra.Serialization.Json
                 ArrayPoolHelper<byte>.Return(buffer);
             }
         }
-        public static object? Deserialize(Type type, Stream stream, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static object? Deserialize(Stream stream, Type type, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (type is null)
                 throw new ArgumentNullException(nameof(type));
@@ -418,7 +418,7 @@ namespace Zerra.Serialization.Json
                 ArrayPoolHelper<byte>.Return(buffer);
             }
         }
-        public static async Task<object?> DeserializeAsync(Type type, Stream stream, JsonSerializerOptions? options = null, Graph? graph = null, CancellationToken cancellationToken = default)
+        public static async Task<object?> DeserializeAsync(Stream stream, Type type, JsonSerializerOptions? options = null, Graph? graph = null, CancellationToken cancellationToken = default)
         {
             if (type is null)
                 throw new ArgumentNullException(nameof(type));

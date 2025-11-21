@@ -130,7 +130,7 @@ namespace Zerra.CQRS.AzureServiceBus
                     if (message is null || message.MessageType is null || message.MessageData is null || message.Source is null)
                         throw new Exception("Invalid Message");
 
-                    var command = AzureServiceBusCommon.Deserialize(message.MessageType, message.MessageData) as ICommand;
+                    var command = AzureServiceBusCommon.Deserialize(message.MessageData, message.MessageType) as ICommand;
                     if (command is null)
                         throw new Exception("Invalid Message");
 
