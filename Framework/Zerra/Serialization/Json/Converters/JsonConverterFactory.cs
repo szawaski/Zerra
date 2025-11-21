@@ -33,7 +33,7 @@ namespace Zerra.Serialization.Json.Converters
                 var newConverterType = GetConverterType(typeDetail);
                 var newConverter = (JsonConverter<TParent>)newConverterType.CreatorBoxed();
                 //Debug.WriteLine($"{typeDetail.Type.GetNiceName()} - {newConverter.GetType().GetNiceName()}");
-                newConverter.Setup(typeDetail, memberKey, getter, setter);
+                newConverter.Setup(memberKey, getter, setter);
                 return newConverter;
             });
             return converter;

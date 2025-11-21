@@ -34,7 +34,7 @@ namespace Zerra.Serialization.Bytes.Converters
                 var newConverterType = GetConverterType(typeDetail);
                 var newConverter = (ByteConverter<TParent>)newConverterType.CreatorBoxed();
                 //Debug.WriteLine($"{typeDetail.Type.GetNiceName()} - {newConverter.GetType().GetNiceName()}");
-                newConverter.Setup(typeDetail, memberKey, getter, setter);
+                newConverter.Setup(memberKey, getter, setter);
                 return newConverter;
             });
             return converter;
@@ -49,7 +49,7 @@ namespace Zerra.Serialization.Bytes.Converters
                     if (cacheByteConverterTypeInfo is null)
                     {
                         var newConverter = new ByteConverterTypeRequired<TParent>();
-                        newConverter.Setup(objectTypeDetail, "Drain", null, null);
+                        newConverter.Setup("Drain", null, null);
                         cacheByteConverterTypeInfo = newConverter;
                     }
                 }

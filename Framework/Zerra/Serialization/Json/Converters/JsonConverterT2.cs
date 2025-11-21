@@ -23,9 +23,9 @@ namespace Zerra.Serialization.Json.Converters
         private bool isObject;
         private bool isInterfacedObject;
 
-        public override void Setup(TypeDetail typeDetail, string memberKey, Delegate? getterDelegate, Delegate? setterDelegate)
+        public override sealed void Setup(string memberKey, Delegate? getterDelegate, Delegate? setterDelegate)
         {
-            this.typeDetail = (TypeDetail<TValue>)typeDetail;
+            this.typeDetail = TypeAnalyzer<TValue>.GetTypeDetail();
             this.memberKey = memberKey;
             if (getterDelegate is not null)
             {
