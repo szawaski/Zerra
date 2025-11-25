@@ -2,16 +2,15 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 using System.Linq;
 using Zerra.CQRS.Network;
 
 namespace Zerra.Test
 {
-    [TestClass]
     public class NetworkingTest
     {
-        [TestMethod]
+        [Fact]
         public void ResolveEndpoint()
         {
             var endpoints = IPResolver.GetIPEndPoints("https://google.com").ToArray();

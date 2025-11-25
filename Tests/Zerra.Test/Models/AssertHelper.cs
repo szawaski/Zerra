@@ -2,7 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -19,13 +19,13 @@ namespace Zerra.Test
             var sb = new StringBuilder();
             var result = Compare(model1, model2, sb);
             var errors = sb.ToString();
-            Assert.AreEqual(String.Empty, errors);
-            Assert.IsTrue(result);
+            Assert.Equal(String.Empty, errors);
+            Assert.True(result);
         }
         public static void AreNotEqual(object model1, object model2)
         {
             var result = Compare(model1, model2, null);
-            Assert.IsFalse(result);
+            Assert.False(result);
         }
 
         private static bool Compare(object model1, object model2, StringBuilder sb = null)

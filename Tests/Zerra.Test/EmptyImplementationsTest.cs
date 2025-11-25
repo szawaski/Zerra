@@ -2,16 +2,15 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 using System.Threading.Tasks;
 using Zerra.Reflection;
 
 namespace Zerra.Test
 {
-    [TestClass]
     public class EmptyImplementationsTest
     {
-        [TestMethod]
+        [Fact]
         public void Test()
         {
             var thingy = EmptyImplementations.GetEmptyImplementation<ITestInterface>();
@@ -38,41 +37,41 @@ namespace Zerra.Test
             var resultR = thingy.MethodR();
             var resultS = thingy.MethodS();
 
-            Assert.AreEqual(default, resultA);
-            Assert.AreEqual(default, resultB);
-            Assert.AreEqual(default, resultC);
-            Assert.AreEqual(default, resultD);
-            Assert.AreEqual(default, resultE);
-            Assert.AreEqual(default, resultF);
-            Assert.AreEqual(default, resultG);
-            Assert.AreEqual(default, resultH);
-            Assert.AreEqual(default, resultI);
-            Assert.AreEqual(default, resultJ);
-            Assert.AreEqual(default, resultK);
-            Assert.AreEqual(default, resultL);
-            Assert.AreEqual(default, resultM);
-            Assert.AreEqual(default, resultN);
-            Assert.AreEqual(default, resultO);
-            Assert.AreEqual(default, resultP);
-            Assert.AreEqual(default, resultQ);
-            Assert.AreEqual(default, resultR);
-            Assert.AreEqual(default, resultS);
+            Assert.Equal(default, resultA);
+            Assert.Equal(default, resultB);
+            Assert.Equal(default, resultC);
+            Assert.Equal(default, resultD);
+            Assert.Equal(default, resultE);
+            Assert.Equal(default, resultF);
+            Assert.Equal(default, resultG);
+            Assert.Equal(default, resultH);
+            Assert.Equal(default, resultI);
+            Assert.Equal(default, resultJ);
+            Assert.Equal(default, resultK);
+            Assert.Equal(default, resultL);
+            Assert.Equal(default, resultM);
+            Assert.Equal(default, resultN);
+            Assert.Equal(default, resultO);
+            Assert.Equal(default, resultP);
+            Assert.Equal(default, resultQ);
+            Assert.Equal(default, resultR);
+            Assert.Equal(default, resultS);
 
             Task.Run(thingy.Method3).GetAwaiter().GetResult();
             var result3 = Task.Run(thingy.Method4).GetAwaiter().GetResult();
-            Assert.AreEqual(0, result3);
+            Assert.Equal(0, result3);
 
             thingy.Property1 = 5;
             var prop1 = thingy.Property1;
-            Assert.AreEqual(5, prop1);
+            Assert.Equal(5, prop1);
 
             ((dynamic)thingy).Property2 = 6;
             var prop2 = thingy.Property2;
-            Assert.AreEqual(6, prop2);
+            Assert.Equal(6, prop2);
 
             thingy.Property3 = 7;
             var prop3 = ((dynamic)thingy).Property3;
-            Assert.AreEqual(7, prop3);
+            Assert.Equal(7, prop3);
         }
     }
 }

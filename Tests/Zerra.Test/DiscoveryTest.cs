@@ -2,7 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 using System;
 using System.Linq;
 using Zerra.Providers;
@@ -42,7 +42,6 @@ namespace Zerra.Test
         }
     }
 
-    [TestClass]
     public class DiscoveryTest
     {
         private static int GetInterfaceIndex(Type interfaceType)
@@ -56,7 +55,7 @@ namespace Zerra.Test
             return i;
         }
 
-        [TestMethod]
+        [Fact]
         public void ProviderResolverTraverseLayers()
         {
             var providerType = ProviderResolver.GetTypeFirst(typeof(ITestProvider));
@@ -71,198 +70,198 @@ namespace Zerra.Test
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void Duplicates()
         {
             var topLayerProvider = Discovery.GetClassByInterface(typeof(ITestDuplicateProvider), ProviderResolver.InterfaceStack, 0, ProviderResolver.IgnoreInterface, false);
-            Assert.IsNull(topLayerProvider);
+            Assert.Null(topLayerProvider);
         }
 
-        [TestMethod]
+        [Fact]
         public void Layers()
         {
             var topLayerProvider = Discovery.GetClassByInterface(typeof(ITestProvider), ProviderResolver.InterfaceStack, 0, ProviderResolver.IgnoreInterface);
-            Assert.AreEqual(typeof(TestRuleProvider), topLayerProvider);
+            Assert.Equal(typeof(TestRuleProvider), topLayerProvider);
 
             var ruleProvider = Discovery.GetClassByInterface(typeof(ITestProvider), ProviderResolver.InterfaceStack,
                 GetInterfaceIndex(typeof(IRuleProvider)), ProviderResolver.IgnoreInterface);
-            Assert.AreEqual(typeof(TestRuleProvider), ruleProvider);
+            Assert.Equal(typeof(TestRuleProvider), ruleProvider);
 
             var cacheProvider = Discovery.GetClassByInterface(typeof(ITestProvider), ProviderResolver.InterfaceStack,
                 GetInterfaceIndex(typeof(ICacheProvider)), ProviderResolver.IgnoreInterface);
-            Assert.AreEqual(typeof(TestCacheProvider), cacheProvider);
+            Assert.Equal(typeof(TestCacheProvider), cacheProvider);
 
             var compressionProvider = Discovery.GetClassByInterface(typeof(ITestProvider), ProviderResolver.InterfaceStack,
                 GetInterfaceIndex(typeof(ICompressionProvider)), ProviderResolver.IgnoreInterface, false);
-            Assert.AreEqual(typeof(TestDualBaseProvider), compressionProvider); //Compression Provider has IIgnoreProviderResolver
+            Assert.Equal(typeof(TestDualBaseProvider), compressionProvider); //Compression Provider has IIgnoreProviderResolver
 
             var dualbaseProvider = Discovery.GetClassByInterface(typeof(ITestProvider), ProviderResolver.InterfaceStack,
                 GetInterfaceIndex(typeof(IDualBaseProvider)), ProviderResolver.IgnoreInterface);
-            Assert.AreEqual(typeof(TestDualBaseProvider), dualbaseProvider);
+            Assert.Equal(typeof(TestDualBaseProvider), dualbaseProvider);
 
             var provider = Discovery.GetClassByInterface(typeof(ITestProvider), ProviderResolver.InterfaceStack,
                 GetInterfaceIndex(null), ProviderResolver.IgnoreInterface);
-            Assert.AreEqual(typeof(TestProvider), provider);
+            Assert.Equal(typeof(TestProvider), provider);
         }
 
-        [TestMethod]
+        [Fact]
         public void HasLayers()
         {
             var topLayerProvider = Discovery.HasClassByInterface(typeof(ITestProvider), ProviderResolver.InterfaceStack, 0, ProviderResolver.IgnoreInterface);
-            Assert.IsTrue(topLayerProvider);
+            Assert.True(topLayerProvider);
 
             var ruleProvider = Discovery.HasClassByInterface(typeof(ITestProvider), ProviderResolver.InterfaceStack,
                 GetInterfaceIndex(typeof(IRuleProvider)), ProviderResolver.IgnoreInterface);
-            Assert.IsTrue(ruleProvider);
+            Assert.True(ruleProvider);
 
             var cacheProvider = Discovery.HasClassByInterface(typeof(ITestProvider), ProviderResolver.InterfaceStack,
                 GetInterfaceIndex(typeof(ICacheProvider)), ProviderResolver.IgnoreInterface);
-            Assert.IsTrue(cacheProvider);
+            Assert.True(cacheProvider);
 
             var encryptionProvider = Discovery.HasClassByInterface(typeof(ITestProvider), ProviderResolver.InterfaceStack,
                 GetInterfaceIndex(typeof(IEncryptionProvider)), ProviderResolver.IgnoreInterface);
-            Assert.IsTrue(encryptionProvider);
+            Assert.True(encryptionProvider);
 
             var compressionProvider = Discovery.HasClassByInterface(typeof(ITestProvider), ProviderResolver.InterfaceStack,
                 GetInterfaceIndex(typeof(ICompressionProvider)), ProviderResolver.IgnoreInterface);
-            Assert.IsTrue(compressionProvider);
+            Assert.True(compressionProvider);
 
             var dualbaseProvider = Discovery.HasClassByInterface(typeof(ITestProvider), ProviderResolver.InterfaceStack,
                 GetInterfaceIndex(typeof(IDualBaseProvider)), ProviderResolver.IgnoreInterface);
-            Assert.IsTrue(dualbaseProvider);
+            Assert.True(dualbaseProvider);
 
             var provider = Discovery.HasClassByInterface(typeof(ITestProvider), ProviderResolver.InterfaceStack,
                 GetInterfaceIndex(null), ProviderResolver.IgnoreInterface);
-            Assert.IsTrue(provider);
+            Assert.True(provider);
         }
 
-        [TestMethod]
+        [Fact]
         public void ManyLayers()
         {
             var topLayerProvider = Discovery.GetClassesByInterface(typeof(ITestProvider), ProviderResolver.InterfaceStack, 0, ProviderResolver.IgnoreInterface);
-            Assert.AreEqual(1, topLayerProvider.Count);
-            Assert.IsTrue(topLayerProvider.Contains(typeof(TestRuleProvider)));
+            Assert.Equal(1, topLayerProvider.Count);
+            Assert.True(topLayerProvider.Contains(typeof(TestRuleProvider)));
 
             var ruleProvider = Discovery.GetClassesByInterface(typeof(ITestProvider), ProviderResolver.InterfaceStack,
                 GetInterfaceIndex(typeof(IRuleProvider)), ProviderResolver.IgnoreInterface);
-            Assert.AreEqual(1, ruleProvider.Count);
-            Assert.IsTrue(ruleProvider.Contains(typeof(TestRuleProvider)));
+            Assert.Equal(1, ruleProvider.Count);
+            Assert.True(ruleProvider.Contains(typeof(TestRuleProvider)));
 
             var cacheProvider = Discovery.GetClassesByInterface(typeof(ITestProvider), ProviderResolver.InterfaceStack,
                 GetInterfaceIndex(typeof(ICacheProvider)), ProviderResolver.IgnoreInterface);
-            Assert.AreEqual(1, cacheProvider.Count);
-            Assert.IsTrue(cacheProvider.Contains(typeof(TestCacheProvider)));
+            Assert.Equal(1, cacheProvider.Count);
+            Assert.True(cacheProvider.Contains(typeof(TestCacheProvider)));
 
             var compressionProvider = Discovery.GetClassesByInterface(typeof(ITestProvider), ProviderResolver.InterfaceStack,
                 GetInterfaceIndex(typeof(ICompressionProvider)), ProviderResolver.IgnoreInterface);
-            Assert.AreEqual(1, compressionProvider.Count);  //Compression Provider has IIgnoreProviderResolver
-            Assert.IsTrue(compressionProvider.Contains(typeof(TestDualBaseProvider))); //Compression Provider has IIgnoreProviderResolver
+            Assert.Equal(1, compressionProvider.Count);  //Compression Provider has IIgnoreProviderResolver
+            Assert.True(compressionProvider.Contains(typeof(TestDualBaseProvider))); //Compression Provider has IIgnoreProviderResolver
 
             var dualbaseProvider = Discovery.GetClassesByInterface(typeof(ITestProvider), ProviderResolver.InterfaceStack,
                 GetInterfaceIndex(typeof(IDualBaseProvider)), ProviderResolver.IgnoreInterface);
-            Assert.AreEqual(1, dualbaseProvider.Count);
-            Assert.IsTrue(dualbaseProvider.Contains(typeof(TestDualBaseProvider)));
+            Assert.Equal(1, dualbaseProvider.Count);
+            Assert.True(dualbaseProvider.Contains(typeof(TestDualBaseProvider)));
 
             var provider = Discovery.GetClassesByInterface(typeof(ITestProvider), ProviderResolver.InterfaceStack,
                 GetInterfaceIndex(null), ProviderResolver.IgnoreInterface);
-            Assert.AreEqual(1, provider.Count);
-            Assert.IsTrue(provider.Contains(typeof(TestProvider)));
+            Assert.Equal(1, provider.Count);
+            Assert.True(provider.Contains(typeof(TestProvider)));
         }
 
-        [TestMethod]
+        [Fact]
         public void SecondaryInterface()
         {
             var ruleProvider = Discovery.GetClassByInterface(typeof(ITestProvider), typeof(IRuleProvider));
-            Assert.AreEqual(typeof(TestRuleProvider), ruleProvider);
+            Assert.Equal(typeof(TestRuleProvider), ruleProvider);
 
             var cacheProvider = Discovery.GetClassByInterface(typeof(ITestProvider), typeof(ICacheProvider));
-            Assert.AreEqual(typeof(TestCacheProvider), cacheProvider);
+            Assert.Equal(typeof(TestCacheProvider), cacheProvider);
 
             var compressionProvider = Discovery.GetClassByInterface(typeof(ITestProvider), typeof(ICompressionProvider));
-            Assert.AreEqual(typeof(TestCompressionProvider), compressionProvider);
+            Assert.Equal(typeof(TestCompressionProvider), compressionProvider);
 
             var dualbaseProvider = Discovery.GetClassByInterface(typeof(ITestProvider), typeof(IDualBaseProvider));
-            Assert.AreEqual(typeof(TestDualBaseProvider), dualbaseProvider);
+            Assert.Equal(typeof(TestDualBaseProvider), dualbaseProvider);
         }
 
-        [TestMethod]
+        [Fact]
         public void HasSecondaryInterface()
         {
             var ruleProvider = Discovery.HasClassByInterface(typeof(ITestProvider), typeof(IRuleProvider));
-            Assert.IsTrue(ruleProvider);
+            Assert.True(ruleProvider);
 
             var cacheProvider = Discovery.HasClassByInterface(typeof(ITestProvider), typeof(ICacheProvider));
-            Assert.IsTrue(cacheProvider);
+            Assert.True(cacheProvider);
 
             var compressionProvider = Discovery.HasClassByInterface(typeof(ITestProvider), typeof(ICompressionProvider));
-            Assert.IsTrue(compressionProvider);
+            Assert.True(compressionProvider);
 
             var dualbaseProvider = Discovery.HasClassByInterface(typeof(ITestProvider), typeof(IDualBaseProvider));
-            Assert.IsTrue(dualbaseProvider);
+            Assert.True(dualbaseProvider);
         }
 
-        [TestMethod]
+        [Fact]
         public void ManySecondaryInterface()
         {
             var providers = Discovery.GetClassesByInterface(typeof(ITestProvider));
-            Assert.AreEqual(6, providers.Count);
-            Assert.IsTrue(providers.Contains(typeof(TestRuleProvider)));
-            Assert.IsTrue(providers.Contains(typeof(TestCacheProvider)));
-            Assert.IsTrue(providers.Contains(typeof(TestCompressionProvider)));
-            Assert.IsTrue(providers.Contains(typeof(TestDualBaseProvider)));
-            Assert.IsTrue(providers.Contains(typeof(TestProvider)));
+            Assert.Equal(6, providers.Count);
+            Assert.True(providers.Contains(typeof(TestRuleProvider)));
+            Assert.True(providers.Contains(typeof(TestCacheProvider)));
+            Assert.True(providers.Contains(typeof(TestCompressionProvider)));
+            Assert.True(providers.Contains(typeof(TestDualBaseProvider)));
+            Assert.True(providers.Contains(typeof(TestProvider)));
 
             var ruleProviders = Discovery.GetClassesByInterface(typeof(ITestProvider), typeof(IRuleProvider));
-            Assert.AreEqual(1, ruleProviders.Count);
-            Assert.IsTrue(providers.Contains(typeof(TestRuleProvider)));
+            Assert.Equal(1, ruleProviders.Count);
+            Assert.True(providers.Contains(typeof(TestRuleProvider)));
         }
 
-        [TestMethod]
+        [Fact]
         public void SingleInterface()
         {
             var ruleProvider = Discovery.GetClassByInterface(typeof(IRuleProvider));
-            Assert.AreEqual(typeof(TestRuleProvider), ruleProvider);
+            Assert.Equal(typeof(TestRuleProvider), ruleProvider);
 
             var cacheProvider = Discovery.GetClassByInterface(typeof(ICacheProvider));
-            Assert.AreEqual(typeof(TestCacheProvider), cacheProvider);
+            Assert.Equal(typeof(TestCacheProvider), cacheProvider);
 
             var compressionProvider = Discovery.GetClassByInterface(typeof(ICompressionProvider));
-            Assert.AreEqual(typeof(TestCompressionProvider), compressionProvider);
+            Assert.Equal(typeof(TestCompressionProvider), compressionProvider);
 
             var dualbaseProvider = Discovery.GetClassByInterface(typeof(IDualBaseProvider));
-            Assert.AreEqual(typeof(TestDualBaseProvider), dualbaseProvider);
+            Assert.Equal(typeof(TestDualBaseProvider), dualbaseProvider);
         }
 
-        [TestMethod]
+        [Fact]
         public void HasSingleInterface()
         {
             var ruleProvider = Discovery.HasClassByInterface(typeof(IRuleProvider));
-            Assert.IsTrue(ruleProvider);
+            Assert.True(ruleProvider);
 
             var cacheProvider = Discovery.HasClassByInterface(typeof(ICacheProvider));
-            Assert.IsTrue(cacheProvider);
+            Assert.True(cacheProvider);
 
             var compressionProvider = Discovery.HasClassByInterface(typeof(ICompressionProvider));
-            Assert.IsTrue(compressionProvider);
+            Assert.True(compressionProvider);
 
             var dualbaseProvider = Discovery.HasClassByInterface(typeof(IDualBaseProvider));
-            Assert.IsTrue(dualbaseProvider);
+            Assert.True(dualbaseProvider);
         }
 
-        [TestMethod]
+        [Fact]
         public void ManySingleInterface()
         {
             var providers = Discovery.GetClassesByInterface(typeof(ITestProvider));
-            Assert.AreEqual(6, providers.Count);
-            Assert.IsTrue(providers.Contains(typeof(TestRuleProvider)));
-            Assert.IsTrue(providers.Contains(typeof(TestCacheProvider)));
-            Assert.IsTrue(providers.Contains(typeof(TestCompressionProvider)));
-            Assert.IsTrue(providers.Contains(typeof(TestDualBaseProvider)));
-            Assert.IsTrue(providers.Contains(typeof(TestProvider)));
+            Assert.Equal(6, providers.Count);
+            Assert.True(providers.Contains(typeof(TestRuleProvider)));
+            Assert.True(providers.Contains(typeof(TestCacheProvider)));
+            Assert.True(providers.Contains(typeof(TestCompressionProvider)));
+            Assert.True(providers.Contains(typeof(TestDualBaseProvider)));
+            Assert.True(providers.Contains(typeof(TestProvider)));
 
             var ruleProviders = Discovery.GetClassesByInterface(typeof(IRuleProvider));
-            Assert.AreEqual(1, ruleProviders.Count);
-            Assert.IsTrue(providers.Contains(typeof(TestRuleProvider)));
+            Assert.Equal(1, ruleProviders.Count);
+            Assert.True(providers.Contains(typeof(TestRuleProvider)));
         }
     }
 }

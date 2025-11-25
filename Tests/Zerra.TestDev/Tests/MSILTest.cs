@@ -147,27 +147,23 @@ namespace Zerra.TestDev
 
         public interface ICallThings
         {
-            Task<Stuff> GetThings(int stuff);
+            Task<Stuff> GetThings(Type interfaceType, string methodName, object[] arguments, string source);
         }
 
-        public sealed class CallThings : ICallThings
+        public sealed class CallThings
         {
-            private readonly NetworkType networkType;
-            private readonly bool isFinalLayer;
+            private readonly ICallThings bus;
             private readonly string source;
-            private readonly TimeSpan? timeout;
-            private readonly CancellationToken? cancellationToken;
-            public CallThings(NetworkType networkType, bool isFinalLayer, string source, TimeSpan? timeout, CancellationToken? cancellationToken)
+            public CallThings(ICallThings bus, string source)
             {
-                this.networkType = networkType;
-                this.isFinalLayer = isFinalLayer;
+                this.bus = bus;
                 this.source = source;
-                this.timeout = timeout;
-                this.cancellationToken = cancellationToken;
             }
 
-            public Task<Stuff> GetThings(int stuff)
-                => Bus._CallMethod<Task<Stuff>>(typeof(ICallThings), "GetThings", [stuff], networkType, isFinalLayer, source, timeout, cancellationToken);
+            public Task<Stuff> GetThings(int arg1, string arg2)
+            {
+                return bus.GetThings(typeof(ICallThings), "Boop", [arg1, arg2], source);
+            }
         }
     }
 }

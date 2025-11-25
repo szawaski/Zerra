@@ -1,6 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 using System;
 using System.IO;
 using System.Linq;
@@ -8,10 +8,9 @@ using System.Text;
 
 namespace Zerra.SourceGeneration.Test
 {
-    [TestClass]
     public class TypeGeneration
     {
-        //[TestMethod]
+        //[Fact]
         public void Test()
         {
             RunGenerator(8.0m);

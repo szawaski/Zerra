@@ -2,7 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 using Npgsql;
 using System.Linq;
 using System.Text;
@@ -11,7 +11,6 @@ using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository.Test
 {
-    [TestClass]
     public class PostgreSqlEngineTests
     {
         private static int ExecuteSql(PostgreSqlTestSqlDataContext context, string sql)
@@ -47,7 +46,7 @@ namespace Zerra.Repository.Test
         }
 
 
-        [TestMethod]
+        [Fact]
         public void TestSequence()
         {
             var context = new PostgreSqlTestSqlDataContext();

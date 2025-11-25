@@ -2,7 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 using System;
 using System.Threading.Tasks;
 using Zerra.Collections;
@@ -10,10 +10,9 @@ using Zerra.Threading;
 
 namespace Zerra.Test
 {
-    [TestClass]
     public class TaskThrottlerTests
     {
-        [TestMethod]
+        [Fact]
         public async Task TaskThrottlerTestAsync()
         {
             var list = new ConcurrentReadWriteList<string>();
@@ -43,7 +42,7 @@ namespace Zerra.Test
             }
         }
 
-        [TestMethod]
+        [Fact]
         public async Task TaskThrottlerForEachTestAsync()
         {
             var list = new ConcurrentReadWriteList<string>();

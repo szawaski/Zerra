@@ -2,7 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 using System;
 using System.Linq;
 
@@ -30,32 +30,32 @@ namespace Zerra.Repository.Test
             relationModel.RelationAKey = Guid.NewGuid();
             relationProvider.Persist(new Create<U>(relationModel));
             var relationModelCheck = (U)relationProvider.Query(new QuerySingle<U>(x => x.RelationAKey == relationModel.RelationAKey));
-            Assert.IsNotNull(relationModelCheck);
+            Assert.NotNull(relationModelCheck);
 
             model.RelationAKey = relationModel.RelationAKey;
             provider.Persist(new Update<T>(model, new Graph<T>(x => x.RelationAKey)));
             modelCheck = (T)provider.Query(new QuerySingle<T>(x => x.KeyA == model.KeyA));
-            Assert.AreEqual(model.RelationAKey, modelCheck.RelationAKey);
+            Assert.Equal(model.RelationAKey, modelCheck.RelationAKey);
             modelCheck = (T)provider.Query(new QuerySingle<T>(x => x.KeyA == model.KeyA, new Graph<T>(x => x.RelationA)));
-            Assert.IsNotNull(modelCheck.RelationA);
-            Assert.AreEqual(model.RelationAKey, modelCheck.RelationA.RelationAKey);
+            Assert.NotNull(modelCheck.RelationA);
+            Assert.Equal(model.RelationAKey, modelCheck.RelationA.RelationAKey);
 
             TestQuery(provider, model, relationModel);
 
             model.RelationAKey = null;
             provider.Persist(new Update<T>(model, new Graph<T>(x => x.RelationAKey)));
             modelCheck = (T)provider.Query(new QuerySingle<T>(x => x.KeyA == model.KeyA));
-            Assert.AreEqual(model.RelationAKey, modelCheck.RelationAKey);
+            Assert.Equal(model.RelationAKey, modelCheck.RelationAKey);
             modelCheck = (T)provider.Query(new QuerySingle<T>(x => x.KeyA == model.KeyA, new Graph<T>(x => x.RelationA)));
-            Assert.IsNull(model.RelationA);
+            Assert.Null(model.RelationA);
 
             provider.Persist(new Delete<T>(model));
             modelCheck = (T)provider.Query(new QuerySingle<T>(x => x.KeyA == model.KeyA));
-            Assert.IsNull(modelCheck);
+            Assert.Null(modelCheck);
 
             relationProvider.Persist(new Delete<U>(relationModel));
             relationModelCheck = (U)relationProvider.Query(new QuerySingle<U>(x => x.RelationAKey == relationModel.RelationAKey));
-            Assert.IsNull(relationModelCheck);
+            Assert.Null(relationModelCheck);
         }
 
         public static T GetTestTypesModel<T, U>()
@@ -155,73 +155,73 @@ namespace Zerra.Repository.Test
             where T : BaseTestTypesModel<U>, new()
             where U : BaseTestRelationsModel, new()
         {
-            Assert.IsNotNull(model1);
-            Assert.IsNotNull(model2);
+            Assert.NotNull(model1);
+            Assert.NotNull(model2);
 
-            Assert.AreEqual(model1.ByteThing, model2.ByteThing);
-            Assert.AreEqual(model1.Int16Thing, model2.Int16Thing);
-            Assert.AreEqual(model1.Int32Thing, model2.Int32Thing);
-            Assert.AreEqual(model1.Int64Thing, model2.Int64Thing);
-            Assert.AreEqual(model1.SingleThing, model2.SingleThing);
-            Assert.AreEqual(model1.DoubleThing, model2.DoubleThing);
-            Assert.AreEqual(model1.DecimalThing, model2.DecimalThing);
-            Assert.AreEqual(model1.CharThing, model2.CharThing);
-            Assert.AreEqual(model1.DateTimeThing.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss.ff"), model2.DateTimeThing.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss.ff"));
-            Assert.AreEqual(model1.DateTimeOffsetThing.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss.ffzzz"), model2.DateTimeOffsetThing.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss.ffzzz"));
-            Assert.AreEqual((int)model1.TimeSpanThing.TotalMilliseconds, (int)model2.TimeSpanThing.TotalMilliseconds);
-            Assert.AreEqual(model1.DateOnlyThing.ToString("yyyy-MM-dd"), model2.DateOnlyThing.ToString("yyyy-MM-dd"));
-            Assert.AreEqual(model1.TimeOnlyThing.Millisecond, model2.TimeOnlyThing.Millisecond);
-            Assert.AreEqual(model1.GuidThing, model2.GuidThing);
+            Assert.Equal(model1.ByteThing, model2.ByteThing);
+            Assert.Equal(model1.Int16Thing, model2.Int16Thing);
+            Assert.Equal(model1.Int32Thing, model2.Int32Thing);
+            Assert.Equal(model1.Int64Thing, model2.Int64Thing);
+            Assert.Equal(model1.SingleThing, model2.SingleThing);
+            Assert.Equal(model1.DoubleThing, model2.DoubleThing);
+            Assert.Equal(model1.DecimalThing, model2.DecimalThing);
+            Assert.Equal(model1.CharThing, model2.CharThing);
+            Assert.Equal(model1.DateTimeThing.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss.ff"), model2.DateTimeThing.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss.ff"));
+            Assert.Equal(model1.DateTimeOffsetThing.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss.ffzzz"), model2.DateTimeOffsetThing.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss.ffzzz"));
+            Assert.Equal((int)model1.TimeSpanThing.TotalMilliseconds, (int)model2.TimeSpanThing.TotalMilliseconds);
+            Assert.Equal(model1.DateOnlyThing.ToString("yyyy-MM-dd"), model2.DateOnlyThing.ToString("yyyy-MM-dd"));
+            Assert.Equal(model1.TimeOnlyThing.Millisecond, model2.TimeOnlyThing.Millisecond);
+            Assert.Equal(model1.GuidThing, model2.GuidThing);
 
-            Assert.AreEqual(model1.ByteNullableThing, model2.ByteNullableThing);
-            Assert.AreEqual(model1.Int16NullableThing, model2.Int16NullableThing);
-            Assert.AreEqual(model1.Int32NullableThing, model2.Int32NullableThing);
-            Assert.AreEqual(model1.Int64NullableThing, model2.Int64NullableThing);
-            Assert.AreEqual(model1.SingleNullableThing, model2.SingleNullableThing);
-            Assert.AreEqual(model1.DoubleNullableThing, model2.DoubleNullableThing);
-            Assert.AreEqual(model1.DecimalNullableThing, model2.DecimalNullableThing);
-            Assert.AreEqual(model1.CharNullableThing, model2.CharNullableThing);
-            Assert.AreEqual(model1.DateTimeNullableThing.Value.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss.ff"), model2.DateTimeNullableThing.Value.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss.ff"));
-            Assert.AreEqual(model1.DateTimeOffsetNullableThing.Value.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss.ffzzz"), model2.DateTimeOffsetNullableThing.Value.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss.ffzzz"));
-            Assert.AreEqual((int)model1.TimeSpanNullableThing.Value.TotalMilliseconds, (int)model2.TimeSpanNullableThing.Value.TotalMilliseconds);
-            Assert.AreEqual(model1.DateOnlyNullableThing?.ToString("yyyy-MM-dd"), model2.DateOnlyNullableThing?.ToString("yyyy-MM-dd"));
-            Assert.AreEqual(model1.TimeOnlyNullableThing?.Millisecond, model2.TimeOnlyNullableThing?.Millisecond);
-            Assert.AreEqual(model1.GuidNullableThing, model2.GuidNullableThing);
+            Assert.Equal(model1.ByteNullableThing, model2.ByteNullableThing);
+            Assert.Equal(model1.Int16NullableThing, model2.Int16NullableThing);
+            Assert.Equal(model1.Int32NullableThing, model2.Int32NullableThing);
+            Assert.Equal(model1.Int64NullableThing, model2.Int64NullableThing);
+            Assert.Equal(model1.SingleNullableThing, model2.SingleNullableThing);
+            Assert.Equal(model1.DoubleNullableThing, model2.DoubleNullableThing);
+            Assert.Equal(model1.DecimalNullableThing, model2.DecimalNullableThing);
+            Assert.Equal(model1.CharNullableThing, model2.CharNullableThing);
+            Assert.Equal(model1.DateTimeNullableThing.Value.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss.ff"), model2.DateTimeNullableThing.Value.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss.ff"));
+            Assert.Equal(model1.DateTimeOffsetNullableThing.Value.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss.ffzzz"), model2.DateTimeOffsetNullableThing.Value.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss.ffzzz"));
+            Assert.Equal((int)model1.TimeSpanNullableThing.Value.TotalMilliseconds, (int)model2.TimeSpanNullableThing.Value.TotalMilliseconds);
+            Assert.Equal(model1.DateOnlyNullableThing?.ToString("yyyy-MM-dd"), model2.DateOnlyNullableThing?.ToString("yyyy-MM-dd"));
+            Assert.Equal(model1.TimeOnlyNullableThing?.Millisecond, model2.TimeOnlyNullableThing?.Millisecond);
+            Assert.Equal(model1.GuidNullableThing, model2.GuidNullableThing);
 
-            Assert.IsNull(model1.ByteNullableThingNull);
-            Assert.IsNull(model1.Int16NullableThingNull);
-            Assert.IsNull(model1.Int32NullableThingNull);
-            Assert.IsNull(model1.Int64NullableThingNull);
-            Assert.IsNull(model1.SingleNullableThingNull);
-            Assert.IsNull(model1.DoubleNullableThingNull);
-            Assert.IsNull(model1.DecimalNullableThingNull);
-            Assert.IsNull(model1.CharNullableThingNull);
-            Assert.IsNull(model1.DateTimeNullableThingNull);
-            Assert.IsNull(model1.DateTimeOffsetNullableThingNull);
-            Assert.IsNull(model1.TimeSpanNullableThingNull);
-            Assert.IsNull(model1.DateOnlyNullableThingNull);
-            Assert.IsNull(model1.TimeOnlyNullableThingNull);
-            Assert.IsNull(model1.GuidNullableThingNull);
+            Assert.Null(model1.ByteNullableThingNull);
+            Assert.Null(model1.Int16NullableThingNull);
+            Assert.Null(model1.Int32NullableThingNull);
+            Assert.Null(model1.Int64NullableThingNull);
+            Assert.Null(model1.SingleNullableThingNull);
+            Assert.Null(model1.DoubleNullableThingNull);
+            Assert.Null(model1.DecimalNullableThingNull);
+            Assert.Null(model1.CharNullableThingNull);
+            Assert.Null(model1.DateTimeNullableThingNull);
+            Assert.Null(model1.DateTimeOffsetNullableThingNull);
+            Assert.Null(model1.TimeSpanNullableThingNull);
+            Assert.Null(model1.DateOnlyNullableThingNull);
+            Assert.Null(model1.TimeOnlyNullableThingNull);
+            Assert.Null(model1.GuidNullableThingNull);
 
-            Assert.AreEqual(model1.StringThing, model2.StringThing);
+            Assert.Equal(model1.StringThing, model2.StringThing);
 
-            Assert.IsNull(model1.StringThingNull);
-            Assert.IsNull(model2.StringThingNull);
+            Assert.Null(model1.StringThingNull);
+            Assert.Null(model2.StringThingNull);
 
             if (model1.BytesThing is not null)
             {
-                Assert.IsNotNull(model2.BytesThing);
-                Assert.AreEqual(model1.BytesThing.Length, model2.BytesThing.Length);
+                Assert.NotNull(model2.BytesThing);
+                Assert.Equal(model1.BytesThing.Length, model2.BytesThing.Length);
                 for (var i = 0; i < model1.BytesThing.Length; i++)
-                    Assert.AreEqual(model1.BytesThing[i], model2.BytesThing[i]);
+                    Assert.Equal(model1.BytesThing[i], model2.BytesThing[i]);
             }
             else
             {
-                Assert.IsNull(model2.BytesThing);
+                Assert.Null(model2.BytesThing);
             }
 
-            Assert.IsNull(model1.BytesThingNull);
-            Assert.IsNull(model2.BytesThingNull);
+            Assert.Null(model1.BytesThingNull);
+            Assert.Null(model2.BytesThingNull);
         }
 
         public static void TestQuery<T, U>(ITransactStoreProvider<T> provider, T model, U relationModel)

@@ -2,15 +2,14 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 using Zerra.Serialization.QueryString;
 
 namespace Zerra.Test
 {
-    [TestClass]
     public class QueryStringSerializerTest
     {
-        [TestMethod]
+        [Fact]
         public void Types()
         {
             var model1 = TypesCoreModel.Create();

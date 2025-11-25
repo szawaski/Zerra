@@ -2,16 +2,15 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 using System;
 using System.Threading;
 
 namespace Zerra.Test
 {
-    [TestClass]
     public class MethodWaitTests
     {
-        [TestMethod]
+        [Fact]
         public void WaitActionTimeout()
         {
             TimeoutException exception = null;
@@ -23,16 +22,16 @@ namespace Zerra.Test
             {
                 exception = ex;
             }
-            Assert.IsNotNull(exception);
+            Assert.NotNull(exception);
         }
 
-        [TestMethod]
+        [Fact]
         public void WaitActionCompletion()
         {
             MethodWait.Wait(() => DoSomethingAction(TimeSpan.FromMilliseconds(500)), TimeSpan.FromMilliseconds(1000));
         }
 
-        [TestMethod]
+        [Fact]
         public void WaitActionException()
         {
             ArgumentException exception = null;
@@ -44,10 +43,10 @@ namespace Zerra.Test
             {
                 exception = ex;
             }
-            Assert.IsNotNull(exception);
+            Assert.NotNull(exception);
         }
 
-        [TestMethod]
+        [Fact]
         public void WaitFuncTimeout()
         {
             TimeoutException exception = null;
@@ -59,17 +58,17 @@ namespace Zerra.Test
             {
                 exception = ex;
             }
-            Assert.IsNotNull(exception);
+            Assert.NotNull(exception);
         }
 
-        [TestMethod]
+        [Fact]
         public void WaitFuncCompletion()
         {
             var result = MethodWait.Wait(() => DoSomethingFunc(TimeSpan.FromMilliseconds(500)), TimeSpan.FromMilliseconds(1000));
-            Assert.IsTrue(result);
+            Assert.True(result);
         }
 
-        [TestMethod]
+        [Fact]
         public void WaitFuncException()
         {
             ArgumentException exception = null;
@@ -81,7 +80,7 @@ namespace Zerra.Test
             {
                 exception = ex;
             }
-            Assert.IsNotNull(exception);
+            Assert.NotNull(exception);
         }
 
         private static void DoSomethingAction(TimeSpan timer)

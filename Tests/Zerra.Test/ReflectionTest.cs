@@ -2,7 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,10 +11,9 @@ using Zerra.Reflection;
 
 namespace Zerra.Test
 {
-    //[TestClass]
     public class ReflectionTest
     {
-        [TestMethod]
+        //[Fact]
         public void TestTypeDetails()
         {
             var typeDetail = TypeAnalyzer<TypesAllModel>.GetTypeDetail();

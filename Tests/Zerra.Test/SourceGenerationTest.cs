@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Xunit;
 using System;
 using System.Collections.Generic;
 using Zerra.Reflection.Compiletime;
@@ -6,10 +6,9 @@ using Zerra.Reflection.Runtime;
 
 namespace Zerra.Test
 {
-    [TestClass]
     public class SourceGenerationTest
     {
-        [TestMethod]
+        [Fact]
         public void ValidateTypeDetailsGenerated()
         {
             var type = typeof(TypesToGenerate);
@@ -18,42 +17,42 @@ namespace Zerra.Test
                 var generated = property.PropertyType.GetTypeDetail();
                 var runtime = TypeDetailRuntime<object>.New(property.PropertyType);
 
-                Assert.AreEqual(runtime.Type, generated.Type);
-                Assert.AreEqual(runtime.IsNullable, generated.IsNullable);
-                Assert.AreEqual(runtime.CoreType, generated.CoreType);
-                Assert.AreEqual(runtime.SpecialType, generated.SpecialType);
-                Assert.AreEqual(runtime.IsTask, generated.IsTask);
-                Assert.AreEqual(runtime.EnumUnderlyingType, generated.EnumUnderlyingType);
+                Assert.Equal(runtime.Type, generated.Type);
+                Assert.Equal(runtime.IsNullable, generated.IsNullable);
+                Assert.Equal(runtime.CoreType, generated.CoreType);
+                Assert.Equal(runtime.SpecialType, generated.SpecialType);
+                Assert.Equal(runtime.IsTask, generated.IsTask);
+                Assert.Equal(runtime.EnumUnderlyingType, generated.EnumUnderlyingType);
 
-                Assert.AreEqual(runtime.HasIEnumerable, generated.HasIEnumerable);
-                Assert.AreEqual(runtime.HasIEnumerableGeneric, generated.HasIEnumerableGeneric);
-                Assert.AreEqual(runtime.HasICollection, generated.HasICollection);
-                Assert.AreEqual(runtime.HasICollectionGeneric, generated.HasICollectionGeneric);
-                Assert.AreEqual(runtime.HasIReadOnlyCollectionGeneric, generated.HasIReadOnlyCollectionGeneric);
-                Assert.AreEqual(runtime.HasIList, generated.HasIList);
-                Assert.AreEqual(runtime.HasIListGeneric, generated.HasIListGeneric);
-                Assert.AreEqual(runtime.HasIReadOnlyListGeneric, generated.HasIReadOnlyListGeneric);
-                Assert.AreEqual(runtime.HasISetGeneric, generated.HasISetGeneric);
-                Assert.AreEqual(runtime.HasIReadOnlySetGeneric, generated.HasIReadOnlySetGeneric);
-                Assert.AreEqual(runtime.HasIDictionary, generated.HasIDictionary);
-                Assert.AreEqual(runtime.HasIDictionaryGeneric, generated.HasIDictionaryGeneric);
-                Assert.AreEqual(runtime.HasIReadOnlyDictionaryGeneric, generated.HasIReadOnlyDictionaryGeneric);
+                Assert.Equal(runtime.HasIEnumerable, generated.HasIEnumerable);
+                Assert.Equal(runtime.HasIEnumerableGeneric, generated.HasIEnumerableGeneric);
+                Assert.Equal(runtime.HasICollection, generated.HasICollection);
+                Assert.Equal(runtime.HasICollectionGeneric, generated.HasICollectionGeneric);
+                Assert.Equal(runtime.HasIReadOnlyCollectionGeneric, generated.HasIReadOnlyCollectionGeneric);
+                Assert.Equal(runtime.HasIList, generated.HasIList);
+                Assert.Equal(runtime.HasIListGeneric, generated.HasIListGeneric);
+                Assert.Equal(runtime.HasIReadOnlyListGeneric, generated.HasIReadOnlyListGeneric);
+                Assert.Equal(runtime.HasISetGeneric, generated.HasISetGeneric);
+                Assert.Equal(runtime.HasIReadOnlySetGeneric, generated.HasIReadOnlySetGeneric);
+                Assert.Equal(runtime.HasIDictionary, generated.HasIDictionary);
+                Assert.Equal(runtime.HasIDictionaryGeneric, generated.HasIDictionaryGeneric);
+                Assert.Equal(runtime.HasIReadOnlyDictionaryGeneric, generated.HasIReadOnlyDictionaryGeneric);
 
-                Assert.AreEqual(runtime.IsIEnumerable, generated.IsIEnumerable);
-                Assert.AreEqual(runtime.IsIEnumerableGeneric, generated.IsIEnumerableGeneric);
-                Assert.AreEqual(runtime.IsICollection, generated.IsICollection);
-                Assert.AreEqual(runtime.IsICollectionGeneric, generated.IsICollectionGeneric);
-                Assert.AreEqual(runtime.IsIReadOnlyCollectionGeneric, generated.IsIReadOnlyCollectionGeneric);
-                Assert.AreEqual(runtime.IsIList, generated.IsIList);
-                Assert.AreEqual(runtime.IsIListGeneric, generated.IsIListGeneric);
-                Assert.AreEqual(runtime.IsIReadOnlyListGeneric, generated.IsIReadOnlyListGeneric);
-                Assert.AreEqual(runtime.IsISetGeneric, generated.IsISetGeneric);
-                Assert.AreEqual(runtime.IsIReadOnlySetGeneric, generated.IsIReadOnlySetGeneric);
-                Assert.AreEqual(runtime.IsIDictionary, generated.IsIDictionary);
-                Assert.AreEqual(runtime.IsIDictionaryGeneric, generated.IsIDictionaryGeneric);
-                Assert.AreEqual(runtime.IsIReadOnlyDictionaryGeneric, generated.IsIReadOnlyDictionaryGeneric);
+                Assert.Equal(runtime.IsIEnumerable, generated.IsIEnumerable);
+                Assert.Equal(runtime.IsIEnumerableGeneric, generated.IsIEnumerableGeneric);
+                Assert.Equal(runtime.IsICollection, generated.IsICollection);
+                Assert.Equal(runtime.IsICollectionGeneric, generated.IsICollectionGeneric);
+                Assert.Equal(runtime.IsIReadOnlyCollectionGeneric, generated.IsIReadOnlyCollectionGeneric);
+                Assert.Equal(runtime.IsIList, generated.IsIList);
+                Assert.Equal(runtime.IsIListGeneric, generated.IsIListGeneric);
+                Assert.Equal(runtime.IsIReadOnlyListGeneric, generated.IsIReadOnlyListGeneric);
+                Assert.Equal(runtime.IsISetGeneric, generated.IsISetGeneric);
+                Assert.Equal(runtime.IsIReadOnlySetGeneric, generated.IsIReadOnlySetGeneric);
+                Assert.Equal(runtime.IsIDictionary, generated.IsIDictionary);
+                Assert.Equal(runtime.IsIDictionaryGeneric, generated.IsIDictionaryGeneric);
+                Assert.Equal(runtime.IsIReadOnlyDictionaryGeneric, generated.IsIReadOnlyDictionaryGeneric);
 
-                //Assert.AreEqual(runtime.HasCreatorBoxed, generated.HasCreatorBoxed);
+                //Assert.Equal(runtime.HasCreatorBoxed, generated.HasCreatorBoxed);
 
                 //CollectionsAreEqual(runtime.InnerTypes, generated.InnerTypes);
                 //CollectionsAreEqual(runtime.BaseTypes, generated.BaseTypes);
@@ -103,7 +102,7 @@ namespace Zerra.Test
             }
 
             var differencesString = String.Join(Environment.NewLine, differences);
-            Assert.AreEqual(String.Empty, differencesString);
+            Assert.Equal(String.Empty, differencesString);
         }
     }
 }

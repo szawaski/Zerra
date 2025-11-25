@@ -2,7 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 using Zerra.Serialization.Bytes;
 
 namespace Zerra.Test
@@ -28,13 +28,13 @@ namespace Zerra.Test
 
         public static void AssertAreNotEqual(TestSerializerIndexModel1 model1, TestSerializerIndexModel2 model2)
         {
-            Assert.IsNotNull(model1);
-            Assert.IsNotNull(model2);
-            Assert.AreNotEqual<object>(model1, model2);
+            Assert.NotNull(model1);
+            Assert.NotNull(model2);
+            Assert.NotEqual<object>(model1, model2);
 
-            Assert.AreNotEqual(model1.Value1, model2.Value1);
-            Assert.AreNotEqual(model1.Value2, model2.Value2);
-            Assert.AreNotEqual(model1.Value3, model2.Value3);
+            Assert.NotEqual(model1.Value1, model2.Value1);
+            Assert.NotEqual(model1.Value2, model2.Value2);
+            Assert.NotEqual(model1.Value3, model2.Value3);
         }
     }
 }

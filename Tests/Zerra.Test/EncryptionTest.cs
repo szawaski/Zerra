@@ -2,7 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -15,10 +15,9 @@ using Zerra.Serialization.Bytes;
 
 namespace Zerra.Test
 {
-    [TestClass]
     public class EncryptionTest
     {
-        [TestMethod]
+        [Fact]
         public void CryptoShiftStreamRead()
         {
             const int blockSize = 256;
@@ -33,7 +32,7 @@ namespace Zerra.Test
                 result = shiftmsout.ToArray();
             }
 
-            Assert.IsTrue(result.Length - blockSize / 8 == test.Length);
+            Assert.True(result.Length - blockSize / 8 == test.Length);
 
             byte[] unshiftresult;
             using (var unshiftmsin = new MemoryStream(result))
@@ -44,12 +43,12 @@ namespace Zerra.Test
                 unshiftresult = unshiftmsout.ToArray();
             }
 
-            Assert.AreEqual(test.Length, unshiftresult.Length);
+            Assert.Equal(test.Length, unshiftresult.Length);
             for (var i = 0; i < test.Length; i++)
-                Assert.AreEqual(test[i], unshiftresult[i]);
+                Assert.Equal(test[i], unshiftresult[i]);
         }
 
-        [TestMethod]
+        [Fact]
         public void CryptoShiftStreamWrite()
         {
             const int blockSize = 256;
@@ -64,7 +63,7 @@ namespace Zerra.Test
                 result = shiftmsout.ToArray();
             }
 
-            Assert.IsTrue(result.Length - blockSize / 8 == test.Length);
+            Assert.True(result.Length - blockSize / 8 == test.Length);
 
             byte[] unshiftresult;
             using (var unshiftmsout = new MemoryStream())
@@ -75,12 +74,12 @@ namespace Zerra.Test
                 unshiftresult = unshiftmsout.ToArray();
             }
 
-            Assert.AreEqual(test.Length, unshiftresult.Length);
+            Assert.Equal(test.Length, unshiftresult.Length);
             for (var i = 0; i < test.Length; i++)
-                Assert.AreEqual(test[i], unshiftresult[i]);
+                Assert.Equal(test[i], unshiftresult[i]);
         }
 
-        [TestMethod]
+        [Fact]
         public async Task CryptoShiftStreamReadAsync()
         {
             var test = GetTestBytes();
@@ -94,7 +93,7 @@ namespace Zerra.Test
                 result = shiftmsout.ToArray();
             }
 
-            Assert.IsTrue(result.Length > test.Length);
+            Assert.True(result.Length > test.Length);
 
             byte[] unshiftresult;
             using (var unshiftmsin = new MemoryStream(result))
@@ -105,12 +104,12 @@ namespace Zerra.Test
                 unshiftresult = unshiftmsout.ToArray();
             }
 
-            Assert.AreEqual(test.Length, unshiftresult.Length);
+            Assert.Equal(test.Length, unshiftresult.Length);
             for (var i = 0; i < test.Length; i++)
-                Assert.AreEqual(test[i], unshiftresult[i]);
+                Assert.Equal(test[i], unshiftresult[i]);
         }
 
-        [TestMethod]
+        [Fact]
         public async Task CryptoShiftStreamWriteAsync()
         {
             var test = GetTestBytes();
@@ -124,7 +123,7 @@ namespace Zerra.Test
                 result = shiftmsout.ToArray();
             }
 
-            Assert.IsTrue(result.Length > test.Length);
+            Assert.True(result.Length > test.Length);
 
             byte[] unshiftresult;
             using (var unshiftmsout = new MemoryStream())
@@ -135,12 +134,12 @@ namespace Zerra.Test
                 unshiftresult = unshiftmsout.ToArray();
             }
 
-            Assert.AreEqual(test.Length, unshiftresult.Length);
+            Assert.Equal(test.Length, unshiftresult.Length);
             for (var i = 0; i < test.Length; i++)
-                Assert.AreEqual(test[i], unshiftresult[i]);
+                Assert.Equal(test[i], unshiftresult[i]);
         }
 
-        [TestMethod]
+        [Fact]
         public void CryptoShiftUnique()
         {
             var test = Convert.ToBase64String(GetTestBytes());
@@ -150,16 +149,16 @@ namespace Zerra.Test
             for (var i = 0; i < 100; i++)
                 values.Add(SymmetricEncryptor.Encrypt(SymmetricAlgorithmType.AESwithShift, key, test));
 
-            Assert.IsTrue(values.Distinct().Count() == values.Count);
+            Assert.True(values.Distinct().Count() == values.Count);
 
             for (var i = 0; i < values.Count; i++)
             {
                 var decrypted = SymmetricEncryptor.Decrypt(SymmetricAlgorithmType.AESwithShift, key, values[i]);
-                Assert.AreEqual(test, decrypted);
+                Assert.Equal(test, decrypted);
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void SymmetricEncryptorWithShift()
         {
             var test = Convert.ToBase64String(GetTestBytes());
@@ -176,10 +175,10 @@ namespace Zerra.Test
                 result = Encoding.UTF8.GetString(msout.ToArray());
             }
 
-            Assert.AreEqual(test, result);
+            Assert.Equal(test, result);
         }
 
-        [TestMethod]
+        [Fact]
         public async Task WithSerializer()
         {
             var key = SymmetricEncryptor.GenerateKey(SymmetricAlgorithmType.AESwithShift);
@@ -200,7 +199,7 @@ namespace Zerra.Test
             }
         }
 
-        [TestMethod]
+        [Fact]
         public async Task WithSerializerAndShift()
         {
             var key = SymmetricEncryptor.GenerateKey(SymmetricAlgorithmType.AESwithShift);
@@ -221,7 +220,7 @@ namespace Zerra.Test
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void EmptyStream()
         {
             var result = Array.Empty<byte>();
@@ -245,27 +244,27 @@ namespace Zerra.Test
             return test;
         }
 
-        [TestMethod]
+        [Fact]
         public void GeneratePassword()
         {
             var test = Password.GeneratePassword(10, true, true, true, true);
-            Assert.AreEqual(10, test.Length);
+            Assert.Equal(10, test.Length);
 
             test = Password.GeneratePassword(10, true, false, false, false);
-            Assert.AreEqual(10, test.Length);
-            Assert.IsTrue(test.All(Char.IsUpper));
+            Assert.Equal(10, test.Length);
+            Assert.True(test.All(Char.IsUpper));
 
             test = Password.GeneratePassword(10, false, true, false, false);
-            Assert.AreEqual(10, test.Length);
-            Assert.IsTrue(test.All(Char.IsLower));
+            Assert.Equal(10, test.Length);
+            Assert.True(test.All(Char.IsLower));
 
             test = Password.GeneratePassword(10, false, false, true, false);
-            Assert.AreEqual(10, test.Length);
-            Assert.IsTrue(test.All(Char.IsNumber));
+            Assert.Equal(10, test.Length);
+            Assert.True(test.All(Char.IsNumber));
 
             test = Password.GeneratePassword(10, false, false, false, true);
-            Assert.AreEqual(10, test.Length);
-            Assert.IsTrue(test.All(x => !Char.IsLetterOrDigit(x)));
+            Assert.Equal(10, test.Length);
+            Assert.True(test.All(x => !Char.IsLetterOrDigit(x)));
         }
     }
 }

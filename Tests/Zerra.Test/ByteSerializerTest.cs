@@ -2,7 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -13,7 +13,6 @@ using Zerra.Serialization.Bytes;
 
 namespace Zerra.Test
 {
-    [TestClass]
     public class ByteSerializerTest
     {
         public ByteSerializerTest()
@@ -24,67 +23,67 @@ namespace Zerra.Test
 #endif
         }
 
-        [TestMethod]
+        [Fact]
         public void TypesBasic()
         {
             var model1 = TypesBasicModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
-            Assert.AreEqual(315, bytes.Length);
+            Assert.Equal(315, bytes.Length);
             var model2 = ByteSerializer.Deserialize<TypesBasicModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
 
-        [TestMethod]
+        [Fact]
         public void TypesArray()
         {
             var model1 = TypesArrayModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
-            Assert.AreEqual(1131, bytes.Length);
+            Assert.Equal(1131, bytes.Length);
             var model2 = ByteSerializer.Deserialize<TypesArrayModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
 
-        [TestMethod]
+        [Fact]
         public void TypesListT()
         {
             var model1 = TypesListTModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
-            Assert.AreEqual(1131, bytes.Length);
+            Assert.Equal(1131, bytes.Length);
             var model2 = ByteSerializer.Deserialize<TypesListTModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
 
-        [TestMethod]
+        [Fact]
         public void TypesIListT()
         {
             var model1 = TypesIListTModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
-            Assert.AreEqual(1131, bytes.Length);
+            Assert.Equal(1131, bytes.Length);
             var model2 = ByteSerializer.Deserialize<TypesIListTModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
 
-        [TestMethod]
+        [Fact]
         public void TypesIListTOfT()
         {
             var model1 = TypesIListTOfTModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
-            Assert.AreEqual(1131, bytes.Length);
+            Assert.Equal(1131, bytes.Length);
             var model2 = ByteSerializer.Deserialize<TypesIListTOfTModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
 
-        [TestMethod]
+        [Fact]
         public void TypesIReadOnlyTList()
         {
             var model1 = TypesIReadOnlyListTModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
-            Assert.AreEqual(1131, bytes.Length);
+            Assert.Equal(1131, bytes.Length);
             var model2 = ByteSerializer.Deserialize<TypesIReadOnlyListTModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
 
-        [TestMethod]
+        [Fact]
         public void TypesIList()
         {
             var options = new ByteSerializerOptions()
@@ -98,7 +97,7 @@ namespace Zerra.Test
             AssertHelper.AreEqual(model1, model2);
         }
 
-        [TestMethod]
+        [Fact]
         public void TypesIListOfT()
         {
             var options = new ByteSerializerOptions()
@@ -112,47 +111,47 @@ namespace Zerra.Test
             AssertHelper.AreEqual(model1, model2);
         }
 
-        [TestMethod]
+        [Fact]
         public void TypesHashSetT()
         {
             var model1 = TypesHashSetTModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
-            Assert.AreEqual(1128, bytes.Length);
+            Assert.Equal(1128, bytes.Length);
             var model2 = ByteSerializer.Deserialize<TypesHashSetTModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
 
-        [TestMethod]
+        [Fact]
         public void TypesISetT()
         {
             var model1 = TypesISetTModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
-            Assert.AreEqual(1128, bytes.Length);
+            Assert.Equal(1128, bytes.Length);
             var model2 = ByteSerializer.Deserialize<TypesISetTModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
 
-        [TestMethod]
+        [Fact]
         public void TypesISetTOfT()
         {
             var model1 = TypesISetTOfTModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
-            Assert.AreEqual(1128, bytes.Length);
+            Assert.Equal(1128, bytes.Length);
             var model2 = ByteSerializer.Deserialize<TypesISetTOfTModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
 
-        [TestMethod]
+        [Fact]
         public void TypesIReadOnlySetT()
         {
             var model1 = TypesIReadOnlySetTModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
-            Assert.AreEqual(1128, bytes.Length);
+            Assert.Equal(1128, bytes.Length);
             var model2 = ByteSerializer.Deserialize<TypesIReadOnlySetTModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
 
-        [TestMethod]
+        [Fact]
         public void TypesICollection()
         {
             var options = new ByteSerializerOptions()
@@ -166,55 +165,55 @@ namespace Zerra.Test
             AssertHelper.AreEqual(model1, model2);
         }
 
-        [TestMethod]
+        [Fact]
         public void TypesICollectionT()
         {
             var model1 = TypesICollectionTModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
-            Assert.AreEqual(1131, bytes.Length);
+            Assert.Equal(1131, bytes.Length);
             var model2 = ByteSerializer.Deserialize<TypesICollectionTModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
 
-        [TestMethod]
+        [Fact]
         public void TypesICollectionTOfT()
         {
             var model1 = TypesICollectionTOfTModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
-            Assert.AreEqual(1131, bytes.Length);
+            Assert.Equal(1131, bytes.Length);
             var model2 = ByteSerializer.Deserialize<TypesICollectionTOfTModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
 
-        [TestMethod]
+        [Fact]
         public void TypesIReadOnlyCollectionT()
         {
             var model1 = TypesIReadOnlyCollectionTModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
-            Assert.AreEqual(1131, bytes.Length);
+            Assert.Equal(1131, bytes.Length);
             var model2 = ByteSerializer.Deserialize<TypesIReadOnlyCollectionTModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
 
-        [TestMethod]
+        [Fact]
         public void TypesIEnumerableT()
         {
             var model1 = TypesIEnumerableTModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
-            Assert.AreEqual(1131, bytes.Length);
+            Assert.Equal(1131, bytes.Length);
             var model2 = ByteSerializer.Deserialize<TypesIEnumerableTModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
 
-        [TestMethod]
+        [Fact]
         public void TypesIEnumerableTOfT()
         {
             var model1 = TypesIEnumerableTOfTModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
-            Assert.AreEqual(1131, bytes.Length);
+            Assert.Equal(1131, bytes.Length);
         }
 
-        [TestMethod]
+        [Fact]
         public void TypesIEnumerable()
         {
             var options = new ByteSerializerOptions()
@@ -229,7 +228,7 @@ namespace Zerra.Test
             AssertHelper.AreEqual(model1, model2);
         }
 
-        [TestMethod]
+        [Fact]
         public void TypesIEnumerableOfT()
         {
             var options = new ByteSerializerOptions()
@@ -241,27 +240,27 @@ namespace Zerra.Test
             var bytes = ByteSerializer.Serialize(model1, options);
         }
 
-        [TestMethod]
+        [Fact]
         public void TypesDictionaryT()
         {
             var model1 = TypesDictionaryTModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
-            Assert.AreEqual(249, bytes.Length);
+            Assert.Equal(249, bytes.Length);
             var model2 = ByteSerializer.Deserialize<TypesDictionaryTModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
 
-        [TestMethod]
+        [Fact]
         public void TypesIDictionaryT()
         {
             var model1 = TypesIDictionaryTModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
-            Assert.AreEqual(249, bytes.Length);
+            Assert.Equal(249, bytes.Length);
             var model2 = ByteSerializer.Deserialize<TypesIDictionaryTModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
 
-        [TestMethod]
+        [Fact]
         public void TypesIDictionaryTOfT()
         {
             var options = new ByteSerializerOptions()
@@ -275,17 +274,17 @@ namespace Zerra.Test
             AssertHelper.AreEqual(model1, model2);
         }
 
-        [TestMethod]
+        [Fact]
         public void TypesIReadOnlyDictionaryT()
         {
             var model1 = TypesIReadOnlyDictionaryTModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
-            Assert.AreEqual(193, bytes.Length);
+            Assert.Equal(193, bytes.Length);
             var model2 = ByteSerializer.Deserialize<TypesIReadOnlyDictionaryTModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
 
-        [TestMethod]
+        [Fact]
         public void TypesIDictionary()
         {
             var options = new ByteSerializerOptions()
@@ -299,7 +298,7 @@ namespace Zerra.Test
             AssertHelper.AreEqual(model1, model2);
         }
 
-        [TestMethod]
+        [Fact]
         public void TypesIDictionaryOfT()
         {
             var options = new ByteSerializerOptions()
@@ -313,7 +312,7 @@ namespace Zerra.Test
             AssertHelper.AreEqual(model1, model2);
         }
 
-        [TestMethod]
+        [Fact]
         public void TypesCustomCollections()
         {
             var options = new ByteSerializerOptions()
@@ -323,42 +322,42 @@ namespace Zerra.Test
 
             var model1 = TypesCustomCollectionsModel.Create();
             var bytes = ByteSerializer.Serialize(model1, options);
-            //Assert.AreEqual(254, bytes.Length);
+            //Assert.Equal(254, bytes.Length);
             var model2 = ByteSerializer.Deserialize<TypesCustomCollectionsModel>(bytes, options);
             AssertHelper.AreEqual(model1, model2);
         }
 
-        [TestMethod]
+        [Fact]
         public void TypesOther()
         {
             var model1 = TypesOtherModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
-            Assert.AreEqual(70, bytes.Length);
+            Assert.Equal(70, bytes.Length);
             var model2 = ByteSerializer.Deserialize<TypesOtherModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
 
-        [TestMethod]
+        [Fact]
         public void TypesType()
         {
             var model1 = TypeModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
-            Assert.AreEqual(186, bytes.Length);
+            Assert.Equal(186, bytes.Length);
             var model2 = ByteSerializer.Deserialize<TypeModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
 
-        [TestMethod]
+        [Fact]
         public void TypesCore()
         {
             var model1 = TypesCoreModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
-            Assert.AreEqual(304, bytes.Length);
+            Assert.Equal(304, bytes.Length);
             var model2 = ByteSerializer.Deserialize<TypesCoreModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
 
-        [TestMethod]
+        [Fact]
         public void TypesAll()
         {
             var options = new ByteSerializerOptions()
@@ -368,12 +367,12 @@ namespace Zerra.Test
 
             var model1 = TypesAllModel.Create();
             var bytes = ByteSerializer.Serialize(model1, options);
-            Assert.AreEqual(8393, bytes.Length);
+            Assert.Equal(8393, bytes.Length);
             var model2 = ByteSerializer.Deserialize<TypesAllModel>(bytes, options);
             AssertHelper.AreEqual(model1, model2);
         }
 
-        [TestMethod]
+        [Fact]
         public void UseTypes()
         {
             var options = new ByteSerializerOptions()
@@ -388,7 +387,7 @@ namespace Zerra.Test
             AssertHelper.AreEqual(model1, model2);
         }
 
-        [TestMethod]
+        [Fact]
         public void IndexTypeMemberNames()
         {
             var options = new ByteSerializerOptions()
@@ -402,13 +401,13 @@ namespace Zerra.Test
             AssertHelper.AreEqual(model1, model2);
         }
 
-        [TestMethod]
+        [Fact]
         public void EmptyObjectsAndNulls()
         {
             var model1 = new NoPropertiesModel();
             var bytes1 = ByteSerializer.Serialize(model1);
             var model2 = ByteSerializer.Deserialize<NoPropertiesModel>(bytes1);
-            Assert.IsNotNull(model2);
+            Assert.NotNull(model2);
 
             var model3 = new NoPropertiesModel[] {
                 new(),
@@ -416,9 +415,9 @@ namespace Zerra.Test
             };
             var bytes3 = ByteSerializer.Serialize(model3);
             var model4 = ByteSerializer.Deserialize<NoPropertiesModel[]>(bytes3);
-            Assert.AreEqual(2, model4.Length);
-            Assert.IsNotNull(model4[0]);
-            Assert.IsNotNull(model4[1]);
+            Assert.Equal(2, model4.Length);
+            Assert.NotNull(model4[0]);
+            Assert.NotNull(model4[1]);
 
             var model5 = new NoPropertiesModel[] {
                null,
@@ -426,22 +425,22 @@ namespace Zerra.Test
             };
             var bytes5 = ByteSerializer.Serialize(model5);
             var model6 = ByteSerializer.Deserialize<NoPropertiesModel[]>(bytes5);
-            Assert.AreEqual(2, model6.Length);
-            Assert.IsNull(model6[0]);
-            Assert.IsNull(model6[1]);
+            Assert.Equal(2, model6.Length);
+            Assert.Null(model6[0]);
+            Assert.Null(model6[1]);
 
             var bytes7 = ByteSerializer.Serialize(null);
             var model7 = ByteSerializer.Deserialize<NoPropertiesModel>(bytes7);
-            Assert.IsNull(model7);
+            Assert.Null(model7);
 
             var bytes8 = ByteSerializer.Serialize(null);
             var model8 = ByteSerializer.Deserialize<NoPropertiesModel[]>(bytes8);
-            Assert.IsNull(model8);
+            Assert.Null(model8);
 
             var model9 = Array.Empty<NoPropertiesModel>();
             var bytes9 = ByteSerializer.Serialize(model9);
             var model10 = ByteSerializer.Deserialize<IEnumerable<NoPropertiesModel>>(bytes9);
-            Assert.AreEqual(model9.GetType(), model10?.GetType());
+            Assert.Equal(model9.GetType(), model10?.GetType());
 
             var model11 = new ArrayChainModel[]{
                 new()
@@ -452,10 +451,10 @@ namespace Zerra.Test
             };
             var bytes11 = ByteSerializer.Serialize(model11);
             var model12 = ByteSerializer.Deserialize<ArrayChainModel[]>(bytes11);
-            Assert.AreEqual(model11[0].Children, model12[0].Children);
+            Assert.Equal(model11[0].Children, model12[0].Children);
         }
 
-        [TestMethod]
+        [Fact]
         public void Arrays()
         {
             var model1 = SimpleModel.CreateArray();
@@ -464,7 +463,7 @@ namespace Zerra.Test
             AssertHelper.AreEqual(model1, model2);
         }
 
-        [TestMethod]
+        [Fact]
         public void Boxing()
         {
             var options = new ByteSerializerOptions()
@@ -478,7 +477,7 @@ namespace Zerra.Test
             AssertHelper.AreEqual(model1, model2);
         }
 
-        [TestMethod]
+        [Fact]
         public void IndexAttribute()
         {
             var model1 = TestSerializerIndexModel1.Create();
@@ -487,7 +486,7 @@ namespace Zerra.Test
             AssertHelper.AreEqual(model1, model2);
         }
 
-        [TestMethod]
+        [Fact]
         public void IgnoreIndexAttribute()
         {
             var options = new ByteSerializerOptions()
@@ -501,7 +500,7 @@ namespace Zerra.Test
             AssertHelper.AreNotEqual(model1, model2);
         }
 
-        [TestMethod]
+        [Fact]
         public void LargeIndexAttribute()
         {
             var options = new ByteSerializerOptions()
@@ -515,19 +514,19 @@ namespace Zerra.Test
             AssertHelper.AreEqual(model1, model2);
         }
 
-        [TestMethod]
+        [Fact]
         public void CookieObject()
         {
             var model1 = new Cookie("tester", "stuff", null, null);
             var bytes = ByteSerializer.Serialize(model1);
             var model2 = ByteSerializer.Deserialize<Cookie>(bytes);
-            Assert.AreEqual(model1.Name, model2.Name);
-            Assert.AreEqual(model1.Value, model2.Value);
-            Assert.AreEqual(model1.Path, model2.Path);
-            Assert.AreEqual(model1.Domain, model2.Domain);
+            Assert.Equal(model1.Name, model2.Name);
+            Assert.Equal(model1.Value, model2.Value);
+            Assert.Equal(model1.Path, model2.Path);
+            Assert.Equal(model1.Domain, model2.Domain);
         }
 
-        [TestMethod]
+        [Fact]
         public void ExceptionObject()
         {
             var options = new ByteSerializerOptions()
@@ -540,12 +539,12 @@ namespace Zerra.Test
 
             var bytes = ByteSerializer.Serialize(model1, options);
             var model2 = ByteSerializer.Deserialize<Exception>(bytes, options);
-            Assert.AreEqual(model1.Message, model2.Message);
-            Assert.AreEqual(1, model2.Data.Count);
-            Assert.AreEqual(model1.Data["stuff"], model2.Data["stuff"]);
+            Assert.Equal(model1.Message, model2.Message);
+            Assert.Equal(1, model2.Data.Count);
+            Assert.Equal(model1.Data["stuff"], model2.Data["stuff"]);
         }
 
-        [TestMethod]
+        [Fact]
         public void Interface()
         {
             ITestInterface model1 = new TestInterfaceImplemented()
@@ -557,11 +556,11 @@ namespace Zerra.Test
             var bytes = ByteSerializer.Serialize(model1);
             var model2 = ByteSerializer.Deserialize<ITestInterface>(bytes);
 
-            Assert.AreEqual(5, model2.Property1);
-            Assert.AreEqual(6, model2.Property2);
+            Assert.Equal(5, model2.Property1);
+            Assert.Equal(6, model2.Property2);
         }
 
-        [TestMethod]
+        [Fact]
         public void StringArrayOfArrayThing()
         {
             var model1 = new string[][] { ["a", "b", "c"], ["d", "e", "f"] };
@@ -569,42 +568,42 @@ namespace Zerra.Test
             var model2 = ByteSerializer.Deserialize<string[][]>(bytes);
         }
 
-        [TestMethod]
+        [Fact]
         public void Record()
         {
             var model1 = new RecordModel(true) { Property2 = 42, Property3 = "moo" };
             var bytes = ByteSerializer.Serialize(model1);
             var model2 = ByteSerializer.Deserialize<RecordModel>(bytes);
-            Assert.IsNotNull(model2);
-            Assert.AreEqual(model1.Property1, model2.Property1);
-            Assert.AreEqual(model1.Property2, model2.Property2);
-            Assert.AreEqual(model1.Property3, model2.Property3);
+            Assert.NotNull(model2);
+            Assert.Equal(model1.Property1, model2.Property1);
+            Assert.Equal(model1.Property2, model2.Property2);
+            Assert.Equal(model1.Property3, model2.Property3);
         }
 
-        [TestMethod]
+        [Fact]
         public void DateTimeTypes()
         {
             var dateUtc = new DateTime(2024, 12, 5, 18, 10, 5, 123, 456, DateTimeKind.Utc);
             var bytes = ByteSerializer.Serialize(dateUtc);
             var dateUtc2 = ByteSerializer.Deserialize<DateTime>(bytes);
-            Assert.AreEqual(dateUtc, dateUtc2);
-            Assert.AreEqual(DateTimeKind.Utc, dateUtc2.Kind);
+            Assert.Equal(dateUtc, dateUtc2);
+            Assert.Equal(DateTimeKind.Utc, dateUtc2.Kind);
 
             var dateLocal = new DateTime(2024, 12, 5, 18, 10, 5, 123, 456, DateTimeKind.Local);
             bytes = ByteSerializer.Serialize(dateLocal);
             var dateLocal2 = ByteSerializer.Deserialize<DateTime>(bytes);
             var dateLocalUtc = dateLocal.ToUniversalTime();
-            Assert.AreEqual(dateLocalUtc, dateLocal2);
-            Assert.AreEqual(DateTimeKind.Utc, dateLocal2.Kind);
+            Assert.Equal(dateLocalUtc, dateLocal2);
+            Assert.Equal(DateTimeKind.Utc, dateLocal2.Kind);
 
             var dateUnspecified = new DateTime(2024, 12, 5, 18, 10, 5, 123, 456, DateTimeKind.Unspecified);
             bytes = ByteSerializer.Serialize(dateUnspecified);
             var dateUnspecified2 = ByteSerializer.Deserialize<DateTime>(bytes);
-            Assert.AreEqual(dateUnspecified, dateUnspecified2);
-            Assert.AreEqual(DateTimeKind.Utc, dateUnspecified2.Kind);
+            Assert.Equal(dateUnspecified, dateUnspecified2);
+            Assert.Equal(DateTimeKind.Utc, dateUnspecified2.Kind);
         }
 
-        [TestMethod]
+        [Fact]
         public void CustomType()
         {
             ByteSerializer.AddConverter(typeof(CustomTypeByteConverter<>), typeof(CustomType));
@@ -612,13 +611,13 @@ namespace Zerra.Test
             var model1 = CustomTypeModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
             var model2 = ByteSerializer.Deserialize<CustomTypeModel>(bytes);
-            Assert.IsNotNull(model2);
-            Assert.IsNotNull(model2.Value);
-            Assert.AreEqual(model1.Value.Things1, model2.Value.Things1);
-            Assert.AreEqual(model1.Value.Things2, model2.Value.Things2);
+            Assert.NotNull(model2);
+            Assert.NotNull(model2.Value);
+            Assert.Equal(model1.Value.Things1, model2.Value.Things1);
+            Assert.Equal(model1.Value.Things2, model2.Value.Things2);
         }
 
-        [TestMethod]
+        [Fact]
         public async Task Stream()
         {
             var options = new ByteSerializerOptions()
@@ -630,41 +629,41 @@ namespace Zerra.Test
             using (var ms = new MemoryStream())
             {
                 await ByteSerializer.SerializeAsync(ms, model1, options);
-                Assert.AreEqual(8393, ms.Length);
+                Assert.Equal(8393, ms.Length);
                 ms.Position = 0;
                 var model2 = await ByteSerializer.DeserializeAsync<TypesAllModel>(ms, options);
                 AssertHelper.AreEqual(model1, model2);
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void CancellationTokens()
         {
             var model1 = CancellationToken.None;
             var bytes1 = ByteSerializer.Serialize(model1);
             var model2 = ByteSerializer.Deserialize<CancellationToken>(bytes1);
-            Assert.AreEqual(model1, model2);
+            Assert.Equal(model1, model2);
 
             CancellationToken? model3 = CancellationToken.None;
             var bytes2 = ByteSerializer.Serialize(model3);
             var model4 = ByteSerializer.Deserialize<CancellationToken?>(bytes2);
-            Assert.AreEqual(model3, model4);
+            Assert.Equal(model3, model4);
 
             CancellationToken? model5 = CancellationToken.None;
             var bytes3 = ByteSerializer.Serialize(model5);
             var model6 = ByteSerializer.Deserialize<CancellationToken?>(bytes3);
-            Assert.AreEqual(model5, model6);
+            Assert.Equal(model5, model6);
         }
 
-        [TestMethod]
+        [Fact]
         public void Constructors()
         {
             var model1 = new TestSerializerConstructor("Five", 5);
             var bytes1 = ByteSerializer.Serialize(model1);
             var model2 = ByteSerializer.Deserialize<TestSerializerConstructor>(bytes1);
-            Assert.IsNotNull(model2);
-            Assert.AreEqual(model1._Value1, model2._Value1);
-            Assert.AreEqual(model1.value2, model2.value2);
+            Assert.NotNull(model2);
+            Assert.Equal(model1._Value1, model2._Value1);
+            Assert.Equal(model1.value2, model2.value2);
         }
     }
 }
