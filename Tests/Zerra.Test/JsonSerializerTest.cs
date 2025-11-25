@@ -93,8 +93,8 @@ namespace Zerra.Test
         public void TypesIListT()
         {
             var model1 = TypesIListTModel.Create();
-            var bytes = JsonSerializer.Serialize(model1);
-            var model2 = JsonSerializer.Deserialize<TypesIListTModel>(bytes);
+            var json = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TypesIListTModel>(json);
             AssertHelper.AreEqual(model1, model2);
         }
 
@@ -251,8 +251,8 @@ namespace Zerra.Test
         public void StringTypesIDictionaryT()
         {
             var model1 = TypesIDictionaryTModel.Create();
-            var bytes = JsonSerializer.Serialize(model1);
-            var model2 = JsonSerializer.Deserialize<TypesIDictionaryTModel>(bytes);
+            var json = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TypesIDictionaryTModel>(json);
             AssertHelper.AreEqual(model1, model2);
         }
 
@@ -260,8 +260,8 @@ namespace Zerra.Test
         public void StringTypesIDictionaryTOfT()
         {
             var model1 = TypesIDictionaryTOfTModel.Create();
-            var bytes = JsonSerializer.Serialize(model1);
-            var model2 = JsonSerializer.Deserialize<TypesIDictionaryTOfTModel>(bytes);
+            var json = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TypesIDictionaryTOfTModel>(json);
             AssertHelper.AreEqual(model1, model2);
         }
 
@@ -269,8 +269,8 @@ namespace Zerra.Test
         public void StringTypesIReadOnlyDictionaryT()
         {
             var model1 = TypesIReadOnlyDictionaryTModel.Create();
-            var bytes = JsonSerializer.Serialize(model1);
-            var model2 = JsonSerializer.Deserialize<TypesIReadOnlyDictionaryTModel>(bytes);
+            var json = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TypesIReadOnlyDictionaryTModel>(json);
             AssertHelper.AreEqual(model1, model2);
         }
 
@@ -287,8 +287,8 @@ namespace Zerra.Test
         //public void StringTypesIDictionaryOfT()
         //{
         //    var model1 = TypesIDictionaryOfTModel.Create();
-        //    var bytes = JsonSerializer.Serialize(model1);
-        //    var model2 = JsonSerializer.Deserialize<TypesIDictionaryOfTModel>(bytes);
+        //    var json = JsonSerializer.Serialize(model1);
+        //    var model2 = JsonSerializer.Deserialize<TypesIDictionaryOfTModel>(json);
         //    AssertHelper.AreEqual(model1, model2);
         //}
 
@@ -296,8 +296,8 @@ namespace Zerra.Test
         public void StringTypesCustomCollections()
         {
             var model1 = TypesCustomCollectionsModel.Create();
-            var bytes = JsonSerializer.Serialize(model1);
-            var model2 = JsonSerializer.Deserialize<TypesCustomCollectionsModel>(bytes);
+            var json = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TypesCustomCollectionsModel>(json);
             AssertHelper.AreEqual(model1, model2);
         }
 
@@ -651,8 +651,8 @@ namespace Zerra.Test
         public void StringExceptionObject()
         {
             var model1 = new Exception("bad things happened");
-            var bytes = JsonSerializer.Serialize(model1);
-            var model2 = JsonSerializer.Deserialize<Exception>(bytes);
+            var json = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<Exception>(json);
             Assert.Equal(model1.Message, model2.Message);
         }
 
