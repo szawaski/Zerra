@@ -2,14 +2,10 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Collections;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Threading;
 
 namespace Zerra.Collections
 {
@@ -48,15 +44,15 @@ namespace Zerra.Collections
         public ConcurrentFactoryDictionary(int concurrencyLevel, int capacity, IEqualityComparer<TKey> comparer)
             : this(concurrencyLevel, capacity, null, comparer) { }
 
-#if NET8_0_OR_GREATER
-        private static readonly FieldInfo _tablesField = typeof(ConcurrentDictionary<TKey, TValue>).GetField("_tables", BindingFlags.NonPublic | BindingFlags.Instance)!;
-        private static readonly FieldInfo _locksField = _tablesField.FieldType.GetField("_locks", BindingFlags.NonPublic | BindingFlags.Instance)!;
-        private static readonly FieldInfo _comparerField = _tablesField.FieldType.GetField("_comparer", BindingFlags.NonPublic | BindingFlags.Instance)!;
-#elif NET6_0 || NET7_0
-        private static readonly FieldInfo _tablesField = typeof(ConcurrentDictionary<TKey, TValue>).GetField("_tables", BindingFlags.NonPublic | BindingFlags.Instance)!;
-        private static readonly FieldInfo _locksField = _tablesField.FieldType.GetField("_locks", BindingFlags.NonPublic | BindingFlags.Instance)!;
-        private static readonly FieldInfo _comparerField = typeof(ConcurrentDictionary<TKey, TValue>).GetField("_comparer", BindingFlags.NonPublic | BindingFlags.Instance)!;
-#endif
+//#if NET8_0_OR_GREATER
+//        private static readonly FieldInfo _tablesField = typeof(ConcurrentDictionary<TKey, TValue>).GetField("_tables", BindingFlags.NonPublic | BindingFlags.Instance)!;
+//        //private static readonly FieldInfo _locksField = _tablesField.FieldType.GetField("_locks", BindingFlags.NonPublic | BindingFlags.Instance)!;
+//        private static readonly FieldInfo _comparerField = _tablesField.FieldType.GetField("_comparer", BindingFlags.NonPublic | BindingFlags.Instance)!;
+//#elif NET6_0 || NET7_0
+//        private static readonly FieldInfo _tablesField = typeof(ConcurrentDictionary<TKey, TValue>).GetField("_tables", BindingFlags.NonPublic | BindingFlags.Instance)!;
+//        //private static readonly FieldInfo _locksField = _tablesField.FieldType.GetField("_locks", BindingFlags.NonPublic | BindingFlags.Instance)!;
+//        private static readonly FieldInfo _comparerField = typeof(ConcurrentDictionary<TKey, TValue>).GetField("_comparer", BindingFlags.NonPublic | BindingFlags.Instance)!;
+//#endif
 
         internal ConcurrentFactoryDictionary(int concurrencyLevel, int capacity, IEnumerable<KeyValuePair<TKey, TValue>>? collection, IEqualityComparer<TKey>? comparer)
         {
@@ -70,25 +66,28 @@ namespace Zerra.Collections
             for (var i = 1; i < this.factoryLocks.Length; i++)
                 this.factoryLocks[i] = new object();
 
-#if NET8_0_OR_GREATER
-            var _tables = _tablesField.GetValue(this.dictionary);
-            //this.factoryLocks = (object[])_locksField.GetValue(_tables)!; This causes threading issues
-            this.comparer = (IEqualityComparer<TKey>?)_comparerField.GetValue(_tables)!;
-#elif NET6_0 || NET7_0
-            var _tables = _tablesField.GetValue(this.dictionary);
-            //this.factoryLocks = (object[])_locksField.GetValue(_tables)!; This causes threading issues
-            this.comparer = (IEqualityComparer<TKey>?)_comparerField.GetValue(this.dictionary)!;
-#else
-            if (comparer is not null)
-            {
-                if (!typeof(TKey).IsValueType || !ReferenceEquals(comparer, EqualityComparer<TKey>.Default))
-                    this.comparer = comparer;
-            }
-            else if (!typeof(TKey).IsValueType)
-            {
-                this.comparer = EqualityComparer<TKey>.Default;
-            }
-#endif
+            //#if NET8_0_OR_GREATER
+            //            var _tables = _tablesField.GetValue(this.dictionary);
+            //            //this.factoryLocks = (object[])_locksField.GetValue(_tables)!; This causes threading issues
+            //            this.comparer = (IEqualityComparer<TKey>?)_comparerField.GetValue(_tables)!;
+            //#elif NET6_0 || NET7_0
+            //            var _tables = _tablesField.GetValue(this.dictionary);
+            //            //this.factoryLocks = (object[])_locksField.GetValue(_tables)!; This causes threading issues
+            //            this.comparer = (IEqualityComparer<TKey>?)_comparerField.GetValue(this.dictionary)!;
+            //#else
+
+
+            //if (comparer is not null)
+            //{
+            //    if (!typeof(TKey).IsValueType || !ReferenceEquals(comparer, EqualityComparer<TKey>.Default))
+            //        this.comparer = comparer;
+            //}
+            //else if (!typeof(TKey).IsValueType)
+            //{
+            //    this.comparer = EqualityComparer<TKey>.Default;
+            //}
+            this.comparer = dictionary.Comparer;
+//#endif
         }
 
         void IDictionary<TKey, TValue>.Add(TKey key, TValue value) => TryAdd(key, value);

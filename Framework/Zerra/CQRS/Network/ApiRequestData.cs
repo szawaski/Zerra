@@ -2,9 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Linq;
-using Zerra.Serialization.Json;
-
 namespace Zerra.CQRS.Network
 {
     public sealed class ApiRequestData
@@ -19,10 +16,5 @@ namespace Zerra.CQRS.Network
         public bool MessageResult { get; set; }
 
         public string? Source { get; set; }
-
-        public void AddProviderArguments(object[] arguments)
-        {
-            this.ProviderArguments = arguments.Select(x => JsonSerializer.Serialize(x)).ToArray();
-        }
     }
 }

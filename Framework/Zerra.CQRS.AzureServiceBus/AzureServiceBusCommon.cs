@@ -3,11 +3,6 @@
 // Licensed to you under the MIT license
 
 using Azure.Messaging.ServiceBus.Administration;
-using System;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
-using Zerra.Serialization.Bytes;
 
 namespace Zerra.CQRS.AzureServiceBus
 {
@@ -21,20 +16,6 @@ namespace Zerra.CQRS.AzureServiceBus
         public const int EntityNameMaxLength = 50;
 
         public const int RetryDelay = 5000;
-
-        public static byte[] Serialize<T>(T obj)
-        {
-            return ByteSerializer.Serialize(obj);
-        }
-        public static object? Deserialize(byte[] data, Type type)
-        {
-            return ByteSerializer.Deserialize(data, type);
-        }
-
-        public static Task<T?> DeserializeAsync<T>(Stream stream)
-        {
-            return ByteSerializer.DeserializeAsync<T>(stream);
-        }
 
         public static async Task EnsureQueue(string host, string queue, bool deleteWhenIdle)
         {
@@ -51,7 +32,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 if (!await client.QueueExistsAsync(queue))
                 {
                     if (await client.TopicExistsAsync(queue))
-                        await client.DeleteTopicAsync(queue);
+                        _ = await client.DeleteTopicAsync(queue);
 
                     var options = new CreateQueueOptions(queue)
                     {
@@ -109,7 +90,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 if (!await client.TopicExistsAsync(topic))
                 {
                     if (await client.QueueExistsAsync(topic))
-                        await client.DeleteQueueAsync(topic);
+                        _ = await client.DeleteQueueAsync(topic);
 
                     var options = new CreateTopicOptions(topic)
                     {

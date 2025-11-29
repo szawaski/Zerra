@@ -3,11 +3,7 @@
 // Licensed to you under the MIT license
 
 using Confluent.Kafka;
-using System;
-using System.Linq;
 using System.Security.Claims;
-using System.Threading;
-using System.Threading.Tasks;
 using Zerra.Encryption;
 using Zerra.Logging;
 
@@ -21,11 +17,13 @@ namespace Zerra.CQRS.Kafka
 
             private readonly int maxConcurrent;
             private readonly string topic;
-            private readonly SymmetricConfig? symmetricConfig;
+            private readonly Zerra.Serialization.ISerializer serializer;
+            private readonly IEncryptor? encryptor;
+            private readonly ILogger? log;
             private readonly HandleRemoteEventDispatch handlerAsync;
             private readonly CancellationTokenSource canceller;
 
-            public EventConsumer(int maxConcurrent, string topic, SymmetricConfig? symmetricConfig, string? environment, HandleRemoteEventDispatch handlerAsync)
+            public EventConsumer(int maxConcurrent, string topic, Zerra.Serialization.ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment, HandleRemoteEventDispatch handlerAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
@@ -35,7 +33,9 @@ namespace Zerra.CQRS.Kafka
                     this.topic = StringExtensions.Join(KafkaCommon.TopicMaxLength, "_", environment, topic);
                 else
                     this.topic = topic.Truncate(KafkaCommon.TopicMaxLength);
-                this.symmetricConfig = symmetricConfig;
+                this.serializer = serializer;
+                this.encryptor = encryptor;
+                this.log = log;
                 this.handlerAsync = handlerAsync;
                 this.canceller = new CancellationTokenSource();
             }
@@ -98,7 +98,7 @@ namespace Zerra.CQRS.Kafka
                 }
                 catch (Exception ex)
                 {
-                    _ = Log.ErrorAsync(topic, ex);
+                    log?.Error(topic, ex);
                     if (!canceller.IsCancellationRequested)
                     {
                         await Task.Delay(KafkaCommon.RetryDelay);
@@ -119,15 +119,15 @@ namespace Zerra.CQRS.Kafka
                     if (consumerResult.Message.Key == KafkaCommon.MessageKey)
                     {
                         var body = consumerResult.Message.Value;
-                        if (symmetricConfig is not null)
-                            body = SymmetricEncryptor.Decrypt(symmetricConfig, body);
+                        if (encryptor is not null)
+                            body = encryptor.Decrypt(body);
 
-                        var message = KafkaCommon.Deserialize<KafkaMessage>(body);
+                        var message = serializer.Deserialize<KafkaMessage>(body);
 
                         if (message is null || message.MessageType is null || message.MessageData is null || message.Source is null)
                             throw new Exception("Invalid Message");
 
-                        var @event = KafkaCommon.Deserialize(message.MessageData, message.MessageType) as IEvent;
+                        var @event = serializer.Deserialize(message.MessageData, message.MessageType) as IEvent;
                         if (@event is null)
                             throw new Exception("Invalid Message");
 
@@ -143,17 +143,17 @@ namespace Zerra.CQRS.Kafka
                     }
                     else
                     {
-                        _ = Log.ErrorAsync($"{nameof(KafkaConsumer)} unrecognized message key {consumerResult.Message.Key}");
+                        log?.Error($"{nameof(KafkaConsumer)} unrecognized message key {consumerResult.Message.Key}");
                     }
                 }
                 catch (Exception ex)
                 {
                     if (inHandlerContext)
-                        _ = Log.ErrorAsync(topic, ex);
+                        log?.Error(topic, ex);
                 }
                 finally
                 {
-                    throttle.Release();
+                    _ = throttle.Release();
                 }
             }
 

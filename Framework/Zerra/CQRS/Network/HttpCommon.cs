@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using System.Text;
 using Zerra.Buffers;
 
@@ -67,9 +65,9 @@ namespace Zerra.CQRS.Network
         private static readonly byte[] hostHeadersBytes = encoding.GetBytes($"{HostHeader}: ");
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe (List<string>, Dictionary<string, List<string?>>) ParseHeaders(ReadOnlySpan<char> chars)
+        private static unsafe (string, Dictionary<string, List<string?>>) ParseHeaders(ReadOnlySpan<char> chars)
         {
-            var declarations = new List<string>();
+            string? declarations = null;
             var headers = new Dictionary<string, List<string?>>();
 
             var start = 0;
@@ -83,18 +81,18 @@ namespace Zerra.CQRS.Network
                     var c = pChars[index];
                     switch (c)
                     {
-                        case ' ':
-                            {
-#if NETSTANDARD2_0
-                                var value = new string(chars.Slice(start, length).ToArray());
-#else
-                                var value = chars.Slice(start, length).ToString();
-#endif
-                                declarations.Add(value);
-                                start = index + 1;
-                                length = 0;
-                                break;
-                            }
+//                        case ' ':
+//                            {
+//#if NETSTANDARD2_0
+//                                var value = new string(chars.Slice(start, length).ToArray());
+//#else
+//                                var value = chars.Slice(start, length).ToString();
+//#endif
+//                                declarations.Add(value);
+//                                start = index + 1;
+//                                length = 0;
+//                                break;
+//                            }
                         case '\r':
                         case '\n':
                             {
@@ -103,7 +101,7 @@ namespace Zerra.CQRS.Network
 #else
                                 var value = chars.Slice(start, length).ToString();
 #endif
-                                declarations.Add(value);
+                                declarations = value;
                                 start = index + 1;
                                 length = 0;
                                 firstLineDone = true;
@@ -186,7 +184,7 @@ namespace Zerra.CQRS.Network
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static HttpRequestHeader ReadHeader(ReadOnlyMemory<byte> buffer, int position, int length)
+        public static HttpRequestHeader ReadHeader(ReadOnlyMemory<byte> buffer, int position)
         {
 #if NETSTANDARD2_0
             var chars = encoding.GetChars(buffer.Span.Slice(0, position).ToArray());
@@ -195,11 +193,11 @@ namespace Zerra.CQRS.Network
             var chars = ArrayPoolHelper<char>.Rent(encoding.GetMaxCharCount(position));
             try
             {
-                var charsLength = encoding.GetChars(buffer.Span.Slice(0, position), chars.AsSpan());
+                var charsLength = encoding.GetChars(buffer.Span[..position], chars.AsSpan());
 #endif
-                (var declarations, var headers) = ParseHeaders(chars.AsSpan().Slice(0, charsLength));
+                (var declarations, var headers) = ParseHeaders(chars.AsSpan()[..charsLength]);
 
-                if (declarations.Count == 0 || headers.Count == 0)
+                if (declarations == null || headers.Count == 0)
                     throw new Exception("Invalid Header");
 
                 var headerInfo = new HttpRequestHeader()
@@ -208,7 +206,7 @@ namespace Zerra.CQRS.Network
                     Headers = headers
                 };
 
-                headerInfo.IsError = declarations[0].StartsWith(serverErrorResponse);
+                headerInfo.IsError = declarations.StartsWith(serverErrorResponse);
 
                 if (headers.TryGetValue(ContentTypeHeader, out var contentTypeHeaderValue))
                 {
@@ -240,7 +238,7 @@ namespace Zerra.CQRS.Network
                 if (headers.TryGetValue(OriginHeader, out var originHeaderValue))
                     headerInfo.Origin = originHeaderValue[0];
 
-                if (declarations.Count > 0 && declarations[0] == OptionsHeader)
+                if (declarations != null && declarations.StartsWith(OptionsHeader))
                     headerInfo.Preflight = true;
 
                 if (headers.TryGetValue(RelayServiceHeader, out var relayServiceHeaderValue))
@@ -254,7 +252,7 @@ namespace Zerra.CQRS.Network
                 if (headers.TryGetValue(RelayKeyHeader, out var relayKeyHeaderValue))
                     headerInfo.RelayKey = relayKeyHeaderValue[0];
 
-                headerInfo.BodyStartBuffer = buffer.Slice(position, length - position);
+                headerInfo.BodyStartBuffer = buffer[position..];
 
                 return headerInfo;
 #if !NETSTANDARD2_0
@@ -267,12 +265,12 @@ namespace Zerra.CQRS.Network
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe bool ReadToHeaderEnd(Memory<byte> buffer, ref int position, int length)
+        public static unsafe bool TryReadToHeaderEnd(Memory<byte> buffer, ref int position)
         {
             var headerEndSequence = 0;
             fixed (byte* pHeaderBuffer = buffer.Span)
             {
-                while (position < length)
+                while (position < buffer.Length)
                 {
                     var b = pHeaderBuffer[position];
                     if (b == (headerEndSequence % 2 == 0 ? '\r' : '\n'))
@@ -293,12 +291,12 @@ namespace Zerra.CQRS.Network
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe bool ReadToBreak(Memory<byte> buffer, ref int position, int length)
+        public static unsafe bool ReadToBreak(Memory<byte> buffer, ref int position)
         {
             var headerEndSequence = 0;
             fixed (byte* pHeaderBuffer = buffer.Span)
             {
-                while (position < length)
+                while (position < buffer.Length)
                 {
                     var b = pHeaderBuffer[position];
                     if (b == (headerEndSequence % 2 == 0 ? '\r' : '\n'))

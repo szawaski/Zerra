@@ -2,13 +2,9 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Net.Sockets;
-using System.Threading;
 using Zerra.Collections;
 using Zerra.Logging;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Zerra.CQRS.Network
 {
@@ -58,14 +54,19 @@ namespace Zerra.CQRS.Network
         protected SemaphoreSlim? throttle = null;
 
         private readonly string serviceUrl;
+        /// <summary>
+        /// The logging provider.
+        /// </summary>
+        protected readonly ILogger? log;
 
         /// <summary>
         /// Required by the inheriting class to call this constructor for information the Socket needs.
         /// </summary>
         /// <param name="serviceUrl">The url under which the Socket will be listening.</param>
-        public CqrsServerBase(string serviceUrl)
+        public CqrsServerBase(string serviceUrl, ILogger? log)
         {
             this.serviceUrl = serviceUrl;
+            this.log = log;
             this.types = new();
             this.thisType = this.GetType();
         }
@@ -86,7 +87,7 @@ namespace Zerra.CQRS.Network
                 throttle.Dispose();
             throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
 
-            types.Add(type);
+            _ = types.Add(type);
         }
 
         void ICommandConsumer.Setup(CommandCounter commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
@@ -103,7 +104,7 @@ namespace Zerra.CQRS.Network
                 throttle.Dispose();
             throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
 
-            types.Add(type);
+            _ = types.Add(type);
         }
 
         void IEventConsumer.Setup(HandleRemoteEventDispatch handlerAsync)
@@ -117,23 +118,23 @@ namespace Zerra.CQRS.Network
                 throttle.Dispose();
             throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
 
-            types.Add(type);
+            _ = types.Add(type);
         }
 
         void IQueryServer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{thisType.GetNiceName()} Query Server Started On {this.serviceUrl}");
+            log?.Info($"{thisType.GetNiceName()} Query Server Started On {this.serviceUrl}");
         }
         void ICommandConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{thisType.GetNiceName()} Command Consumer Started On {this.serviceUrl}");
+            log?.Info($"{thisType.GetNiceName()} Command Consumer Started On {this.serviceUrl}");
         }
         void IEventConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{thisType.GetNiceName()} Event Consumer Started On {this.serviceUrl}");
+            log?.Info($"{thisType.GetNiceName()} Event Consumer Started On {this.serviceUrl}");
         }
         private void Open()
         {
@@ -161,7 +162,7 @@ namespace Zerra.CQRS.Network
                     this.listeners[i] = listener;
                 }
 
-                _ = Log.InfoAsync($"{thisType.GetNiceName()} resolved {serviceUrl} as {String.Join(", ", endpoints.Select(x => x.ToString()))}");
+                log?.Info($"{thisType.GetNiceName()} resolved {serviceUrl} as {String.Join(", ", endpoints.Select(x => x.ToString()))}");
 
                 foreach (var listener in listeners)
                     listener.Open();
@@ -181,17 +182,17 @@ namespace Zerra.CQRS.Network
         void IQueryServer.Close()
         {
             Dispose();
-            _ = Log.InfoAsync($"{thisType.GetNiceName()} Query Server Closed On {this.serviceUrl}");
+            log?.Info($"{thisType.GetNiceName()} Query Server Closed On {this.serviceUrl}");
         }
         void ICommandConsumer.Close()
         {
             Dispose();
-            _ = Log.InfoAsync($"{thisType.GetNiceName()} Command Consumer Closed On {this.serviceUrl}");
+            log?.Info($"{thisType.GetNiceName()} Command Consumer Closed On {this.serviceUrl}");
         }
         void IEventConsumer.Close()
         {
             Dispose();
-            _ = Log.InfoAsync($"{thisType.GetNiceName()} Event Consumer Closed On {this.serviceUrl}");
+            log?.Info($"{thisType.GetNiceName()} Event Consumer Closed On {this.serviceUrl}");
         }
 
         /// <inheritdoc />

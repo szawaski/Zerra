@@ -2,8 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-
 public static class StringExtensions
 {
     public static string Truncate(this string? it, int maxLength)
@@ -67,7 +65,7 @@ public static class StringExtensions
     }
     public unsafe static string Join(int maxLength, string seperator, string str1, string str2, string str3)
     {
-        if (maxLength - seperator.Length < 0) throw new ArgumentException("Cannot be shorter than the seperator length", nameof(maxLength));
+        if (maxLength - (seperator.Length * 2) < 0) throw new ArgumentException("Cannot be shorter than the seperator length", nameof(maxLength));
 
         var over = str1.Length + str2.Length + str3.Length + seperator.Length * 2 - maxLength;
         if (over <= 0)
@@ -124,7 +122,7 @@ public static class StringExtensions
     }
     public unsafe static string Join(int maxLength, string seperator, string str1, string str2, string str3, string str4)
     {
-        if (maxLength - seperator.Length < 0) throw new ArgumentException("Cannot be shorter than the seperator length", nameof(maxLength));
+        if (maxLength - (seperator.Length * 3) < 0) throw new ArgumentException("Cannot be shorter than the seperator length", nameof(maxLength));
 
         var over = str1.Length + str2.Length + str3.Length + str4.Length + seperator.Length * 3 - maxLength;
         if (over <= 0)

@@ -2,12 +2,8 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Threading;
 
 namespace Zerra.Collections
 {
@@ -253,14 +249,14 @@ namespace Zerra.Collections
         public TValue AddOrUpdate(TKey key, Func<TKey, TValue> addValueFactory, Func<TKey, TValue, TValue> updateValueFactory)
         {
             locker.EnterWriteLock();
-            if (!dictionary.ContainsKey(key))
+            if (!dictionary.TryGetValue(key, out var existing))
             {
                 var addValue = addValueFactory(key);
                 dictionary.Add(key, addValue);
                 locker.ExitWriteLock();
                 return addValue;
             }
-            var updatevalue = updateValueFactory(key, addValueFactory(key));
+            var updatevalue = updateValueFactory(key, existing);
             dictionary[key] = updatevalue;
             locker.ExitWriteLock();
             return updatevalue;
@@ -268,13 +264,13 @@ namespace Zerra.Collections
         public TValue AddOrUpdate(TKey key, TValue addValue, Func<TKey, TValue, TValue> updateValueFactory)
         {
             locker.EnterWriteLock();
-            if (!dictionary.ContainsKey(key))
+            if (!dictionary.TryGetValue(key, out var existing))
             {
                 dictionary.Add(key, addValue);
                 locker.ExitWriteLock();
                 return addValue;
             }
-            var updatevalue = updateValueFactory(key, addValue);
+            var updatevalue = updateValueFactory(key, existing);
             dictionary[key] = updatevalue;
             locker.ExitWriteLock();
             return updatevalue;
@@ -310,7 +306,7 @@ namespace Zerra.Collections
                 locker.ExitWriteLock();
                 return value;
             }
-            locker.ExitWriteLock();
+            locker.ExitReadLock();
             return currentvalue;
         }
         public TValue GetOrAdd(TKey key, Func<TKey, TValue> valueFactory)
@@ -365,7 +361,10 @@ namespace Zerra.Collections
                 return false;
             }
             if (currentvalue is not null && comparisonValue is not null && !currentvalue.Equals(comparisonValue))
+            {
+                locker.ExitWriteLock();
                 return false;
+            }
             dictionary[key] = value;
             locker.ExitWriteLock();
             return true;

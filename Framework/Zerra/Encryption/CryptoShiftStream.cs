@@ -2,17 +2,14 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.IO;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
-using System.Threading;
-using System.Threading.Tasks;
 using Zerra.Buffers;
 using Zerra.IO;
 
 namespace Zerra.Encryption
 {
+    [Obsolete]
     internal class CryptoShiftStream : StreamTransform
     {
         private const int bufferSize = 8 * 1024;
@@ -122,10 +119,10 @@ namespace Zerra.Encryption
         }
 
 #if NET5_0_OR_GREATER
-        public ValueTask FlushFinalBlockAsync()
+        public ValueTask FlushFinalBlockAsync(CancellationToken cancellationToken = default)
         {
             if (cryptoStream is not null)
-                return cryptoStream.FlushFinalBlockAsync();
+                return cryptoStream.FlushFinalBlockAsync(cancellationToken);
             return ValueTask.CompletedTask;
         }
 #endif

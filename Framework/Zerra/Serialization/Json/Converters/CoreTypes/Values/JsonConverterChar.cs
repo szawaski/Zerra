@@ -2,13 +2,12 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 
 namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
 {
-    internal sealed class JsonConverterChar<TParent> : JsonConverter<TParent, char>
+    internal sealed class JsonConverterChar : JsonConverter<char>
     {
         protected override bool StackRequired => false;
 

@@ -2,12 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.IO;
-using System.Threading.Tasks;
-using System.Net.Http;
 using System.Net;
-using System.Threading;
 
 namespace Zerra.CQRS.Network
 {

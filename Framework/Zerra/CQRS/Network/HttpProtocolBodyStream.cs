@@ -2,12 +2,8 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Globalization;
-using System.IO;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Zerra.Buffers;
 using Zerra.IO;
 
@@ -21,6 +17,7 @@ namespace Zerra.CQRS.Network
 
         private readonly int? contentLength;
         private readonly ReadOnlyMemory<byte> readStartBuffer;
+        private readonly bool writeMode;
         private int readStartBufferPosition;
         private long position;
         private int segmentPosition;
@@ -32,10 +29,11 @@ namespace Zerra.CQRS.Network
         private int segmentLengthBufferLength;
         private int segmentLengthBufferPosition;
 
-        public HttpProtocolBodyStream(int? contentLength, Stream stream, ReadOnlyMemory<byte> readStartBuffer, bool leaveOpen) : base(stream, leaveOpen)
+        public HttpProtocolBodyStream(int? contentLength, Stream stream, ReadOnlyMemory<byte> readStartBuffer, bool writeMode, bool leaveOpen) : base(stream, leaveOpen)
         {
             this.contentLength = contentLength;
             this.readStartBuffer = readStartBuffer;
+            this.writeMode = writeMode;
             this.readStartBufferPosition = 0;
             this.segmentPosition = 0;
             this.segmentLength = -1;
@@ -53,6 +51,10 @@ namespace Zerra.CQRS.Network
                 this.segmentLengthBuffer = null;
             }
         }
+
+        public override bool CanRead => !writeMode;
+        public override bool CanWrite => writeMode;
+        public override bool CanSeek => false;
 
         protected override void Dispose(bool disposing)
         {
@@ -85,6 +87,9 @@ namespace Zerra.CQRS.Network
 
         protected override int InternalRead(Span<byte> buffer)
         {
+            if (writeMode)
+                throw new InvalidOperationException("Stream is in write mode");
+
             if (contentLength.HasValue)
             {
                 var bytesToRead = (int)Math.Min(buffer.Length, contentLength.Value - position);
@@ -161,12 +166,12 @@ namespace Zerra.CQRS.Network
 
                             segmentLengthBufferLength += bytesRead;
 
-                            if (HttpCommon.ReadToBreak(segmentLengthBuffer, ref segmentLengthBufferPosition, segmentLengthBufferLength))
+                            if (HttpCommon.ReadToBreak(segmentLengthBuffer[..segmentLengthBufferLength], ref segmentLengthBufferPosition))
                             {
                                 if (segmentLength == -2)
                                 {
                                     segmentLengthStringStart = segmentLengthBufferPosition;
-                                    if (!HttpCommon.ReadToBreak(segmentLengthBuffer, ref segmentLengthBufferPosition, segmentLengthBufferLength))
+                                    if (!HttpCommon.ReadToBreak(segmentLengthBuffer[..segmentLengthBufferLength], ref segmentLengthBufferPosition))
                                         segmentLengthBufferPosition = 0;
                                     else
                                         break;
@@ -234,6 +239,9 @@ namespace Zerra.CQRS.Network
         }
         protected override async ValueTask<int> InternalReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
         {
+            if (writeMode)
+                throw new InvalidOperationException("Stream is in write mode");
+
             if (contentLength.HasValue)
             {
                 var bytesToRead = (int)Math.Min(buffer.Length, contentLength.Value - position);
@@ -272,7 +280,7 @@ namespace Zerra.CQRS.Network
                 while (totalBytesRead < buffer.Length)
                 {
                     int bytesRead;
-           
+
                     if (segmentLength < 0)
                     {
                         if (segmentLengthBufferPosition < segmentLengthBufferLength)
@@ -311,12 +319,12 @@ namespace Zerra.CQRS.Network
 
                             segmentLengthBufferLength += bytesRead;
 
-                            if (HttpCommon.ReadToBreak(segmentLengthBuffer, ref segmentLengthBufferPosition, segmentLengthBufferLength))
+                            if (HttpCommon.ReadToBreak(segmentLengthBuffer[..segmentLengthBufferLength], ref segmentLengthBufferPosition))
                             {
                                 if (segmentLength == -2)
                                 {
                                     segmentLengthStringStart = segmentLengthBufferPosition;
-                                    if (!HttpCommon.ReadToBreak(segmentLengthBuffer, ref segmentLengthBufferPosition, segmentLengthBufferLength))
+                                    if (!HttpCommon.ReadToBreak(segmentLengthBuffer[..segmentLengthBufferLength], ref segmentLengthBufferPosition))
                                         segmentLengthBufferPosition = 0;
                                     else
                                         break;
@@ -385,6 +393,9 @@ namespace Zerra.CQRS.Network
 
         protected override unsafe void InternalWrite(ReadOnlySpan<byte> buffer)
         {
+            if (!writeMode)
+                throw new InvalidOperationException("Stream is not in write mode");
+
             if (contentLength.HasValue)
             {
 #if NETSTANDARD2_0
@@ -392,6 +403,7 @@ namespace Zerra.CQRS.Network
 #else
                 stream.Write(buffer);
 #endif
+                position += buffer.Length;
             }
             else
             {
@@ -407,10 +419,14 @@ namespace Zerra.CQRS.Network
                 stream.Write(buffer);
                 stream.Write(newLineBytes.AsSpan());
 #endif
+                position += lengthBytes.Length + newLineBytes.Length + buffer.Length + newLineBytes.Length;
             }
         }
         protected override async ValueTask InternalWriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken)
         {
+            if (!writeMode)
+                throw new InvalidOperationException("Stream is not in write mode");
+
             if (contentLength.HasValue)
             {
 #if NETSTANDARD2_0
@@ -418,6 +434,7 @@ namespace Zerra.CQRS.Network
 #else
                 await stream.WriteAsync(buffer, cancellationToken);
 #endif
+                position += buffer.Length;
             }
             else
             {
@@ -433,6 +450,7 @@ namespace Zerra.CQRS.Network
                 await stream.WriteAsync(buffer, cancellationToken);
                 await stream.WriteAsync(newLineBytes.AsMemory(), cancellationToken);
 #endif
+                position += lengthBytes.Length + newLineBytes.Length + buffer.Length + newLineBytes.Length;
             }
         }
 
@@ -441,12 +459,16 @@ namespace Zerra.CQRS.Network
             if (ended)
                 throw new CqrsNetworkException("body already ended");
             ended = true;
+
+            if (writeMode)
+            {
 #if NETSTANDARD2_0
-            stream.Write(endingBytes, 0, endingBytes.Length);
+                stream.Write(endingBytes, 0, endingBytes.Length);
 #else
-            stream.Write(endingBytes.AsSpan());
+                stream.Write(endingBytes.AsSpan());
 #endif
-            stream.Flush();
+                stream.Flush();
+            }
         }
 
         public override async Task FlushAsync(CancellationToken cancellationToken)
@@ -454,12 +476,16 @@ namespace Zerra.CQRS.Network
             if (ended)
                 throw new CqrsNetworkException("body already ended");
             ended = true;
+
+            if (writeMode)
+            {
 #if NETSTANDARD2_0
-            await stream.WriteAsync(endingBytes, 0, endingBytes.Length, cancellationToken);
+                await stream.WriteAsync(endingBytes, 0, endingBytes.Length, cancellationToken);
 #else
-            await stream.WriteAsync(endingBytes.AsMemory(), cancellationToken);
+                await stream.WriteAsync(endingBytes.AsMemory(), cancellationToken);
 #endif
-            await stream.FlushAsync(cancellationToken);
+                await stream.FlushAsync(cancellationToken);
+            }
         }
     }
 }

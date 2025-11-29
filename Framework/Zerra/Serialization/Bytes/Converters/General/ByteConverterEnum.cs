@@ -2,14 +2,13 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using Zerra.Reflection;
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;
+using Zerra.SourceGeneration.Types;
 
 namespace Zerra.Serialization.Bytes.Converters.General
 {
-    internal sealed class ByteConverterEnum<TParent, TValue> : ByteConverter<TParent, TValue>
+    internal sealed class ByteConverterEnum<TValue> : ByteConverter<TValue>
     {
         protected override bool StackRequired => false;
 
@@ -27,7 +26,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         if (!typeDetail.IsNullable)
                             value = (TValue)Enum.ToObject(typeDetail.Type, number);
                         else
-                            value = (TValue)Enum.ToObject(typeDetail.InnerType, number);
+                            value = (TValue)Enum.ToObject(typeDetail.InnerType!, number);
                         return true;
                     }
                 case CoreEnumType.SByte:
@@ -40,7 +39,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         if (!typeDetail.IsNullable)
                             value = (TValue)Enum.ToObject(typeDetail.Type, number);
                         else
-                            value = (TValue)Enum.ToObject(typeDetail.InnerType, number);
+                            value = (TValue)Enum.ToObject(typeDetail.InnerType!, number);
                         return true;
                     }
                 case CoreEnumType.Int16:
@@ -53,7 +52,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         if (!typeDetail.IsNullable)
                             value = (TValue)Enum.ToObject(typeDetail.Type, number);
                         else
-                            value = (TValue)Enum.ToObject(typeDetail.InnerType, number);
+                            value = (TValue)Enum.ToObject(typeDetail.InnerType!, number);
                         return true;
                     }
                 case CoreEnumType.UInt16:
@@ -66,7 +65,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         if (!typeDetail.IsNullable)
                             value = (TValue)Enum.ToObject(typeDetail.Type, number);
                         else
-                            value = (TValue)Enum.ToObject(typeDetail.InnerType, number);
+                            value = (TValue)Enum.ToObject(typeDetail.InnerType!, number);
                         return true;
                     }
                 case CoreEnumType.Int32:
@@ -79,7 +78,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         if (!typeDetail.IsNullable)
                             value = (TValue)Enum.ToObject(typeDetail.Type, number);
                         else
-                            value = (TValue)Enum.ToObject(typeDetail.InnerType, number);
+                            value = (TValue)Enum.ToObject(typeDetail.InnerType!, number);
                         return true;
                     }
                 case CoreEnumType.UInt32:
@@ -92,7 +91,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         if (!typeDetail.IsNullable)
                             value = (TValue)Enum.ToObject(typeDetail.Type, number);
                         else
-                            value = (TValue)Enum.ToObject(typeDetail.InnerType, number);
+                            value = (TValue)Enum.ToObject(typeDetail.InnerType!, number);
                         return true;
                     }
                 case CoreEnumType.Int64:
@@ -105,7 +104,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         if (!typeDetail.IsNullable)
                             value = (TValue)Enum.ToObject(typeDetail.Type, number);
                         else
-                            value = (TValue)Enum.ToObject(typeDetail.InnerType, number);
+                            value = (TValue)Enum.ToObject(typeDetail.InnerType!, number);
                         return true;
                     }
                 case CoreEnumType.UInt64:
@@ -118,7 +117,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         if (!typeDetail.IsNullable)
                             value = (TValue)Enum.ToObject(typeDetail.Type, number);
                         else
-                            value = (TValue)Enum.ToObject(typeDetail.InnerType, number);
+                            value = (TValue)Enum.ToObject(typeDetail.InnerType!, number);
                         return true;
                     }
                 case CoreEnumType.ByteNullable:
@@ -136,7 +135,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         if (!typeDetail.IsNullable)
                             value = (TValue)Enum.ToObject(typeDetail.Type, number);
                         else
-                            value = (TValue)Enum.ToObject(typeDetail.InnerType, number);
+                            value = (TValue)Enum.ToObject(typeDetail.InnerType!, number);
                         return true;
                     }
                 case CoreEnumType.SByteNullable:
@@ -154,7 +153,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         if (!typeDetail.IsNullable)
                             value = (TValue)Enum.ToObject(typeDetail.Type, number);
                         else
-                            value = (TValue)Enum.ToObject(typeDetail.InnerType, number);
+                            value = (TValue)Enum.ToObject(typeDetail.InnerType!, number);
                         return true;
                     }
                 case CoreEnumType.Int16Nullable:
@@ -172,7 +171,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         if (!typeDetail.IsNullable)
                             value = (TValue)Enum.ToObject(typeDetail.Type, number);
                         else
-                            value = (TValue)Enum.ToObject(typeDetail.InnerType, number);
+                            value = (TValue)Enum.ToObject(typeDetail.InnerType!, number);
                         return true;
                     }
                 case CoreEnumType.UInt16Nullable:
@@ -190,7 +189,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         if (!typeDetail.IsNullable)
                             value = (TValue)Enum.ToObject(typeDetail.Type, number);
                         else
-                            value = (TValue)Enum.ToObject(typeDetail.InnerType, number);
+                            value = (TValue)Enum.ToObject(typeDetail.InnerType!, number);
                         return true;
                     }
                 case CoreEnumType.Int32Nullable:
@@ -208,7 +207,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         if (!typeDetail.IsNullable)
                             value = (TValue)Enum.ToObject(typeDetail.Type, number);
                         else
-                            value = (TValue)Enum.ToObject(typeDetail.InnerType, number);
+                            value = (TValue)Enum.ToObject(typeDetail.InnerType!, number);
                         return true;
                     }
                 case CoreEnumType.UInt32Nullable:
@@ -226,7 +225,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         if (!typeDetail.IsNullable)
                             value = (TValue)Enum.ToObject(typeDetail.Type, number);
                         else
-                            value = (TValue)Enum.ToObject(typeDetail.InnerType, number);
+                            value = (TValue)Enum.ToObject(typeDetail.InnerType!, number);
                         return true;
                     }
                 case CoreEnumType.Int64Nullable:
@@ -244,7 +243,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         if (!typeDetail.IsNullable)
                             value = (TValue)Enum.ToObject(typeDetail.Type, number);
                         else
-                            value = (TValue)Enum.ToObject(typeDetail.InnerType, number);
+                            value = (TValue)Enum.ToObject(typeDetail.InnerType!, number);
                         return true;
                     }
                 case CoreEnumType.UInt64Nullable:
@@ -262,7 +261,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         if (!typeDetail.IsNullable)
                             value = (TValue)Enum.ToObject(typeDetail.Type, number);
                         else
-                            value = (TValue)Enum.ToObject(typeDetail.InnerType, number);
+                            value = (TValue)Enum.ToObject(typeDetail.InnerType!, number);
                         return true;
                     }
                 default: throw new NotImplementedException();

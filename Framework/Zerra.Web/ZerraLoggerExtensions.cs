@@ -8,9 +8,9 @@ namespace Zerra.Web
 {
     public static class ZerraLoggerExtensions
     {
-        public static ILoggerFactory AddZerraLogger(this ILoggerFactory factory)
+        public static ILoggerFactory AddZerraLogger(this ILoggerFactory factory, Zerra.Logging.ILogger log)
         {
-            factory.AddProvider(new ZerraLoggerProvider());
+            factory.AddProvider(new ZerraLoggerProvider(log));
             return factory;
         }
     }

@@ -1,2 +1,0 @@
-# Zerra Mapper
-An object property mapper simular to AutoMapper, this tool can copy object and/or their properties to another object type. The property maps are automatically generated if they have the same type and name.  Otherwise the maps can be definied in a mapping interface using lambda/LINQ expressions.  The maps are complied into Intermediate Language so they run as fast or faster if the code had been written by hand.

@@ -2,13 +2,12 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Collections.Generic;
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;
 
 namespace Zerra.Serialization.Bytes.Converters.CoreTypes.ISetTs
 {
-    internal sealed class ByteConverterInt32NullableISet<TParent> : ByteConverter<TParent, ISet<int?>>
+    internal sealed class ByteConverterInt32NullableISet : ByteConverter<ISet<int?>>
     {
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out ISet<int?>? value)
         {

@@ -2,13 +2,12 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 
 namespace Zerra.Serialization.Json.Converters.Special
 {
-    internal sealed class JsonConverterByteArray<TParent> : JsonConverter<TParent, byte[]>
+    internal sealed class JsonConverterByteArray : JsonConverter<byte[]>
     {
         protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out byte[]? value)
         {

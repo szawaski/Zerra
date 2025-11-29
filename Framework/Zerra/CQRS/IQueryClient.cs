@@ -2,9 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Threading;
-
 namespace Zerra.CQRS
 {
     /// <summary>
@@ -32,6 +29,8 @@ namespace Zerra.CQRS
         /// <param name="source">A description of where the query came from.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>The result of the query.</returns>
-        TReturn? Call<TReturn>(Type interfaceType, string methodName, object[] arguments, string source, CancellationToken cancellationToken);
+        TReturn Call<TReturn>(Type interfaceType, string methodName, object[] arguments, string source, CancellationToken cancellationToken);
+        Task CallTask(Type interfaceType, string methodName, object[] arguments, string source, CancellationToken cancellationToken);
+        Task<TReturn> CallTaskGeneric<TReturn>(Type interfaceType, string methodName, object[] arguments, string source, CancellationToken cancellationToken);
     }
 }

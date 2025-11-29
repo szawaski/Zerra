@@ -2,13 +2,12 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Collections.Generic;
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;
 
 namespace Zerra.Serialization.Bytes.Converters.CoreTypes.HashSetTs
 {
-    internal sealed class ByteConverterUInt64NullableHashSet<TParent> : ByteConverter<TParent, HashSet<ulong?>>
+    internal sealed class ByteConverterUInt64NullableHashSet : ByteConverter<HashSet<ulong?>>
     {
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out HashSet<ulong?>? value)
             => reader.TryRead(out value, out state.SizeNeeded);

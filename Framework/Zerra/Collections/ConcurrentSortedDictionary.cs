@@ -2,11 +2,8 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 
 namespace Zerra.Collections
 {
@@ -264,13 +261,13 @@ namespace Zerra.Collections
         {
             lock (locker)
             {
-                if (!dictionary.ContainsKey(key))
+                if (!dictionary.TryGetValue(key, out var existing))
                 {
                     var addValue = addValueFactory(key);
                     dictionary.Add(key, addValue);
                     return addValue;
                 }
-                var updatevalue = updateValueFactory(key, addValueFactory(key));
+                var updatevalue = updateValueFactory(key, existing);
                 dictionary[key] = updatevalue;
                 return updatevalue;
             }
@@ -279,12 +276,12 @@ namespace Zerra.Collections
         {
             lock (locker)
             {
-                if (!dictionary.ContainsKey(key))
+                if (!dictionary.TryGetValue(key,out var existing))
                 {
                     dictionary.Add(key, addValue);
                     return addValue;
                 }
-                var updatevalue = updateValueFactory(key, addValue);
+                var updatevalue = updateValueFactory(key, existing);
                 dictionary[key] = updatevalue;
                 return updatevalue;
             }

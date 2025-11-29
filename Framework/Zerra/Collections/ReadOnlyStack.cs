@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 
 namespace Zerra.Collections
 {
@@ -37,7 +34,7 @@ namespace Zerra.Collections
         public void CopyTo(T[] array, int arrayIndex)
         {
             var length = stack.Length - index;
-            if (length < array.Length - arrayIndex)
+            if (length > array.Length - arrayIndex)
                 throw new ArgumentException($"The number of elements in the source {nameof(ReadOnlyStack<T>)} is greater than the available space from arrayIndex to the end of the destination array.");
             Array.Copy(stack, index, array, arrayIndex, length);
         }
@@ -45,7 +42,7 @@ namespace Zerra.Collections
         void ICollection.CopyTo(Array array, int arrayIndex)
         {
             var length = stack.Length - index;
-            if (length < array.Length - index)
+            if (length > array.Length - arrayIndex)
                 throw new ArgumentException($"The number of elements in the source {nameof(ReadOnlyStack<T>)} is greater than the available space from arrayIndex to the end of the destination array.");
             Array.Copy(stack, index, array, arrayIndex, length);
         }

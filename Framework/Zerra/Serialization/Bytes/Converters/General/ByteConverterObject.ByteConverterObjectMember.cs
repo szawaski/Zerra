@@ -2,14 +2,12 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections.Generic;
-using Zerra.Reflection;
 using Zerra.Serialization.Bytes.IO;
+using Zerra.SourceGeneration.Types;
 
 namespace Zerra.Serialization.Bytes.Converters.General
 {
-    internal sealed partial class ByteConverterObject<TParent, TValue>
+    partial class ByteConverterObject<TValue>
     {
         private sealed class ByteConverterObjectMember
         {
@@ -36,8 +34,8 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 this.Index = index;
             }
 
-            private ByteConverter<TValue>? converter = null;
-            public ByteConverter<TValue> Converter
+            private ByteConverter? converter = null;
+            public ByteConverter Converter
             {
                 get
                 {
@@ -45,7 +43,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     {
                         lock (this)
                         {
-                            converter ??= ByteConverterFactory<TValue>.Get(Member.TypeDetailBoxed, memberKey, Member.HasGetterBoxed ? Member.GetterTyped : null, Member.HasSetterBoxed ? Member.SetterTyped : null);
+                            converter ??= ByteConverterFactory.Get(Member.TypeDetailBoxed, memberKey, Member.HasGetter ? Member.Getter : null, Member.HasSetter ? Member.Setter : null);
                         }
                     }
                     return converter;
@@ -54,8 +52,8 @@ namespace Zerra.Serialization.Bytes.Converters.General
 
             private void SetterForConverterSetValues(Dictionary<string, object?> parent, object? value) => parent.Add(Member.Name.TrimStart('_'), value);
 
-            private ByteConverter<Dictionary<string, object?>>? converterSetValues;
-            public ByteConverter<Dictionary<string, object?>> ConverterSetCollectedValues
+            private ByteConverter? converterSetValues;
+            public ByteConverter ConverterSetCollectedValues
             {
                 get
                 {
@@ -63,7 +61,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     {
                         lock (this)
                         {
-                            converterSetValues ??= ByteConverterFactory<Dictionary<string, object?>>.Get(Member.TypeDetailBoxed, memberKey, null, SetterForConverterSetValues);
+                            converterSetValues ??= ByteConverterFactory.Get(Member.TypeDetailBoxed, $"{memberKey}_CollectedValues", null, SetterForConverterSetValues);
                         }
                     }
                     return converterSetValues;

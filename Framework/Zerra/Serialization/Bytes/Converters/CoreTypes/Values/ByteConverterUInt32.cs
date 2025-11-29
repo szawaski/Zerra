@@ -7,7 +7,7 @@ using Zerra.Serialization.Bytes.State;
 
 namespace Zerra.Serialization.Bytes.Converters.CoreTypes.Values
 {
-    internal sealed class ByteConverterUInt32<TParent> : ByteConverter<TParent, uint>
+    internal sealed class ByteConverterUInt32 : ByteConverter<uint>
     {
         protected override bool StackRequired => false;
 

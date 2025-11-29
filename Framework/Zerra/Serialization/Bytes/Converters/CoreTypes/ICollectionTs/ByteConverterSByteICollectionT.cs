@@ -2,13 +2,12 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Collections.Generic;
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;
 
 namespace Zerra.Serialization.Bytes.Converters.CoreTypes.ICollectionTs
 {
-    internal sealed class ByteConverterSByteICollection<TParent> : ByteConverter<TParent, ICollection<sbyte>>
+    internal sealed class ByteConverterSByteICollection : ByteConverter<ICollection<sbyte>>
     {
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out ICollection<sbyte>? value)
         {

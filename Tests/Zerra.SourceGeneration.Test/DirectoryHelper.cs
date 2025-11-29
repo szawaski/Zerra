@@ -1,4 +1,8 @@
-﻿using System;
+﻿// Copyright © KaKush LLC
+// Written By Steven Zawaski
+// Licensed to you under the MIT license
+
+using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -21,7 +25,7 @@ namespace Zerra.SourceGeneration.Test
                         if (solutionDirectory is null)
                         {
                             var directory = new DirectoryInfo(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!);
-                            while (!File.Exists($"{directory.FullName}{Path.DirectorySeparatorChar}Zerra.sln") && directory.Parent is not null)
+                            while (!File.Exists($"{directory.FullName}{Path.DirectorySeparatorChar}Zerra.slnx") && directory.Parent is not null)
                                 directory = directory.Parent;
                             solutionDirectory = directory;
                         }

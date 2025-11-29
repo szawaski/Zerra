@@ -2,14 +2,10 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.IO;
-using System.Threading.Tasks;
-using Zerra.Serialization.Json.Converters;
 using Zerra.Serialization.Json.State;
 using Zerra.Buffers;
-using System.Threading;
-using Zerra.Reflection;
+using Zerra.SourceGeneration;
+using Zerra.Serialization.Json.Converters;
 
 namespace Zerra.Serialization.Json
 {
@@ -34,13 +30,13 @@ namespace Zerra.Serialization.Json
             options ??= defaultOptions;
 
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
-            var converter = (JsonConverter<object, T>)JsonConverterFactory<object>.GetRoot(typeDetail);
+            var converter = (JsonConverter<T>)JsonConverterFactory.CreateRoot(typeDetail);
 
             var state = new ReadState(options, graph, true, true);
 
             T? result;
 
-            Read(converter, chars, ref state, out result);
+            _ = Read(converter, chars, ref state, out result);
 
             if (state.SizeNeeded > 0)
                 throw new EndOfStreamException();
@@ -61,13 +57,13 @@ namespace Zerra.Serialization.Json
             options ??= defaultOptions;
 
             var typeDetail = type.GetTypeDetail();
-            var converter = JsonConverterFactory<object>.GetRoot(typeDetail);
+            var converter = JsonConverterFactory.CreateRoot(typeDetail);
 
             var state = new ReadState(options, graph, true, true);
 
             object? result;
 
-            ReadBoxed(converter, chars, ref state, out result);
+            _ = ReadBoxed(converter, chars, ref state, out result);
 
             if (state.SizeNeeded > 0)
                 throw new EndOfStreamException();
@@ -87,13 +83,13 @@ namespace Zerra.Serialization.Json
             options ??= defaultOptions;
 
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
-            var converter = (JsonConverter<object, T>)JsonConverterFactory<object>.GetRoot(typeDetail);
+            var converter = (JsonConverter<T>)JsonConverterFactory.CreateRoot(typeDetail);
 
             var state = new ReadState(options, graph, true, true);
 
             T? result;
 
-            Read(converter, bytes, ref state, out result);
+            _ = Read(converter, bytes, ref state, out result);
 
             if (state.SizeNeeded > 0)
                 throw new EndOfStreamException();
@@ -114,13 +110,13 @@ namespace Zerra.Serialization.Json
             options ??= defaultOptions;
 
             var typeDetail = type.GetTypeDetail();
-            var converter = JsonConverterFactory<object>.GetRoot(typeDetail);
+            var converter = JsonConverterFactory.CreateRoot(typeDetail);
 
             var state = new ReadState(options, graph, true, true);
 
             object? result;
 
-            ReadBoxed(converter, bytes, ref state, out result);
+            _ = ReadBoxed(converter, bytes, ref state, out result);
 
             if (state.SizeNeeded > 0)
                 throw new EndOfStreamException();
@@ -136,7 +132,7 @@ namespace Zerra.Serialization.Json
             options ??= defaultOptions;
 
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
-            var converter = (JsonConverter<object, T>)JsonConverterFactory<object>.GetRoot(typeDetail);
+            var converter = (JsonConverter<T>)JsonConverterFactory.CreateRoot(typeDetail);
 
             var isFinalBlock = false;
             var buffer = ArrayPoolHelper<byte>.Rent(defaultBufferSize);
@@ -231,7 +227,7 @@ namespace Zerra.Serialization.Json
             options ??= defaultOptions;
 
             var typeDetail = type.GetTypeDetail();
-            var converter = JsonConverterFactory<object>.GetRoot(typeDetail);
+            var converter = JsonConverterFactory.CreateRoot(typeDetail);
 
             var isFinalBlock = false;
             var buffer = ArrayPoolHelper<byte>.Rent(defaultBufferSize);
@@ -328,7 +324,7 @@ namespace Zerra.Serialization.Json
             options ??= defaultOptions;
 
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
-            var converter = (JsonConverter<object, T>)JsonConverterFactory<object>.GetRoot(typeDetail);
+            var converter = (JsonConverter<T>)JsonConverterFactory.CreateRoot(typeDetail);
 
             var isFinalBlock = false;
             var buffer = ArrayPoolHelper<byte>.Rent(defaultBufferSize);
@@ -426,7 +422,7 @@ namespace Zerra.Serialization.Json
             options ??= defaultOptions;
 
             var typeDetail = type.GetTypeDetail();
-            var converter = JsonConverterFactory<object>.GetRoot(typeDetail);
+            var converter = JsonConverterFactory.CreateRoot(typeDetail);
 
             var isFinalBlock = false;
             var buffer = ArrayPoolHelper<byte>.Rent(defaultBufferSize);

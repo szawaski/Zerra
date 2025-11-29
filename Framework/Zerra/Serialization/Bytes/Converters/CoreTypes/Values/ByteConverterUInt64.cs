@@ -7,7 +7,7 @@ using Zerra.Serialization.Bytes.State;
 
 namespace Zerra.Serialization.Bytes.Converters.CoreTypes.Values
 {
-    internal sealed class ByteConverterUInt64<TParent> : ByteConverter<TParent, ulong>
+    internal sealed class ByteConverterUInt64 : ByteConverter<ulong>
     {
         protected override bool StackRequired => false;
 

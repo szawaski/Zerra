@@ -2,18 +2,12 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+#if NETCOREAPP
+
 using System.Net;
-using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using Zerra.Reflection;
+using Zerra.Serialization;
 
 namespace Zerra.CQRS.Network
 {
@@ -21,13 +15,18 @@ namespace Zerra.CQRS.Network
     {
         private const string cookieHeader = "Cookie";
 
+        private readonly ISerializer serializer;
         private readonly Uri endpoint;
         private readonly string loginRequestBody;
         private readonly string contentType;
         private CookieCollection? cookies;
 
-        public ApiCqrsCookieAuthorizer(string loginEndpoint, string loginRequestBody, string contentType)
+        public ApiCqrsCookieAuthorizer(ISerializer serializer, string loginEndpoint, string loginRequestBody, string contentType)
         {
+            if (serializer.ContentType != ContentType.Json)
+                throw new ArgumentException("Must be JSON serializer", nameof(serializer));
+
+            this.serializer = serializer;
             if (!loginEndpoint.Contains("://"))
                 this.endpoint = new Uri($"tcp://{loginEndpoint}"); //hacky way to make it parse without scheme.
             else
@@ -37,7 +36,7 @@ namespace Zerra.CQRS.Network
             this.contentType = contentType;
         }
 
-        private static async Task<CookieCollection> GetCookiesRequest(Uri endpoint, string body, string contentType, CancellationToken cancellationToken)
+        private static async Task<CookieCollection> GetCookiesRequest(ISerializer serializer, Uri endpoint, string body, string contentType, CancellationToken cancellationToken)
         {
             using var handler = new HttpClientHandler()
             {
@@ -52,7 +51,7 @@ namespace Zerra.CQRS.Network
                 request.Content = new WriteStreamContent(async (postStream) =>
                 {
                     var data = System.Text.Encoding.UTF8.GetBytes(body);
-                    await ContentTypeSerializer.SerializeAsync(ContentType.Json, postStream, data, cancellationToken);
+                    await serializer.SerializeAsync(postStream, data, cancellationToken);
                 });
                 request.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
 
@@ -66,11 +65,11 @@ namespace Zerra.CQRS.Network
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(ContentType.Json, responseStream, cancellationToken);
+                    var responseException = await ExceptionSerializer.DeserializeAsync(serializer, responseStream, cancellationToken);
                     throw responseException;
                 }
 
-                var cookies = GetCookiesFromContainer(handler.CookieContainer);
+                var cookies = handler.CookieContainer.GetAllCookies();
                 return cookies;
             }
             catch
@@ -89,30 +88,6 @@ namespace Zerra.CQRS.Network
                 }
                 throw;
             }
-        }
-
-        private static readonly Func<object, object?> cookieContainerGetter = TypeAnalyzer.GetTypeDetail(typeof(CookieContainer)).GetMember("m_domainTable").GetterBoxed;
-        private static readonly Func<object, object?> pathListGetter = TypeAnalyzer.GetTypeDetail(Discovery.GetTypeFromName("System.Net.PathList, System.Net.Primitives, Version=4.1.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a")).GetMember("m_list").GetterBoxed;
-        private static CookieCollection GetCookiesFromContainer(CookieContainer cookieJar)
-        {
-            var cookieCollection = new CookieCollection();
-
-            var table = (Hashtable)cookieContainerGetter(cookieJar)!;
-
-            foreach (var pathList in table.Values)
-            {
-                var list = (SortedList)pathListGetter(pathList)!;
-
-                foreach (CookieCollection collection in list.Values)
-                {
-                    foreach (var cookie in collection.Cast<Cookie>())
-                    {
-                        cookieCollection.Add(cookie);
-                    }
-                }
-            }
-
-            return cookieCollection;
         }
 
         public static unsafe Dictionary<string, string> CookiesFromString(string cookieString)
@@ -185,7 +160,7 @@ namespace Zerra.CQRS.Network
             return cookies;
         }
 
-        public Task Login(CancellationToken cancellationToken = default) => GetCookiesRequest(endpoint, loginRequestBody, contentType, cancellationToken);
+        public Task Login(CancellationToken cancellationToken = default) => GetCookiesRequest(serializer, endpoint, loginRequestBody, contentType, cancellationToken);
 
         public CookieCollection? Cookies => cookies;
 
@@ -201,7 +176,7 @@ namespace Zerra.CQRS.Network
 
         public async ValueTask<Dictionary<string, List<string?>>> GetAuthorizationHeadersAsync(CancellationToken cancellationToken = default)
         {
-            cookies ??= await GetCookiesRequest(endpoint, loginRequestBody, contentType, cancellationToken);
+            cookies ??= await GetCookiesRequest(serializer, endpoint, loginRequestBody, contentType, cancellationToken);
 
             var sb = new StringBuilder();
             foreach (Cookie cookie in cookies)
@@ -223,3 +198,5 @@ namespace Zerra.CQRS.Network
         public virtual void AuthorizeCookies(Dictionary<string, string>? cookies) => throw new NotImplementedException($"{nameof(ApiCqrsCookieAuthorizer)}.{nameof(AuthorizeCookies)} needs overridden to use.");
     }
 }
+
+#endif

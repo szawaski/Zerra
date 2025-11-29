@@ -4,14 +4,12 @@
 
 #if NET6_0_OR_GREATER
 
-using System;
-using System.Buffers.Text;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 
 namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
 {
-    internal sealed class JsonConverterDateOnlyNullable<TParent> : JsonConverter<TParent, DateOnly?>
+    internal sealed class JsonConverterDateOnlyNullable : JsonConverter<DateOnly?>
     {
         protected override bool StackRequired => false;
 

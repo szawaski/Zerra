@@ -2,27 +2,24 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Collections.Generic;
-using Zerra.Reflection;
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;
+using Zerra.SourceGeneration;
 
 namespace Zerra.Serialization.Bytes.Converters.Collections.Dictionaries
 {
-    internal sealed class ByteConverterDictionaryT<TParent, TKey, TValue> : ByteConverter<TParent, Dictionary<TKey, TValue>>
+    internal sealed class ByteConverterDictionaryT<TKey, TValue> : ByteConverter<Dictionary<TKey, TValue>>
         where TKey : notnull
     {
-        private ByteConverter<Dictionary<TKey, TValue>> readConverter = null!;
-        private ByteConverter<IEnumerator<KeyValuePair<TKey, TValue>>> writeConverter = null!;
+        private ByteConverter converter = null!;
 
-        private static KeyValuePair<TKey, TValue> Getter(IEnumerator<KeyValuePair<TKey, TValue>> parent) => parent.Current;
-        private static void Setter(Dictionary<TKey, TValue> parent, KeyValuePair<TKey, TValue> value) => parent.Add(value.Key, value.Value);
+        private static KeyValuePair<TKey, TValue> Getter(object parent) => ((IEnumerator<KeyValuePair<TKey, TValue>>)parent).Current;
+        private static void Setter(object parent, KeyValuePair<TKey, TValue> value) => ((Dictionary<TKey, TValue>)parent).Add(value.Key, value.Value);
 
         protected override sealed void Setup()
         {
             var keyValuePairTypeDetail = TypeAnalyzer<KeyValuePair<TKey, TValue>>.GetTypeDetail();
-            readConverter = ByteConverterFactory<Dictionary<TKey, TValue>>.Get(keyValuePairTypeDetail, nameof(ByteConverterDictionaryT<TParent, TKey, TValue>), null, Setter);
-            writeConverter = ByteConverterFactory<IEnumerator<KeyValuePair<TKey, TValue>>>.Get(keyValuePairTypeDetail, nameof(ByteConverterDictionaryT<TParent, TKey, TValue>), Getter, null);
+            converter = ByteConverterFactory.Get(keyValuePairTypeDetail, nameof(ByteConverterDictionaryT<TKey, TValue>), Getter, Setter);
         }
 
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out Dictionary<TKey, TValue>? value)
@@ -58,7 +55,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Dictionaries
 
             for (; ; )
             {
-                if (!readConverter.TryReadFromParent(ref reader, ref state, value, true))
+                if (!converter.TryReadFromParent(ref reader, ref state, value, true))
                 {
                     state.Current.Object = value;
                     return false;
@@ -93,7 +90,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Dictionaries
 
             while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
             {
-                if (!writeConverter.TryWriteFromParent(ref writer, ref state, enumerator, true))
+                if (!converter.TryWriteFromParent(ref writer, ref state, enumerator, true))
                 {
                     state.Current.Object = enumerator;
                     state.Current.EnumeratorInProgress = true;

@@ -2,17 +2,13 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Net.Sockets;
-using System.Threading;
 using System.Security.Claims;
-using System.Linq;
-using Zerra.Reflection;
-using Zerra.Logging;
 using Zerra.Encryption;
-using System.IO;
-using System.Threading.Tasks;
 using Zerra.Buffers;
+using Zerra.SourceGeneration;
+using Zerra.Logging;
+using Zerra.Serialization;
 
 namespace Zerra.CQRS.Network
 {
@@ -21,24 +17,23 @@ namespace Zerra.CQRS.Network
     /// </summary>
     public sealed class HttpCqrsServer : CqrsServerBase
     {
-        private readonly ContentType? contentType;
-        private readonly SymmetricConfig? symmetricConfig;
+        private readonly ISerializer serializer;
+        private readonly IEncryptor? encryptor;
         private readonly ICqrsAuthorizer? authorizer;
         private readonly string[]? allowOrigins;
 
         /// <summary>
         /// Creates a new HTTP Server
         /// </summary>
-        /// <param name="contentType">The format of the body of the request and response.</param>
         /// <param name="serverUrl">The url of the server.</param>
         /// <param name="symmetricConfig">If provided, information to encrypt the data.</param>
         /// <param name="authorizer">An authorizer for the server to validate requests.</param>
         /// <param name="allowOrigins">CORS HTTP headers for Allow-Origins</param>
-        public HttpCqrsServer(ContentType? contentType, string serverUrl, SymmetricConfig? symmetricConfig, ICqrsAuthorizer? authorizer, string[]? allowOrigins)
-            : base(serverUrl)
+        public HttpCqrsServer(string serverUrl, ISerializer serializer, IEncryptor? encryptor, ICqrsAuthorizer? authorizer, string[]? allowOrigins, ILogger? log = null)
+            : base(serverUrl, log)
         {
-            this.contentType = contentType;
-            this.symmetricConfig = symmetricConfig;
+            this.serializer = serializer;
+            this.encryptor = encryptor;
             this.authorizer = authorizer;
             if (allowOrigins is not null && !allowOrigins.Contains("*"))
                 this.allowOrigins = allowOrigins.Select(x => x.ToLower()).ToArray();
@@ -85,26 +80,26 @@ namespace Zerra.CQRS.Network
 #if NETSTANDARD2_0
                             var bytesRead = await stream.ReadAsync(bufferOwner, headerLength, buffer.Length - headerLength, cancellationToken);
 #else
-                            var bytesRead = await stream.ReadAsync(buffer.Slice(headerLength, buffer.Length - headerLength), cancellationToken);
+                            var bytesRead = await stream.ReadAsync(buffer[headerLength..], cancellationToken);
 #endif
 
                             if (bytesRead == 0)
                                 return; //not an abort if we haven't started receiving, simple socket disconnect
                             headerLength += bytesRead;
 
-                            headerEnd = HttpCommon.ReadToHeaderEnd(buffer, ref headerPosition, headerLength);
+                            headerEnd = HttpCommon.TryReadToHeaderEnd(buffer[..headerLength], ref headerPosition);
                         }
-                        requestHeader = HttpCommon.ReadHeader(buffer, headerPosition, headerLength);
+                        requestHeader = HttpCommon.ReadHeader(buffer[..headerLength], headerPosition);
 
-                        if (contentType.HasValue && requestHeader.ContentType.HasValue && requestHeader.ContentType != contentType)
+                        if (requestHeader.ContentType.HasValue && requestHeader.ContentType != serializer.ContentType)
                         {
-                            _ = Log.ErrorAsync($"{nameof(HttpCqrsServer)} Received Invalid Content Type {requestHeader.ContentType}");
-                            throw new CqrsNetworkException("Invalid Content Type");
+                            log?.Error($"{nameof(HttpCqrsServer)} Received Invalid Content Type {requestHeader.ContentType}, Expected {serializer.ContentType}");
+                            throw new CqrsNetworkException($"Invalid Content Type {requestHeader.ContentType}, Expected {serializer.ContentType}");
                         }
 
                         if (requestHeader.Preflight)
                         {
-                            _ = Log.TraceAsync($"{nameof(HttpCqrsServer)} Received Preflight {socket.RemoteEndPoint}");
+                            log?.Trace($"{nameof(HttpCqrsServer)} Received Preflight {socket.RemoteEndPoint}");
 
                             var preflightLength = HttpCommon.BufferPreflightResponse(buffer, requestHeader.Origin);
 #if NETSTANDARD2_0
@@ -119,13 +114,13 @@ namespace Zerra.CQRS.Network
 
                         if (!requestHeader.ContentType.HasValue)
                         {
-                            _ = Log.ErrorAsync($"{nameof(HttpCqrsServer)} Received Invalid Content Type {requestHeader.ContentType}");
+                            log?.Error($"{nameof(HttpCqrsServer)} Received Invalid Content Type {requestHeader.ContentType}");
                             throw new CqrsNetworkException("Invalid Content Type");
                         }
 
                         if (allowOrigins is not null && allowOrigins.Length > 0)
                         {
-                            if (allowOrigins.Contains(requestHeader.Origin))
+                            if (!allowOrigins.Contains(requestHeader.Origin))
                             {
                                 throw new CqrsNetworkException($"Origin Not Allowed {requestHeader.Origin}");
                             }
@@ -134,12 +129,12 @@ namespace Zerra.CQRS.Network
                         //Read Request Body
                         //------------------------------------------------------------------------------------------------------------
 
-                        requestBodyStream = new HttpProtocolBodyStream(requestHeader.ContentLength, stream, requestHeader.BodyStartBuffer, true);
+                        requestBodyStream = new HttpProtocolBodyStream(requestHeader.ContentLength, stream, requestHeader.BodyStartBuffer, false, true);
 
-                        if (symmetricConfig is not null)
-                            requestBodyStream = SymmetricEncryptor.Decrypt(symmetricConfig, requestBodyStream, false);
+                        if (encryptor is not null)
+                            requestBodyStream = encryptor.Decrypt(requestBodyStream, false);
 
-                        var data = await ContentTypeSerializer.DeserializeAsync<CqrsRequestData>(requestHeader.ContentType.Value, requestBodyStream, cancellationToken);
+                        var data = await serializer.DeserializeAsync<CqrsRequestData>(requestBodyStream, cancellationToken);
                         if (data is null)
                             throw new CqrsNetworkException("Empty request body");
 
@@ -184,8 +179,7 @@ namespace Zerra.CQRS.Network
                             if (String.IsNullOrWhiteSpace(data.Source)) throw new Exception("Invalid Request");
                             if (requestHeader.ProviderType != data.ProviderType) throw new Exception("Invalid Request");
 
-                            var providerType = Discovery.GetTypeFromName(data.ProviderType);
-                            var typeDetail = TypeAnalyzer.GetTypeDetail(providerType);
+                            var providerType = TypeHelper.GetTypeFromName(data.ProviderType);
 
                             if (!this.types.Contains(providerType))
                                 throw new CqrsNetworkException($"Unhandled Provider Type {providerType.FullName}");
@@ -195,7 +189,7 @@ namespace Zerra.CQRS.Network
                             var monitor = new SocketAbortMonitor(socket, cancellationToken);
                             try
                             {
-                                result = await this.providerHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, socket.AddressFamily.ToString(), false, monitor.Token);
+                                result = await this.providerHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, socket.AddressFamily.ToString(), false, serializer, monitor.Token);
                             }
                             finally
                             {
@@ -205,7 +199,7 @@ namespace Zerra.CQRS.Network
 
                             if (monitorIsCancellationRequested)
                             {
-                                _ = Log.ErrorAsync(new OperationCanceledException());
+                                log?.Error(new OperationCanceledException());
                                 continue;
                             }
 
@@ -220,14 +214,14 @@ namespace Zerra.CQRS.Network
 #endif
 
                             //Response Body
-                            responseBodyStream = new HttpProtocolBodyStream(null, stream, null, false);
+                            responseBodyStream = new HttpProtocolBodyStream(null, stream, null, true, false);
 
                             int bytesRead;
                             if (result.Stream is not null)
                             {
-                                if (symmetricConfig is not null)
+                                if (encryptor is not null)
                                 {
-                                    responseBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, responseBodyStream, true);
+                                    responseBodyCryptoStream = encryptor.Encrypt(responseBodyStream, true);
 
 #if NETSTANDARD2_0
                                     while ((bytesRead = await result.Stream.ReadAsync(bufferOwner, 0, bufferOwner.Length, cancellationToken)) > 0)
@@ -258,11 +252,11 @@ namespace Zerra.CQRS.Network
                             }
                             else
                             {
-                                if (symmetricConfig is not null)
+                                if (encryptor is not null)
                                 {
-                                    responseBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, responseBodyStream, true);
+                                    responseBodyCryptoStream = encryptor.Encrypt(responseBodyStream, true);
 
-                                    await ContentTypeSerializer.SerializeAsync(requestHeader.ContentType.Value, responseBodyCryptoStream, result.Model, cancellationToken);
+                                    await serializer.SerializeAsync(responseBodyCryptoStream, result.Model, cancellationToken);
 #if NET5_0_OR_GREATER
                                     await responseBodyCryptoStream.FlushFinalBlockAsync(cancellationToken);
 #else
@@ -272,7 +266,7 @@ namespace Zerra.CQRS.Network
                                 }
                                 else
                                 {
-                                    await ContentTypeSerializer.SerializeAsync(requestHeader.ContentType.Value, responseBodyStream, result.Model, cancellationToken);
+                                    await serializer.SerializeAsync(responseBodyStream, result.Model, cancellationToken);
                                     await responseBodyStream.FlushAsync(cancellationToken);
                                     continue;
                                 }
@@ -284,16 +278,18 @@ namespace Zerra.CQRS.Network
                             if (String.IsNullOrWhiteSpace(data.Source)) throw new Exception("Invalid Request");
                             if (requestHeader.ProviderType != data.MessageType) throw new Exception("Invalid Request");
 
-                            var messageType = Discovery.GetTypeFromName(data.MessageType);
-                            var typeDetail = TypeAnalyzer.GetTypeDetail(messageType);
+                            var messageType = TypeHelper.GetTypeFromName(data.MessageType);
 
                             if (!this.types.Contains(messageType))
                                 throw new CqrsNetworkException($"Unhandled Message Type {messageType.FullName}");
 
+                            //types should have been generated at this point so we don't need to provide types to search
+                            var info = BusCommandOrEventInfo.GetByType(messageType, null);
+
                             bool hasResult;
                             object? result = null;
 
-                            if (typeDetail.Interfaces.Contains(typeof(ICommand)))
+                            if (info.CommandTypes.Contains(messageType))
                             {
                                 if (commandCounter is null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
                                 isCommand = true;
@@ -301,7 +297,7 @@ namespace Zerra.CQRS.Network
                                 if (!commandCounter.BeginReceive())
                                     throw new CqrsNetworkException("Cannot receive any more commands");
 
-                                var command = (ICommand?)ContentTypeSerializer.Deserialize(requestHeader.ContentType.Value, messageType, data.MessageData);
+                                var command = (ICommand?)serializer.Deserialize(data.MessageData, messageType);
                                 if (command is null)
                                     throw new Exception($"Invalid {nameof(data.MessageData)}");
 
@@ -320,7 +316,7 @@ namespace Zerra.CQRS.Network
                                     }
                                     hasResult = true;
                                 }
-                                if (data.MessageAwait == true)
+                                else if(data.MessageAwait == true)
                                 {
                                     if (commandHandlerAwaitAsync is null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
                                     var monitor = new SocketAbortMonitor(socket, cancellationToken);
@@ -342,9 +338,9 @@ namespace Zerra.CQRS.Network
                                 }
                                 inHandlerContext = false;
                             }
-                            else if (typeDetail.Interfaces.Contains(typeof(IEvent)))
+                            else if (info.EventTypes.Contains(messageType))
                             {
-                                var @event = (IEvent?)ContentTypeSerializer.Deserialize(requestHeader.ContentType.Value, messageType, data.MessageData);
+                                var @event = (IEvent?)serializer.Deserialize(data.MessageData, messageType);
                                 if (@event is null)
                                     throw new Exception($"Invalid {nameof(data.MessageData)}");
 
@@ -361,14 +357,14 @@ namespace Zerra.CQRS.Network
 
                             if (monitorIsCancellationRequested)
                             {
-                                _ = Log.ErrorAsync(new OperationCanceledException());
+                                log?.Error(new OperationCanceledException());
                                 continue;
                             }
 
                             responseStarted = true;
 
                             //Response Header
-                            var responseHeaderLength = HttpCommon.BufferOkResponseHeader(buffer, requestHeader.Origin, requestHeader.ProviderType, contentType, null);
+                            var responseHeaderLength = HttpCommon.BufferOkResponseHeader(buffer, requestHeader.Origin, requestHeader.ProviderType, serializer.ContentType, null);
 #if NETSTANDARD2_0
                             await stream.WriteAsync(bufferOwner, 0, responseHeaderLength, cancellationToken);
 #else
@@ -378,12 +374,12 @@ namespace Zerra.CQRS.Network
                             if (hasResult)
                             {
                                 //Response Body
-                                responseBodyStream = new HttpProtocolBodyStream(null, stream, null, false);
-                                if (symmetricConfig is not null)
+                                responseBodyStream = new HttpProtocolBodyStream(null, stream, null, true, false);
+                                if (encryptor is not null)
                                 {
-                                    responseBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, responseBodyStream, true);
+                                    responseBodyCryptoStream = encryptor.Encrypt(responseBodyStream, true);
 
-                                    await ContentTypeSerializer.SerializeAsync(requestHeader.ContentType.Value, responseBodyCryptoStream, result, cancellationToken);
+                                    await serializer.SerializeAsync(responseBodyCryptoStream, result, cancellationToken);
 #if NET5_0_OR_GREATER
                                     await responseBodyCryptoStream.FlushFinalBlockAsync(cancellationToken);
 #else
@@ -392,14 +388,13 @@ namespace Zerra.CQRS.Network
                                 }
                                 else
                                 {
-                                    await ContentTypeSerializer.SerializeAsync(requestHeader.ContentType.Value, responseBodyStream, result, cancellationToken);
+                                    await serializer.SerializeAsync(responseBodyStream, result, cancellationToken);
                                 }
                             }
                             else
                             {
                                 //Response Body Empty
-                                responseBodyStream = new HttpProtocolBodyStream(null, stream, null, false);
-                                await responseBodyStream.FlushAsync(cancellationToken);
+                                await stream.FlushAsync(cancellationToken);
                             }
 
                             continue;
@@ -411,13 +406,13 @@ namespace Zerra.CQRS.Network
                     {
                         if (inHandlerContext && monitorIsCancellationRequested)
                         {
-                            _ = Log.ErrorAsync(new OperationCanceledException());
+                            log?.Error(new OperationCanceledException());
                             continue;
                         }
 
                         if (!inHandlerContext || !socket.Connected)
                         {
-                            _ = Log.ErrorAsync(ex);
+                            log?.Error(ex);
                             return; //aborted or network error
                         }
 
@@ -434,12 +429,12 @@ namespace Zerra.CQRS.Network
 #endif
 
                                 //Response Body
-                                responseBodyStream = new HttpProtocolBodyStream(null, stream, null, false);
-                                if (symmetricConfig is not null)
+                                responseBodyStream = new HttpProtocolBodyStream(null, stream, null, true, false);
+                                if (encryptor is not null)
                                 {
-                                    responseBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, responseBodyStream, true);
+                                    responseBodyCryptoStream = encryptor.Encrypt(responseBodyStream, true);
 
-                                    await ContentTypeSerializer.SerializeExceptionAsync(requestHeader.ContentType.Value, responseBodyCryptoStream, ex, cancellationToken);
+                                    await ExceptionSerializer.SerializeAsync(serializer, responseBodyCryptoStream, ex, cancellationToken);
 #if NET5_0_OR_GREATER
                                     await responseBodyCryptoStream.FlushFinalBlockAsync(cancellationToken);
 #else
@@ -448,12 +443,12 @@ namespace Zerra.CQRS.Network
                                 }
                                 else
                                 {
-                                    await ContentTypeSerializer.SerializeExceptionAsync(requestHeader.ContentType.Value, responseBodyStream, ex, cancellationToken);
+                                    await ExceptionSerializer.SerializeAsync(serializer, responseBodyStream, ex, cancellationToken);
                                 }
                             }
                             catch (Exception ex2)
                             {
-                                _ = Log.ErrorAsync($"{nameof(HttpCqrsServer)} Error {socket.RemoteEndPoint}", ex2);
+                                log?.Error($"{nameof(HttpCqrsServer)} Error {socket.RemoteEndPoint}", ex2);
                             }
                         }
                     }

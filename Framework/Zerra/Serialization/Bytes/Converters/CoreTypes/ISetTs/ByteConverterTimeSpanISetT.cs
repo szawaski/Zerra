@@ -2,14 +2,12 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections.Generic;
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;
 
 namespace Zerra.Serialization.Bytes.Converters.CoreTypes.ISetTs
 {
-    internal sealed class ByteConverterTimeSpanISet<TParent> : ByteConverter<TParent, ISet<TimeSpan>>
+    internal sealed class ByteConverterTimeSpanISet : ByteConverter<ISet<TimeSpan>>
     {
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out ISet<TimeSpan>? value)
         {

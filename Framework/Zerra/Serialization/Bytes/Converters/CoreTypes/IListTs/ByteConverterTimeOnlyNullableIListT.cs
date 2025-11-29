@@ -4,14 +4,12 @@
 
 #if NET6_0_OR_GREATER
 
-using System;
-using System.Collections.Generic;
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;
 
 namespace Zerra.Serialization.Bytes.Converters.CoreTypes.IListTs
 {
-    internal sealed class ByteConverterTimeOnlyNullableIList<TParent> : ByteConverter<TParent, IList<TimeOnly?>>
+    internal sealed class ByteConverterTimeOnlyNullableIList : ByteConverter<IList<TimeOnly?>>
     {
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out IList<TimeOnly?>? value)
         {

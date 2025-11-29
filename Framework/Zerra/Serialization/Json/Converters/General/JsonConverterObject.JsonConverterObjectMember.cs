@@ -2,13 +2,11 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections.Generic;
-using Zerra.Reflection;
+using Zerra.SourceGeneration.Types;
 
 namespace Zerra.Serialization.Json.Converters.General
 {
-    internal sealed partial class JsonConverterObject<TParent, TValue>
+    internal sealed partial class JsonConverterObject<TValue>
     {
         private sealed class JsonConverterObjectMember
         {
@@ -68,8 +66,8 @@ namespace Zerra.Serialization.Json.Converters.General
                 this.IgnoreCondition = ignoreCondition;
             }
 
-            private JsonConverter<TValue>? converter = null;
-            public JsonConverter<TValue> Converter
+            private JsonConverter? converter = null;
+            public JsonConverter Converter
             {
                 get
                 {
@@ -77,7 +75,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     {
                         lock (this)
                         {
-                            converter ??= JsonConverterFactory<TValue>.Get(Member.TypeDetailBoxed, memberKey, Member.HasGetterBoxed ? Member.GetterTyped : null, Member.HasSetterBoxed ? Member.SetterTyped : null);
+                            converter ??= JsonConverterFactory.Get(Member.TypeDetailBoxed, memberKey, Member.HasGetterBoxed ? Member.Getter : null, Member.HasSetterBoxed ? Member.Setter : null);
                         }
                     }
                     return converter;
@@ -86,8 +84,8 @@ namespace Zerra.Serialization.Json.Converters.General
 
             private void SetterForConverterSetValues(Dictionary<string, object?> parent, object? value) => parent.Add(Member.Name.TrimStart('_'), value);
 
-            private JsonConverter<Dictionary<string, object?>>? converterSetValues;
-            public JsonConverter<Dictionary<string, object?>> ConverterSetCollectedValues
+            private JsonConverter? converterSetValues;
+            public JsonConverter ConverterSetCollectedValues
             {
                 get
                 {
@@ -95,7 +93,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     {
                         lock (this)
                         {
-                            converterSetValues ??= JsonConverterFactory<Dictionary<string, object?>>.Get(Member.TypeDetailBoxed, memberKey, null, SetterForConverterSetValues);
+                            converterSetValues ??= JsonConverterFactory.Get(Member.TypeDetailBoxed, $"{memberKey}_CollectedValues", null, SetterForConverterSetValues);
                         }
                     }
                     return converterSetValues;

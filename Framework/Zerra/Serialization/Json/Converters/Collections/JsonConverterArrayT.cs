@@ -2,24 +2,23 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using Zerra.Reflection;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
+using Zerra.SourceGeneration;
 
 namespace Zerra.Serialization.Json.Converters.Collections
 {
-    internal sealed class JsonConverterArrayT<TParent, TValue> : JsonConverter<TParent, TValue[]>
+    internal sealed class JsonConverterArrayT<TValue> : JsonConverter<TValue[]>
     {
-        private JsonConverter<ArrayOrListAccessor<TValue>> converter = null!;
+        private JsonConverter converter = null!;
 
-        private static TValue Getter(ArrayOrListAccessor<TValue> parent) => parent.Get();
-        private static void Setter(ArrayOrListAccessor<TValue> parent, TValue value) => parent.Add(value);
+        private static TValue Getter(object parent) => ((ArrayOrListAccessor<TValue>)parent).Get();
+        private static void Setter(object parent, TValue value) => ((ArrayOrListAccessor<TValue>)parent).Add(value);
 
         protected override sealed void Setup()
         {
             var valueTypeDetail = TypeAnalyzer<TValue>.GetTypeDetail();
-            converter = JsonConverterFactory<ArrayOrListAccessor<TValue>>.Get(valueTypeDetail, nameof(JsonConverterArrayT<TParent, TValue>), Getter, Setter);
+            converter = JsonConverterFactory.Get(valueTypeDetail, nameof(JsonConverterArrayT<TValue>), Getter, Setter);
         }
 
         protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out TValue[]? value)

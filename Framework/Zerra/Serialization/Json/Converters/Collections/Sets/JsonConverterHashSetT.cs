@@ -2,26 +2,23 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Collections.Generic;
-using Zerra.Reflection;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
+using Zerra.SourceGeneration;
 
 namespace Zerra.Serialization.Json.Converters.Collections.Sets
 {
-    internal sealed class JsonConverterHashSetT<TParent, TValue> : JsonConverter<TParent, HashSet<TValue>>
+    internal sealed class JsonConverterHashSetT<TValue> : JsonConverter<HashSet<TValue>>
     {
-        private JsonConverter<HashSet<TValue>> readConverter = null!;
-        private JsonConverter<IEnumerator<TValue>> writeConverter = null!;
+        private JsonConverter converter = null!;
 
-        private static TValue Getter(IEnumerator<TValue> parent) => parent.Current;
-        private static void Setter(HashSet<TValue> parent, TValue value) => parent.Add(value);
+        private static TValue Getter(object parent) => ((IEnumerator<TValue>)parent).Current;
+        private static void Setter(object parent, TValue value) => ((HashSet<TValue>)parent).Add(value);
 
         protected override sealed void Setup()
         {
             var valueTypeDetail = TypeAnalyzer<TValue>.GetTypeDetail();
-            readConverter = JsonConverterFactory<HashSet<TValue>>.Get(valueTypeDetail, nameof(JsonConverterHashSetT<TParent, TValue>), null, Setter);
-            writeConverter = JsonConverterFactory<IEnumerator<TValue>>.Get(valueTypeDetail, nameof(JsonConverterHashSetT<TParent, TValue>), Getter, null);
+            converter = JsonConverterFactory.Get(valueTypeDetail, nameof(JsonConverterHashSetT<TValue>), Getter, Setter);
         }
 
         protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out HashSet<TValue>? value)
@@ -76,7 +73,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Sets
             {
                 if (!state.Current.HasReadValue)
                 {
-                    if (!readConverter.TryReadFromParent(ref reader, ref state, value))
+                    if (!converter.TryReadFromParent(ref reader, ref state, value))
                     {
                         state.Current.HasCreated = true;
                         state.Current.Object = value;
@@ -144,7 +141,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Sets
                     }
                 }
 
-                if (!writeConverter.TryWriteFromParent(ref writer, ref state, enumerator))
+                if (!converter.TryWriteFromParent(ref writer, ref state, enumerator))
                 {
                     state.Current.HasWrittenStart = true;
                     state.Current.HasWrittenSeperator = true;

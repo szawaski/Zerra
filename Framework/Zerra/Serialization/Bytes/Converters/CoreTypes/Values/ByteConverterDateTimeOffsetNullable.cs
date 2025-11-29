@@ -2,13 +2,12 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;
 
 namespace Zerra.Serialization.Bytes.Converters.CoreTypes.Values
 {
-    internal sealed class ByteConverterDateTimeOffsetNullable<TParent> : ByteConverter<TParent, DateTimeOffset?>
+    internal sealed class ByteConverterDateTimeOffsetNullable : ByteConverter<DateTimeOffset?>
     {
         protected override bool StackRequired => false;
 

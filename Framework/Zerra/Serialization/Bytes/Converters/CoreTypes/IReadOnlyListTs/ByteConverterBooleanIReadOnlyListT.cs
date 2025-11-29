@@ -2,13 +2,12 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Collections.Generic;
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;
 
 namespace Zerra.Serialization.Bytes.Converters.CoreTypes.IReadOnlyListTs
 {
-    internal sealed class ByteConverterBooleanIReadOnlyList<TParent> : ByteConverter<TParent, IReadOnlyList<bool>>
+    internal sealed class ByteConverterBooleanIReadOnlyList : ByteConverter<IReadOnlyList<bool>>
     {
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out IReadOnlyList<bool>? value)
         {

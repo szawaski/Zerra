@@ -2,8 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-
 /// <summary>
 /// Global Extensions for the <c>EnumName</c> Attribute.
 /// </summary>

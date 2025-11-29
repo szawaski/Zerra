@@ -4,14 +4,13 @@
 
 #if NET6_0_OR_GREATER
 
-using System;
 using System.Buffers.Text;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 
 namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
 {
-    internal sealed class JsonConverterTimeOnly<TParent> : JsonConverter<TParent, TimeOnly>
+    internal sealed class JsonConverterTimeOnly : JsonConverter<TimeOnly>
     {
         protected override bool StackRequired => false;
 

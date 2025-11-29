@@ -2,14 +2,13 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Buffers.Text;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 
 namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
 {
-    internal sealed class JsonConverterDecimal<TParent> : JsonConverter<TParent, decimal>
+    internal sealed class JsonConverterDecimal : JsonConverter<decimal>
     {
         protected override bool StackRequired => false;
 

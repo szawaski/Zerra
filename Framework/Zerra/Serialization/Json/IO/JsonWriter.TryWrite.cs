@@ -2,7 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Buffers.Text;
 using System.Runtime.CompilerServices;
 

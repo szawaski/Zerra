@@ -1,0 +1,19 @@
+<Solution>
+  <Folder Name="/Demo/" />
+  <Folder Name="/Demo/Pets/">
+    <Project Path="Demo/Pets.Domain/Pets.Domain.csproj" />
+    <Project Path="Demo/Pets.Service/Pets.Service.csproj" />
+  </Folder>
+  <Folder Name="/Framework/">
+    <Project Path="Framework/Zerra.CQRS.AzureServiceBus/Zerra.CQRS.AzureServiceBus.csproj" />
+    <Project Path="Framework/Zerra.CQRS.Kafka/Zerra.CQRS.Kafka.csproj" />
+    <Project Path="Framework/Zerra.CQRS.RabbitMQ/Zerra.CQRS.RabbitMQ.csproj" />
+    <Project Path="Framework/Zerra.SourceGeneration/Zerra.SourceGeneration.csproj" />
+    <Project Path="Framework/Zerra.Web/Zerra.Web.csproj" />
+    <Project Path="Framework/Zerra/Zerra.csproj" />
+  </Folder>
+  <Folder Name="/Test/">
+    <Project Path="Tests/Zerra.SourceGeneration.Test/Zerra.SourceGeneration.Test.csproj" />
+    <Project Path="Tests/Zerra.Test/Zerra.Test.csproj" />
+  </Folder>
+</Solution>

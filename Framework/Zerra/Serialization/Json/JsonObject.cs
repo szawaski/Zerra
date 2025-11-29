@@ -2,12 +2,9 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
-using Zerra.Reflection;
 
 namespace Zerra.Serialization.Json
 {
@@ -158,7 +155,7 @@ namespace Zerra.Serialization.Json
                             else
                                 _ = sb.Append(',');
                             ToStringEncoded(item.Key, sb);
-                            sb.Append(':');
+                            _ = sb.Append(':');
                             item.Value.ToString(sb);
                         }
                         _ = sb.Append('}');
@@ -580,191 +577,189 @@ namespace Zerra.Serialization.Json
             return valueArray!.GetEnumerator();
         }
 
-        private static readonly Type plainListType = typeof(List<>);
-        private static readonly Type plainSetType = typeof(HashSet<>);
-        public T? Bind<T>() { return (T?)Bind(typeof(T)); }
-        public object? Bind(Type type)
-        {
-            if (IsNull)
-                return null;
+//        public T? Bind<T>() { return (T?)Bind(typeof(T)); }
+//        public object? Bind(Type type)
+//        {
+//            if (IsNull)
+//                return null;
 
-            var typeDetail = TypeAnalyzer.GetTypeDetail(type);
+//            var typeDetail = TypeAnalyzer.GetTypeDetail(type);
 
-            if (typeDetail.CoreType.HasValue)
-            {
-                return typeDetail.CoreType.Value switch
-                {
-                    CoreType.Boolean => (bool)this,
-                    CoreType.Byte => (byte)this,
-                    CoreType.SByte => (sbyte)this,
-                    CoreType.Int16 => (short)this,
-                    CoreType.UInt16 => (ushort)this,
-                    CoreType.Int32 => (int)this,
-                    CoreType.UInt32 => (uint)this,
-                    CoreType.Int64 => (long)this,
-                    CoreType.UInt64 => (ulong)this,
-                    CoreType.Single => (float)this,
-                    CoreType.Double => (double)this,
-                    CoreType.Decimal => (decimal)this,
-                    CoreType.Char => (char)this,
-                    CoreType.DateTime => (DateTime)this,
-                    CoreType.DateTimeOffset => (DateTimeOffset)this,
-                    CoreType.TimeSpan => (TimeSpan)this,
-#if NET6_0_OR_GREATER
-                    CoreType.DateOnly => (DateOnly)this,
-                    CoreType.TimeOnly => (TimeOnly)this,
-#endif
-                    CoreType.Guid => (Guid)this,
-                    CoreType.String => (string?)this,
-                    CoreType.BooleanNullable => (bool?)this,
-                    CoreType.ByteNullable => (byte?)this,
-                    CoreType.SByteNullable => (sbyte?)this,
-                    CoreType.Int16Nullable => (short?)this,
-                    CoreType.UInt16Nullable => (ushort?)this,
-                    CoreType.Int32Nullable => (int?)this,
-                    CoreType.UInt32Nullable => (uint?)this,
-                    CoreType.Int64Nullable => (long?)this,
-                    CoreType.UInt64Nullable => (ulong?)this,
-                    CoreType.SingleNullable => (float?)this,
-                    CoreType.DoubleNullable => (double?)this,
-                    CoreType.DecimalNullable => (decimal?)this,
-                    CoreType.CharNullable => (char?)this,
-                    CoreType.DateTimeNullable => (DateTime?)this,
-                    CoreType.DateTimeOffsetNullable => (DateTimeOffset?)this,
-                    CoreType.TimeSpanNullable => (TimeSpan?)this,
-#if NET6_0_OR_GREATER
-                    CoreType.DateOnlyNullable => (DateOnly?)this,
-                    CoreType.TimeOnlyNullable => (TimeOnly?)this,
-#endif
-                    CoreType.GuidNullable => (Guid?)this,
-                    _ => throw new NotImplementedException(),
-                };
-            }
+//            if (typeDetail.CoreType.HasValue)
+//            {
+//                return typeDetail.CoreType.Value switch
+//                {
+//                    CoreType.Boolean => (bool)this,
+//                    CoreType.Byte => (byte)this,
+//                    CoreType.SByte => (sbyte)this,
+//                    CoreType.Int16 => (short)this,
+//                    CoreType.UInt16 => (ushort)this,
+//                    CoreType.Int32 => (int)this,
+//                    CoreType.UInt32 => (uint)this,
+//                    CoreType.Int64 => (long)this,
+//                    CoreType.UInt64 => (ulong)this,
+//                    CoreType.Single => (float)this,
+//                    CoreType.Double => (double)this,
+//                    CoreType.Decimal => (decimal)this,
+//                    CoreType.Char => (char)this,
+//                    CoreType.DateTime => (DateTime)this,
+//                    CoreType.DateTimeOffset => (DateTimeOffset)this,
+//                    CoreType.TimeSpan => (TimeSpan)this,
+//#if NET6_0_OR_GREATER
+//                    CoreType.DateOnly => (DateOnly)this,
+//                    CoreType.TimeOnly => (TimeOnly)this,
+//#endif
+//                    CoreType.Guid => (Guid)this,
+//                    CoreType.String => (string?)this,
+//                    CoreType.BooleanNullable => (bool?)this,
+//                    CoreType.ByteNullable => (byte?)this,
+//                    CoreType.SByteNullable => (sbyte?)this,
+//                    CoreType.Int16Nullable => (short?)this,
+//                    CoreType.UInt16Nullable => (ushort?)this,
+//                    CoreType.Int32Nullable => (int?)this,
+//                    CoreType.UInt32Nullable => (uint?)this,
+//                    CoreType.Int64Nullable => (long?)this,
+//                    CoreType.UInt64Nullable => (ulong?)this,
+//                    CoreType.SingleNullable => (float?)this,
+//                    CoreType.DoubleNullable => (double?)this,
+//                    CoreType.DecimalNullable => (decimal?)this,
+//                    CoreType.CharNullable => (char?)this,
+//                    CoreType.DateTimeNullable => (DateTime?)this,
+//                    CoreType.DateTimeOffsetNullable => (DateTimeOffset?)this,
+//                    CoreType.TimeSpanNullable => (TimeSpan?)this,
+//#if NET6_0_OR_GREATER
+//                    CoreType.DateOnlyNullable => (DateOnly?)this,
+//                    CoreType.TimeOnlyNullable => (TimeOnly?)this,
+//#endif
+//                    CoreType.GuidNullable => (Guid?)this,
+//                    _ => throw new NotImplementedException(),
+//                };
+//            }
 
-            if (typeDetail.Type.IsEnum)
-            {
-                if (jsonType != JsonObjectType.String)
-                    throw new InvalidOperationException();
-                return Enum.Parse(type, valueString!);
-            }
-            if (typeDetail.IsNullable && typeDetail.InnerTypeDetail.Type.IsEnum)
-            {
-                if (jsonType != JsonObjectType.String)
-                    throw new InvalidOperationException();
-                if (valueString == String.Empty)
-                    return null;
-                return Enum.Parse(typeDetail.InnerTypeDetail.Type, valueString!);
-            }
+//            if (typeDetail.Type.IsEnum)
+//            {
+//                if (jsonType != JsonObjectType.String)
+//                    throw new InvalidOperationException();
+//                return Enum.Parse(type, valueString!);
+//            }
+//            if (typeDetail.IsNullable && typeDetail.InnerTypeDetail.Type.IsEnum)
+//            {
+//                if (jsonType != JsonObjectType.String)
+//                    throw new InvalidOperationException();
+//                if (valueString == String.Empty)
+//                    return null;
+//                return Enum.Parse(typeDetail.InnerTypeDetail.Type, valueString!);
+//            }
 
-            if (typeDetail.HasIDictionaryGeneric || typeDetail.HasIReadOnlyDictionaryGeneric)
-            {
-                if (jsonType != JsonObjectType.Object)
-                    throw new InvalidCastException();
-                IDictionary dictionary;
-                if (typeDetail.Type.IsInterface)
-                {
-                    var dictionaryType = TypeAnalyzer.GetGenericTypeDetail(typeof(Dictionary<,>), (Type[])typeDetail.IEnumerableGenericInnerTypeDetail.InnerTypes);
-                    dictionary = (IDictionary)dictionaryType.CreatorBoxed();
-                }
-                else
-                {
-                    dictionary = (IDictionary)typeDetail.CreatorBoxed();
-                }
-                foreach (var item in valueProperties!)
-                {
-                    var key = TypeAnalyzer.Convert(item.Key, typeDetail.IEnumerableGenericInnerTypeDetail.InnerTypes[0]);
-                    var value = item.Value.Bind(typeDetail.IEnumerableGenericInnerTypeDetail.InnerTypes[1]);
-                    dictionary.Add(key!, value);
-                }
-                return dictionary;
-            }
+//            if (typeDetail.HasIDictionaryGeneric || typeDetail.HasIReadOnlyDictionaryGeneric)
+//            {
+//                if (jsonType != JsonObjectType.Object)
+//                    throw new InvalidCastException();
+//                IDictionary dictionary;
+//                if (typeDetail.Type.IsInterface)
+//                {
+//                    var dictionaryType = TypeAnalyzer.GetGenericTypeDetail(typeof(Dictionary<,>), (Type[])typeDetail.IEnumerableGenericInnerTypeDetail.InnerTypes);
+//                    dictionary = (IDictionary)dictionaryType.CreatorBoxed();
+//                }
+//                else
+//                {
+//                    dictionary = (IDictionary)typeDetail.CreatorBoxed();
+//                }
+//                foreach (var item in valueProperties!)
+//                {
+//                    var key = TypeAnalyzer.Convert(item.Key, typeDetail.IEnumerableGenericInnerTypeDetail.InnerTypes[0]);
+//                    var value = item.Value.Bind(typeDetail.IEnumerableGenericInnerTypeDetail.InnerTypes[1]);
+//                    dictionary.Add(key!, value);
+//                }
+//                return dictionary;
+//            }
 
-            if (typeDetail.HasIEnumerableGeneric)
-            {
-                if (typeDetail.Type == typeof(byte[]))
-                {
-                    if (jsonType != JsonObjectType.String)
-                        throw new InvalidCastException();
-                    if (valueString == String.Empty)
-                        return Array.Empty<byte>();
-                    return Convert.FromBase64String(valueString!);
-                }
-                else
-                {
-                    if (jsonType != JsonObjectType.Array)
-                        throw new InvalidCastException();
-                    var innerType = typeDetail.InnerTypeDetail.Type;
-                    if (!typeDetail.Type.IsArray && typeDetail.HasIListGeneric)
-                    {
-                        IList list;
-                        if (typeDetail.Type.IsInterface)
-                        {
-                            var listType = TypeAnalyzer.GetGenericTypeDetail(plainListType, innerType);
-                            list = (IList)listType.CreatorBoxed();
-                        }
-                        else
-                        {
-                            list = (IList)typeDetail.CreatorBoxed();
-                        }
-                        foreach (var item in valueArray!)
-                        {
-                            var value = item.Bind(innerType);
-                            _ = list.Add(value);
-                        }
-                        return list;
-                    }
-                    if (!typeDetail.Type.IsArray && typeDetail.HasISetGeneric)
-                    {
-                        object set;
-                        if (typeDetail.Type.IsInterface)
-                        {
-                            var setType = TypeAnalyzer.GetGenericTypeDetail(plainSetType, innerType);
-                            set = setType.CreatorBoxed();
-                        }
-                        else
-                        {
-                            set = typeDetail.CreatorBoxed();
-                        }
-                        var addMethod = typeDetail.GetMethodBoxed("Add", [innerType]);
-                        var addMethodArgs = new object?[1];
-                        foreach (var item in valueArray!)
-                        {
-                            var value = item.Bind(innerType);
-                            addMethodArgs[0] = value;
-                            addMethod.CallerBoxed(set, addMethodArgs);
-                        }
-                        return set;
-                    }
-                    else if (typeDetail.Type.IsArray || typeDetail.Type.IsInterface)
-                    {
-                        var array = Array.CreateInstance(innerType, valueArray!.Count);
-                        for (var i = 0; i < valueArray.Count; i++)
-                        {
-                            var value = valueArray[i].Bind(innerType);
-                            array.SetValue(value, i);
-                        }
-                        return array;
-                    }
-                    else
-                    {
-                        throw new InvalidCastException();
-                    }
-                }
-            }
+//            if (typeDetail.HasIEnumerableGeneric)
+//            {
+//                if (typeDetail.Type == typeof(byte[]))
+//                {
+//                    if (jsonType != JsonObjectType.String)
+//                        throw new InvalidCastException();
+//                    if (valueString == String.Empty)
+//                        return Array.Empty<byte>();
+//                    return Convert.FromBase64String(valueString!);
+//                }
+//                else
+//                {
+//                    if (jsonType != JsonObjectType.Array)
+//                        throw new InvalidCastException();
+//                    var innerType = typeDetail.InnerTypeDetail.Type;
+//                    if (!typeDetail.Type.IsArray && typeDetail.HasIListGeneric)
+//                    {
+//                        IList list;
+//                        if (typeDetail.Type.IsInterface)
+//                        {
+//                            var listType = typeof(List<>).MakeGenericType(innerType);
+//                            list = (IList)listType.CreatorBoxed();
+//                        }
+//                        else
+//                        {
+//                            list = (IList)typeDetail.CreatorBoxed();
+//                        }
+//                        foreach (var item in valueArray!)
+//                        {
+//                            var value = item.Bind(innerType);
+//                            _ = list.Add(value);
+//                        }
+//                        return list;
+//                    }
+//                    if (!typeDetail.Type.IsArray && typeDetail.HasISetGeneric)
+//                    {
+//                        object set;
+//                        if (typeDetail.Type.IsInterface)
+//                        {
+//                            var setType = typeof(HashSet<>).MakeGenericType(innerType);
+//                            set = setType.CreatorBoxed();
+//                        }
+//                        else
+//                        {
+//                            set = typeDetail.CreatorBoxed();
+//                        }
+//                        var addMethod = typeDetail.GetMethodBoxed("Add", [innerType]);
+//                        var addMethodArgs = new object?[1];
+//                        foreach (var item in valueArray!)
+//                        {
+//                            var value = item.Bind(innerType);
+//                            addMethodArgs[0] = value;
+//                            addMethod.CallerBoxed(set, addMethodArgs);
+//                        }
+//                        return set;
+//                    }
+//                    else if (typeDetail.Type.IsArray || typeDetail.Type.IsInterface)
+//                    {
+//                        var array = Array.CreateInstance(innerType, valueArray!.Count);
+//                        for (var i = 0; i < valueArray.Count; i++)
+//                        {
+//                            var value = valueArray[i].Bind(innerType);
+//                            array.SetValue(value, i);
+//                        }
+//                        return array;
+//                    }
+//                    else
+//                    {
+//                        throw new InvalidCastException();
+//                    }
+//                }
+//            }
 
-            if (jsonType != JsonObjectType.Object)
-                throw new InvalidCastException();
-            var obj = typeDetail.HasCreatorBoxed ? typeDetail.CreatorBoxed() : null;
-            foreach (var item in valueProperties!)
-            {
-                if (typeDetail.TryGetSerializableMemberCaseInsensitive(item.Key, out var member))
-                {
-                    var value = item.Value.Bind(member.Type);
-                    if (value is not null && obj is not null)
-                        member.SetterBoxed(obj, value);
-                }
-            }
-            return obj;
-        }
+//            if (jsonType != JsonObjectType.Object)
+//                throw new InvalidCastException();
+//            var obj = typeDetail.HasCreatorBoxed ? typeDetail.CreatorBoxed() : null;
+//            foreach (var item in valueProperties!)
+//            {
+//                if (typeDetail.TryGetSerializableMemberCaseInsensitive(item.Key, out var member))
+//                {
+//                    var value = item.Value.Bind(member.Type);
+//                    if (value is not null && obj is not null)
+//                        member.SetterBoxed(obj, value);
+//                }
+//            }
+//            return obj;
+//        }
     }
 }

@@ -4,55 +4,90 @@
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
-using System;
-using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Zerra.SourceGeneration.Discovery
 {
     public static class EmptyImplementationGenerator
     {
-        public static void Generate(SourceProductionContext context, string ns, StringBuilder sbInitializer, ITypeSymbol symbol)
+        public static void Generate(SourceProductionContext context, string ns, StringBuilder sbInitializer, Dictionary<string, TypeToGenerate> models)
         {
-            if (symbol.TypeKind != TypeKind.Interface)
-                return;
-            if (symbol is not INamedTypeSymbol namedTypeSymbol)
-                return;
+            foreach (var model in models.Values)
+            {
+                if (model.TypeSymbol.TypeKind != TypeKind.Interface)
+                    continue;
+                if (model.TypeSymbol is not INamedTypeSymbol namedTypeSymbol)
+                    continue;
+                if (namedTypeSymbol.IsGenericType && namedTypeSymbol.TypeArguments.Any(x => x.BaseType == null))
+                    continue;
+                if (namedTypeSymbol.AllInterfaces.Any(x => x.Name == "IEnumerable"))
+                    continue;
 
-            var typeNameForClass = Helpers.GetNameForClass(symbol);
-            var className = $"Empty_{typeNameForClass}";
+                var typeNameForClass = Helper.GetClassSafeName(model.TypeSymbol);
+                var className = $"Empty_{typeNameForClass}";
+                var typeName = namedTypeSymbol.IsGenericType
+                    ? Regex.Replace(className, @"<[^>]+>", m => "<" + string.Concat(Enumerable.Repeat(",", m.Value.Count(c => c == ','))) + ">")
+                    : className;
 
-            var sb = new StringBuilder();
+                string? where = null;
+                if (namedTypeSymbol.IsGenericType)
+                {
+                    var sbWhere = new StringBuilder();
+                    foreach (var genericParameter in namedTypeSymbol.TypeParameters)
+                    {
+                        var constraints = new List<string>();
+                        foreach (var constraintType in genericParameter.ConstraintTypes)
+                            constraints.Add(Helper.GetFullName(constraintType));
+                        if (genericParameter.HasConstructorConstraint)
+                            constraints.Add("new()");
+                        if (genericParameter.HasReferenceTypeConstraint)
+                            constraints.Add("class");
+                        if (genericParameter.HasValueTypeConstraint)
+                            constraints.Add("struct");
+                        if (genericParameter.HasNotNullConstraint)
+                            constraints.Add("notnull");
+                        if (genericParameter.HasUnmanagedTypeConstraint)
+                            constraints.Add("unmanaged");
 
-            WriteMembers(namedTypeSymbol, sb);
+                        if (constraints.Count == 0)
+                            continue;
 
-            foreach (var i in namedTypeSymbol.AllInterfaces)
-                WriteMembers(i, sb);
+                        _ = sbWhere.Append(" where ").Append(Helper.GetFullName(genericParameter)).Append(" : ");
+                        _ = sbWhere.Append(string.Join(", ", constraints));
+                    }
+                    where = sbWhere.ToString();
+                }
 
-            var membersLines = sb.ToString();
+                var sb = new StringBuilder();
 
-            var code = $$"""
+                WriteMembers(namedTypeSymbol, sb);
+
+                foreach (var i in namedTypeSymbol.AllInterfaces)
+                    WriteMembers(i, sb);
+
+                var membersLines = sb.ToString();
+
+                var code = $$"""
                 //Zerra Generated File
-                #if NET5_0_OR_GREATER
 
                 namespace {{ns}}.SourceGeneration
                 {
-                    public class {{className}} : {{symbol.ToString()}}
+                    public class {{className}} : {{Helper.GetFullName(model.TypeSymbol)}}{{where}}
                     {
                         {{membersLines}}
                     }
                 }
-
-                #endif
             
                 """;
 
-            context.AddSource($"{className}.cs", SourceText.From(code, Encoding.UTF8));
+                context.AddSource($"{className}.cs", SourceText.From(code, Encoding.UTF8));
 
-            var interfacefullTypeOf = Helpers.GetTypeOfName(symbol);
-            var classFullTypeOf = $"typeof({className})";
-            _ = sbInitializer.Append(Environment.NewLine).Append("            ");
-            _ = sbInitializer.Append("Zerra.Reflection.SourceGenerationRegistration.RegisterEmptyImplementation(").Append(interfacefullTypeOf).Append(", ").Append(classFullTypeOf).Append(");");
+                var interfacefullTypeOf = Helper.GetTypeOfName(model.TypeSymbol);
+                var classFullTypeOf = $"typeof({className})";
+                _ = sbInitializer.Append(Environment.NewLine).Append("            ");
+                _ = sbInitializer.Append("global::Zerra.SourceGeneration.Register.EmptyImplementation(").Append(interfacefullTypeOf).Append(", ").Append(classFullTypeOf).Append(");");
+            }
         }
 
         private static void WriteMembers(INamedTypeSymbol namedTypeSymbol, StringBuilder sb)
@@ -67,7 +102,25 @@ namespace Zerra.SourceGeneration.Discovery
                 if (sb.Length > 0)
                     _ = sb.Append(Environment.NewLine).Append("        ");
 
-                _ = sb.Append("public ").Append(method.ReturnsVoid ? "void" : method.ReturnType.ToString()).Append(' ').Append(method.Name).Append('(');
+                _ = sb.Append(method.ReturnsVoid ? "void" : Helper.GetFullName(method.ReturnType)).Append(' ');
+                _ = sb.Append(Helper.GetFullName(method.ContainingType)).Append('.').Append(method.Name);
+
+                if (method.IsGenericMethod)
+                {
+                    _ = sb.Append('<');
+                    var firstGenericPassed = false;
+                    foreach (var genericParameter in method.TypeParameters)
+                    {
+                        if (firstGenericPassed)
+                            _ = sb.Append(", ");
+                        else
+                            firstGenericPassed = true;
+                        _ = sb.Append(Helper.GetFullName(genericParameter));
+                    }
+                    _ = sb.Append('>');
+                }
+
+                _ = sb.Append('(');
                 var firstPassed = false;
                 foreach (var parameter in method.Parameters)
                 {
@@ -76,12 +129,12 @@ namespace Zerra.SourceGeneration.Discovery
                     else
                         firstPassed = true;
 
-                    _ = sb.Append(parameter.Type.ToString()).Append(" @").Append(parameter.Name);
+                    _ = sb.Append(Helper.GetFullName(parameter.Type)).Append(" @").Append(parameter.Name);
                 }
                 _ = sb.Append(')');
                 if (method.ReturnsVoid)
                 {
-                    sb.Append(" { }");
+                    _ = sb.Append(" { }");
                 }
                 else
                 {
@@ -99,7 +152,7 @@ namespace Zerra.SourceGeneration.Discovery
                         returnValue = $"default({method.ReturnType.ToString()})";
                     }
 
-                    sb.Append(" => ").Append(returnValue).Append("!;");
+                    _ = sb.Append(" => ").Append(returnValue).Append("!;");
                 }
             }
 
@@ -108,12 +161,33 @@ namespace Zerra.SourceGeneration.Discovery
                 if (sb.Length > 0)
                     _ = sb.Append(Environment.NewLine).Append("        ");
 
-                _ = sb.Append("public ").Append(property.Type.ToString()).Append(" @").Append(property.Name).Append(" {");
-                if (property.GetMethod is not null)
-                    _ = sb.Append(" get;");
-                if (property.SetMethod is not null)
-                    _ = sb.Append(" set;");
-                _ = sb.Append(" }");
+                _ = sb.Append(Helper.GetFullName(property.Type)).Append(" ");
+                _ = sb.Append(Helper.GetFullName(property.ContainingType)).Append('.');
+                if (property.IsIndexer)
+                {
+                    _ = sb.Append("this[");
+                    var firstPassed = false;
+                    foreach (var parameter in property.Parameters)
+                    {
+                        if (firstPassed)
+                            _ = sb.Append(", ");
+                        else
+                            firstPassed = true;
+                        _ = sb.Append(Helper.GetFullName(parameter.Type)).Append(" @").Append(parameter.Name);
+                    }
+                    _ = sb.Append("]");
+                    _ = sb.Append(" { get => throw new global::System.NotImplementedException(); set => throw new global::System.NotImplementedException(); }");
+                }
+                else
+                {
+                    _ = sb.Append(property.Name);
+                    _ = sb.Append(" {");
+                    if (property.GetMethod is not null && property.GetMethod.DeclaredAccessibility == Accessibility.Public)
+                        _ = sb.Append(" get;");
+                    if (property.SetMethod is not null && property.SetMethod.DeclaredAccessibility == Accessibility.Public && !property.SetMethod.IsInitOnly)
+                        _ = sb.Append(" set;");
+                    _ = sb.Append(" }");
+                }
             }
         }
     }

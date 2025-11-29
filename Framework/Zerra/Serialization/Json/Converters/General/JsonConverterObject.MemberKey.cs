@@ -2,13 +2,12 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Zerra.Serialization.Json.Converters.General
 {
-    internal sealed partial class JsonConverterObject<TParent, TValue>
+    internal sealed partial class JsonConverterObject<TValue>
     {
         private readonly struct MemberKey
         {

@@ -3,31 +3,39 @@
 // Licensed to you under the MIT license
 
 using Microsoft.AspNetCore.Http;
-using System;
-using System.Linq;
 using System.Security;
-using System.Threading.Tasks;
+using Zerra.CQRS;
 using Zerra.CQRS.Network;
 using Zerra.Logging;
+using Zerra.Serialization;
 
 namespace Zerra.Web
 {
     public sealed class CqrsApiGatewayMiddleware
     {
         private readonly RequestDelegate requestDelegate;
+        private readonly IBus bus;
+        private readonly ISerializer serializer;
+        private readonly ILogger? log;
         private readonly string? route;
         private readonly ICqrsAuthorizer? authorizer;
 
-        public CqrsApiGatewayMiddleware(RequestDelegate requestDelegate, string? route)
+        public CqrsApiGatewayMiddleware(RequestDelegate requestDelegate, IBus bus, ISerializer serializer, ILogger? log, string? route)
         {
-            this.route = route;
             this.requestDelegate = requestDelegate;
+            this.bus = bus;
+            this.serializer = serializer;
+            this.log = log;
+            this.route = route;
         }
-        public CqrsApiGatewayMiddleware(RequestDelegate requestDelegate, ICqrsAuthorizer? authorizer, string? route)
+        public CqrsApiGatewayMiddleware(RequestDelegate requestDelegate, IBus bus, ISerializer serializer, ILogger? log, ICqrsAuthorizer? authorizer, string? route)
         {
+            this.requestDelegate = requestDelegate;
+            this.bus = bus;
+            this.serializer = serializer;
+            this.log = log;
             this.authorizer = authorizer;
             this.route = route;
-            this.requestDelegate = requestDelegate;
         }
 
         public async Task Invoke(HttpContext context)
@@ -63,6 +71,9 @@ namespace Zerra.Web
                 throw new Exception("Invalid Request");
             }
 
+            if (requestContentType != serializer.ContentType.ToString())
+                throw new Exception("Invalid Request");
+
             var accepts = (string?)context.Request.Headers.Accept;
             ContentType? acceptContentType;
             if (accepts is not null)
@@ -81,6 +92,9 @@ namespace Zerra.Web
                 acceptContentType = null;
             }
 
+            if (acceptContentType.HasValue && acceptContentType.Value != serializer.ContentType)
+                throw new Exception("Invalid Request");
+
             if (authorizer is not null)
             {
                 var headers = context.Request.Headers.ToDictionary(x => x.Key, x => x.Value.ToList());
@@ -90,12 +104,12 @@ namespace Zerra.Web
             var inHandlerContext = false;
             try
             {
-                var data = await ContentTypeSerializer.DeserializeAsync<ApiRequestData>(contentType, context.Request.Body, context.RequestAborted);
+                var data = await serializer.DeserializeAsync<ApiRequestData>(context.Request.Body, context.RequestAborted);
                 if (data is null)
                     throw new Exception("Invalid Request");
 
                 inHandlerContext = true;
-                var response = await ApiServerHandler.HandleRequestAsync(acceptContentType, data, context.RequestAborted);
+                var response = await ApiServerHandler.HandleRequestAsync(bus, serializer, data, context.RequestAborted);
                 inHandlerContext = false;
 
                 if (response is null)
@@ -109,7 +123,7 @@ namespace Zerra.Web
 
                 if (response.Bytes is not null)
                 {
-                    context.Response.ContentType = acceptContentType switch
+                    context.Response.ContentType = serializer.ContentType switch
                     {
                         ContentType.Bytes => "application/octet-stream",
                         ContentType.JsonNameless => "application/jsonnameless; charset=utf-8",
@@ -134,12 +148,12 @@ namespace Zerra.Web
             }
             catch (OperationCanceledException ex)
             {
-                _ = Log.ErrorAsync(ex);
+                log?.Error(ex);
             }
             catch (Exception ex)
             {
                 if (!inHandlerContext)
-                    _ = Log.ErrorAsync(ex);
+                    log?.Error(ex);
 
                 ex = ex.GetBaseException();
 
@@ -148,16 +162,15 @@ namespace Zerra.Web
                 else
                     context.Response.StatusCode = 500;
 
-                context.Response.ContentType = acceptContentType switch
+                context.Response.ContentType = serializer.ContentType switch
                 {
                     ContentType.Bytes => "application/octet-stream",
-                    //ContentType.JsonNameless => "application/jsonnameless; charset=utf-8",
-                    //can't deserialize nameless in JavaScript without knowing Exception model
-                    ContentType.Json or ContentType.JsonNameless or null => "application/json; charset=utf-8",
+                    //ContentType.JsonNameless => "application/jsonnameless; charset=utf-8", can't deserialize nameless in JavaScript without knowing Exception model
+                    ContentType.Json or ContentType.JsonNameless => "application/json; charset=utf-8",
                     _ => throw new NotImplementedException(),
                 };
 
-                await ContentTypeSerializer.SerializeExceptionAsync(acceptContentType ?? ContentType.Json, context.Response.Body, ex, context.RequestAborted);
+                await ExceptionSerializer.SerializeAsync(serializer, context.Response.Body, ex, context.RequestAborted);
                 await context.Response.Body.FlushAsync(context.RequestAborted);
             }
         }

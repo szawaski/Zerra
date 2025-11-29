@@ -2,9 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Zerra.Encryption;
 using Zerra.Logging;
 
@@ -13,7 +10,9 @@ namespace Zerra.CQRS.Kafka
     public sealed partial class KafkaConsumer : ICommandConsumer, IEventConsumer, IDisposable
     {
         private readonly string host;
-        private readonly SymmetricConfig? symmetricConfig;
+        private readonly Zerra.Serialization.ISerializer serializer;
+        private readonly IEncryptor? encryptor;
+        private readonly ILogger? log;
         private readonly string? environment;
         private readonly string? userName;
         private readonly string? password;
@@ -31,12 +30,14 @@ namespace Zerra.CQRS.Kafka
 
         private CommandCounter? commandCounter = null;
 
-        public KafkaConsumer(string host, SymmetricConfig? symmetricConfig, string? environment, string? userName, string? password)
+        public KafkaConsumer(string host, Zerra.Serialization.ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment, string? userName, string? password)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 
             this.host = host;
-            this.symmetricConfig = symmetricConfig;
+            this.serializer = serializer;
+            this.encryptor = encryptor;
+            this.log = log;
             this.environment = environment;
             this.userName = userName;
             this.password = password;
@@ -68,12 +69,12 @@ namespace Zerra.CQRS.Kafka
         void ICommandConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(KafkaConsumer)} Command Consumer Listening");
+            log?.Info($"{nameof(KafkaConsumer)} Command Consumer Listening");
         }
         void IEventConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(KafkaConsumer)} Event Consumer Listening");
+            log?.Info($"{nameof(KafkaConsumer)} Event Consumer Listening");
         }
         private void Open()
         {
@@ -103,12 +104,12 @@ namespace Zerra.CQRS.Kafka
         void ICommandConsumer.Close()
         {
             Close();
-            _ = Log.InfoAsync($"{nameof(KafkaConsumer)} Command Consumer Closed");
+            log?.Info($"{nameof(KafkaConsumer)} Command Consumer Closed");
         }
         void IEventConsumer.Close()
         {
             Close();
-            _ = Log.InfoAsync($"{nameof(KafkaConsumer)} Event Consumer Closed");
+            log?.Info($"{nameof(KafkaConsumer)} Event Consumer Closed");
         }
         private void Close()
         {
@@ -140,8 +141,8 @@ namespace Zerra.CQRS.Kafka
                     return;
                 if (commandExchanges.ContainsKey(topic))
                     return;
-                commandTypes.Add(type);
-                commandExchanges.Add(topic, new CommandConsumer(maxConcurrent, commandCounter, topic, symmetricConfig, environment, commandHandlerAsync, commandHandlerAwaitAsync, commandHandlerWithResultAwaitAsync));
+                _ = commandTypes.Add(type);
+                commandExchanges.Add(topic, new CommandConsumer(maxConcurrent, commandCounter, topic, serializer, encryptor, log, environment, commandHandlerAsync, commandHandlerAwaitAsync, commandHandlerWithResultAwaitAsync));
                 OpenExchanges();
             }
         }
@@ -157,8 +158,8 @@ namespace Zerra.CQRS.Kafka
                     return;
                 if (eventExchanges.ContainsKey(topic))
                     return;
-                eventTypes.Add(type);
-                eventExchanges.Add(topic, new EventConsumer(maxConcurrent, topic, symmetricConfig, environment, eventHandlerAsync));
+                _ = eventTypes.Add(type);
+                eventExchanges.Add(topic, new EventConsumer(maxConcurrent, topic, serializer, encryptor, log, environment, eventHandlerAsync));
                 OpenExchanges();
             }
         }

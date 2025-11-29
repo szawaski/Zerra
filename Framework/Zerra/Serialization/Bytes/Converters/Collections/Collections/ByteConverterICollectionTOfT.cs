@@ -2,26 +2,23 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Collections.Generic;
-using Zerra.Reflection;
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;
+using Zerra.SourceGeneration;
 
 namespace Zerra.Serialization.Bytes.Converters.Collections.Collections
 {
-    internal sealed class ByteConverterICollectionTOfT<TParent, TCollection, TValue> : ByteConverter<TParent, TCollection>
+    internal sealed class ByteConverterICollectionTOfT<TCollection, TValue> : ByteConverter<TCollection>
     {
-        private ByteConverter<ICollection<TValue>> readConverter = null!;
-        private ByteConverter<IEnumerator<TValue>> writeConverter = null!;
+        private ByteConverter converter = null!;
 
-        private static TValue Getter(IEnumerator<TValue> parent) => parent.Current;
-        private static void Setter(ICollection<TValue> parent, TValue value) => parent.Add(value);
+        private static TValue Getter(object parent) => ((IEnumerator<TValue>)parent).Current;
+        private static void Setter(object parent, TValue value) => ((ICollection<TValue>)parent).Add(value);
 
         protected override sealed void Setup()
         {
             var valueTypeDetail = TypeAnalyzer<TValue>.GetTypeDetail();
-            readConverter = ByteConverterFactory<ICollection<TValue>>.Get(valueTypeDetail, nameof(ByteConverterICollectionTOfT<TParent, TCollection, TValue>), null, Setter);
-            writeConverter = ByteConverterFactory<IEnumerator<TValue>>.Get(valueTypeDetail, nameof(ByteConverterICollectionTOfT<TParent, TCollection, TValue>), Getter, null);
+            converter = ByteConverterFactory.Get(valueTypeDetail, nameof(ByteConverterICollectionTOfT<TCollection, TValue>), Getter, Setter);
         }
 
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TCollection? value)
@@ -65,7 +62,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Collections
 
             for (; ; )
             {
-                if (!readConverter.TryReadFromParent(ref reader, ref state, Collection, true))
+                if (!converter.TryReadFromParent(ref reader, ref state, Collection, true))
                 {
                     state.Current.Object = Collection;
                     return false;
@@ -102,7 +99,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Collections
 
             while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
             {
-                if (!writeConverter.TryWriteFromParent(ref writer, ref state, enumerator, true))
+                if (!converter.TryWriteFromParent(ref writer, ref state, enumerator, true))
                 {
                     state.Current.Object = enumerator;
                     state.Current.EnumeratorInProgress = true;

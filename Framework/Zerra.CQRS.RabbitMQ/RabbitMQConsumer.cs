@@ -2,19 +2,19 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using RabbitMQ.Client;
 using Zerra.Encryption;
 using Zerra.Logging;
+using Zerra.Serialization;
 
 namespace Zerra.CQRS.RabbitMQ
 {
     public sealed partial class RabbitMQConsumer : ICommandConsumer, IEventConsumer, IDisposable
     {
         private readonly string host;
-        private readonly SymmetricConfig? symmetricConfig;
+        private readonly ISerializer serializer;
+        private readonly IEncryptor? encryptor;
+        private readonly ILogger? log;
         private readonly string? environment;
 
         private readonly Dictionary<string, CommandConsumer> commandExchanges;
@@ -30,12 +30,14 @@ namespace Zerra.CQRS.RabbitMQ
 
         private CommandCounter? commandCounter = null;
 
-        public RabbitMQConsumer(string host, SymmetricConfig? symmetricConfig, string? environment)
+        public RabbitMQConsumer(string host, ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 
             this.host = host;
-            this.symmetricConfig = symmetricConfig;
+            this.serializer = serializer;
+            this.encryptor = encryptor;
+            this.log = log;
             this.environment = environment;
             this.commandExchanges = new();
             this.eventExchanges = new();
@@ -65,12 +67,12 @@ namespace Zerra.CQRS.RabbitMQ
         void ICommandConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(RabbitMQConsumer)} Command Consumer Listening");
+            log?.Info($"{nameof(RabbitMQConsumer)} Command Consumer Listening");
         }
         void IEventConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(RabbitMQConsumer)} Event Consumer Listening");
+            log?.Info($"{nameof(RabbitMQConsumer)} Event Consumer Listening");
         }
         private void Open()
         {
@@ -84,7 +86,7 @@ namespace Zerra.CQRS.RabbitMQ
             }
             catch (Exception ex)
             {
-                _ = Log.ErrorAsync($"{nameof(RabbitMQConsumer)} failed to open", ex);
+                log?.Error($"{nameof(RabbitMQConsumer)} failed to open", ex);
                 throw;
             }
 
@@ -112,12 +114,12 @@ namespace Zerra.CQRS.RabbitMQ
         void ICommandConsumer.Close()
         {
             Close();
-            _ = Log.InfoAsync($"{nameof(RabbitMQConsumer)} Command Consumer Closed");
+            log?.Info($"{nameof(RabbitMQConsumer)} Command Consumer Closed");
         }
         void IEventConsumer.Close()
         {
             Close();
-            _ = Log.InfoAsync($"{nameof(RabbitMQConsumer)} Event Consumer Closed");
+            log?.Info($"{nameof(RabbitMQConsumer)} Event Consumer Closed");
         }
         private void Close()
         {
@@ -153,8 +155,8 @@ namespace Zerra.CQRS.RabbitMQ
                     return;
                 if (commandExchanges.ContainsKey(topic))
                     return;
-                commandTypes.Add(type);
-                commandExchanges.Add(topic, new CommandConsumer(maxConcurrent, commandCounter, topic, symmetricConfig, environment, commandHandlerAsync, commandHandlerAwaitAsync, commandHandlerWithResultAwaitAsync));
+                _ = commandTypes.Add(type);
+                commandExchanges.Add(topic, new CommandConsumer(maxConcurrent, commandCounter, topic, serializer, encryptor, log, environment, commandHandlerAsync, commandHandlerAwaitAsync, commandHandlerWithResultAwaitAsync));
                 OpenExchanges();
             }
         }
@@ -170,8 +172,8 @@ namespace Zerra.CQRS.RabbitMQ
                     return;
                 if (eventExchanges.ContainsKey(topic))
                     return;
-                eventTypes.Add(type);
-                eventExchanges.Add(topic, new EventConsumer(maxConcurrent, topic, symmetricConfig, environment, eventHandlerAsync));
+                _ = eventTypes.Add(type);
+                eventExchanges.Add(topic, new EventConsumer(maxConcurrent, topic, serializer, encryptor, log, environment, eventHandlerAsync));
                 OpenExchanges();
             }
         }

@@ -2,22 +2,21 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Buffers.Text;
-using Zerra.Reflection;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
+using Zerra.SourceGeneration.Types;
 
 namespace Zerra.Serialization.Json.Converters.General
 {
-    internal sealed class JsonConverterEnum<TParent, TValue> : JsonConverter<TParent, TValue>
+    internal sealed class JsonConverterEnum<TValue> : JsonConverter<TValue>
     {
         protected override bool StackRequired => false;
 
         protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out TValue? value)
         {
             if (!typeDetail.EnumUnderlyingType.HasValue)
-                throw new InvalidOperationException($"{nameof(JsonConverterEnum<TParent, TValue>)} can only handle enum types.");
+                throw new InvalidOperationException($"{nameof(JsonConverterEnum<TValue>)} can only handle enum types.");
 
             switch (valueType)
             {
@@ -126,7 +125,7 @@ namespace Zerra.Serialization.Json.Converters.General
             }
 
             if (!typeDetail.EnumUnderlyingType.HasValue)
-                throw new InvalidOperationException($"{nameof(JsonConverterEnum<TParent, TValue>)} can only handle enum types.");
+                throw new InvalidOperationException($"{nameof(JsonConverterEnum<TValue>)} can only handle enum types.");
 
             if (state.EnumAsNumber)
             {

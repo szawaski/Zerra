@@ -2,18 +2,15 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using Zerra.Reflection;
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;
+using Zerra.SourceGeneration.Types;
 
 namespace Zerra.Serialization.Bytes.Converters.General
 {
-    internal sealed partial class ByteConverterObject<TParent, TValue> : ByteConverter<TParent, TValue>
+    internal sealed partial class ByteConverterObject<TValue> : ByteConverter<TValue>
     {
         private static readonly ConcurrentStack<Dictionary<string, object?>> collectedValuesPool = new();
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -98,10 +95,10 @@ namespace Zerra.Serialization.Bytes.Converters.General
             if (typeDetail.Type.IsValueType || !typeDetail.HasCreator)
             {
                 //find best constructor
-                foreach (var constructor in typeDetail.ConstructorDetails.OrderByDescending(x => x.ParameterDetails.Count))
+                foreach (var constructor in typeDetail.Constructors.OrderByDescending(x => x.Parameters.Count))
                 {
                     var skip = false;
-                    foreach (var parameter in constructor.ParameterDetails)
+                    foreach (var parameter in constructor.Parameters)
                     {
                         //cannot have argument of itself or a null name
                         if (parameter.Type == typeDetail.Type || parameter.Name is null)
@@ -340,7 +337,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         throw new Exception($"Cannot deserialize with property undefined and no types.");
 
                     //consume bytes but object does not have property
-                    var converter = ByteConverterFactory<TValue>.GetDrainBytes();
+                    var converter = ByteConverterFactory.GetDrainBytes();
                     if (!converter.TryReadFromParent(ref reader, ref state, default, false, true))
                     {
                         state.Current.HasReadProperty = true;
@@ -387,7 +384,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
 
             if (collectValues)
             {
-                var args = new object?[parameterConstructor!.ParameterDetails.Count];
+                var args = new object?[parameterConstructor!.Parameters.Count];
                 for (var i = 0; i < args.Length; i++)
                 {
 #if NETSTANDARD2_0
@@ -397,17 +394,17 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         args[i] = parameter;
                     }
 #else
-                    if (collectedValues!.Remove(parameterConstructor.ParameterDetails[i].Name!, out var parameter))
+                    if (collectedValues!.Remove(parameterConstructor.Parameters[i].Name!, out var parameter))
                         args[i] = parameter;
 #endif
                 }
                 if (typeDetail.Type.IsValueType)
                 {
-                    value = (TValue?)parameterConstructor.CreatorWithArgsBoxed(args);
+                    value = (TValue?)parameterConstructor.CreatorBoxed(args);
                 }
                 else
                 {
-                    value = parameterConstructor.CreatorWithArgs(args);
+                    value = parameterConstructor.Creator(args);
                 }
 
                 foreach (var remaining in collectedValues!)

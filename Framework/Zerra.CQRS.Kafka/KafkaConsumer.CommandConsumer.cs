@@ -3,12 +3,8 @@
 // Licensed to you under the MIT license
 
 using Confluent.Kafka;
-using System;
-using System.Linq;
 using System.Security.Claims;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Zerra.Encryption;
 using Zerra.Logging;
 using Zerra.CQRS.Network;
@@ -25,13 +21,15 @@ namespace Zerra.CQRS.Kafka
             private readonly CommandCounter commandCounter;
             private readonly string topic;
             private readonly string clientID;
-            private readonly SymmetricConfig? symmetricConfig;
+            private readonly Zerra.Serialization.ISerializer serializer;
+            private readonly IEncryptor? encryptor;
+            private readonly ILogger? log;
             private readonly HandleRemoteCommandDispatch handlerAsync;
             private readonly HandleRemoteCommandDispatch handlerAwaitAsync;
             private readonly HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync;
             private readonly CancellationTokenSource canceller;
 
-            public CommandConsumer(int maxConcurrent, CommandCounter commandCounter, string topic, SymmetricConfig? symmetricConfig, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
+            public CommandConsumer(int maxConcurrent, CommandCounter commandCounter, string topic, Zerra.Serialization.ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
@@ -43,7 +41,9 @@ namespace Zerra.CQRS.Kafka
                 else
                     this.topic = topic.Truncate(KafkaCommon.TopicMaxLength);
                 this.clientID = Environment.MachineName;
-                this.symmetricConfig = symmetricConfig;
+                this.serializer = serializer;
+                this.encryptor = encryptor;
+                this.log = log;
                 this.handlerAsync = handlerAsync;
                 this.handlerAwaitAsync = handlerAwaitAsync;
                 this.handlerWithResultAwaitAsync = handlerWithResultAwaitAsync;
@@ -109,7 +109,7 @@ namespace Zerra.CQRS.Kafka
                 }
                 catch (Exception ex)
                 {
-                    _ = Log.ErrorAsync(topic, ex);
+                    log?.Error(topic, ex);
                     if (!canceller.IsCancellationRequested)
                     {
                         await Task.Delay(KafkaCommon.RetryDelay);
@@ -134,14 +134,14 @@ namespace Zerra.CQRS.Kafka
                     if (consumerResult.Message.Key == KafkaCommon.MessageKey || consumerResult.Message.Key == KafkaCommon.MessageWithAckKey)
                     {
                         var body = consumerResult.Message.Value;
-                        if (symmetricConfig is not null)
-                            body = SymmetricEncryptor.Decrypt(symmetricConfig, body);
+                        if (encryptor is not null)
+                            body = encryptor.Decrypt(body);
 
-                        var message = KafkaCommon.Deserialize<KafkaMessage>(body);
+                        var message = serializer.Deserialize<KafkaMessage>(body);
                         if (message is null || message.MessageType is null || message.MessageData is null || message.Source is null)
                             throw new Exception("Invalid Message");
 
-                        var command = KafkaCommon.Deserialize(message.MessageData, message.MessageType) as ICommand;
+                        var command = serializer.Deserialize(message.MessageData, message.MessageType) as ICommand;
                         if (command is null)
                             throw new Exception("Invalid Message");
 
@@ -162,14 +162,14 @@ namespace Zerra.CQRS.Kafka
                     }
                     else
                     {
-                        _ = Log.ErrorAsync($"{nameof(KafkaConsumer)} unrecognized message key {consumerResult.Message.Key}");
+                        log?.Error($"{nameof(KafkaConsumer)} unrecognized message key {consumerResult.Message.Key}");
                     }
                 }
                 catch (Exception ex)
                 {
                     error = ex;
                     if (!inHandlerContext)
-                        _ = Log.ErrorAsync(topic, ex);
+                        log?.Error(topic, ex);
                 }
                 finally
                 {
@@ -186,9 +186,9 @@ namespace Zerra.CQRS.Kafka
                     var ackKey = Encoding.UTF8.GetString(consumerResult.Message.Headers.GetLastBytes(KafkaCommon.AckKeyHeader));
 
                     var acknowledgement = new Acknowledgement(result, error);
-                    var body = KafkaCommon.Serialize(acknowledgement);
-                    if (symmetricConfig is not null)
-                        body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
+                    var body = serializer.SerializeBytes(acknowledgement);
+                    if (encryptor is not null)
+                        body = encryptor.Encrypt(body);
 
                     var producerConfig = new ProducerConfig();
                     producerConfig.BootstrapServers = host;
@@ -204,7 +204,7 @@ namespace Zerra.CQRS.Kafka
                 }
                 catch (Exception ex)
                 {
-                    _ = Log.ErrorAsync(ex);
+                    log?.Error(ex);
                 }
                 finally
                 {

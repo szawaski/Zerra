@@ -2,13 +2,12 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Collections.Generic;
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;
 
 namespace Zerra.Serialization.Bytes.Converters.CoreTypes.HashSetTs
 {
-    internal sealed class ByteConverterBooleanHashSet<TParent> : ByteConverter<TParent, HashSet<bool>>
+    internal sealed class ByteConverterBooleanHashSet : ByteConverter<HashSet<bool>>
     {
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out HashSet<bool>? value)
             => reader.TryRead(out value, out state.SizeNeeded);

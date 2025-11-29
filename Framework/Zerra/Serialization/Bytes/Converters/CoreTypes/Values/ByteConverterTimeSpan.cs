@@ -2,13 +2,12 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;
 
 namespace Zerra.Serialization.Bytes.Converters.CoreTypes.Values
 {
-    internal sealed class ByteConverterTimeSpan<TParent> : ByteConverter<TParent, TimeSpan>
+    internal sealed class ByteConverterTimeSpan : ByteConverter<TimeSpan>
     {
         protected override bool StackRequired => false;
 

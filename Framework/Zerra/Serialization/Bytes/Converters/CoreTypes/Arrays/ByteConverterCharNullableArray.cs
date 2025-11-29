@@ -7,7 +7,7 @@ using Zerra.Serialization.Bytes.State;
 
 namespace Zerra.Serialization.Bytes.Converters.CoreTypes.Arrays
 {
-    internal sealed class ByteConverterCharNullableArray<TParent> : ByteConverter<TParent, char?[]>
+    internal sealed class ByteConverterCharNullableArray : ByteConverter<char?[]>
     {
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out char?[]? value)
             => reader.TryRead(out value, out state.SizeNeeded);

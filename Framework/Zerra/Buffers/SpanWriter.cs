@@ -2,7 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Runtime.CompilerServices;
 
 namespace Zerra.Buffers
@@ -39,7 +38,7 @@ namespace Zerra.Buffers
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(ReadOnlySpan<T> values)
         {
-            values.CopyTo(span.Slice(position));
+            values.CopyTo(span[position..]);
             position += values.Length;
         }
     }

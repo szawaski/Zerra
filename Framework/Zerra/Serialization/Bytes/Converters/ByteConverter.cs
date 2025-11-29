@@ -2,10 +2,9 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Zerra.Reflection;
-using System;
 using Zerra.Serialization.Bytes.State;
 using Zerra.Serialization.Bytes.IO;
+using System.Runtime.CompilerServices;
 
 namespace Zerra.Serialization.Bytes.Converters
 {
@@ -26,5 +25,16 @@ namespace Zerra.Serialization.Bytes.Converters
 
         public abstract bool TryReadBoxed(ref ByteReader reader, ref ReadState state, out object? value);
         public abstract bool TryWriteBoxed(ref ByteWriter writer, ref WriteState state, in object? value);
+
+        public abstract bool TryReadFromParent(ref ByteReader reader, ref ReadState state, object? parent, bool nullFlags, bool drainBytes = false);
+        public abstract bool TryWriteFromParent(ref ByteWriter writer, ref WriteState state, object parent, bool nullFlags, ushort indexProperty = default, ReadOnlySpan<byte> indexPropertyName = default);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public abstract bool TryReadValueBoxed(ref ByteReader reader, ref ReadState state, out object? value);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public abstract bool TryWriteValueBoxed(ref ByteWriter writer, ref WriteState state, in object value);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public abstract void CollectedValuesSetter(object? parent, in object? value);
     }
 }

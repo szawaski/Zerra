@@ -1,0 +1,256 @@
+// Copyright © KaKush LLC
+// Written By Steven Zawaski
+// Licensed to you under the MIT license
+
+using Xunit;
+using Zerra.Collections;
+
+namespace Zerra.Test.Collections
+{
+    public class ConcurrentHashSetTest
+    {
+        [Fact]
+        public void Constructor_Default()
+        {
+            var set = new ConcurrentHashSet<int>();
+            Assert.Empty(set);
+        }
+
+        [Fact]
+        public void Count_Property()
+        {
+            var set = new ConcurrentHashSet<int>();
+            Assert.Empty(set);
+            _ = set.Add(1);
+            _ = Assert.Single(set);
+            _ = set.Add(2);
+            Assert.Equal(2, set.Count);
+        }
+
+        [Fact]
+        public void IsReadOnly_Property()
+        {
+            var set = new ConcurrentHashSet<int>();
+            Assert.False(set.IsReadOnly);
+        }
+
+        [Fact]
+        public void Add_Method()
+        {
+            var set = new ConcurrentHashSet<int>();
+            Assert.True(set.Add(1));
+            Assert.False(set.Add(1));
+            Assert.True(set.Add(2));
+        }
+
+        [Fact]
+        public void Clear_Method()
+        {
+            var set = new ConcurrentHashSet<int>();
+            _ = set.Add(1);
+            _ = set.Add(2);
+            Assert.Equal(2, set.Count);
+            set.Clear();
+            Assert.Empty(set);
+        }
+
+        [Fact]
+        public void Contains_Method()
+        {
+            var set = new ConcurrentHashSet<int>();
+            _ = set.Add(1);
+            Assert.True(set.Contains(1));
+            Assert.False(set.Contains(2));
+        }
+
+        [Fact]
+        public void CopyTo_Method()
+        {
+            var set = new ConcurrentHashSet<int>();
+            _ = set.Add(1);
+            _ = set.Add(2);
+            var array = new int[2];
+            set.CopyTo(array);
+            var sorted = array.OrderBy(x => x).ToArray();
+            Assert.Equal(1, sorted[0]);
+            Assert.Equal(2, sorted[1]);
+        }
+
+        [Fact]
+        public void CopyTo_WithIndex()
+        {
+            var set = new ConcurrentHashSet<int>();
+            _ = set.Add(1);
+            _ = set.Add(2);
+            var array = new int[3];
+            set.CopyTo(array, 1);
+            Assert.Equal(0, array[0]);
+            var sorted = array.Skip(1).OrderBy(x => x).ToArray();
+            Assert.Equal(1, sorted[0]);
+            Assert.Equal(2, sorted[1]);
+        }
+
+        [Fact]
+        public void CopyTo_WithCount()
+        {
+            var set = new ConcurrentHashSet<int>();
+            _ = set.Add(1);
+            _ = set.Add(2);
+            _ = set.Add(3);
+            var array = new int[5];
+            set.CopyTo(array, 1, 2);
+            Assert.Equal(0, array[0]);
+            Assert.Equal(0, array[3]);
+            Assert.Equal(0, array[4]);
+        }
+
+        [Fact]
+        public void Remove_Method()
+        {
+            var set = new ConcurrentHashSet<int>();
+            _ = set.Add(1);
+            Assert.True(set.Remove(1));
+            Assert.False(set.Contains(1));
+            Assert.False(set.Remove(1));
+        }
+
+        [Fact]
+        public void RemoveWhere_Method()
+        {
+            var set = new ConcurrentHashSet<int>();
+            _ = set.Add(1);
+            _ = set.Add(2);
+            _ = set.Add(3);
+            var count = set.RemoveWhere(x => x > 1);
+            Assert.Equal(2, count);
+            Assert.True(set.Contains(1));
+            Assert.False(set.Contains(2));
+        }
+
+        [Fact]
+        public void ExceptWith_Method()
+        {
+            var set = new ConcurrentHashSet<int> { 1, 2, 3 };
+            set.ExceptWith(new[] { 2, 3, 4 });
+            _ = Assert.Single(set);
+            Assert.Contains(1, set);
+        }
+
+        [Fact]
+        public void IntersectWith_Method()
+        {
+            var set = new ConcurrentHashSet<int> { 1, 2, 3 };
+            set.IntersectWith(new[] { 2, 3, 4 });
+            Assert.Equal(2, set.Count);
+            Assert.Contains(2, set);
+            Assert.Contains(3, set);
+        }
+
+        [Fact]
+        public void UnionWith_Method()
+        {
+            var set = new ConcurrentHashSet<int> { 1, 2 };
+            set.UnionWith(new[] { 2, 3, 4 });
+            Assert.Equal(4, set.Count);
+        }
+
+        [Fact]
+        public void SymmetricExceptWith_Method()
+        {
+            var set = new ConcurrentHashSet<int> { 1, 2, 3 };
+            set.SymmetricExceptWith(new[] { 2, 3, 4 });
+            Assert.Equal(2, set.Count);
+            Assert.Contains(1, set);
+            Assert.Contains(4, set);
+        }
+
+        [Fact]
+        public void IsSubsetOf_Method()
+        {
+            var set = new ConcurrentHashSet<int> { 1, 2 };
+            Assert.True(set.IsSubsetOf(new[] { 1, 2, 3 }));
+            Assert.False(set.IsSubsetOf(new[] { 1, 3 }));
+        }
+
+        [Fact]
+        public void IsSupersetOf_Method()
+        {
+            var set = new ConcurrentHashSet<int> { 1, 2, 3 };
+            Assert.True(set.IsSupersetOf(new[] { 1, 2 }));
+            Assert.False(set.IsSupersetOf(new[] { 1, 4 }));
+        }
+
+        [Fact]
+        public void IsProperSubsetOf_Method()
+        {
+            var set = new ConcurrentHashSet<int> { 1, 2 };
+            Assert.True(set.IsProperSubsetOf(new[] { 1, 2, 3 }));
+            Assert.False(set.IsProperSubsetOf(new[] { 1, 2 }));
+        }
+
+        [Fact]
+        public void IsProperSupersetOf_Method()
+        {
+            var set = new ConcurrentHashSet<int> { 1, 2, 3 };
+            Assert.True(set.IsProperSupersetOf(new[] { 1, 2 }));
+            Assert.False(set.IsProperSupersetOf(new[] { 1, 2, 3 }));
+        }
+
+        [Fact]
+        public void Overlaps_Method()
+        {
+            var set = new ConcurrentHashSet<int> { 1, 2, 3 };
+            Assert.True(set.Overlaps(new[] { 2, 4 }));
+            Assert.False(set.Overlaps(new[] { 4, 5 }));
+        }
+
+        [Fact]
+        public void SetEquals_Method()
+        {
+            var set = new ConcurrentHashSet<int> { 1, 2, 3 };
+            Assert.True(set.SetEquals(new[] { 1, 2, 3 }));
+            Assert.True(set.SetEquals(new[] { 3, 2, 1 }));
+            Assert.False(set.SetEquals(new[] { 1, 2 }));
+        }
+
+        [Fact]
+        public void TrimExcess_Method()
+        {
+            var set = new ConcurrentHashSet<int>();
+            _ = set.Add(1);
+            _ = set.Add(2);
+            _ = set.Remove(1);
+            _ = set.Remove(2);
+            set.TrimExcess();
+            Assert.Empty(set);
+        }
+
+        [Fact]
+        public void GetEnumerator_Method()
+        {
+            var set = new ConcurrentHashSet<int> { 1, 2, 3 };
+            var items = set.ToList();
+            Assert.Equal(3, items.Count);
+        }
+
+        [Fact]
+        public async Task ThreadSafety_ConcurrentOperations()
+        {
+            var set = new ConcurrentHashSet<int>();
+            var tasks = new Task[10];
+
+            for (int i = 0; i < 10; i++)
+            {
+                int value = i;
+                tasks[i] = Task.Run(() =>
+                {
+                    _ = set.Add(value);
+                    _ = set.Add(value + 100);
+                });
+            }
+
+            await Task.WhenAll(tasks);
+            Assert.Equal(20, set.Count);
+        }
+    }
+}

@@ -3,19 +3,18 @@
 // Licensed to you under the MIT license
 
 using Azure.Messaging.ServiceBus;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Zerra.Encryption;
 using Zerra.Logging;
+using Zerra.Serialization;
 
 namespace Zerra.CQRS.AzureServiceBus
 {
     public sealed partial class AzureServiceBusConsumer : ICommandConsumer, IEventConsumer, IAsyncDisposable
     {
         private readonly string host;
-        private readonly SymmetricConfig? symmetricConfig;
+        private readonly ISerializer serializer;
+        private readonly IEncryptor? encryptor;
+        private readonly ILogger? log;
         private readonly string? environment;
 
         private readonly Dictionary<string, CommandConsumer> commandExchanges;
@@ -37,12 +36,14 @@ namespace Zerra.CQRS.AzureServiceBus
             ReceiveMode = ServiceBusReceiveMode.ReceiveAndDelete,
         };
 
-        public AzureServiceBusConsumer(string host, SymmetricConfig? symmetricConfig, string? environment)
+        public AzureServiceBusConsumer(string host, ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 
             this.host = host;
-            this.symmetricConfig = symmetricConfig;
+            this.serializer = serializer;
+            this.encryptor = encryptor;
+            this.log = log;
             this.environment = environment;
             this.commandExchanges = new();
             this.eventExchanges = new();
@@ -74,12 +75,12 @@ namespace Zerra.CQRS.AzureServiceBus
         void ICommandConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(AzureServiceBusConsumer)} Command Consumer Listening");
+            log?.Info($"{nameof(AzureServiceBusConsumer)} Command Consumer Listening");
         }
         void IEventConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(AzureServiceBusConsumer)} Event Consumer Listening");
+            log?.Info($"{nameof(AzureServiceBusConsumer)} Event Consumer Listening");
         }
         private void Open()
         {
@@ -109,12 +110,12 @@ namespace Zerra.CQRS.AzureServiceBus
         void ICommandConsumer.Close()
         {
             Close();
-            _ = Log.InfoAsync($"{nameof(AzureServiceBusConsumer)} Command Consumer Closed");
+            log?.Info($"{nameof(AzureServiceBusConsumer)} Command Consumer Closed");
         }
         void IEventConsumer.Close()
         {
             Close();
-            _ = Log.InfoAsync($"{nameof(AzureServiceBusConsumer)} Event Consumer Closed");
+            log?.Info($"{nameof(AzureServiceBusConsumer)} Event Consumer Closed");
         }
         private void Close()
         {
@@ -147,8 +148,8 @@ namespace Zerra.CQRS.AzureServiceBus
                     return;
                 if (commandExchanges.ContainsKey(topic))
                     return;
-                commandTypes.Add(type);
-                commandExchanges.Add(topic, new CommandConsumer(maxConcurrent, commandCounter, topic, symmetricConfig, environment, commandHandlerAsync, commandHandlerAwaitAsync, commandHandlerWithResultAwaitAsync));
+                _ = commandTypes.Add(type);
+                commandExchanges.Add(topic, new CommandConsumer(maxConcurrent, commandCounter, topic, serializer, encryptor, log, environment, commandHandlerAsync, commandHandlerAwaitAsync, commandHandlerWithResultAwaitAsync));
                 OpenExchanges();
             }
         }
@@ -164,8 +165,8 @@ namespace Zerra.CQRS.AzureServiceBus
                     return;
                 if (eventExchanges.ContainsKey(topic))
                     return;
-                eventTypes.Add(type);
-                eventExchanges.Add(topic, new EventConsumer(maxConcurrent, topic, symmetricConfig, environment, eventHandlerAsync));
+                _ = eventTypes.Add(type);
+                eventExchanges.Add(topic, new EventConsumer(maxConcurrent, topic, serializer, encryptor, log, environment, eventHandlerAsync));
                 OpenExchanges();
             }
         }

@@ -2,22 +2,12 @@
 
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
-        <IsPackable>false</IsPackable>
-        <Authors>Steven Zawaski</Authors>
-        <Copyright>KaKush LLC</Copyright>
-        <Product>Zerra Framework</Product>
-        <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <InvariantGlobalization>true</InvariantGlobalization>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <LangVersion>14.0</LangVersion>
     </PropertyGroup>
-
-    <ItemGroup>
-        <None Include="..\..\LICENSE" Link="LICENSE">
-            <PackagePath>\</PackagePath>
-            <Pack>True</Pack>
-        </None>
-    </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.4.0" PrivateAssets="all" />
@@ -37,8 +27,11 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\Misc\Zerra.Tools\Zerra.Tools.csproj" />
         <ProjectReference Include="..\..\Framework\Zerra\Zerra.csproj" />
     </ItemGroup>
+
+    <!--<ItemGroup>
+        <ProjectReference Include="..\..\Framework\Zerra.SourceGeneration\Zerra.SourceGeneration.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    </ItemGroup>-->
 
 </Project>

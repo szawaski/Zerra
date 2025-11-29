@@ -2,12 +2,8 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Text;
-using Zerra.Reflection;
 
 namespace Zerra
 {
@@ -42,7 +38,7 @@ namespace Zerra
             }
         }
 
-        private static readonly TypeDetail graphTType = typeof(Graph<>).GetTypeDetail();
+        //private static readonly TypeDetail graphTType = typeof(Graph<>).GetTypeDetail();
 
         [NonSerialized]
         protected string? signature = null;
@@ -420,22 +416,22 @@ namespace Zerra
                 return null;
             return childGraph;
         }
-        /// <summary>
-        /// Returns the generic child graph of a member if the child graph exists.
-        /// </summary>
-        /// <param name="member">The member for the child graph.</param>
-        /// <param name="type">The generic type of the child graph.</param>
-        /// <returns>The child graph of the member if it exists; otherwise, null.</returns>
-        public Graph? GetChildGraph(string member, Type type)
-        {
-            if (childGraphs is null || childGraphs.Count == 0)
-                return null;
-            if (!childGraphs.TryGetValue(member, out var nonGenericGraph))
-                return null;
-            if (nonGenericGraph.GetModelType() == type)
-                return (Graph)System.Convert.ChangeType(nonGenericGraph, graphTType.GetGenericTypeDetail(type).Type);
-            return Convert(nonGenericGraph, type);
-        }
+        ///// <summary>
+        ///// Returns the generic child graph of a member if the child graph exists.
+        ///// </summary>
+        ///// <param name="member">The member for the child graph.</param>
+        ///// <param name="type">The generic type of the child graph.</param>
+        ///// <returns>The child graph of the member if it exists; otherwise, null.</returns>
+        //public Graph? GetChildGraph(string member, Type type)
+        //{
+        //    if (childGraphs is null || childGraphs.Count == 0)
+        //        return null;
+        //    if (!childGraphs.TryGetValue(member, out var nonGenericGraph))
+        //        return null;
+        //    if (nonGenericGraph.GetModelType() == type)
+        //        return (Graph)System.Convert.ChangeType(nonGenericGraph, graphTType.GetGenericTypeDetail(type).Type);
+        //    return Convert(nonGenericGraph, type);
+        //}
         /// <summary>
         /// Returns the generic child graph of a member if the child graph exists.
         /// </summary>
@@ -481,26 +477,26 @@ namespace Zerra
                 return instanceGraph;
             return childGraph;
         }
-        /// <summary>
-        /// Returns the generic child graph specific for an instance. If there is none, the containing child graph will be returned.
-        /// </summary>
-        /// <param name="member">The member for the child graph.</param>
-        /// <param name="type">The generic type of the child graph.</param>
-        /// <param name="instance">The instance for whoms graph should be returned.</param>
-        /// <returns>The generic child graph for the instance.</returns>
-        public Graph? GetChildInstanceGraph(string member, Type type, object instance)
-        {
-            if (childGraphs is null || childGraphs.Count == 0)
-                return null;
-            if (!childGraphs.TryGetValue(member, out var nonGenericGraph))
-                return null;
-            if (nonGenericGraph.GetModelType() == type)
-                return nonGenericGraph;
+        ///// <summary>
+        ///// Returns the generic child graph specific for an instance. If there is none, the containing child graph will be returned.
+        ///// </summary>
+        ///// <param name="member">The member for the child graph.</param>
+        ///// <param name="type">The generic type of the child graph.</param>
+        ///// <param name="instance">The instance for whoms graph should be returned.</param>
+        ///// <returns>The generic child graph for the instance.</returns>
+        //public Graph? GetChildInstanceGraph(string member, Type type, object instance)
+        //{
+        //    if (childGraphs is null || childGraphs.Count == 0)
+        //        return null;
+        //    if (!childGraphs.TryGetValue(member, out var nonGenericGraph))
+        //        return null;
+        //    if (nonGenericGraph.GetModelType() == type)
+        //        return nonGenericGraph;
 
-            if (nonGenericGraph.instanceGraphs is not null && nonGenericGraph.instanceGraphs.TryGetValue(instance, out var instanceGraph))
-                return Convert(instanceGraph, type);
-            return Convert(nonGenericGraph, type);
-        }
+        //    if (nonGenericGraph.instanceGraphs is not null && nonGenericGraph.instanceGraphs.TryGetValue(instance, out var instanceGraph))
+        //        return Convert(instanceGraph, type);
+        //    return Convert(nonGenericGraph, type);
+        //}
         /// <summary>
         /// Returns the generic child graph specific for an instance. If there is none, the containing child graph will be returned.
         /// </summary>
@@ -526,12 +522,12 @@ namespace Zerra
             return new Graph<TGraph>(nonGenericGraph);
         }
 
-        private static Graph Convert(Graph graph, Type type)
-        {
-            var constructor = TypeAnalyzer.GetGenericTypeDetail(typeof(Graph<>), type).GetConstructorBoxed([typeof(Graph)]);
-            var genericGraph = (Graph)constructor.CreatorWithArgsBoxed([graph]);
-            return genericGraph;
-        }
+        //private static Graph Convert(Graph graph, Type type)
+        //{
+        //    var constructor = TypeAnalyzer.GetGenericTypeDetail(typeof(Graph<>), type).GetConstructorBoxed([typeof(Graph)]);
+        //    var genericGraph = (Graph)constructor.CreatorWithArgsBoxed([graph]);
+        //    return genericGraph;
+        //}
 
         /// <summary>
         /// Generates a string representation of the members of this graph.
@@ -607,16 +603,18 @@ namespace Zerra
                 if (graph.removedMembers is not null && graph.removedMembers.Contains(member.Name))
                     return null;
 
-                if (member.MemberType == MemberTypes.Property)
-                {
-                    var graphTTypeGeneric = graphTType.GetGenericTypeDetail(((PropertyInfo)member).PropertyType);
-                    childGraph = (Graph)graphTTypeGeneric.CreatorBoxed();
-                }
-                else
-                {
-                    var graphTTypeGeneric = graphTType.GetGenericTypeDetail(((FieldInfo)member).FieldType);
-                    childGraph = (Graph)graphTTypeGeneric.CreatorBoxed();
-                }
+                //if (member.MemberType == MemberTypes.Property)
+                //{
+                //    var graphTTypeGeneric = graphTType.GetGenericTypeDetail(((PropertyInfo)member).PropertyType);
+                //    childGraph = (Graph)graphTTypeGeneric.CreatorBoxed();
+                //}
+                //else
+                //{
+                //    var graphTTypeGeneric = graphTType.GetGenericTypeDetail(((FieldInfo)member).FieldType);
+                //    childGraph = (Graph)graphTTypeGeneric.CreatorBoxed();
+                //}
+
+                childGraph = new();
 
                 if (graph.includeAllMembers || (graph.addedMembers is not null && graph.addedMembers.Contains(member.Name)))
                     childGraph.includeAllMembers = true;

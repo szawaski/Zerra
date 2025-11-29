@@ -2,12 +2,9 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Zerra.Reflection;
-using System;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 using System.Runtime.CompilerServices;
-using System.Collections.Generic;
 using Zerra.Serialization.Json.Converters.Collections;
 using System.Buffers.Text;
 
@@ -22,6 +19,17 @@ namespace Zerra.Serialization.Json.Converters
 
         public abstract bool TryReadBoxed(ref JsonReader reader, ref ReadState state, out object? value);
         public abstract bool TryWriteBoxed(ref JsonWriter writer, ref WriteState state, in object? value);
+
+        public abstract bool TryReadFromParent(ref JsonReader reader, ref ReadState state, object? parent, string? propertyName = null);
+        public abstract bool TryWriteFromParent(ref JsonWriter writer, ref WriteState state, object parent, string? propertyName = null, ReadOnlySpan<char> jsonNameSegmentChars = default, ReadOnlySpan<byte> jsonNameSegmentBytes = default, JsonIgnoreCondition ignoreCondition = JsonIgnoreCondition.Never, bool ignoreDoNotWriteNullProperties = false);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public abstract bool TryReadValueBoxed(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out object? value);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public abstract bool TryWriteValueBoxed(ref JsonWriter writer, ref WriteState state, in object value);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public abstract void CollectedValuesSetter(object? parent, in object? value);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected static bool DrainFromParent(ref JsonReader reader, ref ReadState state)

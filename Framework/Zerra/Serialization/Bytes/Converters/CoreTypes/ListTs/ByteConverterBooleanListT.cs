@@ -2,13 +2,12 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Collections.Generic;
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;
 
 namespace Zerra.Serialization.Bytes.Converters.CoreTypes.ListTs
 {
-    internal sealed class ByteConverterBooleanList<TParent> : ByteConverter<TParent, List<bool>>
+    internal sealed class ByteConverterBooleanList : ByteConverter<List<bool>>
     {
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out List<bool>? value)
             => reader.TryRead(out value, out state.SizeNeeded);

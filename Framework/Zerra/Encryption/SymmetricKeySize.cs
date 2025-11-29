@@ -10,6 +10,10 @@ namespace Zerra.Encryption
     public enum SymmetricKeySize : short
     {
         /// <summary>
+        /// Symmetric Key of 64 Bits
+        /// </summary>
+        Bits_64 = 64,
+        /// <summary>
         /// Symmetric Key of 128 Bits
         /// </summary>
         Bits_128 = 128,

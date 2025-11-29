@@ -2,7 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using Zerra.Buffers;
 
 namespace Zerra.Encryption
@@ -17,20 +16,30 @@ namespace Zerra.Encryption
         /// </summary>
         /// <param name="inArray">The bytes to convert.</param>
         /// <returns>The resulting string.</returns>
-        public static string ToBase64UrlString(byte[] inArray)
+        public static string ToBase64UrlString(ReadOnlySpan<byte> inArray)
         {
             var arrayString = Convert.ToBase64String(inArray);
             var chars = arrayString.AsSpan();
 
             var length = chars.Length;
-            if (chars.Length > 0 && chars[chars.Length - 1] == '=')
+            if (chars.Length > 0 && chars[^1] == '=')
             {
                 length--;
-                if (chars.Length > 1 && chars[chars.Length - 2] == '=')
+                if (chars.Length > 1 && chars[^2] == '=')
                     length--;
             }
 
-            var filtered = ArrayPoolHelper<char>.Rent(length);
+            Span<char> filtered = stackalloc char[0];
+            char[]? rentedArray = null;
+            if (length <= 128)
+            {
+                filtered = stackalloc char[length];
+            }
+            else
+            {
+                rentedArray = ArrayPoolHelper<char>.Rent(length);
+                filtered = rentedArray;
+            }
             for (var i = 0; i < length; i++)
             {
                 var c = chars[i];
@@ -41,8 +50,9 @@ namespace Zerra.Encryption
                     _ => c,
                 };
             }
-            var filteredString = new string(filtered, 0, length);
-            ArrayPoolHelper<char>.Return(filtered);
+            var filteredString = filtered[..length].ToString();
+            if (rentedArray != null)
+                ArrayPoolHelper<char>.Return(rentedArray);
             return filteredString;
         }
 
@@ -52,9 +62,8 @@ namespace Zerra.Encryption
         /// <param name="s">The string to convert.</param>
         /// <returns>The resulting bytes.</returns>
         /// <exception cref="FormatException"></exception>
-        public static byte[] FromBase64UrlString(string s)
+        public static byte[] FromBase64UrlString(ReadOnlySpan<char> chars)
         {
-            var chars = s.AsSpan();
             var filteredLength = (chars.Length % 4) switch
             {
                 0 => chars.Length,
@@ -62,7 +71,19 @@ namespace Zerra.Encryption
                 3 => chars.Length + 1,
                 _ => throw new FormatException("Invalid string"),
             };
-            var filtered = ArrayPoolHelper<char>.Rent(filteredLength);
+
+            Span<char> filtered = stackalloc char[0];
+            char[]? rentedArray = null;
+            if (filteredLength <= 128)
+            {
+                filtered = stackalloc char[filteredLength];
+            }
+            else
+            {
+                rentedArray = ArrayPoolHelper<char>.Rent(filteredLength);
+                filtered = rentedArray;
+            }
+
             for (var i = 0; i < chars.Length; i++)
             {
                 var c = chars[i];
@@ -85,8 +106,9 @@ namespace Zerra.Encryption
                     break;
             }
 
-            var filteredString = new string(filtered, 0, filteredLength);
-            ArrayPoolHelper<char>.Return(filtered);
+            var filteredString = filtered[..filteredLength].ToString();
+            if (rentedArray != null)
+                ArrayPoolHelper<char>.Return(rentedArray);
             return Convert.FromBase64String(filteredString);
         }
     }

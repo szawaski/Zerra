@@ -1,11 +1,4 @@
-﻿// Copyright © KaKush LLC
-// Written By Steven Zawaski
-// Licensed to you under the MIT license
-
-using System;
-using System.Threading;
-
-namespace Zerra.CQRS
+﻿namespace Zerra.CQRS
 {
     /// <summary>
     /// A counter to track and limit the commands processed by this service.
@@ -65,7 +58,7 @@ namespace Zerra.CQRS
         {
             if (!receiveCountBeforeExit.HasValue)
             {
-                throttle.Release();
+                _ = throttle.Release();
                 return;
             }
 
@@ -84,7 +77,7 @@ namespace Zerra.CQRS
         {
             if (!receiveCountBeforeExit.HasValue)
             {
-                throttle.Release();
+                _ = throttle.Release();
                 return;
             }
 

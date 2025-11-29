@@ -2,8 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 

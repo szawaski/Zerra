@@ -2,10 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Threading;
 
 namespace Zerra.Collections
 {
@@ -126,7 +123,7 @@ namespace Zerra.Collections
         {
             if (value is not T casted)
                 throw new InvalidOperationException("value cannot be casted to the List type");
-            Remove(casted);
+            _ = Remove(casted);
         }
         void IList.RemoveAt(int index) => RemoveAt(index);
 

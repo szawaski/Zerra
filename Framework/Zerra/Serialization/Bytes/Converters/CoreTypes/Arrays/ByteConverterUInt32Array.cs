@@ -7,7 +7,7 @@ using Zerra.Serialization.Bytes.State;
 
 namespace Zerra.Serialization.Bytes.Converters.CoreTypes.Arrays
 {
-    internal sealed class ByteConverterUInt32Array<TParent> : ByteConverter<TParent, uint[]>
+    internal sealed class ByteConverterUInt32Array : ByteConverter<uint[]>
     {
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out uint[]? value)
             => reader.TryRead(out value, out state.SizeNeeded);

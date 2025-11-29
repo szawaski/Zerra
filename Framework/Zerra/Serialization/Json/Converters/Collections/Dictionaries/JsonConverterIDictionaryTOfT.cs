@@ -2,31 +2,27 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Collections.Generic;
-using Zerra.Reflection;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
+using Zerra.SourceGeneration;
 
 namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
 {
-    internal sealed class JsonConverterIDictionaryTOfT<TParent, TDictionary, TKey, TValue> : JsonConverter<TParent, TDictionary>
+    internal sealed class JsonConverterIDictionaryTOfT<TDictionary, TKey, TValue> : JsonConverter<TDictionary>
         where TKey : notnull
     {
-        private JsonConverter<IDictionaryAccessor<TKey, TValue>> readKeyConverter = null!;
-        private JsonConverter<IDictionaryAccessor<TKey, TValue>> readValueConverter = null!;
-        //private JsonConverter<IEnumerator<KeyValuePair<TKey, TValue>>> writeKeyConverter = null!;
-        private JsonConverter<IEnumerator<KeyValuePair<TKey, TValue>>> writeValueConverter = null!;
+        private JsonConverter keyConverter = null!;
+        private JsonConverter valueConverter = null!;
 
-        private JsonConverter<IDictionary<TKey, TValue>> readConverter = null!;
-        private JsonConverter<IEnumerator<KeyValuePair<TKey, TValue>>> writeConverter = null!;
+        private JsonConverter converter = null!;
 
-        //private static TKey KeyGetter(IEnumerator<KeyValuePair<TKey, TValue>> parent) => parent.Current.Key;
-        private static TValue ValueGetter(IEnumerator<KeyValuePair<TKey, TValue>> parent) => parent.Current.Value;
-        private static void KeySetter(IDictionaryAccessor<TKey, TValue> parent, TKey value) => parent.SetKey(value);
-        private static void ValueSetter(IDictionaryAccessor<TKey, TValue> parent, TValue value) => parent.Add(value);
+        private static TKey KeyGetter(object parent) => ((IEnumerator<KeyValuePair<TKey, TValue>>)parent).Current.Key;
+        private static TValue ValueGetter(object parent) => ((IEnumerator<KeyValuePair<TKey, TValue>>)parent).Current.Value;
+        private static void KeySetter(object parent, TKey value) => ((IDictionaryAccessor<TKey, TValue>)parent).SetKey(value);
+        private static void ValueSetter(object parent, TValue value) => ((IDictionaryAccessor<TKey, TValue>)parent).Add(value);
 
-        private static KeyValuePair<TKey, TValue> Getter(IEnumerator<KeyValuePair<TKey, TValue>> parent) => parent.Current;
-        private static void Setter(IDictionary<TKey, TValue> parent, KeyValuePair<TKey, TValue> value) => parent.Add(value.Key, value.Value);
+        private static KeyValuePair<TKey, TValue> Getter(object parent) => ((IEnumerator<KeyValuePair<TKey, TValue>>)parent).Current;
+        private static void Setter(object parent, KeyValuePair<TKey, TValue> value) => ((IDictionary<TKey, TValue>)parent).Add(value.Key, value.Value);
 
         private bool canWriteAsProperties;
 
@@ -39,16 +35,14 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
 
             if (canWriteAsProperties)
             {
-                readKeyConverter = JsonConverterFactory<IDictionaryAccessor<TKey, TValue>>.Get(keyDetail, $"{nameof(JsonConverterIDictionaryTOfT<TParent, TDictionary, TKey, TValue>)}_Key", null, KeySetter);
-                readValueConverter = JsonConverterFactory<IDictionaryAccessor<TKey, TValue>>.Get(valueDetail, $"{nameof(JsonConverterIDictionaryTOfT<TParent, TDictionary, TKey, TValue>)}_Value", null, ValueSetter);
-                //writeKeyConverter = JsonConverterFactory<IEnumerator<KeyValuePair<TKey, TValue>>>.Get(valueDetail, $"{nameof(JsonConverterIDictionaryTOfT<TParent, TDictionary, TKey, TValue>)}_Key", KeyGetter, null);
-                writeValueConverter = JsonConverterFactory<IEnumerator<KeyValuePair<TKey, TValue>>>.Get(valueDetail, $"{nameof(JsonConverterIDictionaryTOfT<TParent, TDictionary, TKey, TValue>)}_Value", ValueGetter, null);
+                var thisName = this.GetType().FullName;
+                keyConverter = JsonConverterFactory.Get(keyDetail, $"{thisName}_Key", KeyGetter, KeySetter);
+                valueConverter = JsonConverterFactory.Get(valueDetail, $"{thisName}_Value", ValueGetter, ValueSetter);
             }
             else
             {
                 var keyValuePairTypeDetail = TypeAnalyzer<KeyValuePair<TKey, TValue>>.GetTypeDetail();
-                readConverter = JsonConverterFactory<IDictionary<TKey, TValue>>.Get(keyValuePairTypeDetail, nameof(JsonConverterIDictionaryTOfT<TParent, TDictionary, TKey, TValue>), null, Setter);
-                writeConverter = JsonConverterFactory<IEnumerator<KeyValuePair<TKey, TValue>>>.Get(keyValuePairTypeDetail, nameof(JsonConverterIDictionaryTOfT<TParent, TDictionary, TKey, TValue>), Getter, null);
+                converter = JsonConverterFactory.Get(keyValuePairTypeDetail, nameof(JsonConverterIDictionaryTOfT<TDictionary, TKey, TValue>), Getter, Setter);
             }
         }
 
@@ -93,7 +87,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                 {
                     if (!state.Current.HasReadProperty)
                     {
-                        if (!readKeyConverter.TryReadFromParent(ref reader, ref state, accessor))
+                        if (!keyConverter.TryReadFromParent(ref reader, ref state, accessor))
                         {
                             state.Current.Object = accessor;
                             value = default;
@@ -117,7 +111,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
 
                     if (!state.Current.HasReadValue)
                     {
-                        if (!readValueConverter.TryReadFromParent(ref reader, ref state, accessor, state.IncludeReturnGraph ? accessor.CurrentKeyString : null))
+                        if (!valueConverter.TryReadFromParent(ref reader, ref state, accessor, state.IncludeReturnGraph ? accessor.CurrentKeyString : null))
                         {
                             state.Current.HasReadProperty = true;
                             state.Current.HasReadSeperator = true;
@@ -184,7 +178,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                 {
                     if (!state.Current.HasReadValue)
                     {
-                        if (!readConverter.TryReadFromParent(ref reader, ref state, dictionary))
+                        if (!converter.TryReadFromParent(ref reader, ref state, dictionary))
                         {
                             state.Current.HasCreated = true;
                             state.Current.Object = dictionary;
@@ -258,7 +252,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                     var name = enumerator.Current.Key.ToString();
                     var nameSegmentBytes = writer.UseBytes ? StringHelper.EscapeAndEncodeString(name, true) : null;
                     var nameSegmentChars = writer.UseBytes ? null : StringHelper.EscapeString(name, true);
-                    if (!writeValueConverter.TryWriteFromParent(ref writer, ref state, enumerator, name, nameSegmentChars, nameSegmentBytes, default, true))
+                    if (!valueConverter.TryWriteFromParent(ref writer, ref state, enumerator, name, nameSegmentChars, nameSegmentBytes, default, true))
                     {
                         state.Current.HasWrittenStart = true;
                         state.Current.Object = enumerator;
@@ -316,7 +310,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                         }
                     }
 
-                    if (!writeConverter.TryWriteFromParent(ref writer, ref state, enumerator))
+                    if (!converter.TryWriteFromParent(ref writer, ref state, enumerator))
                     {
                         state.Current.HasWrittenStart = true;
                         state.Current.Object = enumerator;

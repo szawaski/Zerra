@@ -2,16 +2,13 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections.Generic;
-
 namespace Zerra.CQRS.Network
 {
     internal sealed class HttpRequestHeader
     {
         public ReadOnlyMemory<byte> BodyStartBuffer { get; set; }
 
-        public List<string>? Declarations { get; set; }
+        public string? Declarations { get; set; }
         public Dictionary<string, List<string?>>? Headers { get; set; }
         public bool IsError { get; set; }
         public ContentType? ContentType { get; set; }

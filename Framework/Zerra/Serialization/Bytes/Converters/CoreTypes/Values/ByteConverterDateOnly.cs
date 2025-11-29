@@ -4,14 +4,13 @@
 
 #if NET6_0_OR_GREATER
 
-using System;
 using Zerra.Serialization.Bytes.Converters;
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;
 
 namespace Zerra.Serialization
 {
-    internal sealed class ByteConverterDateOnly<TParent> : ByteConverter<TParent, DateOnly>
+    internal sealed class ByteConverterDateOnly : ByteConverter<DateOnly>
     {
         protected override bool StackRequired => false;
 

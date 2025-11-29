@@ -3,13 +3,10 @@
 // Licensed to you under the MIT license
 
 using Azure.Messaging.ServiceBus;
-using System;
-using System.Linq;
 using System.Security.Claims;
-using System.Threading;
-using System.Threading.Tasks;
 using Zerra.Encryption;
 using Zerra.Logging;
+using Zerra.Serialization;
 
 namespace Zerra.CQRS.AzureServiceBus
 {
@@ -22,11 +19,13 @@ namespace Zerra.CQRS.AzureServiceBus
             private readonly int maxConcurrent;
             private readonly string topic;
             private readonly string subscription;
-            private readonly SymmetricConfig? symmetricConfig;
+            private readonly ISerializer serializer;
+            private readonly IEncryptor? encryptor;
+            private readonly ILogger? log;
             private readonly HandleRemoteEventDispatch handlerAsync;
             private readonly CancellationTokenSource canceller;
 
-            public EventConsumer(int maxConcurrent, string topic, SymmetricConfig? symmetricConfig, string? environment, HandleRemoteEventDispatch handlerAsync)
+            public EventConsumer(int maxConcurrent, string topic, ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment, HandleRemoteEventDispatch handlerAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
@@ -38,7 +37,9 @@ namespace Zerra.CQRS.AzureServiceBus
                     this.topic = topic.Truncate(AzureServiceBusCommon.EntityNameMaxLength);
 
                 this.subscription = $"EVT-{Guid.NewGuid():N}";
-                this.symmetricConfig = symmetricConfig;
+                this.serializer = serializer;
+                this.encryptor = encryptor;
+                this.log = log;
                 this.handlerAsync = handlerAsync;
                 this.canceller = new CancellationTokenSource();
             }
@@ -71,7 +72,7 @@ namespace Zerra.CQRS.AzureServiceBus
                             var serviceBusMessage = await receiver.ReceiveMessageAsync(null, canceller.Token);
                             if (serviceBusMessage is null)
                             {
-                                throttle.Release();
+                                _ = throttle.Release();
                                 continue;
                             }
 
@@ -84,7 +85,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 }
                 catch (Exception ex)
                 {
-                    _ = Log.ErrorAsync(topic, ex);
+                    log?.Error(topic, ex);
                     if (!canceller.IsCancellationRequested)
                     {
                         await Task.Delay(AzureServiceBusCommon.RetryDelay);
@@ -100,7 +101,7 @@ namespace Zerra.CQRS.AzureServiceBus
                     }
                     catch (Exception ex)
                     {
-                        _ = Log.ErrorAsync(ex);
+                        log?.Error(ex);
                     }
                 }
             }
@@ -114,10 +115,10 @@ namespace Zerra.CQRS.AzureServiceBus
                     AzureServiceBusMessage? message;
                     try
                     {
-                        if (symmetricConfig is not null)
-                            body = SymmetricEncryptor.Decrypt(symmetricConfig, body, false);
+                        if (encryptor is not null)
+                            body = encryptor.Decrypt(body, false);
 
-                        message = await AzureServiceBusCommon.DeserializeAsync<AzureServiceBusMessage>(body);
+                        message = await serializer.DeserializeAsync<AzureServiceBusMessage>(body, CancellationToken.None);
                     }
                     finally
                     {
@@ -127,7 +128,7 @@ namespace Zerra.CQRS.AzureServiceBus
                     if (message is null || message.MessageType is null || message.MessageData is null || message.Source is null)
                         throw new Exception("Invalid Message");
 
-                    var @event = AzureServiceBusCommon.Deserialize(message.MessageData, message.MessageType) as IEvent;
+                    var @event = serializer.Deserialize(message.MessageData, message.MessageType) as IEvent;
                     if (@event is null)
                         throw new Exception("Invalid Message");
 
@@ -144,11 +145,11 @@ namespace Zerra.CQRS.AzureServiceBus
                 catch (Exception ex)
                 {
                     if (!inHandlerContext)
-                        _ = Log.ErrorAsync(topic, ex);
+                        log?.Error(topic, ex);
                 }
                 finally
                 {
-                    throttle.Release();
+                    _ = throttle.Release();
                 }
             }
 

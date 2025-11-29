@@ -2,13 +2,12 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Threading;
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;
 
 namespace Zerra.Serialization.Bytes.Converters.Special
 {
-    internal sealed class ByteConverterCancellationTokenNullable<TParent> : ByteConverter<TParent, CancellationToken?>
+    internal sealed class ByteConverterCancellationTokenNullable : ByteConverter<CancellationToken?>
     {
         protected override bool StackRequired => false;
 

@@ -2,16 +2,9 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.IO;
-using System.Linq;
 using System.Net;
-using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
-using Zerra.Reflection;
+using Zerra.Serialization;
 using Zerra.Serialization.Json;
 
 namespace Zerra.CQRS.Network
@@ -21,7 +14,7 @@ namespace Zerra.CQRS.Network
     /// </summary>
     public sealed class ApiClient : CqrsClientBase
     {
-        private readonly ContentType requestContentType;
+        private readonly ISerializer serializer;
         private readonly ICqrsAuthorizer? authorizer;
         private readonly Uri routeUri;
         private readonly HttpClientHandler handler;
@@ -34,9 +27,9 @@ namespace Zerra.CQRS.Network
         /// <param name="contentType">The content type of the communications.</param>
         /// <param name="authorizer">An authorizer for adding headers needed for the server to validate requests.</param>
         /// <param name="route">Adds n route argument to the base endpoint url if needed.</param>
-        public ApiClient(string endpoint, ContentType contentType, ICqrsAuthorizer? authorizer, string? route = null) : base(endpoint)
+        public ApiClient(string endpoint, ISerializer serializer, ICqrsAuthorizer? authorizer, string? route = null) : base(endpoint)
         {
-            this.requestContentType = contentType;
+            this.serializer = serializer;
             this.authorizer = authorizer;
 
             if (route is not null)
@@ -52,7 +45,7 @@ namespace Zerra.CQRS.Network
         }
 
         /// <inheritdoc />
-        protected override Task<TReturn?> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source, CancellationToken cancellationToken) where TReturn : default
+        protected override Task<TReturn> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source, CancellationToken cancellationToken) where TReturn : default
         {
             var providerName = interfaceType.Name;
             var stringArguments = new string?[arguments.Length];
@@ -66,9 +59,9 @@ namespace Zerra.CQRS.Network
 
                 Source = source
             };
-            data.AddProviderArguments(arguments);
+            data.ProviderArguments = arguments.Select(x => serializer.SerializeString(x)).ToArray();
 
-            var model = RequestAsync<TReturn>(throttle, isStream, routeUri, providerName, requestContentType, data, true, cancellationToken);
+            var model = RequestAsync<TReturn>(throttle, isStream, routeUri, providerName, data, true, cancellationToken);
             return model;
         }
 
@@ -87,7 +80,7 @@ namespace Zerra.CQRS.Network
                 Source = source
             };
 
-            return RequestAsync<object>(throttle, false, routeUri, commendTypeName, requestContentType, data, false, cancellationToken);
+            return RequestAsync<object>(throttle, false, routeUri, commendTypeName, data, false, cancellationToken);
         }
         /// <inheritdoc />
         protected override Task<TResult> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source, CancellationToken cancellationToken) where TResult : default
@@ -104,7 +97,7 @@ namespace Zerra.CQRS.Network
                 Source = source
             };
 
-            return RequestAsync<TResult>(throttle, isStream, routeUri, commendTypeName, requestContentType, data, true, cancellationToken)!;
+            return RequestAsync<TResult>(throttle, isStream, routeUri, commendTypeName, data, true, cancellationToken)!;
         }
 
         /// <inheritdoc />
@@ -122,98 +115,10 @@ namespace Zerra.CQRS.Network
                 Source = source
             };
 
-            return RequestAsync<object>(throttle, false, routeUri, commendTypeName, requestContentType, data, false, cancellationToken);
+            return RequestAsync<object>(throttle, false, routeUri, commendTypeName, data, false, cancellationToken);
         }
 
-        private static readonly MethodInfo requestAsyncMethod = TypeAnalyzer.GetTypeDetail(typeof(ApiClient)).MethodDetailsBoxed.First(x => x.MethodInfo.Name == nameof(ApiClient.RequestAsync)).MethodInfo;
-        private TReturn? Request<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, string? providerType, ContentType contentType, ApiRequestData data, bool getResponseData)
-        {
-            throttle.Wait();
-
-            Stream? responseStream = null;
-            try
-            {
-                using var request = new HttpRequestMessage(HttpMethod.Post, url);
-
-                request.Content = new WriteStreamContent((postStream) =>
-                {
-                    ContentTypeSerializer.Serialize(contentType, postStream, data);
-                });
-                request.Content.Headers.ContentType = contentType switch
-                {
-                    ContentType.Bytes => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeBytes),
-                    ContentType.Json => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJson),
-                    ContentType.JsonNameless => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJsonNameless),
-                    _ => throw new NotImplementedException(),
-                };
-
-                request.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, "*");
-                request.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
-                request.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
-
-                if (authorizer is not null)
-                {
-                    var authHeaders = Task.Run(() => authorizer.GetAuthorizationHeadersAsync().AsTask()).GetAwaiter().GetResult();
-                    foreach (var authHeader in authHeaders)
-                        request.Headers.Add(authHeader.Key, authHeader.Value);
-                }
-
-                if (!String.IsNullOrWhiteSpace(providerType))
-                    request.Headers.Add(HttpCommon.ProviderTypeHeader, providerType);
-
-
-#if NET5_0_OR_GREATER
-                using var response = client.Send(request);
-                responseStream = response.Content.ReadAsStream();
-#else
-                using var response = Task.Run(() => client.SendAsync(request)).GetAwaiter().GetResult();
-                responseStream = Task.Run(() => response.Content.ReadAsStreamAsync()).GetAwaiter().GetResult();
-#endif
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    var responseException = ContentTypeSerializer.DeserializeException(contentType, responseStream);
-                    throw responseException;
-                }
-
-                if (!getResponseData)
-                {
-                    responseStream.Dispose();
-                    client.Dispose();
-                    return default!;
-                }
-
-                if (isStream)
-                {
-                    return (TReturn)(object)responseStream; //TODO better way to convert type???
-                }
-                else
-                {
-                    var result = ContentTypeSerializer.Deserialize<TReturn>(contentType, responseStream);
-                    responseStream.Dispose();
-                    client.Dispose();
-                    return result;
-                }
-            }
-            catch
-            {
-                if (responseStream is not null)
-                {
-                    try
-                    {
-                        responseStream.Dispose();
-                    }
-                    catch { }
-                    client?.Dispose();
-                }
-                throw;
-            }
-            finally
-            {
-                throttle.Release();
-            }
-        }
-        private async Task<TReturn?> RequestAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, string? providerType, ContentType contentType, ApiRequestData data, bool getResponseData, CancellationToken cancellationToken)
+        private async Task<TReturn> RequestAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, string? providerType, ApiRequestData data, bool getResponseData, CancellationToken cancellationToken)
         {
             await throttle.WaitAsync(cancellationToken);
 
@@ -224,9 +129,9 @@ namespace Zerra.CQRS.Network
 
                 request.Content = new WriteStreamContent(async (postStream) =>
                 {
-                    await ContentTypeSerializer.SerializeAsync(contentType, postStream, data, cancellationToken);
+                    await serializer.SerializeAsync(postStream, data, cancellationToken);
                 });
-                request.Content.Headers.ContentType = contentType switch
+                request.Content.Headers.ContentType = serializer.ContentType switch
                 {
                     ContentType.Bytes => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeBytes),
                     ContentType.Json => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJson),
@@ -254,7 +159,7 @@ namespace Zerra.CQRS.Network
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseStream, cancellationToken);
+                    var responseException = await ExceptionSerializer.DeserializeAsync(serializer, responseStream, cancellationToken);
                     throw responseException;
                 }
 
@@ -271,11 +176,11 @@ namespace Zerra.CQRS.Network
 
                 if (isStream)
                 {
-                    return (TReturn?)(object)responseStream; //TODO better way to convert type???
+                    return (TReturn)(object)responseStream; //TODO better way to convert type???
                 }
                 else
                 {
-                    var result = await ContentTypeSerializer.DeserializeAsync<TReturn>(contentType, responseStream, cancellationToken);
+                    var result = await serializer.DeserializeAsync<TReturn>(responseStream, cancellationToken);
 #if NETSTANDARD2_0
                     responseStream.Dispose();
 #else

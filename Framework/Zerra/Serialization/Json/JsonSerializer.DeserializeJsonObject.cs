@@ -2,15 +2,11 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.IO;
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 using Zerra.Serialization.Json.Converters;
 using Zerra.Serialization.Json.State;
 using Zerra.Serialization.Json.IO;
 using Zerra.Buffers;
-using System.Threading;
 
 namespace Zerra.Serialization.Json
 {
@@ -40,7 +36,7 @@ namespace Zerra.Serialization.Json
 
             JsonObject? result;
 
-            Read(chars, ref state, out result);
+            _ = Read(chars, ref state, out result);
 
             if (state.SizeNeeded > 0)
                 throw new EndOfStreamException();
@@ -67,7 +63,7 @@ namespace Zerra.Serialization.Json
 
             JsonObject? result;
 
-            Read(bytes, ref state, out result);
+            _ = Read(bytes, ref state, out result);
 
             if (state.SizeNeeded > 0)
                 throw new EndOfStreamException();

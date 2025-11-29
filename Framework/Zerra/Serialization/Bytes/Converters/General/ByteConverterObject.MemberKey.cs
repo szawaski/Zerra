@@ -2,13 +2,12 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Zerra.Serialization.Bytes.Converters.General
 {
-    internal sealed partial class ByteConverterObject<TParent, TValue>
+    partial class ByteConverterObject<TValue>
     {
         private readonly struct MemberKey
         {

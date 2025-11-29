@@ -7,7 +7,7 @@ using Zerra.Serialization.Bytes.State;
 
 namespace Zerra.Serialization.Bytes.Converters.CoreTypes.Values
 {
-    internal sealed class ByteConverterSingleNullable<TParent> : ByteConverter<TParent, float?>
+    internal sealed class ByteConverterSingleNullable : ByteConverter<float?>
     {
         protected override bool StackRequired => false;
 

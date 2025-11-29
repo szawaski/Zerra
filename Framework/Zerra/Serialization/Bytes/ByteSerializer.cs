@@ -2,7 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using Zerra.Serialization.Bytes.Converters;
 
 namespace Zerra.Serialization.Bytes
@@ -38,6 +37,6 @@ namespace Zerra.Serialization.Bytes
 
         private static readonly ByteSerializerOptions defaultOptions = new();
 
-        public static void AddConverter(Type converterType, Type valueType) => ByteConverterDiscovery.AddConverter(converterType, valueType);
+        public static void AddConverter(Type converterType, Func<ByteConverter> converter) => ByteConverterFactory.AddConverter(converterType, converter);
     }
 }

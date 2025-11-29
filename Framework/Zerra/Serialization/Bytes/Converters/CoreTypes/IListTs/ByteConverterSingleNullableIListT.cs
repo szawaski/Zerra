@@ -2,13 +2,12 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Collections.Generic;
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;
 
 namespace Zerra.Serialization.Bytes.Converters.CoreTypes.IListTs
 {
-    internal sealed class ByteConverterSingleNullableIList<TParent> : ByteConverter<TParent, IList<float?>>
+    internal sealed class ByteConverterSingleNullableIList : ByteConverter<IList<float?>>
     {
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out IList<float?>? value)
         {

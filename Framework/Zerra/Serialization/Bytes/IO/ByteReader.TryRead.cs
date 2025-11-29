@@ -2,8 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 #pragma warning disable IDE0028 // Simplify collection initialization

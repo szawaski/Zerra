@@ -2,53 +2,50 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections;
-using Zerra.Reflection;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 
 namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
 {
-    internal sealed class JsonConverterIDictionaryOfT<TParent, TDictionary> : JsonConverter<TParent, TDictionary>
+    internal sealed class JsonConverterIDictionaryOfT<TDictionary> : JsonConverter<TDictionary>
     {
-        private JsonConverter<DictionaryAccessor<object, object>> readKeyConverter = null!;
-        private JsonConverter<DictionaryAccessor<object, object>> readValueConverter = null!;
-        //private JsonConverter<IEnumerator<KeyValuePair<TKey, TValue>>> writeKeyConverter = null!;
-        private JsonConverter<IDictionaryEnumerator> writeValueConverter = null!;
+        //private JsonConverter<DictionaryAccessor<object, object>> readKeyConverter = null!;
+        //private JsonConverter<DictionaryAccessor<object, object>> readValueConverter = null!;
+        ////private JsonConverter<IEnumerator<KeyValuePair<TKey, TValue>>> writeKeyConverter = null!;
+        //private JsonConverter<IDictionaryEnumerator> writeValueConverter = null!;
 
-        private JsonConverter<IDictionary> readConverter = null!;
-        private JsonConverter<IDictionaryEnumerator> writeConverter = null!;
+        //private JsonConverter<IDictionary> readConverter = null!;
+        //private JsonConverter<IDictionaryEnumerator> writeConverter = null!;
 
-        //private static TKey KeyGetter(IDictionaryEnumerator parent) => parent.Current.Key;
-        private static object? ValueGetter(IDictionaryEnumerator parent) => parent.Entry.Value;
-        private static void KeySetter(DictionaryAccessor<object, object> parent, object value) => parent.SetKey(value);
-        private static void ValueSetter(DictionaryAccessor<object, object> parent, object value) => parent.Add(value);
+        ////private static TKey KeyGetter(IDictionaryEnumerator parent) => parent.Current.Key;
+        //private static object? ValueGetter(IDictionaryEnumerator parent) => parent.Entry.Value;
+        //private static void KeySetter(DictionaryAccessor<object, object> parent, object value) => parent.SetKey(value);
+        //private static void ValueSetter(DictionaryAccessor<object, object> parent, object value) => parent.Add(value);
 
-        private static DictionaryEntry Getter(IDictionaryEnumerator parent) => parent.Entry;
-        private static void Setter(IDictionary parent, DictionaryEntry value) => parent.Add(value.Key, value.Value);
+        //private static DictionaryEntry Getter(IDictionaryEnumerator parent) => parent.Entry;
+        //private static void Setter(IDictionary parent, DictionaryEntry value) => parent.Add(value.Key, value.Value);
 
-        private bool canWriteAsProperties;
+        //private bool canWriteAsProperties;
 
         protected override sealed void Setup()
         {
-            var keyDetail = TypeAnalyzer<object>.GetTypeDetail();
-            var valueDetail = TypeAnalyzer<object>.GetTypeDetail();
+            //var keyDetail = TypeAnalyzer<object>.GetTypeDetail();
+            //var valueDetail = TypeAnalyzer<object>.GetTypeDetail();
 
-            canWriteAsProperties = keyDetail.CoreType.HasValue;
+            //canWriteAsProperties = keyDetail.CoreType.HasValue;
 
-            if (canWriteAsProperties)
-            {
-                readKeyConverter = JsonConverterFactory<DictionaryAccessor<object, object>>.Get(keyDetail, $"{nameof(JsonConverterIDictionaryOfT<TParent, TDictionary>)}_Key", null, KeySetter);
-                readValueConverter = JsonConverterFactory<DictionaryAccessor<object, object>>.Get(valueDetail, $"{nameof(JsonConverterIDictionaryOfT<TParent, TDictionary>)}_Value", null, ValueSetter);
-                //writeKeyConverter = JsonConverterFactory<IDictionaryEnumerator>.Get(valueDetail, $"{nameof(JsonConverterIDictionaryOfT<TParent, TDictionary>)}_Key", KeyGetter, null);
-                writeValueConverter = JsonConverterFactory<IDictionaryEnumerator>.Get(valueDetail, $"{nameof(JsonConverterIDictionaryOfT<TParent, TDictionary>)}_Value", ValueGetter, null);
-            }
-            else
-            {
-                readConverter = JsonConverterFactory<IDictionary>.Get(keyDetail, nameof(JsonConverterIDictionaryOfT<TParent, TDictionary>), null, Setter);
-                writeConverter = JsonConverterFactory<IDictionaryEnumerator>.Get(valueDetail, nameof(JsonConverterIDictionaryOfT<TParent, TDictionary>), Getter, null);
-            }
+            //if (canWriteAsProperties)
+            //{
+            //    readKeyConverter = JsonConverterFactory.Create(keyDetail, $"{nameof(JsonConverterIDictionaryOfT<TDictionary>)}_Key", null, KeySetter);
+            //    readValueConverter = JsonConverterFactory.Create(valueDetail, $"{nameof(JsonConverterIDictionaryOfT<TDictionary>)}_Value", null, ValueSetter);
+            //    //writeKeyConverter = JsonConverterFactory.Create(valueDetail, $"{nameof(JsonConverterIDictionaryOfT<TDictionary>)}_Key", KeyGetter, null);
+            //    writeValueConverter = JsonConverterFactory.Create(valueDetail, $"{nameof(JsonConverterIDictionaryOfT<TDictionary>)}_Value", ValueGetter, null);
+            //}
+            //else
+            //{
+            //    readConverter = JsonConverterFactory.Create(keyDetail, nameof(JsonConverterIDictionaryOfT<TDictionary>), null, Setter);
+            //    writeConverter = JsonConverterFactory.Create(valueDetail, nameof(JsonConverterIDictionaryOfT<TDictionary>), Getter, null);
+            //}
         }
 
         protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out TDictionary? value)

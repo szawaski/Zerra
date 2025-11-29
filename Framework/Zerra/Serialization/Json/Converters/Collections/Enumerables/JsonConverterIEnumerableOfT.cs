@@ -2,27 +2,24 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Collections;
-using Zerra.Reflection;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
+using Zerra.SourceGeneration;
 
 namespace Zerra.Serialization.Json.Converters.Collections.Enumerables
 {
-    internal sealed class JsonConverterIEnumerableOfT<TParent, TEnumerable> : JsonConverter<TParent, TEnumerable>
+    internal sealed class JsonConverterIEnumerableOfT<TEnumerable> : JsonConverter<TEnumerable>
     {
-        private JsonConverter<ArrayOrListAccessor<object>> readConverter = null!;
-        private JsonConverter<IEnumerator> writeConverter = null!;
+        private JsonConverter converter = null!;
 
-        private static object Getter(IEnumerator parent) => parent.Current;
-        private static void Setter(ArrayOrListAccessor<object> parent, object value) => parent.Add(value);
+        private static object Getter(object parent) => ((IEnumerator)parent).Current;
+        private static void Setter(object parent, object value) => ((ArrayOrListAccessor<object>)parent).Add(value);
 
         protected override sealed void Setup()
         {
             var valueTypeDetail = TypeAnalyzer<object>.GetTypeDetail();
-            readConverter = JsonConverterFactory<ArrayOrListAccessor<object>>.Get(valueTypeDetail, nameof(JsonConverterIEnumerableOfT<TParent, TEnumerable>), null, Setter);
-            writeConverter = JsonConverterFactory<IEnumerator>.Get(valueTypeDetail, nameof(JsonConverterIEnumerableOfT<TParent, TEnumerable>), Getter, null);
+            converter = JsonConverterFactory.Get(valueTypeDetail, nameof(JsonConverterIEnumerableOfT<TEnumerable>), Getter, Setter);
         }
 
         protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out TEnumerable? value)
@@ -71,7 +68,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Enumerables
                     }
                 }
 
-                if (!writeConverter.TryWriteFromParent(ref writer, ref state, enumerator))
+                if (!converter.TryWriteFromParent(ref writer, ref state, enumerator))
                 {
                     state.Current.HasWrittenStart = true;
                     state.Current.HasWrittenSeperator = true;

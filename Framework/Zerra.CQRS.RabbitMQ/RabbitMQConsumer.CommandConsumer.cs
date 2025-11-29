@@ -2,16 +2,13 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Linq;
 using System.Security.Claims;
-using System.Threading;
-using System.Threading.Tasks;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using Zerra.Encryption;
 using Zerra.Logging;
 using Zerra.CQRS.Network;
+using Zerra.Serialization;
 
 namespace Zerra.CQRS.RabbitMQ
 {
@@ -24,7 +21,9 @@ namespace Zerra.CQRS.RabbitMQ
             private readonly int maxConcurrent;
             private readonly CommandCounter commandCounter;
             private readonly string topic;
-            private readonly SymmetricConfig? symmetricConfig;
+            private readonly ISerializer serializer;
+            private readonly IEncryptor? encryptor;
+            private readonly ILogger? log;
             private readonly HandleRemoteCommandDispatch handlerAsync;
             private readonly HandleRemoteCommandDispatch handlerAwaitAsync;
             private readonly HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync;
@@ -34,7 +33,7 @@ namespace Zerra.CQRS.RabbitMQ
             private IModel? channel = null;
             private SemaphoreSlim? throttle = null;
 
-            public CommandConsumer(int maxConcurrent, CommandCounter commandCounter, string topic, SymmetricConfig? symmetricConfig, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
+            public CommandConsumer(int maxConcurrent, CommandCounter commandCounter, string topic, ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
@@ -45,7 +44,9 @@ namespace Zerra.CQRS.RabbitMQ
                     this.topic = StringExtensions.Join(RabbitMQCommon.TopicMaxLength, "_", environment, topic);
                 else
                     this.topic = topic.Truncate(RabbitMQCommon.TopicMaxLength);
-                this.symmetricConfig = symmetricConfig;
+                this.serializer = serializer;
+                this.encryptor = encryptor;
+                this.log = log;
                 this.handlerAsync = handlerAsync;
                 this.handlerAwaitAsync = handlerAwaitAsync;
                 this.handlerWithResultAwaitAsync = handlerWithResultAwaitAsync;
@@ -101,15 +102,15 @@ namespace Zerra.CQRS.RabbitMQ
                         try
                         {
                             RabbitMQMessage? message;
-                            if (symmetricConfig is not null)
-                                message = RabbitMQCommon.Deserialize<RabbitMQMessage>(SymmetricEncryptor.Decrypt(symmetricConfig, e.Body.Span));
+                            if (encryptor is not null)
+                                message = serializer.Deserialize<RabbitMQMessage>(encryptor.Decrypt(e.Body.Span));
                             else
-                                message = RabbitMQCommon.Deserialize<RabbitMQMessage>(e.Body.Span);
+                                message = serializer.Deserialize<RabbitMQMessage>(e.Body.Span);
 
                             if (message is null || message.MessageType is null || message.MessageData is null || message.Source is null)
                                 throw new Exception("Invalid Message");
 
-                            var command = RabbitMQCommon.Deserialize(message.MessageData, message.MessageType) as ICommand;
+                            var command = serializer.Deserialize(message.MessageData, message.MessageType) as ICommand;
                             if (command is null)
                                 throw new Exception("Invalid Message");
 
@@ -131,7 +132,7 @@ namespace Zerra.CQRS.RabbitMQ
                         catch (Exception ex)
                         {
                             if (!inHandlerContext)
-                                _ = Log.ErrorAsync(topic, ex);
+                                log?.Error(topic, ex);
 
                             error = ex;
                         }
@@ -151,15 +152,15 @@ namespace Zerra.CQRS.RabbitMQ
 
                             var acknowledgement = new Acknowledgement(result, error);
 
-                            var acknowledgmentBody = RabbitMQCommon.Serialize(acknowledgement);
-                            if (symmetricConfig is not null)
-                                acknowledgmentBody = SymmetricEncryptor.Encrypt(symmetricConfig, acknowledgmentBody);
+                            var acknowledgmentBody = serializer.SerializeBytes(acknowledgement);
+                            if (encryptor is not null)
+                                acknowledgmentBody = encryptor.Encrypt(acknowledgmentBody);
 
                             this.channel.BasicPublish(String.Empty, e.BasicProperties.ReplyTo, replyProperties, acknowledgmentBody);
                         }
                         catch (Exception ex)
                         {
-                            _ = Log.ErrorAsync(topic, ex);
+                            log?.Error(topic, ex);
                         }
                         finally
                         {
@@ -177,7 +178,7 @@ namespace Zerra.CQRS.RabbitMQ
                 }
                 catch (Exception ex)
                 {
-                    _ = Log.ErrorAsync(topic, ex);
+                    log?.Error(topic, ex);
 
                     if (!canceller.IsCancellationRequested)
                     {

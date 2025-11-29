@@ -2,17 +2,13 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.IO;
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 using Zerra.Serialization.Json.IO;
-using Zerra.Reflection;
 using Zerra.Serialization.Json.Converters;
 using Zerra.Serialization.Json.State;
 using System.Text;
 using Zerra.Buffers;
-using System.Threading;
+using Zerra.SourceGeneration;
 
 namespace Zerra.Serialization.Json
 {
@@ -20,7 +16,7 @@ namespace Zerra.Serialization.Json
     {
         private static ReadOnlyMemory<byte> nullBytes = Encoding.UTF8.GetBytes("null");
 
-        public static string? Serialize<T>(T? obj, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static string Serialize<T>(T? obj, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (obj is null)
                 return "null";
@@ -28,7 +24,7 @@ namespace Zerra.Serialization.Json
             options ??= defaultOptions;
 
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
-            var converter = (JsonConverter<object, T>)JsonConverterFactory<object>.GetRoot(typeDetail);
+            var converter = (JsonConverter<T>)JsonConverterFactory.CreateRoot(typeDetail);
 
             var state = new WriteState(options, graph?.GetInstanceGraph(obj));
 
@@ -39,7 +35,7 @@ namespace Zerra.Serialization.Json
 
             return result;
         }
-        public static string? Serialize(object? obj, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static string Serialize(object? obj, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (obj is null)
                 return "null";
@@ -47,7 +43,7 @@ namespace Zerra.Serialization.Json
             options ??= defaultOptions;
 
             var typeDetail = obj.GetType().GetTypeDetail();
-            var converter = JsonConverterFactory<object>.GetRoot(typeDetail);
+            var converter = JsonConverterFactory.CreateRoot(typeDetail);
 
             var state = new WriteState(options, graph?.GetInstanceGraph(obj));
 
@@ -59,7 +55,7 @@ namespace Zerra.Serialization.Json
             return result;
 
         }
-        public static string? Serialize(object? obj, Type type, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static string Serialize(object? obj, Type type, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (type is null)
                 throw new ArgumentNullException(nameof(type));
@@ -69,7 +65,7 @@ namespace Zerra.Serialization.Json
             options ??= defaultOptions;
 
             var typeDetail = type.GetTypeDetail();
-            var converter = JsonConverterFactory<object>.GetRoot(typeDetail);
+            var converter = JsonConverterFactory.CreateRoot(typeDetail);
 
             var state = new WriteState(options, graph?.GetInstanceGraph(obj));
 
@@ -89,7 +85,7 @@ namespace Zerra.Serialization.Json
             options ??= defaultOptions;
 
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
-            var converter = (JsonConverter<object, T>)JsonConverterFactory<object>.GetRoot(typeDetail);
+            var converter = (JsonConverter<T>)JsonConverterFactory.CreateRoot(typeDetail);
 
             var state = new WriteState(options, graph?.GetInstanceGraph(obj));
 
@@ -108,7 +104,7 @@ namespace Zerra.Serialization.Json
             options ??= defaultOptions;
 
             var typeDetail = obj.GetType().GetTypeDetail();
-            var converter = JsonConverterFactory<object>.GetRoot(typeDetail);
+            var converter = JsonConverterFactory.CreateRoot(typeDetail);
 
             var state = new WriteState(options, graph?.GetInstanceGraph(obj));
 
@@ -130,7 +126,7 @@ namespace Zerra.Serialization.Json
             options ??= defaultOptions;
 
             var typeDetail = type.GetTypeDetail();
-            var converter = JsonConverterFactory<object>.GetRoot(typeDetail);
+            var converter = JsonConverterFactory.CreateRoot(typeDetail);
 
             var state = new WriteState(options, graph?.GetInstanceGraph(obj));
 
@@ -152,7 +148,7 @@ namespace Zerra.Serialization.Json
             options ??= defaultOptions;
 
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
-            var converter = (JsonConverter<object, T>)JsonConverterFactory<object>.GetRoot(typeDetail);
+            var converter = (JsonConverter<T>)JsonConverterFactory.CreateRoot(typeDetail);
 
             var buffer = ArrayPoolHelper<byte>.Rent(defaultBufferSize);
 
@@ -194,7 +190,7 @@ namespace Zerra.Serialization.Json
             options ??= defaultOptions;
 
             var typeDetail = obj.GetType().GetTypeDetail();
-            var converter = JsonConverterFactory<object>.GetRoot(typeDetail);
+            var converter = JsonConverterFactory.CreateRoot(typeDetail);
 
             var buffer = ArrayPoolHelper<byte>.Rent(defaultBufferSize);
 
@@ -238,7 +234,7 @@ namespace Zerra.Serialization.Json
             options ??= defaultOptions;
 
             var typeDetail = type.GetTypeDetail();
-            var converter = JsonConverterFactory<object>.GetRoot(typeDetail);
+            var converter = JsonConverterFactory.CreateRoot(typeDetail);
 
             var buffer = ArrayPoolHelper<byte>.Rent(defaultBufferSize);
 
@@ -288,7 +284,7 @@ namespace Zerra.Serialization.Json
             options ??= defaultOptions;
 
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
-            var converter = (JsonConverter<object, T>)JsonConverterFactory<object>.GetRoot(typeDetail);
+            var converter = (JsonConverter<T>)JsonConverterFactory.CreateRoot(typeDetail);
 
             var buffer = ArrayPoolHelper<byte>.Rent(defaultBufferSize);
 
@@ -337,7 +333,7 @@ namespace Zerra.Serialization.Json
             options ??= defaultOptions;
 
             var typeDetail = obj.GetType().GetTypeDetail();
-            var converter = JsonConverterFactory<object>.GetRoot(typeDetail);
+            var converter = JsonConverterFactory.CreateRoot(typeDetail);
 
             var buffer = ArrayPoolHelper<byte>.Rent(defaultBufferSize);
 
@@ -388,7 +384,7 @@ namespace Zerra.Serialization.Json
             options ??= defaultOptions;
 
             var typeDetail = type.GetTypeDetail();
-            var converter = JsonConverterFactory<object>.GetRoot(typeDetail);
+            var converter = JsonConverterFactory.CreateRoot(typeDetail);
 
             var buffer = ArrayPoolHelper<byte>.Rent(defaultBufferSize);
 
@@ -422,7 +418,7 @@ namespace Zerra.Serialization.Json
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static string Write<T>(JsonConverter<object, T> converter, int initialSize, ref WriteState state, T value)
+        private static string Write<T>(JsonConverter<T> converter, int initialSize, ref WriteState state, T value)
         {
             var writer = new JsonWriter(false, initialSize);
             try
@@ -456,7 +452,7 @@ namespace Zerra.Serialization.Json
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static string WriteBoxed(JsonConverter<object> converter, int initialSize, ref WriteState state, object value)
+        private static string WriteBoxed(JsonConverter converter, int initialSize, ref WriteState state, object value)
         {
             var writer = new JsonWriter(false, initialSize);
             try
@@ -491,7 +487,7 @@ namespace Zerra.Serialization.Json
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static byte[] WriteBytes<T>(JsonConverter<object, T> converter, int initialSize, ref WriteState state, T value)
+        private static byte[] WriteBytes<T>(JsonConverter<T> converter, int initialSize, ref WriteState state, T value)
         {
             var writer = new JsonWriter(true, initialSize);
             try
@@ -525,7 +521,7 @@ namespace Zerra.Serialization.Json
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static byte[] WriteBoxedBytes(JsonConverter<object> converter, int initialSize, ref WriteState state, object value)
+        private static byte[] WriteBoxedBytes(JsonConverter converter, int initialSize, ref WriteState state, object value)
         {
             var writer = new JsonWriter(true, initialSize);
             try
@@ -561,7 +557,7 @@ namespace Zerra.Serialization.Json
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int Write<T>(JsonConverter<object, T> converter, Span<byte> buffer, ref WriteState state, T value)
+        private static int Write<T>(JsonConverter<T> converter, Span<byte> buffer, ref WriteState state, T value)
         {
             var writer = new JsonWriter(buffer);
             try
@@ -594,7 +590,7 @@ namespace Zerra.Serialization.Json
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int WriteBoxed(JsonConverter<object> converter, Span<byte> buffer, ref WriteState state, object value)
+        private static int WriteBoxed(JsonConverter converter, Span<byte> buffer, ref WriteState state, object value)
         {
             var writer = new JsonWriter(buffer);
             try

@@ -2,7 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using Zerra.Serialization.Json.Converters;
 
 namespace Zerra.Serialization.Json
@@ -13,6 +12,6 @@ namespace Zerra.Serialization.Json
 
         private static readonly JsonSerializerOptions defaultOptions = new();
 
-        public static void AddConverter(Type converterType, Type valueType) => JsonConverterDiscovery.AddConverter(converterType, valueType);
+        public static void AddConverter(Type converterType, Func<JsonConverter> converter) => JsonConverterFactory.AddConverter(converterType, converter);
     }
 }

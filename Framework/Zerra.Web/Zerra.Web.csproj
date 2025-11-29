@@ -1,38 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+        <TargetFrameworks>net10.0</TargetFrameworks>
         <Nullable>enable</Nullable>
-        <CheckEolTargetFramework>false</CheckEolTargetFramework>
-        <Authors>Steven Zawaski</Authors>
-        <Copyright>KaKush LLC</Copyright>
-        <Product>Zerra Framework Web</Product>
-        <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-        <PackageLicenseFile>LICENSE</PackageLicenseFile>
-        <Description>Web and AspNetCore specific components for the Zerra Framework.
-
-Commonly used types:
-Zerra.Web.CQRSMiddleware
-Zerra.Web.ZerraLogger
-Zerra.Web.CheckBoxList
-        </Description>
-        <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
-        <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, ASPNET, Web</PackageTags>
-        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <InvariantGlobalization>true</InvariantGlobalization>
+        <PublishAot>true</PublishAot>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <LangVersion>14.0</LangVersion>
-        <Version>5.1.12</Version>
     </PropertyGroup>
 
     <ItemGroup>
         <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <None Include="..\..\LICENSE" Link="LICENSE">
-            <PackagePath>\</PackagePath>
-            <Pack>True</Pack>
-        </None>
     </ItemGroup>
 
     <ItemGroup>

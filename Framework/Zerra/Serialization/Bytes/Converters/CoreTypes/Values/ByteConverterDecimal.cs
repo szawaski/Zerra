@@ -7,7 +7,7 @@ using Zerra.Serialization.Bytes.State;
 
 namespace Zerra.Serialization.Bytes.Converters.CoreTypes.Values
 {
-    internal sealed class ByteConverterDecimal<TParent> : ByteConverter<TParent, decimal>
+    internal sealed class ByteConverterDecimal : ByteConverter<decimal>
     {
         protected override bool StackRequired => false;
 

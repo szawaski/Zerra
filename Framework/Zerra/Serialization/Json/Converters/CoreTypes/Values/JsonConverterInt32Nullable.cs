@@ -2,14 +2,13 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Buffers.Text;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 
 namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
 {
-    internal sealed class JsonConverterInt32Nullable<TParent> : JsonConverter<TParent, int?>
+    internal sealed class JsonConverterInt32Nullable : JsonConverter<int?>
     {
         protected override bool StackRequired => false;
 

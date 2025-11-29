@@ -2,8 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 namespace Zerra.Serialization.Bytes.IO

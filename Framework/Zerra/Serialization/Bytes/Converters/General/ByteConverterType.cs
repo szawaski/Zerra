@@ -2,14 +2,13 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using Zerra.Reflection;
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;
+using Zerra.SourceGeneration;
 
 namespace Zerra.Serialization.Bytes.Converters.General
 {
-    internal sealed class ByteConverterType<TParent> : ByteConverter<TParent, Type?>
+    internal sealed class ByteConverterType : ByteConverter<Type?>
     {
         protected override bool StackRequired => false;
 
@@ -26,7 +25,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 return true;
             }
 
-            value = Discovery.GetTypeFromName(typeName);
+            value = TypeHelper.GetTypeFromName(typeName);
             return true;
         }
 

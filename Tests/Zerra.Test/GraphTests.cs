@@ -3,8 +3,8 @@
 // Licensed to you under the MIT license
 
 using Xunit;
-using System.Linq;
-using Zerra.Reflection;
+using System.Reflection;
+using Zerra.Test.Helpers.Models;
 
 namespace Zerra.Test
 {
@@ -27,7 +27,7 @@ namespace Zerra.Test
         {
             var graph = new Graph<GraphModel>(true);
 
-            foreach (var member in TypeAnalyzer<GraphModel>.GetTypeDetail().MemberDetails)
+            foreach (var member in typeof(GraphModel).GetMembers(BindingFlags.Public | BindingFlags.Instance))
             {
                 Assert.True(graph.HasMember(member.Name));
             }
@@ -152,7 +152,7 @@ namespace Zerra.Test
             var childGraph1 = graph.GetChildGraph<GraphModel>(x => x.Nested);
             var childGraph2 = childGraph1.GetChildGraph<GraphModel>(x => x.NestedArray);
             var childGraph3 = childGraph2.GetChildGraph<SimpleModel>(x => x.Class);
-            childGraph2.HasMember(nameof(SimpleModel.Value1));
+            _ = childGraph2.HasMember(nameof(SimpleModel.Value1));
         }
 
         [Fact]

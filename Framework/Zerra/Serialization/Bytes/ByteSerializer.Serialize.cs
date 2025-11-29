@@ -2,16 +2,12 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.IO;
 using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
 using Zerra.Buffers;
-using Zerra.Reflection;
 using Zerra.Serialization.Bytes.Converters;
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;
+using Zerra.SourceGeneration;
 
 namespace Zerra.Serialization.Bytes
 {
@@ -25,7 +21,7 @@ namespace Zerra.Serialization.Bytes
             options ??= defaultOptions;
 
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
-            var converter = (ByteConverter<object, T>)ByteConverterFactory<object>.GetRoot(typeDetail);
+            var converter = (ByteConverter<T>)ByteConverterFactory.GetRoot(typeDetail);
 
             var state = new WriteState(options);
 
@@ -44,7 +40,7 @@ namespace Zerra.Serialization.Bytes
             options ??= defaultOptions;
 
             var typeDetail = obj.GetType().GetTypeDetail();
-            var converter = ByteConverterFactory<object>.GetRoot(typeDetail);
+            var converter = ByteConverterFactory.GetRoot(typeDetail);
 
             var state = new WriteState(options);
 
@@ -66,7 +62,7 @@ namespace Zerra.Serialization.Bytes
             options ??= defaultOptions;
 
             var typeDetail = type.GetTypeDetail();
-            var converter = ByteConverterFactory<object>.GetRoot(typeDetail);
+            var converter = ByteConverterFactory.GetRoot(typeDetail);
 
             var state = new WriteState(options);
 
@@ -88,7 +84,7 @@ namespace Zerra.Serialization.Bytes
             options ??= defaultOptions;
 
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
-            var converter = (ByteConverter<object, T>)ByteConverterFactory<object>.GetRoot(typeDetail);
+            var converter = (ByteConverter<T>)ByteConverterFactory.GetRoot(typeDetail);
 
             var buffer = ArrayPoolHelper<byte>.Rent(defaultBufferSize);
 
@@ -130,7 +126,7 @@ namespace Zerra.Serialization.Bytes
             options ??= defaultOptions;
 
             var typeDetail = obj.GetType().GetTypeDetail();
-            var converter = ByteConverterFactory<object>.GetRoot(typeDetail);
+            var converter = ByteConverterFactory.GetRoot(typeDetail);
 
             var buffer = ArrayPoolHelper<byte>.Rent(defaultBufferSize);
 
@@ -174,7 +170,7 @@ namespace Zerra.Serialization.Bytes
             options ??= defaultOptions;
 
             var typeDetail = type.GetTypeDetail();
-            var converter = ByteConverterFactory<object>.GetRoot(typeDetail);
+            var converter = ByteConverterFactory.GetRoot(typeDetail);
 
             var buffer = ArrayPoolHelper<byte>.Rent(defaultBufferSize);
 
@@ -217,7 +213,7 @@ namespace Zerra.Serialization.Bytes
             options ??= defaultOptions;
 
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
-            var converter = (ByteConverter<object, T>)ByteConverterFactory<object>.GetRoot(typeDetail);
+            var converter = (ByteConverter<T>)ByteConverterFactory.GetRoot(typeDetail);
 
             var buffer = ArrayPoolHelper<byte>.Rent(defaultBufferSize);
 
@@ -264,7 +260,7 @@ namespace Zerra.Serialization.Bytes
             options ??= defaultOptions;
 
             var typeDetail = obj.GetType().GetTypeDetail();
-            var converter = ByteConverterFactory<object>.GetRoot(typeDetail);
+            var converter = ByteConverterFactory.GetRoot(typeDetail);
 
             var buffer = ArrayPoolHelper<byte>.Rent(defaultBufferSize);
 
@@ -313,7 +309,7 @@ namespace Zerra.Serialization.Bytes
             options ??= defaultOptions;
 
             var typeDetail = type.GetTypeDetail();
-            var converter = ByteConverterFactory<object>.GetRoot(typeDetail);
+            var converter = ByteConverterFactory.GetRoot(typeDetail);
 
             var buffer = ArrayPoolHelper<byte>.Rent(defaultBufferSize);
 
@@ -347,7 +343,7 @@ namespace Zerra.Serialization.Bytes
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static byte[] Write<T>(ByteConverter<object, T> converter, int initialSize, ref WriteState state, T value)
+        private static byte[] Write<T>(ByteConverter<T> converter, int initialSize, ref WriteState state, T value)
         {
             var writer = new ByteWriter(initialSize);
             try
@@ -382,7 +378,7 @@ namespace Zerra.Serialization.Bytes
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static byte[] WriteBoxed(ByteConverter<object> converter, int initialSize, ref WriteState state, object value)
+        private static byte[] WriteBoxed(ByteConverter converter, int initialSize, ref WriteState state, object value)
         {
             var writer = new ByteWriter(initialSize);
             try
@@ -418,7 +414,7 @@ namespace Zerra.Serialization.Bytes
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int Write<T>(ByteConverter<object, T> converter, Span<byte> buffer, ref WriteState state, T value)
+        private static int Write<T>(ByteConverter<T> converter, Span<byte> buffer, ref WriteState state, T value)
         {
             var writer = new ByteWriter(buffer);
 #if DEBUG
@@ -445,7 +441,7 @@ namespace Zerra.Serialization.Bytes
             return writer.Position;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int WriteBoxed(ByteConverter<object> converter, Span<byte> buffer, ref WriteState state, object value)
+        private static int WriteBoxed(ByteConverter converter, Span<byte> buffer, ref WriteState state, object value)
         {
             var writer = new ByteWriter(buffer);
 #if DEBUG
