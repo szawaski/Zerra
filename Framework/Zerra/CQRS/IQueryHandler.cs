@@ -4,6 +4,10 @@
 
 namespace Zerra.CQRS
 {
+    /// <summary>
+    /// Base interface for query handlers.
+    /// Implement this interface along with specific query handler methods to handle queries routed through the bus.
+    /// </summary>
     public interface IQueryHandler : IHandler
     {
         
