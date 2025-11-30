@@ -16,4 +16,7 @@
     <Project Path="Tests/Zerra.SourceGeneration.Test/Zerra.SourceGeneration.Test.csproj" />
     <Project Path="Tests/Zerra.Test/Zerra.Test.csproj" />
   </Folder>
+  <Folder Name="/docs/">
+    <File Path="docs/Agents.md" />
+  </Folder>
 </Solution>

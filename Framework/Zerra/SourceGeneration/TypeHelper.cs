@@ -10,12 +10,24 @@ using Zerra.Collections;
 
 namespace Zerra.SourceGeneration
 {
+    /// <summary>
+    /// Provides utilities for generating human-readable type names and resolving types by name.
+    /// Supports generic types, arrays, and both fully-qualified and simple type name formats.
+    /// Caches generated names and resolved types for performance.
+    /// </summary>
     public static class TypeHelper
     {
         private static readonly ConcurrentFactoryDictionary<Type, string> niceNames = new();
         private static readonly ConcurrentFactoryDictionary<Type, string> niceFullNames = new();
         private static readonly ConcurrentFactoryDictionary<string, ConcurrentList<Type?>> typeByName = new();
 
+        /// <summary>
+        /// Gets a human-readable simple name for the specified type.
+        /// For generic types, includes type parameters as 'T'. For example, "List&lt;T&gt;".
+        /// Results are cached for performance.
+        /// </summary>
+        /// <param name="it">The type to get the name for.</param>
+        /// <returns>A human-readable simple name, or "null" if the type is null.</returns>
         public static string GetNiceName(Type it)
         {
             if (it is null)
@@ -23,6 +35,14 @@ namespace Zerra.SourceGeneration
             var name = niceNames.GetOrAdd(it, static (it) => GenerateNiceName(it, false));
             return name;
         }
+        
+        /// <summary>
+        /// Gets a human-readable fully-qualified name for the specified type.
+        /// For generic types, includes type parameters as 'T'. For example, "System.Collections.Generic.List&lt;T&gt;".
+        /// Results are cached for performance.
+        /// </summary>
+        /// <param name="it">The type to get the name for.</param>
+        /// <returns>A human-readable fully-qualified name, or "null" if the type is null.</returns>
         public static string GetNiceFullName(Type it)
         {
             if (it is null)
@@ -202,6 +222,12 @@ namespace Zerra.SourceGeneration
             }
         }
 
+        /// <summary>
+        /// Converts a generic type name string to use 'T' for all generic type parameters.
+        /// For example, "List&lt;System.String&gt;" becomes "List&lt;T&gt;".
+        /// </summary>
+        /// <param name="typeName">The generic type name string to process.</param>
+        /// <returns>A type name with generic parameters replaced by 'T'.</returns>
         public static string MakeNiceNameGeneric(string typeName)
         {
             var sb = new StringBuilder();
@@ -247,6 +273,17 @@ namespace Zerra.SourceGeneration
             return sb.ToString();
         }
 
+        /// <summary>
+        /// Resolves a type by its name string.
+        /// Supports simple names, fully-qualified names, generic types, and array types.
+        /// First attempts standard Type.GetType resolution, then falls back to custom parsing if dynamic code is supported.
+        /// Results are cached for performance.
+        /// </summary>
+        /// <param name="name">The type name to resolve. Cannot be null or whitespace.</param>
+        /// <returns>The resolved type.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if name is null or whitespace.</exception>
+        /// <exception cref="InvalidOperationException">Thrown if the type cannot be found.</exception>
+        /// <exception cref="Exception">Thrown if multiple types match the given name.</exception>
         public static Type GetTypeFromName(string name)
         {
             if (String.IsNullOrWhiteSpace(name))
@@ -281,6 +318,17 @@ namespace Zerra.SourceGeneration
                 throw new Exception($"More than one type matches {name} - {String.Join(", ", matches.Where(x => x is not null).Select(x => x!.AssemblyQualifiedName).ToArray())}");
             }
         }
+        /// <summary>
+        /// Attempts to resolve a type by its name string.
+        /// Supports simple names, fully-qualified names, generic types, and array types.
+        /// First attempts standard Type.GetType resolution, then falls back to custom parsing if dynamic code is supported.
+        /// Results are cached for performance.
+        /// </summary>
+        /// <param name="name">The type name to resolve. Cannot be null or whitespace.</param>
+        /// <param name="type">The resolved type if found; otherwise null.</param>
+        /// <returns>True if the type was successfully resolved; otherwise false.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if name is null or whitespace.</exception>
+        /// <exception cref="Exception">Thrown if multiple types match the given name.</exception>
         public static bool TryGetTypeFromName(string name, [MaybeNullWhen(false)] out Type? type)
         {
             if (String.IsNullOrWhiteSpace(name))
@@ -320,6 +368,12 @@ namespace Zerra.SourceGeneration
             }
         }
 
+        /// <summary>
+        /// Registers a type for lookup by its nice and fully-qualified names.
+        /// Caches the type so it can be resolved by either name format.
+        /// Useful for registering types generated by source generators or dynamically loaded types.
+        /// </summary>
+        /// <param name="type">The type to register.</param>
         public static void Register(Type type)
         {
             var niceName = GetNiceName(type);
@@ -333,6 +387,15 @@ namespace Zerra.SourceGeneration
             if (!types.Contains(type))
                 types.Add(type);
         }
+        
+        /// <summary>
+        /// Registers a type with pre-calculated nice and fully-qualified names.
+        /// Caches the type and its names for quick lookup without recalculation.
+        /// Useful for registering types generated by source generators where names are already known.
+        /// </summary>
+        /// <param name="type">The type to register.</param>
+        /// <param name="niceName">The pre-calculated human-readable simple name.</param>
+        /// <param name="niceFullName">The pre-calculated human-readable fully-qualified name.</param>
         internal static void Register(Type type, string niceName, string niceFullName)
         {
             _ = niceNames.TryAdd(type, niceName);

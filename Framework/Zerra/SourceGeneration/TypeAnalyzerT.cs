@@ -6,10 +6,23 @@ using Zerra.SourceGeneration.Types;
 
 namespace Zerra.SourceGeneration
 {
+    /// <summary>
+    /// Provides generic type analysis for a specific type <typeparamref name="T"/>.
+    /// Caches detailed type information in a thread-safe manner for performance.
+    /// This is a generic wrapper around the non-generic <see cref="TypeAnalyzer"/> that specializes access for a single type.
+    /// </summary>
+    /// <typeparam name="T">The type to provide analysis for.</typeparam>
     public static class TypeAnalyzer<T>
     {
         private static readonly object typeDetailLock = new object();
         private static TypeDetail<T>? typeDetail = null;
+        
+        /// <summary>
+        /// Gets the cached detailed type information for <typeparamref name="T"/>.
+        /// Thread-safe lazy initialization ensures the type detail is generated only once.
+        /// </summary>
+        /// <returns>The type detail information for <typeparamref name="T"/>.</returns>
+        /// <exception cref="NotSupportedException">Thrown if dynamic code generation is required but not supported.</exception>
         public static TypeDetail<T> GetTypeDetail()
         {
             if (typeDetail is null)

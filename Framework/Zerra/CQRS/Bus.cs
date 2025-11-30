@@ -79,16 +79,12 @@ namespace Zerra.CQRS
             }
         }
 
-        /// <summary>
-        /// Manually stop all the services. This is not necessary if using <see cref="WaitForExit"/> or <see cref="WaitForExitAsync"/>. 
-        /// </summary>
+        /// <inheritdoc />
         public void StopServices()
         {
             Task.Run(StopServicesAsync).GetAwaiter().GetResult();
         }
-        /// <summary>
-        /// Manually stop all the services. This is not necessary if using <see cref="WaitForExit"/> or <see cref="WaitForExitAsync"/>.
-        /// </summary>
+        /// <inheritdoc />
         public async Task StopServicesAsync()
         {
             context.Log?.Info($"{nameof(Bus)} Shutting Down");
@@ -211,11 +207,7 @@ namespace Zerra.CQRS
             }
         }
 
-        /// <summary>
-        /// An awaiter to hold the assembly process until it receives a shutdown command.
-        /// All the services will be stopped upon shutdown.
-        /// </summary>
-        /// <param name="cancellationToken">A token to cancel the wait.</param>
+        /// <inheritdoc />
         public void WaitForExit(CancellationToken cancellationToken = default)
         {
             lock (exitLock)
@@ -232,12 +224,7 @@ namespace Zerra.CQRS
             catch { }
             Task.Run(StopServicesAsync).GetAwaiter().GetResult();
         }
-
-        /// <summary>
-        /// An awaiter to hold the assembly process until it receives a shutdown command.
-        /// All the services will be stopped upon shutdown.
-        /// </summary>
-        /// <param name="cancellationToken">A token to cancel the wait.</param>
+        /// <inheritdoc />
         public async Task WaitForExitAsync(CancellationToken cancellationToken = default)
         {
             lock (exitLock)
@@ -255,6 +242,7 @@ namespace Zerra.CQRS
             await StopServicesAsync();
         }
 
+        /// <inheritdoc />
         public async Task<RemoteQueryCallResponse> RemoteHandleQueryCallAsync(Type interfaceType, string methodName, string?[] arguments, string source, bool isApi, ISerializer serializer, CancellationToken cancellationToken)
         {
             var info = BusHandlers.GetMethod(interfaceType, methodName);
@@ -300,10 +288,13 @@ namespace Zerra.CQRS
             else
                 return new RemoteQueryCallResponse(result);
         }
+        /// <inheritdoc />
         public Task RemoteHandleCommandDispatchAsync(ICommand command, string source, bool isApi, CancellationToken cancellationToken)
             => _DispatchCommandInternalAsync(command, command.GetType(), false, source, cancellationToken);
+        /// <inheritdoc />
         public Task RemoteHandleCommandDispatchAwaitAsync(ICommand command, string source, bool isApi, CancellationToken cancellationToken)
             => _DispatchCommandInternalAsync(command, command.GetType(), true, source, cancellationToken);
+        /// <inheritdoc />
         public async Task<object?> RemoteHandleCommandWithResultDispatchAwaitAsync(ICommand command, string source, bool isApi, CancellationToken cancellationToken)
         {
             var commandType = command.GetType();
@@ -313,12 +304,15 @@ namespace Zerra.CQRS
             var result = dispatcher.TaskResult!(task);
             return result;
         }
+        /// <inheritdoc />
         public Task RemoteHandleEventDispatchAsync(IEvent @event, string source, bool isApi)
                 => _DispatchEventInternalAsync(@event, @event.GetType(), source, CancellationToken.None);
 
+        /// <inheritdoc />
         public TInterface Call<TInterface>()
             => (TInterface)BusRouters.GetBusCaller(typeof(TInterface), this, context.Service);
 
+        /// <inheritdoc />
         public Task DispatchAsync(ICommand command, CancellationToken? cancellationToken = null)
         {
             if (cancellationToken.HasValue)
@@ -331,6 +325,7 @@ namespace Zerra.CQRS
             _ = task.ContinueWith((_) => cancellationTokenSource.Dispose());
             return task;
         }
+        /// <inheritdoc />
         public Task DispatchAwaitAsync(ICommand command, CancellationToken? cancellationToken = null)
         {
             if (cancellationToken.HasValue)
@@ -343,6 +338,7 @@ namespace Zerra.CQRS
             _ = task.ContinueWith((_) => cancellationTokenSource.Dispose());
             return task;
         }
+        /// <inheritdoc />
         public Task DispatchAsync(IEvent @event, CancellationToken? cancellationToken = null)
         {
             if (cancellationToken.HasValue)
@@ -355,6 +351,7 @@ namespace Zerra.CQRS
             _ = task.ContinueWith((_) => cancellationTokenSource.Dispose());
             return task;
         }
+        /// <inheritdoc />
         public Task<TResult> DispatchAwaitAsync<TResult>(ICommand<TResult> command, CancellationToken? cancellationToken = null)
         {
             if (cancellationToken.HasValue)
@@ -369,6 +366,7 @@ namespace Zerra.CQRS
         }
 
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+        /// <inheritdoc />
         public TReturn _CallMethod<TReturn>(Type interfaceType, string methodName, object[] arguments, string source)
         {
             CancellationTokenSource? cancellationTokenSource = null;
@@ -426,6 +424,7 @@ namespace Zerra.CQRS
             return result;
         }
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+        /// <inheritdoc />
         public Task _CallMethodTask(Type interfaceType, string methodName, object[] arguments, string source)
         {
             CancellationTokenSource? cancellationTokenSource = null;
@@ -483,6 +482,7 @@ namespace Zerra.CQRS
             return result;
         }
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+        /// <inheritdoc />
         public Task<TReturn> _CallMethodTaskGeneric<TReturn>(Type interfaceType, string methodName, object[] arguments, string source)
         {
             CancellationTokenSource? cancellationTokenSource = null;
@@ -626,6 +626,7 @@ namespace Zerra.CQRS
         }
 
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+        /// <inheritdoc />
         public Task _DispatchCommandInternalAsync(ICommand command, Type commandType, bool requireAffirmation, string source, CancellationToken cancellationToken)
         {
             var info = BusCommandOrEventInfo.GetByType(commandType, handledTypes);
@@ -681,6 +682,7 @@ namespace Zerra.CQRS
             return result;
         }
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+        /// <inheritdoc />
         public Task<TResult> _DispatchCommandWithResultInternalAsync<TResult>(ICommand<TResult> command, Type commandType, string source, CancellationToken cancellationToken)
         {
             var info = BusCommandOrEventInfo.GetByType(commandType, handledTypes);
@@ -725,6 +727,7 @@ namespace Zerra.CQRS
             return result;
         }
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+        /// <inheritdoc />
         public Task _DispatchEventInternalAsync(IEvent @event, Type eventType, string source, CancellationToken cancellationToken)
         {
             var info = BusCommandOrEventInfo.GetByType(eventType, handledTypes);
@@ -870,6 +873,7 @@ namespace Zerra.CQRS
             busLog?.EndEvent(eventType, @event, context.Service, source, handled, timer.ElapsedMilliseconds, null);
         }
 
+        /// <inheritdoc />
         public void AddHandler<TInterface>(TInterface handler)
         {
             var interfaceType = typeof(TInterface);
@@ -887,6 +891,7 @@ namespace Zerra.CQRS
             _ = handledTypes.Add(interfaceType);
         }
 
+        /// <inheritdoc />
         public void AddCommandProducer<TInterface>(ICommandProducer commandProducer)
         {
             var interfaceType = typeof(TInterface);
@@ -917,6 +922,7 @@ namespace Zerra.CQRS
             }
         }
 
+        /// <inheritdoc />
         public void AddCommandConsumer<TInterface>(ICommandConsumer commandConsumer)
         {
             var interfaceType = typeof(TInterface);
@@ -946,6 +952,7 @@ namespace Zerra.CQRS
             commandConsumer.Open();
         }
 
+        /// <inheritdoc />
         public void AddEventProducer<TInterface>(IEventProducer eventProducer)
         {
             var interfaceType = typeof(TInterface);
@@ -976,6 +983,7 @@ namespace Zerra.CQRS
             }
         }
 
+        /// <inheritdoc />
         public void AddEventConsumer<TInterface>(IEventConsumer eventConsumer)
         {
             var interfaceType = typeof(TInterface);
@@ -1000,6 +1008,7 @@ namespace Zerra.CQRS
             eventConsumer.Open();
         }
 
+        /// <inheritdoc />
         public void AddQueryClient<TInterface>(IQueryClient queryClient)
         {
             var interfaceType = typeof(TInterface);
@@ -1025,6 +1034,7 @@ namespace Zerra.CQRS
             context.Log?.Info($"{queryClient.GetType().Name} at {queryClient.ServiceUrl} - {interfaceType.Name}");
         }
 
+        /// <inheritdoc />
         public void AddQueryServer<TInterface>(IQueryServer queryServer)
         {
             var interfaceType = typeof(TInterface);

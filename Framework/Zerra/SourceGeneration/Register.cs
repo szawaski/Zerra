@@ -7,6 +7,12 @@ using Zerra.SourceGeneration.Types;
 
 namespace Zerra.SourceGeneration
 {
+    /// <summary>
+    /// Internal static methods for registering source-generated type information and CQRS routing metadata.
+    /// Called by the Zerra source generator to register routers, handlers, type details, and other framework components
+    /// that were generated at compile-time. These registrations populate runtime caches, enabling the framework to access
+    /// source-generated code and metadata without reflection.
+    /// </summary>
     public static class Register
     {
         public static void Router(Type interfaceType, Func<IBusInternal, string, object> creator) => BusRouters.Register(interfaceType, creator);

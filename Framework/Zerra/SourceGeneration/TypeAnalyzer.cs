@@ -9,10 +9,22 @@ using Zerra.SourceGeneration.Types;
 
 namespace Zerra.SourceGeneration
 {
+    /// <summary>
+    /// Provides runtime type analysis and conversion services for the Zerra framework.
+    /// Generates and caches detailed type information for reflection-based serialization, 
+    /// deserialization, and CQRS message routing.
+    /// </summary>
     public static class TypeAnalyzer
     {
         private static readonly ConcurrentFactoryDictionary<Type, TypeDetail> byType = new();
 
+        /// <summary>
+        /// Gets or generates detailed type information for the specified type.
+        /// If type detail was source generated, it will be retrieved from cache without throwing.
+        /// </summary>
+        /// <param name="type">The type to analyze.</param>
+        /// <returns>Cached or newly generated type detail information.</returns>
+        /// <exception cref="NotSupportedException">Thrown if dynamic code generation is required but not supported in the current build configuration.</exception>
         public static TypeDetail GetTypeDetail(Type type)
         {
             return byType.GetOrAdd(type, GenerateTypeDetail);
@@ -34,7 +46,24 @@ namespace Zerra.SourceGeneration
 #pragma warning restore IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
         }
 
+        /// <summary>
+        /// Converts an object to the specified type.
+        /// Supports all core types (primitives, dates, times, guids, strings) and their nullable equivalents.
+        /// </summary>
+        /// <typeparam name="T">The target type to convert to.</typeparam>
+        /// <param name="obj">The object to convert.</param>
+        /// <returns>The converted value, or null if conversion fails or type is not supported.</returns>
+        /// <exception cref="NotImplementedException">Thrown if the target type is not supported for conversion.</exception>
         public static T? Convert<T>(object? obj) { return (T?)Convert(obj, typeof(T)); }
+        
+        /// <summary>
+        /// Converts an object to the specified type.
+        /// Supports all core types (primitives, dates, times, guids, strings) and their nullable equivalents.
+        /// </summary>
+        /// <param name="obj">The object to convert.</param>
+        /// <param name="type">The target type to convert to.</param>
+        /// <returns>The converted value, or null if conversion fails or type is not supported.</returns>
+        /// <exception cref="NotImplementedException">Thrown if the target type is not supported for conversion.</exception>
         public static object? Convert(object? obj, Type type)
         {
             if (!TypeLookup.CoreTypeLookup(type, out var coreType))
