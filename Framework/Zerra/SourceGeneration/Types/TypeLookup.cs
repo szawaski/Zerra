@@ -4,6 +4,10 @@
 
 namespace Zerra.SourceGeneration.Types
 {
+    /// <summary>
+    /// Provides type lookup and classification utilities for core types, numeric types, enum types, and special framework types.
+    /// Enables efficient categorization and routing of types during code generation and runtime type analysis.
+    /// </summary>
     public static class TypeLookup
     {
         private static readonly IReadOnlyDictionary<Type, CoreType> coreTypeLookup = new Dictionary<Type, CoreType>()
@@ -54,6 +58,13 @@ namespace Zerra.SourceGeneration.Types
 #endif
             { typeof(Guid?), CoreType.GuidNullable }
         };
+        
+        /// <summary>
+        /// Attempts to look up a type in the core type catalog and retrieve its <see cref="CoreType"/> classification.
+        /// </summary>
+        /// <param name="type">The type to classify.</param>
+        /// <param name="coreType">The core type classification if found; otherwise the default value.</param>
+        /// <returns>True if the type is a recognized core type; otherwise false.</returns>
         public static bool CoreTypeLookup(Type type, out CoreType coreType)
         {
             return coreTypeLookup.TryGetValue(type, out coreType);
@@ -79,177 +90,26 @@ namespace Zerra.SourceGeneration.Types
             { typeof(long?), CoreEnumType.Int64Nullable },
             { typeof(ulong?), CoreEnumType.UInt64Nullable },
         };
+        
+        /// <summary>
+        /// Attempts to look up a type in the enum type catalog and retrieve its <see cref="CoreEnumType"/> classification.
+        /// Only integral types and their nullable equivalents are recognized as valid enum underlying types.
+        /// </summary>
+        /// <param name="type">The type to classify.</param>
+        /// <param name="coreType">The enum core type classification if found; otherwise the default value.</param>
+        /// <returns>True if the type is a recognized enum underlying type; otherwise false.</returns>
         public static bool CoreEnumTypeLookup(Type type, out CoreEnumType coreType)
         {
             return coreEnumTypeLookup.TryGetValue(type, out coreType);
         }
 
-        public static readonly IReadOnlyList<Type> CoreTypes = new Type[]
-        {
-            typeof(bool),
-            typeof(byte),
-            typeof(sbyte),
-            typeof(short),
-            typeof(ushort),
-            typeof(int),
-            typeof(uint),
-            typeof(long),
-            typeof(ulong),
-            typeof(float),
-            typeof(double),
-            typeof(decimal),
-            typeof(char),
-            typeof(DateTime),
-            typeof(DateTimeOffset),
-            typeof(TimeSpan),
-#if NET6_0_OR_GREATER
-            typeof(DateOnly),
-            typeof(TimeOnly),
-#endif
-            typeof(Guid),
-
-            typeof(string),
-        };
-
-        public static readonly IReadOnlyList<Type> CoreTypesWithNullables = new Type[]
-        {
-            typeof(bool),
-            typeof(byte),
-            typeof(sbyte),
-            typeof(short),
-            typeof(ushort),
-            typeof(int),
-            typeof(uint),
-            typeof(long),
-            typeof(ulong),
-            typeof(float),
-            typeof(double),
-            typeof(decimal),
-            typeof(char),
-            typeof(DateTime),
-            typeof(DateTimeOffset),
-            typeof(TimeSpan),
-#if NET6_0_OR_GREATER
-            typeof(DateOnly),
-            typeof(TimeOnly),
-#endif
-            typeof(Guid),
-
-            typeof(string),
-
-            typeof(bool?),
-            typeof(byte?),
-            typeof(sbyte?),
-            typeof(short?),
-            typeof(ushort?),
-            typeof(int?),
-            typeof(uint?),
-            typeof(long?),
-            typeof(ulong?),
-            typeof(float?),
-            typeof(double?),
-            typeof(decimal?),
-            typeof(char?),
-            typeof(DateTime?),
-            typeof(DateTimeOffset?),
-            typeof(TimeSpan?),
-#if NET6_0_OR_GREATER
-            typeof(DateOnly?),
-            typeof(TimeOnly?),
-#endif
-            typeof(Guid?)
-        };
-
-        public static readonly IReadOnlyList<Type> CoreTypeNumbers = new Type[]
-        {
-            typeof(byte),
-            typeof(sbyte),
-            typeof(short),
-            typeof(ushort),
-            typeof(int),
-            typeof(uint),
-            typeof(long),
-            typeof(ulong),
-            typeof(float),
-            typeof(double),
-            typeof(decimal)
-        };
-
-        public static readonly IReadOnlyList<Type> CoreTypeNumbersWithNullables = new Type[]
-        {
-            typeof(byte),
-            typeof(sbyte),
-            typeof(short),
-            typeof(ushort),
-            typeof(int),
-            typeof(uint),
-            typeof(long),
-            typeof(ulong),
-            typeof(float),
-            typeof(double),
-            typeof(decimal),
-
-            typeof(byte?),
-            typeof(sbyte?),
-            typeof(short?),
-            typeof(ushort?),
-            typeof(int?),
-            typeof(uint?),
-            typeof(long?),
-            typeof(ulong?),
-            typeof(float?),
-            typeof(double?),
-            typeof(decimal?)
-        };
-
-        public static readonly IReadOnlyList<CoreType> CoreTypeNumberEnums = new CoreType[]
-        {
-            CoreType.Byte,
-            CoreType.SByte,
-            CoreType.Int16,
-            CoreType.UInt16,
-            CoreType.Int32,
-            CoreType.UInt32,
-            CoreType.Int64,
-            CoreType.UInt64,
-            CoreType.Single,
-            CoreType.Double,
-            CoreType.Decimal
-        };
-
-        public static readonly IReadOnlyList<CoreType> CoreTypeNumberEnumsWithNullables = new CoreType[]
-        {
-            CoreType.Byte,
-            CoreType.SByte,
-            CoreType.Int16,
-            CoreType.UInt16,
-            CoreType.Int32,
-            CoreType.UInt32,
-            CoreType.Int64,
-            CoreType.UInt64,
-            CoreType.Single,
-            CoreType.Double,
-            CoreType.Decimal,
-
-            CoreType.ByteNullable,
-            CoreType.SByteNullable,
-            CoreType.Int16Nullable,
-            CoreType.UInt16Nullable,
-            CoreType.Int32Nullable,
-            CoreType.UInt32Nullable,
-            CoreType.Int64Nullable,
-            CoreType.UInt64Nullable,
-            CoreType.SingleNullable,
-            CoreType.DoubleNullable,
-            CoreType.DecimalNullable
-        };
-
-        public static readonly IReadOnlyList<Type> SpecialTypes = new Type[]
-        {
-            typeof(Type),
-            typeof(Dictionary<,>),
-        };
-
+        /// <summary>
+        /// Attempts to classify a type as a special framework type.
+        /// Recognizes Task variants, Type, Dictionary variants, and other framework infrastructure types.
+        /// </summary>
+        /// <param name="type">The type to classify.</param>
+        /// <param name="specialType">The special type classification if recognized; otherwise the default value.</param>
+        /// <returns>True if the type is recognized as a special type; otherwise false.</returns>
         public static bool SpecialTypeLookup(Type type, out SpecialType specialType)
         {
             switch (type.Name)
