@@ -9,6 +9,14 @@ using Zerra.Serialization;
 
 namespace Zerra.CQRS.RabbitMQ
 {
+    /// <summary>
+    /// RabbitMQ implementation of command and event consumer for distributed CQRS messaging.
+    /// </summary>
+    /// <remarks>
+    /// Manages multiple RabbitMQ exchanges for consuming commands and events with configurable concurrency.
+    /// Provides automatic connection management, exchange creation, and optional message decryption.
+    /// Thread-safe for concurrent operations.
+    /// </remarks>
     public sealed partial class RabbitMQConsumer : ICommandConsumer, IEventConsumer, IDisposable
     {
         private readonly string host;
@@ -30,6 +38,15 @@ namespace Zerra.CQRS.RabbitMQ
 
         private CommandCounter? commandCounter = null;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RabbitMQConsumer"/> class.
+        /// </summary>
+        /// <param name="host">The RabbitMQ server hostname or IP address.</param>
+        /// <param name="serializer">The serializer for message deserialization and serialization.</param>
+        /// <param name="encryptor">Optional decryptor for message decryption. If null, messages are assumed to be unencrypted.</param>
+        /// <param name="log">Optional logger for diagnostic information and errors.</param>
+        /// <param name="environment">Optional environment name to match exchange name prefixes for isolation.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="host"/> is null or empty.</exception>
         public RabbitMQConsumer(string host, ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
@@ -138,6 +155,13 @@ namespace Zerra.CQRS.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// Releases all resources used by the <see cref="RabbitMQConsumer"/>.
+        /// </summary>
+        /// <remarks>
+        /// Closes all open message exchanges and the RabbitMQ connection.
+        /// After disposal, the consumer cannot be used.
+        /// </remarks>
         public void Dispose()
         {
             this.Close();

@@ -8,15 +8,33 @@ using Microsoft.AspNetCore.DataProtection;
 
 namespace Zerra.Web
 {
+    /// <summary>
+    /// Manages HTTP cookies for ASP.NET Core applications with support for large values and optional encryption.
+    /// </summary>
+    /// <remarks>
+    /// Handles cookie operations including adding, reading, and removing cookies.
+    /// Supports values larger than the standard 4KB cookie size by splitting across multiple cookie series.
+    /// Provides encryption/decryption through ASP.NET Core's data protection API.
+    /// </remarks>
     public sealed class CookieManager
     {
         private readonly HttpContext context;
         private readonly IDataProtectionProvider? dataProtectionProvider;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CookieManager"/> class.
+        /// </summary>
+        /// <param name="context">The HTTP context for accessing request and response cookies.</param>
         public CookieManager(HttpContext context)
         {
             this.context = context;
         }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CookieManager"/> class with encryption support.
+        /// </summary>
+        /// <param name="context">The HTTP context for accessing request and response cookies.</param>
+        /// <param name="dataProtectionProvider">The data protection provider for encrypting/decrypting cookie values.</param>
         public CookieManager(HttpContext context, IDataProtectionProvider dataProtectionProvider)
         {
             this.context = context;
@@ -26,21 +44,66 @@ namespace Zerra.Web
         private const int maxCookieSizeBytes = 4096;
         private const int maxCookiesPerDomain = 20;
 
+        /// <summary>
+        /// Adds a cookie to the response.
+        /// </summary>
+        /// <remarks>
+        /// Automatically splits values larger than 4KB across multiple cookie series.
+        /// The value is stored in plain text; use <see cref="AddSecure"/> for encrypted storage.
+        /// </remarks>
+        /// <param name="name">The cookie name.</param>
+        /// <param name="value">The cookie value.</param>
+        /// <param name="maxAge">Optional maximum age for the cookie. If null, the cookie is a session cookie.</param>
+        /// <param name="sameSite">The SameSite attribute for CSRF protection (default: Strict).</param>
+        /// <param name="httpOnly">Whether the cookie is HTTP-only (default: false).</param>
+        /// <param name="secure">Whether the cookie requires HTTPS (default: false).</param>
         public void Add(string name, string value, TimeSpan? maxAge = null, SameSiteMode sameSite = SameSiteMode.Strict, bool httpOnly = false, bool secure = false)
         {
             PersistCookie(name, value, maxAge, sameSite, httpOnly, secure);
         }
 
+        /// <summary>
+        /// Adds an encrypted cookie to the response.
+        /// </summary>
+        /// <remarks>
+        /// Encrypts the value using ASP.NET Core's data protection API before storing.
+        /// Automatically splits encrypted values larger than 4KB across multiple cookie series.
+        /// Requires a data protection provider; throws exception if not provided.
+        /// </remarks>
+        /// <param name="name">The cookie name.</param>
+        /// <param name="value">The cookie value to encrypt.</param>
+        /// <param name="maxAge">Optional maximum age for the cookie. If null, the cookie is a session cookie.</param>
+        /// <param name="sameSite">The SameSite attribute for CSRF protection (default: Strict).</param>
+        /// <param name="httpOnly">Whether the cookie is HTTP-only (default: true).</param>
+        /// <param name="secure">Whether the cookie requires HTTPS (default: true).</param>
         public void AddSecure(string name, string value, TimeSpan? maxAge = null, SameSiteMode sameSite = SameSiteMode.Strict, bool httpOnly = true, bool secure = true)
         {
             var encryptedValue = Encrypt(value);
             PersistCookie(name, encryptedValue, maxAge, sameSite, httpOnly, secure);
         }
 
+        /// <summary>
+        /// Retrieves a cookie value from the request.
+        /// </summary>
+        /// <remarks>
+        /// Automatically reconstructs values that were split across multiple cookie series.
+        /// </remarks>
+        /// <param name="name">The cookie name.</param>
+        /// <returns>The cookie value, or null if not found.</returns>
         public string? Get(string name)
         {
             return ReadCookie(name);
         }
+
+        /// <summary>
+        /// Retrieves and decrypts an encrypted cookie value from the request.
+        /// </summary>
+        /// <remarks>
+        /// Automatically reconstructs values that were split across multiple cookie series before decrypting.
+        /// Returns null if the cookie is not found or decryption fails (e.g., due to key expiration).
+        /// </remarks>
+        /// <param name="name">The cookie name.</param>
+        /// <returns>The decrypted cookie value, or null if not found or decryption failed.</returns>
         public string? GetSecure(string name)
         {
             var value = ReadCookie(name);
@@ -52,6 +115,16 @@ namespace Zerra.Web
             return null;
         }
 
+        /// <summary>
+        /// Removes a cookie from the response by expiring it.
+        /// </summary>
+        /// <remarks>
+        /// Removes all cookie series associated with the given name.
+        /// </remarks>
+        /// <param name="name">The cookie name.</param>
+        /// <param name="sameSite">The SameSite attribute (should match the original cookie).</param>
+        /// <param name="httpOnly">Whether the cookie is HTTP-only (should match the original cookie).</param>
+        /// <param name="secure">Whether the cookie requires HTTPS (should match the original cookie).</param>
         public void Remove(string name, SameSiteMode sameSite = SameSiteMode.Strict, bool httpOnly = true, bool secure = true)
         {
             DeleteCookie(name, sameSite, httpOnly, secure);

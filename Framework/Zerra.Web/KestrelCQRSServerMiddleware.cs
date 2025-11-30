@@ -16,6 +16,15 @@ using Zerra.SourceGeneration;
 
 namespace Zerra.Web
 {
+    /// <summary>
+    /// ASP.NET Core middleware that implements CQRS server functionality over HTTP/HTTPS using Kestrel.
+    /// </summary>
+    /// <remarks>
+    /// Provides an alternative CQRS transport mechanism using ASP.NET Kestrel instead of external message brokers.
+    /// Acts as a server endpoint for CQRS clients to send commands, queries, and events over HTTP.
+    /// Supports multiple content types (JSON, binary), optional message encryption, authorization, and origin validation.
+    /// Handles both request/response patterns and streaming responses with configurable concurrency control.
+    /// </remarks>
     public sealed class KestrelCqrsServerMiddleware : IDisposable
     {
         private readonly RequestDelegate requestDelegate;
@@ -24,6 +33,14 @@ namespace Zerra.Web
         private readonly ILogger? log;
         private readonly KestrelCqrsServerLinkedSettings settings;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="KestrelCqrsServerMiddleware"/> class.
+        /// </summary>
+        /// <param name="requestDelegate">The next middleware in the pipeline.</param>
+        /// <param name="serializer">The serializer for request/response serialization and deserialization.</param>
+        /// <param name="encryptor">Optional encryptor/decryptor for message encryption. If null, messages are assumed to be unencrypted.</param>
+        /// <param name="log">Optional logger for diagnostic information and errors.</param>
+        /// <param name="settings">The server settings including route, allowed origins, handler configurations, and registered CQRS types.</param>
         public KestrelCqrsServerMiddleware(RequestDelegate requestDelegate, ISerializer serializer, IEncryptor? encryptor, ILogger? log, KestrelCqrsServerLinkedSettings settings)
         {
             this.requestDelegate = requestDelegate;
@@ -33,11 +50,25 @@ namespace Zerra.Web
             this.settings = settings;
         }
 
+        /// <summary>
+        /// Releases all resources used by the <see cref="KestrelCqrsServerMiddleware"/>.
+        /// </summary>
         public void Dispose()
         {
             settings.Dispose();
         }
 
+        /// <summary>
+        /// Invokes the middleware to process HTTP requests from CQRS clients.
+        /// </summary>
+        /// <remarks>
+        /// Handles POST requests for CQRS message processing and OPTIONS requests for CORS preflight.
+        /// Validates content type, deserializes requests, routes to registered command/query/event handlers,
+        /// and serializes responses. Supports optional encryption and authorization validation.
+        /// Non-matching requests are passed to the next middleware in the pipeline.
+        /// </remarks>
+        /// <param name="context">The HTTP context for the current request.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
         public async Task Invoke(HttpContext context)
         {
             if ((!String.IsNullOrWhiteSpace(settings.Route) && context.Request.Path != settings.Route) || (context.Request.Method != "POST" && context.Request.Method != "OPTIONS"))

@@ -12,7 +12,7 @@ namespace Zerra.CQRS.AzureServiceBus
 {
     public sealed partial class AzureServiceBusConsumer
     {
-        public sealed class EventConsumer : IDisposable
+        private sealed class EventConsumer : IDisposable
         {
             public bool IsOpen { get; private set; }
 

@@ -63,8 +63,8 @@ bus.AddHandler<IUserQueries>(userQueryHandler);
 
 // Create TCP CQRS server with configured serializer, encryptor, and logger
 var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, logger);
-bus.AddCqrsServer<IUserCommandHandlers, >(server);
-bus.AddCqrsServer<IUserQueries>(server);
+bus.AddCommandConsumer<IUserCommandHandlers>(server);
+bus.AddQueryServer<IUserQueries>(server);
 
 // Start processing messages
 await bus.WaitForExitAsync(cancellationToken);
@@ -96,8 +96,8 @@ var bus = Bus.New(
 
 // Create TCP CQRS client with configured serializer, encryptor, and logger
 var client = new TcpCqrsClient("localhost:9001", serializer, encryptor, logger);
-bus.AddCqrsClient<IUserCommandHandlers, >(client);
-bus.AddCqrsClient<IUserQueries>(client);
+bus.AddCommandProducer<IUserCommandHandlers>(client);
+bus.AddQueryClient<IUserQueries>(client);
 
 // Now dispatch commands and queries to remote UserService
 var user = await bus.DispatchAwaitAsync(new CreateUserCommand { Email = "user@example.com" });
@@ -244,11 +244,13 @@ await bus.DispatchAsync(new CreateUserCommand { Email = "user@example.com" });
 ```csharp
 // Server side
 var tcpServer = new TcpCqrsServer("localhost:9001", serializer, encryptor, log);
-bus.AddCqrsServer<IUserCommandHandlers, IUserQueries>(tcpServer);
+bus.AddQueryServer<IUserQueries>(tcpServer);
+bus.AddCommandConsumer<IUserCommandHandlers>(tcpServer);
 
 // Client side
 var tcpClient = new TcpCqrsClient("localhost:9001", serializer, encryptor, log);
-bus.AddCqrsClient<IUserCommandHandlers, IUserQueries>(tcpClient);
+bus.AddQueryClient<IUserQueries>(tcpClient);
+bus.AddCommandProducer<IUserCommandHandlers>(tcpClient);
 
 // Use as before - type-safe queries
 var user = await bus.Call<IUserQueries>().GetUserById(123, cancellationToken);
@@ -259,11 +261,13 @@ var user = await bus.Call<IUserQueries>().GetUserById(123, cancellationToken);
 ```csharp
 // Server side
 var httpServer = new HttpCqrsServer("localhost:9001", serializer, encryptor, log);
-bus.AddCqrsServer<IUserCommandHandlers, IUserQueries>(httpServer);
+bus.AddQueryServer<IUserQueries>(httpServer);
+bus.AddCommandConsumer<IUserCommandHandlers>(httpServer);
 
 // Client side
 var httpClient = new HttpCqrsClient("localhost:9001", serializer, encryptor, log);
-bus.AddCqrsClient<IUserCommandHandlers, IUserQueries>(httpClient);
+bus.AddQueryClient<IUserQueries>(httpClient);
+bus.AddCommandProducer<IUserCommandHandlers>(httpClient);
 
 // Use as before - type-safe queries
 var user = await bus.Call<IUserQueries>().GetUserById(123, cancellationToken);
@@ -276,11 +280,11 @@ var user = await bus.Call<IUserQueries>().GetUserById(123, cancellationToken);
 ```csharp
 // Server side
 var tcpServer = new TcpCqrsServer("localhost:9001", serializer, encryptor, log);
-bus.AddCqrsServer<IUserCommandHandlers, IUserQueries>(tcpServer);
+bus.AddCommandConsumer<IUserCommandHandlers, IUserQueries>(tcpServer);
 
 // Client side
 var tcpClient = new TcpCqrsClient("localhost:9001", serializer, encryptor, log);
-bus.AddCqrsClient<IUserCommandHandlers, IUserQueries>(tcpClient);
+bus.AddCommandProducer<IUserCommandHandlers, IUserQueries>(tcpClient);
 ```
 
 #### HTTP CQRS
@@ -288,11 +292,11 @@ bus.AddCqrsClient<IUserCommandHandlers, IUserQueries>(tcpClient);
 ```csharp
 // Server side
 var httpServer = new HttpCqrsServer("localhost:9001", serializer, encryptor, log);
-bus.AddCqrsServer<IUserCommandHandlers, IUserQueries>(httpServer);
+bus.AddCommandConsumer<IUserCommandHandlers, IUserQueries>(httpServer);
 
 // Client side
 var httpClient = new HttpCqrsClient("localhost:9001", serializer, encryptor, log);
-bus.AddCqrsClient<IUserCommandHandlers, IUserQueries>(httpClient);
+bus.AddCommandProducer<IUserCommandHandlers, IUserQueries>(httpClient);
 ```
 
 #### Kafka
@@ -376,7 +380,6 @@ var bus = Bus.New(
 var scopes = new BusScopes();
 scopes.AddScope<IUserRepository>(userRepository);
 scopes.AddScope<IEmailService>(emailService);
-scopes.AddScope<ILogger>(logger);
 
 var bus = Bus.New(
     service: "MyService",

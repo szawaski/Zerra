@@ -4,7 +4,7 @@
 
 namespace Zerra.Web
 {
-    public static class HttpCommon
+    internal static class HttpCommon
     {
         public const int BufferLength = 1024 * 16;
 

@@ -12,6 +12,14 @@ using Zerra.Serialization;
 
 namespace Zerra.CQRS.AzureServiceBus
 {
+    /// <summary>
+    /// Azure Service Bus implementation of command and event producer for distributed CQRS messaging.
+    /// </summary>
+    /// <remarks>
+    /// Provides high-performance, reliable message delivery to Azure Service Bus queues and topics.
+    /// Supports command acknowledgements with automatic retry logic and optional message encryption.
+    /// Thread-safe for concurrent operations.
+    /// </remarks>
     public sealed class AzureServiceBusProducer : ICommandProducer, IEventProducer, IAsyncDisposable
     {
         private bool listenerStarted = false;
@@ -29,6 +37,16 @@ namespace Zerra.CQRS.AzureServiceBus
         private readonly ServiceBusClient client;
         private readonly CancellationTokenSource canceller;
         private readonly ConcurrentDictionary<string, Action<Acknowledgement>> ackCallbacks;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AzureServiceBusProducer"/> class.
+        /// </summary>
+        /// <param name="host">The Azure Service Bus connection string.</param>
+        /// <param name="serializer">The serializer for message serialization and deserialization.</param>
+        /// <param name="encryptor">Optional encryptor for message encryption. If null, messages are not encrypted.</param>
+        /// <param name="log">Optional logger for diagnostic information.</param>
+        /// <param name="environment">Optional environment name to prefix queue and topic names for isolation.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="host"/> is null or empty.</exception>
         public AzureServiceBusProducer(string host, ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
@@ -364,6 +382,13 @@ namespace Zerra.CQRS.AzureServiceBus
             }
         }
 
+        /// <summary>
+        /// Releases all resources used by the <see cref="AzureServiceBusProducer"/>.
+        /// </summary>
+        /// <remarks>
+        /// Cancels acknowledgement listening, closes the Service Bus client connection,
+        /// and releases semaphore resources.
+        /// </remarks>
         public async ValueTask DisposeAsync()
         {
             canceller.Cancel();

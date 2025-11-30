@@ -9,6 +9,14 @@ using Zerra.Serialization;
 
 namespace Zerra.CQRS.AzureServiceBus
 {
+    /// <summary>
+    /// Azure Service Bus implementation of command and event consumer for distributed CQRS messaging.
+    /// </summary>
+    /// <remarks>
+    /// Provides high-performance, reliable message consumption from Azure Service Bus queues and topics.
+    /// Manages multiple exchanges (queues/topics) with concurrent processing capabilities.
+    /// Thread-safe for concurrent operations.
+    /// </remarks>
     public sealed partial class AzureServiceBusConsumer : ICommandConsumer, IEventConsumer, IAsyncDisposable
     {
         private readonly string host;
@@ -36,6 +44,15 @@ namespace Zerra.CQRS.AzureServiceBus
             ReceiveMode = ServiceBusReceiveMode.ReceiveAndDelete,
         };
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AzureServiceBusConsumer"/> class.
+        /// </summary>
+        /// <param name="host">The Azure Service Bus connection string.</param>
+        /// <param name="serializer">The serializer for message deserialization and serialization.</param>
+        /// <param name="encryptor">Optional decryptor for message decryption. If null, messages are assumed to be unencrypted.</param>
+        /// <param name="log">Optional logger for diagnostic information.</param>
+        /// <param name="environment">Optional environment name to match queue and topic name prefixes for isolation.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="host"/> is null or empty.</exception>
         public AzureServiceBusConsumer(string host, ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
@@ -131,6 +148,12 @@ namespace Zerra.CQRS.AzureServiceBus
             }
         }
 
+        /// <summary>
+        /// Releases all resources used by the <see cref="AzureServiceBusConsumer"/>.
+        /// </summary>
+        /// <remarks>
+        /// Closes all open message exchanges and disposes the Service Bus client connection.
+        /// </remarks>
         public async ValueTask DisposeAsync()
         {
             this.Close();

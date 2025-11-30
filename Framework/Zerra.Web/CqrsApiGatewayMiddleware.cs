@@ -11,6 +11,14 @@ using Zerra.Serialization;
 
 namespace Zerra.Web
 {
+    /// <summary>
+    /// ASP.NET Core middleware that exposes a CQRS bus to external HTTP clients as an API Gateway.
+    /// </summary>
+    /// <remarks>
+    /// Allows any HTTP client to invoke commands, queries, and events on the CQRS bus without knowledge of the internal architecture.
+    /// Provides automatic routing, serialization/deserialization, CORS support, and optional authentication/authorization.
+    /// Supports multiple content types (JSON, binary) and both request/response and streaming response patterns.
+    /// </remarks>
     public sealed class CqrsApiGatewayMiddleware
     {
         private readonly RequestDelegate requestDelegate;
@@ -20,6 +28,14 @@ namespace Zerra.Web
         private readonly string? route;
         private readonly ICqrsAuthorizer? authorizer;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CqrsApiGatewayMiddleware"/> class.
+        /// </summary>
+        /// <param name="requestDelegate">The next middleware in the pipeline.</param>
+        /// <param name="bus">The CQRS bus for dispatching commands, queries, and events.</param>
+        /// <param name="serializer">The serializer for request/response serialization and deserialization.</param>
+        /// <param name="log">Optional logger for diagnostic information and errors.</param>
+        /// <param name="route">Optional route path to restrict the middleware to specific requests (e.g., "/cqrs"). If null, all POST/OPTIONS requests are processed.</param>
         public CqrsApiGatewayMiddleware(RequestDelegate requestDelegate, IBus bus, ISerializer serializer, ILogger? log, string? route)
         {
             this.requestDelegate = requestDelegate;
@@ -28,6 +44,16 @@ namespace Zerra.Web
             this.log = log;
             this.route = route;
         }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CqrsApiGatewayMiddleware"/> class with authorization support.
+        /// </summary>
+        /// <param name="requestDelegate">The next middleware in the pipeline.</param>
+        /// <param name="bus">The CQRS bus for dispatching commands, queries, and events.</param>
+        /// <param name="serializer">The serializer for request/response serialization and deserialization.</param>
+        /// <param name="log">Optional logger for diagnostic information and errors.</param>
+        /// <param name="authorizer">Optional authorizer for custom request authentication and authorization. If null, no authorization is performed.</param>
+        /// <param name="route">Optional route path to restrict the middleware to specific requests (e.g., "/cqrs"). If null, all POST/OPTIONS requests are processed.</param>
         public CqrsApiGatewayMiddleware(RequestDelegate requestDelegate, IBus bus, ISerializer serializer, ILogger? log, ICqrsAuthorizer? authorizer, string? route)
         {
             this.requestDelegate = requestDelegate;
@@ -38,6 +64,17 @@ namespace Zerra.Web
             this.route = route;
         }
 
+        /// <summary>
+        /// Invokes the middleware to process HTTP requests and dispatch them as CQRS messages.
+        /// </summary>
+        /// <remarks>
+        /// Handles POST requests for CQRS message dispatch and OPTIONS requests for CORS preflight.
+        /// Validates content type, deserializes API requests, dispatches to the bus, and serializes responses.
+        /// Automatically sets CORS headers and handles both synchronous and streaming responses.
+        /// Non-matching requests are passed to the next middleware in the pipeline.
+        /// </remarks>
+        /// <param name="context">The HTTP context for the current request.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
         public async Task Invoke(HttpContext context)
         {
             if ((!String.IsNullOrWhiteSpace(route) && context.Request.Path != route) || (context.Request.Method != "POST" && context.Request.Method != "OPTIONS"))

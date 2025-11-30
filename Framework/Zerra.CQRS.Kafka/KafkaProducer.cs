@@ -13,6 +13,15 @@ using Zerra.CQRS.Network;
 
 namespace Zerra.CQRS.Kafka
 {
+    /// <summary>
+    /// Kafka implementation of command and event producer for distributed CQRS messaging.
+    /// </summary>
+    /// <remarks>
+    /// Provides high-performance, reliable message delivery to Kafka topics.
+    /// Supports command acknowledgements with automatic retry logic and optional message encryption.
+    /// Supports SASL authentication when username and password are provided.
+    /// Thread-safe for concurrent operations.
+    /// </remarks>
     public sealed class KafkaProducer : ICommandProducer, IEventProducer, IDisposable
     {
         private bool listenerStarted = false;
@@ -33,6 +42,18 @@ namespace Zerra.CQRS.Kafka
         private readonly IProducer<string, byte[]> producer;
         private readonly CancellationTokenSource canceller;
         private readonly ConcurrentDictionary<string, Action<Acknowledgement>> ackCallbacks;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="KafkaProducer"/> class.
+        /// </summary>
+        /// <param name="host">The Kafka bootstrap server address (e.g., "localhost:9092").</param>
+        /// <param name="serializer">The serializer for message serialization and deserialization.</param>
+        /// <param name="encryptor">Optional encryptor for message encryption. If null, messages are not encrypted.</param>
+        /// <param name="log">Optional logger for diagnostic information and errors.</param>
+        /// <param name="environment">Optional environment name to prefix topic names for isolation.</param>
+        /// <param name="userName">Optional username for SASL authentication. Must be paired with password.</param>
+        /// <param name="password">Optional password for SASL authentication. Must be paired with userName.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="host"/> is null or empty.</exception>
         public KafkaProducer(string host, Zerra.Serialization.ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment, string? userName, string? password)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
@@ -394,6 +415,12 @@ namespace Zerra.CQRS.Kafka
             }
         }
 
+        /// <summary>
+        /// Releases all resources used by the <see cref="KafkaProducer"/>.
+        /// </summary>
+        /// <remarks>
+        /// Cancels the acknowledgement listener, disposes the Kafka producer, and releases semaphore resources.
+        /// </remarks>
         public void Dispose()
         {
             canceller.Cancel();

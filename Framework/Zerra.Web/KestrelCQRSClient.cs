@@ -14,6 +14,14 @@ using Zerra.Serialization.Json;
 
 namespace Zerra.Web
 {
+    /// <summary>
+    /// CQRS client for communicating with Kestrel-based CQRS servers over HTTP.
+    /// </summary>
+    /// <remarks>
+    /// Implements client-side dispatch of commands, queries, and events to a remote Kestrel server.
+    /// Supports optional message encryption, custom authorization, and multiple serialization formats.
+    /// Manages HTTP connections and handles request/response serialization automatically.
+    /// </remarks>
     public sealed class KestrelCqrsClient : CqrsClientBase
     {
         private readonly ISerializer serializer;
@@ -24,6 +32,15 @@ namespace Zerra.Web
         private readonly HttpClientHandler handler;
         private readonly HttpClient client;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="KestrelCqrsClient"/> class.
+        /// </summary>
+        /// <param name="endpoint">The remote Kestrel server endpoint (e.g., "http://localhost:9001").</param>
+        /// <param name="serializer">The serializer for request/response serialization and deserialization.</param>
+        /// <param name="encryptor">Optional encryptor/decryptor for message encryption. If null, messages are not encrypted.</param>
+        /// <param name="log">Optional logger for diagnostic information and errors.</param>
+        /// <param name="authorizer">Optional authorizer for providing custom authentication headers.</param>
+        /// <param name="route">Optional route path to append to the endpoint (e.g., "/cqrs").</param>
         public KestrelCqrsClient(string endpoint, ISerializer serializer, IEncryptor? encryptor, ILogger? log, ICqrsAuthorizer? authorizer, string? route) : base(endpoint)
         {
             this.serializer = serializer;
@@ -232,6 +249,12 @@ namespace Zerra.Web
             }
         }
 
+        /// <summary>
+        /// Releases all resources used by the <see cref="KestrelCqrsClient"/>.
+        /// </summary>
+        /// <remarks>
+        /// Disposes the HTTP client and handler. After disposal, the client cannot be used.
+        /// </remarks>
         public new void Dispose()
         {
             base.Dispose();

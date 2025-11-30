@@ -11,7 +11,7 @@ namespace Zerra.CQRS.Kafka
 {
     public sealed partial class KafkaConsumer
     {
-        public sealed class EventConsumer : IDisposable
+        private sealed class EventConsumer : IDisposable
         {
             public bool IsOpen { get; private set; }
 

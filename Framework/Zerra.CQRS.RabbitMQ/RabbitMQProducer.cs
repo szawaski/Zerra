@@ -14,6 +14,14 @@ using Zerra.Serialization;
 
 namespace Zerra.CQRS.RabbitMQ
 {
+    /// <summary>
+    /// RabbitMQ implementation of command and event producer for distributed CQRS messaging.
+    /// </summary>
+    /// <remarks>
+    /// Provides high-performance, reliable message delivery to RabbitMQ exchanges.
+    /// Supports command acknowledgements with automatic connection recovery and optional message encryption.
+    /// Thread-safe for concurrent operations with configurable throttling per topic.
+    /// </remarks>
     public sealed class RabbitMQProducer : ICommandProducer, IEventProducer, IDisposable
     {
         private readonly object locker = new();
@@ -29,6 +37,15 @@ namespace Zerra.CQRS.RabbitMQ
         private readonly ConnectionFactory factory;
         private IConnection? connection = null;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RabbitMQProducer"/> class.
+        /// </summary>
+        /// <param name="host">The RabbitMQ server hostname or IP address.</param>
+        /// <param name="serializer">The serializer for message serialization and deserialization.</param>
+        /// <param name="encryptor">Optional encryptor for message encryption. If null, messages are not encrypted.</param>
+        /// <param name="log">Optional logger for diagnostic information and errors.</param>
+        /// <param name="environment">Optional environment name to prefix exchange names for isolation.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="host"/> is null or empty.</exception>
         public RabbitMQProducer(string host, ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
@@ -365,6 +382,12 @@ namespace Zerra.CQRS.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// Releases all resources used by the <see cref="RabbitMQProducer"/>.
+        /// </summary>
+        /// <remarks>
+        /// Closes and disposes the RabbitMQ connection. After disposal, the producer cannot be used.
+        /// </remarks>
         public void Dispose()
         {
             this.connection?.Close();
