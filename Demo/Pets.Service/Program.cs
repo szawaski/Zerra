@@ -29,12 +29,12 @@ busScopes.AddScope<IThing>(new Thing("Hello"));
 IBus busServer = Bus.New("pets-service-server", log, busLog, busScopes);
 busServer.AddHandler<IPetsQueryHandler>(new PetsQueryHandler());
 busServer.AddHandler<IPetsCommandHandler>(new PetsCommandHandler());
-var server = new TcpCqrsServer("http://localhost:9001", serializer, encryptor, log);
+var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, log);
 busServer.AddQueryServer<IPetsQueryHandler>(server);
 busServer.AddCommandConsumer<IPetsCommandHandler>(server);
 
 IBus busClient = Bus.New("pets-service-client", log, busLog, busScopes);
-var client = new TcpCqrsClient("http://localhost:9001", serializer, encryptor, log);
+var client = new TcpCqrsClient("localhost:9001", serializer, encryptor, log);
 busClient.AddQueryClient<IPetsQueryHandler>(client);
 busClient.AddCommandProducer<IPetsCommandHandler>(client);
 
