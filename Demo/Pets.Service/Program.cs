@@ -12,12 +12,6 @@ Console.WriteLine("Starting");
 
 var timer = Stopwatch.StartNew();
 
-//Zerra.SourceGeneration.Register.Method(typeof(Zerra.CQRS.IBusInternal), "_DispatchCommandWithResultInternalAsync-AdoptPetCommand", true, null, [], static (object instance, object[] args) => ((Zerra.CQRS.IBusInternal)instance)._DispatchCommandWithResultInternalAsync<int>((Pets.Domain.Commands.AdoptPetCommand)args[0], (Type)args[1], (string)args[2], (CancellationToken)args[3]), static (object task) => ((Task<int>)task).Result);
-
-//ISerializer serializer = new SystemTextJsonSerializer(TempJsonSerializerGeneration.Default.Options);
-
-//ISerializer serializer = new ZerraJsonSerializer();
-
 ISerializer serializer = new ZerraByteSerializer();
 IEncryptor encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AESwithPrefix);
 ILogger log = new Logger();
@@ -25,6 +19,9 @@ IBusLogger busLog = new BusLogger();
 
 var busScopes = new BusScopes();
 busScopes.AddScope<IThing>(new Thing("Hello"));
+
+Console.WriteLine($"Elapsed: {timer.ElapsedMilliseconds} ms");
+timer.Restart();
 
 IBus busServer = Bus.New("pets-service-server", log, busLog, busScopes);
 busServer.AddHandler<IPetsQueryHandler>(new PetsQueryHandler());
@@ -39,13 +36,20 @@ busClient.AddQueryClient<IPetsQueryHandler>(client);
 busClient.AddCommandProducer<IPetsCommandHandler>(client);
 
 Console.WriteLine($"Elapsed: {timer.ElapsedMilliseconds} ms");
+timer.Restart();
 
 var species = await busClient.Call<IPetsQueryHandler>().GetSpecies();
 Console.WriteLine($"Species count: {species.Length}");
 
+Console.WriteLine($"Elapsed: {timer.ElapsedMilliseconds} ms");
+timer.Restart();
+
 var specie = species.First();
 var breeds = await busClient.Call<IPetsQueryHandler>().GetBreedsBySpecies(specie.ID);
 Console.WriteLine($"Breed count: {breeds.Length} for {specie.Name}");
+
+Console.WriteLine($"Elapsed: {timer.ElapsedMilliseconds} ms");
+timer.Restart();
 
 var breed = breeds.First();
 var result = await busClient.DispatchAwaitAsync(new AdoptPetCommand()
@@ -56,14 +60,21 @@ var result = await busClient.DispatchAwaitAsync(new AdoptPetCommand()
 });
 Console.WriteLine($"AdoptPetCommand Result: {result}");
 
+Console.WriteLine($"Elapsed: {timer.ElapsedMilliseconds} ms");
+timer.Restart();
+
 var pets = await busClient.Call<IPetsQueryHandler>().GetPets();
 Console.WriteLine($"Pets count: {pets.Count}");
 
-busClient.Call<IPetsQueryHandler>().GetVoid();
-var nonTask = busClient.Call<IPetsQueryHandler>().GetNonTask();
-await busClient.Call<IPetsQueryHandler>().GetTaskOnly();
-
 Console.WriteLine($"Elapsed: {timer.ElapsedMilliseconds} ms");
+timer.Restart();
+
+////busClient.Call<IPetsQueryHandler>().GetVoid();
+////var nonTask = busClient.Call<IPetsQueryHandler>().GetNonTask();
+////await busClient.Call<IPetsQueryHandler>().GetTaskOnly();
+
+////Console.WriteLine($"Elapsed: {timer.ElapsedMilliseconds} ms");
+////timer.Restart();
 
 Console.WriteLine("Done");
 Console.ReadLine();
