@@ -9,7 +9,7 @@ namespace Zerra.SourceGeneration.Types
     /// Provides both boxed and strongly-typed accessors for getting and setting member values.
     /// Used by the source generator and runtime reflection to enable efficient member access and serialization.
     /// </summary>
-    public abstract class MemberDetail
+    public class MemberDetail
     {
         /// <summary>The type of this member.</summary>
         public readonly Type Type;

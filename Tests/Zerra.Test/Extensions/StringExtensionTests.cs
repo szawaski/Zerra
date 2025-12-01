@@ -472,8 +472,8 @@ namespace Zerra.Test.Extensions
         public void ToDateTime()
         {
             string? nullString = null;
-            Assert.Equal(default(DateTime), nullString.ToDateTime());
-            Assert.Equal(default(DateTime), "".ToDateTime());
+            Assert.Equal(default, nullString.ToDateTime());
+            Assert.Equal(default, "".ToDateTime());
 
             var result = "2023-01-15".ToDateTime();
             Assert.Equal(2023, result.Year);
@@ -488,7 +488,7 @@ namespace Zerra.Test.Extensions
             var customResult = "invalid".ToDateTime(customDefault);
             Assert.Equal(customDefault, customResult);
 
-            Assert.Equal(default(DateTime), "invalid".ToDateTime());
+            Assert.Equal(default, "invalid".ToDateTime());
         }
 
         [Fact]
@@ -509,13 +509,13 @@ namespace Zerra.Test.Extensions
         public void ToDateTimeOffset()
         {
             string? nullString = null;
-            Assert.Equal(default(DateTimeOffset), nullString.ToDateTimeOffset());
-            Assert.Equal(default(DateTimeOffset), "".ToDateTimeOffset());
+            Assert.Equal(default, nullString.ToDateTimeOffset());
+            Assert.Equal(default, "".ToDateTimeOffset());
 
             var result = "2023-01-15T10:30:45+00:00".ToDateTimeOffset();
             Assert.Equal(2023, result.Year);
 
-            Assert.Equal(default(DateTimeOffset), "invalid".ToDateTimeOffset());
+            Assert.Equal(default, "invalid".ToDateTimeOffset());
         }
 
         [Fact]
@@ -536,8 +536,8 @@ namespace Zerra.Test.Extensions
         public void ToTimeSpan()
         {
             string? nullString = null;
-            Assert.Equal(default(TimeSpan), nullString.ToTimeSpan());
-            Assert.Equal(default(TimeSpan), "".ToTimeSpan());
+            Assert.Equal(default, nullString.ToTimeSpan());
+            Assert.Equal(default, "".ToTimeSpan());
 
             var result = "10:30:45".ToTimeSpan();
             Assert.Equal(10, result.Hours);
@@ -547,7 +547,7 @@ namespace Zerra.Test.Extensions
             result = "1.10:30:45".ToTimeSpan();
             Assert.Equal(1, result.Days);
 
-            Assert.Equal(default(TimeSpan), "invalid".ToTimeSpan());
+            Assert.Equal(default, "invalid".ToTimeSpan());
         }
 
         [Fact]
@@ -569,15 +569,15 @@ namespace Zerra.Test.Extensions
         public void ToDateOnly()
         {
             string? nullString = null;
-            Assert.Equal(default(DateOnly), nullString.ToDateOnly());
-            Assert.Equal(default(DateOnly), "".ToDateOnly());
+            Assert.Equal(default, nullString.ToDateOnly());
+            Assert.Equal(default, "".ToDateOnly());
 
             var result = "2023-01-15".ToDateOnly();
             Assert.Equal(2023, result.Year);
             Assert.Equal(1, result.Month);
             Assert.Equal(15, result.Day);
 
-            Assert.Equal(default(DateOnly), "invalid".ToDateOnly());
+            Assert.Equal(default, "invalid".ToDateOnly());
         }
 
         [Fact]
@@ -598,15 +598,15 @@ namespace Zerra.Test.Extensions
         public void ToTimeOnly()
         {
             string? nullString = null;
-            Assert.Equal(default(TimeOnly), nullString.ToTimeOnly());
-            Assert.Equal(default(TimeOnly), "".ToTimeOnly());
+            Assert.Equal(default, nullString.ToTimeOnly());
+            Assert.Equal(default, "".ToTimeOnly());
 
             var result = "10:30:45".ToTimeOnly();
             Assert.Equal(10, result.Hour);
             Assert.Equal(30, result.Minute);
             Assert.Equal(45, result.Second);
 
-            Assert.Equal(default(TimeOnly), "invalid".ToTimeOnly());
+            Assert.Equal(default, "invalid".ToTimeOnly());
         }
 
         [Fact]
@@ -628,8 +628,8 @@ namespace Zerra.Test.Extensions
         public void ToGuid()
         {
             string? nullString = null;
-            Assert.Equal(default(Guid), nullString.ToGuid());
-            Assert.Equal(default(Guid), "".ToGuid());
+            Assert.Equal(default, nullString.ToGuid());
+            Assert.Equal(default, "".ToGuid());
 
             var guidString = "f47ac10b-58cc-4372-a567-0e02b2c3d479";
             var result = guidString.ToGuid();
@@ -639,7 +639,7 @@ namespace Zerra.Test.Extensions
             result = guidStringWithBraces.ToGuid();
             Assert.Equal(new Guid(guidStringWithBraces), result);
 
-            Assert.Equal(default(Guid), "invalid".ToGuid());
+            Assert.Equal(default, "invalid".ToGuid());
 
             var customDefault = Guid.NewGuid();
             result = "invalid".ToGuid(customDefault);

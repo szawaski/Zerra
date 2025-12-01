@@ -59,8 +59,8 @@ namespace Zerra.Test.Collections
         {
             using var set = new ConcurrentReadWriteHashSet<int>();
             _ = set.Add(1);
-            Assert.True(set.Contains(1));
-            Assert.False(set.Contains(2));
+            Assert.Contains(1, set);
+            Assert.DoesNotContain(2, set);
         }
 
         [Fact]
@@ -110,7 +110,7 @@ namespace Zerra.Test.Collections
             using var set = new ConcurrentReadWriteHashSet<int>();
             _ = set.Add(1);
             Assert.True(set.Remove(1));
-            Assert.False(set.Contains(1));
+            Assert.DoesNotContain(1, set);
             Assert.False(set.Remove(1));
         }
 
@@ -123,8 +123,8 @@ namespace Zerra.Test.Collections
             _ = set.Add(3);
             var count = set.RemoveWhere(x => x > 1);
             Assert.Equal(2, count);
-            Assert.True(set.Contains(1));
-            Assert.False(set.Contains(2));
+            Assert.Contains(1, set);
+            Assert.DoesNotContain(2, set);
         }
 
         [Fact]

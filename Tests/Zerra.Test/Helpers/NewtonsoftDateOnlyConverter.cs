@@ -11,7 +11,7 @@ namespace Zerra.Test.Helpers
             return objectType == typeof(DateOnly) || objectType == typeof(DateOnly?);
         }
 
-        public override object ReadJson(Newtonsoft.Json.JsonReader reader, Type objectType, object existingValue, Newtonsoft.Json.JsonSerializer serializer)
+        public override object? ReadJson(Newtonsoft.Json.JsonReader reader, Type objectType, object? existingValue, Newtonsoft.Json.JsonSerializer serializer)
         {
             if (objectType == typeof(DateOnly?))
             {
@@ -25,7 +25,7 @@ namespace Zerra.Test.Helpers
             }
         }
 
-        public override void WriteJson(Newtonsoft.Json.JsonWriter writer, object value, Newtonsoft.Json.JsonSerializer serializer)
+        public override void WriteJson(Newtonsoft.Json.JsonWriter writer, object? value, Newtonsoft.Json.JsonSerializer serializer)
         {
             if (value is null)
             {

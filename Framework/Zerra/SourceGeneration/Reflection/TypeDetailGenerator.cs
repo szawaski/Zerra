@@ -245,7 +245,8 @@ namespace Zerra.SourceGeneration.Reflection
             if (type.IsGenericTypeDefinition)
                 return items;
 
-            var properties = type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+            var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
+            //take private fields to find backing fields and allow advanced serialization scenarios
             var fields = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static).ToList();
 
             var hasInterfaces = interfaces.Length > 0;
@@ -254,6 +255,10 @@ namespace Zerra.SourceGeneration.Reflection
             foreach (var property in properties)
             {
                 if (property.GetIndexParameters().Length > 0)
+                    continue;
+                if (property.PropertyType.IsPointer)
+                    continue;
+                if (property.GetMethod?.IsPublic != true && property.SetMethod?.IsPublic != true)
                     continue;
 
                 //<{property.Name}>k__BackingField
@@ -267,33 +272,27 @@ namespace Zerra.SourceGeneration.Reflection
                 Delegate? setter = null;
                 Action<object, object?>? setterBoxed = null;
 
-                if (!property.PropertyType.IsPointer)
+                if (backingField != null && !backingField.IsLiteral)
                 {
-                    if (backingField != null)
+                    _ = fields.Remove(backingField);
+
+                    getter = AccessorGenerator.GenerateGetter(backingField, backingField.FieldType);
+                    getterBoxed = AccessorGenerator.GenerateGetter(backingField);
+
+                    setter = AccessorGenerator.GenerateSetter(backingField, backingField.FieldType);
+                    setterBoxed = AccessorGenerator.GenerateSetter(backingField);
+                }
+                else
+                {
+                    if (property.GetMethod != null && property.GetMethod.IsPublic)
                     {
-                        _ = fields.Remove(backingField);
-
-                        if (!backingField.IsLiteral)
-                        {
-                            getter = AccessorGenerator.GenerateGetter(backingField, backingField.FieldType);
-                            getterBoxed = AccessorGenerator.GenerateGetter(backingField);
-
-                            setter = AccessorGenerator.GenerateSetter(backingField, backingField.FieldType);
-                            setterBoxed = AccessorGenerator.GenerateSetter(backingField);
-                        }
+                        getter = AccessorGenerator.GenerateGetter(property, property.PropertyType);
+                        getterBoxed = AccessorGenerator.GenerateGetter(property);
                     }
-                    else
+                    if (property.SetMethod != null && property.SetMethod.IsPublic)
                     {
-                        if (property.GetMethod != null)
-                        {
-                            getter = AccessorGenerator.GenerateGetter(property, property.PropertyType);
-                            getterBoxed = AccessorGenerator.GenerateGetter(property);
-                        }
-                        if (property.SetMethod != null)
-                        {
-                            setter = AccessorGenerator.GenerateSetter(property, property.PropertyType);
-                            setterBoxed = AccessorGenerator.GenerateSetter(property);
-                        }
+                        setter = AccessorGenerator.GenerateSetter(property, property.PropertyType);
+                        setterBoxed = AccessorGenerator.GenerateSetter(property);
                     }
                 }
 
@@ -301,9 +300,17 @@ namespace Zerra.SourceGeneration.Reflection
 
                 var isStatic = property.GetMethod?.IsStatic ?? property.SetMethod?.IsStatic ?? false;
 
-                var memberDetailGenericType = memberDetailType.MakeGenericType(property.PropertyType);
-                var constructor = memberDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                var member = (MemberDetail)constructor.Invoke([property.PropertyType, property.Name, getter, getterBoxed, setter, setterBoxed, attributes, backingField != null, isStatic, false]);
+                MemberDetail member;
+                if (property.PropertyType.ContainsGenericParameters || property.PropertyType.IsPointer || property.PropertyType.IsByRef || property.PropertyType.IsByRefLike)
+                {
+                    member = new MemberDetail(property.PropertyType, property.Name, getter, getterBoxed, setter, setterBoxed, attributes, backingField != null, isStatic, false);
+                }
+                else
+                {
+                    var memberDetailGenericType = memberDetailType.MakeGenericType(property.PropertyType);
+                    var constructor = memberDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
+                    member = (MemberDetail)constructor.Invoke([property.Name, getter, getterBoxed, setter, setterBoxed, attributes, backingField != null, isStatic, false]);
+                }
                 items.Add(member);
 
                 if (hasInterfaces)
@@ -312,26 +319,36 @@ namespace Zerra.SourceGeneration.Reflection
 
             foreach (var @field in fields)
             {
+                if (@field.IsLiteral)
+                    continue;
+
                 Delegate? getter = null;
                 Func<object, object?>? getterBoxed = null;
 
                 Delegate? setter = null;
                 Action<object, object?>? setterBoxed = null;
 
-                if (!@field.IsLiteral)
-                {
-                    getter = AccessorGenerator.GenerateGetter(@field, @field.FieldType);
-                    getterBoxed = AccessorGenerator.GenerateGetter(@field);
 
-                    setter = AccessorGenerator.GenerateSetter(@field, @field.FieldType);
-                    setterBoxed = AccessorGenerator.GenerateSetter(@field);
-                }
+                getter = AccessorGenerator.GenerateGetter(@field, @field.FieldType);
+                getterBoxed = AccessorGenerator.GenerateGetter(@field);
+
+                setter = AccessorGenerator.GenerateSetter(@field, @field.FieldType);
+                setterBoxed = AccessorGenerator.GenerateSetter(@field);
+
 
                 var attributes = @field.GetCustomAttributes(true).Cast<Attribute>().ToArray();
 
-                var memberDetailGenericType = memberDetailType.MakeGenericType(@field.FieldType);
-                var constructor = memberDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                var member = (MemberDetail)constructor.Invoke([@field.FieldType, @field.Name, getter, getterBoxed, setter, setterBoxed, attributes, true, field.IsStatic, false]);
+                MemberDetail member;
+                if (@field.FieldType.ContainsGenericParameters || @field.FieldType.IsPointer || @field.FieldType.IsByRef || @field.FieldType.IsByRefLike)
+                {
+                    member = new MemberDetail(@field.FieldType, @field.Name, getter, getterBoxed, setter, setterBoxed, attributes, true, @field.IsStatic, false);
+                }
+                else
+                {
+                    var memberDetailGenericType = memberDetailType.MakeGenericType(@field.FieldType);
+                    var constructor = memberDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
+                    member = (MemberDetail)constructor.Invoke([@field.Name, getter, getterBoxed, setter, setterBoxed, attributes, true, @field.IsStatic, false]);
+                }
                 items.Add(member);
 
                 if (hasInterfaces)
@@ -347,6 +364,10 @@ namespace Zerra.SourceGeneration.Reflection
                     foreach (var property in iProperties)
                     {
                         if (property.GetIndexParameters().Length > 0)
+                            continue;
+                        if (property.PropertyType.IsPointer)
+                            continue;
+                        if (property.GetMethod?.IsPublic != true && property.SetMethod?.IsPublic != true)
                             continue;
 
                         string name;
@@ -370,11 +391,13 @@ namespace Zerra.SourceGeneration.Reflection
                             Delegate? setter = null;
                             Action<object, object?>? setterBoxed = null;
 
-                            if (!property.PropertyType.IsPointer)
+                            if (property.GetMethod != null && property.GetMethod.IsPublic)
                             {
                                 getter = AccessorGenerator.GenerateGetter(property, property.PropertyType);
                                 getterBoxed = AccessorGenerator.GenerateGetter(property);
-
+                            }
+                            if (property.SetMethod != null && property.SetMethod.IsPublic)
+                            {
                                 setter = AccessorGenerator.GenerateSetter(property, property.PropertyType);
                                 setterBoxed = AccessorGenerator.GenerateSetter(property);
                             }
@@ -382,10 +405,17 @@ namespace Zerra.SourceGeneration.Reflection
                             var attributes = property.GetCustomAttributes(true).Cast<Attribute>().ToArray();
 
                             var isStatic = property.GetMethod?.IsStatic ?? property.SetMethod?.IsStatic ?? false;
-
-                            var memberDetailGenericType = memberDetailType.MakeGenericType(property.PropertyType);
-                            var constructor = memberDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                            var member = (MemberDetail)constructor.Invoke([property.PropertyType, name, getter, getterBoxed, setter, setterBoxed, attributes, false, isStatic, isExplicitFromInterface]);
+                            MemberDetail member;
+                            if (property.PropertyType.ContainsGenericParameters || property.PropertyType.IsPointer || property.PropertyType.IsByRef || property.PropertyType.IsByRefLike)
+                            {
+                                member = new MemberDetail(property.PropertyType, property.Name, getter, getterBoxed, setter, setterBoxed, attributes, false, isStatic, isExplicitFromInterface);
+                            }
+                            else
+                            {
+                                var memberDetailGenericType = memberDetailType.MakeGenericType(property.PropertyType);
+                                var constructor = memberDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
+                                member = (MemberDetail)constructor.Invoke([property.Name, getter, getterBoxed, setter, setterBoxed, attributes, false, isStatic, isExplicitFromInterface]);
+                            }
                             items.Add(member);
                         }
                     }
@@ -402,6 +432,9 @@ namespace Zerra.SourceGeneration.Reflection
 
             foreach (var constructor in type.GetConstructors(BindingFlags.Public | BindingFlags.Instance))
             {
+                if (!constructor.IsPublic)
+                    continue;
+
                 var parameters = constructor.GetParameters();
                 if (parameters.Length == 0)
                     continue;
@@ -428,20 +461,37 @@ namespace Zerra.SourceGeneration.Reflection
             var names = hasInterfaces ? new HashSet<string>() : null; //explicit declarations can create duplicates with interfaces
             if (!type.IsGenericTypeDefinition)
             {
-                var methods = type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+                var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
                 foreach (var method in methods)
                 {
+                    if (!method.IsPublic)
+                        continue;
+
                     var parameters = method.GetParameters();
                     var parameterTypes = parameters.Select(x => new ParameterDetail(x.ParameterType, x.Name!)).ToArray();
 
                     var attributes = method.GetCustomAttributes(true).Cast<Attribute>().ToArray();
 
-                    Delegate? caller = AccessorGenerator.GenerateCaller(method, type, method.ReturnType);
-                    Func<object, object?[], object?>? callerBoxed = AccessorGenerator.GenerateCaller(method);
+                    Delegate? caller = AccessorGenerator.GenerateCaller(method, method.ReturnType);
+                    if (caller == null)
+                        continue;
 
-                    var methodDetailGenericType = methodDetailType.MakeGenericType(method.ReturnType);
-                    var constructor = methodDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                    var methodDetail = (MethodDetail)constructor.Invoke([parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false]);
+                    Func<object, object?[]?, object?>? callerBoxed = AccessorGenerator.GenerateCaller(method);
+                    if (callerBoxed == null)
+                        continue;
+
+                    MethodDetail methodDetail;
+                    if (method.ReturnType.ContainsGenericParameters || method.ReturnType.IsPointer || method.ReturnType.IsByRef || method.ReturnType.IsByRefLike)
+                    {
+                        methodDetail = new MethodDetail(method.Name, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false);
+                    }
+                    else
+                    {
+                        var methodDetailGenericType = methodDetailType.MakeGenericType(method.ReturnType.Name == "Void" ? typeof(object) : method.ReturnType);
+                        var constructor = methodDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
+                        methodDetail = (MethodDetail)constructor.Invoke([method.Name, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false]);
+                    }
+
                     items.Add(methodDetail);
                     if (hasInterfaces)
                         names!.Add(method.Name);
@@ -451,7 +501,7 @@ namespace Zerra.SourceGeneration.Reflection
                 {
                     foreach (var i in interfaces)
                     {
-                        var iMethods = i.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance); //don't get static interface methods
+                        var iMethods = i.GetMethods(BindingFlags.Public | BindingFlags.Instance); //don't get static interface methods
                         foreach (var method in iMethods)
                         {
                             string name;
@@ -474,12 +524,25 @@ namespace Zerra.SourceGeneration.Reflection
 
                                 var attributes = method.GetCustomAttributes(true).Cast<Attribute>().ToArray();
 
-                                Delegate? caller = AccessorGenerator.GenerateCaller(method, type, method.ReturnType);
-                                Func<object, object?[], object?>? callerBoxed = AccessorGenerator.GenerateCaller(method);
+                                Delegate? caller = AccessorGenerator.GenerateCaller(method, method.ReturnType);
+                                if (caller == null)
+                                    continue;
 
-                                var methodDetailGenericType = methodDetailType.MakeGenericType(method.ReturnType);
-                                var constructor = methodDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                                var methodDetail = (MethodDetail)constructor.Invoke([parameterTypes, caller, callerBoxed, attributes, method.IsStatic, isExplicitFromInterface]);
+                                Func<object, object?[]?, object?>? callerBoxed = AccessorGenerator.GenerateCaller(method);
+                                if (callerBoxed == null)
+                                    continue;
+
+                                MethodDetail methodDetail;
+                                if (method.ReturnType.ContainsGenericParameters || method.ReturnType.IsPointer || method.ReturnType.IsByRef || method.ReturnType.IsByRefLike)
+                                {
+                                    methodDetail = new MethodDetail(method.Name, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false);
+                                }
+                                else
+                                {
+                                    var methodDetailGenericType = methodDetailType.MakeGenericType(method.ReturnType.Name == "Void" ? typeof(object) : method.ReturnType);
+                                    var constructor = methodDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
+                                    methodDetail = (MethodDetail)constructor.Invoke([method.Name, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, isExplicitFromInterface]);
+                                }
                                 items.Add(methodDetail);
                                 if (hasInterfaces)
                                     names!.Add(method.Name);

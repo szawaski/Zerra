@@ -9,7 +9,7 @@ namespace Zerra.SourceGeneration.Types
     /// Provides both unboxed and boxed delegates for efficient method invocation.
     /// Used by the source generator and runtime reflection to enable method calls.
     /// </summary>
-    public abstract class MethodDetail
+    public class MethodDetail
     {
         /// <summary>The name of the method.</summary>
         public readonly string Name;
@@ -18,7 +18,7 @@ namespace Zerra.SourceGeneration.Types
         /// <summary>The unboxed delegate for invoking this method.</summary>
         public readonly Delegate Caller;
         /// <summary>Boxed delegate for invoking this method; accepts instance and parameter values as object array.</summary>
-        public readonly Func<object, object?[], object?> CallerBoxed;
+        public readonly Func<object, object?[]?, object?> CallerBoxed;
         /// <summary>Collection of all custom attributes applied to this method.</summary>
         public readonly IReadOnlyList<Attribute> Attributes;
         /// <summary>Indicates whether this method is static.</summary>
@@ -36,7 +36,7 @@ namespace Zerra.SourceGeneration.Types
         /// <param name="attributes">Custom attributes applied to the method.</param>
         /// <param name="isStatic">Whether this method is static.</param>
         /// <param name="isExplicitFromInterface">Whether this method is an explicit interface implementation.</param>
-        public MethodDetail(string name, IReadOnlyList<ParameterDetail> parameters, Delegate caller, Func<object, object?[], object?> callerBoxed, IReadOnlyList<Attribute> attributes, bool isStatic, bool isExplicitFromInterface)
+        public MethodDetail(string name, IReadOnlyList<ParameterDetail> parameters, Delegate caller, Func<object, object?[]?, object?> callerBoxed, IReadOnlyList<Attribute> attributes, bool isStatic, bool isExplicitFromInterface)
         {
             this.Name = name;
             this.Parameters = parameters;

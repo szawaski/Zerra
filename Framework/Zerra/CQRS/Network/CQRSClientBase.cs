@@ -38,7 +38,7 @@ namespace Zerra.CQRS.Network
         /// Required by the inheriting class to call this constructor for information the connection needs.
         /// </summary>
         /// <param name="serviceUrl">The url of the server to connect.</param>
-        public CqrsClientBase(string serviceUrl, ILogger? log = null)
+        public CqrsClientBase(string serviceUrl, ILogger? log)
         {
             if (String.IsNullOrWhiteSpace(serviceUrl))
                 throw new ArgumentNullException(nameof(serviceUrl));

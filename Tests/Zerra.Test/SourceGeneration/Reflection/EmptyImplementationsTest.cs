@@ -11,7 +11,7 @@ namespace Zerra.Test.SourceGeneration.Reflection
     public class EmptyImplementationsTest
     {
         [Fact]
-        public void Test()
+        public async Task Test()
         {
             var thingyType = EmptyImplementations.GetType(typeof(ITestInterface));
             var thingy = (ITestInterface)Activator.CreateInstance(thingyType);
@@ -58,8 +58,8 @@ namespace Zerra.Test.SourceGeneration.Reflection
             Assert.Equal(default, resultR);
             Assert.Equal(default, resultS);
 
-            Task.Run(thingy.Method3).GetAwaiter().GetResult();
-            var result3 = Task.Run(thingy.Method4).GetAwaiter().GetResult();
+            await Task.Run(thingy.Method3);
+            var result3 = await Task.Run(thingy.Method4);
             Assert.Equal(0, result3);
 
             thingy.Property1 = 5;

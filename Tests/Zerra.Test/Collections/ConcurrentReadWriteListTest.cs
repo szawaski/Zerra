@@ -99,8 +99,8 @@ namespace Zerra.Test.Collections
             using var list = new ConcurrentReadWriteList<int>();
             list.Add(1);
             list.Add(2);
-            Assert.True(list.Contains(1));
-            Assert.False(list.Contains(3));
+            Assert.Contains(1, list);
+            Assert.DoesNotContain(3, list);
         }
 
         [Fact]

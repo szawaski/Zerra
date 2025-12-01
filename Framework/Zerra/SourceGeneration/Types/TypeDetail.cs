@@ -17,6 +17,7 @@ namespace Zerra.SourceGeneration.Types
         public readonly IReadOnlyList<MemberDetail> Members;
         /// <summary>Collection of all constructors available for this type.</summary>
         public readonly IReadOnlyList<ConstructorDetail> Constructors;
+        /// <summary>Collection of all methods declared or inherited by this type.</summary>
         public readonly IReadOnlyList<MethodDetail> Methods;
 
         /// <summary>Indicates whether a boxed creator delegate exists for instantiation.</summary>
@@ -133,47 +134,47 @@ namespace Zerra.SourceGeneration.Types
             Delegate? creator,
             Func<object>? creatorBoxed,
 
-            bool IsNullable,
-            CoreType? CoreType,
-            SpecialType? SpecialType,
-            CoreEnumType? EnumUnderlyingType,
+            bool isNullable,
+            CoreType? coreType,
+            SpecialType? specialType,
+            CoreEnumType? enumUnderlyingType,
 
-            bool HasIEnumerable,
-            bool HasIEnumerableGeneric,
-            bool HasICollection,
-            bool HasICollectionGeneric,
-            bool HasIReadOnlyCollectionGeneric,
-            bool HasIList,
-            bool HasIListGeneric,
-            bool HasIReadOnlyListGeneric,
-            bool HasISetGeneric,
-            bool HasIReadOnlySetGeneric,
-            bool HasIDictionary,
-            bool HasIDictionaryGeneric,
-            bool HasIReadOnlyDictionaryGeneric,
+            bool hasIEnumerable,
+            bool hasIEnumerableGeneric,
+            bool hasICollection,
+            bool hasICollectionGeneric,
+            bool hasIReadOnlyCollectionGeneric,
+            bool hasIList,
+            bool hasIListGeneric,
+            bool hasIReadOnlyListGeneric,
+            bool hasISetGeneric,
+            bool hasIReadOnlySetGeneric,
+            bool hasIDictionary,
+            bool hasIDictionaryGeneric,
+            bool hasIReadOnlyDictionaryGeneric,
 
-            bool IsIEnumerable,
-            bool IsIEnumerableGeneric,
-            bool IsICollection,
-            bool IsICollectionGeneric,
-            bool IsIReadOnlyCollectionGeneric,
-            bool IsIList,
-            bool IsIListGeneric,
-            bool IsIReadOnlyListGeneric,
-            bool IsISetGeneric,
-            bool IsIReadOnlySetGeneric,
-            bool IsIDictionary,
-            bool IsIDictionaryGeneric,
-            bool IsIReadOnlyDictionaryGeneric,
+            bool isIEnumerable,
+            bool isIEnumerableGeneric,
+            bool isICollection,
+            bool isICollectionGeneric,
+            bool isIReadOnlyCollectionGeneric,
+            bool isIList,
+            bool isIListGeneric,
+            bool isIReadOnlyListGeneric,
+            bool isISetGeneric,
+            bool isIReadOnlySetGeneric,
+            bool isIDictionary,
+            bool isIDictionaryGeneric,
+            bool isIReadOnlyDictionaryGeneric,
 
-            Type? InnerType,
-            Type? IEnumerableGenericInnerType,
-            Type? DictionaryInnerType,
+            Type? innerType,
+            Type? iEnumerableGenericInnerType,
+            Type? dictionaryInnerType,
 
-            IReadOnlyList<Type> InnerTypes,
-            IReadOnlyList<Type> BaseTypes,
-            IReadOnlyList<Type> Interfaces,
-            IReadOnlyList<Attribute> Attributes
+            IReadOnlyList<Type> innerTypes,
+            IReadOnlyList<Type> baseTypes,
+            IReadOnlyList<Type> interfaces,
+            IReadOnlyList<Attribute> attributes
             )
         {
             this.Type = type;
@@ -185,47 +186,47 @@ namespace Zerra.SourceGeneration.Types
             this.HasCreatorBoxed = creatorBoxed != null;
             this.CreatorBoxed = creatorBoxed;
 
-            this.IsNullable = IsNullable;
-            this.CoreType = CoreType;
-            this.SpecialType = SpecialType;
-            this.EnumUnderlyingType = EnumUnderlyingType;
+            this.IsNullable = isNullable;
+            this.CoreType = coreType;
+            this.SpecialType = specialType;
+            this.EnumUnderlyingType = enumUnderlyingType;
 
-            this.HasIEnumerable = HasIEnumerable;
-            this.HasIEnumerableGeneric = HasIEnumerableGeneric;
-            this.HasICollection = HasICollection;
-            this.HasICollectionGeneric = HasICollectionGeneric;
-            this.HasIReadOnlyCollectionGeneric = HasIReadOnlyCollectionGeneric;
-            this.HasIList = HasIList;
-            this.HasIListGeneric = HasIListGeneric;
-            this.HasIReadOnlyListGeneric = HasIReadOnlyListGeneric;
-            this.HasISetGeneric = HasISetGeneric;
-            this.HasIReadOnlySetGeneric = HasIReadOnlySetGeneric;
-            this.HasIDictionary = HasIDictionary;
-            this.HasIDictionaryGeneric = HasIDictionaryGeneric;
-            this.HasIReadOnlyDictionaryGeneric = HasIReadOnlyDictionaryGeneric;
+            this.HasIEnumerable = hasIEnumerable;
+            this.HasIEnumerableGeneric = hasIEnumerableGeneric;
+            this.HasICollection = hasICollection;
+            this.HasICollectionGeneric = hasICollectionGeneric;
+            this.HasIReadOnlyCollectionGeneric = hasIReadOnlyCollectionGeneric;
+            this.HasIList = hasIList;
+            this.HasIListGeneric = hasIListGeneric;
+            this.HasIReadOnlyListGeneric = hasIReadOnlyListGeneric;
+            this.HasISetGeneric = hasISetGeneric;
+            this.HasIReadOnlySetGeneric = hasIReadOnlySetGeneric;
+            this.HasIDictionary = hasIDictionary;
+            this.HasIDictionaryGeneric = hasIDictionaryGeneric;
+            this.HasIReadOnlyDictionaryGeneric = hasIReadOnlyDictionaryGeneric;
 
-            this.IsIEnumerable = IsIEnumerable;
-            this.IsIEnumerableGeneric = IsIEnumerableGeneric;
-            this.IsICollection = IsICollection;
-            this.IsICollectionGeneric = IsICollectionGeneric;
-            this.IsIReadOnlyCollectionGeneric = IsIReadOnlyCollectionGeneric;
-            this.IsIList = IsIList;
-            this.IsIListGeneric = IsIListGeneric;
-            this.IsIReadOnlyListGeneric = IsIReadOnlyListGeneric;
-            this.IsISetGeneric = IsISetGeneric;
-            this.IsIReadOnlySetGeneric = IsIReadOnlySetGeneric;
-            this.IsIDictionary = IsIDictionary;
-            this.IsIDictionaryGeneric = IsIDictionaryGeneric;
-            this.IsIReadOnlyDictionaryGeneric = IsIReadOnlyDictionaryGeneric;
+            this.IsIEnumerable = isIEnumerable;
+            this.IsIEnumerableGeneric = isIEnumerableGeneric;
+            this.IsICollection = isICollection;
+            this.IsICollectionGeneric = isICollectionGeneric;
+            this.IsIReadOnlyCollectionGeneric = isIReadOnlyCollectionGeneric;
+            this.IsIList = isIList;
+            this.IsIListGeneric = isIListGeneric;
+            this.IsIReadOnlyListGeneric = isIReadOnlyListGeneric;
+            this.IsISetGeneric = isISetGeneric;
+            this.IsIReadOnlySetGeneric = isIReadOnlySetGeneric;
+            this.IsIDictionary = isIDictionary;
+            this.IsIDictionaryGeneric = isIDictionaryGeneric;
+            this.IsIReadOnlyDictionaryGeneric = isIReadOnlyDictionaryGeneric;
 
-            this.InnerType = InnerType;
-            this.IEnumerableGenericInnerType = IEnumerableGenericInnerType;
-            this.DictionaryInnerType = DictionaryInnerType;
+            this.InnerType = innerType;
+            this.IEnumerableGenericInnerType = iEnumerableGenericInnerType;
+            this.DictionaryInnerType = dictionaryInnerType;
 
-            this.InnerTypes = InnerTypes;
-            this.BaseTypes = BaseTypes;
-            this.Interfaces = Interfaces;
-            this.Attributes = Attributes;
+            this.InnerTypes = innerTypes;
+            this.BaseTypes = baseTypes;
+            this.Interfaces = interfaces;
+            this.Attributes = attributes;
         }
 
         private IReadOnlyList<MemberDetail>? serializableMemberDetails = null;

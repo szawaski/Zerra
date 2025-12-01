@@ -2,13 +2,13 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Security.Claims;
 using Zerra.CQRS;
 using Zerra.CQRS.Network;
 using Zerra.Encryption;
+using Zerra.Logging;
 using Zerra.Serialization;
 using Zerra.Serialization.Json;
 
@@ -26,7 +26,6 @@ namespace Zerra.Web
     {
         private readonly ISerializer serializer;
         private readonly IEncryptor? encryptor;
-        private readonly ILogger? log;
         private readonly ICqrsAuthorizer? authorizer;
         private readonly Uri routeUri;
         private readonly HttpClientHandler handler;
@@ -41,11 +40,10 @@ namespace Zerra.Web
         /// <param name="log">Optional logger for diagnostic information and errors.</param>
         /// <param name="authorizer">Optional authorizer for providing custom authentication headers.</param>
         /// <param name="route">Optional route path to append to the endpoint (e.g., "/cqrs").</param>
-        public KestrelCqrsClient(string endpoint, ISerializer serializer, IEncryptor? encryptor, ILogger? log, ICqrsAuthorizer? authorizer, string? route) : base(endpoint)
+        public KestrelCqrsClient(string endpoint, ISerializer serializer, IEncryptor? encryptor, ILogger? log, ICqrsAuthorizer? authorizer, string? route) : base(endpoint, log)
         {
             this.serializer = serializer;
             this.encryptor = encryptor;
-            this.log = log;
             this.authorizer = authorizer;
 
             if (route is not null)

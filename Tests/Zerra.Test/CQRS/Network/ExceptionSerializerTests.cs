@@ -107,7 +107,7 @@ namespace Zerra.Test.CQRS.Network
         }
 
         [Fact]
-        public void SerializeAsync_WithInvalidOperationException()
+        public async Task SerializeAsync_WithInvalidOperationException()
         {
             var serializer = CreateTestSerializer();
             var stream = new MemoryStream();
@@ -117,7 +117,7 @@ namespace Zerra.Test.CQRS.Network
             var task = ExceptionSerializer.SerializeAsync(serializer, stream, exception, cts.Token);
 
             Assert.NotNull(task);
-            task.Wait();
+            await task;
             Assert.True(stream.Length > 0);
         }
 
@@ -220,7 +220,7 @@ namespace Zerra.Test.CQRS.Network
         }
 
         [Fact]
-        public void Serialize_WithCancellationToken()
+        public async Task Serialize_WithCancellationToken()
         {
             var serializer = CreateTestSerializer();
             var stream = new MemoryStream();
@@ -228,7 +228,7 @@ namespace Zerra.Test.CQRS.Network
             var cts = new CancellationTokenSource();
 
             var task = ExceptionSerializer.SerializeAsync(serializer, stream, exception, cts.Token);
-            task.Wait();
+            await task;
 
             Assert.True(stream.Length > 0);
         }

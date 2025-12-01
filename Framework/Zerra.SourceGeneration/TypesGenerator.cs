@@ -278,7 +278,7 @@ namespace Zerra.SourceGeneration
                         hasFirst = true;
 
                     var isVoid = method.ReturnType.Name == "Void";
-                    var methodReturnTypeName = isVoid ? "object" : Helper.GetFullName(method.ReturnType);
+                    var methodReturnTypeName = isVoid ? "object?" : Helper.GetFullName(method.ReturnType);
 
                     _ = sb.Append(Environment.NewLine).Append("                ");
 
@@ -300,7 +300,7 @@ namespace Zerra.SourceGeneration
                             var parameterTypeName = Helper.GetFullName(parameter.Type);
                             if (parameter.Ordinal > 0)
                                 _ = sb.Append(", ");
-                            _ = sb.Append("(").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]");
+                            _ = sb.Append("(").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!");
                         }
                         _ = sb.Append(")");
                         if (isVoid)
@@ -316,7 +316,7 @@ namespace Zerra.SourceGeneration
                             var parameterTypeName = Helper.GetFullName(parameter.Type);
                             if (parameter.Ordinal > 0)
                                 _ = sb.Append(", ");
-                            _ = sb.Append("(").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]");
+                            _ = sb.Append("(").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!");
                         }
                         _ = sb.Append(")");
                         if (isVoid)
@@ -334,7 +334,7 @@ namespace Zerra.SourceGeneration
                             var parameterTypeName = Helper.GetFullName(parameter.Type);
                             if (parameter.Ordinal > 0)
                                 _ = sb.Append(", ");
-                            _ = sb.Append("(").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]");
+                            _ = sb.Append("(").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!");
                         }
                         _ = sb.Append(")");
                         if (isVoid)
@@ -350,7 +350,7 @@ namespace Zerra.SourceGeneration
                             var parameterTypeName = Helper.GetFullName(parameter.Type);
                             if (parameter.Ordinal > 0)
                                 _ = sb.Append(", ");
-                            _ = sb.Append("(").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]");
+                            _ = sb.Append("(").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!");
                         }
                         _ = sb.Append(")");
                         if (isVoid)

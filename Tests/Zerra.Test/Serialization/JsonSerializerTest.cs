@@ -335,10 +335,10 @@ namespace Zerra.Test.Serialization
 
             var baseModel = TypesAllModel.Create();
             var json = JsonSerializer.Serialize(baseModel, options);
-            Assert.False(json.Contains(EnumModel.EnumItem0.EnumName()));
-            Assert.False(json.Contains(EnumModel.EnumItem1.EnumName()));
-            Assert.False(json.Contains(EnumModel.EnumItem2.EnumName()));
-            Assert.False(json.Contains(EnumModel.EnumItem3.EnumName()));
+            Assert.DoesNotContain(EnumModel.EnumItem0.EnumName(), json);
+            Assert.DoesNotContain(EnumModel.EnumItem1.EnumName(), json);
+            Assert.DoesNotContain(EnumModel.EnumItem2.EnumName(), json);
+            Assert.DoesNotContain(EnumModel.EnumItem3.EnumName(), json);
             var model = JsonSerializer.Deserialize<TypesAllModel>(json, options);
             AssertHelper.AreEqual(baseModel, model);
         }
@@ -544,7 +544,7 @@ namespace Zerra.Test.Serialization
             Assert.Equal(0, model9);
 
             var model10 = JsonSerializer.Deserialize<int?>("");
-            Assert.Equal(null, model10);
+            Assert.Null(model10);
 
             StringEmptysNumbers<byte>();
             StringEmptysNumbers<sbyte>();
@@ -565,7 +565,7 @@ namespace Zerra.Test.Serialization
             Assert.Equal(default, model11);
 
             var model12 = JsonSerializer.Deserialize<T?>("\"\"");
-            Assert.Equal(null, model12);
+            Assert.Null(model12);
         }
 
         [Fact]
@@ -754,9 +754,9 @@ namespace Zerra.Test.Serialization
 
             var json = JsonSerializer.Serialize(baseModel);
 
-            Assert.True(json.Contains("\"1property\""));
-            Assert.True(json.Contains("\"property2\""));
-            Assert.True(json.Contains("\"3property\""));
+            Assert.Contains("\"1property\"", json);
+            Assert.Contains("\"property2\"", json);
+            Assert.Contains("\"3property\"", json);
 
             _ = json.Replace("\"property2\"", "\"PROPERTY2\"");
 
@@ -774,14 +774,14 @@ namespace Zerra.Test.Serialization
             var baseModel = JsonIgnoreAttributeTestModel.Create();
 
             var json = JsonSerializer.Serialize(baseModel);
-            Assert.True(json.Contains("\"Property1\""));
-            Assert.False(json.Contains("\"Property2\""));
-            Assert.True(json.Contains("\"Property3\""));
-            Assert.False(json.Contains("\"Property4\""));
-            Assert.True(json.Contains("\"Property5a\""));
-            Assert.False(json.Contains("\"Property5b\""));
-            Assert.True(json.Contains("\"Property6a\""));
-            Assert.False(json.Contains("\"Property6b\""));
+            Assert.Contains("\"Property1\"", json);
+            Assert.DoesNotContain("\"Property2\"", json);
+            Assert.Contains("\"Property3\"", json);
+            Assert.DoesNotContain("\"Property4\"", json);
+            Assert.Contains("\"Property5a\"", json);
+            Assert.DoesNotContain("\"Property5b\"", json);
+            Assert.Contains("\"Property6a\"", json);
+            Assert.DoesNotContain("\"Property6b\"", json);
 
             var json2 = System.Text.Json.JsonSerializer.Serialize(baseModel);
             var model = JsonSerializer.Deserialize<JsonIgnoreAttributeTestModel>(json2);
@@ -1680,7 +1680,7 @@ namespace Zerra.Test.Serialization
             Assert.Equal(0, model9);
 
             var model10 = await JsonSerializer.DeserializeAsync<int?>(new MemoryStream(Encoding.UTF8.GetBytes("")));
-            Assert.Equal(null, model10);
+            Assert.Null(model10);
 
             await StreamEmptysNumbers<byte>();
             await StreamEmptysNumbers<sbyte>();
@@ -1701,7 +1701,7 @@ namespace Zerra.Test.Serialization
             Assert.Equal(default, model11);
 
             var model12 = await JsonSerializer.DeserializeAsync<T?>(new MemoryStream(Encoding.UTF8.GetBytes("\"\"")));
-            Assert.Equal(null, model12);
+            Assert.Null(model12);
         }
 
         [Fact]
@@ -1939,9 +1939,9 @@ namespace Zerra.Test.Serialization
             using var sr = new StreamReader(stream, Encoding.UTF8);
             var json = await sr.ReadToEndAsync();
 
-            Assert.True(json.Contains("\"1property\""));
-            Assert.True(json.Contains("\"property2\""));
-            Assert.True(json.Contains("\"3property\""));
+            Assert.Contains("\"1property\"", json);
+            Assert.Contains("\"property2\"", json);
+            Assert.Contains("\"3property\"", json);
 
             _ = json.Replace("\"property2\"", "\"PROPERTY2\"");
 
@@ -1965,14 +1965,14 @@ namespace Zerra.Test.Serialization
             using var sr = new StreamReader(stream, Encoding.UTF8);
             var json = await sr.ReadToEndAsync();
 
-            Assert.True(json.Contains("\"Property1\""));
-            Assert.False(json.Contains("\"Property2\""));
-            Assert.True(json.Contains("\"Property3\""));
-            Assert.False(json.Contains("\"Property4\""));
-            Assert.True(json.Contains("\"Property5a\""));
-            Assert.False(json.Contains("\"Property5b\""));
-            Assert.True(json.Contains("\"Property6a\""));
-            Assert.False(json.Contains("\"Property6b\""));
+            Assert.Contains("\"Property1\"", json);
+            Assert.DoesNotContain("\"Property2\"", json);
+            Assert.Contains("\"Property3\"", json);
+            Assert.DoesNotContain("\"Property4\"", json);
+            Assert.Contains("\"Property5a\"", json);
+            Assert.DoesNotContain("\"Property5b\"", json);
+            Assert.Contains("\"Property6a\"", json);
+            Assert.DoesNotContain("\"Property6b\"", json);
 
             using var stream2 = new MemoryStream();
             await System.Text.Json.JsonSerializer.SerializeAsync(stream2, baseModel);

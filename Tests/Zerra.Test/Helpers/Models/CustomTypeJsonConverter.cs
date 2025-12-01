@@ -10,7 +10,7 @@ namespace Zerra.Test.Helpers.Models
 {
     public class CustomTypeJsonConverter : JsonConverter<CustomType>
     {
-        protected override bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out CustomType value)
+        protected override bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out CustomType? value)
         {
             switch (valueType)
             {
