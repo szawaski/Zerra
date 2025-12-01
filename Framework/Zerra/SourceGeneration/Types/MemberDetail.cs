@@ -9,7 +9,7 @@ namespace Zerra.SourceGeneration.Types
     /// Provides both boxed and strongly-typed accessors for getting and setting member values.
     /// Used by the source generator and runtime reflection to enable efficient member access and serialization.
     /// </summary>
-    public class MemberDetail
+    public abstract class MemberDetail
     {
         /// <summary>The type of this member.</summary>
         public readonly Type Type;
@@ -55,7 +55,7 @@ namespace Zerra.SourceGeneration.Types
         /// <param name="getterBoxed">Boxed getter delegate.</param>
         /// <param name="setter">Strongly-typed setter delegate.</param>
         /// <param name="setterBoxed">Boxed setter delegate.</param>
-        /// <param name="attributes">Custom attributes applied to the member.</param>
+        /// <param name="attributes">Custom attributes applied to the method.</param>
         /// <param name="isBacked">Whether the member has actual storage (is property or field backed).</param>
         /// <param name="isStatic">Whether the member is static.</param>
         /// <param name="isExplicitFromInterface">Whether the member is an explicit interface implementation.</param>

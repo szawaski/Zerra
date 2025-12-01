@@ -9,7 +9,7 @@ namespace Zerra.SourceGeneration.Types
     /// Generated at runtime or by source generators to provide detailed type information for serialization, reflection, and CQRS routing.
     /// Contains flags for collection types, nullable types, core types, and special framework types.
     /// </summary>
-    public class TypeDetail
+    public abstract class TypeDetail
     {
         /// <summary>The type being analyzed.</summary>
         public readonly Type Type;
@@ -17,6 +17,7 @@ namespace Zerra.SourceGeneration.Types
         public readonly IReadOnlyList<MemberDetail> Members;
         /// <summary>Collection of all constructors available for this type.</summary>
         public readonly IReadOnlyList<ConstructorDetail> Constructors;
+        public readonly IReadOnlyList<MethodDetail> Methods;
 
         /// <summary>Indicates whether a boxed creator delegate exists for instantiation.</summary>
         public readonly bool HasCreatorBoxed;
@@ -128,6 +129,7 @@ namespace Zerra.SourceGeneration.Types
             Type type,
             IReadOnlyList<MemberDetail> members,
             IReadOnlyList<ConstructorDetail> constructors,
+            IReadOnlyList<MethodDetail> methods,
             Delegate? creator,
             Func<object>? creatorBoxed,
 
@@ -177,6 +179,7 @@ namespace Zerra.SourceGeneration.Types
             this.Type = type;
             this.Members = members;
             this.Constructors = constructors;
+            this.Methods = methods;
             this.HasCreator = creator != null;
             this.Creator = creator;
             this.HasCreatorBoxed = creatorBoxed != null;

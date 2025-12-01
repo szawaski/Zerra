@@ -30,6 +30,14 @@ namespace Zerra.SourceGeneration
             return byType.GetOrAdd(type, GenerateTypeDetail);
         }
 
+        /// <summary>
+        /// Registers pre-generated type information in the analyzer cache.
+        /// </summary>
+        /// <remarks>
+        /// Used by source generators to register type details without requiring runtime type generation.
+        /// Core types may appear in multiple assemblies, so duplicate registration is allowed.
+        /// </remarks>
+        /// <param name="typeInfo">The type detail information to register.</param>
         internal static void Register(TypeDetail typeInfo)
         {
             //core types might repeat in different assemblies so don't duplicate check
@@ -54,8 +62,14 @@ namespace Zerra.SourceGeneration
         /// <param name="obj">The object to convert.</param>
         /// <returns>The converted value, or null if conversion fails or type is not supported.</returns>
         /// <exception cref="NotImplementedException">Thrown if the target type is not supported for conversion.</exception>
-        public static T? Convert<T>(object? obj) { return (T?)Convert(obj, typeof(T)); }
-        
+        public static T? Convert<T>(object? obj)
+        {
+            var type = typeof(T);
+            if (!TypeLookup.CoreTypeLookup(type, out var coreType))
+                throw new NotImplementedException($"Type convert not available for {type.Name}");
+            return (T?)Convert(obj, coreType);
+        }
+
         /// <summary>
         /// Converts an object to the specified type.
         /// Supports all core types (primitives, dates, times, guids, strings) and their nullable equivalents.
@@ -68,7 +82,23 @@ namespace Zerra.SourceGeneration
         {
             if (!TypeLookup.CoreTypeLookup(type, out var coreType))
                 throw new NotImplementedException($"Type convert not available for {type.Name}");
+            return Convert(obj, coreType);
+        }
 
+        /// <summary>
+        /// Converts an object to the specified core type.
+        /// Supports all core types (primitives, dates, times, guids, strings) and their nullable equivalents.
+        /// </summary>
+        /// <remarks>
+        /// This overload accepts pre-resolved CoreType enum for performance optimization.
+        /// Returns default values for null inputs on non-nullable types and null for null inputs on nullable types.
+        /// </remarks>
+        /// <param name="obj">The object to convert.</param>
+        /// <param name="coreType">The target core type to convert to.</param>
+        /// <returns>The converted value, or default/null if conversion fails or type is not supported.</returns>
+        /// <exception cref="NotImplementedException">Thrown if the target core type is not supported for conversion.</exception>
+        public static object? Convert(object? obj, CoreType coreType)
+        {
             if (obj is null)
             {
                 return coreType switch
@@ -116,7 +146,7 @@ namespace Zerra.SourceGeneration
                     CoreType.TimeOnlyNullable => null,
 #endif
                     CoreType.GuidNullable => null,
-                    _ => throw new NotImplementedException($"Type conversion not available for {type.Name}"),
+                    _ => throw new NotImplementedException($"Type conversion not available for {coreType}"),
                 };
             }
             else
@@ -166,7 +196,7 @@ namespace Zerra.SourceGeneration
                     CoreType.TimeOnlyNullable => ConvertToTimeOnly(obj),
 #endif
                     CoreType.GuidNullable => ConvertToGuid(obj),
-                    _ => throw new NotImplementedException($"Type conversion not available for {type.Name}"),
+                    _ => throw new NotImplementedException($"Type conversion not available for {coreType}"),
                 };
             }
         }

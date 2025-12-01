@@ -13,7 +13,7 @@ namespace Zerra.SourceGeneration.Types
     public sealed class ConstructorDetail<T> : ConstructorDetail
     {
         /// <summary>Strongly-typed delegate for creating instances of type <typeparamref name="T"/> without boxing; accepts parameter values as object array.</summary>
-        public readonly Func<object?[], T> Creator;
+        public readonly new Func<object?[], T> Creator;
         
         /// <summary>
         /// Initializes a new instance of the <see cref="ConstructorDetail{T}"/> class with generic type specialization.
@@ -23,7 +23,7 @@ namespace Zerra.SourceGeneration.Types
         /// <param name="creator">Strongly-typed delegate for creating instances of type <typeparamref name="T"/> without boxing.</param>
         /// <param name="creatorBoxed">Boxed delegate for creating instances with the specified parameters.</param>
         public ConstructorDetail(IReadOnlyList<ParameterDetail> parameters, Func<object?[], T> creator, Func<object?[], object> creatorBoxed)
-            : base(parameters, creatorBoxed)
+            : base(parameters, creator, creatorBoxed)
         {
             this.Creator = creator;
         }

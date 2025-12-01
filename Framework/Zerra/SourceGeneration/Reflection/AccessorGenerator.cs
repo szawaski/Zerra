@@ -636,7 +636,7 @@ namespace Zerra.SourceGeneration.Reflection
             var dynamicMethod = new DynamicMethod($"{constructorInfo.DeclaringType.Name}.{constructorInfo.Name}.Creator`1", typeof(T), [typeof(object[])], true);
             var il = dynamicMethod.GetILGenerator();
 
-            var success = GenerateMethod<T>(il, constructorInfo);
+            var success = GenerateMethod(il, constructorInfo);
             if (!success)
                 return null;
 
@@ -667,7 +667,7 @@ namespace Zerra.SourceGeneration.Reflection
             var dynamicMethod = new DynamicMethod($"{constructorInfo.DeclaringType.Name}.{constructorInfo.Name}.Creator`1", typeof(T), [typeof(object[])], true);
             var il = dynamicMethod.GetILGenerator();
 
-            var success = GenerateMethodNoArgs<T>(il, constructorInfo);
+            var success = GenerateMethodNoArgs(il, constructorInfo);
             if (!success)
                 return null;
 
@@ -690,20 +690,65 @@ namespace Zerra.SourceGeneration.Reflection
             var caller = dynamicMethod.CreateDelegate(typeof(Func<object?, object?[]?, object?>));
             return (Func<object?, object?[]?, object?>)caller;
         }
-        public static Func<T?, object?[]?, object?>? GenerateCaller<T>(MethodInfo methodInfo)
+        public static Func<object?, object?[]?, TValue?>? GenerateCaller<TValue>(MethodInfo methodInfo)
         {
             if (methodInfo.ReflectedType is null)
                 return null;
 
-            var dynamicMethod = new DynamicMethod($"{methodInfo.ReflectedType.Name}.{methodInfo.Name}.Caller`1", typeof(object), [methodInfo.ReflectedType, typeof(object[])], true);
+            var dynamicMethod = new DynamicMethod($"{methodInfo.ReflectedType.Name}.{methodInfo.Name}.Caller`1", methodInfo.ReturnType, [typeof(object), typeof(object[])], true);
             var il = dynamicMethod.GetILGenerator();
 
-            var success = GenerateMethod<T>(il, methodInfo);
+            var success = GenerateMethod(il, methodInfo);
             if (!success)
                 return null;
 
-            var caller = dynamicMethod.CreateDelegate(typeof(Func<T?, object?[]?, object?>));
-            return (Func<T?, object?[]?, object?>)caller;
+            var caller = dynamicMethod.CreateDelegate(typeof(Func<object?, object?[]?, TValue?>));
+            return (Func<object?, object?[]?, TValue?>)caller;
+        }
+        public static Func<T?, object?[]?, TValue?>? GenerateCaller<T, TValue>(MethodInfo methodInfo)
+        {
+            if (methodInfo.ReflectedType is null)
+                return null;
+
+            var dynamicMethod = new DynamicMethod($"{methodInfo.ReflectedType.Name}.{methodInfo.Name}.Caller`1", methodInfo.ReturnType, [methodInfo.ReflectedType, typeof(object[])], true);
+            var il = dynamicMethod.GetILGenerator();
+
+            var success = GenerateMethod(il, methodInfo);
+            if (!success)
+                return null;
+
+            var caller = dynamicMethod.CreateDelegate(typeof(Func<T?, object?[]?, TValue?>));
+            return (Func<T?, object?[]?, TValue?>)caller;
+        }
+        public static Delegate? GenerateCaller(MethodInfo methodInfo, Type valueType)
+        {
+            if (methodInfo.ReflectedType is null)
+                return null;
+
+            var dynamicMethod = new DynamicMethod($"{methodInfo.ReflectedType.Name}.{methodInfo.Name}.Caller`1", methodInfo.ReturnType, [typeof(object), typeof(object[])], true);
+            var il = dynamicMethod.GetILGenerator();
+
+            var success = GenerateMethod(il, methodInfo);
+            if (!success)
+                return null;
+
+            var caller = dynamicMethod.CreateDelegate(typeof(Func<,,>).MakeGenericType(typeof(object), typeof(object[]), valueType));
+            return caller;
+        }
+        public static Delegate? GenerateCaller(MethodInfo methodInfo, Type objectType, Type valueType)
+        {
+            if (methodInfo.ReflectedType is null)
+                return null;
+
+            var dynamicMethod = new DynamicMethod($"{methodInfo.ReflectedType.Name}.{methodInfo.Name}.Caller`1", methodInfo.ReturnType, [methodInfo.ReflectedType, typeof(object[])], true);
+            var il = dynamicMethod.GetILGenerator();
+
+            var success = GenerateMethod(il, methodInfo);
+            if (!success)
+                return null;
+
+            var caller = dynamicMethod.CreateDelegate(typeof(Func<,,>).MakeGenericType(objectType, typeof(object[]), valueType));
+            return caller;
         }
 
         // Modified from origional method in Newtonsoft.Json Copyright © 2007 James Newton-King.
@@ -730,7 +775,7 @@ namespace Zerra.SourceGeneration.Reflection
         // WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
         // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
         // OTHER DEALINGS IN THE SOFTWARE.
-        public static bool GenerateMethod(ILGenerator il, MethodBase methodBase)
+        private static bool GenerateMethod(ILGenerator il, MethodBase methodBase)
         {
             //Constructor: object Thing(object[] args)
             //Method: object DoSomething(object instance, object[] args)
@@ -750,8 +795,6 @@ namespace Zerra.SourceGeneration.Reflection
                 else
                     il.Emit(OpCodes.Castclass, methodBase.DeclaringType);
             }
-
-            var localObject = il.DeclareLocal(typeof(object));
 
             for (var i = 0; i < parameters.Length; i++)
             {
@@ -829,100 +872,7 @@ namespace Zerra.SourceGeneration.Reflection
 
             return true;
         }
-        public static bool GenerateMethod<T>(ILGenerator il, MethodBase methodBase)
-        {
-            //Constructor: object Thing(object[] args)
-            //Method: object DoSomething(object instance, object[] args)
-            var loadArgsIndex = methodBase.IsConstructor ? 0 : 1;
-
-            var parameters = methodBase.GetParameters();
-
-            if (!methodBase.IsConstructor && !methodBase.IsStatic)
-            {
-                if (methodBase.DeclaringType is null)
-                    return false;
-
-                il.Emit(OpCodes.Ldarg_0);
-            }
-
-            var localObject = il.DeclareLocal(typeof(T));
-
-            for (var i = 0; i < parameters.Length; i++)
-            {
-                var parameter = parameters[i];
-                var parameterType = parameter.ParameterType;
-                if (parameterType.IsPointer)
-                    return false;
-
-                if (parameterType.IsByRef)
-                {
-                    parameterType = parameterType.GetElementType();
-                    if (parameterType is null)
-                        return false;
-                    if (parameterType.IsPointer)
-                        return false;
-
-                    var localVariable = il.DeclareLocal(parameterType);
-
-                    if (!parameter.IsOut)
-                    {
-                        il.Emit(OpCodes.Ldarg, loadArgsIndex);
-                        il.Emit(OpCodes.Ldc_I4, i);
-                        il.Emit(OpCodes.Ldelem_Ref);
-
-                        if (parameterType.IsValueType)
-                            il.Emit(OpCodes.Unbox_Any, parameterType);
-                        else
-                            il.Emit(OpCodes.Castclass, parameterType);
-                        il.Emit(OpCodes.Stloc_S, localVariable);
-                    }
-
-                    il.Emit(OpCodes.Ldloca_S, localVariable);
-                }
-                else
-                {
-                    il.Emit(OpCodes.Ldarg, loadArgsIndex);
-                    il.Emit(OpCodes.Ldc_I4, i);
-                    il.Emit(OpCodes.Ldelem_Ref);
-
-                    if (parameterType.IsValueType)
-                        il.Emit(OpCodes.Unbox_Any, parameterType);
-                    else
-                        il.Emit(OpCodes.Castclass, parameterType);
-                }
-            }
-
-            if (methodBase.IsConstructor)
-            {
-                il.Emit(OpCodes.Newobj, (ConstructorInfo)methodBase);
-            }
-            else
-            {
-                if (methodBase.IsFinal || !methodBase.IsVirtual)
-                    il.Emit(OpCodes.Call, (MethodInfo)methodBase);
-                else
-                    il.Emit(OpCodes.Callvirt, (MethodInfo)methodBase);
-            }
-
-            var returnType = methodBase.IsConstructor ? methodBase.DeclaringType : ((MethodInfo)methodBase).ReturnType;
-
-            if (returnType is not null && returnType != typeof(void))
-            {
-                if (returnType.IsValueType)
-                    il.Emit(OpCodes.Box, returnType);
-                else
-                    il.Emit(OpCodes.Castclass, returnType);
-            }
-            else
-            {
-                il.Emit(OpCodes.Ldnull);
-            }
-
-            il.Emit(OpCodes.Ret);
-
-            return true;
-        }
-        public static bool GenerateMethodNoArgs(ILGenerator il, MethodBase methodBase)
+        private static bool GenerateMethodNoArgs(ILGenerator il, MethodBase methodBase)
         {
             //Constructor: object Thing()
             //Method: object DoSomething(object instance)
@@ -938,49 +888,6 @@ namespace Zerra.SourceGeneration.Reflection
                     il.Emit(OpCodes.Unbox, methodBase.DeclaringType);
                 else
                     il.Emit(OpCodes.Castclass, methodBase.DeclaringType);
-            }
-
-            if (methodBase.IsConstructor)
-            {
-                il.Emit(OpCodes.Newobj, (ConstructorInfo)methodBase);
-            }
-            else
-            {
-                if (methodBase.IsFinal || !methodBase.IsVirtual)
-                    il.Emit(OpCodes.Call, (MethodInfo)methodBase);
-                else
-                    il.Emit(OpCodes.Callvirt, (MethodInfo)methodBase);
-            }
-
-            var returnType = methodBase.IsConstructor ? methodBase.DeclaringType : ((MethodInfo)methodBase).ReturnType;
-
-            if (returnType is not null && returnType != typeof(void))
-            {
-                if (returnType.IsValueType)
-                    il.Emit(OpCodes.Box, returnType);
-                else
-                    il.Emit(OpCodes.Castclass, returnType);
-            }
-            else
-            {
-                il.Emit(OpCodes.Ldnull);
-            }
-
-            il.Emit(OpCodes.Ret);
-
-            return true;
-        }
-        public static bool GenerateMethodNoArgs<T>(ILGenerator il, MethodBase methodBase)
-        {
-            //Constructor: object Thing()
-            //Method: object DoSomething(object instance)
-
-            if (!methodBase.IsConstructor && !methodBase.IsStatic)
-            {
-                if (methodBase.DeclaringType is null)
-                    return false;
-
-                il.Emit(OpCodes.Ldarg_0);
             }
 
             if (methodBase.IsConstructor)

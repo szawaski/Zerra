@@ -36,6 +36,8 @@ namespace Zerra.SourceGeneration.Reflection
 
         private static readonly Type keyValuePairType = typeof(KeyValuePair<,>);
         private static readonly Type dictionaryEntryType = typeof(DictionaryEntry);
+        private static readonly Type memberDetailType = typeof(MemberDetail<>);
+        private static readonly Type methodDetailType = typeof(MethodDetail<>);
 
         private static readonly MethodInfo generateTypeDetailGeneric = typeof(TypeDetailGenerator).GetMethod(nameof(GenerateTypeDetailGeneric), BindingFlags.NonPublic | BindingFlags.Static)!;
         public static TypeDetail GenerateTypeDetail(Type type)
@@ -52,6 +54,7 @@ namespace Zerra.SourceGeneration.Reflection
             var interfaces = GenerateInterfaces(type);
             var attributes = GenerateAttributes(type);
             var members = GenerateMembers(type, interfaces);
+            var methods = GetMethodDetails(type, interfaces);
 
             Func<T>? creator = null;
             Func<object>? creatorBoxed = null;
@@ -191,6 +194,7 @@ namespace Zerra.SourceGeneration.Reflection
             var typeDetail = new TypeDetail<T>(
                 members,
                 constructors,
+                methods,
                 creator,
                 creatorBoxed,
                 isNullable,
@@ -297,7 +301,9 @@ namespace Zerra.SourceGeneration.Reflection
 
                 var isStatic = property.GetMethod?.IsStatic ?? property.SetMethod?.IsStatic ?? false;
 
-                var member = new MemberDetail(property.PropertyType, property.Name, getter, getterBoxed, setter, setterBoxed, attributes, backingField != null, isStatic, false);
+                var memberDetailGenericType = memberDetailType.MakeGenericType(property.PropertyType);
+                var constructor = memberDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
+                var member = (MemberDetail)constructor.Invoke([property.PropertyType, property.Name, getter, getterBoxed, setter, setterBoxed, attributes, backingField != null, isStatic, false]);
                 items.Add(member);
 
                 if (hasInterfaces)
@@ -323,7 +329,9 @@ namespace Zerra.SourceGeneration.Reflection
 
                 var attributes = @field.GetCustomAttributes(true).Cast<Attribute>().ToArray();
 
-                var member = new MemberDetail(@field.FieldType, @field.Name, getter, getterBoxed, setter, setterBoxed, attributes, true, field.IsStatic, false);
+                var memberDetailGenericType = memberDetailType.MakeGenericType(@field.FieldType);
+                var constructor = memberDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
+                var member = (MemberDetail)constructor.Invoke([@field.FieldType, @field.Name, getter, getterBoxed, setter, setterBoxed, attributes, true, field.IsStatic, false]);
                 items.Add(member);
 
                 if (hasInterfaces)
@@ -375,7 +383,9 @@ namespace Zerra.SourceGeneration.Reflection
 
                             var isStatic = property.GetMethod?.IsStatic ?? property.SetMethod?.IsStatic ?? false;
 
-                            var member = new MemberDetail(property.PropertyType, name, getter, getterBoxed, setter, setterBoxed, attributes, false, isStatic, isExplicitFromInterface);
+                            var memberDetailGenericType = memberDetailType.MakeGenericType(property.PropertyType);
+                            var constructor = memberDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
+                            var member = (MemberDetail)constructor.Invoke([property.PropertyType, name, getter, getterBoxed, setter, setterBoxed, attributes, false, isStatic, isExplicitFromInterface]);
                             items.Add(member);
                         }
                     }
@@ -408,6 +418,75 @@ namespace Zerra.SourceGeneration.Reflection
 
                 var constructorDetail = new ConstructorDetail<T>(parameterTypes, creator, creatorBoxed);
                 items.Add(constructorDetail);
+            }
+            return items;
+        }
+        private static List<MethodDetail> GetMethodDetails(Type type, Type[] interfaces)
+        {
+            var items = new List<MethodDetail>();
+            var hasInterfaces = interfaces.Length > 0;
+            var names = hasInterfaces ? new HashSet<string>() : null; //explicit declarations can create duplicates with interfaces
+            if (!type.IsGenericTypeDefinition)
+            {
+                var methods = type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+                foreach (var method in methods)
+                {
+                    var parameters = method.GetParameters();
+                    var parameterTypes = parameters.Select(x => new ParameterDetail(x.ParameterType, x.Name!)).ToArray();
+
+                    var attributes = method.GetCustomAttributes(true).Cast<Attribute>().ToArray();
+
+                    Delegate? caller = AccessorGenerator.GenerateCaller(method, type, method.ReturnType);
+                    Func<object, object?[], object?>? callerBoxed = AccessorGenerator.GenerateCaller(method);
+
+                    var methodDetailGenericType = methodDetailType.MakeGenericType(method.ReturnType);
+                    var constructor = methodDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
+                    var methodDetail = (MethodDetail)constructor.Invoke([parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false]);
+                    items.Add(methodDetail);
+                    if (hasInterfaces)
+                        names!.Add(method.Name);
+                }
+
+                if (hasInterfaces)
+                {
+                    foreach (var i in interfaces)
+                    {
+                        var iMethods = i.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance); //don't get static interface methods
+                        foreach (var method in iMethods)
+                        {
+                            string name;
+                            bool isExplicitFromInterface;
+                            if (type.IsInterface && !names!.Contains(method.Name))
+                            {
+                                name = method.Name;
+                                isExplicitFromInterface = false;
+                            }
+                            else
+                            {
+                                name = $"{method.DeclaringType?.Namespace}.{method.DeclaringType?.Name}.{method.Name.Split('.').Last()}";
+                                isExplicitFromInterface = true;
+                            }
+
+                            if (!names!.Contains(name))
+                            {
+                                var parameters = method.GetParameters();
+                                var parameterTypes = parameters.Select(x => new ParameterDetail(x.ParameterType, x.Name!)).ToArray();
+
+                                var attributes = method.GetCustomAttributes(true).Cast<Attribute>().ToArray();
+
+                                Delegate? caller = AccessorGenerator.GenerateCaller(method, type, method.ReturnType);
+                                Func<object, object?[], object?>? callerBoxed = AccessorGenerator.GenerateCaller(method);
+
+                                var methodDetailGenericType = methodDetailType.MakeGenericType(method.ReturnType);
+                                var constructor = methodDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
+                                var methodDetail = (MethodDetail)constructor.Invoke([parameterTypes, caller, callerBoxed, attributes, method.IsStatic, isExplicitFromInterface]);
+                                items.Add(methodDetail);
+                                if (hasInterfaces)
+                                    names!.Add(method.Name);
+                            }
+                        }
+                    }
+                }
             }
             return items;
         }
