@@ -119,6 +119,10 @@ namespace Zerra.Serialization.Bytes.Converters
             if (typeDetail.Type.IsArray)
                 return () => new ByteConverterArrayT<TInnerType>();
 
+
+            if (typeDetail.Type.IsInterface)
+                throw new NotSupportedException($"No ByteConverter found to support interface type {typeDetail.Type.GetNiceName()}");
+
             //IList<T> of type - specific types that inherit this
             if (typeDetail.HasIListGeneric)
                 return () => new ByteConverterIListTOfT<TType, TEnumerableType>();
