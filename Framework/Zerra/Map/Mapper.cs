@@ -2,7 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Runtime.CompilerServices;
 using Zerra.Collections;
 
 namespace Zerra.Map
@@ -22,7 +21,7 @@ namespace Zerra.Map
 
             var map = GetMap<TSource, TTarget>();
             var result = map(source, default, graph);
-            return result;
+            return result!;
         }
 
         public static void MapTo<TSource, TTarget>(this TSource source, TTarget target, Graph? graph = null)
@@ -46,10 +45,10 @@ namespace Zerra.Map
 
             var map = GetMap<TTarget, TTarget>();
             var result = map(source, default, graph);
-            return result;
+            return result!;
         }
 
-        private static Func<TSource, TTarget?, Graph?, TTarget> GetMap<TSource, TTarget>()
+        private static Func<TSource, TTarget?, Graph?, TTarget?> GetMap<TSource, TTarget>()
             where TSource : notnull
             where TTarget : notnull
         {
@@ -60,7 +59,7 @@ namespace Zerra.Map
             return map;
         }
 
-        private static Func<TSource, TTarget?, Graph?, TTarget> Generate<TSource, TTarget>()
+        private static Func<TSource, TTarget?, Graph?, TTarget?> Generate<TSource, TTarget>()
             where TSource : notnull
             where TTarget : notnull
         {

@@ -19,7 +19,7 @@ namespace Zerra.SourceGeneration.Reflection
         public static Type GenerateEmptyImplementation(Type interfaceType)
         {
             if (!interfaceType.IsInterface)
-                throw new ArgumentException($"Type {interfaceType.GetNiceName()} is not an interface");
+                throw new ArgumentException($"Type {interfaceType.Name} is not an interface");
 
             var typeSignature = "Empty_" + interfaceType.FullName;
 

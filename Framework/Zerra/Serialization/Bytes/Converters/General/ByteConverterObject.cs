@@ -60,7 +60,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 if (index > byte.MaxValue)
                     indexSizeUInt16Only = true;
                 if (index > ushort.MaxValue)
-                    throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has an {nameof(SerializerIndexAttribute)} index too high");
+                    throw new NotSupportedException($"{typeDetail.Type.Name} has an {nameof(SerializerIndexAttribute)} index too high");
 
                 var detail = new ByteConverterObjectMember(typeDetail, member, index);
                 membersByIndex.Add(index, detail);
@@ -76,7 +76,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 if (index > byte.MaxValue)
                     indexSizeUInt16Only = true;
                 if (index > ushort.MaxValue)
-                    throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members to serialize");
+                    throw new NotSupportedException($"{typeDetail.Type.Name} has too many members to serialize");
 
                 var detail = new ByteConverterObjectMember(typeDetail, member, index);
                 if (!hasAttributes)
@@ -125,7 +125,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TValue? value)
         {
             if (indexSizeUInt16Only && !state.UseIndexSizeUInt16 && !state.UseMemberNames)
-                throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members or {nameof(SerializerIndexAttribute)} index too high for index size");
+                throw new NotSupportedException($"{typeDetail.Type.Name} has too many members or {nameof(SerializerIndexAttribute)} index too high for index size");
 
             Dictionary<string, object?>? collectedValues;
 
@@ -421,7 +421,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in TValue value)
         {
             if (indexSizeUInt16Only && !state.UseIndexSizeUInt16 && !state.UseMemberNames)
-                throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members or {nameof(SerializerIndexAttribute)} index too high for index size");
+                throw new NotSupportedException($"{typeDetail.Type.Name} has too many members or {nameof(SerializerIndexAttribute)} index too high for index size");
 
             MemberKey[] enumerator;
             if (state.IgnoreIndexAttribute)

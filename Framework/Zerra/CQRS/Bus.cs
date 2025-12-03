@@ -248,7 +248,7 @@ namespace Zerra.CQRS
             var info = BusHandlers.GetMethod(interfaceType, methodName);
 
             if (info.ParameterTypes.Count != (arguments is not null ? arguments.Length : 0))
-                throw new ArgumentException($"{interfaceType.GetNiceName()}.{methodName} invalid number of arguments");
+                throw new ArgumentException($"{interfaceType.Name}.{methodName} invalid number of arguments");
 
             object?[]? args = null;
             if (arguments is not null && arguments.Length > 0)

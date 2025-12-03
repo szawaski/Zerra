@@ -28,7 +28,8 @@ namespace Zerra.SourceGeneration
 
             var typeOf = Helper.GetTypeOfName(namedTypeSymbol);
             _ = sbInitializer.Append(Environment.NewLine).Append("            ");
-            _ = sbInitializer.Append("global::Zerra.SourceGeneration.Register.NiceName(").Append(typeOf).Append(", \"").Append(shortName).Append("\", \"").Append(fullName).Append("\");");
+            //_ = sbInitializer.Append("global::Zerra.SourceGeneration.Register.NiceName(").Append(typeOf).Append(", \"").Append(shortName).Append("\", \"").Append(fullName).Append("\");");
+            _ = sbInitializer.Append("global::Zerra.SourceGeneration.Register.NiceName(").Append(typeOf).Append(");");
         }
     }
 }

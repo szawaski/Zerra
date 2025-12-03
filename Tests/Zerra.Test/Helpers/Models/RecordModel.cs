@@ -4,7 +4,7 @@
 
 namespace Zerra.Test.Helpers.Models
 {
-    [Zerra.SourceGeneration.SourceGenerationTypeDetail]
+    [Zerra.SourceGeneration.GenerateTypeDetail]
     public record RecordModel(bool Property1)
     {
         public int Property2 { get; init; }

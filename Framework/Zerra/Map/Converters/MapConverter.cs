@@ -12,7 +12,7 @@ namespace Zerra.Map
 
         public abstract object? Map(object? source, object? target, Graph? graph);
 
-        public abstract void MapFromParent(object sourceParent, object? targetParent, Graph? graph);
+        public abstract void MapFromParent(object sourceParent, object targetParent, Graph? graph);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public abstract void CollectedValuesSetter(object parent, in object? value);

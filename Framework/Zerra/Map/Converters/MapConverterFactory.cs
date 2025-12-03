@@ -32,6 +32,12 @@ namespace Zerra.Map
             return converter;
         }
 
+        internal static void AddConverter(Type sourceType, Type targetType, Func<MapConverter> converter)
+        {
+            var key = new TypePairKey(sourceType, targetType);
+            creators[key] = converter;
+        }
+
         public static Func<MapConverter> GenerateMapConverterCreator(TypeDetail sourceTypeDetail, TypeDetail targetTypeDetail)
         {
             if (!RuntimeFeature.IsDynamicCodeSupported)
@@ -80,97 +86,95 @@ namespace Zerra.Map
                     return () => new MapConverterCoreType<TSource, TTarget>();
             }
 
-            if (sourceTypeDetail.EnumUnderlyingType.HasValue && targetTypeDetail.EnumUnderlyingType.HasValue)
-            {
-                if (sourceTypeDetail.EnumUnderlyingType == targetTypeDetail.EnumUnderlyingType)
-                    return () => new MapConverterEnum<TSource>();
-                else
-                    return () => new MapConverterEnum<TSource, TTarget>();
-            }
+            //if (targetTypeDetail.IsIList)
+            //    return () => new MapConverterIList();
+            if (targetTypeDetail.IsIListGeneric)
+                return () => new MapConverterIListT<TSource, TSourceEnumerable, TTargetEnumerable>();
+            if (targetTypeDetail.IsIReadOnlyListGeneric)
+                return () => new MapConverterIReadOnlyListT<TSource, TSourceEnumerable, TTargetEnumerable>();
+            //if (targetTypeDetail.IsListGeneric)
+            //    return () => new MapConverterListT<TSource, TSourceEnumerable, TTargetEnumerable>();
 
-            if (sourceTypeDetail.HasIEnumerableGeneric && targetTypeDetail.HasIEnumerableGeneric)
-            {
-                if (targetTypeDetail.Type.IsArray)
-                {
-                    if (sourceTypeDetail.Type.IsArray)
-                        return () => new MapConverterArrayToArray<TSourceEnumerable, TTargetEnumerable>();
-                    else
-                        return () => new MapConverterArray<TSource, TSourceEnumerable, TTargetEnumerable>();
-                }
+            if (targetTypeDetail.IsISetGeneric)
+                return () => new MapConverterISetT<TSource, TSourceEnumerable, TTargetEnumerable>();
+            if (targetTypeDetail.IsIReadOnlySetGeneric)
+                return () => new MapConverterIReadOnlySetT<TSource, TSourceEnumerable, TTargetEnumerable>();
+            //if (targetTypeDetail.IsHashSetGeneric)
+            //    return () => new MapConverterHashSetT<TSource, TSourceEnumerable, TTargetEnumerable>();
 
-                if (targetTypeDetail.HasIListGeneric)
-                {
-                    if (targetTypeDetail.Type.IsInterface)
-                        return () => new MapConverterIListT<TSource, TSourceEnumerable, TTargetEnumerable>();
-                    else
-                        return () => new MapConverterIListTOfT<TSource, TTarget, TSourceEnumerable, TTargetEnumerable>();
-                }
+            //if (targetTypeDetail.IsICollection)
+            //    return () => new MapConverterICollection();
+            if (targetTypeDetail.IsICollectionGeneric)
+                return () => new MapConverterICollectionT<TSource, TSourceEnumerable, TTargetEnumerable>();
+            if (targetTypeDetail.IsIReadOnlyCollectionGeneric)
+                return () => new MapConverterIReadOnlyCollectionT<TSource, TSourceEnumerable, TTargetEnumerable>();
 
-                if (targetTypeDetail.HasIReadOnlyListGeneric)
-                {
-                    if (targetTypeDetail.Type.IsInterface)
-                        return () => new MapConverterIReadOnlyListT<TSource, TSourceEnumerable, TTargetEnumerable>();
-                }
+            //if (targetTypeDetail.IsIDictionary)
+            //    return () => new MapConverterIDictionary();
+            if (targetTypeDetail.IsIDictionaryGeneric)
+                return () => new MapConverterIDictionaryT<TSource, TSourceKey, TSourceValue, TTargetKey, TTargetValue>();
+            //if (targetTypeDetail.IsIReadOnlyDictionaryGeneric)
+            //    return () => new MapConverterIReadOnlyDictionaryT<TDictionaryKey, TDictionaryValue>();
+            //if (targetTypeDetail.IsDictionaryGeneric)
+            //    return () => new MapConverterDictionaryT<TDictionaryKey, TDictionaryValue>();
 
-                if (targetTypeDetail.HasISetGeneric)
-                {
-                    if (targetTypeDetail.Type.IsInterface)
-                        return () => new MapConverterISetT<TSource, TSourceEnumerable, TTargetEnumerable>();
-                    else
-                        return () => new MapConverterISetTOfT<TSource, TTarget, TSourceEnumerable, TTargetEnumerable>();
-                }
+            //if (targetTypeDetail.IsIEnumerable)
+            //    return () => new MapConverterIEnumerable();
+            if (targetTypeDetail.IsIEnumerableGeneric)
+                return () => new MapConverterIEnumerableT<TSource, TSourceEnumerable, TTargetEnumerable>();
 
-                if (targetTypeDetail.HasIReadOnlySetGeneric)
-                {
-                    if (targetTypeDetail.Type.IsInterface)
-                        return () => new MapConverterIReadOnlySetT<TSource, TSourceEnumerable, TTargetEnumerable>();
-                }
+            //if (targetTypeDetail.Type.FullName == "System.Type")
+            //    return () => new MapConverterType();
+            //if (targetTypeDetail.Type.FullName == "System.Threading.CancellationToken")
+            //    return () => new MapConverterCancellationToken();
+            //if (targetTypeDetail.IsNullable && targetTypeDetail.InnerType!.FullName == "System.Threading.CancellationToken")
+            //    return () => new MapConverterCancellationTokenNullable();
 
-                if (targetTypeDetail.HasIList)
-                {
+            if (targetTypeDetail.CoreType.HasValue)
+                throw new NotSupportedException($"No MapConverter found to support {targetTypeDetail.Type.Name}");
 
-                }
+            //Enum
+            if (targetTypeDetail.Type.IsEnum || targetTypeDetail.IsNullable && targetTypeDetail.InnerType!.IsEnum)
+                return () => new MapConverterEnum<TSource, TTarget>();
 
-                if (targetTypeDetail.HasIDictionaryGeneric)
-                {
-                    if (targetTypeDetail.Type.IsInterface)
-                        return () => new MapConverterIDictionaryT<TSource, TSourceKey, TSourceValue, TTargetKey, TTargetValue>();
-                    else
-                        return () => new MapConverterIDictionaryTOfT<TSource, TTarget, TSourceKey, TSourceValue, TTargetKey, TTargetValue>();
-                }
+            //Array
+            if (targetTypeDetail.Type.IsArray)
+                return () => new MapConverterArray<TSource, TSourceEnumerable, TTargetEnumerable>();
 
-                if (targetTypeDetail.HasIDictionary)
-                {
+            //IList<T> of type - specific types that inherit this
+            if (targetTypeDetail.HasIListGeneric)
+                return () => new MapConverterIListTOfT<TSource, TTarget, TSourceEnumerable, TTargetEnumerable>();
 
-                }
+            ////IList of type - specific types that inherit this
+            //if (targetTypeDetail.HasIList)
+            //    return () => new MapConverterIListOfT<TSource, TTarget>();
 
-                if (targetTypeDetail.HasICollectionGeneric)
-                {
-                    if (targetTypeDetail.Type.IsInterface)
-                        return () => new MapConverterICollectionT<TSource, TSourceEnumerable, TTargetEnumerable>();
-                    else
-                        return () => new MapConverterICollectionTOfT<TSource, TTarget, TSourceEnumerable, TTargetEnumerable>();
-                }
+            //ISet<T> of type - specific types that inherit this
+            if (targetTypeDetail.HasISetGeneric)
+                return () => new MapConverterISetTOfT<TSource, TTarget, TSourceEnumerable, TTargetEnumerable>();
 
-                if (targetTypeDetail.HasIReadOnlyCollectionGeneric)
-                {
-                    if (targetTypeDetail.Type.IsInterface)
-                        return () => new MapConverterIReadOnlyCollectionT<TSource, TSourceEnumerable, TTargetEnumerable>();
-                }
+            //IDictionary<,> of type - specific types that inherit this
+            if (targetTypeDetail.HasIDictionaryGeneric)
+                return () => new MapConverterIDictionaryTOfT<TSource, TTarget, TSourceKey, TSourceValue, TTargetKey, TTargetValue>();
 
-                if (targetTypeDetail.Type.IsInterface)
-                    return () => new MapConverterIEnumerableT<TSource, TSourceEnumerable, TTargetEnumerable>();
-                else
-                    return () => new MapConverterIEnumerableTOfT<TSource, TTarget, TSourceEnumerable, TTargetEnumerable>();
-            }
+            ////IDictionary of type - specific types that inherit this
+            //if (targetTypeDetail.HasIDictionary)
+            //    return () => new MapConverterIDictionaryOfT<TSource, TTarget>();
 
+            //ICollection<T> of type - specific types that inherit this
+            if (targetTypeDetail.HasICollectionGeneric)
+                return () => new MapConverterICollectionTOfT<TSource, TTarget, TSourceEnumerable, TTargetEnumerable>();
+
+            //IEnumerable<T> of type  - specific types that inherit this (This cannot read because we have no interface to populate the collection)
+            if (targetTypeDetail.HasIEnumerableGeneric)
+                return () => new MapConverterIEnumerableTOfT<TSource, TTarget, TSourceEnumerable, TTargetEnumerable>();
+
+            ////IEnumerable - specific types that inherit this (This cannot read because we have no interface to populate the collection)
+            //if (targetTypeDetail.HasIEnumerable)
+            //    return () => new MapConverterIEnumerableOfT<TSource, TTarget>();
+
+            //Object
             return () => new MapConverterObject<TSource, TTarget>();
-        }
-
-        internal static void AddConverter(Type sourceType, Type targetType, Func<MapConverter> converter)
-        {
-            var key = new TypePairKey(sourceType, targetType);
-            creators[key] = converter;
         }
     }
 }

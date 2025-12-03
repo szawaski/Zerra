@@ -4,7 +4,7 @@
 
 namespace Zerra.Test.Helpers.Models
 {
-    [Zerra.SourceGeneration.SourceGenerationTypeDetail]
+    [Zerra.SourceGeneration.GenerateTypeDetail]
     public class CustomTypeModel
     {
         public CustomType Value { get; set; }

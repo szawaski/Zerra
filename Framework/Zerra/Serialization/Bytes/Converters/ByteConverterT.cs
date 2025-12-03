@@ -76,7 +76,7 @@ namespace Zerra.Serialization.Bytes.Converters
                     }
 
                     if (typeName is null)
-                        throw new NotSupportedException($"Cannot deserialize {typeDetail.Type.GetNiceName()} without type information");
+                        throw new NotSupportedException($"Cannot deserialize {typeDetail.Type.Name} without type information");
 
                     state.EntryReadType = TypeHelper.GetTypeFromName(typeName);
                 }
@@ -88,7 +88,7 @@ namespace Zerra.Serialization.Bytes.Converters
                     {
                         //overrides potentially boxed type with actual type if exists in assembly
                         if ((!typeDetail.IsNullable || typeDetail.InnerType != newTypeDetail.Type) && !newTypeDetail.Interfaces.Contains(typeDetail.Type) && !newTypeDetail.BaseTypes.Contains(typeDetail.Type))
-                            throw new NotSupportedException($"{newTypeDetail.Type.GetNiceName()} does not convert to {typeDetail.Type.GetNiceName()}");
+                            throw new NotSupportedException($"{newTypeDetail.Type.Name} does not convert to {typeDetail.Type.Name}");
 
                         var newConverter = ByteConverterFactory.Get(newTypeDetail, memberKey, getter, setter);
 
@@ -292,7 +292,7 @@ namespace Zerra.Serialization.Bytes.Converters
                     }
 
                     if (typeName is null)
-                        throw new NotSupportedException($"Cannot deserialize {typeDetail.Type.GetNiceName()} without type information");
+                        throw new NotSupportedException($"Cannot deserialize {typeDetail.Type.Name} without type information");
 
                     state.EntryReadType = TypeHelper.GetTypeFromName(typeName);
                 }
@@ -304,7 +304,7 @@ namespace Zerra.Serialization.Bytes.Converters
                     {
                         //overrides potentially boxed type with actual type if exists in assembly
                         if ((!typeDetail.IsNullable || typeDetail.InnerType != newTypeDetail.Type) && !newTypeDetail.Interfaces.Contains(typeDetail.Type) && !newTypeDetail.BaseTypes.Contains(typeDetail.Type))
-                            throw new NotSupportedException($"{newTypeDetail.Type.GetNiceName()} does not convert to {typeDetail.Type.GetNiceName()}");
+                            throw new NotSupportedException($"{newTypeDetail.Type.Name} does not convert to {typeDetail.Type.Name}");
 
                         var newConverter = ByteConverterFactory.Get(newTypeDetail, memberKey, getter, setter);
 
@@ -504,7 +504,7 @@ namespace Zerra.Serialization.Bytes.Converters
                     }
 
                     if (typeName is null)
-                        throw new NotSupportedException($"Cannot deserialize {typeDetail.Type.GetNiceName()} without type information");
+                        throw new NotSupportedException($"Cannot deserialize {typeDetail.Type.Name} without type information");
 
                     state.Current.ChildReadType = TypeHelper.GetTypeFromName(typeName);
                 }
@@ -516,7 +516,7 @@ namespace Zerra.Serialization.Bytes.Converters
                     {
                         //overrides potentially boxed type with actual type if exists in assembly
                         if ((!typeDetail.IsNullable || typeDetail.InnerType != newTypeDetail.Type) && !newTypeDetail.Interfaces.Contains(typeDetail.Type) && !newTypeDetail.BaseTypes.Contains(typeDetail.Type))
-                            throw new NotSupportedException($"{newTypeDetail.Type.GetNiceName()} does not convert to {typeDetail.Type.GetNiceName()}");
+                            throw new NotSupportedException($"{newTypeDetail.Type.Name} does not convert to {typeDetail.Type.Name}");
 
                         var newConverter = ByteConverterFactory.Get(newTypeDetail, memberKey, getter, setter);
 

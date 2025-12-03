@@ -124,17 +124,17 @@ namespace Zerra.CQRS.Network
         void IQueryServer.Open()
         {
             Open();
-            log?.Info($"{thisType.GetNiceName()} Query Server Started On {this.serviceUrl}");
+            log?.Info($"{thisType.Name} Query Server Started On {this.serviceUrl}");
         }
         void ICommandConsumer.Open()
         {
             Open();
-            log?.Info($"{thisType.GetNiceName()} Command Consumer Started On {this.serviceUrl}");
+            log?.Info($"{thisType.Name} Command Consumer Started On {this.serviceUrl}");
         }
         void IEventConsumer.Open()
         {
             Open();
-            log?.Info($"{thisType.GetNiceName()} Event Consumer Started On {this.serviceUrl}");
+            log?.Info($"{thisType.Name} Event Consumer Started On {this.serviceUrl}");
         }
         private void Open()
         {
@@ -162,7 +162,7 @@ namespace Zerra.CQRS.Network
                     this.listeners[i] = listener;
                 }
 
-                log?.Info($"{thisType.GetNiceName()} resolved {serviceUrl} as {String.Join(", ", endpoints.Select(x => x.ToString()))}");
+                log?.Info($"{thisType.Name} resolved {serviceUrl} as {String.Join(", ", endpoints.Select(x => x.ToString()))}");
 
                 foreach (var listener in listeners)
                     listener.Open();
@@ -182,17 +182,17 @@ namespace Zerra.CQRS.Network
         void IQueryServer.Close()
         {
             Dispose();
-            log?.Info($"{thisType.GetNiceName()} Query Server Closed On {this.serviceUrl}");
+            log?.Info($"{thisType.Name} Query Server Closed On {this.serviceUrl}");
         }
         void ICommandConsumer.Close()
         {
             Dispose();
-            log?.Info($"{thisType.GetNiceName()} Command Consumer Closed On {this.serviceUrl}");
+            log?.Info($"{thisType.Name} Command Consumer Closed On {this.serviceUrl}");
         }
         void IEventConsumer.Close()
         {
             Dispose();
-            log?.Info($"{thisType.GetNiceName()} Event Consumer Closed On {this.serviceUrl}");
+            log?.Info($"{thisType.Name} Event Consumer Closed On {this.serviceUrl}");
         }
 
         /// <inheritdoc />

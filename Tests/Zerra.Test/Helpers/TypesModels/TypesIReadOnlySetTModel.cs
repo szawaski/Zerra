@@ -8,7 +8,7 @@ using Zerra.Test.Helpers.Models;
 
 namespace Zerra.Test.Helpers.TypesModels
 {
-    [Zerra.SourceGeneration.SourceGenerationTypeDetail]
+    [Zerra.SourceGeneration.GenerateTypeDetail]
     public class TypesIReadOnlySetTModel
     {
         public IReadOnlySet<bool> BooleanIReadOnlySet { get; set; }

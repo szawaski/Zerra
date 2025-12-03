@@ -4,7 +4,7 @@
 
 namespace Zerra.Test.Helpers.Models
 {
-    [Zerra.SourceGeneration.SourceGenerationTypeDetail]
+    [Zerra.SourceGeneration.GenerateTypeDetail]
     public interface ITestInterface
     {
         int Property1 { get; set; }

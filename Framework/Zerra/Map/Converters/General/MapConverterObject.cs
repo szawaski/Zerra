@@ -84,7 +84,7 @@ namespace Zerra.Map
             if (!collectValues && target is null)
             {
                 if (!targetTypeDetail.HasCreator)
-                    throw new InvalidOperationException($"Cannot create instance of {targetTypeDetail.Type.GetNiceName()}");
+                    throw new InvalidOperationException($"Cannot create instance of {targetTypeDetail.Type.Name}");
                 target = targetTypeDetail.Creator!()!;
             }
 
@@ -101,9 +101,9 @@ namespace Zerra.Map
                 var childGraph = graph?.GetChildGraph(member.TargetMember.Name);
 
                 if (collectValues)
-                    member.ConverterSetCollectedValues.MapFromParent(source, collectedValues, childGraph);
+                    member.ConverterSetCollectedValues.MapFromParent(source, collectedValues!, childGraph);
                 else
-                    member.Converter.MapFromParent(source, target, childGraph);
+                    member.Converter.MapFromParent(source, target!, childGraph);
             }
 
             if (collectValues)

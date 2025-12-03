@@ -32,7 +32,7 @@ namespace Zerra.SourceGeneration.Reflection
         private static Type GenerateBusCallerClass(Type interfaceType)
         {
             if (!interfaceType.IsInterface)
-                throw new ArgumentException($"Type {interfaceType.GetNiceName()} is not an interface");
+                throw new ArgumentException($"Type {interfaceType.Name} is not an interface");
 
             var methods = new List<MethodInfo>();
             methods.AddRange(interfaceType.GetMethods());

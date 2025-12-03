@@ -6,7 +6,7 @@ using Zerra.SourceGeneration;
 
 namespace Zerra.Test.Helpers.TypesModels
 {
-    [SourceGenerationTypeDetail]
+    [GenerateTypeDetail]
     public class TypesCoreAlternatingModel
     {
         public bool BooleanThing { get; set; }

@@ -13,24 +13,27 @@ namespace Zerra.SourceGeneration
     public static class TypesGenerator
     {
         private static readonly string nullaleTypeName = typeof(Nullable<>).Name;
-        private static readonly string enumberableTypeName = nameof(IEnumerable);
-        private static readonly string enumberableGenericTypeName = typeof(IEnumerable<>).Name;
+        private static readonly string iEnumberableTypeName = nameof(IEnumerable);
+        private static readonly string iEnumberableGenericTypeName = typeof(IEnumerable<>).Name;
 
-        private static readonly string collectionTypeName = nameof(ICollection);
-        private static readonly string collectionGenericTypeName = typeof(ICollection<>).Name;
-        private static readonly string readOnlyCollectionGenericTypeName = typeof(IReadOnlyCollection<>).Name;
-        private static readonly string listTypeName = nameof(IList);
-        private static readonly string listGenericTypeName = typeof(IList<>).Name;
-        private static readonly string readOnlyListTypeName = typeof(IReadOnlyList<>).Name;
-        private static readonly string setGenericTypeName = typeof(ISet<>).Name;
+        private static readonly string iCollectionTypeName = nameof(ICollection);
+        private static readonly string iCollectionGenericTypeName = typeof(ICollection<>).Name;
+        private static readonly string iReadOnlyCollectionGenericTypeName = typeof(IReadOnlyCollection<>).Name;
+        private static readonly string iListTypeName = nameof(IList);
+        private static readonly string iListGenericTypeName = typeof(IList<>).Name;
+        private static readonly string listGenericTypeName = typeof(List<>).Name;
+        private static readonly string iReadOnlyListTypeName = typeof(IReadOnlyList<>).Name;
+        private static readonly string iSetGenericTypeName = typeof(ISet<>).Name;
 #if NET5_0_OR_GREATER
-        private static readonly string readOnlySetGenericTypeName = typeof(IReadOnlySet<>).Name;
+        private static readonly string iReadOnlySetGenericTypeName = typeof(IReadOnlySet<>).Name;
 #else
-        private static readonly string readOnlySetGenericTypeName = "IReadOnlySet`1";
+        private static readonly string iReadOnlySetGenericTypeName = "IReadOnlySet`1";
 #endif
-        private static readonly string dictionaryTypeName = typeof(IDictionary).Name;
-        private static readonly string dictionaryGenericTypeName = typeof(IDictionary<,>).Name;
-        private static readonly string readOnlyDictionaryGenericTypeName = typeof(IReadOnlyDictionary<,>).Name;
+        private static readonly string hashSetGenericTypeName = typeof(HashSet<>).Name;
+        private static readonly string iDictionaryTypeName = typeof(IDictionary).Name;
+        private static readonly string iDictionaryGenericTypeName = typeof(IDictionary<,>).Name;
+        private static readonly string iReadOnlyDictionaryGenericTypeName = typeof(IReadOnlyDictionary<,>).Name;
+        private static readonly string dictionaryGenericTypeName = typeof(Dictionary<,>).Name;
 
         public static void FindModels(ITypeSymbol typeSymbol, Dictionary<string, TypeToGenerate> models)
         {
@@ -41,8 +44,8 @@ namespace Zerra.SourceGeneration
 
             var stack = new Stack<string>();
             if ((namedTypeSymbol.Interfaces.Any(x => x.Name == "ICommand" || x.Name == "IEvent" || x.Name == "IQueryHandler" || x.Name == "ICommandHandler")
-                || namedTypeSymbol.GetAttributes().Any(x => x.AttributeClass?.Name == "SourceGenerationTypeDetailAttribute"))
-                && !namedTypeSymbol.GetAttributes().Any(x => x.AttributeClass?.Name == "IgnoreSourceGenerationTypeDetailAttribute"))
+                || namedTypeSymbol.GetAttributes().Any(x => x.AttributeClass?.Name == "GenerateTypeDetailAttribute"))
+                && !namedTypeSymbol.GetAttributes().Any(x => x.AttributeClass?.Name == "IgnoreGenerateTypeDetailAttribute"))
             {
                 if (namedTypeSymbol.TypeKind == TypeKind.Interface)
                     SearchInterface(namedTypeSymbol, models, stack);
@@ -402,6 +405,14 @@ namespace Zerra.SourceGeneration
             var isArray = typeSymbol.Kind == SymbolKind.ArrayType;
             var interfaceNames = typeSymbol.AllInterfaces.Select(x => x.MetadataName).ToImmutableHashSet();
 
+            var baseTypeNames = new HashSet<string>();
+            var baseTypeSymbol = typeSymbol.BaseType;
+            while (baseTypeSymbol != null)
+            {
+                baseTypeNames.Add(baseTypeSymbol.MetadataName);
+                baseTypeSymbol = baseTypeSymbol.BaseType;
+            }
+
             SpecialType? specialType = null;
             if (TypeLookup.SpecialTypeLookup(typeName, out var specialTypeParsed))
                 specialType = specialTypeParsed;
@@ -430,33 +441,39 @@ namespace Zerra.SourceGeneration
                 }
             }
 
-            var hasIEnumerable = isArray || typeSymbol.MetadataName == enumberableTypeName || interfaceNames.Contains(enumberableTypeName);
-            var hasIEnumerableGeneric = isArray || typeSymbol.MetadataName == enumberableGenericTypeName || interfaceNames.Contains(enumberableGenericTypeName);
-            var hasICollection = typeSymbol.MetadataName == collectionTypeName || interfaceNames.Contains(collectionTypeName);
-            var hasICollectionGeneric = typeSymbol.MetadataName == collectionGenericTypeName || interfaceNames.Contains(collectionGenericTypeName);
-            var hasIReadOnlyCollectionGeneric = typeSymbol.MetadataName == readOnlyCollectionGenericTypeName || interfaceNames.Contains(readOnlyCollectionGenericTypeName);
-            var hasIList = typeSymbol.MetadataName == listTypeName || interfaceNames.Contains(listTypeName);
-            var hasIListGeneric = typeSymbol.MetadataName == listGenericTypeName || interfaceNames.Contains(listGenericTypeName);
-            var hasIReadOnlyListGeneric = typeSymbol.MetadataName == readOnlyListTypeName || interfaceNames.Contains(readOnlyListTypeName);
-            var hasISetGeneric = typeSymbol.MetadataName == setGenericTypeName || interfaceNames.Contains(setGenericTypeName);
-            var hasIReadOnlySetGeneric = typeSymbol.MetadataName == readOnlySetGenericTypeName || interfaceNames.Contains(readOnlySetGenericTypeName);
-            var hasIDictionary = typeSymbol.MetadataName == dictionaryTypeName || interfaceNames.Contains(dictionaryTypeName);
-            var hasIDictionaryGeneric = typeSymbol.MetadataName == dictionaryGenericTypeName || interfaceNames.Contains(dictionaryGenericTypeName);
-            var hasIReadOnlyDictionaryGeneric = typeSymbol.MetadataName == readOnlyDictionaryGenericTypeName || interfaceNames.Contains(readOnlyDictionaryGenericTypeName);
+            var hasIEnumerable = isArray || typeSymbol.MetadataName == iEnumberableTypeName || interfaceNames.Contains(iEnumberableTypeName);
+            var hasIEnumerableGeneric = isArray || typeSymbol.MetadataName == iEnumberableGenericTypeName || interfaceNames.Contains(iEnumberableGenericTypeName);
+            var hasICollection = typeSymbol.MetadataName == iCollectionTypeName || interfaceNames.Contains(iCollectionTypeName);
+            var hasICollectionGeneric = typeSymbol.MetadataName == iCollectionGenericTypeName || interfaceNames.Contains(iCollectionGenericTypeName);
+            var hasIReadOnlyCollectionGeneric = typeSymbol.MetadataName == iReadOnlyCollectionGenericTypeName || interfaceNames.Contains(iReadOnlyCollectionGenericTypeName);
+            var hasIList = typeSymbol.MetadataName == iListTypeName || interfaceNames.Contains(iListTypeName);
+            var hasIListGeneric = typeSymbol.MetadataName == iListGenericTypeName || interfaceNames.Contains(iListGenericTypeName);
+            var hasListGeneric = typeSymbol.MetadataName == listGenericTypeName || baseTypeNames.Contains(listGenericTypeName);
+            var hasIReadOnlyListGeneric = typeSymbol.MetadataName == iReadOnlyListTypeName || interfaceNames.Contains(iReadOnlyListTypeName);
+            var hasISetGeneric = typeSymbol.MetadataName == iSetGenericTypeName || interfaceNames.Contains(iSetGenericTypeName);
+            var hasIReadOnlySetGeneric = typeSymbol.MetadataName == iReadOnlySetGenericTypeName || interfaceNames.Contains(iReadOnlySetGenericTypeName);
+            var hasHashSetGeneric = typeSymbol.MetadataName == hashSetGenericTypeName || baseTypeNames.Contains(hashSetGenericTypeName);
+            var hasIDictionary = typeSymbol.MetadataName == iDictionaryTypeName || interfaceNames.Contains(iDictionaryTypeName);
+            var hasIDictionaryGeneric = typeSymbol.MetadataName == iDictionaryGenericTypeName || interfaceNames.Contains(iDictionaryGenericTypeName);
+            var hasIReadOnlyDictionaryGeneric = typeSymbol.MetadataName == iReadOnlyDictionaryGenericTypeName || interfaceNames.Contains(iReadOnlyDictionaryGenericTypeName);
+            var hasDictionaryGeneric = typeSymbol.MetadataName == dictionaryGenericTypeName || baseTypeNames.Contains(dictionaryGenericTypeName);
 
-            var isIEnumerable = typeSymbol.MetadataName == enumberableTypeName;
-            var isIEnumerableGeneric = typeSymbol.MetadataName == enumberableGenericTypeName;
-            var isICollection = typeSymbol.MetadataName == collectionTypeName;
-            var isICollectionGeneric = typeSymbol.MetadataName == collectionGenericTypeName;
-            var isIReadOnlyCollectionGeneric = typeSymbol.MetadataName == readOnlyCollectionGenericTypeName;
-            var isIList = typeSymbol.MetadataName == listTypeName;
-            var isIListGeneric = typeSymbol.MetadataName == listGenericTypeName;
-            var isIReadOnlyListGeneric = typeSymbol.MetadataName == readOnlyListTypeName;
-            var isISetGeneric = typeSymbol.MetadataName == setGenericTypeName;
-            var isIReadOnlySetGeneric = typeSymbol.MetadataName == readOnlySetGenericTypeName;
-            var isIDictionary = typeSymbol.MetadataName == dictionaryTypeName;
-            var isIDictionaryGeneric = typeSymbol.MetadataName == dictionaryGenericTypeName;
-            var isIReadOnlyDictionaryGeneric = typeSymbol.MetadataName == readOnlyDictionaryGenericTypeName;
+            var isIEnumerable = typeSymbol.MetadataName == iEnumberableTypeName;
+            var isIEnumerableGeneric = typeSymbol.MetadataName == iEnumberableGenericTypeName;
+            var isICollection = typeSymbol.MetadataName == iCollectionTypeName;
+            var isICollectionGeneric = typeSymbol.MetadataName == iCollectionGenericTypeName;
+            var isIReadOnlyCollectionGeneric = typeSymbol.MetadataName == iReadOnlyCollectionGenericTypeName;
+            var isIList = typeSymbol.MetadataName == iListTypeName;
+            var isIListGeneric = typeSymbol.MetadataName == iListGenericTypeName;
+            var isIReadOnlyListGeneric = typeSymbol.MetadataName == iReadOnlyListTypeName;
+            var isListGeneric = typeSymbol.MetadataName == listGenericTypeName;
+            var isISetGeneric = typeSymbol.MetadataName == iSetGenericTypeName;
+            var isIReadOnlySetGeneric = typeSymbol.MetadataName == iReadOnlySetGenericTypeName;
+            var isHashSetGeneric = typeSymbol.MetadataName == hashSetGenericTypeName;
+            var isIDictionary = typeSymbol.MetadataName == iDictionaryTypeName;
+            var isIDictionaryGeneric = typeSymbol.MetadataName == iDictionaryGenericTypeName;
+            var isIReadOnlyDictionaryGeneric = typeSymbol.MetadataName == iReadOnlyDictionaryGenericTypeName;
+            var isDictionaryGeneric = typeSymbol.MetadataName == dictionaryGenericTypeName;
 
             string innerTypeOf = "null";
             if (namedTypeSymbol is not null)
@@ -476,7 +493,7 @@ namespace Zerra.SourceGeneration
             }
             else if (hasIEnumerableGeneric)
             {
-                var interfaceSymbol = typeSymbol.AllInterfaces.FirstOrDefault(x => x.MetadataName == enumberableGenericTypeName);
+                var interfaceSymbol = typeSymbol.AllInterfaces.FirstOrDefault(x => x.MetadataName == iEnumberableGenericTypeName);
                 if (interfaceSymbol is not null)
                     iEnumerableInnerTypeOf = Helper.GetTypeOfName(interfaceSymbol.TypeArguments[0]);
             }
@@ -489,7 +506,7 @@ namespace Zerra.SourceGeneration
             }
             else if (hasIDictionaryGeneric)
             {
-                var interfaceFound = typeSymbol.AllInterfaces.Where(x => x.MetadataName == dictionaryGenericTypeName).ToArray();
+                var interfaceFound = typeSymbol.AllInterfaces.Where(x => x.MetadataName == iDictionaryGenericTypeName).ToArray();
                 if (interfaceFound.Length == 1)
                 {
                     var i = interfaceFound[0];
@@ -498,7 +515,7 @@ namespace Zerra.SourceGeneration
             }
             else if (hasIReadOnlyDictionaryGeneric)
             {
-                var interfaceFound = typeSymbol.AllInterfaces.Where(x => x.MetadataName == readOnlyDictionaryGenericTypeName).ToArray();
+                var interfaceFound = typeSymbol.AllInterfaces.Where(x => x.MetadataName == iReadOnlyDictionaryGenericTypeName).ToArray();
                 if (interfaceFound.Length == 1)
                 {
                     var i = interfaceFound[0];
@@ -525,11 +542,14 @@ namespace Zerra.SourceGeneration
             _ = sb.Append(Helper.BoolString(hasIList)).Append(", ");
             _ = sb.Append(Helper.BoolString(hasIListGeneric)).Append(", ");
             _ = sb.Append(Helper.BoolString(hasIReadOnlyListGeneric)).Append(", ");
+            _ = sb.Append(Helper.BoolString(hasListGeneric)).Append(", ");
             _ = sb.Append(Helper.BoolString(hasISetGeneric)).Append(", ");
             _ = sb.Append(Helper.BoolString(hasIReadOnlySetGeneric)).Append(", ");
+            _ = sb.Append(Helper.BoolString(hasHashSetGeneric)).Append(", ");
             _ = sb.Append(Helper.BoolString(hasIDictionary)).Append(", ");
             _ = sb.Append(Helper.BoolString(hasIDictionaryGeneric)).Append(", ");
             _ = sb.Append(Helper.BoolString(hasIReadOnlyDictionaryGeneric)).Append(", ");
+            _ = sb.Append(Helper.BoolString(hasDictionaryGeneric)).Append(", ");
 
             _ = sb.Append(Helper.BoolString(isIEnumerable)).Append(", ");
             _ = sb.Append(Helper.BoolString(isIEnumerableGeneric)).Append(", ");
@@ -539,11 +559,14 @@ namespace Zerra.SourceGeneration
             _ = sb.Append(Helper.BoolString(isIList)).Append(", ");
             _ = sb.Append(Helper.BoolString(isIListGeneric)).Append(", ");
             _ = sb.Append(Helper.BoolString(isIReadOnlyListGeneric)).Append(", ");
+            _ = sb.Append(Helper.BoolString(isListGeneric)).Append(", ");
             _ = sb.Append(Helper.BoolString(isISetGeneric)).Append(", ");
             _ = sb.Append(Helper.BoolString(isIReadOnlySetGeneric)).Append(", ");
+            _ = sb.Append(Helper.BoolString(isHashSetGeneric)).Append(", ");
             _ = sb.Append(Helper.BoolString(isIDictionary)).Append(", ");
             _ = sb.Append(Helper.BoolString(isIDictionaryGeneric)).Append(", ");
             _ = sb.Append(Helper.BoolString(isIReadOnlyDictionaryGeneric)).Append(", ");
+            _ = sb.Append(Helper.BoolString(isDictionaryGeneric)).Append(", ");
 
             _ = sb.Append(Environment.NewLine).Append("                ");
 

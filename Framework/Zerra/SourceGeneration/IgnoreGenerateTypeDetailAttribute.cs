@@ -17,7 +17,7 @@ namespace Zerra.SourceGeneration
     /// - Performance optimization by excluding types from generation
     /// </remarks>
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Struct | AttributeTargets.Enum)]
-    public sealed class IgnoreSourceGenerationTypeDetailAttribute : Attribute
+    public sealed class IgnoreGenerateTypeDetailAttribute : Attribute
     {
 
     }

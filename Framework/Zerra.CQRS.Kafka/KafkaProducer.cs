@@ -102,9 +102,9 @@ namespace Zerra.CQRS.Kafka
         {
             var commandType = command.GetType();
             if (!topicsByCommandType.TryGetValue(commandType, out var topic))
-                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(KafkaProducer)}");
+                throw new Exception($"{commandType.Name} is not registered with {nameof(KafkaProducer)}");
             if (!throttleByTopic.TryGetValue(topic, out var throttle))
-                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(KafkaProducer)}");
+                throw new Exception($"{commandType.Name} is not registered with {nameof(KafkaProducer)}");
 
             await throttle.WaitAsync(cancellationToken);
 
@@ -207,9 +207,9 @@ namespace Zerra.CQRS.Kafka
         {
             var commandType = command.GetType();
             if (!topicsByCommandType.TryGetValue(commandType, out var topic))
-                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(KafkaProducer)}");
+                throw new Exception($"{commandType.Name} is not registered with {nameof(KafkaProducer)}");
             if (!throttleByTopic.TryGetValue(topic, out var throttle))
-                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(KafkaProducer)}");
+                throw new Exception($"{commandType.Name} is not registered with {nameof(KafkaProducer)}");
 
             await throttle.WaitAsync(cancellationToken);
 
@@ -300,9 +300,9 @@ namespace Zerra.CQRS.Kafka
         {
             var eventType = @event.GetType();
             if (!topicsByEventType.TryGetValue(eventType, out var topic))
-                throw new Exception($"{eventType.GetNiceName()} is not registered with {nameof(KafkaProducer)}");
+                throw new Exception($"{eventType.Name} is not registered with {nameof(KafkaProducer)}");
             if (!throttleByTopic.TryGetValue(topic, out var throttle))
-                throw new Exception($"{eventType.GetNiceName()} is not registered with {nameof(KafkaProducer)}");
+                throw new Exception($"{eventType.Name} is not registered with {nameof(KafkaProducer)}");
 
             try
             {

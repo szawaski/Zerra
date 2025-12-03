@@ -6,7 +6,7 @@ using Zerra.Serialization.Bytes;
 
 namespace Zerra.Test.Helpers.Models
 {
-    [Zerra.SourceGeneration.SourceGenerationTypeDetail]
+    [Zerra.SourceGeneration.GenerateTypeDetail]
     public class TestBoxingModel
     {
         [SerializerIndex(1)]

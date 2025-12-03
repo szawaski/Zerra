@@ -42,7 +42,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
                     }
                     else
                     {
-                        throw new InvalidOperationException($"{nameof(ByteSerializer)} cannot deserialize {typeDetail.Type.GetNiceName()}");
+                        throw new InvalidOperationException($"{nameof(ByteSerializer)} cannot deserialize {typeDetail.Type.Name}");
                     }
                     if (length == 0)
                         return true;

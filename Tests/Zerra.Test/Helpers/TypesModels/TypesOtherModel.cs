@@ -4,7 +4,7 @@
 
 namespace Zerra.Test.Helpers.TypesModels
 {
-    [Zerra.SourceGeneration.SourceGenerationTypeDetail]
+    [Zerra.SourceGeneration.GenerateTypeDetail]
     public class TypesOtherModel
     {
         public string[][] StringArrayOfArrayThing { get; set; }

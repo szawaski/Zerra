@@ -25,8 +25,8 @@ namespace Zerra.SourceGeneration
 
             var stack = new Stack<string>();
             if ((namedTypeSymbol.Interfaces.Any(x => x.Name == "ICommand" || x.Name == "IEvent" || x.Name == "IQueryHandler" || x.Name == "ICommandHandler")
-                || namedTypeSymbol.GetAttributes().Any(x => x.AttributeClass?.Name == "SourceGenerationTypeDetailAttribute"))
-                && !namedTypeSymbol.GetAttributes().Any(x => x.AttributeClass?.Name == "IgnoreSourceGenerationTypeDetailAttribute"))
+                || namedTypeSymbol.GetAttributes().Any(x => x.AttributeClass?.Name == "GenerateTypeDetailAttribute"))
+                && !namedTypeSymbol.GetAttributes().Any(x => x.AttributeClass?.Name == "IgnoreGenerateTypeDetailAttribute"))
             {
                 if (namedTypeSymbol.TypeKind == TypeKind.Interface)
                     SearchInterface(namedTypeSymbol, models, stack);

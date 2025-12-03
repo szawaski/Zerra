@@ -7,7 +7,7 @@ using Zerra.Test.Helpers.Models;
 
 namespace Zerra.Test.Helpers.TypesModels
 {
-    [Zerra.SourceGeneration.SourceGenerationTypeDetail]
+    [Zerra.SourceGeneration.GenerateTypeDetail]
     public class TypesIEnumerableModel
     {
         public IEnumerable BooleanIEnumerable { get; set; }

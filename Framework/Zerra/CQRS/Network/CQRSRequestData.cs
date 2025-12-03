@@ -9,7 +9,7 @@ namespace Zerra.CQRS.Network
     /// <summary>
     /// The information needed sending a request to a remote CQRS service for a query, command, or event.
     /// </summary>
-    [SourceGenerationTypeDetail]
+    [GenerateTypeDetail]
     public sealed class CqrsRequestData
     {
         /// <summary>

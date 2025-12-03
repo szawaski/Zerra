@@ -7,7 +7,7 @@ using Zerra.Test.Helpers.Models;
 
 namespace Zerra.Test.Helpers.TypesModels
 {
-    [Zerra.SourceGeneration.SourceGenerationTypeDetail]
+    [Zerra.SourceGeneration.GenerateTypeDetail]
     public class TypesIEnumerableOfTModel
     {
         public sealed class CustomIEnumerable : IEnumerable

@@ -80,9 +80,9 @@ namespace Zerra.CQRS.AzureServiceBus
         {
             var commandType = command.GetType();
             if (!queueByCommandType.TryGetValue(commandType, out var queue))
-                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(AzureServiceBusProducer)}");
+                throw new Exception($"{commandType.Name} is not registered with {nameof(AzureServiceBusProducer)}");
             if (!throttleByQueueOrTopic.TryGetValue(queue, out var throttle))
-                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(AzureServiceBusProducer)}");
+                throw new Exception($"{commandType.Name} is not registered with {nameof(AzureServiceBusProducer)}");
 
             await throttle.WaitAsync(cancellationToken);
 
@@ -184,9 +184,9 @@ namespace Zerra.CQRS.AzureServiceBus
         {
             var commandType = command.GetType();
             if (!queueByCommandType.TryGetValue(commandType, out var queue))
-                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(AzureServiceBusProducer)}");
+                throw new Exception($"{commandType.Name} is not registered with {nameof(AzureServiceBusProducer)}");
             if (!throttleByQueueOrTopic.TryGetValue(queue, out var throttle))
-                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(AzureServiceBusProducer)}");
+                throw new Exception($"{commandType.Name} is not registered with {nameof(AzureServiceBusProducer)}");
 
             await throttle.WaitAsync(cancellationToken);
 
@@ -276,9 +276,9 @@ namespace Zerra.CQRS.AzureServiceBus
         {
             var eventType = @event.GetType();
             if (!topicByEventType.TryGetValue(eventType, out var topic))
-                throw new Exception($"{eventType.GetNiceName()} is not registered with {nameof(AzureServiceBusProducer)}");
+                throw new Exception($"{eventType.Name} is not registered with {nameof(AzureServiceBusProducer)}");
             if (!throttleByQueueOrTopic.TryGetValue(topic, out var throttle))
-                throw new Exception($"{eventType.GetNiceName()} is not registered with {nameof(AzureServiceBusProducer)}");
+                throw new Exception($"{eventType.Name} is not registered with {nameof(AzureServiceBusProducer)}");
 
             await throttle.WaitAsync(cancellationToken);
 

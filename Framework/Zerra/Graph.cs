@@ -735,7 +735,7 @@ namespace Zerra
         //                }
         //                else
         //                {
-        //                    throw new NotSupportedException($"Graph {nameof(GenerateSelect)} does not support type {targetProperty.Type.GetNiceName()}");
+        //                    throw new NotSupportedException($"Graph {nameof(GenerateSelect)} does not support type {targetProperty.Type.Name}");
         //                }
 
         //                MemberBinding binding = Expression.Bind(targetProperty.MemberInfo, toExpression);

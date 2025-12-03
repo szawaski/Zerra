@@ -69,54 +69,54 @@ namespace Zerra.CQRS.Network
         /// <inheritdoc />
         protected override Task DispatchInternal(SemaphoreSlim throttle, Type commandType, ICommand command, bool messageAwait, string source, CancellationToken cancellationToken)
         {
-            var commendTypeName = commandType.GetNiceFullName();
+            var commandTypeName = commandType.AssemblyQualifiedName;
             var commandData = JsonSerializer.Serialize(command, commandType);
 
             var data = new ApiRequestData()
             {
-                MessageType = commendTypeName,
+                MessageType = commandTypeName,
                 MessageData = commandData,
                 MessageAwait = true,
 
                 Source = source
             };
 
-            return RequestAsync<object>(throttle, false, routeUri, commendTypeName, data, false, cancellationToken);
+            return RequestAsync<object>(throttle, false, routeUri, commandTypeName, data, false, cancellationToken);
         }
         /// <inheritdoc />
         protected override Task<TResult> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source, CancellationToken cancellationToken) where TResult : default
         {
-            var commendTypeName = commandType.GetNiceFullName();
+            var commandTypeName = commandType.AssemblyQualifiedName;
             var commandData = JsonSerializer.Serialize(command, commandType);
 
             var data = new ApiRequestData()
             {
-                MessageType = commendTypeName,
+                MessageType = commandTypeName,
                 MessageData = commandData,
                 MessageAwait = true,
 
                 Source = source
             };
 
-            return RequestAsync<TResult>(throttle, isStream, routeUri, commendTypeName, data, true, cancellationToken)!;
+            return RequestAsync<TResult>(throttle, isStream, routeUri, commandTypeName, data, true, cancellationToken)!;
         }
 
         /// <inheritdoc />
         protected override Task DispatchInternal(SemaphoreSlim throttle, Type eventType, IEvent @event, string source, CancellationToken cancellationToken)
         {
-            var commendTypeName = eventType.GetNiceFullName();
+            var commandTypeName = eventType.AssemblyQualifiedName;
             var commandData = JsonSerializer.Serialize(@event, eventType);
 
             var data = new ApiRequestData()
             {
-                MessageType = commendTypeName,
+                MessageType = commandTypeName,
                 MessageData = commandData,
                 MessageAwait = true,
 
                 Source = source
             };
 
-            return RequestAsync<object>(throttle, false, routeUri, commendTypeName, data, false, cancellationToken);
+            return RequestAsync<object>(throttle, false, routeUri, commandTypeName, data, false, cancellationToken);
         }
 
         private async Task<TReturn> RequestAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, string? providerType, ApiRequestData data, bool getResponseData, CancellationToken cancellationToken)

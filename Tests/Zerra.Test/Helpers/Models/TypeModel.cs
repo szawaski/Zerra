@@ -6,7 +6,7 @@ using Zerra.SourceGeneration;
 
 namespace Zerra.Test.Helpers.Models
 {
-    [SourceGenerationTypeDetail]
+    [GenerateTypeDetail]
     public class TypeModel
     {
         public Type Type1 { get; set; }

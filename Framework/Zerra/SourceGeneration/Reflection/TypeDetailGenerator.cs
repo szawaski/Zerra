@@ -15,24 +15,27 @@ namespace Zerra.SourceGeneration.Reflection
     {
         private static readonly string nullaleTypeName = typeof(Nullable<>).Name;
 
-        private static readonly string enumberableTypeName = nameof(IEnumerable);
-        private static readonly string enumberableGenericTypeName = typeof(IEnumerable<>).Name;
+        private static readonly string iEnumberableTypeName = nameof(IEnumerable);
+        private static readonly string iEnumberableGenericTypeName = typeof(IEnumerable<>).Name;
 
-        private static readonly string collectionTypeName = nameof(ICollection);
-        private static readonly string collectionGenericTypeName = typeof(ICollection<>).Name;
-        private static readonly string readOnlyCollectionGenericTypeName = typeof(IReadOnlyCollection<>).Name;
-        private static readonly string listTypeName = nameof(IList);
-        private static readonly string listGenericTypeName = typeof(IList<>).Name;
-        private static readonly string readOnlyListTypeName = typeof(IReadOnlyList<>).Name;
-        private static readonly string setGenericTypeName = typeof(ISet<>).Name;
+        private static readonly string iCollectionTypeName = nameof(ICollection);
+        private static readonly string iCollectionGenericTypeName = typeof(ICollection<>).Name;
+        private static readonly string iReadOnlyCollectionGenericTypeName = typeof(IReadOnlyCollection<>).Name;
+        private static readonly string iListTypeName = nameof(IList);
+        private static readonly string iListGenericTypeName = typeof(IList<>).Name;
+        private static readonly string ListGenericTypeName = typeof(List<>).Name;
+        private static readonly string iReadOnlyListTypeName = typeof(IReadOnlyList<>).Name;
+        private static readonly string iSetGenericTypeName = typeof(ISet<>).Name;
 #if NET5_0_OR_GREATER
-        private static readonly string readOnlySetGenericTypeName = typeof(IReadOnlySet<>).Name;
+        private static readonly string iReadOnlySetGenericTypeName = typeof(IReadOnlySet<>).Name;
 #else
-        private static readonly string readOnlySetGenericTypeName = "IReadOnlySet`1";
+        private static readonly string iReadOnlySetGenericTypeName = "IReadOnlySet`1";
 #endif
-        private static readonly string dictionaryTypeName = typeof(IDictionary).Name;
-        private static readonly string dictionaryGenericTypeName = typeof(IDictionary<,>).Name;
-        private static readonly string readOnlyDictionaryGenericTypeName = typeof(IReadOnlyDictionary<,>).Name;
+        private static readonly string hashSetGenericTypeName = typeof(HashSet<>).Name;
+        private static readonly string iDictionaryTypeName = typeof(IDictionary).Name;
+        private static readonly string iDictionaryGenericTypeName = typeof(IDictionary<,>).Name;
+        private static readonly string iReadOnlyDictionaryGenericTypeName = typeof(IReadOnlyDictionary<,>).Name;
+        private readonly static string dictionaryGenericTypeName = typeof(Dictionary<,>).Name;
 
         private static readonly Type keyValuePairType = typeof(KeyValuePair<,>);
         private static readonly Type dictionaryEntryType = typeof(DictionaryEntry);
@@ -122,34 +125,41 @@ namespace Zerra.SourceGeneration.Reflection
             }
 
             var interfaceNames = new HashSet<string>(interfaces.Select(x => x.Name));
+            var baseTypeNames = new HashSet<string>(baseTypes.Select(x => x.Name));
 
-            var hasIEnumerable = type.IsArray || type.Name == enumberableTypeName || interfaceNames.Contains(enumberableTypeName);
-            var hasIEnumerableGeneric = type.IsArray || type.Name == enumberableGenericTypeName || interfaceNames.Contains(enumberableGenericTypeName);
-            var hasICollection = type.Name == collectionTypeName || interfaceNames.Contains(collectionTypeName);
-            var hasICollectionGeneric = type.Name == collectionGenericTypeName || interfaceNames.Contains(collectionGenericTypeName);
-            var hasIReadOnlyCollectionGeneric = type.Name == readOnlyCollectionGenericTypeName || interfaceNames.Contains(readOnlyCollectionGenericTypeName);
-            var hasIList = type.Name == listTypeName || interfaceNames.Contains(listTypeName);
-            var hasIListGeneric = type.Name == listGenericTypeName || interfaceNames.Contains(listGenericTypeName);
-            var hasIReadOnlyListGeneric = type.Name == readOnlyListTypeName || interfaceNames.Contains(readOnlyListTypeName);
-            var hasISetGeneric = type.Name == setGenericTypeName || interfaceNames.Contains(setGenericTypeName);
-            var hasIReadOnlySetGeneric = type.Name == readOnlySetGenericTypeName || interfaceNames.Contains(readOnlySetGenericTypeName);
-            var hasIDictionary = type.Name == dictionaryTypeName || interfaceNames.Contains(dictionaryTypeName);
-            var hasIDictionaryGeneric = type.Name == dictionaryGenericTypeName || interfaceNames.Contains(dictionaryGenericTypeName);
-            var hasIReadOnlyDictionaryGeneric = type.Name == readOnlyDictionaryGenericTypeName || interfaceNames.Contains(readOnlyDictionaryGenericTypeName);
+            var hasIEnumerable = type.IsArray || type.Name == iEnumberableTypeName || interfaceNames.Contains(iEnumberableTypeName);
+            var hasIEnumerableGeneric = type.IsArray || type.Name == iEnumberableGenericTypeName || interfaceNames.Contains(iEnumberableGenericTypeName);
+            var hasICollection = type.Name == iCollectionTypeName || interfaceNames.Contains(iCollectionTypeName);
+            var hasICollectionGeneric = type.Name == iCollectionGenericTypeName || interfaceNames.Contains(iCollectionGenericTypeName);
+            var hasIReadOnlyCollectionGeneric = type.Name == iReadOnlyCollectionGenericTypeName || interfaceNames.Contains(iReadOnlyCollectionGenericTypeName);
+            var hasIList = type.Name == iListTypeName || interfaceNames.Contains(iListTypeName);
+            var hasIListGeneric = type.Name == iListGenericTypeName || interfaceNames.Contains(iListGenericTypeName);
+            var hasListGeneric = type.Name == ListGenericTypeName || baseTypeNames.Contains(ListGenericTypeName);
+            var hasIReadOnlyListGeneric = type.Name == iReadOnlyListTypeName || interfaceNames.Contains(iReadOnlyListTypeName);
+            var hasISetGeneric = type.Name == iSetGenericTypeName || interfaceNames.Contains(iSetGenericTypeName);
+            var hasIReadOnlySetGeneric = type.Name == iReadOnlySetGenericTypeName || interfaceNames.Contains(iReadOnlySetGenericTypeName);
+            var hasHashSetGeneric = type.Name == hashSetGenericTypeName || baseTypeNames.Contains(hashSetGenericTypeName);
+            var hasIDictionary = type.Name == iDictionaryTypeName || interfaceNames.Contains(iDictionaryTypeName);
+            var hasIDictionaryGeneric = type.Name == iDictionaryGenericTypeName || interfaceNames.Contains(iDictionaryGenericTypeName);
+            var hasIReadOnlyDictionaryGeneric = type.Name == iReadOnlyDictionaryGenericTypeName || interfaceNames.Contains(iReadOnlyDictionaryGenericTypeName);
+            var hasDictionaryGeneric = type.Name == dictionaryGenericTypeName || baseTypeNames.Contains(dictionaryGenericTypeName);
 
-            var isIEnumerable = type.Name == enumberableTypeName;
-            var isIEnumerableGeneric = type.Name == enumberableGenericTypeName;
-            var isICollection = type.Name == collectionTypeName;
-            var isICollectionGeneric = type.Name == collectionGenericTypeName;
-            var isIReadOnlyCollectionGeneric = type.Name == readOnlyCollectionGenericTypeName;
-            var isIList = type.Name == listTypeName;
-            var isIListGeneric = type.Name == listGenericTypeName;
-            var isIReadOnlyListGeneric = type.Name == readOnlyListTypeName;
-            var isISetGeneric = type.Name == setGenericTypeName;
-            var isIReadOnlySetGeneric = type.Name == readOnlySetGenericTypeName;
-            var isIDictionary = type.Name == dictionaryTypeName;
-            var isIDictionaryGeneric = type.Name == dictionaryGenericTypeName;
-            var isIReadOnlyDictionaryGeneric = type.Name == readOnlyDictionaryGenericTypeName;
+            var isIEnumerable = type.Name == iEnumberableTypeName;
+            var isIEnumerableGeneric = type.Name == iEnumberableGenericTypeName;
+            var isICollection = type.Name == iCollectionTypeName;
+            var isICollectionGeneric = type.Name == iCollectionGenericTypeName;
+            var isIReadOnlyCollectionGeneric = type.Name == iReadOnlyCollectionGenericTypeName;
+            var isIList = type.Name == iListTypeName;
+            var isIListGeneric = type.Name == iListGenericTypeName;
+            var isListGeneric = type.Name == ListGenericTypeName;
+            var isIReadOnlyListGeneric = type.Name == iReadOnlyListTypeName;
+            var isISetGeneric = type.Name == iSetGenericTypeName;
+            var isIReadOnlySetGeneric = type.Name == iReadOnlySetGenericTypeName;
+            var isHashSetGeneric = type.Name == hashSetGenericTypeName;
+            var isIDictionary = type.Name == iDictionaryTypeName;
+            var isIDictionaryGeneric = type.Name == iDictionaryGenericTypeName;
+            var isIReadOnlyDictionaryGeneric = type.Name == iReadOnlyDictionaryGenericTypeName;
+            var isDictionaryGeneric = type.Name == dictionaryGenericTypeName;
 
             Type? iEnumerableGenericInnerType = null;
             if (isIEnumerableGeneric)
@@ -158,7 +168,7 @@ namespace Zerra.SourceGeneration.Reflection
             }
             else
             {
-                var interfaceFound = interfaces.Where(x => x.Name == enumberableGenericTypeName).ToArray();
+                var interfaceFound = interfaces.Where(x => x.Name == iEnumberableGenericTypeName).ToArray();
                 if (interfaceFound.Length == 1)
                 {
                     iEnumerableGenericInnerType = interfaceFound[0].GetGenericArguments()[0];
@@ -172,7 +182,7 @@ namespace Zerra.SourceGeneration.Reflection
             }
             else if (hasIDictionaryGeneric)
             {
-                var interfaceFound = interfaces.Where(x => x.Name == dictionaryGenericTypeName).ToArray();
+                var interfaceFound = interfaces.Where(x => x.Name == iDictionaryGenericTypeName).ToArray();
                 if (interfaceFound.Length == 1)
                 {
                     dictionaryInnerType = keyValuePairType.MakeGenericType(interfaceFound[0].GetGenericArguments());
@@ -180,7 +190,7 @@ namespace Zerra.SourceGeneration.Reflection
             }
             else if (hasIReadOnlyDictionaryGeneric)
             {
-                var interfaceFound = interfaces.Where(x => x.Name == readOnlyDictionaryGenericTypeName).ToArray();
+                var interfaceFound = interfaces.Where(x => x.Name == iReadOnlyDictionaryGenericTypeName).ToArray();
                 if (interfaceFound.Length == 1)
                 {
                     dictionaryInnerType = keyValuePairType.MakeGenericType(interfaceFound[0].GetGenericArguments());
@@ -192,48 +202,54 @@ namespace Zerra.SourceGeneration.Reflection
             }
 
             var typeDetail = new TypeDetail<T>(
-                members,
-                constructors,
-                methods,
-                creator,
-                creatorBoxed,
-                isNullable,
-                coreType,
-                specialType,
-                enumType,
-                hasIEnumerable,
-                hasIEnumerableGeneric,
-                hasICollection,
-                hasICollectionGeneric,
-                hasIReadOnlyCollectionGeneric,
-                hasIList,
-                hasIListGeneric,
-                hasIReadOnlyListGeneric,
-                hasISetGeneric,
-                hasIReadOnlySetGeneric,
-                hasIDictionary,
-                hasIDictionaryGeneric,
-                hasIReadOnlyDictionaryGeneric,
-                isIEnumerable,
-                isIEnumerableGeneric,
-                isICollection,
-                isICollectionGeneric,
-                isIReadOnlyCollectionGeneric,
-                isIList,
-                isIListGeneric,
-                isIReadOnlyListGeneric,
-                isISetGeneric,
-                isIReadOnlySetGeneric,
-                isIDictionary,
-                isIDictionaryGeneric,
-                isIReadOnlyDictionaryGeneric,
-                innerType,
-                iEnumerableGenericInnerType,
-                dictionaryInnerType,
-                innerTypes,
-                baseTypes,
-                interfaces,
-                attributes
+                members: members,
+                constructors: constructors,
+                methods: methods,
+                creator: creator,
+                creatorBoxed: creatorBoxed,
+                isNullable: isNullable,
+                coreType: coreType,
+                specialType: specialType,
+                enumUnderlyingType: enumType,
+                hasIEnumerable: hasIEnumerable,
+                hasIEnumerableGeneric: hasIEnumerableGeneric,
+                hasICollection: hasICollection,
+                hasICollectionGeneric: hasICollectionGeneric,
+                hasIReadOnlyCollectionGeneric: hasIReadOnlyCollectionGeneric,
+                hasIList: hasIList,
+                hasIListGeneric: hasIListGeneric,
+                hasIReadOnlyListGeneric: hasIReadOnlyListGeneric,
+                hasListGeneric: hasListGeneric,
+                hasISetGeneric: hasISetGeneric,
+                hasIReadOnlySetGeneric: hasIReadOnlySetGeneric,
+                hasHashSetGeneric: hasHashSetGeneric,
+                hasIDictionary: hasIDictionary,
+                hasIDictionaryGeneric: hasIDictionaryGeneric,
+                hasIReadOnlyDictionaryGeneric: hasIReadOnlyDictionaryGeneric,
+                hasDictionaryGeneric: hasDictionaryGeneric,
+                isIEnumerable: isIEnumerable,
+                isIEnumerableGeneric: isIEnumerableGeneric,
+                isICollection: isICollection,
+                isICollectionGeneric: isICollectionGeneric,
+                isIReadOnlyCollectionGeneric: isIReadOnlyCollectionGeneric,
+                isIList: isIList,
+                isIListGeneric: isIListGeneric,
+                isIReadOnlyListGeneric: isIReadOnlyListGeneric,
+                isListGeneric: isListGeneric,
+                isISetGeneric: isISetGeneric,
+                isIReadOnlySetGeneric: isIReadOnlySetGeneric,
+                isHashSetGeneric: isHashSetGeneric,
+                isIDictionary: isIDictionary,
+                isIDictionaryGeneric: isIDictionaryGeneric,
+                isIReadOnlyDictionaryGeneric: isIReadOnlyDictionaryGeneric,
+                isDictionaryGeneric: isDictionaryGeneric,
+                innerType: innerType,
+                iEnumerableGenericInnerType: iEnumerableGenericInnerType,
+                dictionaryInnerType: dictionaryInnerType,
+                innerTypes: innerTypes,
+                baseTypes: baseTypes,
+                interfaces: interfaces,
+                attributes: attributes
             );
             return typeDetail;
         }

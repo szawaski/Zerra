@@ -603,6 +603,6 @@ namespace Zerra.Serialization.Json.Converters
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected void ThrowCannotConvert(ref JsonReader reader) => throw reader.CreateException($"Cannot convert to {typeDetail.Type.GetNiceName()} (disable {nameof(ReadState.ErrorOnTypeMismatch)} to prevent this exception)");
+        protected void ThrowCannotConvert(ref JsonReader reader) => throw reader.CreateException($"Cannot convert to {typeDetail.Type.Name} (disable {nameof(ReadState.ErrorOnTypeMismatch)} to prevent this exception)");
     }
 }

@@ -22,7 +22,7 @@ namespace Zerra.SourceGeneration
     /// be skipped by optimization filters.
     /// </remarks>
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Struct | AttributeTargets.Enum)]
-    public sealed class SourceGenerationTypeDetailAttribute : Attribute
+    public sealed class GenerateTypeDetailAttribute : Attribute
     {
 
     }

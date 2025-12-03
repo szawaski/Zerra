@@ -17,261 +17,210 @@ namespace Zerra.SourceGeneration
     /// </summary>
     public static class TypeHelper
     {
-        private static readonly ConcurrentFactoryDictionary<Type, string> niceNames = new();
-        private static readonly ConcurrentFactoryDictionary<Type, string> niceFullNames = new();
+        //private static readonly ConcurrentFactoryDictionary<Type, string> niceNames = new();
+        //private static readonly ConcurrentFactoryDictionary<Type, string> niceFullNames = new();
         private static readonly ConcurrentFactoryDictionary<string, ConcurrentList<Type?>> typeByName = new();
 
-        /// <summary>
-        /// Gets a human-readable simple name for the specified type.
-        /// For generic types, includes type parameters as 'T'. For example, "List&lt;T&gt;".
-        /// Results are cached for performance.
-        /// </summary>
-        /// <param name="it">The type to get the name for.</param>
-        /// <returns>A human-readable simple name, or "null" if the type is null.</returns>
-        public static string GetNiceName(Type it)
-        {
-            if (it is null)
-                return "null";
-            var name = niceNames.GetOrAdd(it, static (it) => GenerateNiceName(it, false));
-            return name;
-        }
+//        /// <summary>
+//        /// Gets a human-readable simple name for the specified type.
+//        /// For generic types, includes type parameters as 'T'. For example, "List&lt;T&gt;".
+//        /// Results are cached for performance.
+//        /// </summary>
+//        /// <param name="it">The type to get the name for.</param>
+//        /// <returns>A human-readable simple name, or "null" if the type is null.</returns>
+//        public static string GetNiceName(Type it)
+//        {
+//            if (it is null)
+//                return "null";
+//            var name = niceNames.GetOrAdd(it, static (it) => GenerateNiceName(it, false));
+//            return name;
+//        }
         
-        /// <summary>
-        /// Gets a human-readable fully-qualified name for the specified type.
-        /// For generic types, includes type parameters as 'T'. For example, "System.Collections.Generic.List&lt;T&gt;".
-        /// Results are cached for performance.
-        /// </summary>
-        /// <param name="it">The type to get the name for.</param>
-        /// <returns>A human-readable fully-qualified name, or "null" if the type is null.</returns>
-        public static string GetNiceFullName(Type it)
-        {
-            if (it is null)
-                return "null";
-            var name = niceFullNames.GetOrAdd(it, static (it) => GenerateNiceName(it, true));
-            return name;
-        }
+//        /// <summary>
+//        /// Gets a human-readable fully-qualified name for the specified type.
+//        /// For generic types, includes type parameters as 'T'. For example, "System.Collections.Generic.List&lt;T&gt;".
+//        /// Results are cached for performance.
+//        /// </summary>
+//        /// <param name="it">The type to get the name for.</param>
+//        /// <returns>A human-readable fully-qualified name, or "null" if the type is null.</returns>
+//        public static string GetNiceFullName(Type it)
+//        {
+//            if (it is null)
+//                return "null";
+//            var name = niceFullNames.GetOrAdd(it, static (it) => GenerateNiceName(it, true));
+//            return name;
+//        }
 
-        private static string GenerateNiceName(Type type, bool includeNamespace)
-        {
-            if (type.ContainsGenericParameters)
-            {
-                var span = type.Name.AsSpan();
-                var i = 0;
-                for (; i < span.Length; i++)
-                {
-                    if (span[i] == '`')
-                        break;
-                }
+//        private static string GenerateNiceName(Type type, bool includeNamespace)
+//        {
+//            if (type.ContainsGenericParameters)
+//            {
+//                var span = type.Name.AsSpan();
+//                var i = 0;
+//                for (; i < span.Length; i++)
+//                {
+//                    if (span[i] == '`')
+//                        break;
+//                }
 
-#if NETSTANDARD2_0
-                var name = span.Slice(0, i).ToString();
-#else
-                var name = span.Slice(0, i);
-#endif
+//#if NETSTANDARD2_0
+//                var name = span.Slice(0, i).ToString();
+//#else
+//                var name = span.Slice(0, i);
+//#endif
 
-                //Have to inspect because inner generics or partially constructed generics won't work
-                var parameters = type.GetGenericArguments();
+//                //Have to inspect because inner generics or partially constructed generics won't work
+//                var parameters = type.GetGenericArguments();
 
-                var sb = new StringBuilder();
+//                var sb = new StringBuilder();
 
-                if (includeNamespace && type.Namespace is not null)
-                    _ = sb.Append(type.Namespace).Append('.');
-                _ = sb.Append(name).Append('<');
+//                if (includeNamespace && type.Namespace is not null)
+//                    _ = sb.Append(type.Namespace).Append('.');
+//                _ = sb.Append(name).Append('<');
 
-                for (var j = 0; j < parameters.Length; j++)
-                {
-                    if (j > 0)
-                        _ = sb.Append(',');
-                    var parameter = parameters[j];
-                    if (parameter.IsGenericParameter)
-                        _ = sb.Append('T');
-                    else if (includeNamespace)
-                        _ = sb.Append(GetNiceFullName(parameter));
-                    else
-                        _ = sb.Append(GetNiceName(parameter));
-                }
+//                for (var j = 0; j < parameters.Length; j++)
+//                {
+//                    if (j > 0)
+//                        _ = sb.Append(',');
+//                    var parameter = parameters[j];
+//                    if (parameter.IsGenericParameter)
+//                        _ = sb.Append('T');
+//                    else if (includeNamespace)
+//                        _ = sb.Append(GetNiceFullName(parameter));
+//                    else
+//                        _ = sb.Append(GetNiceName(parameter));
+//                }
 
-                _ = sb.Append('>');
-                return sb.ToString();
-            }
-            else if ((type.IsGenericType || type.IsArray) && type.FullName is not null)
-            {
-                var sb = new StringBuilder();
+//                _ = sb.Append('>');
+//                return sb.ToString();
+//            }
+//            else if ((type.IsGenericType || type.IsArray) && type.FullName is not null)
+//            {
+//                var sb = new StringBuilder();
 
-                var openGeneric = 0;
-                var openGenericArray = 0;
-                var nameStart = 0;
-                var inArray = false;
-                var span = type.FullName.AsSpan();
-                var i = 0;
-                for (; i < span.Length; i++)
-                {
-                    var c = span[i];
-                    switch (c)
-                    {
-                        case '[':
-                            if (nameStart == -1)
-                            {
-                                if (openGeneric == openGenericArray)
-                                {
-                                    openGeneric++;
-                                }
-                                else
-                                {
-                                    openGenericArray++;
-                                    if (nameStart != -1)
-                                    {
-#if NETSTANDARD2_0
-                                        sb.Append(span.Slice(nameStart, i - 1 - nameStart).ToString());
-#else
-                                        sb.Append(span.Slice(nameStart, i - 1 - nameStart));
-#endif
-                                        nameStart = -1;
-                                    }
-                                    nameStart = i + 1;
-                                    if (i > 0 && span[i - 1] != ',')
-                                        sb.Append('<');
-                                }
-                            }
-                            else
-                            {
-#if NETSTANDARD2_0
-                                sb.Append(span.Slice(nameStart, i + 1 - nameStart).ToString());
-#else
-                                sb.Append(span.Slice(nameStart, i + 1 - nameStart));
-#endif
-                                nameStart = -1;
-                                inArray = true;
-                            }
-                            break;
-                        case '.':
-                            if (!includeNamespace && nameStart != -1)
-                            {
-                                nameStart = i + 1;
-                            }
-                            break;
-                        case ',':
-                            if (inArray)
-                            {
-                                sb.Append(',');
-                            }
-                            else if (openGenericArray != openGeneric)
-                            {
-                                sb.Append(',');
-                            }
-                            else if (nameStart != -1)
-                            {
-#if NETSTANDARD2_0
-                                sb.Append(span.Slice(nameStart, i - nameStart).ToString());
-#else
-                                sb.Append(span.Slice(nameStart, i - nameStart));
-#endif
-                                nameStart = -1;
-                            }
-                            break;
-                        case '`':
-                            if (nameStart != -1)
-                            {
-#if NETSTANDARD2_0
-                                sb.Append(span.Slice(nameStart, i - nameStart).ToString());
-#else
-                                sb.Append(span.Slice(nameStart, i - nameStart));
-#endif
-                                nameStart = -1;
-                            }
-                            break;
-                        case ']':
-                            if (inArray)
-                            {
-                                sb.Append(']');
-                                inArray = false;
-                            }
-                            else if (nameStart == -1)
-                            {
-                                if (openGenericArray == openGeneric)
-                                {
-                                    openGenericArray--;
-                                }
-                                else
-                                {
-                                    openGeneric--;
-                                    nameStart = i + 1;
-                                    sb.Append('>');
-                                }
-                            }
-                            break;
-                    }
-                }
+//                var openGeneric = 0;
+//                var openGenericArray = 0;
+//                var nameStart = 0;
+//                var inArray = false;
+//                var span = type.FullName.AsSpan();
+//                var i = 0;
+//                for (; i < span.Length; i++)
+//                {
+//                    var c = span[i];
+//                    switch (c)
+//                    {
+//                        case '[':
+//                            if (nameStart == -1)
+//                            {
+//                                if (openGeneric == openGenericArray)
+//                                {
+//                                    openGeneric++;
+//                                }
+//                                else
+//                                {
+//                                    openGenericArray++;
+//                                    if (nameStart != -1)
+//                                    {
+//#if NETSTANDARD2_0
+//                                        sb.Append(span.Slice(nameStart, i - 1 - nameStart).ToString());
+//#else
+//                                        sb.Append(span.Slice(nameStart, i - 1 - nameStart));
+//#endif
+//                                        nameStart = -1;
+//                                    }
+//                                    nameStart = i + 1;
+//                                    if (i > 0 && span[i - 1] != ',')
+//                                        sb.Append('<');
+//                                }
+//                            }
+//                            else
+//                            {
+//#if NETSTANDARD2_0
+//                                sb.Append(span.Slice(nameStart, i + 1 - nameStart).ToString());
+//#else
+//                                sb.Append(span.Slice(nameStart, i + 1 - nameStart));
+//#endif
+//                                nameStart = -1;
+//                                inArray = true;
+//                            }
+//                            break;
+//                        case '.':
+//                            if (!includeNamespace && nameStart != -1)
+//                            {
+//                                nameStart = i + 1;
+//                            }
+//                            break;
+//                        case ',':
+//                            if (inArray)
+//                            {
+//                                sb.Append(',');
+//                            }
+//                            else if (openGenericArray != openGeneric)
+//                            {
+//                                sb.Append(',');
+//                            }
+//                            else if (nameStart != -1)
+//                            {
+//#if NETSTANDARD2_0
+//                                sb.Append(span.Slice(nameStart, i - nameStart).ToString());
+//#else
+//                                sb.Append(span.Slice(nameStart, i - nameStart));
+//#endif
+//                                nameStart = -1;
+//                            }
+//                            break;
+//                        case '`':
+//                            if (nameStart != -1)
+//                            {
+//#if NETSTANDARD2_0
+//                                sb.Append(span.Slice(nameStart, i - nameStart).ToString());
+//#else
+//                                sb.Append(span.Slice(nameStart, i - nameStart));
+//#endif
+//                                nameStart = -1;
+//                            }
+//                            break;
+//                        case ']':
+//                            if (inArray)
+//                            {
+//                                sb.Append(']');
+//                                inArray = false;
+//                            }
+//                            else if (nameStart == -1)
+//                            {
+//                                if (openGenericArray == openGeneric)
+//                                {
+//                                    openGenericArray--;
+//                                }
+//                                else
+//                                {
+//                                    openGeneric--;
+//                                    nameStart = i + 1;
+//                                    sb.Append('>');
+//                                }
+//                            }
+//                            break;
+//                    }
+//                }
 
-                return sb.ToString();
-            }
-            else
-            {
-                if (includeNamespace)
-                {
-                    if (type.FullName is not null)
-                        return type.FullName;
-                    if (type.Namespace is not null)
-                        return $"{type.Namespace}.{type.Name}";
-                    return type.Name;
-                }
-                else
-                {
-                    return type.Name;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Converts a generic type name string to use 'T' for all generic type parameters.
-        /// For example, "List&lt;System.String&gt;" becomes "List&lt;T&gt;".
-        /// </summary>
-        /// <param name="typeName">The generic type name string to process.</param>
-        /// <returns>A type name with generic parameters replaced by 'T'.</returns>
-        public static string MakeNiceNameGeneric(string typeName)
-        {
-            var sb = new StringBuilder();
-
-            var chars = typeName.AsSpan();
-            var start = 0;
-            var depth = 0;
-            for (var i = 0; i < chars.Length; i++)
-            {
-                var c = chars[i];
-                switch (c)
-                {
-                    case '<':
-                        depth++;
-                        if (depth == 1)
-#if NETSTANDARD2_0
-                            _ = sb.Append(chars.Slice(start, i + 1 - start).ToString());
-#else
-                            _ = sb.Append(chars[start..(i + 1)]);
-#endif
-                        break;
-                    case ',':
-                        if (depth == 1)
-                            _ = sb.Append("T,");
-                        break;
-                    case '>':
-                        depth--;
-                        if (depth == 0)
-                        {
-                            _ = sb.Append('T');
-                            start = i;
-                        }
-                        break;
-                }
-            }
-
-#if NETSTANDARD2_0
-            _ = sb.Append(chars.Slice(start, chars.Length - start).ToString());
-#else
-            _ = sb.Append(chars[start..]);
-#endif
-
-            return sb.ToString();
-        }
+//                return sb.ToString();
+//            }
+//            else
+//            {
+//                if (includeNamespace)
+//                {
+//                    if (type.FullName is not null)
+//                        return type.FullName;
+//                    if (type.Namespace is not null)
+//                        return $"{type.Namespace}.{type.Name}";
+//                    return type.Name;
+//                }
+//                else
+//                {
+//                    return type.Name;
+//                }
+//            }
+//        }
 
         /// <summary>
         /// Resolves a type by its name string.
@@ -376,38 +325,52 @@ namespace Zerra.SourceGeneration
         /// <param name="type">The type to register.</param>
         public static void Register(Type type)
         {
-            var niceName = GetNiceName(type);
-            var niceFullName = GetNiceFullName(type);
+            //var niceName = GetNiceName(type);
+            //var niceFullName = GetNiceFullName(type);
 
-            var types = typeByName.GetOrAdd(niceName, static (key) => new());
-            if (!types.Contains(type))
-                types.Add(type);
+            if (type.AssemblyQualifiedName != null)
+            {
+                var types = typeByName.GetOrAdd(type.AssemblyQualifiedName, static (key) => new());
+                if (!types.Contains(type))
+                    types.Add(type);
+            }
 
-            types = typeByName.GetOrAdd(niceFullName, static (key) => new());
-            if (!types.Contains(type))
-                types.Add(type);
+            //types = typeByName.GetOrAdd(niceName, static (key) => new());
+            //if (!types.Contains(type))
+            //    types.Add(type);
+
+            //types = typeByName.GetOrAdd(niceFullName, static (key) => new());
+            //if (!types.Contains(type))
+            //    types.Add(type);
         }
         
-        /// <summary>
-        /// Registers a type with pre-calculated nice and fully-qualified names.
-        /// Caches the type and its names for quick lookup without recalculation.
-        /// Useful for registering types generated by source generators where names are already known.
-        /// </summary>
-        /// <param name="type">The type to register.</param>
-        /// <param name="niceName">The pre-calculated human-readable simple name.</param>
-        /// <param name="niceFullName">The pre-calculated human-readable fully-qualified name.</param>
-        internal static void Register(Type type, string niceName, string niceFullName)
-        {
-            _ = niceNames.TryAdd(type, niceName);
-            var types = typeByName.GetOrAdd(niceName, static (key) => new());
-            if (!types.Contains(type))
-                types.Add(type);
+        ///// <summary>
+        ///// Registers a type with pre-calculated nice and fully-qualified names.
+        ///// Caches the type and its names for quick lookup without recalculation.
+        ///// Useful for registering types generated by source generators where names are already known.
+        ///// </summary>
+        ///// <param name="type">The type to register.</param>
+        ///// <param name="niceName">The pre-calculated human-readable simple name.</param>
+        ///// <param name="niceFullName">The pre-calculated human-readable fully-qualified name.</param>
+        //internal static void Register(Type type, string niceName, string niceFullName)
+        //{
+        //    if (type.AssemblyQualifiedName != null)
+        //    {
+        //        var types = typeByName.GetOrAdd(type.AssemblyQualifiedName, static (key) => new());
+        //        if (!types.Contains(type))
+        //            types.Add(type);
+        //    }
 
-            _ = niceNames.TryAdd(type, niceFullName);
-            types = typeByName.GetOrAdd(niceFullName, static (key) => new());
-            if (!types.Contains(type))
-                types.Add(type);
-        }
+        //    _ = niceNames.TryAdd(type, niceName);
+        //    types = typeByName.GetOrAdd(niceName, static (key) => new());
+        //    if (!types.Contains(type))
+        //        types.Add(type);
+
+        //    _ = niceNames.TryAdd(type, niceFullName);
+        //    types = typeByName.GetOrAdd(niceFullName, static (key) => new());
+        //    if (!types.Contains(type))
+        //        types.Add(type);
+        //}
 
 #pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
 #pragma warning disable IL2055 // Either the type on which the MakeGenericType is called can't be statically determined, or the type parameters to be used for generic arguments can't be statically determined.

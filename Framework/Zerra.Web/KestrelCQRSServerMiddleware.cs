@@ -200,7 +200,7 @@ namespace Zerra.Web
                     var providerType = TypeHelper.GetTypeFromName(data.ProviderType);
 
                     if (!settings.Types.TryGetValue(providerType, out throttle))
-                        throw new Exception($"{providerType.GetNiceName()} is not registered with {nameof(KestrelCqrsServerMiddleware)}");
+                        throw new Exception($"{providerType.Name} is not registered with {nameof(KestrelCqrsServerMiddleware)}");
 
                     await throttle.WaitAsync(context.RequestAborted);
 
@@ -309,7 +309,7 @@ namespace Zerra.Web
                     var typeDetail = TypeAnalyzer.GetTypeDetail(messageType);
 
                     if (!settings.Types.TryGetValue(messageType, out throttle))
-                        throw new Exception($"{messageType.GetNiceName()} is not registered with {nameof(KestrelCqrsServerMiddleware)}");
+                        throw new Exception($"{messageType.Name} is not registered with {nameof(KestrelCqrsServerMiddleware)}");
 
                     await throttle.WaitAsync(context.RequestAborted);
 

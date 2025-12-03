@@ -6,7 +6,7 @@ using Zerra.SourceGeneration;
 
 namespace Zerra.CQRS.Network
 {
-    [SourceGenerationTypeDetail]
+    [GenerateTypeDetail]
     internal sealed class ExceptionContent
     {
         public string? ErrorMessage { get; set; }

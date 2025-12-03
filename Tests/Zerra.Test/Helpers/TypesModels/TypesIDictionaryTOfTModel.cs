@@ -7,7 +7,7 @@ using Zerra.Test.Helpers.Models;
 
 namespace Zerra.Test.Helpers.TypesModels
 {
-    [Zerra.SourceGeneration.SourceGenerationTypeDetail]
+    [Zerra.SourceGeneration.GenerateTypeDetail]
     public class TypesIDictionaryTOfTModel
     {
         public ConcurrentDictionary<int, string> DictionaryThing1 { get; set; }

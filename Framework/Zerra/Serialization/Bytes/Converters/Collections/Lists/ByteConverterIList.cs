@@ -9,17 +9,17 @@ using Zerra.SourceGeneration;
 
 namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
 {
-    internal sealed class ByteConverterIList<TValue> : ByteConverter<IList>
+    internal sealed class ByteConverterIList : ByteConverter<IList>
     {
         private ByteConverter converter = null!;
 
         private static object Getter(object parent) => ((IEnumerator)parent).Current;
-        private static void Setter(object parent, TValue value) => ((IList)parent).Add(value);
+        private static void Setter(object parent, object value) => ((IList)parent).Add(value);
 
         protected override sealed void Setup()
         {
             var valueTypeDetail = TypeAnalyzer<object>.GetTypeDetail();
-            converter = ByteConverterFactory.Get(valueTypeDetail, nameof(ByteConverterIList<TValue>), Getter, Setter);
+            converter = ByteConverterFactory.Get(valueTypeDetail, nameof(ByteConverterIList), Getter, Setter);
         }
 
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out IList? value)
@@ -34,7 +34,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
 
                 if (!state.Current.DrainBytes)
                 {
-                    value = new List<TValue>(state.Current.EnumerableLength!.Value);
+                    value = new List<object>(state.Current.EnumerableLength!.Value);
                     if (state.Current.EnumerableLength!.Value == 0)
                         return true;
                 }

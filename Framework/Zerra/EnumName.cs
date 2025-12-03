@@ -42,7 +42,7 @@ public sealed class EnumName : Attribute
     public static string GetName(Type type, object value)
     {
         if (!type.IsEnum)
-            throw new ArgumentException($"Type {type.GetNiceName()} is not an Enum");
+            throw new ArgumentException($"Type {type.Name} is not an Enum");
 
         var enumInfo = GetEnumInfo(type);
 
@@ -138,7 +138,7 @@ public sealed class EnumName : Attribute
     //public static string[] GetNames(Type type)
     //{
     //    if (!type.IsEnum)
-    //        throw new ArgumentException($"Type {type.GetNiceName()} is not an Enum");
+    //        throw new ArgumentException($"Type {type.Name} is not an Enum");
     //    var namesLookup = GetNamesForType(type);
     //    return namesLookup.Values.ToArray();
     //}
@@ -251,7 +251,7 @@ public sealed class EnumName : Attribute
         if (TryParse(enumString, type, out var value))
             return value;
 
-        throw new InvalidOperationException($"Could not parse \"{enumString}\" into enum type {type.GetNiceName()}");
+        throw new InvalidOperationException($"Could not parse \"{enumString}\" into enum type {type.Name}");
     }
 
     /// <summary>
@@ -421,7 +421,7 @@ public sealed class EnumName : Attribute
     {
         var enumInfo = new EnumInfo(underlyingType, hasFlagsAttribute, fields, creator, bitOr);
         if (!enumInfoCache.TryAdd(type, enumInfo))
-            throw new InvalidOperationException($"Enum type {type.GetNiceName()} is already registered");
+            throw new InvalidOperationException($"Enum type {type.Name} is already registered");
     }
 
     private sealed class EnumInfo

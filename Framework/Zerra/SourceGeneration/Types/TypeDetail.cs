@@ -55,16 +55,22 @@ namespace Zerra.SourceGeneration.Types
         public readonly bool HasIListGeneric;
         /// <summary>Indicates whether this type implements <see cref="System.Collections.Generic.IReadOnlyList{T}"/>.</summary>
         public readonly bool HasIReadOnlyListGeneric;
+        /// <summary>Indicates whether this type implements <see cref="System.Collections.Generic.List{T}"/>.</summary>
+        public readonly bool HasListGeneric;
         /// <summary>Indicates whether this type implements <see cref="System.Collections.Generic.ISet{T}"/>.</summary>
         public readonly bool HasISetGeneric;
         /// <summary>Indicates whether this type implements <see cref="System.Collections.Generic.IReadOnlySet{T}"/>.</summary>
         public readonly bool HasIReadOnlySetGeneric;
+        /// <summary>Indicates whether this type implements <see cref="System.Collections.Generic.HashSet{T}"/>.</summary>
+        public readonly bool HasHashSetGeneric;
         /// <summary>Indicates whether this type implements <see cref="System.Collections.IDictionary"/>.</summary>
         public readonly bool HasIDictionary;
         /// <summary>Indicates whether this type implements <see cref="System.Collections.Generic.IDictionary{TKey, TValue}"/>.</summary>
         public readonly bool HasIDictionaryGeneric;
         /// <summary>Indicates whether this type implements <see cref="System.Collections.Generic.IReadOnlyDictionary{TKey, TValue}"/>.</summary>
         public readonly bool HasIReadOnlyDictionaryGeneric;
+        /// <summary>Indicates whether this type implements <see cref="System.Collections.Generic.Dictionary{TKey, TValue}"/>.</summary>
+        public readonly bool HasDictionaryGeneric;
 
         /// <summary>Indicates whether this type is exactly <see cref="System.Collections.IEnumerable"/>.</summary>
         public readonly bool IsIEnumerable;
@@ -82,16 +88,22 @@ namespace Zerra.SourceGeneration.Types
         public readonly bool IsIListGeneric;
         /// <summary>Indicates whether this type is exactly <see cref="System.Collections.Generic.IReadOnlyList{T}"/>.</summary>
         public readonly bool IsIReadOnlyListGeneric;
+        /// <summary>Indicates whether this type is exactly <see cref="System.Collections.Generic.List{T}"/>.</summary>
+        public readonly bool IsListGeneric;
         /// <summary>Indicates whether this type is exactly <see cref="System.Collections.Generic.ISet{T}"/>.</summary>
         public readonly bool IsISetGeneric;
         /// <summary>Indicates whether this type is exactly <see cref="System.Collections.Generic.IReadOnlySet{T}"/>.</summary>
         public readonly bool IsIReadOnlySetGeneric;
+        /// <summary>Indicates whether this type is exactly <see cref="System.Collections.Generic.HashSet{T}"/>.</summary>
+        public readonly bool IsHashSetGeneric;
         /// <summary>Indicates whether this type is exactly <see cref="System.Collections.IDictionary"/>.</summary>
         public readonly bool IsIDictionary;
         /// <summary>Indicates whether this type is exactly <see cref="System.Collections.Generic.IDictionary{TKey, TValue}"/>.</summary>
         public readonly bool IsIDictionaryGeneric;
         /// <summary>Indicates whether this type is exactly <see cref="System.Collections.Generic.IReadOnlyDictionary{TKey, TValue}"/>.</summary>
         public readonly bool IsIReadOnlyDictionaryGeneric;
+        /// <summary>Indicates whether this type is exactly <see cref="System.Collections.Generic.Dictionary{TKey, TValue}"/>.</summary>
+        public readonly bool IsDictionaryGeneric;
 
         /// <summary>Collection of all inner generic type arguments for generic types.</summary>
         public readonly IReadOnlyList<Type> InnerTypes;
@@ -147,11 +159,14 @@ namespace Zerra.SourceGeneration.Types
             bool hasIList,
             bool hasIListGeneric,
             bool hasIReadOnlyListGeneric,
+            bool hasListGeneric,
             bool hasISetGeneric,
             bool hasIReadOnlySetGeneric,
+            bool hasHashSetGeneric,
             bool hasIDictionary,
             bool hasIDictionaryGeneric,
             bool hasIReadOnlyDictionaryGeneric,
+            bool hasDictionaryGeneric,
 
             bool isIEnumerable,
             bool isIEnumerableGeneric,
@@ -161,11 +176,14 @@ namespace Zerra.SourceGeneration.Types
             bool isIList,
             bool isIListGeneric,
             bool isIReadOnlyListGeneric,
+            bool isListGeneric,
             bool isISetGeneric,
             bool isIReadOnlySetGeneric,
+            bool isHashSetGeneric,
             bool isIDictionary,
             bool isIDictionaryGeneric,
             bool isIReadOnlyDictionaryGeneric,
+            bool isDictionaryGeneric,
 
             Type? innerType,
             Type? iEnumerableGenericInnerType,
@@ -199,11 +217,14 @@ namespace Zerra.SourceGeneration.Types
             this.HasIList = hasIList;
             this.HasIListGeneric = hasIListGeneric;
             this.HasIReadOnlyListGeneric = hasIReadOnlyListGeneric;
+            this.HasListGeneric = hasListGeneric;
             this.HasISetGeneric = hasISetGeneric;
             this.HasIReadOnlySetGeneric = hasIReadOnlySetGeneric;
+            this.HasHashSetGeneric = hasHashSetGeneric;
             this.HasIDictionary = hasIDictionary;
             this.HasIDictionaryGeneric = hasIDictionaryGeneric;
             this.HasIReadOnlyDictionaryGeneric = hasIReadOnlyDictionaryGeneric;
+            this.HasDictionaryGeneric = hasDictionaryGeneric;
 
             this.IsIEnumerable = isIEnumerable;
             this.IsIEnumerableGeneric = isIEnumerableGeneric;
@@ -213,11 +234,14 @@ namespace Zerra.SourceGeneration.Types
             this.IsIList = isIList;
             this.IsIListGeneric = isIListGeneric;
             this.IsIReadOnlyListGeneric = isIReadOnlyListGeneric;
+            this.IsListGeneric = isListGeneric;
             this.IsISetGeneric = isISetGeneric;
             this.IsIReadOnlySetGeneric = isIReadOnlySetGeneric;
+            this.IsHashSetGeneric = isHashSetGeneric;
             this.IsIDictionary = isIDictionary;
             this.IsIDictionaryGeneric = isIDictionaryGeneric;
             this.IsIReadOnlyDictionaryGeneric = isIReadOnlyDictionaryGeneric;
+            this.IsDictionaryGeneric = isDictionaryGeneric;
 
             this.InnerType = innerType;
             this.IEnumerableGenericInnerType = iEnumerableGenericInnerType;

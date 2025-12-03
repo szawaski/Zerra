@@ -76,13 +76,13 @@ namespace Zerra.Map
             {
                 if (sb.Length > 0)
                     _ = sb.Append(", ");
-                _ = sb.Append(type1.GetNiceName());
+                _ = sb.Append(type1.Name);
             }
             if (type2 is not null)
             {
                 if (sb.Length > 0)
                     _ = sb.Append(", ");
-                _ = sb.Append(type2.GetNiceName());
+                _ = sb.Append(type2.Name);
             }
             return sb.ToString();
         }
