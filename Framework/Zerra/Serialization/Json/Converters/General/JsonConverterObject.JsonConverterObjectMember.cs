@@ -82,7 +82,7 @@ namespace Zerra.Serialization.Json.Converters.General
                 }
             }
 
-            private void SetterForConverterSetValues(Dictionary<string, object?> parent, object? value) => parent.Add(Member.Name.TrimStart('_'), value);
+            private void SetterForConverterSetValues(object parent, object? value) => ((Dictionary<string, object?>)parent).Add(Member.Name.TrimStart('_'), value);
 
             private JsonConverter? converterSetValues;
             public JsonConverter ConverterSetCollectedValues

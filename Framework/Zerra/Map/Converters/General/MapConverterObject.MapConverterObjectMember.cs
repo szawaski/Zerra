@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using Zerra.SourceGeneration;
 using Zerra.SourceGeneration.Types;
 
 namespace Zerra.Map
@@ -38,7 +39,7 @@ namespace Zerra.Map
                 }
             }
 
-            private void SetterForConverterSetValues(Dictionary<string, object?> parent, object? value) => parent.Add(TargetMember.Name.TrimStart('_'), value);
+            private void SetterForConverterSetValues(object parent, object? value) => ((Dictionary<string, object?>)parent).Add(TargetMember.Name.TrimStart('_'), value);
 
             private MapConverter? converterSetValues;
             public MapConverter ConverterSetCollectedValues

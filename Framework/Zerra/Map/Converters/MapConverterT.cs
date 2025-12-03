@@ -24,17 +24,20 @@ namespace Zerra.Map
             if (sourceGetterDelegate is not null)
             {
                 sourceGetter = sourceGetterDelegate as Func<object, TSource?>;
-                sourceGetter ??= (parent) => (TSource?)sourceGetterDelegate.DynamicInvoke(parent)!;
+                if (sourceGetter == null)
+                    throw new InvalidOperationException($"{this.GetType().Name} source getter delegate is not of correct type Action<object, {typeof(TTarget).FullName}>");
             }
             if (targetGetterDelegate is not null)
             {
                 targetGetter = targetGetterDelegate as Func<object, TTarget?>;
-                targetGetter ??= (parent) => (TTarget?)targetGetterDelegate.DynamicInvoke(parent)!;
+                if (targetGetter == null)
+                    throw new InvalidOperationException($"{this.GetType().Name} target getter delegate is not of correct type Action<object, {typeof(TTarget).FullName}>");
             }
             if (targetSetterDelegate is not null)
             {
                 targetSetter = targetSetterDelegate as Action<object, TTarget?>;
-                targetSetter ??= (parent, value) => targetSetterDelegate.DynamicInvoke(parent, value);
+                if (targetSetter == null)
+                    throw new InvalidOperationException($"{this.GetType().Name} target setter delegate is not of correct type Action<object, {typeof(TTarget).FullName}>");
             }
 
             Setup();
@@ -68,10 +71,11 @@ namespace Zerra.Map
         public abstract TTarget? Map(TSource? source, TTarget? target, Graph? graph);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override sealed void CollectedValuesSetter(object? parent, in object? value)
+        public override sealed void CollectedValuesSetter(object parent, in object? value)
         {
-            if (targetSetter is not null && parent is not null && value is not null)
-                targetSetter(parent, (TTarget)value);
+            if (targetSetter == null)
+                throw new InvalidOperationException($"{this.GetType().Name} Converter not setup correctly");
+            targetSetter(parent, (TTarget?)value);
         }
     }
 }

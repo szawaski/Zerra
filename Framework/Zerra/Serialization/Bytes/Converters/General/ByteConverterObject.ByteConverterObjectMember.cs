@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using Zerra.Serialization.Bytes.IO;
+using Zerra.SourceGeneration;
 using Zerra.SourceGeneration.Types;
 
 namespace Zerra.Serialization.Bytes.Converters.General
@@ -50,7 +51,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 }
             }
 
-            private void SetterForConverterSetValues(Dictionary<string, object?> parent, object? value) => parent.Add(Member.Name.TrimStart('_'), value);
+            private void SetterForConverterSetValues(object parent, object? value) => ((Dictionary<string, object?>)parent).Add(Member.Name.TrimStart('_'), value);
 
             private ByteConverter? converterSetValues;
             public ByteConverter ConverterSetCollectedValues
