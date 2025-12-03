@@ -26,7 +26,7 @@ namespace Zerra.Map
             return list[Index];
         }
 
-        public void Set(T value)
+        public void Add(T value)
         {
             if (hasExistingValues)
                 list[Index] = value;

@@ -106,12 +106,24 @@ namespace Zerra.Map
                         return () => new MapConverterIListTOfT<TSource, TTarget, TSourceEnumerable, TTargetEnumerable>();
                 }
 
+                if (targetTypeDetail.HasIReadOnlyListGeneric)
+                {
+                    if (targetTypeDetail.Type.IsInterface)
+                        return () => new MapConverterIReadOnlyListT<TSource, TSourceEnumerable, TTargetEnumerable>();
+                }
+
                 if (targetTypeDetail.HasISetGeneric)
                 {
                     if (targetTypeDetail.Type.IsInterface)
                         return () => new MapConverterISetT<TSource, TSourceEnumerable, TTargetEnumerable>();
                     else
                         return () => new MapConverterISetTOfT<TSource, TTarget, TSourceEnumerable, TTargetEnumerable>();
+                }
+
+                if (targetTypeDetail.HasIReadOnlySetGeneric)
+                {
+                    if (targetTypeDetail.Type.IsInterface)
+                        return () => new MapConverterIReadOnlySetT<TSource, TSourceEnumerable, TTargetEnumerable>();
                 }
 
                 if (targetTypeDetail.HasIList)
@@ -138,6 +150,12 @@ namespace Zerra.Map
                         return () => new MapConverterICollectionT<TSource, TSourceEnumerable, TTargetEnumerable>();
                     else
                         return () => new MapConverterICollectionTOfT<TSource, TTarget, TSourceEnumerable, TTargetEnumerable>();
+                }
+
+                if (targetTypeDetail.HasIReadOnlyCollectionGeneric)
+                {
+                    if (targetTypeDetail.Type.IsInterface)
+                        return () => new MapConverterIReadOnlyCollectionT<TSource, TSourceEnumerable, TTargetEnumerable>();
                 }
 
                 if (targetTypeDetail.Type.IsInterface)

@@ -29,12 +29,14 @@ namespace Zerra.Serialization.Bytes.Converters
             if (getterDelegate is not null)
             {
                 getter = getterDelegate as Func<object, TValue?>;
-                getter ??= (parent) => (TValue?)getterDelegate.DynamicInvoke(parent);
+                if (getter == null)
+                    getter = (parent) => (TValue?)getterDelegate.DynamicInvoke(parent);
             }
             if (setterDelegate is not null)
             {
                 setter = setterDelegate as Action<object, TValue?>;
-                setter ??= (parent, value) => setterDelegate.DynamicInvoke(parent, value);
+                if (setter == null)
+                    setter = (parent, value) => setterDelegate.DynamicInvoke(parent, value);
             }
 
             canBeNull = typeDetail.IsNullable || !typeDetail.Type.IsValueType;

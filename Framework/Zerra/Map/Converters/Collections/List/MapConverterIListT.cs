@@ -12,7 +12,7 @@ namespace Zerra.Map
 
         private static TSourceInner? SourceGetter(object parent) => ((IEnumerator<TSourceInner>)parent).Current;
         private static TTargetInner? TargetGetter(object parent) => ((ListAccessor<TTargetInner>)parent).Get();
-        private static void TargetSetter(object parent, TTargetInner value) => ((ListAccessor<TTargetInner>)parent).Set(value);
+        private static void TargetSetter(object parent, TTargetInner value) => ((ListAccessor<TTargetInner>)parent).Add(value);
 
         protected override sealed void Setup()
         {

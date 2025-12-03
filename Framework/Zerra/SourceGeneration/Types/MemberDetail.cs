@@ -67,10 +67,10 @@ namespace Zerra.SourceGeneration.Types
             this.GetterBoxed = getterBoxed;
             this.HasSetterBoxed = setterBoxed != null;
             this.SetterBoxed = setterBoxed;
-            this.HasGetter = getterBoxed != null;
-            this.Getter = getterBoxed;
-            this.HasSetter = setterBoxed != null;
-            this.Setter = setterBoxed;
+            this.HasGetter = getter != null;
+            this.Getter = getter;
+            this.HasSetter = setter != null;
+            this.Setter = setter;
             this.Attributes = attributes;
             this.IsBacked = isBacked;
             this.IsStatic = isStatic;

@@ -12,7 +12,7 @@ namespace Zerra.Map
     {
         private MapConverter converter = null!;
 
-        private static KeyValuePair<TSourceKey, TSourceValue>? SourceGetter(object parent) => ((IEnumerator<KeyValuePair<TSourceKey, TSourceValue>>)parent).Current;
+        private static KeyValuePair<TSourceKey, TSourceValue> SourceGetter(object parent) => ((IEnumerator<KeyValuePair<TSourceKey, TSourceValue>>)parent).Current;
         private static void TargetSetter(object parent, KeyValuePair<TTargetKey, TTargetValue> value) => ((IDictionary<TTargetKey, TTargetValue>)parent)[value.Key] = value.Value;
 
         protected override sealed void Setup()

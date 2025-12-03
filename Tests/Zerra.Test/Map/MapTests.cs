@@ -261,7 +261,7 @@ namespace Zerra.Test.Map
             var modelIs = modelAs.Map<ModelA[], ModelB[]>();
 
             Assert.Equal(typeof(List<ModelB>), modelBs.GetType());
-            Assert.Equal(typeof(ModelB[]), modelCs.GetType());
+            Assert.Equal(typeof(List<ModelB>), modelCs.GetType());
             Assert.Equal(typeof(List<ModelB>), modelDs.GetType());
             Assert.Equal(typeof(List<ModelB>), modelEs.GetType());
             Assert.Equal(typeof(HashSet<ModelB>), modelFs.GetType());

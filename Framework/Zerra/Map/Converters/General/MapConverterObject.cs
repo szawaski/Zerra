@@ -96,10 +96,14 @@ namespace Zerra.Map
 
             foreach (var member in members)
             {
+                if (graph != null && !graph.HasMember(member.TargetMember.Name))
+                    continue;
+                var childGraph = graph?.GetChildGraph(member.TargetMember.Name);
+
                 if (collectValues)
-                    member.ConverterSetCollectedValues.MapFromParent(source, collectedValues, graph);
+                    member.ConverterSetCollectedValues.MapFromParent(source, collectedValues, childGraph);
                 else
-                    member.Converter.MapFromParent(source, target, graph);
+                    member.Converter.MapFromParent(source, target, childGraph);
             }
 
             if (collectValues)

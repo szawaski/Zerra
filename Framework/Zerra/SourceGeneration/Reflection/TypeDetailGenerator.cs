@@ -328,13 +328,11 @@ namespace Zerra.SourceGeneration.Reflection
                 Delegate? setter = null;
                 Action<object, object?>? setterBoxed = null;
 
-
                 getter = AccessorGenerator.GenerateGetter(@field, @field.FieldType);
                 getterBoxed = AccessorGenerator.GenerateGetter(@field);
 
                 setter = AccessorGenerator.GenerateSetter(@field, @field.FieldType);
                 setterBoxed = AccessorGenerator.GenerateSetter(@field);
-
 
                 var attributes = @field.GetCustomAttributes(true).Cast<Attribute>().ToArray();
 
