@@ -10,8 +10,7 @@ using Zerra.SourceGeneration.Types;
 
 namespace Zerra.Serialization.Bytes.Converters
 {
-    public abstract class ByteConverter<TValue> : ByteConverter,
-        IByteConverterHandles<TValue>
+    public abstract class ByteConverter<TValue> : ByteConverter
     {
         protected virtual bool StackRequired { get; } = true;
 

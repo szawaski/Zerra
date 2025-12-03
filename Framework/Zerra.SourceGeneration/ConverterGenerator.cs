@@ -116,7 +116,6 @@ namespace Zerra.SourceGeneration
                 _ = sb.Append(Environment.NewLine).Append("            ");
                 _ = sb.Append("global::Zerra.Serialization.Bytes.Converters.ByteConverterFactory.RegisterCreator<")
                     .Append(model.TypeName).Append(",")
-                    .Append(innerTypeName).Append(",")
                     .Append(enumerableTypeName).Append(",")
                     .Append(dictionaryKeyTypeName).Append(",")
                     .Append(dictionaryValueTypeName)
@@ -125,7 +124,6 @@ namespace Zerra.SourceGeneration
                 _ = sb.Append(Environment.NewLine).Append("            ");
                 _ = sb.Append("global::Zerra.Serialization.Json.Converters.JsonConverterFactory.RegisterCreator<")
                     .Append(model.TypeName).Append(",")
-                    .Append(innerTypeName).Append(",")
                     .Append(enumerableTypeName).Append(",")
                     .Append(dictionaryKeyTypeName).Append(",")
                     .Append(dictionaryValueTypeName)

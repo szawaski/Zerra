@@ -639,14 +639,11 @@ namespace Zerra.Serialization.Json.Converters.General
                         args[i] = parameter;
 #endif
                 }
+
                 if (typeDetail.Type.IsValueType)
-                {
                     value = (TValue?)parameterConstructor.CreatorBoxed(args);
-                }
                 else
-                {
                     value = parameterConstructor.Creator(args);
-                }
 
                 foreach (var remaining in collectedValues!)
                 {

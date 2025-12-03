@@ -74,35 +74,34 @@ namespace Zerra.Serialization.Bytes.Converters
                 throw new InvalidOperationException($"ByteConverter type not found for {typeDetail.Type.Name} and dynamic code generation is not supported in this build configuration");
 
             var type = typeDetail.Type;
-            var innerType = typeDetail.InnerType ?? typeof(object);
             var enumerableType = typeDetail.IEnumerableGenericInnerType ?? typeof(object);
             var dictionaryKeyType = typeDetail.DictionaryInnerTypeDetail?.InnerTypes.ElementAtOrDefault(0) ?? typeof(object);
             var dictionaryValueType = typeDetail.DictionaryInnerTypeDetail?.InnerTypes.ElementAtOrDefault(1) ?? typeof(object);
 
             var findCreatorMethodDefinition = typeof(ByteConverterFactory).GetMethod(nameof(FindCreator), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
-            var findCreatorMethod = findCreatorMethodDefinition.MakeGenericMethod(type, innerType, enumerableType, dictionaryKeyType, dictionaryValueType);
+            var findCreatorMethod = findCreatorMethodDefinition.MakeGenericMethod(type, enumerableType, dictionaryKeyType, dictionaryValueType);
             var creator = (Func<ByteConverter>)findCreatorMethod.Invoke(null, [typeDetail])!;
             return creator;
         }
 
-        public static void RegisterCreator<TType>(Type type) => RegisterCreator<TType, object, object, object, object>(type);
+        public static void RegisterCreator<TType>(Type type) => RegisterCreator<TType, object, object, object>(type);
 
-        public static void RegisterCreator<TType, TInnerType, TEnumerableType, TDictionaryKey, TDictionaryValue>(Type type)
+        public static void RegisterCreator<TType, TEnumerableType, TDictionaryKey, TDictionaryValue>(Type type)
             where TDictionaryKey : notnull
         {
-            var creator = FindCreator<TType, TInnerType, TEnumerableType, TDictionaryKey, TDictionaryValue>(type.GetTypeDetail());
+            var creator = FindCreator<TType, TEnumerableType, TDictionaryKey, TDictionaryValue>(type.GetTypeDetail());
             _ = creators.TryAdd(type, creator);
         }
 
-        private static Func<ByteConverter> FindCreator<TType, TInnerType, TEnumerableType, TDictionaryKey, TDictionaryValue>(TypeDetail typeDetail)
+        private static Func<ByteConverter> FindCreator<TType, TEnumerableType, TDictionaryKey, TDictionaryValue>(TypeDetail typeDetail)
             where TDictionaryKey : notnull
         {
             var name = TypeHelper.GetNiceFullName(typeDetail.Type);
-            var creator = FindCreatorTypeLookup<TInnerType, TDictionaryKey, TDictionaryValue>(name);
+            var creator = FindCreatorTypeLookup<TEnumerableType, TDictionaryKey, TDictionaryValue>(name);
             if (creator == null && typeDetail.Type.IsGenericType && typeDetail.Type.Name != "Nullable`1")
             {
                 name = TypeHelper.MakeNiceNameGeneric(name);
-                creator = FindCreatorTypeLookup<TInnerType, TDictionaryKey, TDictionaryValue>(name);
+                creator = FindCreatorTypeLookup<TEnumerableType, TDictionaryKey, TDictionaryValue>(name);
             }
 
             if (creator != null)
@@ -117,11 +116,7 @@ namespace Zerra.Serialization.Bytes.Converters
 
             //Array
             if (typeDetail.Type.IsArray)
-                return () => new ByteConverterArrayT<TInnerType>();
-
-
-            if (typeDetail.Type.IsInterface)
-                throw new NotSupportedException($"No ByteConverter found to support interface type {typeDetail.Type.GetNiceName()}");
+                return () => new ByteConverterArrayT<TEnumerableType>();
 
             //IList<T> of type - specific types that inherit this
             if (typeDetail.HasIListGeneric)
@@ -159,15 +154,15 @@ namespace Zerra.Serialization.Bytes.Converters
             return () => new ByteConverterObject<TType>();
         }
 
-        private static Func<ByteConverter>? FindCreatorTypeLookup<TInnerType, TDictionaryKey, TDictionaryValue>(string name)
+        private static Func<ByteConverter>? FindCreatorTypeLookup<TEnumerableType, TDictionaryKey, TDictionaryValue>(string name)
             where TDictionaryKey : notnull
         {
             return name switch
             {
                 #region Collections
                 "System.Collections.ICollection" => () => new ByteConverterICollection(),
-                "System.Collections.Generic.ICollection<T>" => () => new ByteConverterICollectionT<TInnerType>(),
-                "System.Collections.Generic.IReadOnlyCollection<T>" => () => new ByteConverterIReadOnlyCollectionT<TInnerType>(),
+                "System.Collections.Generic.ICollection<T>" => () => new ByteConverterICollectionT<TEnumerableType>(),
+                "System.Collections.Generic.IReadOnlyCollection<T>" => () => new ByteConverterIReadOnlyCollectionT<TEnumerableType>(),
                 #endregion
 
                 #region Dictionaries
@@ -179,22 +174,22 @@ namespace Zerra.Serialization.Bytes.Converters
 
                 #region Enumerables
                 "System.Collections.IEnumerable" => () => new ByteConverterIEnumerable(),
-                "System.Collections.Generic.IEnumerable<T>" => () => new ByteConverterIEnumerableT<TInnerType>(),
+                "System.Collections.Generic.IEnumerable<T>" => () => new ByteConverterIEnumerableT<TEnumerableType>(),
                 #endregion
 
                 #region Lists
-                "System.Collections.IList" => () => new ByteConverterIList<TInnerType>(),
-                "System.Collections.Generic.IList<T>" => () => new ByteConverterIListT<TInnerType>(),
-                "System.Collections.Generic.IReadOnlyList<T>" => () => new ByteConverterIReadOnlyListT<TInnerType>(),
-                "System.Collections.Generic.List<T>" => () => new ByteConverterListT<TInnerType>(),
+                "System.Collections.IList" => () => new ByteConverterIList<TEnumerableType>(),
+                "System.Collections.Generic.IList<T>" => () => new ByteConverterIListT<TEnumerableType>(),
+                "System.Collections.Generic.IReadOnlyList<T>" => () => new ByteConverterIReadOnlyListT<TEnumerableType>(),
+                "System.Collections.Generic.List<T>" => () => new ByteConverterListT<TEnumerableType>(),
                 #endregion
 
                 #region Sets
-                "System.Collections.Generic.HashSet<T>" => () => new ByteConverterHashSetT<TInnerType>(),
+                "System.Collections.Generic.HashSet<T>" => () => new ByteConverterHashSetT<TEnumerableType>(),
 #if NET5_0_OR_GREATER
-                "System.Collections.Generic.IReadOnlySet<T>" => () => new ByteConverterIReadOnlySetT<TInnerType>(),
+                "System.Collections.Generic.IReadOnlySet<T>" => () => new ByteConverterIReadOnlySetT<TEnumerableType>(),
 #endif
-                "System.Collections.Generic.ISet<T>" => () => new ByteConverterISetT<TInnerType>(),
+                "System.Collections.Generic.ISet<T>" => () => new ByteConverterISetT<TEnumerableType>(),
                 #endregion
 
                 #region CoreTypeValues

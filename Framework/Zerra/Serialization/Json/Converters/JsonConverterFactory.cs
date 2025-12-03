@@ -45,35 +45,34 @@ namespace Zerra.Serialization.Json.Converters
                 throw new InvalidOperationException($"JsonConverter type not found for {typeDetail.Type.Name} and dynamic code generation is not supported in this build configuration");
 
             var type = typeDetail.Type;
-            var innerType = typeDetail.InnerType ?? typeof(object);
             var enumerableType = typeDetail.IEnumerableGenericInnerType ?? typeof(object);
             var dictionaryKeyType = typeDetail.DictionaryInnerTypeDetail?.InnerTypes.ElementAtOrDefault(0) ?? typeof(object);
             var dictionaryValueType = typeDetail.DictionaryInnerTypeDetail?.InnerTypes.ElementAtOrDefault(1) ?? typeof(object);
 
             var findCreatorMethodDefinition = typeof(JsonConverterFactory).GetMethod(nameof(FindCreator), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
-            var findCreatorMethod = findCreatorMethodDefinition.MakeGenericMethod(type, innerType, enumerableType, dictionaryKeyType, dictionaryValueType);
+            var findCreatorMethod = findCreatorMethodDefinition.MakeGenericMethod(type, enumerableType, dictionaryKeyType, dictionaryValueType);
             var creator = (Func<JsonConverter>)findCreatorMethod.Invoke(null, [typeDetail])!;
             return creator;
         }
 
-        public static void RegisterCreator<TType>(Type type) => RegisterCreator<TType, object, object, object, object>(type);
+        public static void RegisterCreator<TType>(Type type) => RegisterCreator<TType, object, object, object>(type);
 
-        public static void RegisterCreator<TType, TInnerType, TEnumerableType, TDictionaryKey, TDictionaryValue>(Type type)
+        public static void RegisterCreator<TType, TEnumerableType, TDictionaryKey, TDictionaryValue>(Type type)
             where TDictionaryKey : notnull
         {
-            var creator = FindCreator<TType, TInnerType, TEnumerableType, TDictionaryKey, TDictionaryValue>(type.GetTypeDetail());
+            var creator = FindCreator<TType, TEnumerableType, TDictionaryKey, TDictionaryValue>(type.GetTypeDetail());
             _ = creators.TryAdd(type, creator);
         }
 
-        private static Func<JsonConverter> FindCreator<TType, TInnerType, TEnumerableType, TDictionaryKey, TDictionaryValue>(TypeDetail typeDetail)
+        private static Func<JsonConverter> FindCreator<TType, TEnumerableType, TDictionaryKey, TDictionaryValue>(TypeDetail typeDetail)
             where TDictionaryKey : notnull
         {
             var name = TypeHelper.GetNiceFullName(typeDetail.Type);
-            var creator = FindCreatorTypeLookup<TInnerType, TDictionaryKey, TDictionaryValue>(name);
+            var creator = FindCreatorTypeLookup<TEnumerableType, TDictionaryKey, TDictionaryValue>(name);
             if (creator == null && typeDetail.Type.IsGenericType && typeDetail.Type.Name != "Nullable`1")
             {
                 name = TypeHelper.MakeNiceNameGeneric(name);
-                creator = FindCreatorTypeLookup<TInnerType, TDictionaryKey, TDictionaryValue>(name);
+                creator = FindCreatorTypeLookup<TEnumerableType, TDictionaryKey, TDictionaryValue>(name);
             }
 
             if (creator != null)
@@ -88,10 +87,7 @@ namespace Zerra.Serialization.Json.Converters
 
             //Array
             if (typeDetail.Type.IsArray)
-                return () => new JsonConverterArrayT<TInnerType>();
-
-            if (typeDetail.Type.IsInterface)
-                throw new NotSupportedException($"No JsonConverter found to support interface type {typeDetail.Type.GetNiceName()}");
+                return () => new JsonConverterArrayT<TEnumerableType>();
 
             //IList<T> of type - specific types that inherit this
             if (typeDetail.HasIListGeneric)
@@ -129,15 +125,15 @@ namespace Zerra.Serialization.Json.Converters
             return () => new JsonConverterObject<TType>();
         }
 
-        private static Func<JsonConverter>? FindCreatorTypeLookup<TInnerType, TDictionaryKey, TDictionaryValue>(string name)
+        private static Func<JsonConverter>? FindCreatorTypeLookup<TEnumerableType, TDictionaryKey, TDictionaryValue>(string name)
             where TDictionaryKey : notnull
         {
             return name switch
             {
                 #region Collections
                 "System.Collections.ICollection" => () => new JsonConverterICollection(),
-                "System.Collections.Generic.ICollection<T>" => () => new JsonConverterICollectionT<TInnerType>(),
-                "System.Collections.Generic.IReadOnlyCollection<T>" => () => new JsonConverterIReadOnlyCollectionT<TInnerType>(),
+                "System.Collections.Generic.ICollection<T>" => () => new JsonConverterICollectionT<TEnumerableType>(),
+                "System.Collections.Generic.IReadOnlyCollection<T>" => () => new JsonConverterIReadOnlyCollectionT<TEnumerableType>(),
                 #endregion
 
                 #region Dictionaries
@@ -149,22 +145,22 @@ namespace Zerra.Serialization.Json.Converters
 
                 #region Enumerables
                 "System.Collections.IEnumerable" => () => new JsonConverterIEnumerable(),
-                "System.Collections.Generic.IEnumerable<T>" => () => new JsonConverterIEnumerableT<TInnerType>(),
+                "System.Collections.Generic.IEnumerable<T>" => () => new JsonConverterIEnumerableT<TEnumerableType>(),
                 #endregion
 
                 #region Lists
                 "System.Collections.IList" => () => new JsonConverterIList(),
-                "System.Collections.Generic.IList<T>" => () => new JsonConverterIListT<TInnerType>(),
-                "System.Collections.Generic.IReadOnlyList<T>" => () => new JsonConverterIReadOnlyListT<TInnerType>(),
-                "System.Collections.Generic.List<T>" => () => new JsonConverterListT<TInnerType>(),
+                "System.Collections.Generic.IList<T>" => () => new JsonConverterIListT<TEnumerableType>(),
+                "System.Collections.Generic.IReadOnlyList<T>" => () => new JsonConverterIReadOnlyListT<TEnumerableType>(),
+                "System.Collections.Generic.List<T>" => () => new JsonConverterListT<TEnumerableType>(),
                 #endregion
 
                 #region Sets
-                "System.Collections.Generic.HashSet<T>" => () => new JsonConverterHashSetT<TInnerType>(),
+                "System.Collections.Generic.HashSet<T>" => () => new JsonConverterHashSetT<TEnumerableType>(),
 #if NET5_0_OR_GREATER
-                "System.Collections.Generic.IReadOnlySet<T>" => () => new JsonConverterIReadOnlySetT<TInnerType>(),
+                "System.Collections.Generic.IReadOnlySet<T>" => () => new JsonConverterIReadOnlySetT<TEnumerableType>(),
 #endif
-                "System.Collections.Generic.ISet<T>" => () => new JsonConverterISetT<TInnerType>(),
+                "System.Collections.Generic.ISet<T>" => () => new JsonConverterISetT<TEnumerableType>(),
                 #endregion
 
                 #region CoreTypeValues
