@@ -55,18 +55,8 @@ namespace Zerra.Map
             var sourceType = typeof(TSource);
             var targetType = typeof(TTarget);
             var key = new TypePairKey(sourceType, targetType);
-            var map = (Func<TSource, TTarget?, Graph?, TTarget>)mapCache.GetOrAdd(key, static () => Generate<TSource, TTarget>());
+            var map = (Func<TSource, TTarget?, Graph?, TTarget>)mapCache.GetOrAdd(key, static () => MapGenerator.Generate<TSource, TTarget>());
             return map;
-        }
-
-        private static Func<TSource, TTarget?, Graph?, TTarget?> Generate<TSource, TTarget>()
-            where TSource : notnull
-            where TTarget : notnull
-        {
-            //if (RuntimeFeature.IsDynamicCodeSupported)
-            //    return ReflectionMapGenerator.Generate<TSource, TTarget>();
-            //else
-                return InterpretedMapGenerator.Generate<TSource, TTarget>();
         }
     }
 }
