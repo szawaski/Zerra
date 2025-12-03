@@ -81,9 +81,9 @@ namespace Zerra.SourceGeneration
 
                 _ = sb.Append(", ");
 
-                GenerateMethods(sb, isCoreType, model.TypeName, namedTypeSymbol, symbolMembers);
+                //GenerateMethods(sb, isCoreType, model.TypeName, namedTypeSymbol, symbolMembers);
 
-                _ = sb.Append(", ");
+                //_ = sb.Append(", ");
 
                 GenerateCreators(sb, model.TypeName, namedTypeSymbol);
 
@@ -250,126 +250,126 @@ namespace Zerra.SourceGeneration
 
             _ = sb.Append("]");
         }
-        private static void GenerateMethods(StringBuilder sb, bool isCoreType, string typeName, INamedTypeSymbol? namedTypeSymbol, ImmutableArray<ISymbol> symbolMembers)
-        {
-            _ = sb.Append("[");
+        //private static void GenerateMethods(StringBuilder sb, bool isCoreType, string typeName, INamedTypeSymbol? namedTypeSymbol, ImmutableArray<ISymbol> symbolMembers)
+        //{
+        //    _ = sb.Append("[");
 
-            if (!isCoreType && namedTypeSymbol != null)
-            {
-                var methods = GetMethods(namedTypeSymbol, symbolMembers);
-                var hasFirst = false;
-                foreach (var methodSet in methods)
-                {
-                    var method = methodSet.Item1;
-                    var methodName = methodSet.Item2;
-                    var isExplicitFromInterface = methodSet.Item3;
+        //    if (!isCoreType && namedTypeSymbol != null)
+        //    {
+        //        var methods = GetMethods(namedTypeSymbol, symbolMembers);
+        //        var hasFirst = false;
+        //        foreach (var methodSet in methods)
+        //        {
+        //            var method = methodSet.Item1;
+        //            var methodName = methodSet.Item2;
+        //            var isExplicitFromInterface = methodSet.Item3;
 
-                    if (method.DeclaredAccessibility != Accessibility.Public)
-                        continue;
-                    if (method.MethodKind != MethodKind.Ordinary)
-                        continue;
-                    if (method.IsStatic) //the code can do this, just reducing size for now
-                        continue;
-                    if (method.IsGenericMethod)
-                        continue;
-                    if (isExplicitFromInterface)
-                        continue;
+        //            if (method.DeclaredAccessibility != Accessibility.Public)
+        //                continue;
+        //            if (method.MethodKind != MethodKind.Ordinary)
+        //                continue;
+        //            if (method.IsStatic) //the code can do this, just reducing size for now
+        //                continue;
+        //            if (method.IsGenericMethod)
+        //                continue;
+        //            if (isExplicitFromInterface)
+        //                continue;
 
-                    if (hasFirst)
-                        _ = sb.Append(", ");
-                    else
-                        hasFirst = true;
+        //            if (hasFirst)
+        //                _ = sb.Append(", ");
+        //            else
+        //                hasFirst = true;
 
-                    var isVoid = method.ReturnType.Name == "Void";
-                    var methodReturnTypeName = isVoid ? "object?" : Helper.GetFullName(method.ReturnType);
+        //            var isVoid = method.ReturnType.Name == "Void";
+        //            var methodReturnTypeName = isVoid ? "object?" : Helper.GetFullName(method.ReturnType);
 
-                    _ = sb.Append(Environment.NewLine).Append("                ");
+        //            _ = sb.Append(Environment.NewLine).Append("                ");
 
-                    _ = sb.Append("new global::Zerra.SourceGeneration.Types.MethodDetail<").Append(methodReturnTypeName).Append(">(");
+        //            _ = sb.Append("new global::Zerra.SourceGeneration.Types.MethodDetail<").Append(methodReturnTypeName).Append(">(");
 
-                    _ = sb.Append("\"").Append(methodName).Append("\", ");
+        //            _ = sb.Append("\"").Append(methodName).Append("\", ");
 
-                    GenerateParameters(sb, method.Parameters);
-                    sb.Append(", ");
+        //            GenerateParameters(sb, method.Parameters);
+        //            sb.Append(", ");
 
-                    if (method.IsStatic)
-                    {
-                        _ = sb.Append("static (object? x, object?[]? args) => ");
-                        if (isVoid)
-                            _ = sb.Append("{ ");
-                        _ = sb.Append(typeName).Append(".").Append(method.Name).Append("(");
-                        foreach (var parameter in method.Parameters)
-                        {
-                            var parameterTypeName = Helper.GetFullName(parameter.Type);
-                            if (parameter.Ordinal > 0)
-                                _ = sb.Append(", ");
-                            _ = sb.Append("(").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!");
-                        }
-                        _ = sb.Append(")");
-                        if (isVoid)
-                            _ = sb.Append("; return null; }");
-                        _ = sb.Append(", ");
+        //            if (method.IsStatic)
+        //            {
+        //                _ = sb.Append("static (object? x, object?[]? args) => ");
+        //                if (isVoid)
+        //                    _ = sb.Append("{ ");
+        //                _ = sb.Append(typeName).Append(".").Append(method.Name).Append("(");
+        //                foreach (var parameter in method.Parameters)
+        //                {
+        //                    var parameterTypeName = Helper.GetFullName(parameter.Type);
+        //                    if (parameter.Ordinal > 0)
+        //                        _ = sb.Append(", ");
+        //                    _ = sb.Append("(").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!");
+        //                }
+        //                _ = sb.Append(")");
+        //                if (isVoid)
+        //                    _ = sb.Append("; return null; }");
+        //                _ = sb.Append(", ");
 
-                        _ = sb.Append("static (object? x, object?[]? args) => ");
-                        if (isVoid)
-                            _ = sb.Append("{ ");
-                        _ = sb.Append(typeName).Append(".").Append(method.Name).Append("(");
-                        foreach (var parameter in method.Parameters)
-                        {
-                            var parameterTypeName = Helper.GetFullName(parameter.Type);
-                            if (parameter.Ordinal > 0)
-                                _ = sb.Append(", ");
-                            _ = sb.Append("(").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!");
-                        }
-                        _ = sb.Append(")");
-                        if (isVoid)
-                            _ = sb.Append("; return null; }");
-                        _ = sb.Append(", ");
-                    }
-                    else
-                    {
-                        _ = sb.Append("static (object? x, object?[]? args) => ");
-                        if (isVoid)
-                            _ = sb.Append("{ ");
-                        _ = sb.Append("((").Append(typeName).Append(")x!)").Append(".").Append(method.Name).Append("(");
-                        foreach (var parameter in method.Parameters)
-                        {
-                            var parameterTypeName = Helper.GetFullName(parameter.Type);
-                            if (parameter.Ordinal > 0)
-                                _ = sb.Append(", ");
-                            _ = sb.Append("(").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!");
-                        }
-                        _ = sb.Append(")");
-                        if (isVoid)
-                            _ = sb.Append("; return null; }");
-                        _ = sb.Append(", ");
+        //                _ = sb.Append("static (object? x, object?[]? args) => ");
+        //                if (isVoid)
+        //                    _ = sb.Append("{ ");
+        //                _ = sb.Append(typeName).Append(".").Append(method.Name).Append("(");
+        //                foreach (var parameter in method.Parameters)
+        //                {
+        //                    var parameterTypeName = Helper.GetFullName(parameter.Type);
+        //                    if (parameter.Ordinal > 0)
+        //                        _ = sb.Append(", ");
+        //                    _ = sb.Append("(").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!");
+        //                }
+        //                _ = sb.Append(")");
+        //                if (isVoid)
+        //                    _ = sb.Append("; return null; }");
+        //                _ = sb.Append(", ");
+        //            }
+        //            else
+        //            {
+        //                _ = sb.Append("static (object? x, object?[]? args) => ");
+        //                if (isVoid)
+        //                    _ = sb.Append("{ ");
+        //                _ = sb.Append("((").Append(typeName).Append(")x!)").Append(".").Append(method.Name).Append("(");
+        //                foreach (var parameter in method.Parameters)
+        //                {
+        //                    var parameterTypeName = Helper.GetFullName(parameter.Type);
+        //                    if (parameter.Ordinal > 0)
+        //                        _ = sb.Append(", ");
+        //                    _ = sb.Append("(").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!");
+        //                }
+        //                _ = sb.Append(")");
+        //                if (isVoid)
+        //                    _ = sb.Append("; return null; }");
+        //                _ = sb.Append(", ");
 
-                        _ = sb.Append("static (object? x, object?[]? args) => ");
-                        if (isVoid)
-                            _ = sb.Append("{ ");
-                        _ = sb.Append("((").Append(typeName).Append(")x!)").Append(".").Append(method.Name).Append("(");
-                        foreach (var parameter in method.Parameters)
-                        {
-                            var parameterTypeName = Helper.GetFullName(parameter.Type);
-                            if (parameter.Ordinal > 0)
-                                _ = sb.Append(", ");
-                            _ = sb.Append("(").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!");
-                        }
-                        _ = sb.Append(")");
-                        if (isVoid)
-                            _ = sb.Append("; return null; }");
-                        _ = sb.Append(", ");
-                    }
+        //                _ = sb.Append("static (object? x, object?[]? args) => ");
+        //                if (isVoid)
+        //                    _ = sb.Append("{ ");
+        //                _ = sb.Append("((").Append(typeName).Append(")x!)").Append(".").Append(method.Name).Append("(");
+        //                foreach (var parameter in method.Parameters)
+        //                {
+        //                    var parameterTypeName = Helper.GetFullName(parameter.Type);
+        //                    if (parameter.Ordinal > 0)
+        //                        _ = sb.Append(", ");
+        //                    _ = sb.Append("(").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!");
+        //                }
+        //                _ = sb.Append(")");
+        //                if (isVoid)
+        //                    _ = sb.Append("; return null; }");
+        //                _ = sb.Append(", ");
+        //            }
 
-                    GenerateAttributes(sb, method);
+        //            GenerateAttributes(sb, method);
 
-                    _ = sb.Append(", ").Append(Helper.BoolString(method.IsStatic));
-                    _ = sb.Append(", ").Append(Helper.BoolString(isExplicitFromInterface)).Append(")");
-                }
-            }
+        //            _ = sb.Append(", ").Append(Helper.BoolString(method.IsStatic));
+        //            _ = sb.Append(", ").Append(Helper.BoolString(isExplicitFromInterface)).Append(")");
+        //        }
+        //    }
 
-            _ = sb.Append("]");
-        }
+        //    _ = sb.Append("]");
+        //}
         private static void GenerateCreators(StringBuilder sb, string typeName, INamedTypeSymbol? namedTypeSymbol)
         {
             if (namedTypeSymbol != null && !namedTypeSymbol.IsAbstract && !namedTypeSymbol.IsUnboundGenericType && namedTypeSymbol.TypeKind != TypeKind.Interface)
