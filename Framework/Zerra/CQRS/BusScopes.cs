@@ -7,7 +7,7 @@ namespace Zerra.CQRS
     /// <summary>
     /// Manages scoped dependencies for the bus initialization.
     /// Provides a container for registering service instances that are made available to handlers during message processing.
-    /// Instances are retrieved from handlers via <see cref="BusContext.Get{TInterface}()"/>.
+    /// Instances are retrieved from handlers via <see cref="BusContext.Resolve{TInterface}()"/>.
     /// </summary>
     public sealed class BusScopes
     {
@@ -31,7 +31,7 @@ namespace Zerra.CQRS
         /// <param name="instance">The instance to register for the interface type.</param>
         /// <exception cref="ArgumentNullException">Thrown if the instance is null.</exception>
         /// <exception cref="ArgumentException">Thrown if TInterface is not an interface type.</exception>
-        public void AddScope<TInterface>(TInterface instance) where TInterface : notnull
+        public void AddService<TInterface>(TInterface instance) where TInterface : notnull
         {
             if (instance is null)
                 throw new ArgumentNullException(nameof(instance));

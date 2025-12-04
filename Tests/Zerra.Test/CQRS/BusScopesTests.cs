@@ -22,12 +22,12 @@ namespace Zerra.Test.CQRS
         }
 
         [Fact]
-        public void AddScope_WithInterface()
+        public void AddService_WithInterface()
         {
             var busScopes = new BusScopes();
             var dependency = new TestDependency();
 
-            busScopes.AddScope<ITestDependency>(dependency);
+            busScopes.AddService<ITestDependency>(dependency);
 
             Assert.Single(busScopes.Dependencies);
             Assert.True(busScopes.Dependencies.ContainsKey(typeof(ITestDependency)));
@@ -35,53 +35,53 @@ namespace Zerra.Test.CQRS
         }
 
         [Fact]
-        public void AddScope_WithNullInstance_ThrowsArgumentNullException()
+        public void AddService_WithNullInstance_ThrowsArgumentNullException()
         {
             var busScopes = new BusScopes();
 
-            Assert.Throws<ArgumentNullException>(() => busScopes.AddScope<ITestDependency>(null!));
+            Assert.Throws<ArgumentNullException>(() => busScopes.AddService<ITestDependency>(null!));
         }
 
         [Fact]
-        public void AddScope_WithNonInterfaceType_ThrowsArgumentException()
+        public void AddService_WithNonInterfaceType_ThrowsArgumentException()
         {
             var busScopes = new BusScopes();
 
-            Assert.Throws<ArgumentException>(() => busScopes.AddScope<TestDependency>(new TestDependency()));
+            Assert.Throws<ArgumentException>(() => busScopes.AddService<TestDependency>(new TestDependency()));
         }
 
         [Fact]
-        public void AddScope_MultipleDependencies()
+        public void AddService_MultipleDependencies()
         {
             var busScopes = new BusScopes();
             var dep1 = new TestDependency();
 
-            busScopes.AddScope<ITestDependency>(dep1);
+            busScopes.AddService<ITestDependency>(dep1);
 
             Assert.Equal(1, busScopes.Dependencies.Count);
         }
 
         [Fact]
-        public void AddScope_OverwriteExisting()
+        public void AddService_OverwriteExisting()
         {
             var busScopes = new BusScopes();
             var dep1 = new TestDependency();
             var dep2 = new TestDependency();
 
-            busScopes.AddScope<ITestDependency>(dep1);
-            busScopes.AddScope<ITestDependency>(dep2);
+            busScopes.AddService<ITestDependency>(dep1);
+            busScopes.AddService<ITestDependency>(dep2);
 
             Assert.Single(busScopes.Dependencies);
             Assert.Same(dep2, busScopes.Dependencies[typeof(ITestDependency)]);
         }
 
         [Fact]
-        public void AddScope_StoresCorrectType()
+        public void AddService_StoresCorrectType()
         {
             var busScopes = new BusScopes();
             var dependency = new TestDependency();
 
-            busScopes.AddScope<ITestDependency>(dependency);
+            busScopes.AddService<ITestDependency>(dependency);
 
             Assert.True(busScopes.Dependencies.ContainsKey(typeof(ITestDependency)));
             Assert.False(busScopes.Dependencies.ContainsKey(typeof(TestDependency)));

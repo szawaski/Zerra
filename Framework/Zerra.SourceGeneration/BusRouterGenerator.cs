@@ -37,7 +37,7 @@ namespace Zerra.SourceGeneration
 
                 namespace {{ns}}.SourceGeneration
                 {
-                    public class {{className}} : global::Zerra.CQRS.BaseHandler, {{Helper.GetFullName(typeSymbol)}}
+                    public class {{className}} : {{Helper.GetFullName(typeSymbol)}}
                     {        
                         private readonly Zerra.CQRS.IBusInternal bus;
                         private readonly string source;
@@ -93,7 +93,22 @@ namespace Zerra.SourceGeneration
                 if (sb.Length > 0)
                     _ = sb.Append(Environment.NewLine).Append("        ");
 
-                _ = sb.Append("public ").Append(method.ReturnsVoid ? "void" : method.ReturnType.ToString()).Append(' ').Append(method.Name).Append('(');
+                _ = sb.Append("public ").Append(method.ReturnsVoid ? "void" : method.ReturnType.ToString()).Append(' ').Append(method.Name);
+                if (method.IsGenericMethod)
+                {
+                    _ = sb.Append('<');
+                    var firstGenericPassed = false;
+                    foreach (var genericParameter in method.TypeParameters)
+                    {
+                        if (firstGenericPassed)
+                            _ = sb.Append(", ");
+                        else
+                            firstGenericPassed = true;
+                        _ = sb.Append(genericParameter.Name);
+                    }
+                    _ = sb.Append('>');
+                }
+                _ = sb.Append('(');
                 var firstPassed = false;
                 foreach (var parameter in method.Parameters)
                 {
@@ -103,8 +118,40 @@ namespace Zerra.SourceGeneration
                         firstPassed = true;
                     _ = sb.Append(parameter.Type.ToString()).Append(" @").Append(parameter.Name);
                 }
-                _ = sb.Append(") => ");
+                _ = sb.Append(") ");
 
+                var firstConstraintPassed = false;
+                var constraints = new List<string>();
+                foreach (var constraintType in method.TypeParameters)
+                {
+                    foreach (var c in constraintType.ConstraintTypes)
+                    {
+                        constraints.Add(c.ToString());
+                    }
+                    if (constraintType.HasConstructorConstraint)
+                        constraints.Add("new()");
+                    if (constraintType.HasReferenceTypeConstraint)
+                        constraints.Add("class");
+                    if (constraintType.HasValueTypeConstraint)
+                        constraints.Add("struct");
+                    if (constraintType.HasNotNullConstraint)
+                        constraints.Add("notnull");
+                    if (constraintType.HasUnmanagedTypeConstraint)
+                        constraints.Add("unmanaged");
+                    if (constraints.Count > 0)
+                    {
+                        _ = sb.Append("where ").Append(constraintType.Name).Append(" : ");
+                        foreach (var c in constraints)
+                        {
+                            if (firstConstraintPassed)
+                                _ = sb.Append(", ");
+                            else
+                                firstConstraintPassed = true;
+                            _ = sb.Append(c);
+                        }
+                    }
+                }
+                _ = sb.Append(" => ");
 
                 if (isTask)
                 {
@@ -129,19 +176,19 @@ namespace Zerra.SourceGeneration
                     _ = sb.Append('@').Append(parameter.Name);
                 }
                 _ = sb.Append("], source);");
+            }
 
-                foreach (IPropertySymbol property in members.Where(x => x.Kind == SymbolKind.Property))
-                {
-                    if (sb.Length > 0)
-                        _ = sb.Append(Environment.NewLine).Append("        ");
+            foreach (IPropertySymbol property in members.Where(x => x.Kind == SymbolKind.Property))
+            {
+                if (sb.Length > 0)
+                    _ = sb.Append(Environment.NewLine).Append("        ");
 
-                    _ = sb.Append("public ").Append(property.Type.ToString()).Append(" @").Append(property.Name).Append(" {");
-                    if (property.GetMethod is not null && property.GetMethod.DeclaredAccessibility == Accessibility.Public)
-                        _ = sb.Append(" get => throw new System.NotSupportedException();");
-                    if (property.SetMethod is not null && property.SetMethod.DeclaredAccessibility == Accessibility.Public && !property.SetMethod.IsInitOnly)
-                        _ = sb.Append(" set => throw new System.NotSupportedException();");
-                    _ = sb.Append(" }");
-                }
+                _ = sb.Append("public ").Append(property.Type.ToString()).Append(" @").Append(property.Name).Append(" {");
+                if (property.GetMethod is not null && property.GetMethod.DeclaredAccessibility == Accessibility.Public)
+                    _ = sb.Append(" get => throw new System.NotSupportedException();");
+                if (property.SetMethod is not null && property.SetMethod.DeclaredAccessibility == Accessibility.Public && !property.SetMethod.IsInitOnly)
+                    _ = sb.Append(" set => throw new System.NotSupportedException();");
+                _ = sb.Append(" }");
             }
         }
 
@@ -156,7 +203,7 @@ namespace Zerra.SourceGeneration
             {
                 if (method.MethodKind != MethodKind.Ordinary)
                     continue;
-                
+
                 var commandType = method.Parameters[0].Type;
                 var commandTypeName = Helper.GetFullName(commandType);
                 var returnType = namedTypeSymbol.TypeArguments[1];

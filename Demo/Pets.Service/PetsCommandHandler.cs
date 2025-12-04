@@ -9,10 +9,10 @@ namespace Pets.Service
     {
         public async Task<int> Handle(AdoptPetCommand command, CancellationToken cancellationToken)
         {
-            var thing = Context.Get<IThing>();
-            Context.Log?.Trace(thing.Text);
+            var thing = Context.GetService<IThing>();
+            Log?.Trace(thing.Text);
             
-            var breeds = await Context.Bus.Call<IPetsQueryHandler>().GetBreeds();
+            var breeds = await Bus.Call<IPetsQueryHandler>().GetBreeds();
 
             if (!breeds.Any(x =>  x.ID == command.BreedID))
                 throw new InvalidOperationException("BreedID not found");

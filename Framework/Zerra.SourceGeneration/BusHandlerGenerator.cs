@@ -32,6 +32,8 @@ namespace Zerra.SourceGeneration
             {
                 if (method.MethodKind != MethodKind.Ordinary)
                     continue;
+                if (method.IsGenericMethod)
+                    continue;
 
                 string methodName;
                 if (namedTypeSymbol.Name == "ICommandHandler" || namedTypeSymbol.Name == "IEventHandler")

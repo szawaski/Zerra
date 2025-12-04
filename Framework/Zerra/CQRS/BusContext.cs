@@ -19,7 +19,7 @@ namespace Zerra.CQRS
         /// <summary>
         /// Gets the name of the current service.
         /// </summary>
-        public string Service { get; init; }
+        public string ServiceName { get; init; }
         /// <summary>
         /// Gets the logger for this context, or null if logging is not configured.
         /// </summary>
@@ -31,13 +31,13 @@ namespace Zerra.CQRS
         /// Initializes a new instance of the <see cref="BusContext"/> class.
         /// </summary>
         /// <param name="bus">The bus instance for routing messages.</param>
-        /// <param name="service">The name of the current service.</param>
+        /// <param name="serviceName">The name of the current service.</param>
         /// <param name="log">The logger instance, or null if logging is not configured.</param>
         /// <param name="busScopes">The bus scopes containing registered dependencies.</param>
-        internal BusContext(IBus bus, string service, ILog? log, BusScopes busScopes)
+        internal BusContext(IBus bus, string serviceName, ILog? log, BusScopes busScopes)
         {
             this.Bus = bus;
-            this.Service = service;
+            this.ServiceName = serviceName;
             this.Log = log;
             this.dependencies = busScopes?.Dependencies;
         }
@@ -48,7 +48,7 @@ namespace Zerra.CQRS
         /// <typeparam name="TInterface">The type of the dependency to retrieve.</typeparam>
         /// <returns>The registered dependency instance.</returns>
         /// <exception cref="ArgumentException">Thrown if no dependency is registered for the specified type.</exception>
-        public TInterface Get<TInterface>() where TInterface : notnull
+        public TInterface GetService<TInterface>() where TInterface : notnull
         {
             if (dependencies == null || !dependencies.TryGetValue(typeof(TInterface), out var instance))
                 throw new ArgumentException($"No dependency registered for type {typeof(TInterface).FullName}");

@@ -5,6 +5,7 @@
 using Xunit;
 using Zerra.CQRS;
 using Zerra.CQRS.Network;
+using Zerra.Logging;
 using Zerra.Serialization;
 using Zerra.Serialization.Json;
 using Zerra.SourceGeneration;
@@ -37,9 +38,13 @@ namespace Zerra.Test.CQRS.Network
             public RemoteQueryCallResponse? QueryResponse { get; set; }
             public object? CommandResult { get; set; }
 
+            public ILog Log => null;
+
+            public string ServiceName => "Mock";
+
             public void AddHandler<TInterface>(TInterface handler) where TInterface : notnull
             {
-                // Handler registration mock
+                throw new NotImplementedException();
             }
 
             public void AddCommandProducer<TInterface>(ICommandProducer commandProducer) => throw new NotImplementedException();
@@ -83,6 +88,11 @@ namespace Zerra.Test.CQRS.Network
             public Task StopServicesAsync() => throw new NotImplementedException();
             public void WaitForExit(CancellationToken cancellationToken = default) => throw new NotImplementedException();
             public Task WaitForExitAsync(CancellationToken cancellationToken = default) => throw new NotImplementedException();
+
+            public TInterface GetService<TInterface>() where TInterface : notnull
+            {
+                throw new NotImplementedException();
+            }
         }
 
         private static void RegisterTestTypes()

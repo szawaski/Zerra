@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using Zerra.Logging;
 using Zerra.Serialization;
 
 namespace Zerra.CQRS
@@ -59,49 +60,6 @@ namespace Zerra.CQRS
         Task<TResult> DispatchAwaitAsync<TResult>(ICommand<TResult> command, CancellationToken? cancellationToken = null);
 
         /// <summary>
-        /// Add a handler service to handle commands, events, or queries locally.
-        /// </summary>
-        /// <typeparam name="IInterface">An interface inheriting handler interface(s).</typeparam>
-        /// <param name="handler">The handler service.</param>
-        void AddHandler<IInterface>(IInterface handler);
-        /// <summary>
-        /// Add a command producer service to send commands to remote services.
-        /// </summary>
-        /// <typeparam name="TInterface">An interface inheriting command handler interface(s) for the types of commands to send.</typeparam>
-        /// <param name="commandProducer">The command producer service.</param>
-        void AddCommandProducer<TInterface>(ICommandProducer commandProducer);
-        /// <summary>
-        /// Add a command consumer service to receive commands from remote services.
-        /// </summary>
-        /// <typeparam name="TInterface">An interface inheriting command handler interface(s) for the types of commands to receive.</typeparam>
-        /// <param name="commandConsumer">The command consumer service.</param>
-        void AddCommandConsumer<TInterface>(ICommandConsumer commandConsumer);
-        /// <summary>
-        /// Add an event producer service to send commands to remote services.
-        /// </summary>
-        /// <typeparam name="TInterface">An interface inheriting event handler interface(s) for the types of events to send.</typeparam>
-        /// <param name="eventProducer">The event producer service.</param>
-        void AddEventProducer<TInterface>(IEventProducer eventProducer);
-        /// <summary>
-        /// Add an event consumer service to receive commands from remote services.
-        /// </summary>
-        /// <typeparam name="TInterface">An interface inheriting event handler interface(s) for the types of events to receive.</typeparam>
-        /// <param name="eventConsumer">The event consumer service.</param>
-        void AddEventConsumer<TInterface>(IEventConsumer eventConsumer);
-        /// <summary>
-        /// Add a query client service to call for queries to remote services.
-        /// </summary>
-        /// <typeparam name="TInterface">An interface of queries.</typeparam>
-        /// <param name="queryClient">The query client service.</param>
-        void AddQueryClient<TInterface>(IQueryClient queryClient);
-        /// <summary>
-        /// Add a query server to receive and response to queries from remote services.
-        /// </summary>
-        /// <typeparam name="TInterface">An interface of queries.</typeparam>
-        /// <param name="queryServer">The query server service.</param>
-        void AddQueryServer<TInterface>(IQueryServer queryServer);
-
-        /// <summary>
         /// Handle a remote query call and return the result.
         /// </summary>
         /// <param name="interfaceType">The interface type for the query.</param>
@@ -150,26 +108,21 @@ namespace Zerra.CQRS
         Task RemoteHandleEventDispatchAsync(IEvent @event, string source, bool isApi);
 
         /// <summary>
-        /// Manually stop all the services. This is not necessary if using <see cref="WaitForExit"/> or <see cref="WaitForExitAsync"/>. 
+        /// Gets the logger instance for recording diagnostic and operational events for this handler.
+        /// May be <see langword="null"/> if logging is not configured.
         /// </summary>
-        void StopServices();
-        /// <summary>
-        /// Manually stop all the services. This is not necessary if using <see cref="WaitForExit"/> or <see cref="WaitForExitAsync"/>.
-        /// </summary>
-        Task StopServicesAsync();
+        ILog? Log { get; }
 
         /// <summary>
-        /// An awaiter to hold the assembly process until it receives a shutdown command.
-        /// All the services will be stopped upon shutdown.
+        /// Gets the logical service name for this handler, used for routing and identification.
         /// </summary>
-        /// <param name="cancellationToken">A token to cancel the wait.</param>
-        void WaitForExit(CancellationToken cancellationToken = default);
+        string ServiceName { get; }
 
         /// <summary>
-        /// An awaiter to hold the assembly process until it receives a shutdown command.
-        /// All the services will be stopped upon shutdown.
+        /// Resolves a service dependency from the current context.
         /// </summary>
-        /// <param name="cancellationToken">A token to cancel the wait.</param>
-        Task WaitForExitAsync(CancellationToken cancellationToken = default);
+        /// <typeparam name="TInterface">The service interface type to resolve.</typeparam>
+        /// <returns>An instance implementing <typeparamref name="TInterface"/>.</returns>
+        TInterface GetService<TInterface>() where TInterface : notnull;
     }
 }

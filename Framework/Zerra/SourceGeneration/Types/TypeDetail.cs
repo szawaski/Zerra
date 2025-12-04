@@ -2,8 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Diagnostics.CodeAnalysis;
-
 namespace Zerra.SourceGeneration.Types
 {
     /// <summary>
@@ -11,7 +9,7 @@ namespace Zerra.SourceGeneration.Types
     /// Generated at runtime or by source generators to provide detailed type information for serialization, reflection, and CQRS routing.
     /// Contains flags for collection types, nullable types, core types, and special framework types.
     /// </summary>
-    public abstract class TypeDetail
+    public abstract partial class TypeDetail
     {
         /// <summary>The type being analyzed.</summary>
         public readonly Type Type;
@@ -244,105 +242,6 @@ namespace Zerra.SourceGeneration.Types
             this.BaseTypes = baseTypes;
             this.Interfaces = interfaces;
             this.Attributes = attributes;
-        }
-
-        private TypeDetail? innerTypeDetail = null;
-        /// <summary>Gets the type detail for <see cref="InnerType"/> if this is a nullable type; otherwise null.</summary>
-        public TypeDetail? InnerTypeDetail
-        {
-            get
-            {
-                if (innerTypeDetail == null && InnerType != null)
-                    innerTypeDetail = TypeAnalyzer.GetTypeDetail(InnerType);
-                return innerTypeDetail;
-            }
-        }
-
-        private TypeDetail? iEnumerableGenericInnerTypeDetail = null;
-        /// <summary>Gets the type detail for <see cref="IEnumerableGenericInnerType"/> if this type is enumerable; otherwise null.</summary>
-        public TypeDetail? IEnumerableGenericInnerTypeDetail
-        {
-            get
-            {
-                if (iEnumerableGenericInnerTypeDetail == null && IEnumerableGenericInnerType != null)
-                    iEnumerableGenericInnerTypeDetail = TypeAnalyzer.GetTypeDetail(IEnumerableGenericInnerType);
-                return iEnumerableGenericInnerTypeDetail;
-            }
-        }
-
-        private TypeDetail? dictionaryInnerTypeDetail = null;
-        /// <summary>Gets the type detail for <see cref="DictionaryInnerType"/> if this type is a dictionary; otherwise null.</summary>
-        public TypeDetail? DictionaryInnerTypeDetail
-        {
-            get
-            {
-                if (dictionaryInnerTypeDetail == null && DictionaryInnerType != null)
-                    dictionaryInnerTypeDetail = TypeAnalyzer.GetTypeDetail(DictionaryInnerType);
-                return dictionaryInnerTypeDetail;
-            }
-        }
-
-        private IReadOnlyList<TypeDetail>? innerTypeDetails = null;
-        /// <summary>Gets the type detail for <see cref="InnerTypes"/> for generic types; empty if not generic.</summary>
-        public IReadOnlyList<TypeDetail> InnerTypeDetails
-        {
-            get
-            {
-                innerTypeDetails ??= InnerTypes.Select(TypeAnalyzer.GetTypeDetail).ToArray();
-                return innerTypeDetails;
-            }
-        }
-
-        private IReadOnlyList<MemberDetail>? serializableMemberDetails = null;
-        /// <summary>
-        /// Gets a cached collection of members that can be serialized.
-        /// Includes non-static, backed members that are not explicit interface implementations and have serializable types.
-        /// </summary>
-        public IReadOnlyList<MemberDetail> SerializableMemberDetails
-        {
-            get
-            {
-                serializableMemberDetails ??= Members.Where(x => !x.IsStatic && x.IsBacked && !x.IsExplicitFromInterface && IsSerializableType(x.TypeDetailBoxed)).ToArray();
-                return serializableMemberDetails;
-            }
-        }
-
-        private Dictionary<string, MemberDetail>? membersByName = null;
-        /// <summary>
-        /// Attempts to retrieve a member by its name.
-        /// </summary>
-        /// <param name="name">The member name to look up.</param>
-        /// <param name="member">When the method returns true, contains the <see cref="MemberDetail"/> associated with the specified name; otherwise the default value.</param>
-        /// <returns>True if a member with the specified name was found; otherwise false.</returns>
-        public bool TryGetMember(string name,
-#if !NETSTANDARD2_0
-           [MaybeNullWhen(false)]
-#endif
-        out MemberDetail member)
-        {
-            membersByName ??= Members.ToDictionary(x => x.Name);
-
-            if (membersByName.TryGetValue(name, out member))
-                return true;
-
-            return false;
-        }
-
-        private static bool IsSerializableType(TypeDetail typeDetail)
-        {
-            if (typeDetail.CoreType.HasValue)
-                return true;
-            if (typeDetail.Type.IsEnum)
-                return true;
-            if (typeDetail.Type.IsArray)
-                return true;
-            if (typeDetail.IsNullable)
-                return IsSerializableType(typeDetail.InnerTypeDetail!);
-            if (typeDetail.Type.IsClass)
-                return true;
-            if (typeDetail.Type.IsInterface)
-                return true;
-            return false;
         }
     }
 }

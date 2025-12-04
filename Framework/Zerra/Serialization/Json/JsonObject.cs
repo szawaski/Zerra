@@ -720,7 +720,7 @@ namespace Zerra.Serialization.Json
 //                        {
 //                            set = typeDetail.CreatorBoxed();
 //                        }
-//                        var addMethod = typeDetail.GetMethodBoxed("Add", [innerType]);
+//                        var addMethod = typeDetail.GetMethod("Add", [innerType]);
 //                        var addMethodArgs = new object?[1];
 //                        foreach (var item in valueArray!)
 //                        {

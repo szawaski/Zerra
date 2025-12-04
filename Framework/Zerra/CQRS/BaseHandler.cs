@@ -2,6 +2,8 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using Zerra.Logging;
+
 namespace Zerra.CQRS
 {
     /// <summary>
@@ -10,18 +12,16 @@ namespace Zerra.CQRS
     /// </summary>
     public abstract class BaseHandler : IHandler
     {
-        private BusContext? context;
-        
-        /// <summary>
-        /// Gets the bus context associated with this handler.
-        /// </summary>
-        /// <exception cref="InvalidOperationException">Thrown if the handler has not been initialized.</exception>
+        /// <inheritdoc />
+        public IBus Bus => Context.Bus;
+
+        /// <inheritdoc />
+        public ILog? Log => Context.Log;
+
+        private BusContext? context = null;
         public BusContext Context => context ?? throw new InvalidOperationException("Handler not initialized");
 
-        /// <summary>
-        /// Initializes the handler with the specified bus context.
-        /// </summary>
-        /// <param name="context">The bus context to associate with this handler.</param>
+        /// <inheritdoc />
         void IHandler.Initialize(BusContext context)
         {
             this.context = context;

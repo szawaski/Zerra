@@ -4,6 +4,7 @@
 
 using Xunit;
 using Zerra.CQRS;
+using Zerra.Logging;
 using Zerra.Serialization;
 
 namespace Zerra.Test.CQRS
@@ -20,6 +21,10 @@ namespace Zerra.Test.CQRS
 
         private class MockBus : IBus
         {
+            public ILog Log => null;
+
+            public string ServiceName => "Mock";
+
             public void AddHandler<TInterface>(TInterface handler) where TInterface : notnull => throw new NotImplementedException();
             public void AddCommandProducer<TInterface>(ICommandProducer commandProducer) => throw new NotImplementedException();
             public void AddCommandConsumer<TInterface>(ICommandConsumer commandConsumer) => throw new NotImplementedException();
@@ -41,6 +46,11 @@ namespace Zerra.Test.CQRS
             public Task StopServicesAsync() => throw new NotImplementedException();
             public void WaitForExit(CancellationToken cancellationToken = default) => throw new NotImplementedException();
             public Task WaitForExitAsync(CancellationToken cancellationToken = default) => throw new NotImplementedException();
+
+            public TInterface GetService<TInterface>() where TInterface : notnull
+            {
+                throw new NotImplementedException();
+            }
         }
 
         [Fact]
@@ -53,7 +63,7 @@ namespace Zerra.Test.CQRS
             var busContext = new BusContext(mockBus, serviceName, null, busScopes);
 
             Assert.Same(mockBus, busContext.Bus);
-            Assert.Equal(serviceName, busContext.Service);
+            Assert.Equal(serviceName, busContext.ServiceName);
             Assert.Null(busContext.Log);
         }
 
@@ -73,11 +83,11 @@ namespace Zerra.Test.CQRS
         {
             var busScopes = new BusScopes();
             var dependency = new TestDependency();
-            busScopes.AddScope<ITestDependency>(dependency);
+            busScopes.AddService<ITestDependency>(dependency);
             var mockBus = new MockBus();
 
             var busContext = new BusContext(mockBus, "Service", null, busScopes);
-            var retrieved = busContext.Get<ITestDependency>();
+            var retrieved = busContext.GetService<ITestDependency>();
 
             Assert.Same(dependency, retrieved);
         }
@@ -90,7 +100,7 @@ namespace Zerra.Test.CQRS
 
             var busContext = new BusContext(mockBus, "Service", null, busScopes);
 
-            var ex = Assert.Throws<ArgumentException>(() => busContext.Get<ITestDependency>());
+            var ex = Assert.Throws<ArgumentException>(() => busContext.GetService<ITestDependency>());
             Assert.Contains(typeof(ITestDependency).FullName, ex.Message);
         }
 
@@ -101,7 +111,7 @@ namespace Zerra.Test.CQRS
 
             var busContext = new BusContext(mockBus, "Service", null, null!);
 
-            var ex = Assert.Throws<ArgumentException>(() => busContext.Get<ITestDependency>());
+            var ex = Assert.Throws<ArgumentException>(() => busContext.GetService<ITestDependency>());
             Assert.Contains(typeof(ITestDependency).FullName, ex.Message);
         }
 
@@ -111,14 +121,14 @@ namespace Zerra.Test.CQRS
             var busScopes = new BusScopes();
             var foo = new Foo();
             var bar = new Bar();
-            busScopes.AddScope<IFoo>(foo);
-            busScopes.AddScope<IBar>(bar);
+            busScopes.AddService<IFoo>(foo);
+            busScopes.AddService<IBar>(bar);
 
             var mockBus = new MockBus();
             var busContext = new BusContext(mockBus, "Service", null, busScopes);
 
-            var retrievedFoo = busContext.Get<IFoo>();
-            var retrievedBar = busContext.Get<IBar>();
+            var retrievedFoo = busContext.GetService<IFoo>();
+            var retrievedBar = busContext.GetService<IBar>();
 
             Assert.Same(foo, retrievedFoo);
             Assert.Same(bar, retrievedBar);

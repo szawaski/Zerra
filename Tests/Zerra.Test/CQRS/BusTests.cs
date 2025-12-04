@@ -213,7 +213,7 @@ namespace Zerra.Test.CQRS
         {
             public string GetServiceName()
             {
-                return Context.Service;
+                return Context.ServiceName;
             }
 
             public int GetThings()

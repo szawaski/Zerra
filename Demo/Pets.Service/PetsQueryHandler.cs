@@ -23,7 +23,7 @@ namespace Pets.Service
 
         public Task<SpeciesModel[]> GetSpecies()
         {
-            var things = Context.Get<IThing>();
+            var things = Context.GetService<IThing>();
             return Task.FromResult(DataSource.Species.ToArray());
         }
 

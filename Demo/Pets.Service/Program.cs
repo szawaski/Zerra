@@ -18,19 +18,19 @@ ILog log = new Logger();
 IBusLog busLog = new BusLogger();
 
 var busScopes = new BusScopes();
-busScopes.AddScope<IThing>(new Thing("Hello"));
+busScopes.AddService<IThing>(new Thing("Hello"));
 
 Console.WriteLine($"Elapsed: {timer.ElapsedMilliseconds} ms");
 timer.Restart();
 
-IBus busServer = Bus.New("pets-service-server", log, busLog, busScopes);
+IBusSetup busServer = Bus.New("pets-service-server", log, busLog, busScopes);
 busServer.AddHandler<IPetsQueryHandler>(new PetsQueryHandler());
 busServer.AddHandler<IPetsCommandHandler>(new PetsCommandHandler());
 var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, log);
 busServer.AddQueryServer<IPetsQueryHandler>(server);
 busServer.AddCommandConsumer<IPetsCommandHandler>(server);
 
-IBus busClient = Bus.New("pets-service-client", log, busLog, busScopes);
+IBusSetup busClient = Bus.New("pets-service-client", log, busLog, busScopes);
 var client = new TcpCqrsClient("localhost:9001", serializer, encryptor, log);
 busClient.AddQueryClient<IPetsQueryHandler>(client);
 busClient.AddCommandProducer<IPetsCommandHandler>(client);

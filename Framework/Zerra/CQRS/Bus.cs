@@ -11,7 +11,7 @@ using Zerra.SourceGeneration;
 
 namespace Zerra.CQRS
 {
-    public sealed class Bus : IBus, IBusInternal
+    public sealed class Bus : IBusSetup, IBusInternal
     {
         private static readonly Type streamType = typeof(Stream);
         private static readonly Type cancellationTokenType = typeof(CancellationToken);
@@ -42,7 +42,7 @@ namespace Zerra.CQRS
         private readonly int maxConcurrentCommandsPerTopic;
         private readonly int maxConcurrentEventsPerTopic;
 
-        public static IBus New(string service, ILog? log, IBusLog? busLog, BusScopes? busScopes, int? commandToReceiveUntilExit = null,
+        public static IBusSetup New(string service, ILog? log, IBusLog? busLog, BusScopes? busScopes, int? commandToReceiveUntilExit = null,
             TimeSpan? defaultCallTimeout = null, TimeSpan? defaultDispatchTimeout = null, TimeSpan? defaultDispatchAwaitTimeout = null,
             int? maxConcurrentQueries = null, int? maxConcurrentCommandsPerTopic = null, int? maxConcurrentEventsPerTopic = null)
         {
@@ -311,18 +311,18 @@ namespace Zerra.CQRS
 
         /// <inheritdoc />
         public TInterface Call<TInterface>()
-            => (TInterface)BusRouters.GetBusCaller(typeof(TInterface), this, context.Service);
+            => (TInterface)BusRouters.GetBusCaller(typeof(TInterface), this, context.ServiceName);
 
         /// <inheritdoc />
         public Task DispatchAsync(ICommand command, CancellationToken? cancellationToken = null)
         {
             if (cancellationToken.HasValue)
-                return _DispatchCommandInternalAsync(command, command.GetType(), false, context.Service, cancellationToken.Value);
+                return _DispatchCommandInternalAsync(command, command.GetType(), false, context.ServiceName, cancellationToken.Value);
             if (!defaultDispatchTimeout.HasValue)
-                return _DispatchCommandInternalAsync(command, command.GetType(), false, context.Service, CancellationToken.None);
+                return _DispatchCommandInternalAsync(command, command.GetType(), false, context.ServiceName, CancellationToken.None);
 
             var cancellationTokenSource = new CancellationTokenSource(defaultDispatchTimeout.Value);
-            var task = _DispatchCommandInternalAsync(command, command.GetType(), false, context.Service, cancellationTokenSource.Token);
+            var task = _DispatchCommandInternalAsync(command, command.GetType(), false, context.ServiceName, cancellationTokenSource.Token);
             _ = task.ContinueWith((_) => cancellationTokenSource.Dispose());
             return task;
         }
@@ -330,12 +330,12 @@ namespace Zerra.CQRS
         public Task DispatchAwaitAsync(ICommand command, CancellationToken? cancellationToken = null)
         {
             if (cancellationToken.HasValue)
-                return _DispatchCommandInternalAsync(command, command.GetType(), true, context.Service, cancellationToken.Value);
+                return _DispatchCommandInternalAsync(command, command.GetType(), true, context.ServiceName, cancellationToken.Value);
             if (!defaultDispatchAwaitTimeout.HasValue)
-                return _DispatchCommandInternalAsync(command, command.GetType(), true, context.Service, CancellationToken.None);
+                return _DispatchCommandInternalAsync(command, command.GetType(), true, context.ServiceName, CancellationToken.None);
 
             var cancellationTokenSource = new CancellationTokenSource(defaultDispatchAwaitTimeout.Value);
-            var task = _DispatchCommandInternalAsync(command, command.GetType(), true, context.Service, cancellationTokenSource.Token);
+            var task = _DispatchCommandInternalAsync(command, command.GetType(), true, context.ServiceName, cancellationTokenSource.Token);
             _ = task.ContinueWith((_) => cancellationTokenSource.Dispose());
             return task;
         }
@@ -343,12 +343,12 @@ namespace Zerra.CQRS
         public Task DispatchAsync(IEvent @event, CancellationToken? cancellationToken = null)
         {
             if (cancellationToken.HasValue)
-                return _DispatchEventInternalAsync(@event, @event.GetType(), context.Service, cancellationToken.Value);
+                return _DispatchEventInternalAsync(@event, @event.GetType(), context.ServiceName, cancellationToken.Value);
             if (!defaultDispatchTimeout.HasValue)
-                return _DispatchEventInternalAsync(@event, @event.GetType(), context.Service, CancellationToken.None);
+                return _DispatchEventInternalAsync(@event, @event.GetType(), context.ServiceName, CancellationToken.None);
 
             var cancellationTokenSource = new CancellationTokenSource(defaultDispatchTimeout.Value);
-            var task = _DispatchEventInternalAsync(@event, @event.GetType(), context.Service, cancellationTokenSource.Token);
+            var task = _DispatchEventInternalAsync(@event, @event.GetType(), context.ServiceName, cancellationTokenSource.Token);
             _ = task.ContinueWith((_) => cancellationTokenSource.Dispose());
             return task;
         }
@@ -356,12 +356,12 @@ namespace Zerra.CQRS
         public Task<TResult> DispatchAwaitAsync<TResult>(ICommand<TResult> command, CancellationToken? cancellationToken = null)
         {
             if (cancellationToken.HasValue)
-                return _DispatchCommandWithResultInternalAsync(command, command.GetType(), context.Service, cancellationToken.Value);
+                return _DispatchCommandWithResultInternalAsync(command, command.GetType(), context.ServiceName, cancellationToken.Value);
             if (!defaultDispatchAwaitTimeout.HasValue)
-                return _DispatchCommandWithResultInternalAsync(command, command.GetType(), context.Service, CancellationToken.None);
+                return _DispatchCommandWithResultInternalAsync(command, command.GetType(), context.ServiceName, CancellationToken.None);
 
             var cancellationTokenSource = new CancellationTokenSource(defaultDispatchAwaitTimeout.Value);
-            var task = _DispatchCommandWithResultInternalAsync(command, command.GetType(), context.Service, cancellationTokenSource.Token);
+            var task = _DispatchCommandWithResultInternalAsync(command, command.GetType(), context.ServiceName, cancellationTokenSource.Token);
             _ = task.ContinueWith((_) => cancellationTokenSource.Dispose());
             return task;
         }
@@ -551,7 +551,7 @@ namespace Zerra.CQRS
         {
             var handled = handler != null;
 
-            busLog?.BeginCall(interfaceType, methodName, arguments, context.Service, source, handled);
+            busLog?.BeginCall(interfaceType, methodName, arguments, context.ServiceName, source, handled);
 
             TReturn result;
             var timer = Stopwatch.StartNew();
@@ -565,12 +565,12 @@ namespace Zerra.CQRS
             catch (Exception ex)
             {
                 timer.Stop();
-                busLog?.EndCall(interfaceType, methodName, arguments, null, context.Service, source, handled, timer.ElapsedMilliseconds, ex);
+                busLog?.EndCall(interfaceType, methodName, arguments, null, context.ServiceName, source, handled, timer.ElapsedMilliseconds, ex);
                 throw;
             }
 
             timer.Stop();
-            busLog?.EndCall(interfaceType, methodName, arguments, result, context.Service, source, handled, timer.ElapsedMilliseconds, null);
+            busLog?.EndCall(interfaceType, methodName, arguments, result, context.ServiceName, source, handled, timer.ElapsedMilliseconds, null);
 
             return result;
         }
@@ -578,7 +578,7 @@ namespace Zerra.CQRS
         {
             var handled = handler != null;
 
-            busLog?.BeginCall(interfaceType, methodName, arguments, context.Service, source, handled);
+            busLog?.BeginCall(interfaceType, methodName, arguments, context.ServiceName, source, handled);
 
             var timer = Stopwatch.StartNew();
             try
@@ -594,18 +594,18 @@ namespace Zerra.CQRS
             catch (Exception ex)
             {
                 timer.Stop();
-                busLog?.EndCall(interfaceType, methodName, arguments, null, context.Service, source, handled, timer.ElapsedMilliseconds, ex);
+                busLog?.EndCall(interfaceType, methodName, arguments, null, context.ServiceName, source, handled, timer.ElapsedMilliseconds, ex);
                 throw;
             }
 
             timer.Stop();
-            busLog?.EndCall(interfaceType, methodName, arguments, null, context.Service, source, handled, timer.ElapsedMilliseconds, null);
+            busLog?.EndCall(interfaceType, methodName, arguments, null, context.ServiceName, source, handled, timer.ElapsedMilliseconds, null);
         }
         private async Task<TReturn> HandleMethodTaskGenericLogged<TReturn>(object? handler, IQueryClient? queryClient, Type interfaceType, string methodName, object[] arguments, string source, CancellationToken cancellationToken)
         {
             var handled = handler != null;
 
-            busLog?.BeginCall(interfaceType, methodName, arguments, context.Service, source, handled);
+            busLog?.BeginCall(interfaceType, methodName, arguments, context.ServiceName, source, handled);
 
             TReturn taskresult;
             var timer = Stopwatch.StartNew();
@@ -622,12 +622,12 @@ namespace Zerra.CQRS
             catch (Exception ex)
             {
                 timer.Stop();
-                busLog?.EndCall(interfaceType, methodName, arguments, null, context.Service, source, handled, timer.ElapsedMilliseconds, ex);
+                busLog?.EndCall(interfaceType, methodName, arguments, null, context.ServiceName, source, handled, timer.ElapsedMilliseconds, ex);
                 throw;
             }
 
             timer.Stop();
-            busLog?.EndCall(interfaceType, methodName, arguments, taskresult, context.Service, source, handled, timer.ElapsedMilliseconds, null);
+            busLog?.EndCall(interfaceType, methodName, arguments, taskresult, context.ServiceName, source, handled, timer.ElapsedMilliseconds, null);
 
             return taskresult;
         }
@@ -793,7 +793,7 @@ namespace Zerra.CQRS
         {
             var handled = handler != null;
 
-            busLog?.BeginCommand(commandType, command, context.Service, source, handled);
+            busLog?.BeginCommand(commandType, command, context.ServiceName, source, handled);
 
             var timer = Stopwatch.StartNew();
             try
@@ -814,18 +814,18 @@ namespace Zerra.CQRS
             catch (Exception ex)
             {
                 timer.Stop();
-                busLog?.EndCommand(commandType, command, context.Service, source, handled, timer.ElapsedMilliseconds, ex);
+                busLog?.EndCommand(commandType, command, context.ServiceName, source, handled, timer.ElapsedMilliseconds, ex);
                 throw;
             }
 
             timer.Stop();
-            busLog?.EndCommand(commandType, command, context.Service, source, handled, timer.ElapsedMilliseconds, null);
+            busLog?.EndCommand(commandType, command, context.ServiceName, source, handled, timer.ElapsedMilliseconds, null);
         }
         private async Task<TResult> HandleCommandWithResultTaskLogged<TResult>(object? handler, ICommandProducer? producer, Type interfaceType, ICommand<TResult> command, Type commandType, string source, CancellationToken cancellationToken)
         {
             var handled = handler != null;
 
-            busLog?.BeginCommand(commandType, command, context.Service, source, handled);
+            busLog?.BeginCommand(commandType, command, context.ServiceName, source, handled);
 
             var timer = Stopwatch.StartNew();
             TResult result;
@@ -844,12 +844,12 @@ namespace Zerra.CQRS
             catch (Exception ex)
             {
                 timer.Stop();
-                busLog?.EndCommand(commandType, command, context.Service, source, handled, timer.ElapsedMilliseconds, ex);
+                busLog?.EndCommand(commandType, command, context.ServiceName, source, handled, timer.ElapsedMilliseconds, ex);
                 throw;
             }
 
             timer.Stop();
-            busLog?.EndCommand(commandType, command, context.Service, source, handled, timer.ElapsedMilliseconds, null);
+            busLog?.EndCommand(commandType, command, context.ServiceName, source, handled, timer.ElapsedMilliseconds, null);
 
             return result;
         }
@@ -857,7 +857,7 @@ namespace Zerra.CQRS
         {
             var handled = handler != null;
 
-            busLog?.BeginEvent(eventType, @event, context.Service, source, handled);
+            busLog?.BeginEvent(eventType, @event, context.ServiceName, source, handled);
 
             var timer = Stopwatch.StartNew();
             try
@@ -875,12 +875,12 @@ namespace Zerra.CQRS
             catch (Exception ex)
             {
                 timer.Stop();
-                busLog?.EndEvent(eventType, @event, context.Service, source, handled, timer.ElapsedMilliseconds, ex);
+                busLog?.EndEvent(eventType, @event, context.ServiceName, source, handled, timer.ElapsedMilliseconds, ex);
                 throw;
             }
 
             timer.Stop();
-            busLog?.EndEvent(eventType, @event, context.Service, source, handled, timer.ElapsedMilliseconds, null);
+            busLog?.EndEvent(eventType, @event, context.ServiceName, source, handled, timer.ElapsedMilliseconds, null);
         }
 
         /// <inheritdoc />
@@ -1068,5 +1068,15 @@ namespace Zerra.CQRS
 
             queryServer.Open();
         }
+
+        /// <inheritdoc />
+        public ILog? Log  => context.Log;
+
+        /// <inheritdoc />
+        public string ServiceName => context.ServiceName;
+
+        /// <inheritdoc />
+        public TInterface GetService<TInterface>() where TInterface : notnull
+            => context.GetService<TInterface>();
     }
 }
