@@ -23,7 +23,7 @@ namespace Zerra.CQRS
         /// <summary>
         /// Gets the logger for this context, or null if logging is not configured.
         /// </summary>
-        public ILogger? Log { get; init; }
+        public ILog? Log { get; init; }
 
         private readonly Dictionary<Type, object>? dependencies;
 
@@ -34,7 +34,7 @@ namespace Zerra.CQRS
         /// <param name="service">The name of the current service.</param>
         /// <param name="log">The logger instance, or null if logging is not configured.</param>
         /// <param name="busScopes">The bus scopes containing registered dependencies.</param>
-        internal BusContext(IBus bus, string service, ILogger? log, BusScopes busScopes)
+        internal BusContext(IBus bus, string service, ILog? log, BusScopes busScopes)
         {
             this.Bus = bus;
             this.Service = service;

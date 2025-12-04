@@ -40,7 +40,7 @@ namespace Zerra.Web
         /// <param name="log">Optional logger for diagnostic information and errors.</param>
         /// <param name="authorizer">Optional authorizer for providing custom authentication headers.</param>
         /// <param name="route">Optional route path to append to the endpoint (e.g., "/cqrs").</param>
-        public KestrelCqrsClient(string endpoint, ISerializer serializer, IEncryptor? encryptor, ILogger? log, ICqrsAuthorizer? authorizer, string? route) : base(endpoint, log)
+        public KestrelCqrsClient(string endpoint, ISerializer serializer, IEncryptor? encryptor, ILog? log, ICqrsAuthorizer? authorizer, string? route) : base(endpoint, log)
         {
             this.serializer = serializer;
             this.encryptor = encryptor;

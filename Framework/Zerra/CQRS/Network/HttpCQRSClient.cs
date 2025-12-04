@@ -28,7 +28,7 @@ namespace Zerra.CQRS.Network
         /// <param name="serviceUrl">The url of the server.</param>
         /// <param name="symmetricConfig">If provided, information to encrypt the data.</param>
         /// <param name="authorizer">An authorizer for adding headers needed for the server to validate requests.</param>
-        public HttpCqrsClient(string serviceUrl, ISerializer serializer, IEncryptor? encryptor, ICqrsAuthorizer? authorizer, ILogger? log)
+        public HttpCqrsClient(string serviceUrl, ISerializer serializer, IEncryptor? encryptor, ICqrsAuthorizer? authorizer, ILog? log)
             : base(serviceUrl, log)
         {
             this.serializer = serializer;

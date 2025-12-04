@@ -12,6 +12,18 @@ namespace Zerra.Map
 
         private static readonly ConcurrentFactoryDictionary<TypePairKey, Delegate> mapCache = new();
 
+        public static TTarget Map<TTarget>(this object source, Graph? graph = null)
+            where TTarget : notnull
+        {
+            if (source is null)
+                throw new ArgumentNullException(nameof(source));
+
+            var sourceType = source.GetType();
+            var map = GetMap<TTarget>(sourceType);
+            var result = map(source, default, graph);
+            return result!;
+        }
+
         public static TTarget Map<TSource, TTarget>(this TSource source, Graph? graph = null)
             where TSource : notnull
             where TTarget : notnull
@@ -56,6 +68,15 @@ namespace Zerra.Map
             var targetType = typeof(TTarget);
             var key = new TypePairKey(sourceType, targetType);
             var map = (Func<TSource, TTarget?, Graph?, TTarget>)mapCache.GetOrAdd(key, static () => MapGenerator.Generate<TSource, TTarget>());
+            return map;
+        }
+
+        private static Func<object, TTarget?, Graph?, TTarget?> GetMap<TTarget>(Type sourceType)
+            where TTarget : notnull
+        {
+            var targetType = typeof(TTarget);
+            var key = new TypePairKey(sourceType, targetType);
+            var map = (Func<object, TTarget?, Graph?, TTarget>)mapCache.GetOrAdd(key, static () => MapGenerator.Generate<TTarget>());
             return map;
         }
     }

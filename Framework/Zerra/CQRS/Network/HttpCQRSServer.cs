@@ -29,7 +29,7 @@ namespace Zerra.CQRS.Network
         /// <param name="symmetricConfig">If provided, information to encrypt the data.</param>
         /// <param name="authorizer">An authorizer for the server to validate requests.</param>
         /// <param name="allowOrigins">CORS HTTP headers for Allow-Origins</param>
-        public HttpCqrsServer(string serverUrl, ISerializer serializer, IEncryptor? encryptor, ICqrsAuthorizer? authorizer, string[]? allowOrigins, ILogger? log = null)
+        public HttpCqrsServer(string serverUrl, ISerializer serializer, IEncryptor? encryptor, ICqrsAuthorizer? authorizer, string[]? allowOrigins, ILog? log = null)
             : base(serverUrl, log)
         {
             this.serializer = serializer;

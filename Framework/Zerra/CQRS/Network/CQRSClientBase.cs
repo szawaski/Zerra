@@ -4,7 +4,6 @@
 
 using System.Collections.Concurrent;
 using Zerra.Logging;
-using Zerra.SourceGeneration;
 
 namespace Zerra.CQRS.Network
 {
@@ -17,7 +16,7 @@ namespace Zerra.CQRS.Network
         /// <summary>
         /// The logging provider.
         /// </summary>
-        protected readonly ILogger? log;
+        protected readonly ILog? log;
         /// <summary>
         /// The URI of the target server.
         /// </summary>
@@ -38,7 +37,7 @@ namespace Zerra.CQRS.Network
         /// Required by the inheriting class to call this constructor for information the connection needs.
         /// </summary>
         /// <param name="serviceUrl">The url of the server to connect.</param>
-        public CqrsClientBase(string serviceUrl, ILogger? log)
+        public CqrsClientBase(string serviceUrl, ILog? log)
         {
             if (String.IsNullOrWhiteSpace(serviceUrl))
                 throw new ArgumentNullException(nameof(serviceUrl));

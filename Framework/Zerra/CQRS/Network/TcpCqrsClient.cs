@@ -26,7 +26,7 @@ namespace Zerra.CQRS.Network
         /// <param name="contentType">The format of the body of the request and response.</param>
         /// <param name="serviceUrl">The url of the server.</param>
         /// <param name="symmetricConfig">If provided, information to encrypt the data.</param>
-        public TcpCqrsClient(string serviceUrl, ISerializer serializer, IEncryptor? encryptor, ILogger? log)
+        public TcpCqrsClient(string serviceUrl, ISerializer serializer, IEncryptor? encryptor, ILog? log)
             : base(serviceUrl, log)
         {
             this.serializer = serializer;

@@ -21,7 +21,7 @@ namespace Zerra.Web
         /// <param name="factory">The logger factory to add the provider to.</param>
         /// <param name="log">The underlying Zerra logger implementation.</param>
         /// <returns>The logger factory for method chaining.</returns>
-        public static ILoggerFactory AddZerraLogger(this ILoggerFactory factory, Zerra.Logging.ILogger log)
+        public static ILoggerFactory AddZerraLogger(this ILoggerFactory factory, Zerra.Logging.ILog log)
         {
             factory.AddProvider(new ZerraLoggerProvider(log));
             return factory;

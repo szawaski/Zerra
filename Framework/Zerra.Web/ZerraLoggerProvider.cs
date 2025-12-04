@@ -17,13 +17,13 @@ namespace Zerra.Web
     public sealed class ZerraLoggerProvider : ILoggerProvider
     {
         private readonly ConcurrentFactoryDictionary<string, ZerraLogger> loggers = new();
-        private readonly Zerra.Logging.ILogger log;
+        private readonly Zerra.Logging.ILog log;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ZerraLoggerProvider"/> class.
         /// </summary>
         /// <param name="log">The underlying Zerra logger implementation to use for all created loggers.</param>
-        public ZerraLoggerProvider(Zerra.Logging.ILogger log)
+        public ZerraLoggerProvider(Zerra.Logging.ILog log)
         {
             this.log = log;
         }

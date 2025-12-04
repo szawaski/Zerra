@@ -33,7 +33,7 @@ namespace Zerra.CQRS
         private static readonly ConcurrentFactoryDictionary<Type, HandlerMetadata> handlerMetadata = new();
 
         private readonly BusContext context;
-        private readonly IBusLogger? busLog;
+        private readonly IBusLog? busLog;
         private readonly CommandCounter commandCounter;
         private readonly TimeSpan? defaultCallTimeout;
         private readonly TimeSpan? defaultDispatchTimeout;
@@ -42,7 +42,7 @@ namespace Zerra.CQRS
         private readonly int maxConcurrentCommandsPerTopic;
         private readonly int maxConcurrentEventsPerTopic;
 
-        public static IBus New(string service, ILogger? log, IBusLogger? busLog, BusScopes? busScopes, int? commandToReceiveUntilExit = null,
+        public static IBus New(string service, ILog? log, IBusLog? busLog, BusScopes? busScopes, int? commandToReceiveUntilExit = null,
             TimeSpan? defaultCallTimeout = null, TimeSpan? defaultDispatchTimeout = null, TimeSpan? defaultDispatchAwaitTimeout = null,
             int? maxConcurrentQueries = null, int? maxConcurrentCommandsPerTopic = null, int? maxConcurrentEventsPerTopic = null)
         {
@@ -51,7 +51,7 @@ namespace Zerra.CQRS
                 maxConcurrentQueries, maxConcurrentCommandsPerTopic, maxConcurrentEventsPerTopic);
         }
 
-        private Bus(string service, ILogger? log, IBusLogger? busLog, BusScopes? busScopes, int? commandToReceiveUntilExit = null,
+        private Bus(string service, ILog? log, IBusLog? busLog, BusScopes? busScopes, int? commandToReceiveUntilExit = null,
             TimeSpan? defaultCallTimeout = null, TimeSpan? defaultDispatchTimeout = null, TimeSpan? defaultDispatchAwaitTimeout = null,
             int? maxConcurrentQueries = null, int? maxConcurrentCommandsPerTopic = null, int? maxConcurrentEventsPerTopic = null)
         {

@@ -9,7 +9,7 @@ namespace Zerra.Logging
     /// Call the static <see cref="Log"/> class to utilize the implementation.
     /// This follows Microsoft's Logging Levels in Microsoft.Extensions.Logging
     /// </summary>
-    public interface ILogger
+    public interface ILog
     {
         /// <summary>
         /// Log an event with a level of Trace.

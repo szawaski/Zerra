@@ -30,7 +30,7 @@ namespace Zerra.Web
         private readonly RequestDelegate requestDelegate;
         private readonly ISerializer serializer;
         private readonly IEncryptor? encryptor;
-        private readonly ILogger? log;
+        private readonly ILog? log;
         private readonly KestrelCqrsServerLinkedSettings settings;
 
         /// <summary>
@@ -41,7 +41,7 @@ namespace Zerra.Web
         /// <param name="encryptor">Optional encryptor/decryptor for message encryption. If null, messages are assumed to be unencrypted.</param>
         /// <param name="log">Optional logger for diagnostic information and errors.</param>
         /// <param name="settings">The server settings including route, allowed origins, handler configurations, and registered CQRS types.</param>
-        public KestrelCqrsServerMiddleware(RequestDelegate requestDelegate, ISerializer serializer, IEncryptor? encryptor, ILogger? log, KestrelCqrsServerLinkedSettings settings)
+        public KestrelCqrsServerMiddleware(RequestDelegate requestDelegate, ISerializer serializer, IEncryptor? encryptor, ILog? log, KestrelCqrsServerLinkedSettings settings)
         {
             this.requestDelegate = requestDelegate;
             this.serializer = serializer;

@@ -28,7 +28,7 @@ namespace Zerra.CQRS.Network
         /// <param name="contentType">The content type of the communications.</param>
         /// <param name="authorizer">An authorizer for adding headers needed for the server to validate requests.</param>
         /// <param name="route">Adds n route argument to the base endpoint url if needed.</param>
-        public ApiClient(string endpoint, ISerializer serializer, ILogger? log, ICqrsAuthorizer? authorizer, string? route = null) : base(endpoint, log)
+        public ApiClient(string endpoint, ISerializer serializer, ILog? log, ICqrsAuthorizer? authorizer, string? route = null) : base(endpoint, log)
         {
             this.serializer = serializer;
             this.authorizer = authorizer;

@@ -24,7 +24,7 @@ namespace Zerra.Web
         private readonly RequestDelegate requestDelegate;
         private readonly IBus bus;
         private readonly ISerializer serializer;
-        private readonly ILogger? log;
+        private readonly ILog? log;
         private readonly string? route;
         private readonly ICqrsAuthorizer? authorizer;
 
@@ -36,7 +36,7 @@ namespace Zerra.Web
         /// <param name="serializer">The serializer for request/response serialization and deserialization.</param>
         /// <param name="log">Optional logger for diagnostic information and errors.</param>
         /// <param name="route">Optional route path to restrict the middleware to specific requests (e.g., "/cqrs"). If null, all POST/OPTIONS requests are processed.</param>
-        public CqrsApiGatewayMiddleware(RequestDelegate requestDelegate, IBus bus, ISerializer serializer, ILogger? log, string? route)
+        public CqrsApiGatewayMiddleware(RequestDelegate requestDelegate, IBus bus, ISerializer serializer, ILog? log, string? route)
         {
             this.requestDelegate = requestDelegate;
             this.bus = bus;
@@ -54,7 +54,7 @@ namespace Zerra.Web
         /// <param name="log">Optional logger for diagnostic information and errors.</param>
         /// <param name="authorizer">Optional authorizer for custom request authentication and authorization. If null, no authorization is performed.</param>
         /// <param name="route">Optional route path to restrict the middleware to specific requests (e.g., "/cqrs"). If null, all POST/OPTIONS requests are processed.</param>
-        public CqrsApiGatewayMiddleware(RequestDelegate requestDelegate, IBus bus, ISerializer serializer, ILogger? log, ICqrsAuthorizer? authorizer, string? route)
+        public CqrsApiGatewayMiddleware(RequestDelegate requestDelegate, IBus bus, ISerializer serializer, ILog? log, ICqrsAuthorizer? authorizer, string? route)
         {
             this.requestDelegate = requestDelegate;
             this.bus = bus;

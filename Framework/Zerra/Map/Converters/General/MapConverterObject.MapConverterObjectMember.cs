@@ -2,7 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Zerra.SourceGeneration;
 using Zerra.SourceGeneration.Types;
 
 namespace Zerra.Map

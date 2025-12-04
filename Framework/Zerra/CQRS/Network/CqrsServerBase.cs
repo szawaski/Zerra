@@ -57,13 +57,13 @@ namespace Zerra.CQRS.Network
         /// <summary>
         /// The logging provider.
         /// </summary>
-        protected readonly ILogger? log;
+        protected readonly ILog? log;
 
         /// <summary>
         /// Required by the inheriting class to call this constructor for information the Socket needs.
         /// </summary>
         /// <param name="serviceUrl">The url under which the Socket will be listening.</param>
-        public CqrsServerBase(string serviceUrl, ILogger? log)
+        public CqrsServerBase(string serviceUrl, ILog? log)
         {
             this.serviceUrl = serviceUrl;
             this.log = log;

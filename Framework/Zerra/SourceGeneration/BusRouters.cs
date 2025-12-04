@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using System.Runtime.CompilerServices;
-using System.Text;
 using Zerra.Collections;
 using Zerra.CQRS;
 using Zerra.SourceGeneration.Reflection;

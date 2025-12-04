@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using System.Diagnostics.CodeAnalysis;
-using Zerra.CQRS;
 using static Zerra.SourceGeneration.BusCommandOrEventInfo;
 
 namespace Zerra.SourceGeneration.Reflection

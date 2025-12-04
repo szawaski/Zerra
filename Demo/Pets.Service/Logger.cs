@@ -2,7 +2,7 @@
 
 namespace Pets.Service
 {
-    public sealed class Logger : ILogger
+    public sealed class Logger : ILog
     {
         public void Critical(string? message = null, Exception? ex = null)
         {

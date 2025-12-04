@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using Zerra.Serialization.Bytes.IO;
-using Zerra.SourceGeneration;
 using Zerra.SourceGeneration.Types;
 
 namespace Zerra.Serialization.Bytes.Converters.General

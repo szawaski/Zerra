@@ -28,7 +28,7 @@ namespace Zerra.CQRS.AzureServiceBus
         private readonly string host;
         private readonly ISerializer serializer;
         private readonly IEncryptor? encryptor;
-        private readonly ILogger? log;
+        private readonly ILog? log;
         private readonly string? environment;
         private readonly string ackQueue;
         private readonly ConcurrentDictionary<Type, string> queueByCommandType;
@@ -47,7 +47,7 @@ namespace Zerra.CQRS.AzureServiceBus
         /// <param name="log">Optional logger for diagnostic information.</param>
         /// <param name="environment">Optional environment name to prefix queue and topic names for isolation.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="host"/> is null or empty.</exception>
-        public AzureServiceBusProducer(string host, ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment)
+        public AzureServiceBusProducer(string host, ISerializer serializer, IEncryptor? encryptor, ILog? log, string? environment)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 

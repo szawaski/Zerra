@@ -14,8 +14,8 @@ var timer = Stopwatch.StartNew();
 
 ISerializer serializer = new ZerraByteSerializer();
 IEncryptor encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AESwithPrefix);
-ILogger log = new Logger();
-IBusLogger busLog = new BusLogger();
+ILog log = new Logger();
+IBusLog busLog = new BusLogger();
 
 var busScopes = new BusScopes();
 busScopes.AddScope<IThing>(new Thing("Hello"));

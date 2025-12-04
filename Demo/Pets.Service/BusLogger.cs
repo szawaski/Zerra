@@ -2,7 +2,7 @@
 
 namespace Pets.Service
 {
-    public sealed class BusLogger : IBusLogger
+    public sealed class BusLogger : IBusLog
     {
         public void BeginCall(Type interfaceType, string methodName, object[] arguments, string service, string source, bool handled)
         {

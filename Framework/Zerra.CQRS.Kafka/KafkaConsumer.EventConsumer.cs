@@ -19,11 +19,11 @@ namespace Zerra.CQRS.Kafka
             private readonly string topic;
             private readonly Zerra.Serialization.ISerializer serializer;
             private readonly IEncryptor? encryptor;
-            private readonly ILogger? log;
+            private readonly ILog? log;
             private readonly HandleRemoteEventDispatch handlerAsync;
             private readonly CancellationTokenSource canceller;
 
-            public EventConsumer(int maxConcurrent, string topic, Zerra.Serialization.ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment, HandleRemoteEventDispatch handlerAsync)
+            public EventConsumer(int maxConcurrent, string topic, Zerra.Serialization.ISerializer serializer, IEncryptor? encryptor, ILog? log, string? environment, HandleRemoteEventDispatch handlerAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 

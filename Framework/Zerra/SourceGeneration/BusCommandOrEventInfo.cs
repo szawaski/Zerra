@@ -4,7 +4,6 @@
 
 using System.Runtime.CompilerServices;
 using Zerra.Collections;
-using Zerra.CQRS;
 using Zerra.SourceGeneration.Reflection;
 
 namespace Zerra.SourceGeneration
