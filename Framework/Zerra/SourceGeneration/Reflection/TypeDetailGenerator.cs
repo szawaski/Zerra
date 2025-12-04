@@ -40,7 +40,7 @@ namespace Zerra.SourceGeneration.Reflection
         private static readonly Type keyValuePairType = typeof(KeyValuePair<,>);
         private static readonly Type dictionaryEntryType = typeof(DictionaryEntry);
         private static readonly Type memberDetailType = typeof(MemberDetail<>);
-        //private static readonly Type methodDetailType = typeof(MethodDetail<>);
+        private static readonly Type methodDetailType = typeof(MethodDetail<>);
 
         private static readonly MethodInfo generateTypeDetailGeneric = typeof(TypeDetailGenerator).GetMethod(nameof(GenerateTypeDetailGeneric), BindingFlags.NonPublic | BindingFlags.Static)!;
         public static TypeDetail GenerateTypeDetail(Type type)
@@ -57,7 +57,7 @@ namespace Zerra.SourceGeneration.Reflection
             var interfaces = GenerateInterfaces(type);
             var attributes = GenerateAttributes(type);
             var members = GenerateMembers(type, interfaces);
-            //var methods = GetMethodDetails(type, interfaces);
+            var methods = GetMethodDetails(type, interfaces);
 
             Func<T>? creator = null;
             Func<object>? creatorBoxed = null;
@@ -204,7 +204,7 @@ namespace Zerra.SourceGeneration.Reflection
             var typeDetail = new TypeDetail<T>(
                 members: members,
                 constructors: constructors,
-                //methods: methods,
+                methods: methods,
                 creator: creator,
                 creatorBoxed: creatorBoxed,
                 isNullable: isNullable,
@@ -468,105 +468,105 @@ namespace Zerra.SourceGeneration.Reflection
             }
             return items;
         }
-        //private static List<MethodDetail> GetMethodDetails(Type type, Type[] interfaces)
-        //{
-        //    var items = new List<MethodDetail>();
-        //    var hasInterfaces = interfaces.Length > 0;
-        //    var names = hasInterfaces ? new HashSet<string>() : null; //explicit declarations can create duplicates with interfaces
-        //    if (!type.IsGenericTypeDefinition)
-        //    {
-        //        var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
-        //        foreach (var method in methods)
-        //        {
-        //            if (!method.IsPublic)
-        //                continue;
+        private static List<MethodDetail> GetMethodDetails(Type type, Type[] interfaces)
+        {
+            var items = new List<MethodDetail>();
+            var hasInterfaces = interfaces.Length > 0;
+            var names = hasInterfaces ? new HashSet<string>() : null; //explicit declarations can create duplicates with interfaces
+            if (!type.IsGenericTypeDefinition)
+            {
+                var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
+                foreach (var method in methods)
+                {
+                    if (!method.IsPublic)
+                        continue;
 
-        //            var parameters = method.GetParameters();
-        //            var parameterTypes = parameters.Select(x => new ParameterDetail(x.ParameterType, x.Name!)).ToArray();
+                    var parameters = method.GetParameters();
+                    var parameterTypes = parameters.Select(x => new ParameterDetail(x.ParameterType, x.Name!)).ToArray();
 
-        //            var attributes = method.GetCustomAttributes(true).Cast<Attribute>().ToArray();
+                    var attributes = method.GetCustomAttributes(true).Cast<Attribute>().ToArray();
 
-        //            Delegate? caller = AccessorGenerator.GenerateCaller(method, method.ReturnType);
-        //            if (caller == null)
-        //                continue;
+                    Delegate? caller = AccessorGenerator.GenerateCaller(method, method.ReturnType);
+                    if (caller == null)
+                        continue;
 
-        //            Func<object, object?[]?, object?>? callerBoxed = AccessorGenerator.GenerateCaller(method);
-        //            if (callerBoxed == null)
-        //                continue;
+                    Func<object, object?[]?, object?>? callerBoxed = AccessorGenerator.GenerateCaller(method);
+                    if (callerBoxed == null)
+                        continue;
 
-        //            MethodDetail methodDetail;
-        //            if (method.ReturnType.ContainsGenericParameters || method.ReturnType.IsPointer || method.ReturnType.IsByRef || method.ReturnType.IsByRefLike)
-        //            {
-        //                methodDetail = new MethodDetail(method.Name, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false);
-        //            }
-        //            else
-        //            {
-        //                var methodDetailGenericType = methodDetailType.MakeGenericType(method.ReturnType.Name == "Void" ? typeof(object) : method.ReturnType);
-        //                var constructor = methodDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-        //                methodDetail = (MethodDetail)constructor.Invoke([method.Name, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false]);
-        //            }
+                    MethodDetail methodDetail;
+                    if (method.ReturnType.ContainsGenericParameters || method.ReturnType.IsPointer || method.ReturnType.IsByRef || method.ReturnType.IsByRefLike)
+                    {
+                        methodDetail = new MethodDetail(method.Name, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false);
+                    }
+                    else
+                    {
+                        var methodDetailGenericType = methodDetailType.MakeGenericType(method.ReturnType.Name == "Void" ? typeof(object) : method.ReturnType);
+                        var constructor = methodDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
+                        methodDetail = (MethodDetail)constructor.Invoke([method.Name, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false]);
+                    }
 
-        //            items.Add(methodDetail);
-        //            if (hasInterfaces)
-        //                names!.Add(method.Name);
-        //        }
+                    items.Add(methodDetail);
+                    if (hasInterfaces)
+                        names!.Add(method.Name);
+                }
 
-        //        if (hasInterfaces)
-        //        {
-        //            foreach (var i in interfaces)
-        //            {
-        //                var iMethods = i.GetMethods(BindingFlags.Public | BindingFlags.Instance); //don't get static interface methods
-        //                foreach (var method in iMethods)
-        //                {
-        //                    string name;
-        //                    bool isExplicitFromInterface;
-        //                    if (type.IsInterface && !names!.Contains(method.Name))
-        //                    {
-        //                        name = method.Name;
-        //                        isExplicitFromInterface = false;
-        //                    }
-        //                    else
-        //                    {
-        //                        name = $"{method.DeclaringType?.Namespace}.{method.DeclaringType?.Name}.{method.Name.Split('.').Last()}";
-        //                        isExplicitFromInterface = true;
-        //                    }
+                if (hasInterfaces)
+                {
+                    foreach (var i in interfaces)
+                    {
+                        var iMethods = i.GetMethods(BindingFlags.Public | BindingFlags.Instance); //don't get static interface methods
+                        foreach (var method in iMethods)
+                        {
+                            string name;
+                            bool isExplicitFromInterface;
+                            if (type.IsInterface && !names!.Contains(method.Name))
+                            {
+                                name = method.Name;
+                                isExplicitFromInterface = false;
+                            }
+                            else
+                            {
+                                name = $"{method.DeclaringType?.Namespace}.{method.DeclaringType?.Name}.{method.Name.Split('.').Last()}";
+                                isExplicitFromInterface = true;
+                            }
 
-        //                    if (!names!.Contains(name))
-        //                    {
-        //                        var parameters = method.GetParameters();
-        //                        var parameterTypes = parameters.Select(x => new ParameterDetail(x.ParameterType, x.Name!)).ToArray();
+                            if (!names!.Contains(name))
+                            {
+                                var parameters = method.GetParameters();
+                                var parameterTypes = parameters.Select(x => new ParameterDetail(x.ParameterType, x.Name!)).ToArray();
 
-        //                        var attributes = method.GetCustomAttributes(true).Cast<Attribute>().ToArray();
+                                var attributes = method.GetCustomAttributes(true).Cast<Attribute>().ToArray();
 
-        //                        Delegate? caller = AccessorGenerator.GenerateCaller(method, method.ReturnType);
-        //                        if (caller == null)
-        //                            continue;
+                                Delegate? caller = AccessorGenerator.GenerateCaller(method, method.ReturnType);
+                                if (caller == null)
+                                    continue;
 
-        //                        Func<object, object?[]?, object?>? callerBoxed = AccessorGenerator.GenerateCaller(method);
-        //                        if (callerBoxed == null)
-        //                            continue;
+                                Func<object, object?[]?, object?>? callerBoxed = AccessorGenerator.GenerateCaller(method);
+                                if (callerBoxed == null)
+                                    continue;
 
-        //                        MethodDetail methodDetail;
-        //                        if (method.ReturnType.ContainsGenericParameters || method.ReturnType.IsPointer || method.ReturnType.IsByRef || method.ReturnType.IsByRefLike)
-        //                        {
-        //                            methodDetail = new MethodDetail(method.Name, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false);
-        //                        }
-        //                        else
-        //                        {
-        //                            var methodDetailGenericType = methodDetailType.MakeGenericType(method.ReturnType.Name == "Void" ? typeof(object) : method.ReturnType);
-        //                            var constructor = methodDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-        //                            methodDetail = (MethodDetail)constructor.Invoke([method.Name, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, isExplicitFromInterface]);
-        //                        }
-        //                        items.Add(methodDetail);
-        //                        if (hasInterfaces)
-        //                            names!.Add(method.Name);
-        //                    }
-        //                }
-        //            }
-        //        }
-        //    }
-        //    return items;
-        //}
+                                MethodDetail methodDetail;
+                                if (method.ReturnType.ContainsGenericParameters || method.ReturnType.IsPointer || method.ReturnType.IsByRef || method.ReturnType.IsByRefLike)
+                                {
+                                    methodDetail = new MethodDetail(method.Name, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false);
+                                }
+                                else
+                                {
+                                    var methodDetailGenericType = methodDetailType.MakeGenericType(method.ReturnType.Name == "Void" ? typeof(object) : method.ReturnType);
+                                    var constructor = methodDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
+                                    methodDetail = (MethodDetail)constructor.Invoke([method.Name, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, isExplicitFromInterface]);
+                                }
+                                items.Add(methodDetail);
+                                if (hasInterfaces)
+                                    names!.Add(method.Name);
+                            }
+                        }
+                    }
+                }
+            }
+            return items;
+        }
         private static Type[] GenerateInnerTypes(Type type)
         {
             if (type.IsGenericType)

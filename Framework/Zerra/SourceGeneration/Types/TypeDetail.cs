@@ -17,8 +17,8 @@ namespace Zerra.SourceGeneration.Types
         public readonly IReadOnlyList<MemberDetail> Members;
         /// <summary>Collection of all constructors available for this type.</summary>
         public readonly IReadOnlyList<ConstructorDetail> Constructors;
-        ///// <summary>Collection of all methods declared or inherited by this type.</summary>
-        //public readonly IReadOnlyList<MethodDetail> Methods;
+        /// <summary>Collection of all methods declared or inherited by this type.</summary>
+        public readonly IReadOnlyList<MethodDetail> Methods;
 
         /// <summary>Indicates whether a boxed creator delegate exists for instantiation.</summary>
         public readonly bool HasCreatorBoxed;
@@ -142,7 +142,7 @@ namespace Zerra.SourceGeneration.Types
             Type type,
             IReadOnlyList<MemberDetail> members,
             IReadOnlyList<ConstructorDetail> constructors,
-            //IReadOnlyList<MethodDetail> methods,
+            IReadOnlyList<MethodDetail> methods,
             Delegate? creator,
             Func<object>? creatorBoxed,
 
@@ -198,7 +198,7 @@ namespace Zerra.SourceGeneration.Types
             this.Type = type;
             this.Members = members;
             this.Constructors = constructors;
-            //this.Methods = methods;
+            this.Methods = methods;
             this.HasCreator = creator != null;
             this.Creator = creator;
             this.HasCreatorBoxed = creatorBoxed != null;

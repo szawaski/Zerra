@@ -27,7 +27,7 @@ namespace Zerra.SourceGeneration.Types
         public TypeDetail(
             IReadOnlyList<MemberDetail> members,
             IReadOnlyList<ConstructorDetail<T>> constructors, 
-            //IReadOnlyList<MethodDetail> methods,
+            IReadOnlyList<MethodDetail> methods,
             Func<T>? creator, 
             Func<object>? creatorBoxed,
 
@@ -83,7 +83,7 @@ namespace Zerra.SourceGeneration.Types
                 typeof(T),
                 members,
                 constructors,
-                //methods,
+                methods,
                 creator,
                 creatorBoxed,
 
