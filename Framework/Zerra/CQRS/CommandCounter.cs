@@ -1,4 +1,5 @@
-﻿namespace Zerra.CQRS
+﻿
+namespace Zerra.CQRS
 {
     /// <summary>
     /// A counter to track and limit the commands processed by this service.
@@ -6,7 +7,7 @@
     /// </summary>
     public sealed class CommandCounter
     {
-        private readonly object locker = new();
+        private readonly Lock locker = new();
 
         private int started = 0;
         private int completed = 0;

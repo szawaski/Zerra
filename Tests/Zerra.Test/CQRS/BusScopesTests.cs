@@ -15,7 +15,7 @@ namespace Zerra.Test.CQRS
         [Fact]
         public void Constructor_CreatesEmptyDependencies()
         {
-            var busScopes = new BusScopes();
+            var busScopes = new BusServices();
 
             Assert.NotNull(busScopes);
             Assert.Empty(busScopes.Dependencies);
@@ -24,7 +24,7 @@ namespace Zerra.Test.CQRS
         [Fact]
         public void AddService_WithInterface()
         {
-            var busScopes = new BusScopes();
+            var busScopes = new BusServices();
             var dependency = new TestDependency();
 
             busScopes.AddService<ITestDependency>(dependency);
@@ -37,7 +37,7 @@ namespace Zerra.Test.CQRS
         [Fact]
         public void AddService_WithNullInstance_ThrowsArgumentNullException()
         {
-            var busScopes = new BusScopes();
+            var busScopes = new BusServices();
 
             Assert.Throws<ArgumentNullException>(() => busScopes.AddService<ITestDependency>(null!));
         }
@@ -45,7 +45,7 @@ namespace Zerra.Test.CQRS
         [Fact]
         public void AddService_WithNonInterfaceType_ThrowsArgumentException()
         {
-            var busScopes = new BusScopes();
+            var busScopes = new BusServices();
 
             Assert.Throws<ArgumentException>(() => busScopes.AddService<TestDependency>(new TestDependency()));
         }
@@ -53,7 +53,7 @@ namespace Zerra.Test.CQRS
         [Fact]
         public void AddService_MultipleDependencies()
         {
-            var busScopes = new BusScopes();
+            var busScopes = new BusServices();
             var dep1 = new TestDependency();
 
             busScopes.AddService<ITestDependency>(dep1);
@@ -64,7 +64,7 @@ namespace Zerra.Test.CQRS
         [Fact]
         public void AddService_OverwriteExisting()
         {
-            var busScopes = new BusScopes();
+            var busScopes = new BusServices();
             var dep1 = new TestDependency();
             var dep2 = new TestDependency();
 
@@ -78,7 +78,7 @@ namespace Zerra.Test.CQRS
         [Fact]
         public void AddService_StoresCorrectType()
         {
-            var busScopes = new BusScopes();
+            var busScopes = new BusServices();
             var dependency = new TestDependency();
 
             busScopes.AddService<ITestDependency>(dependency);
@@ -90,7 +90,7 @@ namespace Zerra.Test.CQRS
         [Fact]
         public void Dependencies_IsAccessible()
         {
-            var busScopes = new BusScopes();
+            var busScopes = new BusServices();
 
             var dependencies = busScopes.Dependencies;
 

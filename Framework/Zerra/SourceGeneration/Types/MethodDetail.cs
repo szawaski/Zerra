@@ -11,8 +11,12 @@ namespace Zerra.SourceGeneration.Types
     /// </summary>
     public class MethodDetail
     {
+        /// <summary>The parent type that owns this method.</summary>
+        public readonly Type ParentType;
         /// <summary>The name of the method.</summary>
         public readonly string Name;
+        /// <summary>The return type of the method.</summary>
+        public readonly Type ReturnType;
         /// <summary>Collection of parameters required by this method.</summary>
         public readonly IReadOnlyList<ParameterDetail> Parameters;
         /// <summary>The unboxed delegate for invoking this method.</summary>
@@ -29,22 +33,32 @@ namespace Zerra.SourceGeneration.Types
         /// <summary>
         /// Initializes a new instance of the <see cref="MethodDetail"/> class with method metadata.
         /// </summary>
+        /// <param name="parentType">The parent type that owns this method.</param>
         /// <param name="name">The name of the method.</param>
+        /// <param name="returnType">The return type of the method.</param>
         /// <param name="parameters">The parameters required by this method.</param>
         /// <param name="caller">The unboxed delegate for invoking this method.</param>
         /// <param name="callerBoxed">Boxed delegate for invoking this method.</param>
         /// <param name="attributes">Custom attributes applied to the method.</param>
         /// <param name="isStatic">Whether this method is static.</param>
         /// <param name="isExplicitFromInterface">Whether this method is an explicit interface implementation.</param>
-        public MethodDetail(string name, IReadOnlyList<ParameterDetail> parameters, Delegate caller, Func<object, object?[]?, object?> callerBoxed, IReadOnlyList<Attribute> attributes, bool isStatic, bool isExplicitFromInterface)
+        public MethodDetail(Type parentType, string name, Type returnType, IReadOnlyList<ParameterDetail> parameters, Delegate caller, Func<object, object?[]?, object?> callerBoxed, IReadOnlyList<Attribute> attributes, bool isStatic, bool isExplicitFromInterface)
         {
+            this.ParentType = parentType;
             this.Name = name;
+            this.ReturnType = returnType;
             this.Parameters = parameters;
             this.Caller = caller;
             this.CallerBoxed = callerBoxed;
             this.Attributes = attributes;
             this.IsStatic = isStatic;
             this.IsExplicitFromInterface = isExplicitFromInterface;
+        }
+
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            return $"{Name}({String.Join(",", Parameters.Select(x => x.Type.Name))})";
         }
     }
 }

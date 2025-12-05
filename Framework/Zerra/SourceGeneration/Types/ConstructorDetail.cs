@@ -11,6 +11,8 @@ namespace Zerra.SourceGeneration.Types
     /// </summary>
     public class ConstructorDetail
     {
+        /// <summary>The parent type that owns this constructor.</summary>
+        public readonly Type ParentType;
         /// <summary>Collection of parameters required by this constructor.</summary>
         public readonly IReadOnlyList<ParameterDetail> Parameters;
         /// <summary>The typed delegate for creating instances using this constructor.</summary>
@@ -21,14 +23,22 @@ namespace Zerra.SourceGeneration.Types
         /// <summary>
         /// Initializes a new instance of the <see cref="ConstructorDetail"/> class with constructor metadata.
         /// </summary>
+        /// <param name="parentType">The parent type that owns this constructor.</param>
         /// <param name="parameters">The parameters required by this constructor.</param>
         /// <param name="creator">The typed delegate for creating instances using this constructor.</param>
         /// <param name="creatorBoxed">Boxed delegate for creating instances with the specified parameters.</param>
-        public ConstructorDetail(IReadOnlyList<ParameterDetail> parameters, Delegate creator, Func<object?[], object> creatorBoxed)
+        public ConstructorDetail(Type parentType, IReadOnlyList<ParameterDetail> parameters, Delegate creator, Func<object?[], object> creatorBoxed)
         {
+            this.ParentType = parentType;
             this.Parameters = parameters;
             this.Creator = creator;
             this.CreatorBoxed = creatorBoxed;
+        }
+
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            return $"{ParentType.Name}({String.Join(",", Parameters.Select(x => x.Type.Name))})";
         }
     }
 }

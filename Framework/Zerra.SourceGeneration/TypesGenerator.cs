@@ -147,8 +147,8 @@ namespace Zerra.SourceGeneration
                     _ = sb.Append(Environment.NewLine).Append("                ");
 
                     _ = sb.Append("new global::Zerra.SourceGeneration.Types.MemberDetail<").Append(propertyTypeName).Append(">(");
-                    //_ = sbInitializer.Append(Helper.GetTypeOfName(property.Type)).Append(", ");
-                    _ = sb.Append("\"").Append(propertyName).Append("\", ");
+                    _ = sb.Append(Helper.GetTypeOfName(namedTypeSymbol)).Append(", ");
+                    _ = sb.Append("\"").Append(propertyName).Append("\", false, ");
                     if (property.GetMethod != null && property.GetMethod.DeclaredAccessibility == Accessibility.Public)
                     {
                         if (property.IsStatic)
@@ -205,8 +205,8 @@ namespace Zerra.SourceGeneration
                     _ = sb.Append(Environment.NewLine).Append("                ");
 
                     _ = sb.Append("new global::Zerra.SourceGeneration.Types.MemberDetail<").Append(fieldTypeName).Append(">(");
-                    //_ = sbInitializer.Append(Helper.GetTypeOfName(@field.Type)).Append(", ");
-                    _ = sb.Append("\"").Append(@field.Name).Append("\", ");
+                    _ = sb.Append(Helper.GetTypeOfName(namedTypeSymbol)).Append(", ");
+                    _ = sb.Append("\"").Append(@field.Name).Append("\", true, ");
 
                     if (@field.IsStatic)
                     {
@@ -286,7 +286,7 @@ namespace Zerra.SourceGeneration
                     _ = sb.Append(Environment.NewLine).Append("                ");
 
                     _ = sb.Append("new global::Zerra.SourceGeneration.Types.MethodDetail<").Append(methodReturnTypeName).Append(">(");
-
+                    _ = sb.Append(Helper.GetTypeOfName(namedTypeSymbol)).Append(", ");
                     _ = sb.Append("\"").Append(methodName).Append("\", ");
 
                     GenerateParameters(sb, method.Parameters);

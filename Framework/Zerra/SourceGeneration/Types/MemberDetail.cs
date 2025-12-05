@@ -9,12 +9,16 @@ namespace Zerra.SourceGeneration.Types
     /// Provides both boxed and strongly-typed accessors for getting and setting member values.
     /// Used by the source generator and runtime reflection to enable efficient member access and serialization.
     /// </summary>
-    public class MemberDetail
+    public partial class MemberDetail
     {
+        /// <summary>The parent type that owns this member.</summary>
+        public readonly Type ParentType;
         /// <summary>The type of this member.</summary>
         public readonly Type Type;
         /// <summary>The name of this member.</summary>
         public readonly string Name;
+        /// <summary>Indicates whether this member is a field.</summary>
+        public readonly bool IsField;
 
         /// <summary>Indicates whether a boxed getter delegate exists.</summary>
         public readonly bool HasGetterBoxed;
@@ -49,8 +53,10 @@ namespace Zerra.SourceGeneration.Types
         /// <summary>
         /// Initializes a new instance of the <see cref="MemberDetail"/> class with member metadata.
         /// </summary>
+        /// <param name="parentType">The parent type that owns this member.</param>
         /// <param name="type">The type of the member.</param>
         /// <param name="name">The name of the member.</param>
+        /// <param name="isField">Whether the member is a field.</param>
         /// <param name="getter">Strongly-typed getter delegate.</param>
         /// <param name="getterBoxed">Boxed getter delegate.</param>
         /// <param name="setter">Strongly-typed setter delegate.</param>
@@ -59,10 +65,12 @@ namespace Zerra.SourceGeneration.Types
         /// <param name="isBacked">Whether the member has actual storage (is property or field backed).</param>
         /// <param name="isStatic">Whether the member is static.</param>
         /// <param name="isExplicitFromInterface">Whether the member is an explicit interface implementation.</param>
-        public MemberDetail(Type type, string name, Delegate? getter, Func<object, object?>? getterBoxed, Delegate? setter, Action<object, object?>? setterBoxed, IReadOnlyList<Attribute> attributes, bool isBacked, bool isStatic, bool isExplicitFromInterface)
+        public MemberDetail(Type parentType, Type type, string name, bool isField, Delegate? getter, Func<object, object?>? getterBoxed, Delegate? setter, Action<object, object?>? setterBoxed, IReadOnlyList<Attribute> attributes, bool isBacked, bool isStatic, bool isExplicitFromInterface)
         {
+            this.ParentType = parentType;
             this.Type = type;
             this.Name = name;
+            this.IsField = isField;
             this.HasGetterBoxed = getterBoxed != null;
             this.GetterBoxed = getterBoxed;
             this.HasSetterBoxed = setterBoxed != null;
@@ -77,17 +85,10 @@ namespace Zerra.SourceGeneration.Types
             this.IsExplicitFromInterface = isExplicitFromInterface;
         }
 
-        /// <summary>
-        /// Gets the cached type detail for this member's type.
-        /// Lazily initializes and caches the type detail information for serialization and reflection.
-        /// </summary>
-        public TypeDetail TypeDetailBoxed
+        /// <inheritdoc/>
+        public override string ToString()
         {
-            get
-            {
-                field ??= TypeAnalyzer.GetTypeDetail(this.Type);
-                return field;
-            }
+            return $"{Type.Name} {Name}";
         }
     }
 }

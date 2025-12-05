@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Diagnostics.CodeAnalysis;
 using Zerra.Logging;
 using Zerra.Serialization;
 
@@ -124,5 +125,13 @@ namespace Zerra.CQRS
         /// <typeparam name="TInterface">The service interface type to resolve.</typeparam>
         /// <returns>An instance implementing <typeparamref name="TInterface"/>.</returns>
         TInterface GetService<TInterface>() where TInterface : notnull;
+
+        /// <summary>
+        /// Attempts to resolve a service dependency from the current context.
+        /// </summary>
+        /// <typeparam name="TInterface">The service interface type to resolve.</typeparam>
+        /// <param name="instance">When this method returns, contains an instance implementing <typeparamref name="TInterface"/> if found; otherwise, the default value. This parameter is passed uninitialized.</param>
+        /// <returns>true if a service is registered for the specified type; otherwise, false.</returns>
+        bool TryGetService<TInterface>([NotNullWhen(true)] out TInterface? instance) where TInterface : notnull;
     }
 }

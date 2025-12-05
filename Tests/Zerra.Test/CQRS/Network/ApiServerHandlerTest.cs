@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Diagnostics.CodeAnalysis;
 using Xunit;
 using Zerra.CQRS;
 using Zerra.CQRS.Network;
@@ -89,10 +90,8 @@ namespace Zerra.Test.CQRS.Network
             public void WaitForExit(CancellationToken cancellationToken = default) => throw new NotImplementedException();
             public Task WaitForExitAsync(CancellationToken cancellationToken = default) => throw new NotImplementedException();
 
-            public TInterface GetService<TInterface>() where TInterface : notnull
-            {
-                throw new NotImplementedException();
-            }
+            public TInterface GetService<TInterface>() where TInterface : notnull => throw new NotImplementedException();
+            public bool TryGetService<TInterface>([NotNullWhen(true)] out TInterface? instance) where TInterface : notnull => throw new NotImplementedException();
         }
 
         private static void RegisterTestTypes()

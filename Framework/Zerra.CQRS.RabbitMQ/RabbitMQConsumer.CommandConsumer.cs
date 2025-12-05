@@ -28,7 +28,7 @@ namespace Zerra.CQRS.RabbitMQ
             private readonly HandleRemoteCommandDispatch handlerAwaitAsync;
             private readonly HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync;
             private readonly CancellationTokenSource canceller;
-            private readonly object isOpenLock = new object();
+            private readonly Lock isOpenLock = new Lock();
 
             private IModel? channel = null;
             private SemaphoreSlim? throttle = null;

@@ -24,7 +24,7 @@ namespace Zerra.CQRS.RabbitMQ
     /// </remarks>
     public sealed class RabbitMQProducer : ICommandProducer, IEventProducer, IDisposable
     {
-        private readonly object locker = new();
+        private readonly Lock locker = new();
 
         private readonly string host;
         private readonly ISerializer serializer;

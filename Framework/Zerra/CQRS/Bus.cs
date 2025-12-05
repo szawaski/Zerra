@@ -4,6 +4,7 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Zerra.Collections;
 using Zerra.Logging;
 using Zerra.Serialization;
@@ -25,7 +26,7 @@ namespace Zerra.CQRS
         private HashSet<IQueryServer>? queryServers = null;
         private HashSet<Type>? handledTypes = null;
 
-        private static readonly object exitLock = new();
+        private static readonly Lock exitLock = new();
         private static bool exited = false;
         private static SemaphoreSlim? processWaiter = null;
 
@@ -42,20 +43,35 @@ namespace Zerra.CQRS
         private readonly int maxConcurrentCommandsPerTopic;
         private readonly int maxConcurrentEventsPerTopic;
 
-        public static IBusSetup New(string service, ILog? log, IBusLog? busLog, BusScopes? busScopes, int? commandToReceiveUntilExit = null,
+        /// <summary>
+        /// Creates a new bus instance with the specified configuration.
+        /// </summary>
+        /// <param name="service">The logical service name for this bus.</param>
+        /// <param name="log">Optional logger for bus operations.</param>
+        /// <param name="busLog">Optional bus logger for detailed message logging.</param>
+        /// <param name="busServices">Optional services provider for handler dependency resolution.</param>
+        /// <param name="commandToReceiveUntilExit">Optional number of commands to receive before automatically exiting.</param>
+        /// <param name="defaultCallTimeout">Optional default timeout for query calls.</param>
+        /// <param name="defaultDispatchTimeout">Optional default timeout for command dispatch without waiting for acknowledgment.</param>
+        /// <param name="defaultDispatchAwaitTimeout">Optional default timeout for command dispatch while waiting for acknowledgment.</param>
+        /// <param name="maxConcurrentQueries">Optional maximum concurrent queries; defaults to ProcessorCount * 32.</param>
+        /// <param name="maxConcurrentCommandsPerTopic">Optional maximum concurrent commands per topic; defaults to ProcessorCount * 8.</param>
+        /// <param name="maxConcurrentEventsPerTopic">Optional maximum concurrent events per topic; defaults to ProcessorCount * 16.</param>
+        /// <returns>A configured bus setup instance ready for handler and producer/consumer registration.</returns>
+        public static IBusSetup New(string service, ILog? log, IBusLog? busLog, BusServices? busServices, int? commandToReceiveUntilExit = null,
             TimeSpan? defaultCallTimeout = null, TimeSpan? defaultDispatchTimeout = null, TimeSpan? defaultDispatchAwaitTimeout = null,
             int? maxConcurrentQueries = null, int? maxConcurrentCommandsPerTopic = null, int? maxConcurrentEventsPerTopic = null)
         {
-            return new Bus(service, log, busLog, busScopes, commandToReceiveUntilExit,
+            return new Bus(service, log, busLog, busServices, commandToReceiveUntilExit,
                 defaultCallTimeout, defaultDispatchTimeout, defaultDispatchAwaitTimeout,
                 maxConcurrentQueries, maxConcurrentCommandsPerTopic, maxConcurrentEventsPerTopic);
         }
 
-        private Bus(string service, ILog? log, IBusLog? busLog, BusScopes? busScopes, int? commandToReceiveUntilExit = null,
+        private Bus(string service, ILog? log, IBusLog? busLog, BusServices? busServices, int? commandToReceiveUntilExit = null,
             TimeSpan? defaultCallTimeout = null, TimeSpan? defaultDispatchTimeout = null, TimeSpan? defaultDispatchAwaitTimeout = null,
             int? maxConcurrentQueries = null, int? maxConcurrentCommandsPerTopic = null, int? maxConcurrentEventsPerTopic = null)
         {
-            this.context = new BusContext(this, service, log, busScopes);
+            this.context = new BusContext(this, service, log, busServices);
             this.busLog = busLog;
             this.commandCounter = new CommandCounter(commandToReceiveUntilExit, HandleProcessExit);
             this.defaultCallTimeout = defaultCallTimeout;
@@ -1078,5 +1094,9 @@ namespace Zerra.CQRS
         /// <inheritdoc />
         public TInterface GetService<TInterface>() where TInterface : notnull
             => context.GetService<TInterface>();
+
+        /// <inheritdoc />
+        public bool TryGetService<TInterface>([NotNullWhen(true)] out TInterface? instance) where TInterface : notnull
+            => context.TryGetService<TInterface>(out instance);
     }
 }

@@ -6,12 +6,13 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 
 namespace Zerra.SourceGeneration.Test
 {
     public static class DirectoryHelper
     {
-        private static readonly object locker = new();
+        private static readonly Lock locker = new();
 
         private static DirectoryInfo? solutionDirectory = null;
         public static DirectoryInfo SolutionDirectory

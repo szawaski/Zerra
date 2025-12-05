@@ -17,20 +17,20 @@ IEncryptor encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AESwith
 ILog log = new Logger();
 IBusLog busLog = new BusLogger();
 
-var busScopes = new BusScopes();
-busScopes.AddService<IThing>(new Thing("Hello"));
+var busServices = new BusServices();
+busServices.AddService<IThing>(new Thing("Hello"));
 
 Console.WriteLine($"Elapsed: {timer.ElapsedMilliseconds} ms");
 timer.Restart();
 
-IBusSetup busServer = Bus.New("pets-service-server", log, busLog, busScopes);
+IBusSetup busServer = Bus.New("pets-service-server", log, busLog, busServices);
 busServer.AddHandler<IPetsQueryHandler>(new PetsQueryHandler());
 busServer.AddHandler<IPetsCommandHandler>(new PetsCommandHandler());
 var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, log);
 busServer.AddQueryServer<IPetsQueryHandler>(server);
 busServer.AddCommandConsumer<IPetsCommandHandler>(server);
 
-IBusSetup busClient = Bus.New("pets-service-client", log, busLog, busScopes);
+IBusSetup busClient = Bus.New("pets-service-client", log, busLog, busServices);
 var client = new TcpCqrsClient("localhost:9001", serializer, encryptor, log);
 busClient.AddQueryClient<IPetsQueryHandler>(client);
 busClient.AddCommandProducer<IPetsCommandHandler>(client);

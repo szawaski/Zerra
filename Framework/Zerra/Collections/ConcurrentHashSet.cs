@@ -12,7 +12,7 @@ namespace Zerra.Collections
     /// </summary>
     public class ConcurrentHashSet<T> : ICollection<T>, IEnumerable<T>, IEnumerable, IReadOnlyCollection<T>, ISet<T>
     {
-        private readonly object locker = new();
+        private readonly Lock locker = new();
         private readonly HashSet<T> hashSet = new();
 
         public int Count

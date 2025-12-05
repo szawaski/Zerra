@@ -11,7 +11,7 @@ namespace Zerra.SourceGeneration.Reflection
     [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
     internal static class GeneratedAssembly
     {
-        private static readonly object moduleBuilderLock = new();
+        private static readonly Lock moduleBuilderLock = new();
         private static ModuleBuilder? moduleBuilderCache = null;
         public static ModuleBuilder GetModuleBuilder()
         {

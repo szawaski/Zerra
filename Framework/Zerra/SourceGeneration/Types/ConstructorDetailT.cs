@@ -23,7 +23,7 @@ namespace Zerra.SourceGeneration.Types
         /// <param name="creator">Strongly-typed delegate for creating instances of type <typeparamref name="T"/> without boxing.</param>
         /// <param name="creatorBoxed">Boxed delegate for creating instances with the specified parameters.</param>
         public ConstructorDetail(IReadOnlyList<ParameterDetail> parameters, Func<object?[], T> creator, Func<object?[], object> creatorBoxed)
-            : base(parameters, creator, creatorBoxed)
+            : base(typeof(T), parameters, creator, creatorBoxed)
         {
             this.Creator = creator;
         }

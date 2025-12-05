@@ -14,7 +14,7 @@ namespace Zerra.SourceGeneration
     /// <typeparam name="T">The type to provide analysis for.</typeparam>
     public static class TypeAnalyzer<T>
     {
-        private static readonly object typeDetailLock = new object();
+        private static readonly Lock typeDetailLock = new Lock();
         private static TypeDetail<T>? typeDetail = null;
         
         /// <summary>

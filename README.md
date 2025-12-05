@@ -47,7 +47,7 @@ IEncryptor encryptor = new ZerraEncryptor("mySecurePassword", SymmetricAlgorithm
 ILogger logger = new Logger();
 IBusLogger busLogger = new BusLogger();
 BusScopes busScopes = new BusScopes();
-busScopes.AddScope<IUserRepository>(userRepository);
+busScopes.AddService<IUserRepository>(userRepository);
 
 // Create the bus
 var bus = Bus.New(
@@ -127,19 +127,19 @@ public class UserQueryHandler : BaseHandler, IUserQueries
 {
     public async Task<User> GetUserById(int id, CancellationToken cancellationToken)
     {
-        var repository = this.Context.Get<IUserRepository>();
+        var repository = GetService<IUserRepository>();
         return await repository.GetByIdAsync(id, cancellationToken);
     }
 
     public async Task<List<User>> GetActiveUsers(CancellationToken cancellationToken)
     {
-        var repository = this.Context.Get<IUserRepository>();
+        var repository = GetService<IUserRepository>();
         return await repository.GetActiveAsync(cancellationToken);
     }
 
     public async Task<Stream> ExportUsers(CancellationToken cancellationToken)
     {
-        var repository = this.Context.Get<IUserRepository>();
+        var repository = GetService<IUserRepository>();
         return await repository.ExportStreamAsync(cancellationToken);
     }
 }
@@ -173,13 +173,13 @@ public class UserCommandHandler : BaseHandler,
 {
     public async Task Handle(CreateUserCommand command, CancellationToken ct)
     {
-        var repository = this.Context.Get<IUserRepository>();
+        var repository = GetService<IUserRepository>();
         await repository.CreateAsync(command.Email, ct);
     }
 
     public async Task<User> Handle(UpdateUserCommand command, CancellationToken ct)
     {
-        var repository = this.Context.Get<IUserRepository>();
+        var repository = GetService<IUserRepository>();
         return await repository.UpdateAsync(command.Id, command.Email, ct);
     }
 }
@@ -378,8 +378,8 @@ var bus = Bus.New(
 ```csharp
 // Register dependencies in BusScopes
 var scopes = new BusScopes();
-scopes.AddScope<IUserRepository>(userRepository);
-scopes.AddScope<IEmailService>(emailService);
+scopes.AddService<IUserRepository>(userRepository);
+scopes.AddService<IEmailService>(emailService);
 
 var bus = Bus.New(
     service: "MyService",
@@ -395,8 +395,8 @@ public class UserCommandHandler : BaseHandler,
     public async Task Handle(CreateUserCommand command, CancellationToken ct)
     {
         // Get scoped dependencies from context
-        var repository = this.Context.Get<IUserRepository>();
-        var emailService = this.Context.Get<IEmailService>();
+        var repository = GetService<IUserRepository>();
+        var emailService = GetService<IEmailService>();
         
         // Use dependencies
         this.Context.Log.Info($"Creating user: {command.Email}");
@@ -406,7 +406,7 @@ public class UserCommandHandler : BaseHandler,
 
     public async Task<User> Handle(UpdateUserCommand command, CancellationToken ct)
     {
-        var repository = this.Context.Get<IUserRepository>();
+        var repository = GetService<IUserRepository>();
         return await repository.UpdateAsync(command.Id, command.Email, ct);
     }
 }

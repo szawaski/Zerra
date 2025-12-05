@@ -26,7 +26,9 @@ namespace Zerra.SourceGeneration.Types
         /// Initializes a new instance of the <see cref="MemberDetail{T}"/> class with generic type specialization.
         /// Provides strongly-typed access to getter and setter delegates for member type <typeparamref name="T"/>.
         /// </summary>
+        /// <param name="parentType">The parent type that owns this member.</param>
         /// <param name="name">The name of the member.</param>
+        /// <param name="isField">Whether the member is a field.</param>
         /// <param name="getter">Strongly-typed getter delegate for type <typeparamref name="T"/>.</param>
         /// <param name="getterBoxed">Boxed getter delegate.</param>
         /// <param name="setter">Strongly-typed setter delegate for type <typeparamref name="T"/>.</param>
@@ -35,8 +37,8 @@ namespace Zerra.SourceGeneration.Types
         /// <param name="isBacked">Whether the member has actual storage (is property or field backed).</param>
         /// <param name="isStatic">Whether the member is static.</param>
         /// <param name="isExplicitFromInterface">Whether the member is an explicit interface implementation.</param>
-        public MemberDetail(string name, Func<object, T?>? getter, Func<object, object?>? getterBoxed, Action<object, T?>? setter, Action<object, object?>? setterBoxed, IReadOnlyList<Attribute> attributes, bool isBacked, bool isStatic, bool isExplicitFromInterface)
-            : base(typeof(T), name, getter, getterBoxed, setter, setterBoxed, attributes, isBacked, isStatic, isExplicitFromInterface)
+        public MemberDetail(Type parentType, string name, bool isField, Func<object, T?>? getter, Func<object, object?>? getterBoxed, Action<object, T?>? setter, Action<object, object?>? setterBoxed, IReadOnlyList<Attribute> attributes, bool isBacked, bool isStatic, bool isExplicitFromInterface)
+            : base(parentType, typeof(T), name, isField, getter, getterBoxed, setter, setterBoxed, attributes, isBacked, isStatic, isExplicitFromInterface)
         {
             this.HasGetter = getter != null;
             this.Getter = getter;

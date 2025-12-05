@@ -10,7 +10,7 @@ namespace Zerra.Collections
     public class ConcurrentSortedDictionary<TKey, TValue> : ICollection<KeyValuePair<TKey, TValue>>, IEnumerable<KeyValuePair<TKey, TValue>>, IEnumerable, IDictionary<TKey, TValue>, IReadOnlyCollection<KeyValuePair<TKey, TValue>>, IReadOnlyDictionary<TKey, TValue>, ICollection, IDictionary
          where TKey : notnull
     {
-        private readonly object locker = new();
+        private readonly Lock locker = new();
         private readonly SortedDictionary<TKey, TValue> dictionary;
 
         public ConcurrentSortedDictionary()

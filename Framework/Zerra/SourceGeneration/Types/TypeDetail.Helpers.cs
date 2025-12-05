@@ -3,6 +3,8 @@
 // Licensed to you under the MIT license
 
 using System.Diagnostics.CodeAnalysis;
+using Zerra.Collections;
+using Zerra.SourceGeneration.Reflection;
 
 namespace Zerra.SourceGeneration.Types
 {
@@ -116,31 +118,36 @@ namespace Zerra.SourceGeneration.Types
             return false;
         }
 
-        public MethodDetail GetMethod(string name)
-        {
-            if (!TryGetMethod(name, out var method))
-                throw new ArgumentException($"No method named {name} found on type {Type.Name}");
-            return method;
-        }
-
+        private ConcurrentFactoryDictionary<TypeKey, MethodDetail?>? methodLookups = null;
         private MethodDetail? GetMethodInternal(string name, int? parameterCount, Type[]? parameterTypes)
         {
             if (parameterCount is not null && parameterTypes is not null && parameterTypes.Length != parameterCount)
                 throw new InvalidOperationException($"Number of parameters does not match the specified count");
 
-
-            MethodDetail? found = null;
-            foreach (var methodDetail in Methods)
+            var key = new TypeKey(name, parameterCount, parameterTypes);
+            methodLookups ??= new();
+            var method = methodLookups.GetOrAdd(key, Methods, name, parameterCount, parameterTypes, static (Methods, name, parameterCount, parameterTypes) =>
             {
-                if (SignatureCompare(name, parameterCount, parameterTypes, methodDetail))
+                MethodDetail? found = null;
+                foreach (var methodDetail in Methods)
                 {
-                    if (found is not null)
-                        throw new InvalidOperationException($"More than one method found for {name}");
-                    found = methodDetail;
+                    if (SignatureCompare(name, parameterCount, parameterTypes, methodDetail))
+                    {
+                        if (found is not null)
+                            throw new InvalidOperationException($"More than one method found for {name}");
+                        found = methodDetail;
+                    }
                 }
-            }
-
-            return found;
+                return found;
+            });
+            return method;
+        }
+        public MethodDetail GetMethod(string name)
+        {
+            var method = GetMethodInternal(name, null, null);
+            if (method is null)
+                throw new MissingMethodException($"{Type.Name}.{name} method not found");
+            return method;
         }
         public MethodDetail GetMethod(string name, int parameterCount)
         {
@@ -155,6 +162,49 @@ namespace Zerra.SourceGeneration.Types
             if (method is null)
                 throw new MissingMethodException($"{Type.Name}.{name} method not found");
             return method;
+        }
+
+        private ConcurrentFactoryDictionary<TypeKey, ConstructorDetail?>? constructorLookups = null;
+        private ConstructorDetail? GetConstructorInternal(int? parameterCount, Type[]? parameterTypes)
+        {
+            var key = new TypeKey(parameterTypes);
+            constructorLookups ??= new();
+            var constructor = constructorLookups.GetOrAdd(key, Constructors, parameterCount, parameterTypes, static (Constructors, parameterCount, parameterTypes) =>
+            {
+                ConstructorDetail? found = null;
+                foreach (var constructorDetail in Constructors)
+                {
+                    if (SignatureCompare(parameterCount, parameterTypes, constructorDetail))
+                    {
+                        if (found is not null)
+                            throw new InvalidOperationException($"More than one constructor found");
+                        found = constructorDetail;
+                    }
+                }
+                return found;
+            });
+            return constructor;
+        }
+        public ConstructorDetail GetConstructor()
+        {
+            var constructor = GetConstructorInternal(null, null);
+            if (constructor is null)
+                throw new MissingMethodException($"{Type.Name} constructor not found");
+            return constructor;
+        }
+        public ConstructorDetail GetConstructor(int parameterCount)
+        {
+            var constructor = GetConstructorInternal(parameterCount, null);
+            if (constructor is null)
+                throw new MissingMethodException($"{Type.Name} constructor not found");
+            return constructor;
+        }
+        public ConstructorDetail GetConstructor(Type[] parameterTypes)
+        {
+            var constructor = GetConstructorInternal(null, parameterTypes);
+            if (constructor is null)
+                throw new MissingMethodException($"{Type.Name} constructor not found");
+            return constructor;
         }
 
         private static bool IsSerializableType(TypeDetail typeDetail)
