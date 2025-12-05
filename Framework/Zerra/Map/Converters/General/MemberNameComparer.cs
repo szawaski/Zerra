@@ -5,7 +5,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Zerra.Buffers;
 
-namespace Zerra.Map
+namespace Zerra.Map.Converters.General
 {
     internal sealed class MemberNameComparer : IEqualityComparer<string>
     {

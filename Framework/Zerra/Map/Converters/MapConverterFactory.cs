@@ -4,10 +4,18 @@
 
 using System.Runtime.CompilerServices;
 using Zerra.Collections;
+using Zerra.Map.Converters.Collections;
+using Zerra.Map.Converters.Collections.Collections;
+using Zerra.Map.Converters.Collections.Dictionaries;
+using Zerra.Map.Converters.Collections.Enumerables;
+using Zerra.Map.Converters.Collections.List;
+using Zerra.Map.Converters.Collections.Sets;
+using Zerra.Map.Converters.CoreTypes;
+using Zerra.Map.Converters.General;
 using Zerra.SourceGeneration;
 using Zerra.SourceGeneration.Types;
 
-namespace Zerra.Map
+namespace Zerra.Map.Converters
 {
     public static class MapConverterFactory
     {

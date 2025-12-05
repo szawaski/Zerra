@@ -2,7 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-namespace Zerra.Map
+namespace Zerra.Map.Converters.Collections
 {
     internal sealed class ArrayAccessor<T>
     {

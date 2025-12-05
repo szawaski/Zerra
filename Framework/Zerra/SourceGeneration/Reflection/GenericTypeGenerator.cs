@@ -16,6 +16,14 @@ public static class GenericTypeGenerator
     private static readonly Type methodDetailType = typeof(MethodDetail<>);
 
     private static readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail> genericMethodDetailsByMethod = new();
+    /// <summary>
+    /// Gets a <see cref="MethodDetail"/> for a generic method with the specified type arguments.
+    /// </summary>
+    /// <param name="method">The method to create a generic method detail for.</param>
+    /// <param name="types">The type arguments for the generic method.</param>
+    /// <returns>A <see cref="MethodDetail"/> for the generic method with the specified type arguments.</returns>
+    /// <exception cref="ArgumentException">Thrown when the method has no Reflected Type or Declaring Type.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when a caller cannot be created for the generic method.</exception>
     public static MethodDetail GetGenericMethodDetail(this MethodInfo method, params Type[] types)
     {
         if (method.ReflectedType == null && method.DeclaringType == null)
@@ -54,6 +62,13 @@ public static class GenericTypeGenerator
     }
 
     private static readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail> genericMethodDetails = new();
+    /// <summary>
+    /// Gets a <see cref="MethodDetail"/> for a generic method with the specified type arguments.
+    /// </summary>
+    /// <param name="methodDetail">The method detail to create a generic method detail for.</param>
+    /// <param name="types">The type arguments for the generic method.</param>
+    /// <returns>A <see cref="MethodDetail"/> for the generic method with the specified type arguments.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the MethodInfo cannot be found from the MethodDetail.</exception>
     public static MethodDetail GetGenericMethodDetail(this MethodDetail methodDetail, params Type[] types)
     {
         var key = new TypeKey(methodDetail.ToString(), types);
@@ -68,6 +83,12 @@ public static class GenericTypeGenerator
     }
 
     private static readonly ConcurrentFactoryDictionary<TypeKey, TypeDetail> genericTypeDetails = new();
+    /// <summary>
+    /// Gets a <see cref="TypeDetail"/> for a generic type with the specified type arguments.
+    /// </summary>
+    /// <param name="typeDetail">The type detail to create a generic type detail for.</param>
+    /// <param name="types">The type arguments for the generic type.</param>
+    /// <returns>A <see cref="TypeDetail"/> for the generic type with the specified type arguments.</returns>
     public static TypeDetail GetGenericTypeDetail(this TypeDetail typeDetail, params Type[] types)
     {
         var key = new TypeKey(typeDetail.Type, types);
@@ -80,6 +101,12 @@ public static class GenericTypeGenerator
     }
 
     private static readonly ConcurrentFactoryDictionary<TypeKey, Type> genericTypesByType = new();
+    /// <summary>
+    /// Gets a generic <see cref="Type"/> with the specified type arguments.
+    /// </summary>
+    /// <param name="type">The type to create a generic type for.</param>
+    /// <param name="types">The type arguments for the generic type.</param>
+    /// <returns>A generic <see cref="Type"/> with the specified type arguments.</returns>
     public static Type GetGenericType(this Type type, params Type[] types)
     {
         var key = new TypeKey(type, types);

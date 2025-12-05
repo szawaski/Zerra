@@ -2,6 +2,7 @@
 using Zerra.CQRS;
 using Zerra.CQRS.Network;
 using Zerra.Encryption;
+using Zerra.IO;
 using Zerra.Serialization;
 
 namespace Zerra.Test.CQRS

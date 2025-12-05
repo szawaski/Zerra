@@ -4,7 +4,7 @@
 
 using System.Runtime.CompilerServices;
 
-namespace Zerra.Map
+namespace Zerra.Map.Converters
 {
     public abstract class MapConverter
     {

@@ -4,6 +4,7 @@
 
 using Xunit;
 using Zerra.Encryption;
+using Zerra.IO;
 using Zerra.Serialization.Bytes;
 using Zerra.Test.Helpers.Models;
 using Zerra.Test.Helpers.TypesModels;

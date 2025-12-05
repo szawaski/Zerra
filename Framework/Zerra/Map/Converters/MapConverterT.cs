@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 using Zerra.SourceGeneration;
 using Zerra.SourceGeneration.Types;
 
-namespace Zerra.Map
+namespace Zerra.Map.Converters
 {
     public abstract class MapConverter<TSource, TTarget> : MapConverter
     {

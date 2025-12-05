@@ -4,7 +4,7 @@
 
 using Zerra.SourceGeneration;
 
-namespace Zerra.Map
+namespace Zerra.Map.Converters.Collections.Sets
 {
     internal sealed class MapConverterISetT<TSource, TSourceInner, TTargetInner> : MapConverter<TSource, ISet<TTargetInner>>
     {

@@ -100,6 +100,12 @@ namespace Zerra.SourceGeneration.Types
         }
 
         private Dictionary<string, MethodDetail[]>? methodsByName = null;
+        /// <summary>
+        /// Attempts to retrieve a method by its name.
+        /// </summary>
+        /// <param name="name">The method name to look up.</param>
+        /// <param name="method">When the method returns true, contains the first <see cref="MethodDetail"/> found with the specified name; otherwise the default value.</param>
+        /// <returns>True if a method with the specified name was found; otherwise false.</returns>
         public bool TryGetMethod(string name,
 #if !NETSTANDARD2_0
            [MaybeNullWhen(false)]
@@ -142,6 +148,12 @@ namespace Zerra.SourceGeneration.Types
             });
             return method;
         }
+        /// <summary>
+        /// Retrieves a method by its name.
+        /// </summary>
+        /// <param name="name">The method name to look up.</param>
+        /// <returns>The <see cref="MethodDetail"/> for the specified method name.</returns>
+        /// <exception cref="MissingMethodException">Thrown when no method with the specified name is found.</exception>
         public MethodDetail GetMethod(string name)
         {
             var method = GetMethodInternal(name, null, null);
@@ -149,6 +161,13 @@ namespace Zerra.SourceGeneration.Types
                 throw new MissingMethodException($"{Type.Name}.{name} method not found");
             return method;
         }
+        /// <summary>
+        /// Retrieves a method by its name and parameter count.
+        /// </summary>
+        /// <param name="name">The method name to look up.</param>
+        /// <param name="parameterCount">The number of parameters the method should have.</param>
+        /// <returns>The <see cref="MethodDetail"/> for the specified method name and parameter count.</returns>
+        /// <exception cref="MissingMethodException">Thrown when no method matching the criteria is found.</exception>
         public MethodDetail GetMethod(string name, int parameterCount)
         {
             var method = GetMethodInternal(name, parameterCount, null);
@@ -156,6 +175,13 @@ namespace Zerra.SourceGeneration.Types
                 throw new MissingMethodException($"{Type.Name}.{name} method not found");
             return method;
         }
+        /// <summary>
+        /// Retrieves a method by its name and parameter types.
+        /// </summary>
+        /// <param name="name">The method name to look up.</param>
+        /// <param name="parameterTypes">The types of parameters the method should have.</param>
+        /// <returns>The <see cref="MethodDetail"/> for the specified method name and parameter types.</returns>
+        /// <exception cref="MissingMethodException">Thrown when no method matching the criteria is found.</exception>
         public MethodDetail GetMethod(string name, Type[] parameterTypes)
         {
             var method = GetMethodInternal(name, null, parameterTypes);
@@ -185,6 +211,11 @@ namespace Zerra.SourceGeneration.Types
             });
             return constructor;
         }
+        /// <summary>
+        /// Retrieves the parameterless constructor.
+        /// </summary>
+        /// <returns>The <see cref="ConstructorDetail"/> for the parameterless constructor.</returns>
+        /// <exception cref="MissingMethodException">Thrown when no parameterless constructor is found.</exception>
         public ConstructorDetail GetConstructor()
         {
             var constructor = GetConstructorInternal(null, null);
@@ -192,6 +223,12 @@ namespace Zerra.SourceGeneration.Types
                 throw new MissingMethodException($"{Type.Name} constructor not found");
             return constructor;
         }
+        /// <summary>
+        /// Retrieves a constructor by its parameter count.
+        /// </summary>
+        /// <param name="parameterCount">The number of parameters the constructor should have.</param>
+        /// <returns>The <see cref="ConstructorDetail"/> for the specified parameter count.</returns>
+        /// <exception cref="MissingMethodException">Thrown when no constructor matching the criteria is found.</exception>
         public ConstructorDetail GetConstructor(int parameterCount)
         {
             var constructor = GetConstructorInternal(parameterCount, null);
@@ -199,6 +236,12 @@ namespace Zerra.SourceGeneration.Types
                 throw new MissingMethodException($"{Type.Name} constructor not found");
             return constructor;
         }
+        /// <summary>
+        /// Retrieves a constructor by its parameter types.
+        /// </summary>
+        /// <param name="parameterTypes">The types of parameters the constructor should have.</param>
+        /// <returns>The <see cref="ConstructorDetail"/> for the specified parameter types.</returns>
+        /// <exception cref="MissingMethodException">Thrown when no constructor matching the criteria is found.</exception>
         public ConstructorDetail GetConstructor(Type[] parameterTypes)
         {
             var constructor = GetConstructorInternal(null, parameterTypes);

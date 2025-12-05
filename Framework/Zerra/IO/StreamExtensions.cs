@@ -2,9 +2,14 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+
+// Copyright © KaKush LLC
+// Written By Steven Zawaski
+// Licensed to you under the MIT license
+
 using Zerra.Buffers;
 
-namespace System.IO
+namespace Zerra.IO
 {
     public static class StreamExtensions
     {

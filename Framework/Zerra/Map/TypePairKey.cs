@@ -9,7 +9,7 @@ namespace Zerra.Map
     /// <summary>
     /// A class to use two types as a hash key.
     /// </summary>
-    public class TypePairKey
+    internal class TypePairKey
     {
         private readonly Type? type1;
         private readonly Type? type2;

@@ -4,7 +4,7 @@
 
 using Zerra.SourceGeneration;
 
-namespace Zerra.Map
+namespace Zerra.Map.Converters.Collections.Dictionaries
 {
     internal sealed class MapConverterIDictionaryT<TSource, TSourceKey, TSourceValue, TTargetKey, TTargetValue> : MapConverter<TSource, IDictionary<TTargetKey, TTargetValue>>
         where TSourceKey : notnull

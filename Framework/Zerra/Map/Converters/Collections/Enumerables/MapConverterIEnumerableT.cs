@@ -2,9 +2,10 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using Zerra.Map.Converters.Collections;
 using Zerra.SourceGeneration;
 
-namespace Zerra.Map
+namespace Zerra.Map.Converters.Collections.Enumerables
 {
     internal sealed class MapConverterIEnumerableT<TSource, TSourceInner, TTargetInner> : MapConverter<TSource, IEnumerable<TTargetInner>>
     {

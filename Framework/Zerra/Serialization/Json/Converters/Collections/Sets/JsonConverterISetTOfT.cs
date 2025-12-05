@@ -6,7 +6,7 @@ using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 using Zerra.SourceGeneration;
 
-namespace Zerra.Serialization.Json.Converters.Collections.Lists
+namespace Zerra.Serialization.Json.Converters.Collections.Sets
 {
     internal sealed class JsonConverterISetTOfT<TSet, TValue> : JsonConverter<TSet>
     {
