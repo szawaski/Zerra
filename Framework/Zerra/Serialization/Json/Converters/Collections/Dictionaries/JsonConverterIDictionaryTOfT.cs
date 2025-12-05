@@ -63,7 +63,9 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                         return false;
                     }
 
-                    accessor = new IDictionaryAccessor<TKey, TValue>((IDictionary<TKey, TValue>)typeDetail.Creator()!);
+                    if (!typeDetail.HasCreator)
+                        throw new InvalidOperationException($"{typeDetail.Type} does not have a parameterless constructor.");
+                    accessor = new IDictionaryAccessor<TKey, TValue>((IDictionary<TKey, TValue>)typeDetail.Creator!()!);
 
                     if (c == '}')
                     {
@@ -159,7 +161,9 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                         return false;
                     }
 
-                    dictionary = (IDictionary<TKey, TValue>)typeDetail.Creator()!;
+                    if (!typeDetail.HasCreator)
+                        throw new InvalidOperationException($"{typeDetail.Type} does not have a parameterless constructor.");
+                    dictionary = (IDictionary<TKey, TValue>)typeDetail.Creator!()!;
 
                     if (c == ']')
                     {

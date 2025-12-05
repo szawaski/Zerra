@@ -143,7 +143,7 @@ namespace Zerra.SourceGeneration.Reflection
         }
         private static void EmitDefault(ILGenerator il, Type type)
         {
-            if (TypeLookup.CoreTypeLookup(type, out var coreType))
+            if (CoreTypeLookup.GetCoreType(type, out var coreType))
             {
                 switch (coreType)
                 {

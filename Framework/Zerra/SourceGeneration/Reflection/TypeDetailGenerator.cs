@@ -89,25 +89,25 @@ namespace Zerra.SourceGeneration.Reflection
             var isNullable = type.Name == nullaleTypeName;
 
             CoreType? coreType = null;
-            if (TypeLookup.CoreTypeLookup(type, out var coreTypeLookup))
+            if (CoreTypeLookup.GetCoreType(type, out var coreTypeLookup))
                 coreType = coreTypeLookup;
 
             SpecialType? specialType = null;
-            if (TypeLookup.SpecialTypeLookup(type, out var specialTypeLookup))
+            if (CoreTypeLookup.GetSpecialType(type, out var specialTypeLookup))
                 specialType = specialTypeLookup;
 
             CoreEnumType? enumType = null;
             if (type.IsEnum)
             {
                 var enumEnderlyingType = Enum.GetUnderlyingType(type);
-                if (!TypeLookup.CoreEnumTypeLookup(enumEnderlyingType, out var enumCoreTypeLookup))
+                if (!CoreTypeLookup.GetCoreEnumType(enumEnderlyingType, out var enumCoreTypeLookup))
                     throw new NotImplementedException("Should not happen");
                 enumType = enumCoreTypeLookup;
             }
             else if (isNullable && innerTypes[0].IsEnum)
             {
                 var enumEnderlyingType = Enum.GetUnderlyingType(innerTypes[0]);
-                if (!TypeLookup.CoreEnumTypeLookup(enumEnderlyingType, out var enumCoreTypeLookup))
+                if (!CoreTypeLookup.GetCoreEnumType(enumEnderlyingType, out var enumCoreTypeLookup))
                     throw new NotImplementedException("Should not happen");
                 enumCoreTypeLookup = enumCoreTypeLookup switch
                 {
@@ -325,7 +325,7 @@ namespace Zerra.SourceGeneration.Reflection
                 {
                     var memberDetailGenericType = memberDetailType.MakeGenericType(property.PropertyType);
                     var constructor = memberDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                    member = (MemberDetail)constructor.Invoke([property.Name, false, getter, getterBoxed, setter, setterBoxed, attributes, backingField != null, isStatic, false]);
+                    member = (MemberDetail)constructor.Invoke([type, property.Name, false, getter, getterBoxed, setter, setterBoxed, attributes, backingField != null, isStatic, false]);
                 }
                 items.Add(member);
 
@@ -361,7 +361,7 @@ namespace Zerra.SourceGeneration.Reflection
                 {
                     var memberDetailGenericType = memberDetailType.MakeGenericType(@field.FieldType);
                     var constructor = memberDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                    member = (MemberDetail)constructor.Invoke([@field.Name, true, getter, getterBoxed, setter, setterBoxed, attributes, true, @field.IsStatic, false]);
+                    member = (MemberDetail)constructor.Invoke([type, @field.Name, true, getter, getterBoxed, setter, setterBoxed, attributes, true, @field.IsStatic, false]);
                 }
                 items.Add(member);
 
@@ -428,7 +428,7 @@ namespace Zerra.SourceGeneration.Reflection
                             {
                                 var memberDetailGenericType = memberDetailType.MakeGenericType(property.PropertyType);
                                 var constructor = memberDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                                member = (MemberDetail)constructor.Invoke([property.Name, false, getter, getterBoxed, setter, setterBoxed, attributes, false, isStatic, isExplicitFromInterface]);
+                                member = (MemberDetail)constructor.Invoke([type, property.Name, false, getter, getterBoxed, setter, setterBoxed, attributes, false, isStatic, isExplicitFromInterface]);
                             }
                             items.Add(member);
                         }
@@ -453,11 +453,11 @@ namespace Zerra.SourceGeneration.Reflection
                 if (parameters.Length == 0)
                     continue;
 
-                Func<object?[], T>? creator = AccessorGenerator.GenerateCreator<T>(constructor);
+                Func<object?[]?, T>? creator = AccessorGenerator.GenerateCreator<T>(constructor);
                 if (creator == null)
                     continue;
 
-                Func<object?[], object>? creatorBoxed = AccessorGenerator.GenerateCreator(constructor);
+                Func<object?[]?, object>? creatorBoxed = AccessorGenerator.GenerateCreator(constructor);
                 if (creatorBoxed == null)
                     continue;
 
@@ -503,7 +503,7 @@ namespace Zerra.SourceGeneration.Reflection
                     {
                         var methodDetailGenericType = methodDetailType.MakeGenericType(method.ReturnType.Name == "Void" ? typeof(object) : method.ReturnType);
                         var constructor = methodDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                        methodDetail = (MethodDetail)constructor.Invoke([method.Name, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false]);
+                        methodDetail = (MethodDetail)constructor.Invoke([type, method.Name, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false]);
                     }
 
                     items.Add(methodDetail);
@@ -542,7 +542,7 @@ namespace Zerra.SourceGeneration.Reflection
                                 if (caller == null)
                                     continue;
 
-                                Func<object, object?[]?, object?>? callerBoxed = AccessorGenerator.GenerateCaller(method);
+                                Func<object?, object?[]?, object?>? callerBoxed = AccessorGenerator.GenerateCaller(method);
                                 if (callerBoxed == null)
                                     continue;
 
@@ -555,7 +555,7 @@ namespace Zerra.SourceGeneration.Reflection
                                 {
                                     var methodDetailGenericType = methodDetailType.MakeGenericType(method.ReturnType.Name == "Void" ? typeof(object) : method.ReturnType);
                                     var constructor = methodDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                                    methodDetail = (MethodDetail)constructor.Invoke([method.Name, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, isExplicitFromInterface]);
+                                    methodDetail = (MethodDetail)constructor.Invoke([type, method.Name, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, isExplicitFromInterface]);
                                 }
                                 items.Add(methodDetail);
                                 if (hasInterfaces)

@@ -5,10 +5,10 @@
 namespace Zerra.SourceGeneration.Types
 {
     /// <summary>
-    /// Provides type lookup and classification utilities for core types, numeric types, enum types, and special framework types.
+    /// Provides type lookup and classification utilities for core types, enum types, and special framework types.
     /// Enables efficient categorization and routing of types during code generation and runtime type analysis.
     /// </summary>
-    public static class TypeLookup
+    public static class CoreTypeLookup
     {
         private static readonly IReadOnlyDictionary<Type, CoreType> coreTypeLookup = new Dictionary<Type, CoreType>()
         {
@@ -65,7 +65,7 @@ namespace Zerra.SourceGeneration.Types
         /// <param name="type">The type to classify.</param>
         /// <param name="coreType">The core type classification if found; otherwise the default value.</param>
         /// <returns>True if the type is a recognized core type; otherwise false.</returns>
-        public static bool CoreTypeLookup(Type type, out CoreType coreType)
+        public static bool GetCoreType(Type type, out CoreType coreType)
         {
             return coreTypeLookup.TryGetValue(type, out coreType);
         }
@@ -98,7 +98,7 @@ namespace Zerra.SourceGeneration.Types
         /// <param name="type">The type to classify.</param>
         /// <param name="coreType">The enum core type classification if found; otherwise the default value.</param>
         /// <returns>True if the type is a recognized enum underlying type; otherwise false.</returns>
-        public static bool CoreEnumTypeLookup(Type type, out CoreEnumType coreType)
+        public static bool GetCoreEnumType(Type type, out CoreEnumType coreType)
         {
             return coreEnumTypeLookup.TryGetValue(type, out coreType);
         }
@@ -110,7 +110,7 @@ namespace Zerra.SourceGeneration.Types
         /// <param name="type">The type to classify.</param>
         /// <param name="specialType">The special type classification if recognized; otherwise the default value.</param>
         /// <returns>True if the type is recognized as a special type; otherwise false.</returns>
-        public static bool SpecialTypeLookup(Type type, out SpecialType specialType)
+        public static bool GetSpecialType(Type type, out SpecialType specialType)
         {
             switch (type.Name)
             {

@@ -9,8 +9,8 @@ using Zerra.SourceGeneration;
 using Zerra.SourceGeneration.Reflection;
 using Zerra.SourceGeneration.Types;
 
-[RequiresDynamicCode("The native code for this instantiation might not be available at runtime.")]
-[RequiresUnreferencedCode("If some of the generic arguments are annotated (either with DynamicallyAccessedMembersAttribute, or generic constraints), trimming can't validate that the requirements of those annotations are met.")]
+[RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
+[RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
 public static class GenericTypeGenerator
 {
     private static readonly Type methodDetailType = typeof(MethodDetail<>);

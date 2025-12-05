@@ -48,7 +48,7 @@ namespace Zerra.Test.CQRS
             public void WaitForExit(CancellationToken cancellationToken = default) => throw new NotImplementedException();
             public Task WaitForExitAsync(CancellationToken cancellationToken = default) => throw new NotImplementedException();
             public TInterface GetService<TInterface>() where TInterface : notnull => throw new NotImplementedException();
-            public bool TryGetService<TInterface>([NotNullWhen(true)] out TInterface? instance) where TInterface : notnull => throw new NotImplementedException();
+            public bool TryGetService<TInterface>([MaybeNullWhen(false)] out TInterface? instance) where TInterface : notnull => throw new NotImplementedException();
         }
 
         [Fact]

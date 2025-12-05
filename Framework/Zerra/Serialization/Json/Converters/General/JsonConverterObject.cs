@@ -171,7 +171,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     }
                     else if (typeDetail.HasCreator)
                     {
-                        value = typeDetail.Creator();
+                        value = typeDetail.Creator!();
                         collectedValues = null;
                     }
                     else
@@ -290,7 +290,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     }
                     else if (typeDetail.HasCreator)
                     {
-                        value = typeDetail.Creator();
+                        value = typeDetail.Creator!();
                         collectedValues = null;
                     }
                     else

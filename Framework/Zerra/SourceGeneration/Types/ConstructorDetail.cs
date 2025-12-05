@@ -18,7 +18,7 @@ namespace Zerra.SourceGeneration.Types
         /// <summary>The typed delegate for creating instances using this constructor.</summary>
         public readonly Delegate Creator;
         /// <summary>Boxed delegate for creating instances using this constructor; accepts parameter values as object array and returns object.</summary>
-        public readonly Func<object?[], object> CreatorBoxed;
+        public readonly Func<object?[]?, object> CreatorBoxed;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ConstructorDetail"/> class with constructor metadata.
@@ -27,7 +27,7 @@ namespace Zerra.SourceGeneration.Types
         /// <param name="parameters">The parameters required by this constructor.</param>
         /// <param name="creator">The typed delegate for creating instances using this constructor.</param>
         /// <param name="creatorBoxed">Boxed delegate for creating instances with the specified parameters.</param>
-        public ConstructorDetail(Type parentType, IReadOnlyList<ParameterDetail> parameters, Delegate creator, Func<object?[], object> creatorBoxed)
+        public ConstructorDetail(Type parentType, IReadOnlyList<ParameterDetail> parameters, Delegate creator, Func<object?[]?, object> creatorBoxed)
         {
             this.ParentType = parentType;
             this.Parameters = parameters;

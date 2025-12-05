@@ -65,7 +65,7 @@ namespace Zerra.SourceGeneration
         public static T? Convert<T>(object? obj)
         {
             var type = typeof(T);
-            if (!TypeLookup.CoreTypeLookup(type, out var coreType))
+            if (!CoreTypeLookup.GetCoreType(type, out var coreType))
                 throw new NotImplementedException($"Type convert not available for {type.Name}");
             return (T?)Convert(obj, coreType);
         }
@@ -80,7 +80,7 @@ namespace Zerra.SourceGeneration
         /// <exception cref="NotImplementedException">Thrown if the target type is not supported for conversion.</exception>
         public static object? Convert(object? obj, Type type)
         {
-            if (!TypeLookup.CoreTypeLookup(type, out var coreType))
+            if (!CoreTypeLookup.GetCoreType(type, out var coreType))
                 throw new NotImplementedException($"Type convert not available for {type.Name}");
             return Convert(obj, coreType);
         }

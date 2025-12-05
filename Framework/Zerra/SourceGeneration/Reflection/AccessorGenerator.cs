@@ -617,7 +617,7 @@ namespace Zerra.SourceGeneration.Reflection
             var dynamicMethod = new DynamicMethod($"{constructorInfo.DeclaringType.Name}.{constructorInfo.Name}.Creator", typeof(object), [typeof(object[])], true);
             var il = dynamicMethod.GetILGenerator();
 
-            var success = GenerateMethod(il, constructorInfo);
+            var success = GenerateMethod(il, constructorInfo, true);
             if (!success)
                 return null;
 
@@ -632,7 +632,7 @@ namespace Zerra.SourceGeneration.Reflection
             var dynamicMethod = new DynamicMethod($"{constructorInfo.DeclaringType.Name}.{constructorInfo.Name}.Creator`1", typeof(T), [typeof(object[])], true);
             var il = dynamicMethod.GetILGenerator();
 
-            var success = GenerateMethod(il, constructorInfo);
+            var success = GenerateMethod(il, constructorInfo, false);
             if (!success)
                 return null;
 
@@ -648,7 +648,7 @@ namespace Zerra.SourceGeneration.Reflection
             var dynamicMethod = new DynamicMethod($"{constructorInfo.DeclaringType.Name}.{constructorInfo.Name}.Creator", typeof(object), [typeof(object[])], true);
             var il = dynamicMethod.GetILGenerator();
 
-            var success = GenerateMethod(il, constructorInfo);
+            var success = GenerateMethod(il, constructorInfo, true);
             if (!success)
                 return null;
 
@@ -663,7 +663,7 @@ namespace Zerra.SourceGeneration.Reflection
             var dynamicMethod = new DynamicMethod($"{constructorInfo.DeclaringType.Name}.{constructorInfo.Name}.Creator`1", typeof(T), [typeof(object[])], true);
             var il = dynamicMethod.GetILGenerator();
 
-            var success = GenerateMethod(il, constructorInfo);
+            var success = GenerateMethod(il, constructorInfo, false);
             if (!success)
                 return null;
 
@@ -681,7 +681,7 @@ namespace Zerra.SourceGeneration.Reflection
             var dynamicMethod = new DynamicMethod($"{methodInfo.ReflectedType.Name}.{methodInfo.Name}.Caller", typeof(object), [typeof(object), typeof(object[])], true);
             var il = dynamicMethod.GetILGenerator();
 
-            var success = GenerateMethod(il, methodInfo);
+            var success = GenerateMethod(il, methodInfo, true);
             if (!success)
                 return null;
 
@@ -698,7 +698,7 @@ namespace Zerra.SourceGeneration.Reflection
             var dynamicMethod = new DynamicMethod($"{methodInfo.ReflectedType.Name}.{methodInfo.Name}.Caller`1", methodInfo.ReturnType.Name == "Void" ? typeof(object) : methodInfo.ReturnType, [typeof(object), typeof(object[])], true);
             var il = dynamicMethod.GetILGenerator();
 
-            var success = GenerateMethod(il, methodInfo);
+            var success = GenerateMethod(il, methodInfo, false);
             if (!success)
                 return null;
 
@@ -715,7 +715,7 @@ namespace Zerra.SourceGeneration.Reflection
             var dynamicMethod = new DynamicMethod($"{methodInfo.ReflectedType.Name}.{methodInfo.Name}.Caller`1", methodInfo.ReturnType.Name == "Void" ? typeof(object) : methodInfo.ReturnType, [methodInfo.ReflectedType, typeof(object[])], true);
             var il = dynamicMethod.GetILGenerator();
 
-            var success = GenerateMethod(il, methodInfo);
+            var success = GenerateMethod(il, methodInfo, false);
             if (!success)
                 return null;
 
@@ -732,7 +732,7 @@ namespace Zerra.SourceGeneration.Reflection
             var dynamicMethod = new DynamicMethod($"{methodInfo.ReflectedType.Name}.{methodInfo.Name}.Caller`1", methodInfo.ReturnType.Name == "Void" ? typeof(object) : methodInfo.ReturnType, [typeof(object), typeof(object[])], true);
             var il = dynamicMethod.GetILGenerator();
 
-            var success = GenerateMethod(il, methodInfo);
+            var success = GenerateMethod(il, methodInfo, false);
             if (!success)
                 return null;
 
@@ -749,7 +749,7 @@ namespace Zerra.SourceGeneration.Reflection
             var dynamicMethod = new DynamicMethod($"{methodInfo.ReflectedType.Name}.{methodInfo.Name}.Caller`1", methodInfo.ReturnType.Name == "Void" ? typeof(object) : methodInfo.ReturnType, [methodInfo.ReflectedType, typeof(object[])], true);
             var il = dynamicMethod.GetILGenerator();
 
-            var success = GenerateMethod(il, methodInfo);
+            var success = GenerateMethod(il, methodInfo, false);
             if (!success)
                 return null;
 
@@ -757,7 +757,7 @@ namespace Zerra.SourceGeneration.Reflection
             return caller;
         }
 
-        private static bool GenerateMethod(ILGenerator il, MethodBase methodBase)
+        private static bool GenerateMethod(ILGenerator il, MethodBase methodBase, bool convertReturn)
         {
             if (methodBase.ContainsGenericParameters)
                 return false;
@@ -816,10 +816,13 @@ namespace Zerra.SourceGeneration.Reflection
 
             if (returnType is not null && returnType != typeof(void))
             {
-                if (returnType.IsValueType)
-                    il.Emit(OpCodes.Box, returnType);
-                else
-                    il.Emit(OpCodes.Castclass, returnType);
+                if (convertReturn)
+                {
+                    if (returnType.IsValueType)
+                        il.Emit(OpCodes.Box, returnType);
+                    else
+                        il.Emit(OpCodes.Castclass, returnType);
+                }
             }
             else
             {

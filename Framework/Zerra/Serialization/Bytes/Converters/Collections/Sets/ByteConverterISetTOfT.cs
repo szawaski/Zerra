@@ -35,7 +35,9 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Sets
 
                 if (!state.Current.DrainBytes)
                 {
-                    value = typeDetail.Creator();
+                    if (!typeDetail.HasCreator)
+                        throw new InvalidOperationException($"{typeDetail.Type} does not have a parameterless constructor.");
+                    value = typeDetail.Creator!();
                     set = (ISet<TValue>)value!;
                     if (state.Current.EnumerableLength!.Value == 0)
                         return true;

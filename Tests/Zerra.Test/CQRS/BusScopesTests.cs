@@ -58,7 +58,7 @@ namespace Zerra.Test.CQRS
 
             busScopes.AddService<ITestDependency>(dep1);
 
-            Assert.Equal(1, busScopes.Dependencies.Count);
+            Assert.Single(busScopes.Dependencies);
         }
 
         [Fact]

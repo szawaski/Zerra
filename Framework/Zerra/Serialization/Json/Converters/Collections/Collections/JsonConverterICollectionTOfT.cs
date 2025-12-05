@@ -46,13 +46,17 @@ namespace Zerra.Serialization.Json.Converters.Collections.Collections
 
                 if (c == ']')
                 {
-                    value = typeDetail.Creator();
+                    if (!typeDetail.HasCreator)
+                        throw new InvalidOperationException($"{typeDetail.Type} does not have a parameterless constructor.");
+                    value = typeDetail.Creator!();
                     return true;
                 }
 
                 reader.BackOne();
 
-                value = typeDetail.Creator();
+                if (!typeDetail.HasCreator)
+                    throw new InvalidOperationException($"{typeDetail.Type} does not have a parameterless constructor.");
+                value = typeDetail.Creator!();
                 collection = (ICollection<TValue>)value!;
             }
             else

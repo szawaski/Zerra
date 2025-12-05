@@ -263,7 +263,7 @@ public sealed class EnumName : Attribute
     /// <returns>True if the value was parsed; otherwise, False</returns>
     public static bool TryParse<T>(string? enumString,
 #if !NETSTANDARD2_0
-        [NotNullWhen(true)]
+        [MaybeNullWhen(false)]
 #endif
     out T? value)
         where T : Enum
@@ -288,7 +288,7 @@ public sealed class EnumName : Attribute
     /// <returns>True if the value was parsed; otherwise, False</returns>
     public static bool TryParse(string? enumString, Type type,
 #if !NETSTANDARD2_0
-        [NotNullWhen(true)]
+        [MaybeNullWhen(false)]
 #endif
     out object? value)
     {
@@ -386,7 +386,7 @@ public sealed class EnumName : Attribute
     private static readonly ConcurrentFactoryDictionary<Type, EnumInfo> enumInfoCache = new();
     private static EnumInfo GetEnumInfo(Type type)
     {
-        return enumInfoCache.GetOrAdd(type, static (type) =>
+        return enumInfoCache.GetOrAdd(type, (Func<Type, EnumInfo>)(static (type) =>
         {
             //Enum fields are never trimmed
 #pragma warning disable IL2070 // 'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The parameter of method does not have matching annotations.
@@ -405,16 +405,16 @@ public sealed class EnumName : Attribute
                 }
                 enumFieldInfos[i] = new EnumFieldInfo(field.Name, enumText, enumValue);
             }
-            if (!TypeLookup.CoreEnumTypeLookup(Enum.GetUnderlyingType(type), out var underlyingType))
+            if (!CoreTypeLookup.GetCoreEnumType(Enum.GetUnderlyingType(type), out var underlyingType))
                 throw new NotImplementedException("Should not happen");
 
             var hasFlagsAttribute = type.GetCustomAttributes(true).Any(x => x is FlagsAttribute);
 
             object creator() => EnumName.CreateEnum(type);
-            object bitOr(object value1, object value2) => EnumName.BitOr(type, underlyingType, value1, value2);
-            var enumInfo = new EnumInfo(underlyingType, hasFlagsAttribute, enumFieldInfos, creator, bitOr);
+            object bitOr(object value1, object value2) => EnumName.BitOr(type, (CoreEnumType)underlyingType, value1, value2);
+            var enumInfo = new EnumInfo((CoreEnumType)underlyingType, hasFlagsAttribute, enumFieldInfos, creator, bitOr);
             return enumInfo;
-        });
+        }));
     }
 
     internal static void Register(Type type, CoreEnumType underlyingType, bool hasFlagsAttribute, EnumFieldInfo[] fields, Func<object> creator, Func<object, object, object> bitOr)

@@ -77,9 +77,9 @@ namespace Zerra.Test.Map
             Assert.Equal(modelA.ArrayToIList[2], modelB.ArrayToIList[2]);
 
             Assert.Equal(modelA.ArrayToSet.Length, modelB.ArrayToSet.Count);
-            Assert.True(modelB.ArrayToSet.Contains(modelA.ArrayToSet[0]));
-            Assert.True(modelB.ArrayToSet.Contains(modelA.ArrayToSet[1]));
-            Assert.True(modelB.ArrayToSet.Contains(modelA.ArrayToSet[2]));
+            Assert.Contains(modelA.ArrayToSet[0], modelB.ArrayToSet);
+            Assert.Contains(modelA.ArrayToSet[1], modelB.ArrayToSet);
+            Assert.Contains(modelA.ArrayToSet[2], modelB.ArrayToSet);
 
             Assert.Equal(modelA.ArrayToISet.Length, modelB.ArrayToISet.Count);
             Assert.True(modelB.ArrayToISet.Contains(modelA.ArrayToISet[0]));
@@ -92,9 +92,9 @@ namespace Zerra.Test.Map
             Assert.True(modelB.ArrayToICollection.Contains(modelA.ArrayToICollection[2]));
 
             Assert.Equal(modelA.ArrayToIEnumerable.Length, modelB.ArrayToIEnumerable.Count());
-            Assert.True(modelB.ArrayToIEnumerable.Any(x => x == modelA.ArrayToIEnumerable[0]));
-            Assert.True(modelB.ArrayToIEnumerable.Any(x => x == modelA.ArrayToIEnumerable[1]));
-            Assert.True(modelB.ArrayToIEnumerable.Any(x => x == modelA.ArrayToIEnumerable[2]));
+            Assert.Contains(modelB.ArrayToIEnumerable, x => x == modelA.ArrayToIEnumerable[0]);
+            Assert.Contains(modelB.ArrayToIEnumerable, x => x == modelA.ArrayToIEnumerable[1]);
+            Assert.Contains(modelB.ArrayToIEnumerable, x => x == modelA.ArrayToIEnumerable[2]);
 
             Assert.Equal(modelA.ListToArray.Count, modelB.ListToArray.Length);
             Assert.Equal(modelA.ListToArray[0], modelB.ListToArray[0]);
@@ -112,9 +112,9 @@ namespace Zerra.Test.Map
             Assert.Equal(modelA.ListToIList[2], modelB.ListToIList[2]);
 
             Assert.Equal(modelA.ListToSet.Count, modelB.ListToSet.Count);
-            Assert.True(modelB.ListToSet.Contains(modelA.ListToSet[0]));
-            Assert.True(modelB.ListToSet.Contains(modelA.ListToSet[1]));
-            Assert.True(modelB.ListToSet.Contains(modelA.ListToSet[2]));
+            Assert.Contains(modelA.ListToSet[0], modelB.ListToSet);
+            Assert.Contains(modelA.ListToSet[1], modelB.ListToSet);
+            Assert.Contains(modelA.ListToSet[2], modelB.ListToSet);
 
             Assert.Equal(modelA.ListToISet.Count, modelB.ListToISet.Count);
             Assert.True(modelB.ListToISet.Contains(modelA.ListToISet[0]));
@@ -127,9 +127,9 @@ namespace Zerra.Test.Map
             Assert.True(modelB.ListToICollection.Contains(modelA.ListToICollection[2]));
 
             Assert.Equal(modelA.ListToIEnumerable.Count, modelB.ListToIEnumerable.Count());
-            Assert.True(modelB.ListToIEnumerable.Any(x => x == modelA.ListToIEnumerable[0]));
-            Assert.True(modelB.ListToIEnumerable.Any(x => x == modelA.ListToIEnumerable[1]));
-            Assert.True(modelB.ListToIEnumerable.Any(x => x == modelA.ListToIEnumerable[2]));
+            Assert.Contains(modelB.ListToIEnumerable, x => x == modelA.ListToIEnumerable[0]);
+            Assert.Contains(modelB.ListToIEnumerable, x => x == modelA.ListToIEnumerable[1]);
+            Assert.Contains(modelB.ListToIEnumerable, x => x == modelA.ListToIEnumerable[2]);
 
             Assert.Equal(modelA.Dictionary1.Count, modelB.Dictionary1.Count);
             foreach (var item in modelA.Dictionary1)
@@ -162,7 +162,7 @@ namespace Zerra.Test.Map
 
             Assert.Equal(modelA.ArrayToSet.Count, modelB.ArrayToSet.Count);
             foreach (var item in modelA.ArrayToSet)
-                Assert.True(modelB.ArrayToSet.Contains(item));
+                Assert.Contains(item, modelB.ArrayToSet);
 
             Assert.Equal(modelA.ArrayToISet.Count, modelB.ArrayToISet.Count);
             foreach (var item in modelA.ArrayToISet)
@@ -174,7 +174,7 @@ namespace Zerra.Test.Map
 
             Assert.Equal(modelA.ArrayToIEnumerable.Count(), modelB.ArrayToIEnumerable.Count());
             foreach (var item in modelA.ArrayToIEnumerable)
-                Assert.True(modelB.ArrayToIEnumerable.Contains(item));
+                Assert.Contains(item, modelB.ArrayToIEnumerable);
 
             Assert.Equal(modelA.ListToArray.Count(), modelB.ListToArray.Length);
             Assert.Equal(modelA.ListToArray[0], modelB.ListToArray[0]);
@@ -193,7 +193,7 @@ namespace Zerra.Test.Map
 
             Assert.Equal(modelA.ListToSet.Count, modelB.ListToSet.Count);
             foreach (var item in modelA.ListToSet)
-                Assert.True(modelB.ListToSet.Contains(item));
+                Assert.Contains(item, modelB.ListToSet);
 
             Assert.Equal(modelA.ListToISet.Count, modelB.ListToISet.Count);
             foreach (var item in modelA.ListToISet)
@@ -205,7 +205,7 @@ namespace Zerra.Test.Map
 
             Assert.Equal(modelA.ListToIEnumerable.Count(), modelB.ListToIEnumerable.Count());
             foreach (var item in modelA.ListToIEnumerable)
-                Assert.True(modelB.ListToIEnumerable.Contains(item));
+                Assert.Contains(item, modelB.ListToIEnumerable);
 
             Assert.Equal(modelA.Dictionary1.Count, modelB.Dictionary1.Count);
             foreach (var item in modelA.Dictionary1)

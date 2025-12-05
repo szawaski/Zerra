@@ -22,7 +22,7 @@ namespace Zerra.SourceGeneration.Types
         /// <summary>The unboxed delegate for invoking this method.</summary>
         public readonly Delegate Caller;
         /// <summary>Boxed delegate for invoking this method; accepts instance and parameter values as object array.</summary>
-        public readonly Func<object, object?[]?, object?> CallerBoxed;
+        public readonly Func<object?, object?[]?, object?> CallerBoxed;
         /// <summary>Collection of all custom attributes applied to this method.</summary>
         public readonly IReadOnlyList<Attribute> Attributes;
         /// <summary>Indicates whether this method is static.</summary>
@@ -42,7 +42,7 @@ namespace Zerra.SourceGeneration.Types
         /// <param name="attributes">Custom attributes applied to the method.</param>
         /// <param name="isStatic">Whether this method is static.</param>
         /// <param name="isExplicitFromInterface">Whether this method is an explicit interface implementation.</param>
-        public MethodDetail(Type parentType, string name, Type returnType, IReadOnlyList<ParameterDetail> parameters, Delegate caller, Func<object, object?[]?, object?> callerBoxed, IReadOnlyList<Attribute> attributes, bool isStatic, bool isExplicitFromInterface)
+        public MethodDetail(Type parentType, string name, Type returnType, IReadOnlyList<ParameterDetail> parameters, Delegate caller, Func<object?, object?[]?, object?> callerBoxed, IReadOnlyList<Attribute> attributes, bool isStatic, bool isExplicitFromInterface)
         {
             this.ParentType = parentType;
             this.Name = name;
