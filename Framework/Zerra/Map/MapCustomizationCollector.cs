@@ -12,31 +12,27 @@ namespace Zerra.Map
 
         public void Define(Expression<Func<TTarget, object?>> property, Expression<Func<TSource, object?>> value)
         {
-            Results.Add(new(false, property, value));
+            Results.Add(new(property, value));
         }
 
         public void DefineTwoWay(Expression<Func<TTarget, object?>> property1, Expression<Func<TSource, object?>> property2)
         {
-            Results.Add(new(false, property1, property2));
-            Results.Add(new(false, property2, property1));
-            Results.Add(new(true, property2, property1));
-            Results.Add(new(true, property1, property2));
+            Results.Add(new(property1, property2));
+            Results.Add(new(property2, property1));
         }
 
         public void DefineReverse(Expression<Func<TSource, object?>> property, Expression<Func<TTarget, object?>> value)
         {
-            Results.Add(new(true, property, value));
+            Results.Add(new(property, value));
         }
 
         public sealed class Result
         {
-            public bool IsReverse { get; }
             public LambdaExpression Target { get; }
             public LambdaExpression Source { get; }
 
-            public Result(bool isReverse, LambdaExpression target, LambdaExpression source)
+            public Result(LambdaExpression target, LambdaExpression source)
             {
-                this.IsReverse = isReverse;
                 this.Source = source;
                 this.Target = target;
             }

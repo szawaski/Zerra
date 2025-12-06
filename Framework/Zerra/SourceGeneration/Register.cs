@@ -3,6 +3,9 @@
 // Licensed to you under the MIT license
 
 using Zerra.CQRS;
+using Zerra.Map;
+using Zerra.Serialization.Bytes.Converters;
+using Zerra.Serialization.Json.Converters;
 using Zerra.SourceGeneration.Types;
 
 namespace Zerra.SourceGeneration
@@ -23,5 +26,12 @@ namespace Zerra.SourceGeneration
         public static void Type(TypeDetail typeInfo) => TypeAnalyzer.Register(typeInfo);
         public static void Enum(Type type, CoreEnumType underlyingType, bool hasFlagsAttribute, EnumName.EnumFieldInfo[] fields, Func<object> creator, Func<object, object, object> bitOr) => EnumName.Register(type, underlyingType, hasFlagsAttribute, fields, creator, bitOr);
         public static void EmptyImplementation(Type interfaceType, Type implementationType) => EmptyImplementations.Register(interfaceType, implementationType);
+        public static void Serializers<TType, TEnumerableType, TDictionaryKey, TDictionaryValue>() where TDictionaryKey : notnull
+        {
+            ByteConverterFactory.RegisterCreator<TType, TEnumerableType, TDictionaryKey, TDictionaryValue>();
+            JsonConverterFactory.RegisterCreator<TType, TEnumerableType, TDictionaryKey, TDictionaryValue>();
+        }
+        public static void Map<TSource, TTarget, TSourceEnumerable, TTargetEnumerable, TSourceKey, TSourceValue, TTargetKey, TTargetValue>(MapDefinition<TSource, TTarget> mapDefinition) where TSourceKey : notnull where TTargetKey : notnull
+            => MapCustomizations.Register<TSource, TTarget, TSourceEnumerable, TTargetEnumerable, TSourceKey, TSourceValue, TTargetKey, TTargetValue>(mapDefinition);
     }
 }

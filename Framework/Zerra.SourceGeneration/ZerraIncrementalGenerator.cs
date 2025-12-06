@@ -49,12 +49,12 @@ namespace Zerra.SourceGeneration
                 BusCommandOrEventInfoGenerator.Generate(sbInitializer, symbol);
                 TypeHelperGenerator.Generate(sbInitializer, symbol);
                 TypesGenerator.FindModels(symbol, modelsForTypes);
-                ConverterGenerator.FindModels(symbol, modelsForConverters);
+                SerializerAndMapGenerator.FindModels(symbol, modelsForConverters);
                 EnumGenerator.Generate(sbInitializer, symbol);
             }
             TypesGenerator.Generate(sbInitializer, modelsForTypes);
             EmptyImplementationGenerator.Generate(context, ns, sbInitializer, modelsForTypes);
-            ConverterGenerator.Generate(sbInitializer, modelsForConverters);
+            SerializerAndMapGenerator.Generate(sbInitializer, modelsForConverters);
 
             GenerateInitializer(context, ns, sbInitializer);
         }

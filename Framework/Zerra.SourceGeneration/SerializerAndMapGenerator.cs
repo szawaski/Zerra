@@ -9,7 +9,7 @@ using System.Text;
 
 namespace Zerra.SourceGeneration
 {
-    public static class ConverterGenerator
+    public static class SerializerAndMapGenerator
     {
         private static readonly string enumberableGenericTypeName = typeof(IEnumerable<>).Name;
         private static readonly string dictionaryTypeName = typeof(IDictionary).Name;
@@ -24,9 +24,7 @@ namespace Zerra.SourceGeneration
                 return;
 
             var stack = new Stack<string>();
-            if ((namedTypeSymbol.Interfaces.Any(x => x.Name == "ICommand" || x.Name == "IEvent" || x.Name == "IQueryHandler" || x.Name == "ICommandHandler")
-                || namedTypeSymbol.GetAttributes().Any(x => x.AttributeClass?.Name == "GenerateTypeDetailAttribute"))
-                && !namedTypeSymbol.GetAttributes().Any(x => x.AttributeClass?.Name == "IgnoreGenerateTypeDetailAttribute"))
+            if (Filter(namedTypeSymbol))
             {
                 if (namedTypeSymbol.TypeKind == TypeKind.Interface)
                     SearchInterface(namedTypeSymbol, models, stack);
@@ -34,100 +32,148 @@ namespace Zerra.SourceGeneration
                     CheckModel(namedTypeSymbol, models, stack);
             }
         }
+        private static bool Filter(INamedTypeSymbol namedTypeSymbol)
+        {
+            if (namedTypeSymbol.AllInterfaces.Any(x => x.ContainingNamespace.ToString() == "Zerra.CQRS" && (x.Name == "ICommand" || x.Name == "IEvent" || x.Name == "IQueryHandler" || x.Name == "ICommandHandler")))
+                return true;
+            if (namedTypeSymbol.GetAttributes().Any(x => x.AttributeClass?.Name == "GenerateTypeDetailAttribute") && !namedTypeSymbol.GetAttributes().Any(x => x.AttributeClass?.Name == "IgnoreGenerateTypeDetailAttribute"))
+                return true;
+            if (Helper.FindBase("Zerra.Map", "MapDefinition", namedTypeSymbol) != null)
+                return true;
+
+            return false;
+        }
         public static void Generate(StringBuilder sb, Dictionary<string, TypeToGenerate> models)
         {
             foreach (var model in models.Values)
             {
                 var namedTypeSymbol = model.TypeSymbol as INamedTypeSymbol;
 
-                var symbolMembers = model.TypeSymbol.GetMembers();
-
-                var innerTypeName = "object";
-                if (namedTypeSymbol is not null)
+                INamedTypeSymbol? mapBaseOrInterface = null;
+                if (namedTypeSymbol != null)
                 {
-                    if (namedTypeSymbol.TypeArguments.Length == 1)
-                        innerTypeName = Helper.GetFullName(namedTypeSymbol.TypeArguments[0]);
-                }
-                else if (model.TypeSymbol is IArrayTypeSymbol arrayTypeSymbol)
-                {
-                    innerTypeName = Helper.GetFullName(arrayTypeSymbol.ElementType);
-                }
-
-                var enumerableTypeName = "object";
-                var isArray = model.TypeSymbol.Kind == SymbolKind.ArrayType;
-                var interfaceNames = model.TypeSymbol.AllInterfaces.Select(x => x.MetadataName).ToImmutableHashSet();
-                var hasIEnumerableGeneric = isArray || model.TypeSymbol.MetadataName == enumberableGenericTypeName || interfaceNames.Contains(enumberableGenericTypeName);
-                var isIEnumerableGeneric = model.TypeSymbol.MetadataName == enumberableGenericTypeName;
-                if (isIEnumerableGeneric || model.TypeSymbol.TypeKind == TypeKind.Array)
-                {
-                    enumerableTypeName = innerTypeName;
-                }
-                else if (hasIEnumerableGeneric)
-                {
-                    var interfaceSymbol = model.TypeSymbol.AllInterfaces.FirstOrDefault(x => x.MetadataName == enumberableGenericTypeName);
-                    if (interfaceSymbol is not null)
-                        enumerableTypeName = Helper.GetFullName(interfaceSymbol.TypeArguments[0]);
-                }
-
-                var dictionaryKeyTypeName = "object";
-                var dictionaryValueTypeName = "object";
-                var hasIDictionary = model.TypeSymbol.MetadataName == dictionaryTypeName || interfaceNames.Contains(dictionaryTypeName);
-                var hasIDictionaryGeneric = model.TypeSymbol.MetadataName == dictionaryGenericTypeName || interfaceNames.Contains(dictionaryGenericTypeName);
-                var hasIReadOnlyDictionaryGeneric = model.TypeSymbol.MetadataName == readOnlyDictionaryGenericTypeName || interfaceNames.Contains(readOnlyDictionaryGenericTypeName);
-                var isIDictionaryGeneric = model.TypeSymbol.MetadataName == dictionaryGenericTypeName;
-                var isIReadOnlyDictionaryGeneric = model.TypeSymbol.MetadataName == readOnlyDictionaryGenericTypeName;
-                if (isIDictionaryGeneric || isIReadOnlyDictionaryGeneric)
-                {
-                    if (namedTypeSymbol != null)
+                    mapBaseOrInterface = namedTypeSymbol.AllInterfaces.FirstOrDefault(x => x.Name == "IMapDefinition" && x.ContainingNamespace.ToString() == "Zerra.Map");
+                    if (mapBaseOrInterface == null)
                     {
-                        dictionaryKeyTypeName = Helper.GetFullName(namedTypeSymbol.TypeArguments[0]);
-                        dictionaryValueTypeName = Helper.GetFullName(namedTypeSymbol.TypeArguments[1]);
+                        var baseType = namedTypeSymbol.BaseType;
+                        while (baseType != null)
+                        {
+                            if (baseType.Name == "MapDefinition" && baseType.ContainingNamespace.ToString() == "Zerra.Map")
+                            {
+                                mapBaseOrInterface = baseType;
+                                break;
+                            }
+                            baseType = baseType.BaseType;
+                        }
                     }
                 }
-                else if (hasIDictionaryGeneric)
-                {
-                    var interfaceFound = model.TypeSymbol.AllInterfaces.Where(x => x.MetadataName == dictionaryGenericTypeName).ToArray();
-                    if (interfaceFound.Length == 1)
-                    {
-                        var i = interfaceFound[0];
-                        dictionaryKeyTypeName = Helper.GetFullName(i.TypeArguments[0]);
-                        dictionaryValueTypeName = Helper.GetFullName(i.TypeArguments[1]);
-                    }
-                }
-                else if (hasIReadOnlyDictionaryGeneric)
-                {
-                    var interfaceFound = model.TypeSymbol.AllInterfaces.Where(x => x.MetadataName == readOnlyDictionaryGenericTypeName).ToArray();
-                    if (interfaceFound.Length == 1)
-                    {
-                        var i = interfaceFound[0];
-                        dictionaryKeyTypeName = Helper.GetFullName(i.TypeArguments[0]);
-                        dictionaryValueTypeName = Helper.GetFullName(i.TypeArguments[1]);
-                    }
-                }
-                else if (hasIDictionary)
-                {
-                    //dictionaryInnerTypeOf = "typeof(DictionaryEntry)";
-                }
 
-                //_ = sb.Append(Environment.NewLine).Append("            ");
-                //_ = sb.Append("//").Append(Helper.GetFullName(typeSymbol) + " - " + stackString);
+                if (namedTypeSymbol != null && mapBaseOrInterface != null)
+                {
+                    var sourceType = mapBaseOrInterface.TypeArguments[0];
+                    var targetType = mapBaseOrInterface.TypeArguments[1];
+                    var (sourceTypeName, sourceEnumerableTypeName, sourceDictionaryKeyTypeName, sourceDictionaryValueTypeName) = GetTypeParameters(sourceType);
+                    var (targetTypeName, targetEnumerableTypeName, targetDictionaryKeyTypeName, targetDictionaryValueTypeName) = GetTypeParameters(targetType);
 
-                _ = sb.Append(Environment.NewLine).Append("            ");
-                _ = sb.Append("global::Zerra.Serialization.Bytes.Converters.ByteConverterFactory.RegisterCreator<")
-                    .Append(model.TypeName).Append(",")
-                    .Append(enumerableTypeName).Append(",")
-                    .Append(dictionaryKeyTypeName).Append(",")
-                    .Append(dictionaryValueTypeName)
-                    .Append(">();");
+                    _ = sb.Append(Environment.NewLine).Append("            ");
+                    _ = sb.Append("global::Zerra.SourceGeneration.Register.Map<")
+                        .Append(sourceTypeName).Append(",")
+                        .Append(targetTypeName).Append(",")
+                        .Append(sourceEnumerableTypeName).Append(",")
+                        .Append(targetEnumerableTypeName).Append(",")
+                        .Append(sourceDictionaryKeyTypeName).Append(",")
+                        .Append(sourceDictionaryValueTypeName).Append(",")
+                        .Append(targetDictionaryKeyTypeName).Append(",")
+                        .Append(targetDictionaryValueTypeName)
+                        .Append(">(new ").Append(Helper.GetFullName(namedTypeSymbol)).Append("());");
+                }
+                else
+                {
+                    var (typeName, enumerableTypeName, dictionaryKeyTypeName, dictionaryValueTypeName) = GetTypeParameters(model.TypeSymbol);
 
-                _ = sb.Append(Environment.NewLine).Append("            ");
-                _ = sb.Append("global::Zerra.Serialization.Json.Converters.JsonConverterFactory.RegisterCreator<")
-                    .Append(model.TypeName).Append(",")
-                    .Append(enumerableTypeName).Append(",")
-                    .Append(dictionaryKeyTypeName).Append(",")
-                    .Append(dictionaryValueTypeName)
-                    .Append(">();");
+                    _ = sb.Append(Environment.NewLine).Append("            ");
+                    _ = sb.Append("global::Zerra.SourceGeneration.Register.Serializers<")
+                        .Append(typeName).Append(",")
+                        .Append(enumerableTypeName).Append(",")
+                        .Append(dictionaryKeyTypeName).Append(",")
+                        .Append(dictionaryValueTypeName)
+                        .Append(">();");
+                }
             }
+        }
+
+        private static (string, string, string, string) GetTypeParameters(ITypeSymbol typeSymbol)
+        {
+            var namedTypeSymbol = typeSymbol as INamedTypeSymbol;
+
+            var innerTypeName = "object";
+            if (namedTypeSymbol is not null)
+            {
+                if (namedTypeSymbol.TypeArguments.Length == 1)
+                    innerTypeName = Helper.GetFullName(namedTypeSymbol.TypeArguments[0]);
+            }
+            else if (typeSymbol is IArrayTypeSymbol arrayTypeSymbol)
+            {
+                innerTypeName = Helper.GetFullName(arrayTypeSymbol.ElementType);
+            }
+
+            var enumerableTypeName = "object";
+            var isArray = typeSymbol.Kind == SymbolKind.ArrayType;
+            var interfaceNames = typeSymbol.AllInterfaces.Select(x => x.MetadataName).ToImmutableHashSet();
+            var hasIEnumerableGeneric = isArray || typeSymbol.MetadataName == enumberableGenericTypeName || interfaceNames.Contains(enumberableGenericTypeName);
+            var isIEnumerableGeneric = typeSymbol.MetadataName == enumberableGenericTypeName;
+            if (isIEnumerableGeneric || typeSymbol.TypeKind == TypeKind.Array)
+            {
+                enumerableTypeName = innerTypeName;
+            }
+            else if (hasIEnumerableGeneric)
+            {
+                var interfaceSymbol = typeSymbol.AllInterfaces.FirstOrDefault(x => x.MetadataName == enumberableGenericTypeName);
+                if (interfaceSymbol is not null)
+                    enumerableTypeName = Helper.GetFullName(interfaceSymbol.TypeArguments[0]);
+            }
+
+            var dictionaryKeyTypeName = "object";
+            var dictionaryValueTypeName = "object";
+            var hasIDictionary = typeSymbol.MetadataName == dictionaryTypeName || interfaceNames.Contains(dictionaryTypeName);
+            var hasIDictionaryGeneric = typeSymbol.MetadataName == dictionaryGenericTypeName || interfaceNames.Contains(dictionaryGenericTypeName);
+            var hasIReadOnlyDictionaryGeneric = typeSymbol.MetadataName == readOnlyDictionaryGenericTypeName || interfaceNames.Contains(readOnlyDictionaryGenericTypeName);
+            var isIDictionaryGeneric = typeSymbol.MetadataName == dictionaryGenericTypeName;
+            var isIReadOnlyDictionaryGeneric = typeSymbol.MetadataName == readOnlyDictionaryGenericTypeName;
+            if (isIDictionaryGeneric || isIReadOnlyDictionaryGeneric)
+            {
+                if (namedTypeSymbol != null)
+                {
+                    dictionaryKeyTypeName = Helper.GetFullName(namedTypeSymbol.TypeArguments[0]);
+                    dictionaryValueTypeName = Helper.GetFullName(namedTypeSymbol.TypeArguments[1]);
+                }
+            }
+            else if (hasIDictionaryGeneric)
+            {
+                var interfaceFound = typeSymbol.AllInterfaces.Where(x => x.MetadataName == dictionaryGenericTypeName).ToArray();
+                if (interfaceFound.Length == 1)
+                {
+                    var i = interfaceFound[0];
+                    dictionaryKeyTypeName = Helper.GetFullName(i.TypeArguments[0]);
+                    dictionaryValueTypeName = Helper.GetFullName(i.TypeArguments[1]);
+                }
+            }
+            else if (hasIReadOnlyDictionaryGeneric)
+            {
+                var interfaceFound = typeSymbol.AllInterfaces.Where(x => x.MetadataName == readOnlyDictionaryGenericTypeName).ToArray();
+                if (interfaceFound.Length == 1)
+                {
+                    var i = interfaceFound[0];
+                    dictionaryKeyTypeName = Helper.GetFullName(i.TypeArguments[0]);
+                    dictionaryValueTypeName = Helper.GetFullName(i.TypeArguments[1]);
+                }
+            }
+            else if (hasIDictionary)
+            {
+                //dictionaryInnerTypeOf = "typeof(DictionaryEntry)";
+            }
+
+            return (Helper.GetFullName(typeSymbol), enumerableTypeName, dictionaryKeyTypeName, dictionaryValueTypeName);
         }
 
         private static void CheckModel(ITypeSymbol typeSymbol, Dictionary<string, TypeToGenerate> models, Stack<string> stack)
@@ -167,6 +213,8 @@ namespace Zerra.SourceGeneration
                 SearchModel(typeSymbol, models, stack);
             }
 
+            if (Helper.IsUnclosedGeneric(typeSymbol))
+                return;
             if (models.ContainsKey(name))
                 return;
             var stackString = String.Join(" - ", stack);

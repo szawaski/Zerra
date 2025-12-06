@@ -60,9 +60,7 @@ namespace Zerra.Serialization.Json.Converters
             return creator;
         }
 
-        public static void RegisterCreator<TType>() => RegisterCreator<TType, object, object, object>();
-
-        public static void RegisterCreator<TType, TEnumerableType, TDictionaryKey, TDictionaryValue>()
+        internal static void RegisterCreator<TType, TEnumerableType, TDictionaryKey, TDictionaryValue>()
             where TDictionaryKey : notnull
         {
             var type = typeof(TType);

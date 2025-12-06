@@ -295,12 +295,13 @@ namespace Zerra.Test.Map
         {
             var modelA = ModelA.GetModelA();
             var modelB = modelA.Map<ModelA, ModelB>();
-            Assert.Equal(int.Parse(modelA.PropA.ToString() + "1"), modelB.PropB);
-            Assert.Equal(modelA.PropC, modelB.PropD);
+            Assert.Equal(modelA.Prop1, modelB.Prop1);
+            Assert.Equal(641, modelB.PropB);
+            Assert.Equal(128, modelB.PropD);
 
             modelA = modelB.Map<ModelB, ModelA>();
-            Assert.Equal(default, modelA.PropA);
-            Assert.Equal(modelA.PropC, modelB.PropD);
+            Assert.Equal(64, modelA.PropA);
+            Assert.Equal(128, modelA.PropC);
         }
     }
 }

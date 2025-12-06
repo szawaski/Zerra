@@ -20,10 +20,16 @@ namespace Zerra.Map
             return null;
         }
 
-        public static void Register<TSource, TTarget>(IMapDefinition<TSource, TTarget> mapDefinition)
+        public static void Register<TSource, TTarget>(MapDefinition<TSource, TTarget> mapDefinition)
         {
-            MapConverterFactory.RegisterCreator<TSource, TTarget>();
-            MapConverterFactory.RegisterCreator<TTarget, TSource>();
+            Register<TSource, TTarget, TSource, TTarget, object, object, object, object>(mapDefinition);
+        }
+        public static void Register<TSource, TTarget, TSourceEnumerable, TTargetEnumerable, TSourceKey, TSourceValue, TTargetKey, TTargetValue>(MapDefinition<TSource, TTarget> mapDefinition)
+            where TSourceKey : notnull
+            where TTargetKey : notnull
+        {
+            MapConverterFactory.RegisterCreator<TSource, TTarget, TSourceEnumerable, TTargetEnumerable, TSourceKey, TSourceValue, TTargetKey, TTargetValue>();
+            MapConverterFactory.RegisterCreator<TTarget, TSource, TTargetEnumerable, TSourceEnumerable, TTargetKey, TTargetValue, TSourceKey, TSourceValue>();
 
             var customizations = new MapCustomizationCollector<TSource, TTarget>();
             mapDefinition.Define(customizations);
@@ -50,20 +56,10 @@ namespace Zerra.Map
                 Expression sourceMember;
                 Expression targetMember;
 
-                if (!result.IsReverse)
-                {
-                    sourceParameter = result.Source.Parameters[0];
-                    targetParameter = result.Target.Parameters[0];
-                    sourceMember = result.Source.Body;
-                    targetMember = result.Target.Body;
-                }
-                else
-                {
-                    sourceParameter = result.Target.Parameters[0];
-                    targetParameter = result.Source.Parameters[0];
-                    sourceMember = result.Target.Body;
-                    targetMember = result.Source.Body;
-                }
+                sourceParameter = result.Source.Parameters[0];
+                targetParameter = result.Target.Parameters[0];
+                sourceMember = result.Source.Body;
+                targetMember = result.Target.Body;
 
                 if (sourceMember.NodeType == ExpressionType.Convert)
                     sourceMember = ((UnaryExpression)sourceMember).Operand;

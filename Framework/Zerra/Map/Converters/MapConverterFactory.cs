@@ -66,25 +66,7 @@ namespace Zerra.Map.Converters
             return creator;
         }
 
-        public static void RegisterCreator<TSource, TTarget>()
-        {
-            var sourceType = typeof(TSource);
-            var targetType = typeof(TTarget);
-            var key = new TypePairKey(sourceType, targetType);
-            if (creators.ContainsKey(key))
-                return;
-
-            var sourceTypeDetail = sourceType.GetTypeDetail();
-            var targetTypeDetail = targetType.GetTypeDetail();
-
-            if (sourceTypeDetail.HasIEnumerable && targetTypeDetail.HasIEnumerable)
-                throw new InvalidOperationException($"{sourceType.Name} and {targetType.Name} are both enumerable types. Use RegisterCreator with enumerable types");
-
-            var creator = FindCreator<TSource, TTarget, object, object, object, object, object, object>(sourceTypeDetail, targetTypeDetail);
-            _ = creators.TryAdd(key, creator);
-        }
-
-        public static void RegisterCreator<TSource, TTarget, TSourceEnumerable, TTargetEnumerable, TSourceKey, TSourceValue, TTargetKey, TTargetValue>()
+        internal static void RegisterCreator<TSource, TTarget, TSourceEnumerable, TTargetEnumerable, TSourceKey, TSourceValue, TTargetKey, TTargetValue>()
             where TSourceKey : notnull
             where TTargetKey : notnull
         {

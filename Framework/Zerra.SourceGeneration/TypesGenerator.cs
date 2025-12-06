@@ -43,15 +43,24 @@ namespace Zerra.SourceGeneration
                 return;
 
             var stack = new Stack<string>();
-            if ((namedTypeSymbol.AllInterfaces.Any(x => x.Name == "ICommand" || x.Name == "IEvent" || x.Name == "IQueryHandler" || x.Name == "IMapDefinition")
-                || namedTypeSymbol.GetAttributes().Any(x => x.AttributeClass?.Name == "GenerateTypeDetailAttribute"))
-                && !namedTypeSymbol.GetAttributes().Any(x => x.AttributeClass?.Name == "IgnoreGenerateTypeDetailAttribute"))
+            if (Filter(namedTypeSymbol))
             {
                 if (namedTypeSymbol.TypeKind == TypeKind.Interface)
                     SearchInterface(namedTypeSymbol, models, stack);
                 else if (namedTypeSymbol.TypeKind == TypeKind.Class)
                     CheckModel(namedTypeSymbol, models, stack);
             }
+        }
+        private static bool Filter(INamedTypeSymbol namedTypeSymbol)
+        {
+            if (namedTypeSymbol.AllInterfaces.Any(x => x.ContainingNamespace.ToString() == "Zerra.CQRS" && (x.Name == "ICommand" || x.Name == "IEvent" || x.Name == "IQueryHandler" || x.Name == "ICommandHandler")))
+                return true;
+            if (namedTypeSymbol.GetAttributes().Any(x => x.AttributeClass?.Name == "GenerateTypeDetailAttribute") && !namedTypeSymbol.GetAttributes().Any(x => x.AttributeClass?.Name == "IgnoreGenerateTypeDetailAttribute"))
+                return true;
+            if (Helper.FindBase("Zerra.Map", "MapDefinition", namedTypeSymbol) != null)
+                return true;
+
+            return false;
         }
         public static void Generate(StringBuilder sb, Dictionary<string, TypeToGenerate> models)
         {
@@ -370,7 +379,23 @@ namespace Zerra.SourceGeneration
                             var parameterTypeName = Helper.GetFullName(parameter.Type);
                             if (parameter.Ordinal > 0)
                                 _ = sb.Append(", ");
-                            _ = sb.Append("(").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!");
+
+                            switch (parameter.RefKind)
+                            {
+                                case RefKind.Ref:
+                                    _ = sb.Append("ref (").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!");
+                                    break;
+                                case RefKind.In:
+                                    _ = sb.Append("in (").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!");
+                                    break;
+                                case RefKind.Out:
+                                    _ = sb.Append("out args![").Append(parameter.Ordinal).Append("]!");
+                                    break;
+                                case RefKind.None:
+                                default:
+                                    _ = sb.Append("(").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!");
+                                    break;
+                            }
                         }
                         _ = sb.Append(")");
                         if (isVoid)

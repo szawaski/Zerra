@@ -9,7 +9,7 @@ namespace Zerra.Map
     /// </summary>
     /// <typeparam name="TSource">The source type to map from.</typeparam>
     /// <typeparam name="TTarget">The target type that the source will be mapped into.</typeparam>
-    public class MapDefinition<TSource, TTarget> : IMapDefinition<TSource, TTarget>
+    public class MapDefinition<TSource, TTarget>
     {
         /// <summary>
         /// Override for customizations to the mapping between source and target.

@@ -282,5 +282,17 @@ namespace Zerra.SourceGeneration
                     return false;
             }
         }
+
+        public static ITypeSymbol? FindBase(string ns, string name, ITypeSymbol typeSymbol)
+        {
+            var baseType = typeSymbol.BaseType;
+            while (baseType is not null)
+            {
+                if (baseType.ContainingNamespace.ToString() == ns && baseType.Name == name)
+                    return baseType;
+                baseType = baseType.BaseType;
+            }
+            return null;
+        }
     }
 }
