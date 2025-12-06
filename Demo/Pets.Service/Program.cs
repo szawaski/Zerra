@@ -9,26 +9,8 @@ using Zerra.Logging;
 using Zerra.Map;
 using Zerra.Serialization;
 
-Console.WriteLine("Starting");
-
+Console.WriteLine();
 var timer = Stopwatch.StartNew();
-
-MapCustomizations.Register(new DefineModelAToModelB());
-
-var modelA = ModelA.GetModelA();
-var modelB = modelA.Map<ModelA, ModelB>();
-if (int.Parse(modelA.PropA.ToString() + "1") != modelB.PropB)
-    throw new Exception("Mapping Failed");
-if (modelA.PropC != modelB.PropD)
-    throw new Exception("Mapping Failed");
-
-modelA = modelB.Map<ModelB, ModelA>();
-if (default != modelA.PropA)
-    throw new Exception("Mapping Failed");
-if (modelA.PropC != modelB.PropD)
-    throw new Exception("Mapping Failed");
-
-
 
 ISerializer serializer = new ZerraByteSerializer();
 IEncryptor encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AESwithPrefix);
@@ -37,9 +19,6 @@ IBusLog busLog = new BusLogger();
 
 var busServices = new BusServices();
 busServices.AddService<IThing>(new Thing("Hello"));
-
-Console.WriteLine($"Elapsed: {timer.ElapsedMilliseconds} ms");
-timer.Restart();
 
 IBusSetup busServer = Bus.New("pets-service-server", log, busLog, busServices);
 busServer.AddHandler<IPetsQueryHandler>(new PetsQueryHandler());
@@ -53,20 +32,17 @@ var client = new TcpCqrsClient("localhost:9001", serializer, encryptor, log);
 busClient.AddQueryClient<IPetsQueryHandler>(client);
 busClient.AddCommandProducer<IPetsCommandHandler>(client);
 
-Console.WriteLine($"Elapsed: {timer.ElapsedMilliseconds} ms");
+Console.WriteLine($"Started Bus: {timer.ElapsedMilliseconds} ms");
+Console.WriteLine();
 timer.Restart();
 
 var species = await busClient.Call<IPetsQueryHandler>().GetSpecies();
-Console.WriteLine($"Species count: {species.Length}");
-
-Console.WriteLine($"Elapsed: {timer.ElapsedMilliseconds} ms");
+Console.WriteLine($"Call GetSpecies: {timer.ElapsedMilliseconds} ms");
 timer.Restart();
 
 var specie = species.First();
 var breeds = await busClient.Call<IPetsQueryHandler>().GetBreedsBySpecies(specie.ID);
-Console.WriteLine($"Breed count: {breeds.Length} for {specie.Name}");
-
-Console.WriteLine($"Elapsed: {timer.ElapsedMilliseconds} ms");
+Console.WriteLine($"Call GetBreedsBySpecies: {timer.ElapsedMilliseconds} ms");
 timer.Restart();
 
 var breed = breeds.First();
@@ -76,23 +52,37 @@ var result = await busClient.DispatchAwaitAsync(new AdoptPetCommand()
     BreedID = breed.ID,
     Name = "Fido",
 });
-Console.WriteLine($"AdoptPetCommand Result: {result}");
-
-Console.WriteLine($"Elapsed: {timer.ElapsedMilliseconds} ms");
+Console.WriteLine($"Dispatch Await Async AdoptPetCommand: {timer.ElapsedMilliseconds} ms");
 timer.Restart();
 
 var pets = await busClient.Call<IPetsQueryHandler>().GetPets();
-Console.WriteLine($"Pets count: {pets.Count}");
-
-Console.WriteLine($"Elapsed: {timer.ElapsedMilliseconds} ms");
+Console.WriteLine($"Call GetPets: {timer.ElapsedMilliseconds} ms");
 timer.Restart();
 
-////busClient.Call<IPetsQueryHandler>().GetVoid();
-////var nonTask = busClient.Call<IPetsQueryHandler>().GetNonTask();
-////await busClient.Call<IPetsQueryHandler>().GetTaskOnly();
+busClient.Call<IPetsQueryHandler>().GetVoid();
+Console.WriteLine($"Call Void Return: {timer.ElapsedMilliseconds} ms");
+timer.Restart();
 
-////Console.WriteLine($"Elapsed: {timer.ElapsedMilliseconds} ms");
-////timer.Restart();
+var nonTask = busClient.Call<IPetsQueryHandler>().GetNonTask();
+Console.WriteLine($"Call Non-Task: {timer.ElapsedMilliseconds} ms");
+timer.Restart();
 
+await busClient.Call<IPetsQueryHandler>().GetTaskOnly();
+Console.WriteLine($"Call Task Without Value: {timer.ElapsedMilliseconds} ms");
+timer.Restart();
+
+var modelA = ModelA.GetModelA();
+var modelB = modelA.Map<ModelA, ModelB>();
+if (modelA.Prop1 != modelB.Prop1) throw new Exception("Mapping Failed");
+if (641 != modelB.PropB) throw new Exception("Mapping Failed");
+if (128 != modelB.PropD) throw new Exception("Mapping Failed");
+
+modelA = modelB.Map<ModelB, ModelA>();
+if (64 != modelA.PropA) throw new Exception("Mapping Failed");
+if (128 != modelA.PropC) throw new Exception("Mapping Failed");
+Console.WriteLine($"Map Two Ways: {timer.ElapsedMilliseconds} ms");
+timer.Restart();
+
+Console.WriteLine();
 Console.WriteLine("Done");
 Console.ReadLine();

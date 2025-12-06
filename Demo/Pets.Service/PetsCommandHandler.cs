@@ -10,7 +10,7 @@ namespace Pets.Service
         public async Task<int> Handle(AdoptPetCommand command, CancellationToken cancellationToken)
         {
             var thing = Context.GetService<IThing>();
-            Log?.Trace(thing.Text);
+            Log?.Trace($"Depencency Injection Check: {thing.Text}");
             
             var breeds = await Bus.Call<IPetsQueryHandler>().GetBreeds();
 

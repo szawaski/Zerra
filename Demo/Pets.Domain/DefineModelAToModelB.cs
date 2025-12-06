@@ -10,8 +10,9 @@ namespace Pets.Service
     {
         public override sealed void Define(IMapSetup<ModelA, ModelB> map)
         {
-            map.Define(a => a.PropB, b => Int32.Parse(b.PropA.ToString() + "1"));
-            map.DefineTwoWay(a => a.PropD, b => b.PropC);
+            map.Define(b => b.PropB, a => Int32.Parse(a.PropA.ToString() + "1"));
+            map.DefineReverse(a => a.PropA, b => Int32.Parse(b.PropB.ToString().TrimEnd('1')));
+            map.DefineTwoWay(b => b.PropD, a => a.PropC);
         }
     }
 }

@@ -2,12 +2,11 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Zerra.SourceGeneration;
-
 namespace Pets.Service
 {
     public class ModelA
     {
+        public int Prop1 { get; set; }
         public int PropA { get; set; }
         public int PropC { get; set; }
 
@@ -15,6 +14,7 @@ namespace Pets.Service
         {
             return new ModelA()
             {
+                Prop1 = -5,
                 PropA = 64,
                 PropC = 128,
             };

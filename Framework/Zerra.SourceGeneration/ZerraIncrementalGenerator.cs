@@ -40,21 +40,19 @@ namespace Zerra.SourceGeneration
             var ns = symbols.Where(x => x.ContainingNamespace is not null).Select(x => x.ContainingNamespace.ToString()).OrderBy(x => x.Length).FirstOrDefault() ?? "Unknown";
 
             var sbInitializer = new StringBuilder();
-            var modelsForTypes = new Dictionary<string, TypeToGenerate>();
-            var modelsForConverters = new Dictionary<string, TypeToGenerate>();
+            var typesToGenerate = new Dictionary<string, TypeToGenerate>();
             foreach (var symbol in discoverySymbols)
             {
+                TypeFinder.FindModels(symbol, typesToGenerate);
                 BusRouterGenerator.Generate(context, ns, sbInitializer, symbol);
                 BusHandlerGenerator.Generate(sbInitializer, symbol);
                 BusCommandOrEventInfoGenerator.Generate(sbInitializer, symbol);
                 TypeHelperGenerator.Generate(sbInitializer, symbol);
-                TypesGenerator.FindModels(symbol, modelsForTypes);
-                SerializerAndMapGenerator.FindModels(symbol, modelsForConverters);
                 EnumGenerator.Generate(sbInitializer, symbol);
             }
-            TypesGenerator.Generate(sbInitializer, modelsForTypes);
-            EmptyImplementationGenerator.Generate(context, ns, sbInitializer, modelsForTypes);
-            SerializerAndMapGenerator.Generate(sbInitializer, modelsForConverters);
+            TypesGenerator.Generate(sbInitializer, typesToGenerate);
+            EmptyImplementationGenerator.Generate(context, ns, sbInitializer, typesToGenerate);
+            SerializerAndMapGenerator.Generate(sbInitializer, typesToGenerate);
 
             GenerateInitializer(context, ns, sbInitializer);
         }
@@ -75,7 +73,9 @@ namespace Zerra.SourceGeneration
                         [System.Runtime.CompilerServices.ModuleInitializer]
                 #pragma warning restore CA2255
                         public static void Initialize()
-                        {{{lines}}
+                        {
+                            var timer = global::System.Diagnostics.Stopwatch.StartNew();{{lines}}
+                            global::System.Console.WriteLine($"Source Generation Startup: {timer.ElapsedMilliseconds} ms");
                         }
                     }
                 }

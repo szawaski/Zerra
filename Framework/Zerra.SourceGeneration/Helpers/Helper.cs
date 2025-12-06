@@ -283,7 +283,7 @@ namespace Zerra.SourceGeneration
             }
         }
 
-        public static ITypeSymbol? FindBase(string ns, string name, ITypeSymbol typeSymbol)
+        public static INamedTypeSymbol? FindBase(string ns, string name, ITypeSymbol typeSymbol)
         {
             var baseType = typeSymbol.BaseType;
             while (baseType is not null)
@@ -293,6 +293,14 @@ namespace Zerra.SourceGeneration
                 baseType = baseType.BaseType;
             }
             return null;
+        }
+        public static bool IsTypeOrBase(string ns, string name, ITypeSymbol typeSymbol)
+        {
+            if (typeSymbol is not INamedTypeSymbol namedTypeSymbol)
+                return false;
+            if (namedTypeSymbol != null && (Helper.FindBase(ns, name, namedTypeSymbol) != null || (namedTypeSymbol.Name == "MapDefinition" && namedTypeSymbol.ContainingNamespace.ToString() == "Zerra.Map")))
+                return true;
+            return false;
         }
     }
 }

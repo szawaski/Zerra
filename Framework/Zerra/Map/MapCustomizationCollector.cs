@@ -10,18 +10,18 @@ namespace Zerra.Map
     {
         public readonly List<Result> Results = new();
 
-        public void Define(Expression<Func<TTarget, object?>> property, Expression<Func<TSource, object?>> value)
+        public void Define<TValue>(Expression<Func<TTarget, TValue?>> property, Expression<Func<TSource, TValue?>> value)
         {
             Results.Add(new(property, value));
         }
 
-        public void DefineTwoWay(Expression<Func<TTarget, object?>> property1, Expression<Func<TSource, object?>> property2)
+        public void DefineTwoWay<TValue>(Expression<Func<TTarget, TValue?>> property1, Expression<Func<TSource, TValue?>> property2)
         {
             Results.Add(new(property1, property2));
             Results.Add(new(property2, property1));
         }
 
-        public void DefineReverse(Expression<Func<TSource, object?>> property, Expression<Func<TTarget, object?>> value)
+        public void DefineReverse<TValue>(Expression<Func<TSource, TValue?>> property, Expression<Func<TTarget, TValue?>> value)
         {
             Results.Add(new(property, value));
         }

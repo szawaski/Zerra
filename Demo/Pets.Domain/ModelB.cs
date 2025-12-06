@@ -8,6 +8,7 @@ namespace Pets.Service
 {
     public class ModelB
     {
+        public int Prop1 { get; set; }
         public int PropB { get; set; }
         public int PropD { get; set; }
     }
