@@ -254,5 +254,33 @@ namespace Zerra.SourceGeneration
         {
             return value ? "true" : "false";
         }
+
+        public static bool IsUnclosedGeneric(ITypeSymbol type)
+        {
+            switch (type)
+            {
+                case ITypeParameterSymbol:
+                    return true;
+
+                case IArrayTypeSymbol arrayType:
+                    return IsUnclosedGeneric(arrayType.ElementType);
+
+                case IPointerTypeSymbol pointerType:
+                    return IsUnclosedGeneric(pointerType.PointedAtType);
+
+                case INamedTypeSymbol namedType:
+                    if (namedType.IsUnboundGenericType)
+                        return true;
+
+                    foreach (var arg in namedType.TypeArguments)
+                        if (IsUnclosedGeneric(arg))
+                            return true;
+
+                    return false;
+
+                default:
+                    return false;
+            }
+        }
     }
 }

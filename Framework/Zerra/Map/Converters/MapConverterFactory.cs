@@ -46,7 +46,7 @@ namespace Zerra.Map.Converters
             creators[key] = converter;
         }
 
-        public static Func<MapConverter> GenerateMapConverterCreator(TypeDetail sourceTypeDetail, TypeDetail targetTypeDetail)
+        internal static Func<MapConverter> GenerateMapConverterCreator(TypeDetail sourceTypeDetail, TypeDetail targetTypeDetail)
         {
             if (!RuntimeFeature.IsDynamicCodeSupported)
                 throw new InvalidOperationException($"MapConverter type not found for {sourceTypeDetail.Type.Name} to {targetTypeDetail.Type.Name} and dynamic code generation is not supported in this build configuration");
@@ -70,8 +70,17 @@ namespace Zerra.Map.Converters
         {
             var sourceType = typeof(TSource);
             var targetType = typeof(TTarget);
-            var creator = FindCreator<TSource, TTarget, object, object, object, object, object, object>(sourceType.GetTypeDetail(), targetType.GetTypeDetail());
             var key = new TypePairKey(sourceType, targetType);
+            if (creators.ContainsKey(key))
+                return;
+
+            var sourceTypeDetail = sourceType.GetTypeDetail();
+            var targetTypeDetail = targetType.GetTypeDetail();
+
+            if (sourceTypeDetail.HasIEnumerable && targetTypeDetail.HasIEnumerable)
+                throw new InvalidOperationException($"{sourceType.Name} and {targetType.Name} are both enumerable types. Use RegisterCreator with enumerable types");
+
+            var creator = FindCreator<TSource, TTarget, object, object, object, object, object, object>(sourceTypeDetail, targetTypeDetail);
             _ = creators.TryAdd(key, creator);
         }
 
@@ -81,8 +90,14 @@ namespace Zerra.Map.Converters
         {
             var sourceType = typeof(TSource);
             var targetType = typeof(TTarget);
-            var creator = FindCreator<TSource, TTarget, TSourceEnumerable, TTargetEnumerable, TSourceKey, TSourceValue, TTargetKey, TTargetValue>(sourceType.GetTypeDetail(), targetType.GetTypeDetail());
             var key = new TypePairKey(sourceType, targetType);
+            if (creators.ContainsKey(key))
+                return;
+
+            var sourceTypeDetail = sourceType.GetTypeDetail();
+            var targetTypeDetail = targetType.GetTypeDetail();
+
+            var creator = FindCreator<TSource, TTarget, TSourceEnumerable, TTargetEnumerable, TSourceKey, TSourceValue, TTargetKey, TTargetValue>(sourceTypeDetail, targetTypeDetail);
             _ = creators.TryAdd(key, creator);
         }
 

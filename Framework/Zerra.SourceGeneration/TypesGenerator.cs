@@ -43,7 +43,7 @@ namespace Zerra.SourceGeneration
                 return;
 
             var stack = new Stack<string>();
-            if ((namedTypeSymbol.Interfaces.Any(x => x.Name == "ICommand" || x.Name == "IEvent" || x.Name == "IQueryHandler" || x.Name == "ICommandHandler")
+            if ((namedTypeSymbol.AllInterfaces.Any(x => x.Name == "ICommand" || x.Name == "IEvent" || x.Name == "IQueryHandler" || x.Name == "IMapDefinition")
                 || namedTypeSymbol.GetAttributes().Any(x => x.AttributeClass?.Name == "GenerateTypeDetailAttribute"))
                 && !namedTypeSymbol.GetAttributes().Any(x => x.AttributeClass?.Name == "IgnoreGenerateTypeDetailAttribute"))
             {
@@ -337,7 +337,24 @@ namespace Zerra.SourceGeneration
                             var parameterTypeName = Helper.GetFullName(parameter.Type);
                             if (parameter.Ordinal > 0)
                                 _ = sb.Append(", ");
-                            _ = sb.Append("(").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!");
+
+                            switch (parameter.RefKind)
+                            {
+                                case RefKind.Ref:
+                                    _ = sb.Append("ref (").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!");
+                                    break;
+                                case RefKind.In:
+                                    _ = sb.Append("in (").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!");
+                                    break;
+                                case RefKind.Out:
+                                    _ = sb.Append("out args![").Append(parameter.Ordinal).Append("]!");
+                                    break;
+                                case RefKind.None:
+                                default:
+                                    _ = sb.Append("(").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!");
+                                    break;
+                            }
+
                         }
                         _ = sb.Append(")");
                         if (isVoid)
@@ -765,6 +782,8 @@ namespace Zerra.SourceGeneration
                 SearchModel(typeSymbol, models, stack);
             }
 
+            if (Helper.IsUnclosedGeneric(typeSymbol))
+                return;
             if (models.ContainsKey(name))
                 return;
             var stackString = String.Join(" - ", stack);

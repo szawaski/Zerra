@@ -6,11 +6,29 @@ using Zerra.CQRS;
 using Zerra.CQRS.Network;
 using Zerra.Encryption;
 using Zerra.Logging;
+using Zerra.Map;
 using Zerra.Serialization;
 
 Console.WriteLine("Starting");
 
 var timer = Stopwatch.StartNew();
+
+MapCustomizations.Register(new DefineModelAToModelB());
+
+var modelA = ModelA.GetModelA();
+var modelB = modelA.Map<ModelA, ModelB>();
+if (int.Parse(modelA.PropA.ToString() + "1") != modelB.PropB)
+    throw new Exception("Mapping Failed");
+if (modelA.PropC != modelB.PropD)
+    throw new Exception("Mapping Failed");
+
+modelA = modelB.Map<ModelB, ModelA>();
+if (default != modelA.PropA)
+    throw new Exception("Mapping Failed");
+if (modelA.PropC != modelB.PropD)
+    throw new Exception("Mapping Failed");
+
+
 
 ISerializer serializer = new ZerraByteSerializer();
 IEncryptor encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AESwithPrefix);

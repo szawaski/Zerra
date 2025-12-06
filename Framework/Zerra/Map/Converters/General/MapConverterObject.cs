@@ -27,20 +27,25 @@ namespace Zerra.Map
             collectedValuesPool.Push(collectedValues);
         }
 
+        private MapNameAndDeletage<TSource, TTarget>[]? customizations = null;
         private IEnumerable<MapConverterObjectMember> members = null!;
         private Dictionary<string, MapConverterObjectMember>? membersByName = null!;
         private bool collectValues;
         private ConstructorDetail<TTarget>? parameterConstructor = null;
-        private Action<TSource, TTarget>[]? customizations = null;
 
         protected override sealed void Setup()
         {
+            customizations = MapCustomizations.Get<TSource, TTarget>();
+            var customizedMemberNames = customizations is not null ? new HashSet<string>(customizations.Where(x => x.Name != null).Select(x => x.Name)!, StringComparer.Ordinal) : null;
+
             var membersList = new List<MapConverterObjectMember>();
             membersByName ??= new();
             foreach (var sourceMember in sourceTypeDetail.SerializableMemberDetails)
             {
                 var targetMember = targetTypeDetail.SerializableMemberDetails.FirstOrDefault(x => String.Equals(x.Name, sourceMember.Name, StringComparison.Ordinal));
                 if (targetMember is null)
+                    continue;
+                if (customizedMemberNames is not null && customizedMemberNames.Contains(targetMember.Name))
                     continue;
                 var item = new MapConverterObjectMember(sourceTypeDetail, sourceMember, targetTypeDetail, targetMember);
                 membersList.Add(item);
@@ -77,8 +82,6 @@ namespace Zerra.Map
                 }
                 collectValues = parameterConstructor is not null;
             }
-
-            customizations = MapCustomizations.Get<TSource, TTarget>();
         }
 
         public override TTarget? Map(TSource? source, TTarget? target, Graph? graph)
@@ -147,7 +150,7 @@ namespace Zerra.Map
             if (customizations != null && source != null && target != null)
             {
                 foreach (var customization in customizations)
-                    customization.Invoke(source, target);
+                    customization.Delegate.Invoke(source, target);
             }
 
             return target;

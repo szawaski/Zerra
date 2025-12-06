@@ -73,7 +73,7 @@ namespace Zerra.Serialization.Bytes.Converters
             return cacheByteConverterTypeInfo;
         }
 
-        public static Func<ByteConverter> GenerateByteConverterCreator(TypeDetail typeDetail)
+        internal static Func<ByteConverter> GenerateByteConverterCreator(TypeDetail typeDetail)
         {
             if (!RuntimeFeature.IsDynamicCodeSupported)
                 throw new InvalidOperationException($"ByteConverter type not found for {typeDetail.Type.Name} and dynamic code generation is not supported in this build configuration");

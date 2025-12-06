@@ -4,15 +4,14 @@
 
 using Zerra.Map;
 
-namespace Zerra.Test.Map
+namespace Pets.Service
 {
-    public class DefineModelAToModelB : MapDefinition<ModelA, ModelB>
+    public sealed class DefineModelAToModelB : MapDefinition<ModelA, ModelB>
     {
-        public void Define(IMapSetup<ModelA, ModelB> map)
+        public override sealed void Define(IMapSetup<ModelA, ModelB> map)
         {
             map.Define(a => a.PropB, b => Int32.Parse(b.PropA.ToString() + "1"));
             map.DefineTwoWay(a => a.PropD, b => b.PropC);
         }
     }
-
 }

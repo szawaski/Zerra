@@ -5,17 +5,17 @@
 namespace Zerra.Map
 {
     /// <summary>
-    /// Used to define a custom map definition from one object type to another.
+    /// Implement this class for a map definition from one object type to another.
     /// </summary>
     /// <typeparam name="TSource">The source type to map from.</typeparam>
     /// <typeparam name="TTarget">The target type that the source will be mapped into.</typeparam>
-    public interface IMapDefinition<TSource, TTarget>
+    public class MapDefinition<TSource, TTarget> : IMapDefinition<TSource, TTarget>
     {
         /// <summary>
-        /// Define the mapping customizations and property mappings.
+        /// Override for customizations to the mapping between source and target.
         /// Use the <paramref name="map"/> parameter to define how properties from the source should map to the target.
         /// </summary>
         /// <param name="map">The map setup used to define custom mappings. Allows overriding automatic property mapping and defining two-way mappings.</param>
-        void Define(IMapSetup<TSource, TTarget> map) { }
+        public virtual void Define(IMapSetup<TSource, TTarget> map) { }
     }
 }

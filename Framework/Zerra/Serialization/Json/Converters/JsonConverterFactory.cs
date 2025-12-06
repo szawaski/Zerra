@@ -44,7 +44,7 @@ namespace Zerra.Serialization.Json.Converters
             creators[converterType] = converter;
         }
 
-        public static Func<JsonConverter> GenerateJsonConverterCreator(TypeDetail typeDetail)
+        internal static Func<JsonConverter> GenerateJsonConverterCreator(TypeDetail typeDetail)
         {
             if (!RuntimeFeature.IsDynamicCodeSupported)
                 throw new InvalidOperationException($"JsonConverter type not found for {typeDetail.Type.Name} and dynamic code generation is not supported in this build configuration");
