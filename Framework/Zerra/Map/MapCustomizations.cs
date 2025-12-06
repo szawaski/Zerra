@@ -7,7 +7,7 @@ using Zerra.Collections;
 
 namespace Zerra.Map
 {
-    internal static class MapCustomizations
+    public static class MapCustomizations
     {
         private readonly static ConcurrentFactoryDictionary<TypePairKey, ConcurrentList<Delegate>> customMapsByPair = new();
 

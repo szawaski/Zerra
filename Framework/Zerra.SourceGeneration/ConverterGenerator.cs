@@ -40,7 +40,6 @@ namespace Zerra.SourceGeneration
             {
                 var namedTypeSymbol = model.TypeSymbol as INamedTypeSymbol;
 
-                var typeOfName = $"typeof({model.TypeName})";
                 var symbolMembers = model.TypeSymbol.GetMembers();
 
                 var innerTypeName = "object";
@@ -119,7 +118,7 @@ namespace Zerra.SourceGeneration
                     .Append(enumerableTypeName).Append(",")
                     .Append(dictionaryKeyTypeName).Append(",")
                     .Append(dictionaryValueTypeName)
-                    .Append(">(").Append(typeOfName).Append(");");
+                    .Append(">();");
 
                 _ = sb.Append(Environment.NewLine).Append("            ");
                 _ = sb.Append("global::Zerra.Serialization.Json.Converters.JsonConverterFactory.RegisterCreator<")
@@ -127,7 +126,7 @@ namespace Zerra.SourceGeneration
                     .Append(enumerableTypeName).Append(",")
                     .Append(dictionaryKeyTypeName).Append(",")
                     .Append(dictionaryValueTypeName)
-                    .Append(">(").Append(typeOfName).Append(");");
+                    .Append(">();");
             }
         }
 

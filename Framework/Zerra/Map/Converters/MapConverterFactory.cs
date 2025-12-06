@@ -66,17 +66,21 @@ namespace Zerra.Map.Converters
             return creator;
         }
 
-        public static void RegisterCreator<TSource, TTarget>(Type sourceType, Type targetType)
+        public static void RegisterCreator<TSource, TTarget>()
         {
+            var sourceType = typeof(TSource);
+            var targetType = typeof(TTarget);
             var creator = FindCreator<TSource, TTarget, object, object, object, object, object, object>(sourceType.GetTypeDetail(), targetType.GetTypeDetail());
             var key = new TypePairKey(sourceType, targetType);
             _ = creators.TryAdd(key, creator);
         }
 
-        public static void RegisterCreator<TSource, TTarget, TSourceEnumerable, TTargetEnumerable, TSourceKey, TSourceValue, TTargetKey, TTargetValue>(Type sourceType, Type targetType)
+        public static void RegisterCreator<TSource, TTarget, TSourceEnumerable, TTargetEnumerable, TSourceKey, TSourceValue, TTargetKey, TTargetValue>()
             where TSourceKey : notnull
             where TTargetKey : notnull
         {
+            var sourceType = typeof(TSource);
+            var targetType = typeof(TTarget);
             var creator = FindCreator<TSource, TTarget, TSourceEnumerable, TTargetEnumerable, TSourceKey, TSourceValue, TTargetKey, TTargetValue>(sourceType.GetTypeDetail(), targetType.GetTypeDetail());
             var key = new TypePairKey(sourceType, targetType);
             _ = creators.TryAdd(key, creator);

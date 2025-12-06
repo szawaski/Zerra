@@ -89,11 +89,12 @@ namespace Zerra.Serialization.Bytes.Converters
             return creator;
         }
 
-        public static void RegisterCreator<TType>(Type type) => RegisterCreator<TType, object, object, object>(type);
+        public static void RegisterCreator<TType>() => RegisterCreator<TType, object, object, object>();
 
-        public static void RegisterCreator<TType, TEnumerableType, TDictionaryKey, TDictionaryValue>(Type type)
+        public static void RegisterCreator<TType, TEnumerableType, TDictionaryKey, TDictionaryValue>()
             where TDictionaryKey : notnull
         {
+            var type = typeof(TType);
             var creator = FindCreator<TType, TEnumerableType, TDictionaryKey, TDictionaryValue>(type.GetTypeDetail());
             _ = creators.TryAdd(type, creator);
         }
