@@ -27,8 +27,8 @@ namespace Zerra.Map
         /// Define a one-to-one mapping that works both directions when mapping the source to the target.
         /// This will override any properties that were able to be automatically mapped by name.
         /// </summary>
-        /// <param name="property">An expression pointing to the target property.</param>
-        /// <param name="sourceProperty">An expression pointing to the source property.</param>
-        void DefineTwoWay(Expression<Func<TTarget, object?>> property, Expression<Func<TSource, object?>> sourceProperty);
+        /// <param name="property1">An expression pointing to the first property.</param>
+        /// <param name="property2">An expression pointing to the second property.</param>
+        void DefineTwoWay(Expression<Func<TTarget, object?>> property1, Expression<Func<TSource, object?>> property2);
     }
 }

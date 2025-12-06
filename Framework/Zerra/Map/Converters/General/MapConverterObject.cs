@@ -31,6 +31,7 @@ namespace Zerra.Map
         private Dictionary<string, MapConverterObjectMember>? membersByName = null!;
         private bool collectValues;
         private ConstructorDetail<TTarget>? parameterConstructor = null;
+        private Action<TSource, TTarget>[]? customizations = null;
 
         protected override sealed void Setup()
         {
@@ -76,6 +77,8 @@ namespace Zerra.Map
                 }
                 collectValues = parameterConstructor is not null;
             }
+
+            customizations = MapCustomizations.Get<TSource, TTarget>();
         }
 
         public override TTarget? Map(TSource? source, TTarget? target, Graph? graph)
@@ -139,6 +142,12 @@ namespace Zerra.Map
                 }
 
                 ReturnCollectedValues(collectedValues!);
+            }
+
+            if (customizations != null && source != null && target != null)
+            {
+                foreach (var customization in customizations)
+                    customization.Invoke(source, target);
             }
 
             return target;

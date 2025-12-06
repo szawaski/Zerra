@@ -11,6 +11,11 @@ namespace Zerra.Test.Map
 {
     public class MapTests
     {
+        static MapTests()
+        {
+            MapCustomizations.Register(new DefineModelAToModelB());
+        }
+
         [Fact]
         public void StringTypes()
         {
@@ -283,6 +288,19 @@ namespace Zerra.Test.Map
             var modelB = modelA.Map<ModelA[], ICollection<ModelB>>();
             Assert.NotNull(modelB);
             Assert.Equal(modelA.Length, modelB.Count);
+        }
+
+        [Fact]
+        public void Define()
+        {
+            var modelA = ModelA.GetModelA();
+            var modelB = modelA.Map<ModelA, ModelB>();
+            Assert.Equal(int.Parse(modelA.PropA.ToString() + "1"), modelB.PropB);
+            Assert.Equal(modelA.PropC, modelB.PropD);
+
+            modelA = modelB.Map<ModelB, ModelA>();
+            Assert.Equal(default, modelA.PropA);
+            Assert.Equal(modelA.PropC, modelB.PropD);
         }
     }
 }
