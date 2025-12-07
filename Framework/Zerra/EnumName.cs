@@ -405,7 +405,7 @@ public sealed class EnumName : Attribute
                 }
                 enumFieldInfos[i] = new EnumFieldInfo(field.Name, enumText, enumValue);
             }
-            if (!CoreTypeLookup.GetCoreEnumType(Enum.GetUnderlyingType(type), out var underlyingType))
+            if (!TypeLookup.GetCoreEnumType(Enum.GetUnderlyingType(type), out var underlyingType))
                 throw new NotImplementedException("Should not happen");
 
             var hasFlagsAttribute = type.GetCustomAttributes(true).Any(x => x is FlagsAttribute);

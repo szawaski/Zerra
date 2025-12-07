@@ -9,7 +9,7 @@ namespace Zerra.SourceGeneration.Types
     /// Generated at runtime or by source generators to provide detailed type information for serialization, reflection, and CQRS routing.
     /// Contains flags for collection types, nullable types, core types, and special framework types.
     /// </summary>
-    public abstract partial class TypeDetail
+    public partial class TypeDetail
     {
         /// <summary>The type being analyzed.</summary>
         public readonly Type Type;

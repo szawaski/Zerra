@@ -43,7 +43,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     {
                         lock (this)
                         {
-                            converter ??= ByteConverterFactory.Get(Member.TypeDetailBoxed, memberKey, Member.HasGetter ? Member.Getter : null, Member.HasSetter ? Member.Setter : null);
+                            converter ??= ByteConverterFactory.Get(Member.TypeDetail, memberKey, Member.HasGetter ? Member.Getter : null, Member.HasSetter ? Member.Setter : null);
                         }
                     }
                     return converter;
@@ -61,7 +61,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     {
                         lock (this)
                         {
-                            converterSetValues ??= ByteConverterFactory.Get(Member.TypeDetailBoxed, $"{memberKey}_CollectedValues", null, SetterForConverterSetValues);
+                            converterSetValues ??= ByteConverterFactory.Get(Member.TypeDetail, $"{memberKey}_CollectedValues", null, SetterForConverterSetValues);
                         }
                     }
                     return converterSetValues;

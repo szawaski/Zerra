@@ -50,7 +50,7 @@ namespace Zerra.SourceGeneration
                 }
                 else
                 {
-                    if (Helper.IsTypeOrBase("Zerra.Map", "MapDefinition", model.TypeSymbol))
+                    if (Helper.IsTypeOrBase("Zerra.Map", "MapDefinition", model.TypeSymbol) || model.TypeSymbol.AllInterfaces.Any(x => x.Name == "IMapDefinition" && x.ContainingNamespace.ToString() == "Zerra.Map"))
                         continue;
 
                     var (typeName, enumerableTypeName, dictionaryKeyTypeName, dictionaryValueTypeName) = GetTypeParameters(model.TypeSymbol);

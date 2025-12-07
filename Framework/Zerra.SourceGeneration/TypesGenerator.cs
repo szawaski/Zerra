@@ -39,7 +39,7 @@ namespace Zerra.SourceGeneration
         {
             foreach (var model in models.Values)
             {
-                if (Helper.IsTypeOrBase("Zerra.Map", "MapDefinition", model.TypeSymbol))
+                if (Helper.IsTypeOrBase("Zerra.Map", "MapDefinition", model.TypeSymbol) || model.TypeSymbol.AllInterfaces.Any(x => x.Name == "IMapDefinition" && x.ContainingNamespace.ToString() == "Zerra.Map"))
                     continue;
 
                 var namedTypeSymbol = model.TypeSymbol as INamedTypeSymbol;
@@ -419,7 +419,7 @@ namespace Zerra.SourceGeneration
         }
         private static void GenerateTypeInfo(StringBuilder sb, CoreType? coreType, string typeName, ITypeSymbol typeSymbol, INamedTypeSymbol? namedTypeSymbol)
         {
-            var isNullable = typeSymbol.NullableAnnotation == NullableAnnotation.Annotated;
+            var isNullable = typeSymbol.IsValueType && typeSymbol.NullableAnnotation == NullableAnnotation.Annotated;
             var isArray = typeSymbol.Kind == SymbolKind.ArrayType;
             var interfaceNames = typeSymbol.AllInterfaces.Select(x => x.MetadataName).ToImmutableHashSet();
 

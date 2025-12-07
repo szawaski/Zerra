@@ -89,25 +89,25 @@ namespace Zerra.SourceGeneration.Reflection
             var isNullable = type.Name == nullaleTypeName;
 
             CoreType? coreType = null;
-            if (CoreTypeLookup.GetCoreType(type, out var coreTypeLookup))
+            if (TypeLookup.GetCoreType(type, out var coreTypeLookup))
                 coreType = coreTypeLookup;
 
             SpecialType? specialType = null;
-            if (CoreTypeLookup.GetSpecialType(type, out var specialTypeLookup))
+            if (TypeLookup.GetSpecialType(type, out var specialTypeLookup))
                 specialType = specialTypeLookup;
 
             CoreEnumType? enumType = null;
             if (type.IsEnum)
             {
                 var enumEnderlyingType = Enum.GetUnderlyingType(type);
-                if (!CoreTypeLookup.GetCoreEnumType(enumEnderlyingType, out var enumCoreTypeLookup))
+                if (!TypeLookup.GetCoreEnumType(enumEnderlyingType, out var enumCoreTypeLookup))
                     throw new NotImplementedException("Should not happen");
                 enumType = enumCoreTypeLookup;
             }
             else if (isNullable && innerTypes[0].IsEnum)
             {
                 var enumEnderlyingType = Enum.GetUnderlyingType(innerTypes[0]);
-                if (!CoreTypeLookup.GetCoreEnumType(enumEnderlyingType, out var enumCoreTypeLookup))
+                if (!TypeLookup.GetCoreEnumType(enumEnderlyingType, out var enumCoreTypeLookup))
                     throw new NotImplementedException("Should not happen");
                 enumCoreTypeLookup = enumCoreTypeLookup switch
                 {

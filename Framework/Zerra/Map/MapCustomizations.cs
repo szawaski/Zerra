@@ -20,11 +20,11 @@ namespace Zerra.Map
             return null;
         }
 
-        public static void Register<TSource, TTarget>(MapDefinition<TSource, TTarget> mapDefinition)
+        public static void Register<TSource, TTarget>(IMapDefinition<TSource, TTarget> mapDefinition)
         {
             Register<TSource, TTarget, TSource, TTarget, object, object, object, object>(mapDefinition);
         }
-        public static void Register<TSource, TTarget, TSourceEnumerable, TTargetEnumerable, TSourceKey, TSourceValue, TTargetKey, TTargetValue>(MapDefinition<TSource, TTarget> mapDefinition)
+        public static void Register<TSource, TTarget, TSourceEnumerable, TTargetEnumerable, TSourceKey, TSourceValue, TTargetKey, TTargetValue>(IMapDefinition<TSource, TTarget> mapDefinition)
             where TSourceKey : notnull
             where TTargetKey : notnull
         {
@@ -41,14 +41,19 @@ namespace Zerra.Map
             {
                 _ = customMapsByPair.TryAdd(keyNormal, Array.Empty<MapNameAndDeletage<TSource, TTarget>>());
                 _ = customMapsByPair.TryAdd(keyReverse, Array.Empty<MapNameAndDeletage<TTarget, TSource>>());
+                return;
             }
 
             var delegatesNormal = new List<MapNameAndDeletage<TSource, TTarget>>();
             var delegatesReverse = new List<MapNameAndDeletage<TTarget, TSource>>();
 
+            if (customMapsByPair.TryGetValue(keyNormal, out var existingDelegatesNormal))
+                delegatesNormal.AddRange((MapNameAndDeletage<TSource, TTarget>[])existingDelegatesNormal);
+            if (customMapsByPair.TryGetValue(keyReverse, out var existingDelegatesReverse))
+                delegatesReverse.AddRange((MapNameAndDeletage<TTarget, TSource>[])existingDelegatesReverse);
+
             var targetType = typeof(TTarget);
 
-            var i = 0;
             foreach (var result in customizations.Results)
             {
                 ParameterExpression sourceParameter;

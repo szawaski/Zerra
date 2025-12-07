@@ -6,13 +6,15 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Zerra.Collections;
+using Zerra.CQRS.Settings;
 using Zerra.Logging;
 using Zerra.Serialization;
 using Zerra.SourceGeneration;
+using Zerra.SourceGeneration.Reflection;
 
 namespace Zerra.CQRS
 {
-    public sealed class Bus : IBusSetup, IBusInternal
+    public sealed partial class Bus : IBusSetup, IBusInternal
     {
         private static readonly Type streamType = typeof(Stream);
         private static readonly Type cancellationTokenType = typeof(CancellationToken);
@@ -62,9 +64,11 @@ namespace Zerra.CQRS
             TimeSpan? defaultCallTimeout = null, TimeSpan? defaultDispatchTimeout = null, TimeSpan? defaultDispatchAwaitTimeout = null,
             int? maxConcurrentQueries = null, int? maxConcurrentCommandsPerTopic = null, int? maxConcurrentEventsPerTopic = null)
         {
-            return new Bus(service, log, busLog, busServices, commandToReceiveUntilExit,
+            var bus = new Bus(service, log, busLog, busServices, commandToReceiveUntilExit,
                 defaultCallTimeout, defaultDispatchTimeout, defaultDispatchAwaitTimeout,
                 maxConcurrentQueries, maxConcurrentCommandsPerTopic, maxConcurrentEventsPerTopic);
+            Bus.staticBus = bus;
+            return bus;
         }
 
         private Bus(string service, ILog? log, IBusLog? busLog, BusServices? busServices, int? commandToReceiveUntilExit = null,
@@ -97,12 +101,12 @@ namespace Zerra.CQRS
         }
 
         /// <inheritdoc />
-        public void StopServices()
+        void IBusSetup.StopServices()
         {
             Task.Run(StopServicesAsync).GetAwaiter().GetResult();
         }
         /// <inheritdoc />
-        public async Task StopServicesAsync()
+        async Task IBusSetup.StopServicesAsync()
         {
             context.Log?.Info($"{nameof(Bus)} Shutting Down");
 
@@ -225,7 +229,7 @@ namespace Zerra.CQRS
         }
 
         /// <inheritdoc />
-        public void WaitForExit(CancellationToken cancellationToken = default)
+        void IBusSetup.WaitForExit(CancellationToken cancellationToken = default)
         {
             lock (exitLock)
             {
@@ -242,7 +246,7 @@ namespace Zerra.CQRS
             Task.Run(StopServicesAsync).GetAwaiter().GetResult();
         }
         /// <inheritdoc />
-        public async Task WaitForExitAsync(CancellationToken cancellationToken = default)
+        async Task IBusSetup.WaitForExitAsync(CancellationToken cancellationToken = default)
         {
             lock (exitLock)
             {
@@ -326,11 +330,11 @@ namespace Zerra.CQRS
                 => _DispatchEventInternalAsync(@event, @event.GetType(), source, CancellationToken.None);
 
         /// <inheritdoc />
-        public TInterface Call<TInterface>()
+        TInterface IBus.Call<TInterface>()
             => (TInterface)BusRouters.GetBusCaller(typeof(TInterface), this, context.ServiceName);
 
         /// <inheritdoc />
-        public Task DispatchAsync(ICommand command, CancellationToken? cancellationToken = null)
+        Task IBus.DispatchAsync(ICommand command, CancellationToken? cancellationToken = null)
         {
             if (cancellationToken.HasValue)
                 return _DispatchCommandInternalAsync(command, command.GetType(), false, context.ServiceName, cancellationToken.Value);
@@ -343,7 +347,7 @@ namespace Zerra.CQRS
             return task;
         }
         /// <inheritdoc />
-        public Task DispatchAwaitAsync(ICommand command, CancellationToken? cancellationToken = null)
+        Task IBus.DispatchAwaitAsync(ICommand command, CancellationToken? cancellationToken = null)
         {
             if (cancellationToken.HasValue)
                 return _DispatchCommandInternalAsync(command, command.GetType(), true, context.ServiceName, cancellationToken.Value);
@@ -356,7 +360,7 @@ namespace Zerra.CQRS
             return task;
         }
         /// <inheritdoc />
-        public Task DispatchAsync(IEvent @event, CancellationToken? cancellationToken = null)
+        Task IBus.DispatchAsync(IEvent @event, CancellationToken? cancellationToken = null)
         {
             if (cancellationToken.HasValue)
                 return _DispatchEventInternalAsync(@event, @event.GetType(), context.ServiceName, cancellationToken.Value);
@@ -369,7 +373,7 @@ namespace Zerra.CQRS
             return task;
         }
         /// <inheritdoc />
-        public Task<TResult> DispatchAwaitAsync<TResult>(ICommand<TResult> command, CancellationToken? cancellationToken = null)
+        Task<TResult> IBus.DispatchAwaitAsync<TResult>(ICommand<TResult> command, CancellationToken? cancellationToken = null)
         {
             if (cancellationToken.HasValue)
                 return _DispatchCommandWithResultInternalAsync(command, command.GetType(), context.ServiceName, cancellationToken.Value);
@@ -900,7 +904,7 @@ namespace Zerra.CQRS
         }
 
         /// <inheritdoc />
-        public void AddHandler<TInterface>(TInterface handler)
+        void IBusSetup.AddHandler<TInterface>(TInterface handler)
         {
             var interfaceType = typeof(TInterface);
             if (!interfaceType.IsInterface)
@@ -918,7 +922,7 @@ namespace Zerra.CQRS
         }
 
         /// <inheritdoc />
-        public void AddCommandProducer<TInterface>(ICommandProducer commandProducer)
+        void IBusSetup.AddCommandProducer<TInterface>(ICommandProducer commandProducer)
         {
             var interfaceType = typeof(TInterface);
             if (!interfaceType.IsInterface)
@@ -949,7 +953,7 @@ namespace Zerra.CQRS
         }
 
         /// <inheritdoc />
-        public void AddCommandConsumer<TInterface>(ICommandConsumer commandConsumer)
+        void IBusSetup.AddCommandConsumer<TInterface>(ICommandConsumer commandConsumer)
         {
             var interfaceType = typeof(TInterface);
             if (!interfaceType.IsInterface)
@@ -979,7 +983,7 @@ namespace Zerra.CQRS
         }
 
         /// <inheritdoc />
-        public void AddEventProducer<TInterface>(IEventProducer eventProducer)
+        void IBusSetup.AddEventProducer<TInterface>(IEventProducer eventProducer)
         {
             var interfaceType = typeof(TInterface);
             if (!interfaceType.IsInterface)
@@ -1010,7 +1014,7 @@ namespace Zerra.CQRS
         }
 
         /// <inheritdoc />
-        public void AddEventConsumer<TInterface>(IEventConsumer eventConsumer)
+        void IBusSetup.AddEventConsumer<TInterface>(IEventConsumer eventConsumer)
         {
             var interfaceType = typeof(TInterface);
             if (!interfaceType.IsInterface)
@@ -1035,7 +1039,7 @@ namespace Zerra.CQRS
         }
 
         /// <inheritdoc />
-        public void AddQueryClient<TInterface>(IQueryClient queryClient)
+        void IBusSetup.AddQueryClient<TInterface>(IQueryClient queryClient)
         {
             var interfaceType = typeof(TInterface);
             if (!interfaceType.IsInterface)
@@ -1060,8 +1064,9 @@ namespace Zerra.CQRS
             context.Log?.Info($"{queryClient.GetType().Name} at {queryClient.ServiceUrl} - {interfaceType.Name}");
         }
 
+
         /// <inheritdoc />
-        public void AddQueryServer<TInterface>(IQueryServer queryServer)
+        void IBusSetup.AddQueryServer<TInterface>(IQueryServer queryServer)
         {
             var interfaceType = typeof(TInterface);
             if (!interfaceType.IsInterface)
@@ -1086,13 +1091,13 @@ namespace Zerra.CQRS
         }
 
         /// <inheritdoc />
-        public ILog? Log  => context.Log;
+        ILog? IBus.Log => context.Log;
 
         /// <inheritdoc />
-        public string ServiceName => context.ServiceName;
+        string IBus.ServiceName => context.ServiceName;
 
         /// <inheritdoc />
-        public TInterface GetService<TInterface>() where TInterface : notnull
+        TInterface IBus.GetService<TInterface>()
             => context.GetService<TInterface>();
 
         /// <inheritdoc />

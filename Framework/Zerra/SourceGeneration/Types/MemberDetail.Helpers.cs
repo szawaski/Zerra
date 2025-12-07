@@ -10,7 +10,7 @@ namespace Zerra.SourceGeneration.Types
         /// Gets the cached type detail for this member's type.
         /// Lazily initializes and caches the type detail information for serialization and reflection.
         /// </summary>
-        public TypeDetail TypeDetailBoxed
+        public TypeDetail TypeDetail
         {
             get
             {

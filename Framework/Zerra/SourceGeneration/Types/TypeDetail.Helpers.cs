@@ -8,7 +8,7 @@ using Zerra.SourceGeneration.Reflection;
 
 namespace Zerra.SourceGeneration.Types
 {
-    public abstract partial class TypeDetail
+    public partial class TypeDetail
     {
         private TypeDetail? innerTypeDetail = null;
         /// <summary>Gets the type detail for <see cref="InnerType"/> if this is a nullable type; otherwise null.</summary>
@@ -66,7 +66,7 @@ namespace Zerra.SourceGeneration.Types
         {
             get
             {
-                serializableMemberDetails ??= Members.Where(x => !x.IsStatic && x.IsBacked && !x.IsExplicitFromInterface && IsSerializableType(x.TypeDetailBoxed)).ToArray();
+                serializableMemberDetails ??= Members.Where(x => !x.IsStatic && x.IsBacked && !x.IsExplicitFromInterface && IsSerializableType(x.TypeDetail)).ToArray();
                 return serializableMemberDetails;
             }
         }

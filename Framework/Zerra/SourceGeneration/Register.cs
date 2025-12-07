@@ -33,7 +33,7 @@ namespace Zerra.SourceGeneration
             JsonConverterFactory.RegisterCreator<TType, TEnumerableType, TDictionaryKey, TDictionaryValue>();
             MapConverterFactory.RegisterCreator<TType, TType, TEnumerableType, TEnumerableType, TDictionaryKey, TDictionaryValue, TDictionaryKey, TDictionaryValue>();
         }
-        public static void CustomMap<TSource, TTarget, TSourceEnumerable, TTargetEnumerable, TSourceKey, TSourceValue, TTargetKey, TTargetValue>(MapDefinition<TSource, TTarget> mapDefinition) where TSourceKey : notnull where TTargetKey : notnull
+        public static void CustomMap<TSource, TTarget, TSourceEnumerable, TTargetEnumerable, TSourceKey, TSourceValue, TTargetKey, TTargetValue>(IMapDefinition<TSource, TTarget> mapDefinition) where TSourceKey : notnull where TTargetKey : notnull
             => MapCustomizations.Register<TSource, TTarget, TSourceEnumerable, TTargetEnumerable, TSourceKey, TSourceValue, TTargetKey, TTargetValue>(mapDefinition);
     }
 }

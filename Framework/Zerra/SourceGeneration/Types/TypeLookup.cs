@@ -8,7 +8,7 @@ namespace Zerra.SourceGeneration.Types
     /// Provides type lookup and classification utilities for core types, enum types, and special framework types.
     /// Enables efficient categorization and routing of types during code generation and runtime type analysis.
     /// </summary>
-    public static class CoreTypeLookup
+    public static class TypeLookup
     {
         private static readonly IReadOnlyDictionary<Type, CoreType> coreTypeLookup = new Dictionary<Type, CoreType>()
         {

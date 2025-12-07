@@ -54,7 +54,7 @@ namespace Zerra.SourceGeneration.Types
         {
             get
             {
-                field ??= (TypeDetail<T>)base.TypeDetailBoxed;
+                field ??= (TypeDetail<T>)base.TypeDetail;
                 return field;
             }
         }

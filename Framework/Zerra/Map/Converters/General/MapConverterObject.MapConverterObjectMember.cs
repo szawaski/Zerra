@@ -32,7 +32,7 @@ namespace Zerra.Map
                     {
                         lock (this)
                         {
-                            converter ??= MapConverterFactory.Get(SourceMember.TypeDetailBoxed, TargetMember.TypeDetailBoxed, memberKey, SourceMember.HasGetter ? SourceMember.Getter : null, TargetMember.HasGetter ? TargetMember.Getter : null, TargetMember.HasSetter ? TargetMember.Setter : null);
+                            converter ??= MapConverterFactory.Get(SourceMember.TypeDetail, TargetMember.TypeDetail, memberKey, SourceMember.HasGetter ? SourceMember.Getter : null, TargetMember.HasGetter ? TargetMember.Getter : null, TargetMember.HasSetter ? TargetMember.Setter : null);
                         }
                     }
                     return converter;
@@ -50,7 +50,7 @@ namespace Zerra.Map
                     {
                         lock (this)
                         {
-                            converterSetValues ??= MapConverterFactory.Get(SourceMember.TypeDetailBoxed, TargetMember.TypeDetailBoxed, $"{memberKey}_CollectedValues", SourceMember.HasGetter ? SourceMember.Getter : null, null, SetterForConverterSetValues);
+                            converterSetValues ??= MapConverterFactory.Get(SourceMember.TypeDetail, TargetMember.TypeDetail, $"{memberKey}_CollectedValues", SourceMember.HasGetter ? SourceMember.Getter : null, null, SetterForConverterSetValues);
                         }
                     }
                     return converterSetValues;

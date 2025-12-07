@@ -9,7 +9,7 @@ namespace Zerra.SourceGeneration.Types
     /// Provides both unboxed and boxed delegates for efficient method invocation.
     /// Used by the source generator and runtime reflection to enable method calls.
     /// </summary>
-    public class MethodDetail
+    public partial class MethodDetail
     {
         /// <summary>The parent type that owns this method.</summary>
         public readonly Type ParentType;

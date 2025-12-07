@@ -33,7 +33,8 @@ namespace Zerra.SourceGeneration
                 return true;
             if (Helper.FindBase("Zerra.Map", "MapDefinition", namedTypeSymbol) != null)
                 return true;
-
+            if (namedTypeSymbol.AllInterfaces.Any(x => x.Name == "IMapDefinition" && x.ContainingNamespace.ToString() == "Zerra.Map"))
+                return true;
             return false;
         }
 
@@ -82,14 +83,14 @@ namespace Zerra.SourceGeneration
             models.Add(name, new TypeToGenerate(typeSymbol, name, stackString));
         }
 
-        private static void SearchInterface(ITypeSymbol typeSymbol, Dictionary<string, TypeToGenerate> models, Stack<string> stack)
+        private static void SearchInterface(INamedTypeSymbol namedTypeSymbol, Dictionary<string, TypeToGenerate> models, Stack<string> stack)
         {
-            var name = Helper.GetFullName(typeSymbol);
+            var name = Helper.GetFullName(namedTypeSymbol);
             if (stack.Contains(name))
                 return;
 
-            var symbolMembers = typeSymbol.GetMembers();
-            (var properties, _) = GetPropertiesAndFields(typeSymbol, symbolMembers);
+            var symbolMembers = namedTypeSymbol.GetMembers();
+            (var properties, _) = GetPropertiesAndFields(namedTypeSymbol, symbolMembers);
 
             foreach (var property in properties)
             {
@@ -98,7 +99,7 @@ namespace Zerra.SourceGeneration
                 _ = stack.Pop();
             }
 
-            var methods = GetMethods(typeSymbol, symbolMembers);
+            var methods = GetMethods(namedTypeSymbol, symbolMembers);
             foreach (var method in methods)
             {
                 stack.Push(name);
@@ -112,19 +113,10 @@ namespace Zerra.SourceGeneration
                 }
             }
 
-            if (typeSymbol is INamedTypeSymbol namedTypeSymbol)
-            {
-                foreach (var typeArg in namedTypeSymbol.TypeArguments)
-                {
-                    stack.Push(name);
-                    CheckModel(typeArg, models, stack);
-                    _ = stack.Pop();
-                }
-            }
-            else if (typeSymbol is IArrayTypeSymbol arrayTypeSymbol)
+            foreach (var typeArg in namedTypeSymbol.TypeArguments)
             {
                 stack.Push(name);
-                CheckModel(arrayTypeSymbol.ElementType, models, stack);
+                CheckModel(typeArg, models, stack);
                 _ = stack.Pop();
             }
         }
@@ -171,13 +163,25 @@ namespace Zerra.SourceGeneration
                 _ = stack.Pop();
             }
 
-            var baseType = typeSymbol.BaseType;
-            while (baseType != null)
+            //MapDefinition will create empty base types which are unnecessary to process
+            //var baseType = typeSymbol.BaseType;
+            //while (baseType != null)
+            //{
+            //    stack.Push(name);
+            //    CheckModel(baseType, models, stack);
+            //    _ = stack.Pop();
+            //    baseType = baseType.BaseType;
+            //}
+
+            //Helps find IMapDefinition Type Arguments
+            foreach (var i in typeSymbol.AllInterfaces)
             {
-                stack.Push(name);
-                CheckModel(baseType, models, stack);
-                _ = stack.Pop();
-                baseType = baseType.BaseType;
+                foreach (var typeArg in i.TypeArguments)
+                {
+                    stack.Push(name);
+                    CheckModel(typeArg, models, stack);
+                    _ = stack.Pop();
+                }
             }
         }
 
