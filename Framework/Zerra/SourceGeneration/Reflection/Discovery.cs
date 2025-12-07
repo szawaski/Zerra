@@ -16,7 +16,7 @@ namespace Zerra.SourceGeneration.Reflection
     /// Supports both generic and non-generic type matching with caching for performance optimization.
     /// </summary>
     /// <remarks>
-    /// <see cref="RunDiscovery"/> must be called before using any lookup methods.
+    /// <see cref="Initialize"/> must be called before using any lookup methods.
     /// Discovery scans all loaded assemblies to build type relationship caches.
     /// </remarks>
     [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
@@ -46,7 +46,7 @@ namespace Zerra.SourceGeneration.Reflection
         /// Runs type discovery to scan assemblies and cache type information for lookup operations.
         /// </summary>
         /// <param name="forceLoadAssemblies">If true, attempts to load all assembly files from the application base directory before discovering types.</param>
-        public static void RunDiscovery(bool forceLoadAssemblies)
+        public static void Initialize(bool forceLoadAssemblies)
         {
             if (discovered)
                 return;
@@ -260,9 +260,9 @@ namespace Zerra.SourceGeneration.Reflection
         public static bool HasTypeByInterface(Type interfaceType)
         {
             if (!discovered)
-                throw new InvalidOperationException($"Discovery has not been run. Call {nameof(Discovery)}.{nameof(RunDiscovery)}() first.");
+                throw new InvalidOperationException($"Discovery has not been run. Call {nameof(Discovery)}.{nameof(Initialize)}() first.");
             if (!discovered)
-                throw new InvalidOperationException($"Discovery has not been run. Call {nameof(Discovery)}.{nameof(RunDiscovery)}() first.");
+                throw new InvalidOperationException($"Discovery has not been run. Call {nameof(Discovery)}.{nameof(Initialize)}() first.");
             if (interfaceType is null)
                 throw new ArgumentNullException(nameof(interfaceType));
             if (!interfaceType.IsInterface)
@@ -288,9 +288,9 @@ namespace Zerra.SourceGeneration.Reflection
         public static bool HasClassByBaseType(Type baseType)
         {
             if (!discovered)
-                throw new InvalidOperationException($"Discovery has not been run. Call {nameof(Discovery)}.{nameof(RunDiscovery)}() first.");
+                throw new InvalidOperationException($"Discovery has not been run. Call {nameof(Discovery)}.{nameof(Initialize)}() first.");
             if (!discovered)
-                throw new InvalidOperationException($"Discovery has not been run. Call {nameof(Discovery)}.{nameof(RunDiscovery)}() first.");
+                throw new InvalidOperationException($"Discovery has not been run. Call {nameof(Discovery)}.{nameof(Initialize)}() first.");
             if (baseType is null)
                 throw new ArgumentNullException(nameof(baseType));
 
@@ -315,9 +315,9 @@ namespace Zerra.SourceGeneration.Reflection
         public static bool HasClassByInterface(Type interfaceType)
         {
             if (!discovered)
-                throw new InvalidOperationException($"Discovery has not been run. Call {nameof(Discovery)}.{nameof(RunDiscovery)}() first.");
+                throw new InvalidOperationException($"Discovery has not been run. Call {nameof(Discovery)}.{nameof(Initialize)}() first.");
             if (!discovered)
-                throw new InvalidOperationException($"Discovery has not been run. Call {nameof(Discovery)}.{nameof(RunDiscovery)}() first.");
+                throw new InvalidOperationException($"Discovery has not been run. Call {nameof(Discovery)}.{nameof(Initialize)}() first.");
             if (interfaceType is null)
                 throw new ArgumentNullException(nameof(interfaceType));
             if (!interfaceType.IsInterface)
@@ -347,7 +347,7 @@ namespace Zerra.SourceGeneration.Reflection
         public static Type? GetTypeByInterface(Type interfaceType, bool throwException = true)
         {
             if (!discovered)
-                throw new InvalidOperationException($"Discovery has not been run. Call {nameof(Discovery)}.{nameof(RunDiscovery)}() first.");
+                throw new InvalidOperationException($"Discovery has not been run. Call {nameof(Discovery)}.{nameof(Initialize)}() first.");
             if (interfaceType is null)
                 throw new ArgumentNullException(nameof(interfaceType));
             if (!interfaceType.IsInterface)
@@ -398,7 +398,7 @@ namespace Zerra.SourceGeneration.Reflection
         public static Type? GetClassByBaseType(Type baseType, bool throwException = true)
         {
             if (!discovered)
-                throw new InvalidOperationException($"Discovery has not been run. Call {nameof(Discovery)}.{nameof(RunDiscovery)}() first.");
+                throw new InvalidOperationException($"Discovery has not been run. Call {nameof(Discovery)}.{nameof(Initialize)}() first.");
             if (baseType is null)
                 throw new ArgumentNullException(nameof(baseType));
 
@@ -448,7 +448,7 @@ namespace Zerra.SourceGeneration.Reflection
         public static Type? GetClassByInterface(Type interfaceType, bool throwException = true)
         {
             if (!discovered)
-                throw new InvalidOperationException($"Discovery has not been run. Call {nameof(Discovery)}.{nameof(RunDiscovery)}() first.");
+                throw new InvalidOperationException($"Discovery has not been run. Call {nameof(Discovery)}.{nameof(Initialize)}() first.");
             if (interfaceType is null)
                 throw new ArgumentNullException(nameof(interfaceType));
             if (!interfaceType.IsInterface)
@@ -499,7 +499,7 @@ namespace Zerra.SourceGeneration.Reflection
         public static IReadOnlyList<Type> GetTypesByInterface(Type interfaceType)
         {
             if (!discovered)
-                throw new InvalidOperationException($"Discovery has not been run. Call {nameof(Discovery)}.{nameof(RunDiscovery)}() first.");
+                throw new InvalidOperationException($"Discovery has not been run. Call {nameof(Discovery)}.{nameof(Initialize)}() first.");
             if (interfaceType is null)
                 throw new ArgumentNullException(nameof(interfaceType));
             if (!interfaceType.IsInterface)
@@ -530,7 +530,7 @@ namespace Zerra.SourceGeneration.Reflection
         public static IReadOnlyList<Type> GetClassesByBaseType(Type baseType)
         {
             if (!discovered)
-                throw new InvalidOperationException($"Discovery has not been run. Call {nameof(Discovery)}.{nameof(RunDiscovery)}() first.");
+                throw new InvalidOperationException($"Discovery has not been run. Call {nameof(Discovery)}.{nameof(Initialize)}() first.");
             if (baseType is null)
                 throw new ArgumentNullException(nameof(baseType));
 
@@ -560,7 +560,7 @@ namespace Zerra.SourceGeneration.Reflection
         public static IReadOnlyList<Type> GetClassesByInterface(Type interfaceType)
         {
             if (!discovered)
-                throw new InvalidOperationException($"Discovery has not been run. Call {nameof(Discovery)}.{nameof(RunDiscovery)}() first.");
+                throw new InvalidOperationException($"Discovery has not been run. Call {nameof(Discovery)}.{nameof(Initialize)}() first.");
             if (interfaceType is null)
                 throw new ArgumentNullException(nameof(interfaceType));
             if (!interfaceType.IsInterface)
@@ -602,7 +602,7 @@ namespace Zerra.SourceGeneration.Reflection
         public static void DefineClassByInterface(Type interfaceType, Type implementationType)
         {
             if (!discovered)
-                throw new InvalidOperationException($"Discovery has not been run. Call {nameof(Discovery)}.{nameof(RunDiscovery)}() first.");
+                throw new InvalidOperationException($"Discovery has not been run. Call {nameof(Discovery)}.{nameof(Initialize)}() first.");
             if (interfaceType is null)
                 throw new ArgumentNullException(nameof(interfaceType));
             if (!interfaceType.IsInterface)
@@ -627,7 +627,7 @@ namespace Zerra.SourceGeneration.Reflection
         public static IReadOnlyList<Type> GetTypesFromAttribute(Type attribute)
         {
             if (!discovered)
-                throw new InvalidOperationException($"Discovery has not been run. Call {nameof(Discovery)}.{nameof(RunDiscovery)}() first.");
+                throw new InvalidOperationException($"Discovery has not been run. Call {nameof(Discovery)}.{nameof(Initialize)}() first.");
             if (attribute is null)
                 throw new ArgumentNullException(nameof(attribute));
             if (!typeByAttribute.TryGetValue(attribute, out var classList))

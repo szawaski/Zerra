@@ -2,7 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Net;
 using System.Net.Sockets;
 using Xunit;
 using Zerra.CQRS.Network;

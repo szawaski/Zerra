@@ -444,13 +444,10 @@ namespace Zerra.SourceGeneration.Reflection
             if (type.IsGenericTypeDefinition)
                 return items;
 
-            foreach (var constructor in type.GetConstructors(BindingFlags.Public | BindingFlags.Instance))
+            var constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.Instance);
+            foreach (var constructor in constructors)
             {
                 if (!constructor.IsPublic)
-                    continue;
-
-                var parameters = constructor.GetParameters();
-                if (parameters.Length == 0)
                     continue;
 
                 Func<object?[]?, T>? creator = AccessorGenerator.GenerateCreator<T>(constructor);
@@ -461,6 +458,7 @@ namespace Zerra.SourceGeneration.Reflection
                 if (creatorBoxed == null)
                     continue;
 
+                var parameters = constructor.GetParameters();
                 var parameterTypes = parameters.Select(x => new ParameterDetail(x.ParameterType, x.Name!)).ToArray();
 
                 var constructorDetail = new ConstructorDetail<T>(parameterTypes, creator, creatorBoxed);

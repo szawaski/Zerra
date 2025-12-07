@@ -6,11 +6,9 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Zerra.Collections;
-using Zerra.CQRS.Settings;
 using Zerra.Logging;
 using Zerra.Serialization;
 using Zerra.SourceGeneration;
-using Zerra.SourceGeneration.Reflection;
 
 namespace Zerra.CQRS
 {
@@ -101,12 +99,12 @@ namespace Zerra.CQRS
         }
 
         /// <inheritdoc />
-        void IBusSetup.StopServices()
+        public void StopServices()
         {
             Task.Run(StopServicesAsync).GetAwaiter().GetResult();
         }
         /// <inheritdoc />
-        async Task IBusSetup.StopServicesAsync()
+        public async Task StopServicesAsync()
         {
             context.Log?.Info($"{nameof(Bus)} Shutting Down");
 
@@ -229,7 +227,7 @@ namespace Zerra.CQRS
         }
 
         /// <inheritdoc />
-        void IBusSetup.WaitForExit(CancellationToken cancellationToken = default)
+        public void WaitForExit(CancellationToken cancellationToken = default)
         {
             lock (exitLock)
             {
@@ -246,7 +244,7 @@ namespace Zerra.CQRS
             Task.Run(StopServicesAsync).GetAwaiter().GetResult();
         }
         /// <inheritdoc />
-        async Task IBusSetup.WaitForExitAsync(CancellationToken cancellationToken = default)
+        public async Task WaitForExitAsync(CancellationToken cancellationToken = default)
         {
             lock (exitLock)
             {
@@ -1091,13 +1089,13 @@ namespace Zerra.CQRS
         }
 
         /// <inheritdoc />
-        ILog? IBus.Log => context.Log;
+        public ILog? Log => context.Log;
 
         /// <inheritdoc />
-        string IBus.ServiceName => context.ServiceName;
+        public string ServiceName => context.ServiceName;
 
         /// <inheritdoc />
-        TInterface IBus.GetService<TInterface>()
+        public TInterface GetService<TInterface>() where TInterface : notnull
             => context.GetService<TInterface>();
 
         /// <inheritdoc />

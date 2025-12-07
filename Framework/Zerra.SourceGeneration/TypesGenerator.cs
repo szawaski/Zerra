@@ -5,7 +5,6 @@
 using Microsoft.CodeAnalysis;
 using System.Collections;
 using System.Collections.Immutable;
-using System.Reflection;
 using System.Text;
 
 namespace Zerra.SourceGeneration

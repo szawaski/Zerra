@@ -13,7 +13,7 @@ namespace Zerra.SourceGeneration.Reflection
     /// </summary>
     /// <remarks>
     /// This resolver relies on the <see cref="Discovery"/> class to find interface implementations.
-    /// Ensure <see cref="Discovery.RunDiscovery(bool)"/> has been called before using any resolution methods.
+    /// Ensure <see cref="Discovery.Initialize(bool)"/> has been called before using any resolution methods.
     /// </remarks>
     [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
     [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
