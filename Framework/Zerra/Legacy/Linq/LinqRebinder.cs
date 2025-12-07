@@ -2,9 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
 
 namespace Zerra.Linq

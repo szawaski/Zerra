@@ -21,10 +21,14 @@ namespace Zerra.SourceGeneration.Types
         public readonly int GenericArgumentCount;
         /// <summary>Collection of parameters required by this method.</summary>
         public readonly IReadOnlyList<ParameterDetail> Parameters;
+        /// <summary>Indicates whether this method has a callable delegate.</summary>
+        public readonly bool HasCaller;
         /// <summary>The unboxed delegate for invoking this method.</summary>
-        public readonly Delegate Caller;
+        public readonly Delegate? Caller;
+        /// <summary>Indicates whether this method has a boxed callable delegate.</summary>
+        public readonly bool HasCallerBoxed;
         /// <summary>Boxed delegate for invoking this method; accepts instance and parameter values as object array.</summary>
-        public readonly Func<object?, object?[]?, object?> CallerBoxed;
+        public readonly Func<object?, object?[]?, object?>? CallerBoxed;
         /// <summary>Collection of all custom attributes applied to this method.</summary>
         public readonly IReadOnlyList<Attribute> Attributes;
         /// <summary>Indicates whether this method is static.</summary>
@@ -45,14 +49,16 @@ namespace Zerra.SourceGeneration.Types
         /// <param name="attributes">Custom attributes applied to the method.</param>
         /// <param name="isStatic">Whether this method is static.</param>
         /// <param name="isExplicitFromInterface">Whether this method is an explicit interface implementation.</param>
-        public MethodDetail(Type parentType, string name, Type returnType, int genericArgumentCount, IReadOnlyList<ParameterDetail> parameters, Delegate caller, Func<object?, object?[]?, object?> callerBoxed, IReadOnlyList<Attribute> attributes, bool isStatic, bool isExplicitFromInterface)
+        public MethodDetail(Type parentType, string name, Type returnType, int genericArgumentCount, IReadOnlyList<ParameterDetail> parameters, Delegate? caller, Func<object?, object?[]?, object?>? callerBoxed, IReadOnlyList<Attribute> attributes, bool isStatic, bool isExplicitFromInterface)
         {
             this.ParentType = parentType;
             this.Name = name;
             this.ReturnType = returnType;
             this.GenericArgumentCount = genericArgumentCount;
             this.Parameters = parameters;
+            this.HasCaller = caller != null;
             this.Caller = caller;
+            this.HasCallerBoxed = callerBoxed != null;
             this.CallerBoxed = callerBoxed;
             this.Attributes = attributes;
             this.IsStatic = isStatic;

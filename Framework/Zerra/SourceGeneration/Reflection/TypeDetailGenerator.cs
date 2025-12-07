@@ -42,14 +42,206 @@ namespace Zerra.SourceGeneration.Reflection
         private static readonly Type memberDetailType = typeof(MemberDetail<>);
         private static readonly Type methodDetailType = typeof(MethodDetail<>);
 
-        private static readonly MethodInfo generateTypeDetailGeneric = typeof(TypeDetailGenerator).GetMethod(nameof(GenerateTypeDetailGeneric), BindingFlags.NonPublic | BindingFlags.Static)!;
+        private static readonly MethodInfo generateTypeDetailGeneric = typeof(TypeDetailGenerator).GetMethod(nameof(Generate), BindingFlags.NonPublic | BindingFlags.Static)!;
         public static TypeDetail GenerateTypeDetail(Type type)
         {
-            var method = generateTypeDetailGeneric.MakeGenericMethod(type);
-            return (TypeDetail)method.Invoke(null, [type])!;
+            if (type.ContainsGenericParameters)
+            {
+                return GenerateIncompleteGeneric(type);
+            }
+            else
+            {
+                var method = generateTypeDetailGeneric.MakeGenericMethod(type);
+                return (TypeDetail)method.Invoke(null, [type])!;
+            }
         }
 
-        private static TypeDetail<T> GenerateTypeDetailGeneric<T>(Type type)
+        private static TypeDetail GenerateIncompleteGeneric(Type type)
+        {
+            var constructors = new List<ConstructorDetail>(0);
+            var innerTypes = GenerateInnerTypes(type);
+            var baseTypes = GenerateBaseTypes(type);
+            var interfaces = GenerateInterfaces(type);
+            var attributes = GenerateAttributes(type);
+            var members = GenerateMembers(type, interfaces);
+            var methods = GetMethodDetails(type, interfaces);
+
+            Delegate? creator = null;
+            Func<object>? creatorBoxed = null;
+
+            Type? innerType = null;
+            if (innerTypes.Length == 1)
+                innerType = innerTypes[0];
+
+            var isNullable = type.Name == nullaleTypeName;
+
+            CoreType? coreType = null;
+            if (TypeLookup.GetCoreType(type, out var coreTypeLookup))
+                coreType = coreTypeLookup;
+
+            SpecialType? specialType = null;
+            if (TypeLookup.GetSpecialType(type, out var specialTypeLookup))
+                specialType = specialTypeLookup;
+
+            CoreEnumType? enumType = null;
+            if (type.IsEnum)
+            {
+                var enumEnderlyingType = Enum.GetUnderlyingType(type);
+                if (!TypeLookup.GetCoreEnumType(enumEnderlyingType, out var enumCoreTypeLookup))
+                    throw new NotImplementedException("Should not happen");
+                enumType = enumCoreTypeLookup;
+            }
+            else if (isNullable && innerTypes[0].IsEnum)
+            {
+                var enumEnderlyingType = Enum.GetUnderlyingType(innerTypes[0]);
+                if (!TypeLookup.GetCoreEnumType(enumEnderlyingType, out var enumCoreTypeLookup))
+                    throw new NotImplementedException("Should not happen");
+                enumCoreTypeLookup = enumCoreTypeLookup switch
+                {
+                    CoreEnumType.Byte => CoreEnumType.ByteNullable,
+                    CoreEnumType.SByte => CoreEnumType.SByteNullable,
+                    CoreEnumType.Int16 => CoreEnumType.Int16Nullable,
+                    CoreEnumType.UInt16 => CoreEnumType.UInt16Nullable,
+                    CoreEnumType.Int32 => CoreEnumType.Int32Nullable,
+                    CoreEnumType.UInt32 => CoreEnumType.UInt32Nullable,
+                    CoreEnumType.Int64 => CoreEnumType.Int64Nullable,
+                    CoreEnumType.UInt64 => CoreEnumType.UInt64Nullable,
+                    _ => throw new NotImplementedException(),
+                };
+                enumType = enumCoreTypeLookup;
+            }
+
+            var interfaceNames = new HashSet<string>(interfaces.Select(x => x.Name));
+            var baseTypeNames = new HashSet<string>(baseTypes.Select(x => x.Name));
+
+            var hasIEnumerable = type.IsArray || type.Name == iEnumberableTypeName || interfaceNames.Contains(iEnumberableTypeName);
+            var hasIEnumerableGeneric = type.IsArray || type.Name == iEnumberableGenericTypeName || interfaceNames.Contains(iEnumberableGenericTypeName);
+            var hasICollection = type.Name == iCollectionTypeName || interfaceNames.Contains(iCollectionTypeName);
+            var hasICollectionGeneric = type.Name == iCollectionGenericTypeName || interfaceNames.Contains(iCollectionGenericTypeName);
+            var hasIReadOnlyCollectionGeneric = type.Name == iReadOnlyCollectionGenericTypeName || interfaceNames.Contains(iReadOnlyCollectionGenericTypeName);
+            var hasIList = type.Name == iListTypeName || interfaceNames.Contains(iListTypeName);
+            var hasIListGeneric = type.Name == iListGenericTypeName || interfaceNames.Contains(iListGenericTypeName);
+            var hasListGeneric = type.Name == ListGenericTypeName || baseTypeNames.Contains(ListGenericTypeName);
+            var hasIReadOnlyListGeneric = type.Name == iReadOnlyListTypeName || interfaceNames.Contains(iReadOnlyListTypeName);
+            var hasISetGeneric = type.Name == iSetGenericTypeName || interfaceNames.Contains(iSetGenericTypeName);
+            var hasIReadOnlySetGeneric = type.Name == iReadOnlySetGenericTypeName || interfaceNames.Contains(iReadOnlySetGenericTypeName);
+            var hasHashSetGeneric = type.Name == hashSetGenericTypeName || baseTypeNames.Contains(hashSetGenericTypeName);
+            var hasIDictionary = type.Name == iDictionaryTypeName || interfaceNames.Contains(iDictionaryTypeName);
+            var hasIDictionaryGeneric = type.Name == iDictionaryGenericTypeName || interfaceNames.Contains(iDictionaryGenericTypeName);
+            var hasIReadOnlyDictionaryGeneric = type.Name == iReadOnlyDictionaryGenericTypeName || interfaceNames.Contains(iReadOnlyDictionaryGenericTypeName);
+            var hasDictionaryGeneric = type.Name == dictionaryGenericTypeName || baseTypeNames.Contains(dictionaryGenericTypeName);
+
+            var isIEnumerable = type.Name == iEnumberableTypeName;
+            var isIEnumerableGeneric = type.Name == iEnumberableGenericTypeName;
+            var isICollection = type.Name == iCollectionTypeName;
+            var isICollectionGeneric = type.Name == iCollectionGenericTypeName;
+            var isIReadOnlyCollectionGeneric = type.Name == iReadOnlyCollectionGenericTypeName;
+            var isIList = type.Name == iListTypeName;
+            var isIListGeneric = type.Name == iListGenericTypeName;
+            var isListGeneric = type.Name == ListGenericTypeName;
+            var isIReadOnlyListGeneric = type.Name == iReadOnlyListTypeName;
+            var isISetGeneric = type.Name == iSetGenericTypeName;
+            var isIReadOnlySetGeneric = type.Name == iReadOnlySetGenericTypeName;
+            var isHashSetGeneric = type.Name == hashSetGenericTypeName;
+            var isIDictionary = type.Name == iDictionaryTypeName;
+            var isIDictionaryGeneric = type.Name == iDictionaryGenericTypeName;
+            var isIReadOnlyDictionaryGeneric = type.Name == iReadOnlyDictionaryGenericTypeName;
+            var isDictionaryGeneric = type.Name == dictionaryGenericTypeName;
+
+            Type? iEnumerableGenericInnerType = null;
+            if (isIEnumerableGeneric)
+            {
+                iEnumerableGenericInnerType = innerTypes[0];
+            }
+            else
+            {
+                var interfaceFound = interfaces.Where(x => x.Name == iEnumberableGenericTypeName).ToArray();
+                if (interfaceFound.Length == 1)
+                {
+                    iEnumerableGenericInnerType = interfaceFound[0].GetGenericArguments()[0];
+                }
+            }
+
+            Type? dictionaryInnerType = null;
+            if (isIDictionaryGeneric || isIReadOnlyDictionaryGeneric)
+            {
+                dictionaryInnerType = keyValuePairType.MakeGenericType(innerTypes);
+            }
+            else if (hasIDictionaryGeneric)
+            {
+                var interfaceFound = interfaces.Where(x => x.Name == iDictionaryGenericTypeName).ToArray();
+                if (interfaceFound.Length == 1)
+                {
+                    dictionaryInnerType = keyValuePairType.MakeGenericType(interfaceFound[0].GetGenericArguments());
+                }
+            }
+            else if (hasIReadOnlyDictionaryGeneric)
+            {
+                var interfaceFound = interfaces.Where(x => x.Name == iReadOnlyDictionaryGenericTypeName).ToArray();
+                if (interfaceFound.Length == 1)
+                {
+                    dictionaryInnerType = keyValuePairType.MakeGenericType(interfaceFound[0].GetGenericArguments());
+                }
+            }
+            else if (hasIDictionary)
+            {
+                dictionaryInnerType = dictionaryEntryType;
+            }
+
+            var typeDetail = new TypeDetail(
+                type: type,
+                members: members,
+                constructors: constructors,
+                methods: methods,
+                creator: creator,
+                creatorBoxed: creatorBoxed,
+                isNullable: isNullable,
+                coreType: coreType,
+                specialType: specialType,
+                enumUnderlyingType: enumType,
+                hasIEnumerable: hasIEnumerable,
+                hasIEnumerableGeneric: hasIEnumerableGeneric,
+                hasICollection: hasICollection,
+                hasICollectionGeneric: hasICollectionGeneric,
+                hasIReadOnlyCollectionGeneric: hasIReadOnlyCollectionGeneric,
+                hasIList: hasIList,
+                hasIListGeneric: hasIListGeneric,
+                hasIReadOnlyListGeneric: hasIReadOnlyListGeneric,
+                hasListGeneric: hasListGeneric,
+                hasISetGeneric: hasISetGeneric,
+                hasIReadOnlySetGeneric: hasIReadOnlySetGeneric,
+                hasHashSetGeneric: hasHashSetGeneric,
+                hasIDictionary: hasIDictionary,
+                hasIDictionaryGeneric: hasIDictionaryGeneric,
+                hasIReadOnlyDictionaryGeneric: hasIReadOnlyDictionaryGeneric,
+                hasDictionaryGeneric: hasDictionaryGeneric,
+                isIEnumerable: isIEnumerable,
+                isIEnumerableGeneric: isIEnumerableGeneric,
+                isICollection: isICollection,
+                isICollectionGeneric: isICollectionGeneric,
+                isIReadOnlyCollectionGeneric: isIReadOnlyCollectionGeneric,
+                isIList: isIList,
+                isIListGeneric: isIListGeneric,
+                isIReadOnlyListGeneric: isIReadOnlyListGeneric,
+                isListGeneric: isListGeneric,
+                isISetGeneric: isISetGeneric,
+                isIReadOnlySetGeneric: isIReadOnlySetGeneric,
+                isHashSetGeneric: isHashSetGeneric,
+                isIDictionary: isIDictionary,
+                isIDictionaryGeneric: isIDictionaryGeneric,
+                isIReadOnlyDictionaryGeneric: isIReadOnlyDictionaryGeneric,
+                isDictionaryGeneric: isDictionaryGeneric,
+                innerType: innerType,
+                iEnumerableGenericInnerType: iEnumerableGenericInnerType,
+                dictionaryInnerType: dictionaryInnerType,
+                innerTypes: innerTypes,
+                baseTypes: baseTypes,
+                interfaces: interfaces,
+                attributes: attributes
+            );
+            return typeDetail;
+        }
+        private static TypeDetail<T> Generate<T>(Type type)
         {
             var constructors = GenerateConstructors<T>(type);
             var innerTypes = GenerateInnerTypes(type);
@@ -254,9 +446,9 @@ namespace Zerra.SourceGeneration.Reflection
             return typeDetail;
         }
 
-        private static List<Types.MemberDetail> GenerateMembers(Type type, Type[] interfaces)
+        private static List<MemberDetail> GenerateMembers(Type type, Type[] interfaces)
         {
-            var items = new List<Types.MemberDetail>();
+            var items = new List<MemberDetail>();
 
             if (type.IsGenericTypeDefinition)
                 return items;
@@ -316,16 +508,16 @@ namespace Zerra.SourceGeneration.Reflection
 
                 var isStatic = property.GetMethod?.IsStatic ?? property.SetMethod?.IsStatic ?? false;
 
-                Types.MemberDetail member;
+                MemberDetail member;
                 if (property.PropertyType.ContainsGenericParameters || property.PropertyType.IsPointer || property.PropertyType.IsByRef || property.PropertyType.IsByRefLike)
                 {
-                    member = new Types.MemberDetail(type, property.PropertyType, property.Name, false, getter, getterBoxed, setter, setterBoxed, attributes, backingField != null, isStatic, false);
+                    member = new MemberDetail(type, property.PropertyType, property.Name, false, getter, getterBoxed, setter, setterBoxed, attributes, backingField != null, isStatic, false);
                 }
                 else
                 {
                     var memberDetailGenericType = memberDetailType.MakeGenericType(property.PropertyType);
                     var constructor = memberDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                    member = (Types.MemberDetail)constructor.Invoke([type, property.Name, false, getter, getterBoxed, setter, setterBoxed, attributes, backingField != null, isStatic, false]);
+                    member = (MemberDetail)constructor.Invoke([type, property.Name, false, getter, getterBoxed, setter, setterBoxed, attributes, backingField != null, isStatic, false]);
                 }
                 items.Add(member);
 
@@ -352,16 +544,16 @@ namespace Zerra.SourceGeneration.Reflection
 
                 var attributes = @field.GetCustomAttributes(true).Cast<Attribute>().ToArray();
 
-                Types.MemberDetail member;
+                MemberDetail member;
                 if (@field.FieldType.ContainsGenericParameters || @field.FieldType.IsPointer || @field.FieldType.IsByRef || @field.FieldType.IsByRefLike)
                 {
-                    member = new Types.MemberDetail(type, field.FieldType, field.Name, true, getter, getterBoxed, setter, setterBoxed, attributes, true, field.IsStatic, false);
+                    member = new MemberDetail(type, field.FieldType, field.Name, true, getter, getterBoxed, setter, setterBoxed, attributes, true, field.IsStatic, false);
                 }
                 else
                 {
                     var memberDetailGenericType = memberDetailType.MakeGenericType(@field.FieldType);
                     var constructor = memberDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                    member = (Types.MemberDetail)constructor.Invoke([type, field.Name, true, getter, getterBoxed, setter, setterBoxed, attributes, true, field.IsStatic, false]);
+                    member = (MemberDetail)constructor.Invoke([type, field.Name, true, getter, getterBoxed, setter, setterBoxed, attributes, true, field.IsStatic, false]);
                 }
                 items.Add(member);
 
@@ -419,16 +611,16 @@ namespace Zerra.SourceGeneration.Reflection
                             var attributes = property.GetCustomAttributes(true).Cast<Attribute>().ToArray();
 
                             var isStatic = property.GetMethod?.IsStatic ?? property.SetMethod?.IsStatic ?? false;
-                            Types.MemberDetail member;
+                            MemberDetail member;
                             if (property.PropertyType.ContainsGenericParameters || property.PropertyType.IsPointer || property.PropertyType.IsByRef || property.PropertyType.IsByRefLike)
                             {
-                                member = new Types.MemberDetail(type, property.PropertyType, property.Name, false, getter, getterBoxed, setter, setterBoxed, attributes, false, isStatic, isExplicitFromInterface);
+                                member = new MemberDetail(type, property.PropertyType, property.Name, false, getter, getterBoxed, setter, setterBoxed, attributes, false, isStatic, isExplicitFromInterface);
                             }
                             else
                             {
                                 var memberDetailGenericType = memberDetailType.MakeGenericType(property.PropertyType);
                                 var constructor = memberDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                                member = (Types.MemberDetail)constructor.Invoke([type, property.Name, false, getter, getterBoxed, setter, setterBoxed, attributes, false, isStatic, isExplicitFromInterface]);
+                                member = (MemberDetail)constructor.Invoke([type, property.Name, false, getter, getterBoxed, setter, setterBoxed, attributes, false, isStatic, isExplicitFromInterface]);
                             }
                             items.Add(member);
                         }
@@ -485,12 +677,8 @@ namespace Zerra.SourceGeneration.Reflection
                     var attributes = method.GetCustomAttributes(true).Cast<Attribute>().ToArray();
 
                     Delegate? caller = AccessorGenerator.GenerateCaller(method, method.ReturnType);
-                    if (caller == null)
-                        continue;
 
                     Func<object, object?[]?, object?>? callerBoxed = AccessorGenerator.GenerateCaller(method);
-                    if (callerBoxed == null)
-                        continue;
 
                     MethodDetail methodDetail;
                     if (method.ReturnType.ContainsGenericParameters || method.ReturnType.IsPointer || method.ReturnType.IsByRef || method.ReturnType.IsByRefLike)
