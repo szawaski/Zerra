@@ -18,14 +18,15 @@ namespace Zerra.SourceGeneration.Types
         /// </summary>
         /// <param name="parentType">The parent type that owns this method.</param>
         /// <param name="name">The name of the method.</param>
+        /// <param name="genericArgumentCount">The number of generic arguments for this method.</param>
         /// <param name="parameters">The parameters required by this method.</param>
         /// <param name="caller">The strongly-typed delegate for invoking this method.</param>
         /// <param name="callerBoxed">Boxed delegate for invoking this method.</param>
         /// <param name="attributes">Custom attributes applied to the method.</param>
         /// <param name="isStatic">Whether this method is static.</param>
         /// <param name="isExplicitFromInterface">Whether this method is an explicit interface implementation.</param>
-        public MethodDetail(Type parentType, string name, IReadOnlyList<ParameterDetail> parameters, Func<object?, object?[]?, T> caller, Func<object?, object?[]?, object?> callerBoxed, IReadOnlyList<Attribute> attributes, bool isStatic, bool isExplicitFromInterface)
-            : base(parentType, name, typeof(T), parameters, caller, callerBoxed, attributes, isStatic, isExplicitFromInterface)
+        public MethodDetail(Type parentType, string name, int genericArgumentCount, IReadOnlyList<ParameterDetail> parameters, Func<object?, object?[]?, T> caller, Func<object?, object?[]?, object?> callerBoxed, IReadOnlyList<Attribute> attributes, bool isStatic, bool isExplicitFromInterface)
+            : base(parentType, name, typeof(T), genericArgumentCount, parameters, caller, callerBoxed, attributes, isStatic, isExplicitFromInterface)
         {
             this.Caller = caller;
         }

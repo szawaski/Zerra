@@ -274,6 +274,8 @@ namespace Zerra.SourceGeneration
                     _ = sb.Append(Helper.GetTypeOfName(namedTypeSymbol)).Append(", ");
                     _ = sb.Append("\"").Append(methodName).Append("\", ");
 
+                    _ = sb.Append(method.TypeParameters.Length).Append(", ");
+
                     GenerateParameters(sb, method.Parameters);
                     sb.Append(", ");
 

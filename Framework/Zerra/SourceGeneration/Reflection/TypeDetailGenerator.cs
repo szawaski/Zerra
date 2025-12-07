@@ -254,9 +254,9 @@ namespace Zerra.SourceGeneration.Reflection
             return typeDetail;
         }
 
-        private static List<MemberDetail> GenerateMembers(Type type, Type[] interfaces)
+        private static List<Types.MemberDetail> GenerateMembers(Type type, Type[] interfaces)
         {
-            var items = new List<MemberDetail>();
+            var items = new List<Types.MemberDetail>();
 
             if (type.IsGenericTypeDefinition)
                 return items;
@@ -316,16 +316,16 @@ namespace Zerra.SourceGeneration.Reflection
 
                 var isStatic = property.GetMethod?.IsStatic ?? property.SetMethod?.IsStatic ?? false;
 
-                MemberDetail member;
+                Types.MemberDetail member;
                 if (property.PropertyType.ContainsGenericParameters || property.PropertyType.IsPointer || property.PropertyType.IsByRef || property.PropertyType.IsByRefLike)
                 {
-                    member = new MemberDetail(type, property.PropertyType, property.Name, false, getter, getterBoxed, setter, setterBoxed, attributes, backingField != null, isStatic, false);
+                    member = new Types.MemberDetail(type, property.PropertyType, property.Name, false, getter, getterBoxed, setter, setterBoxed, attributes, backingField != null, isStatic, false);
                 }
                 else
                 {
                     var memberDetailGenericType = memberDetailType.MakeGenericType(property.PropertyType);
                     var constructor = memberDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                    member = (MemberDetail)constructor.Invoke([type, property.Name, false, getter, getterBoxed, setter, setterBoxed, attributes, backingField != null, isStatic, false]);
+                    member = (Types.MemberDetail)constructor.Invoke([type, property.Name, false, getter, getterBoxed, setter, setterBoxed, attributes, backingField != null, isStatic, false]);
                 }
                 items.Add(member);
 
@@ -352,16 +352,16 @@ namespace Zerra.SourceGeneration.Reflection
 
                 var attributes = @field.GetCustomAttributes(true).Cast<Attribute>().ToArray();
 
-                MemberDetail member;
+                Types.MemberDetail member;
                 if (@field.FieldType.ContainsGenericParameters || @field.FieldType.IsPointer || @field.FieldType.IsByRef || @field.FieldType.IsByRefLike)
                 {
-                    member = new MemberDetail(type, @field.FieldType, @field.Name, true, getter, getterBoxed, setter, setterBoxed, attributes, true, @field.IsStatic, false);
+                    member = new Types.MemberDetail(type, field.FieldType, field.Name, true, getter, getterBoxed, setter, setterBoxed, attributes, true, field.IsStatic, false);
                 }
                 else
                 {
                     var memberDetailGenericType = memberDetailType.MakeGenericType(@field.FieldType);
                     var constructor = memberDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                    member = (MemberDetail)constructor.Invoke([type, @field.Name, true, getter, getterBoxed, setter, setterBoxed, attributes, true, @field.IsStatic, false]);
+                    member = (Types.MemberDetail)constructor.Invoke([type, field.Name, true, getter, getterBoxed, setter, setterBoxed, attributes, true, field.IsStatic, false]);
                 }
                 items.Add(member);
 
@@ -419,16 +419,16 @@ namespace Zerra.SourceGeneration.Reflection
                             var attributes = property.GetCustomAttributes(true).Cast<Attribute>().ToArray();
 
                             var isStatic = property.GetMethod?.IsStatic ?? property.SetMethod?.IsStatic ?? false;
-                            MemberDetail member;
+                            Types.MemberDetail member;
                             if (property.PropertyType.ContainsGenericParameters || property.PropertyType.IsPointer || property.PropertyType.IsByRef || property.PropertyType.IsByRefLike)
                             {
-                                member = new MemberDetail(type, property.PropertyType, property.Name, false, getter, getterBoxed, setter, setterBoxed, attributes, false, isStatic, isExplicitFromInterface);
+                                member = new Types.MemberDetail(type, property.PropertyType, property.Name, false, getter, getterBoxed, setter, setterBoxed, attributes, false, isStatic, isExplicitFromInterface);
                             }
                             else
                             {
                                 var memberDetailGenericType = memberDetailType.MakeGenericType(property.PropertyType);
                                 var constructor = memberDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                                member = (MemberDetail)constructor.Invoke([type, property.Name, false, getter, getterBoxed, setter, setterBoxed, attributes, false, isStatic, isExplicitFromInterface]);
+                                member = (Types.MemberDetail)constructor.Invoke([type, property.Name, false, getter, getterBoxed, setter, setterBoxed, attributes, false, isStatic, isExplicitFromInterface]);
                             }
                             items.Add(member);
                         }
@@ -497,13 +497,13 @@ namespace Zerra.SourceGeneration.Reflection
                     MethodDetail methodDetail;
                     if (method.ReturnType.ContainsGenericParameters || method.ReturnType.IsPointer || method.ReturnType.IsByRef || method.ReturnType.IsByRefLike)
                     {
-                        methodDetail = new MethodDetail(type, method.Name, method.ReturnType, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false);
+                        methodDetail = new MethodDetail(type, method.Name, method.ReturnType, method.GetGenericArguments().Length, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false);
                     }
                     else
                     {
                         var methodDetailGenericType = methodDetailType.MakeGenericType(method.ReturnType.Name == "Void" ? typeof(object) : method.ReturnType);
                         var constructor = methodDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                        methodDetail = (MethodDetail)constructor.Invoke([type, method.Name, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false]);
+                        methodDetail = (MethodDetail)constructor.Invoke([type, method.Name, method.GetGenericArguments().Length, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false]);
                     }
 
                     items.Add(methodDetail);
@@ -549,13 +549,13 @@ namespace Zerra.SourceGeneration.Reflection
                                 MethodDetail methodDetail;
                                 if (method.ReturnType.ContainsGenericParameters || method.ReturnType.IsPointer || method.ReturnType.IsByRef || method.ReturnType.IsByRefLike)
                                 {
-                                    methodDetail = new MethodDetail(type, method.Name, method.ReturnType, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false);
+                                    methodDetail = new MethodDetail(type, method.Name, method.ReturnType, method.GetGenericArguments().Length, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false);
                                 }
                                 else
                                 {
                                     var methodDetailGenericType = methodDetailType.MakeGenericType(method.ReturnType.Name == "Void" ? typeof(object) : method.ReturnType);
                                     var constructor = methodDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                                    methodDetail = (MethodDetail)constructor.Invoke([type, method.Name, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, isExplicitFromInterface]);
+                                    methodDetail = (MethodDetail)constructor.Invoke([type, method.Name, method.GetGenericArguments().Length, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, isExplicitFromInterface]);
                                 }
                                 items.Add(methodDetail);
                                 if (hasInterfaces)

@@ -9,7 +9,7 @@ namespace Zerra.SourceGeneration.Types
     /// Provides a boxed delegate for instantiating types with specific parameter values.
     /// Used by the source generator and runtime reflection to enable efficient object creation.
     /// </summary>
-    public class ConstructorDetail
+    public partial class ConstructorDetail
     {
         /// <summary>The parent type that owns this constructor.</summary>
         public readonly Type ParentType;

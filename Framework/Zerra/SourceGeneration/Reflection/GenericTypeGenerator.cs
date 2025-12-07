@@ -48,13 +48,13 @@ public static class GenericTypeGenerator
             MethodDetail methodDetail;
             if (method.ReturnType.ContainsGenericParameters || method.ReturnType.IsPointer || method.ReturnType.IsByRef || method.ReturnType.IsByRefLike)
             {
-                methodDetail = new MethodDetail(method.ReflectedType ?? method.DeclaringType!, method.Name, method.ReturnType, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false);
+                methodDetail = new MethodDetail(method.ReflectedType ?? method.DeclaringType!, method.Name, method.ReturnType, method.GetGenericArguments().Length, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false);
             }
             else
             {
                 var methodDetailGenericType = methodDetailType.MakeGenericType(method.ReturnType.Name == "Void" ? typeof(object) : method.ReturnType);
                 var constructor = methodDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                methodDetail = (MethodDetail)constructor.Invoke([method.Name, method.ReturnType, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false]);
+                methodDetail = (MethodDetail)constructor.Invoke([method.ReflectedType ?? method.DeclaringType!, method.Name, method.GetGenericArguments().Length, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false]);
             }
             return methodDetail;
         });

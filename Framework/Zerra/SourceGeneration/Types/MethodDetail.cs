@@ -17,6 +17,8 @@ namespace Zerra.SourceGeneration.Types
         public readonly string Name;
         /// <summary>The return type of the method.</summary>
         public readonly Type ReturnType;
+        /// <summary>The number of generic argument for this method.</summary>
+        public readonly int GenericArgumentCount;
         /// <summary>Collection of parameters required by this method.</summary>
         public readonly IReadOnlyList<ParameterDetail> Parameters;
         /// <summary>The unboxed delegate for invoking this method.</summary>
@@ -36,17 +38,19 @@ namespace Zerra.SourceGeneration.Types
         /// <param name="parentType">The parent type that owns this method.</param>
         /// <param name="name">The name of the method.</param>
         /// <param name="returnType">The return type of the method.</param>
+        /// <param name="genericArgumentCount">The number of generic arguments for this method.</param>
         /// <param name="parameters">The parameters required by this method.</param>
         /// <param name="caller">The unboxed delegate for invoking this method.</param>
         /// <param name="callerBoxed">Boxed delegate for invoking this method.</param>
         /// <param name="attributes">Custom attributes applied to the method.</param>
         /// <param name="isStatic">Whether this method is static.</param>
         /// <param name="isExplicitFromInterface">Whether this method is an explicit interface implementation.</param>
-        public MethodDetail(Type parentType, string name, Type returnType, IReadOnlyList<ParameterDetail> parameters, Delegate caller, Func<object?, object?[]?, object?> callerBoxed, IReadOnlyList<Attribute> attributes, bool isStatic, bool isExplicitFromInterface)
+        public MethodDetail(Type parentType, string name, Type returnType, int genericArgumentCount, IReadOnlyList<ParameterDetail> parameters, Delegate caller, Func<object?, object?[]?, object?> callerBoxed, IReadOnlyList<Attribute> attributes, bool isStatic, bool isExplicitFromInterface)
         {
             this.ParentType = parentType;
             this.Name = name;
             this.ReturnType = returnType;
+            this.GenericArgumentCount = genericArgumentCount;
             this.Parameters = parameters;
             this.Caller = caller;
             this.CallerBoxed = callerBoxed;

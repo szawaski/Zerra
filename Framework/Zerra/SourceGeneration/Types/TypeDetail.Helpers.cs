@@ -10,54 +10,49 @@ namespace Zerra.SourceGeneration.Types
 {
     public partial class TypeDetail
     {
-        private TypeDetail? innerTypeDetail = null;
         /// <summary>Gets the type detail for <see cref="InnerType"/> if this is a nullable type; otherwise null.</summary>
         public TypeDetail? InnerTypeDetail
         {
             get
             {
-                if (innerTypeDetail == null && InnerType != null)
-                    innerTypeDetail = TypeAnalyzer.GetTypeDetail(InnerType);
-                return innerTypeDetail;
+                if (field == null && InnerType != null)
+                    field = TypeAnalyzer.GetTypeDetail(InnerType);
+                return field;
             }
         }
 
-        private TypeDetail? iEnumerableGenericInnerTypeDetail = null;
         /// <summary>Gets the type detail for <see cref="IEnumerableGenericInnerType"/> if this type is enumerable; otherwise null.</summary>
         public TypeDetail? IEnumerableGenericInnerTypeDetail
         {
             get
             {
-                if (iEnumerableGenericInnerTypeDetail == null && IEnumerableGenericInnerType != null)
-                    iEnumerableGenericInnerTypeDetail = TypeAnalyzer.GetTypeDetail(IEnumerableGenericInnerType);
-                return iEnumerableGenericInnerTypeDetail;
+                if (field == null && IEnumerableGenericInnerType != null)
+                    field = TypeAnalyzer.GetTypeDetail(IEnumerableGenericInnerType);
+                return field;
             }
         }
 
-        private TypeDetail? dictionaryInnerTypeDetail = null;
         /// <summary>Gets the type detail for <see cref="DictionaryInnerType"/> if this type is a dictionary; otherwise null.</summary>
         public TypeDetail? DictionaryInnerTypeDetail
         {
             get
             {
-                if (dictionaryInnerTypeDetail == null && DictionaryInnerType != null)
-                    dictionaryInnerTypeDetail = TypeAnalyzer.GetTypeDetail(DictionaryInnerType);
-                return dictionaryInnerTypeDetail;
+                if (field == null && DictionaryInnerType != null)
+                    field = TypeAnalyzer.GetTypeDetail(DictionaryInnerType);
+                return field;
             }
         }
 
-        private IReadOnlyList<TypeDetail>? innerTypeDetails = null;
         /// <summary>Gets the type detail for <see cref="InnerTypes"/> for generic types; empty if not generic.</summary>
         public IReadOnlyList<TypeDetail> InnerTypeDetails
         {
             get
             {
-                innerTypeDetails ??= InnerTypes.Select(TypeAnalyzer.GetTypeDetail).ToArray();
-                return innerTypeDetails;
+                field ??= InnerTypes.Select(TypeAnalyzer.GetTypeDetail).ToArray();
+                return field;
             }
         }
 
-        private IReadOnlyList<MemberDetail>? serializableMemberDetails = null;
         /// <summary>
         /// Gets a cached collection of members that can be serialized.
         /// Includes non-static, backed members that are not explicit interface implementations and have serializable types.
@@ -66,8 +61,8 @@ namespace Zerra.SourceGeneration.Types
         {
             get
             {
-                serializableMemberDetails ??= Members.Where(x => !x.IsStatic && x.IsBacked && !x.IsExplicitFromInterface && IsSerializableType(x.TypeDetail)).ToArray();
-                return serializableMemberDetails;
+                field ??= Members.Where(x => !x.IsStatic && x.IsBacked && !x.IsExplicitFromInterface && IsSerializableType(x.TypeDetail)).ToArray();
+                return field;
             }
         }
 
