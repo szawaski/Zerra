@@ -66,6 +66,7 @@ namespace Zerra.SourceGeneration
                 return;
             }
 
+            _ = sb.Append("global::");
             if (typeSymbol.ContainingType is not null)
                 _ = sb.Append(typeSymbol.ContainingType).Append('.');
             else if (typeSymbol.ContainingNamespace is not null)

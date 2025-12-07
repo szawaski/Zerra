@@ -18,7 +18,7 @@ namespace Zerra.SourceGeneration
             if (!namedTypeSymbol.AllInterfaces.Any(x => x.Name == "ICommandHandler" || x.Name == "IEventHandler"))
                 return;
 
-            var niceName = Helper.GetFullName(namedTypeSymbol);
+            var niceName = namedTypeSymbol.MetadataName;
             var typeOfName = Helper.GetTypeOfName(namedTypeSymbol);
             var commandTypes = new List<ITypeSymbol>();
             var eventTypes = new List<ITypeSymbol>();
@@ -44,6 +44,8 @@ namespace Zerra.SourceGeneration
             {
                 if (hasFirst)
                     _ = sb.Append(", ");
+                else
+                    hasFirst = true;
                 _ = sb.Append(Helper.GetTypeOfName(commandType));
             }
 
@@ -54,6 +56,8 @@ namespace Zerra.SourceGeneration
             {
                 if (hasFirst)
                     _ = sb.Append(", ");
+                else
+                    hasFirst = true;
                 _ = sb.Append(Helper.GetTypeOfName(eventType));
             }
 

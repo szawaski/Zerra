@@ -69,7 +69,7 @@ namespace Zerra.SourceGeneration
 
                 _ = sb.Append(", ");
 
-                GenerateCreators(sb, model.TypeName, namedTypeSymbol);
+                GenerateCreators(sb, model.TypeName, namedTypeSymbol, symbolMembers);
 
                 _ = sb.Append(", ");
 
@@ -150,7 +150,7 @@ namespace Zerra.SourceGeneration
                     {
                         _ = sb.Append("null, null, ");
                     }
-                    if (property.SetMethod != null && property.SetMethod.DeclaredAccessibility == Accessibility.Public && !property.SetMethod.IsInitOnly)
+                    if (property.SetMethod != null && property.SetMethod.DeclaredAccessibility == Accessibility.Public && !property.SetMethod.IsInitOnly && !property.IsReadOnly)
                     {
                         if (property.IsStatic)
                         {
@@ -196,18 +196,31 @@ namespace Zerra.SourceGeneration
                     {
                         _ = sb.Append("static (object x) => ").Append(typeName).Append(".").Append(@field.Name).Append(", ");
                         _ = sb.Append("static (object x) => ").Append(typeName).Append(".").Append(@field.Name).Append(", ");
-
-                        _ = sb.Append("static (object x, ").Append(fieldTypeName).Append(@field.Type.IsValueType ? null : '?').Append(" value) => ").Append(typeName).Append(".").Append(@field.Name).Append(" = value!, ");
-                        _ = sb.Append("static (object x, object? value) => ").Append(typeName).Append(".").Append(@field.Name).Append(" = (").Append(fieldTypeName).Append(")value!, ");
                     }
                     else
                     {
                         _ = sb.Append("static (object x) => ((").Append(typeName).Append(")x).").Append(@field.Name).Append(", ");
                         _ = sb.Append("static (object x) => ((").Append(typeName).Append(")x).").Append(@field.Name).Append(", ");
-
-                        _ = sb.Append("static (object x, ").Append(fieldTypeName).Append(@field.Type.IsValueType ? null : '?').Append(" value) => ((").Append(typeName).Append(")x).").Append(@field.Name).Append(" = value!, ");
-                        _ = sb.Append("static (object x, object? value) => ((").Append(typeName).Append(")x).").Append(@field.Name).Append(" = (").Append(fieldTypeName).Append(")value!, ");
                     }
+
+                    if (!field.IsReadOnly)
+                    {
+                        if (@field.IsStatic)
+                        {
+                            _ = sb.Append("static (object x, ").Append(fieldTypeName).Append(@field.Type.IsValueType ? null : '?').Append(" value) => ").Append(typeName).Append(".").Append(@field.Name).Append(" = value!, ");
+                            _ = sb.Append("static (object x, object? value) => ").Append(typeName).Append(".").Append(@field.Name).Append(" = (").Append(fieldTypeName).Append(")value!, ");
+                        }
+                        else
+                        {
+                            _ = sb.Append("static (object x, ").Append(fieldTypeName).Append(@field.Type.IsValueType ? null : '?').Append(" value) => ((").Append(typeName).Append(")x).").Append(@field.Name).Append(" = value!, ");
+                            _ = sb.Append("static (object x, object? value) => ((").Append(typeName).Append(")x).").Append(@field.Name).Append(" = (").Append(fieldTypeName).Append(")value!, ");
+                        }
+                    }
+                    else
+                    {
+                        _ = sb.Append("null, null, ");
+                    }
+
 
                     GenerateAttributes(sb, @field);
 
@@ -257,6 +270,8 @@ namespace Zerra.SourceGeneration
                     if (method.IsGenericMethod)
                         continue;
                     if (isExplicitFromInterface)
+                        continue;
+                    if (method.Parameters.Any(x => x.Type.IsRefLikeType || x.RefKind == RefKind.Out))
                         continue;
 
                     if (hasFirst)
@@ -389,10 +404,17 @@ namespace Zerra.SourceGeneration
 
             _ = sb.Append("]");
         }
-        private static void GenerateCreators(StringBuilder sb, string typeName, INamedTypeSymbol? namedTypeSymbol)
+        private static void GenerateCreators(StringBuilder sb, string typeName, INamedTypeSymbol? namedTypeSymbol, ImmutableArray<ISymbol> symbolMembers)
         {
             if (namedTypeSymbol != null && !namedTypeSymbol.IsAbstract && !namedTypeSymbol.IsUnboundGenericType && namedTypeSymbol.TypeKind != TypeKind.Interface)
             {
+                (var properties, var fields) = TypeFinder.GetPropertiesAndFields(namedTypeSymbol, symbolMembers);
+                if (properties.Any(x => x.Item1.IsRequired || fields.Any(x => x.IsRequired)))
+                {
+                    _ = sb.Append("null, null");
+                    return;
+                }
+
                 if (namedTypeSymbol.Constructors.Any(x => x.Parameters.Length == 0))
                 {
                     _ = sb.Append(Environment.NewLine).Append("                ");
@@ -698,7 +720,7 @@ namespace Zerra.SourceGeneration
                 else
                     hasFirst = true;
 
-                _ = sb.Append("new ").Append(attributeSymbol.AttributeClass.ToString()).Append('(');
+                _ = sb.Append("new ").Append(Helper.GetFullName(attributeSymbol.AttributeClass)).Append('(');
                 var hasFirst2 = false;
                 //if (attributeSymbol.NamedArguments.Length > 0)
                 //{
