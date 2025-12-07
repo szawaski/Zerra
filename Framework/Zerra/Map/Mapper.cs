@@ -8,8 +8,6 @@ namespace Zerra.Map
 {
     public static class Mapper
     {
-        internal static bool DebugMode { get; set; } = false;
-
         private static readonly ConcurrentFactoryDictionary<TypePairKey, Delegate> mapCache = new();
 
         public static TTarget Map<TTarget>(this object source, Graph? graph = null)

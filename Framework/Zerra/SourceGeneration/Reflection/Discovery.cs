@@ -6,6 +6,7 @@ using System.Buffers;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using Zerra.Collections;
 
@@ -36,6 +37,7 @@ namespace Zerra.SourceGeneration.Reflection
         private static readonly ConcurrentDictionary<string, ConcurrentReadWriteList<Type?>> typeByName = new();
 
         private static readonly ConcurrentFactoryDictionary<Type, string> niceFullNames = new();
+        private static readonly ConcurrentFactoryDictionary<Type, string> niceFullGenericNames = new();
 
         private static readonly HashSet<string> discoveredAssemblies = new();
         private static readonly HashSet<Type> discoveredTypes = new();
@@ -48,6 +50,9 @@ namespace Zerra.SourceGeneration.Reflection
         /// <param name="forceLoadAssemblies">If true, attempts to load all assembly files from the application base directory before discovering types.</param>
         public static void Initialize(bool forceLoadAssemblies)
         {
+            if (!RuntimeFeature.IsDynamicCodeSupported)
+                throw new NotSupportedException($"Discovery not supported.  Dynamic code generation is not supported in this build configuration.");
+
             if (discovered)
                 return;
             lock (discoveredTypes)
@@ -198,11 +203,16 @@ namespace Zerra.SourceGeneration.Reflection
                     typeByInterfaceList.Add(typeInAssembly);
 
                     string? interfaceTypeName = null;
-                    if (interfaceType.ContainsGenericParameters)
+                    string? interfaceTypeGenericName = null;
+                    if (interfaceType.IsGenericType)
                     {
                         interfaceTypeName = GetNiceFullName(interfaceType);
                         var typeByInterfaceNameList = typeByInterfaceName.GetOrAdd(interfaceTypeName, static (key) => new());
                         typeByInterfaceNameList.Add(typeInAssembly);
+
+                        interfaceTypeGenericName = GetNiceFullGenericName(interfaceType);
+                        var typeByInterfaceGenericNameList = typeByInterfaceName.GetOrAdd(interfaceTypeGenericName, static (key) => new());
+                        typeByInterfaceGenericNameList.Add(typeInAssembly);
                     }
 
                     if (!typeInAssembly.IsAbstract && typeInAssembly.IsClass)
@@ -210,10 +220,13 @@ namespace Zerra.SourceGeneration.Reflection
                         var classByInterfaceList = classByInterface.GetOrAdd(interfaceType, static (key) => new());
                         classByInterfaceList.Add(typeInAssembly);
 
-                        if (interfaceType.ContainsGenericParameters)
+                        if (interfaceType.IsGenericType)
                         {
                             var classByInterfaceNameList = classByInterfaceName.GetOrAdd(interfaceTypeName!, static (key) => new());
                             classByInterfaceNameList.Add(typeInAssembly);
+
+                            var typeByInterfaceGenericNameList = classByInterfaceName.GetOrAdd(interfaceTypeGenericName, static (key) => new());
+                            typeByInterfaceGenericNameList.Add(typeInAssembly);
                         }
                     }
                 }
@@ -261,8 +274,6 @@ namespace Zerra.SourceGeneration.Reflection
         {
             if (!discovered)
                 throw new InvalidOperationException($"Discovery has not been run. Call {nameof(Discovery)}.{nameof(Initialize)}() first.");
-            if (!discovered)
-                throw new InvalidOperationException($"Discovery has not been run. Call {nameof(Discovery)}.{nameof(Initialize)}() first.");
             if (interfaceType is null)
                 throw new ArgumentNullException(nameof(interfaceType));
             if (!interfaceType.IsInterface)
@@ -289,8 +300,6 @@ namespace Zerra.SourceGeneration.Reflection
         {
             if (!discovered)
                 throw new InvalidOperationException($"Discovery has not been run. Call {nameof(Discovery)}.{nameof(Initialize)}() first.");
-            if (!discovered)
-                throw new InvalidOperationException($"Discovery has not been run. Call {nameof(Discovery)}.{nameof(Initialize)}() first.");
             if (baseType is null)
                 throw new ArgumentNullException(nameof(baseType));
 
@@ -314,8 +323,6 @@ namespace Zerra.SourceGeneration.Reflection
         /// <exception cref="ArgumentException">Thrown when interfaceType is not an interface.</exception>
         public static bool HasClassByInterface(Type interfaceType)
         {
-            if (!discovered)
-                throw new InvalidOperationException($"Discovery has not been run. Call {nameof(Discovery)}.{nameof(Initialize)}() first.");
             if (!discovered)
                 throw new InvalidOperationException($"Discovery has not been run. Call {nameof(Discovery)}.{nameof(Initialize)}() first.");
             if (interfaceType is null)
@@ -639,13 +646,21 @@ namespace Zerra.SourceGeneration.Reflection
         {
             if (it is null)
                 return "null";
-            var name = niceFullNames.GetOrAdd(it, GenerateNiceName);
+            var name = niceFullNames.GetOrAdd(it, static (it) => GenerateNiceName(it, false));
             return name;
         }
 
-        private static string GenerateNiceName(Type type)
+        private static string GetNiceFullGenericName(Type it)
         {
-            if (type.ContainsGenericParameters)
+            if (it is null)
+                return "null";
+            var name = niceFullGenericNames.GetOrAdd(it, static (it) => GenerateNiceName(it, true));
+            return name;
+        }
+
+        private static string GenerateNiceName(Type type, bool generic)
+        {
+            if (type.IsGenericType && (generic || type.ContainsGenericParameters))
             {
                 var span = type.Name.AsSpan();
                 var i = 0;
@@ -675,9 +690,10 @@ namespace Zerra.SourceGeneration.Reflection
                     if (j > 0)
                         _ = sb.Append(',');
                     var parameter = parameters[j];
-                    if (parameter.IsGenericParameter)
+                    if (parameter.IsGenericParameter || generic)
                         _ = sb.Append('T');
-                    _ = sb.Append(GetNiceFullName(parameter));
+                    else
+                        _ = sb.Append(GetNiceFullName(parameter));
                 }
 
                 _ = sb.Append('>');
@@ -798,49 +814,49 @@ namespace Zerra.SourceGeneration.Reflection
             }
         }
 
-//        private static string MakeNiceNameGeneric(string typeName)
-//        {
-//            var sb = new StringBuilder();
+        //        private static string MakeNiceNameGeneric(string typeName)
+        //        {
+        //            var sb = new StringBuilder();
 
-//            var chars = typeName.AsSpan();
-//            var start = 0;
-//            var depth = 0;
-//            for (var i = 0; i < chars.Length; i++)
-//            {
-//                var c = chars[i];
-//                switch (c)
-//                {
-//                    case '<':
-//                        depth++;
-//                        if (depth == 1)
-//#if NETSTANDARD2_0
-//                            _ = sb.Append(chars.Slice(start, i + 1 - start).ToString());
-//#else
-//                            _ = sb.Append(chars.Slice(start, i + 1 - start));
-//#endif
-//                        break;
-//                    case ',':
-//                        if (depth == 1)
-//                            _ = sb.Append("T,");
-//                        break;
-//                    case '>':
-//                        depth--;
-//                        if (depth == 0)
-//                        {
-//                            _ = sb.Append('T');
-//                            start = i;
-//                        }
-//                        break;
-//                }
-//            }
+        //            var chars = typeName.AsSpan();
+        //            var start = 0;
+        //            var depth = 0;
+        //            for (var i = 0; i < chars.Length; i++)
+        //            {
+        //                var c = chars[i];
+        //                switch (c)
+        //                {
+        //                    case '<':
+        //                        depth++;
+        //                        if (depth == 1)
+        //#if NETSTANDARD2_0
+        //                            _ = sb.Append(chars.Slice(start, i + 1 - start).ToString());
+        //#else
+        //                            _ = sb.Append(chars.Slice(start, i + 1 - start));
+        //#endif
+        //                        break;
+        //                    case ',':
+        //                        if (depth == 1)
+        //                            _ = sb.Append("T,");
+        //                        break;
+        //                    case '>':
+        //                        depth--;
+        //                        if (depth == 0)
+        //                        {
+        //                            _ = sb.Append('T');
+        //                            start = i;
+        //                        }
+        //                        break;
+        //                }
+        //            }
 
-//#if NETSTANDARD2_0
-//            _ = sb.Append(chars.Slice(start, chars.Length - start).ToString());
-//#else
-//            _ = sb.Append(chars.Slice(start));
-//#endif
+        //#if NETSTANDARD2_0
+        //            _ = sb.Append(chars.Slice(start, chars.Length - start).ToString());
+        //#else
+        //            _ = sb.Append(chars.Slice(start));
+        //#endif
 
-//            return sb.ToString();
-//        }
+        //            return sb.ToString();
+        //        }
     }
 }
