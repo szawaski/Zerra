@@ -36,6 +36,8 @@ namespace Zerra.Serialization.Bytes
         public static object? Deserialize(ReadOnlySpan<byte> bytes, Type type, ByteSerializerOptions? options = null)
         {
             if (type is null) throw new ArgumentNullException(nameof(type));
+            if (bytes.Length == 0)
+                return default;
 
             options ??= defaultOptions;
 

@@ -51,7 +51,7 @@ namespace Zerra.SourceGeneration.Reflection
         public static void Initialize(bool forceLoadAssemblies)
         {
             if (!RuntimeFeature.IsDynamicCodeSupported)
-                throw new NotSupportedException($"Discovery not supported.  Dynamic code generation is not supported in this build configuration.");
+                throw new NotSupportedException($"{nameof(Discovery)}.{nameof(Initialize)} not supported.  Dynamic code generation is not supported in this build configuration.");
 
             if (discovered)
                 return;
@@ -66,6 +66,7 @@ namespace Zerra.SourceGeneration.Reflection
                 }
 
                 DiscoverAssemblies();
+
                 discovered = true;
             }
         }
@@ -208,11 +209,13 @@ namespace Zerra.SourceGeneration.Reflection
                     {
                         interfaceTypeName = GetNiceFullName(interfaceType);
                         var typeByInterfaceNameList = typeByInterfaceName.GetOrAdd(interfaceTypeName, static (key) => new());
-                        typeByInterfaceNameList.Add(typeInAssembly);
+                        if (!typeByInterfaceNameList.Contains(typeInAssembly))
+                            typeByInterfaceNameList.Add(typeInAssembly);
 
                         interfaceTypeGenericName = GetNiceFullGenericName(interfaceType);
                         var typeByInterfaceGenericNameList = typeByInterfaceName.GetOrAdd(interfaceTypeGenericName, static (key) => new());
-                        typeByInterfaceGenericNameList.Add(typeInAssembly);
+                        if (!typeByInterfaceGenericNameList.Contains(typeInAssembly))
+                            typeByInterfaceGenericNameList.Add(typeInAssembly);
                     }
 
                     if (!typeInAssembly.IsAbstract && typeInAssembly.IsClass)
@@ -223,10 +226,12 @@ namespace Zerra.SourceGeneration.Reflection
                         if (interfaceType.IsGenericType)
                         {
                             var classByInterfaceNameList = classByInterfaceName.GetOrAdd(interfaceTypeName!, static (key) => new());
-                            classByInterfaceNameList.Add(typeInAssembly);
+                            if (!classByInterfaceNameList.Contains(typeInAssembly))
+                                classByInterfaceNameList.Add(typeInAssembly);
 
                             var typeByInterfaceGenericNameList = classByInterfaceName.GetOrAdd(interfaceTypeGenericName, static (key) => new());
-                            typeByInterfaceGenericNameList.Add(typeInAssembly);
+                            if (!typeByInterfaceGenericNameList.Contains(typeInAssembly))
+                                typeByInterfaceGenericNameList.Add(typeInAssembly);
                         }
                     }
                 }
@@ -813,50 +818,5 @@ namespace Zerra.SourceGeneration.Reflection
                 return type.Name;
             }
         }
-
-        //        private static string MakeNiceNameGeneric(string typeName)
-        //        {
-        //            var sb = new StringBuilder();
-
-        //            var chars = typeName.AsSpan();
-        //            var start = 0;
-        //            var depth = 0;
-        //            for (var i = 0; i < chars.Length; i++)
-        //            {
-        //                var c = chars[i];
-        //                switch (c)
-        //                {
-        //                    case '<':
-        //                        depth++;
-        //                        if (depth == 1)
-        //#if NETSTANDARD2_0
-        //                            _ = sb.Append(chars.Slice(start, i + 1 - start).ToString());
-        //#else
-        //                            _ = sb.Append(chars.Slice(start, i + 1 - start));
-        //#endif
-        //                        break;
-        //                    case ',':
-        //                        if (depth == 1)
-        //                            _ = sb.Append("T,");
-        //                        break;
-        //                    case '>':
-        //                        depth--;
-        //                        if (depth == 0)
-        //                        {
-        //                            _ = sb.Append('T');
-        //                            start = i;
-        //                        }
-        //                        break;
-        //                }
-        //            }
-
-        //#if NETSTANDARD2_0
-        //            _ = sb.Append(chars.Slice(start, chars.Length - start).ToString());
-        //#else
-        //            _ = sb.Append(chars.Slice(start));
-        //#endif
-
-        //            return sb.ToString();
-        //        }
     }
 }

@@ -2,7 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Linq.Expressions;
 using Zerra.Collections;
 using Zerra.Map.Converters;
 
@@ -12,11 +11,11 @@ namespace Zerra.Map
     {
         private readonly static ConcurrentFactoryDictionary<TypePairKey, object> customMapsByPair = new();
 
-        internal static MapNameAndDeletage<TSource, TTarget>[]? Get<TSource, TTarget>()
+        internal static MapCustomizationInfo[]? Get<TSource, TTarget>()
         {
             var key = new TypePairKey(typeof(TSource), typeof(TTarget));
             if (customMapsByPair.TryGetValue(key, out var customMap))
-                return (MapNameAndDeletage<TSource, TTarget>[])customMap;
+                return (MapCustomizationInfo[])customMap;
             return null;
         }
 
@@ -31,65 +30,35 @@ namespace Zerra.Map
             MapConverterFactory.RegisterCreator<TSource, TTarget, TSourceEnumerable, TTargetEnumerable, TSourceKey, TSourceValue, TTargetKey, TTargetValue>();
             MapConverterFactory.RegisterCreator<TTarget, TSource, TTargetEnumerable, TSourceEnumerable, TTargetKey, TTargetValue, TSourceKey, TSourceValue>();
 
-            var customizations = new MapCustomizationCollector<TSource, TTarget>();
-            mapDefinition.Define(customizations);
+            var collector = new MapCustomizationCollector<TSource, TTarget>();
+            mapDefinition.Define(collector);
 
             var keyNormal = new TypePairKey(typeof(TSource), typeof(TTarget));
             var keyReverse = new TypePairKey(typeof(TTarget), typeof(TSource));
 
-            if (customizations.Results.Count == 0)
+            if (collector.Results.Count == 0)
             {
-                _ = customMapsByPair.TryAdd(keyNormal, Array.Empty<MapNameAndDeletage<TSource, TTarget>>());
-                _ = customMapsByPair.TryAdd(keyReverse, Array.Empty<MapNameAndDeletage<TTarget, TSource>>());
+                _ = customMapsByPair.TryAdd(keyNormal, Array.Empty<MapCustomizationInfo>());
+                _ = customMapsByPair.TryAdd(keyReverse, Array.Empty<MapCustomizationInfo>());
                 return;
             }
 
-            var delegatesNormal = new List<MapNameAndDeletage<TSource, TTarget>>();
-            var delegatesReverse = new List<MapNameAndDeletage<TTarget, TSource>>();
+            var delegatesNormal = new List<MapCustomizationInfo>();
+            var delegatesReverse = new List<MapCustomizationInfo>();
 
             if (customMapsByPair.TryGetValue(keyNormal, out var existingDelegatesNormal))
-                delegatesNormal.AddRange((MapNameAndDeletage<TSource, TTarget>[])existingDelegatesNormal);
+                delegatesNormal.AddRange((MapCustomizationInfo[])existingDelegatesNormal);
             if (customMapsByPair.TryGetValue(keyReverse, out var existingDelegatesReverse))
-                delegatesReverse.AddRange((MapNameAndDeletage<TTarget, TSource>[])existingDelegatesReverse);
+                delegatesReverse.AddRange((MapCustomizationInfo[])existingDelegatesReverse);
 
             var targetType = typeof(TTarget);
 
-            foreach (var result in customizations.Results)
+            foreach (var result in collector.Results)
             {
-                ParameterExpression sourceParameter;
-                ParameterExpression targetParameter;
-                Expression sourceMember;
-                Expression targetMember;
-
-                sourceParameter = result.Source.Parameters[0];
-                targetParameter = result.Target.Parameters[0];
-                sourceMember = result.Source.Body;
-                targetMember = result.Target.Body;
-
-                if (sourceMember.NodeType == ExpressionType.Convert)
-                    sourceMember = ((UnaryExpression)sourceMember).Operand;
-
-                if (targetMember.NodeType == ExpressionType.Convert)
-                    targetMember = ((UnaryExpression)targetMember).Operand;
-
-                var assignExpression = Expression.Assign(targetMember, sourceMember);
-
-                string? targetName = null;
-                if (targetMember is MemberExpression memberExpression)
-                    targetName = memberExpression.Member.Name;
-
-                if (targetParameter.Type == targetType)
-                {
-                    var lambda = Expression.Lambda<Action<TSource, TTarget>>(assignExpression, sourceParameter, targetParameter);
-                    var compiled = lambda.Compile();
-                    delegatesNormal.Add(new MapNameAndDeletage<TSource, TTarget>(targetName, compiled));
-                }
+                if (!result.IsReverse)
+                    delegatesNormal.Add(result);
                 else
-                {
-                    var lambda = Expression.Lambda<Action<TTarget, TSource>>(assignExpression, sourceParameter, targetParameter);
-                    var compiled = lambda.Compile();
-                    delegatesReverse.Add(new MapNameAndDeletage<TTarget, TSource>(targetName, compiled));
-                }
+                    delegatesReverse.Add(result);
             }
 
             _ = customMapsByPair.TryAdd(keyNormal, delegatesNormal.ToArray());

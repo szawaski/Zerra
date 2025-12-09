@@ -21,14 +21,14 @@ namespace Zerra.Map
         /// </summary>
         /// <param name="property">An expression pointing to the target property.</param>
         /// <param name="value">An expression retrieving the value from the source type.</param>
-        void Define(Expression<Func<TTarget, object?>> property, Expression<Func<TSource, object?>> value);
+        void Define<TPropertyValue, TValue>(Expression<Func<TTarget, TPropertyValue?>> property, Expression<Func<TSource, TValue?>> value);
         /// <summary>
         /// Define a one-to-one mapping that works both directions when mapping the source to the target.
         /// This will override any properties that were able to be automatically mapped by name.
         /// </summary>
         /// <param name="property1">An expression pointing to the target property.</param>
         /// <param name="property2">An expression pointing to the source property.</param>
-        void DefineTwoWay(Expression<Func<TTarget, object?>> property1, Expression<Func<TSource, object?>> property2);
+        void DefineTwoWay<TPropertyValue1, TPropertyValue2>(Expression<Func<TTarget, TPropertyValue1?>> property1, Expression<Func<TSource, TPropertyValue2?>> property2);
 
         /// <summary>
         /// Define how a source type property will receive a value from the target during reverse mapping.
@@ -37,6 +37,6 @@ namespace Zerra.Map
         /// </summary>
         /// <param name="property">An expression pointing to the source property.</param>
         /// <param name="value">An expression retrieving the value from the target type.</param>
-        void DefineReverse(Expression<Func<TSource, object?>> property, Expression<Func<TTarget, object?>> value);
+        void DefineReverse<TPropertyValue, TValue>(Expression<Func<TSource, TPropertyValue?>> property, Expression<Func<TTarget, TValue?>> value);
     }
 }

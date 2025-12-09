@@ -58,7 +58,7 @@ namespace Zerra.Map
             return result!;
         }
 
-        private static Func<TSource, TTarget?, Graph?, TTarget?> GetMap<TSource, TTarget>()
+        internal static Func<TSource, TTarget?, Graph?, TTarget?> GetMap<TSource, TTarget>()
             where TSource : notnull
             where TTarget : notnull
         {

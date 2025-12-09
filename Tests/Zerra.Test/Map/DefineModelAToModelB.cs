@@ -15,5 +15,4 @@ namespace Zerra.Test.Map
             map.DefineTwoWay(b => b.PropD, a => a.PropC);
         }
     }
-
 }

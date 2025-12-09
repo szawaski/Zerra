@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using Zerra.Map.Converters;
 using Zerra.Map.Converters.General;
+using Zerra.SourceGeneration;
 using Zerra.SourceGeneration.Types;
 
 namespace Zerra.Map
@@ -27,7 +28,8 @@ namespace Zerra.Map
             collectedValuesPool.Push(collectedValues);
         }
 
-        private MapNameAndDeletage<TSource, TTarget>[]? customizations = null;
+        private MapCustomizationInfo[]? customizations;
+        private MapConverter[]? customConverters;
         private IEnumerable<MapConverterObjectMember> members = null!;
         private Dictionary<string, MapConverterObjectMember>? membersByName = null!;
         private bool collectValues;
@@ -36,7 +38,18 @@ namespace Zerra.Map
         protected override sealed void Setup()
         {
             customizations = MapCustomizations.Get<TSource, TTarget>();
-            var customizedMemberNames = customizations is not null ? new HashSet<string>(customizations.Where(x => x.Name != null).Select(x => x.Name)!, StringComparer.Ordinal) : null;
+            HashSet<string>? customizedMemberNames = null;
+            if (customizations != null)
+            {
+                customConverters = new MapConverter[customizations.Length];
+                for (var i = 0; i < customizations.Length; i++)
+                {
+                    var customization = customizations[i];
+                    var customConverter = MapConverterFactory.Get(customization.SourceType.GetTypeDetail(), customization.TargetType.GetTypeDetail(), customization.Name, customization.SourceGetter, null, customization.TargetSetter);
+                    customConverters[i] = customConverter;
+                }
+                customizedMemberNames = new HashSet<string>(customizations.Select(x => x.Name));
+            }
 
             var membersList = new List<MapConverterObjectMember>();
             membersByName ??= new();
@@ -147,10 +160,23 @@ namespace Zerra.Map
                 ReturnCollectedValues(collectedValues!);
             }
 
-            if (customizations != null && source != null && target != null)
+            if (customizations != null && customConverters != null && source != null && target != null)
             {
-                foreach (var customization in customizations)
-                    customization.Delegate.Invoke(source, target);
+                for (var i = 0; i < customizations.Length; i++)
+                {
+                    var customization = customizations[i];
+
+                    Graph? childGraph = null;
+                    if (customization.Name != null)
+                    {
+                        if (graph != null && !graph.HasMember(customization.Name))
+                            continue;
+                        childGraph = graph?.GetChildGraph(customization.Name);
+                    }
+
+                    var customConverter = customConverters[i];
+                    customConverter.MapFromParent(source, target, childGraph);
+                }
             }
 
             return target;
