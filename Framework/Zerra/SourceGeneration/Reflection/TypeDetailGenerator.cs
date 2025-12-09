@@ -614,13 +614,13 @@ namespace Zerra.SourceGeneration.Reflection
                             MemberDetail member;
                             if (property.PropertyType.ContainsGenericParameters || property.PropertyType.IsPointer || property.PropertyType.IsByRef || property.PropertyType.IsByRefLike)
                             {
-                                member = new MemberDetail(type, property.PropertyType, property.Name, false, getter, getterBoxed, setter, setterBoxed, attributes, false, isStatic, isExplicitFromInterface);
+                                member = new MemberDetail(type, property.PropertyType, name, false, getter, getterBoxed, setter, setterBoxed, attributes, false, isStatic, isExplicitFromInterface);
                             }
                             else
                             {
                                 var memberDetailGenericType = memberDetailType.MakeGenericType(property.PropertyType);
                                 var constructor = memberDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                                member = (MemberDetail)constructor.Invoke([type, property.Name, false, getter, getterBoxed, setter, setterBoxed, attributes, false, isStatic, isExplicitFromInterface]);
+                                member = (MemberDetail)constructor.Invoke([type, name, false, getter, getterBoxed, setter, setterBoxed, attributes, false, isStatic, isExplicitFromInterface]);
                             }
                             items.Add(member);
                         }
@@ -694,7 +694,7 @@ namespace Zerra.SourceGeneration.Reflection
 
                     items.Add(methodDetail);
                     if (hasInterfaces)
-                        names!.Add(method.Name);
+                        _ = names!.Add(method.Name);
                 }
 
                 if (hasInterfaces)
@@ -735,17 +735,17 @@ namespace Zerra.SourceGeneration.Reflection
                                 MethodDetail methodDetail;
                                 if (method.ReturnType.ContainsGenericParameters || method.ReturnType.IsPointer || method.ReturnType.IsByRef || method.ReturnType.IsByRefLike)
                                 {
-                                    methodDetail = new MethodDetail(type, method.Name, method.ReturnType, method.GetGenericArguments().Length, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false);
+                                    methodDetail = new MethodDetail(type, name, method.ReturnType, method.GetGenericArguments().Length, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false);
                                 }
                                 else
                                 {
                                     var methodDetailGenericType = methodDetailType.MakeGenericType(method.ReturnType.Name == "Void" ? typeof(object) : method.ReturnType);
                                     var constructor = methodDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                                    methodDetail = (MethodDetail)constructor.Invoke([type, method.Name, method.GetGenericArguments().Length, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, isExplicitFromInterface]);
+                                    methodDetail = (MethodDetail)constructor.Invoke([type, name, method.GetGenericArguments().Length, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, isExplicitFromInterface]);
                                 }
                                 items.Add(methodDetail);
                                 if (hasInterfaces)
-                                    names!.Add(method.Name);
+                                    _ = names!.Add(name);
                             }
                         }
                     }

@@ -262,7 +262,7 @@ namespace Zerra.CQRS
         }
 
         /// <inheritdoc />
-        public async Task<RemoteQueryCallResponse> RemoteHandleQueryCallAsync(Type interfaceType, string methodName, string?[] arguments, string source, bool isApi, ISerializer serializer, CancellationToken cancellationToken)
+        public async Task<RemoteQueryCallResponse> RemoteHandleQueryCallAsync(Type interfaceType, string methodName, byte[]?[] arguments, string source, bool isApi, ISerializer serializer, CancellationToken cancellationToken)
         {
             var info = BusHandlers.GetMethod(interfaceType, methodName);
 
@@ -430,9 +430,14 @@ namespace Zerra.CQRS
             else if (queryClients != null && queryClients.TryGetValue(interfaceType, out var queryClient))
             {
                 if (busLog != null && (metadata.BusLogging == BusLogging.SenderAndHandler || metadata.BusLogging == BusLogging.SenderOnly))
+                {
                     result = HandleMethodLogged<TReturn>(null, queryClient, interfaceType, methodName, arguments, source, cancellationToken);
+                }
                 else
-                    result = queryClient.Call<TReturn>(interfaceType, methodName, arguments, source, cancellationToken)!;
+                {
+                    var into = BusHandlers.GetMethod(interfaceType, methodName);
+                    result = queryClient.Call<TReturn>(interfaceType, methodName, into.ParameterTypes, arguments, source, cancellationToken)!;
+                }
             }
             else
             {
@@ -490,9 +495,14 @@ namespace Zerra.CQRS
             else if (queryClients != null && queryClients.TryGetValue(interfaceType, out var queryClient))
             {
                 if (busLog != null && (metadata.BusLogging == BusLogging.SenderAndHandler || metadata.BusLogging == BusLogging.SenderOnly))
+                {
                     result = HandleMethodTaskLogged(null, queryClient, interfaceType, methodName, arguments, source, cancellationToken);
+                }
                 else
-                    result = queryClient.CallTask(interfaceType, methodName, arguments, source, cancellationToken)!;
+                {
+                    var into = BusHandlers.GetMethod(interfaceType, methodName);
+                    result = queryClient.CallTask(interfaceType, methodName, into.ParameterTypes, arguments, source, cancellationToken)!;
+                }
             }
             else
             {
@@ -550,9 +560,14 @@ namespace Zerra.CQRS
             else if (queryClients != null && queryClients.TryGetValue(interfaceType, out var queryClient))
             {
                 if (busLog != null && (metadata.BusLogging == BusLogging.SenderAndHandler || metadata.BusLogging == BusLogging.SenderOnly))
+                {
                     result = HandleMethodTaskGenericLogged<TReturn>(null, queryClient, interfaceType, methodName, arguments, source, cancellationToken);
+                }
                 else
-                    result = queryClient.CallTaskGeneric<TReturn>(interfaceType, methodName, arguments, source, cancellationToken)!;
+                {
+                    var into = BusHandlers.GetMethod(interfaceType, methodName);
+                    result = queryClient.CallTaskGeneric<TReturn>(interfaceType, methodName, into.ParameterTypes, arguments, source, cancellationToken)!;
+                }
             }
             else
             {
@@ -576,9 +591,14 @@ namespace Zerra.CQRS
             try
             {
                 if (handled)
+                {
                     result = (TReturn)BusHandlers.Invoke(interfaceType, handler!, methodName, arguments)!;
+                }
                 else
-                    result = queryClient!.Call<TReturn>(interfaceType, methodName, arguments, source, cancellationToken)!;
+                {
+                    var info = BusHandlers.GetMethod(interfaceType, methodName);
+                    result = queryClient!.Call<TReturn>(interfaceType, methodName, info.ParameterTypes, arguments, source, cancellationToken)!;
+                }
             }
             catch (Exception ex)
             {
@@ -603,9 +623,14 @@ namespace Zerra.CQRS
             {
                 Task task;
                 if (handled)
+                {
                     task = (Task)BusHandlers.Invoke(interfaceType, handler!, methodName, arguments)!;
+                }
                 else
-                    task = queryClient!.CallTask(interfaceType, methodName, arguments, source, cancellationToken)!;
+                {
+                    var info = BusHandlers.GetMethod(interfaceType, methodName);
+                    task = queryClient!.CallTask(interfaceType, methodName, info.ParameterTypes, arguments, source, cancellationToken)!;
+                }
 
                 await task;
             }
@@ -631,9 +656,14 @@ namespace Zerra.CQRS
             {
                 Task<TReturn> task;
                 if (handled)
+                {
                     task = (Task<TReturn>)BusHandlers.Invoke(interfaceType, handler!, methodName, arguments)!;
+                }
                 else
-                    task = queryClient!.CallTaskGeneric<TReturn>(interfaceType, methodName, arguments, source, cancellationToken)!;
+                {
+                    var info = BusHandlers.GetMethod(interfaceType, methodName);
+                    task = queryClient!.CallTaskGeneric<TReturn>(interfaceType, methodName, info.ParameterTypes, arguments, source, cancellationToken)!;
+                }
 
                 taskresult = await task;
             }

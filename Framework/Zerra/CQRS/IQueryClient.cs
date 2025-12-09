@@ -25,12 +25,34 @@ namespace Zerra.CQRS
         /// <typeparam name="TReturn">The expected return type.</typeparam>
         /// <param name="interfaceType">The query interface type.</param>
         /// <param name="methodName">The method name on the query interface.</param>
+        /// /<param name="argumentTypes">The types of the arguments needed for the method.</param>
         /// <param name="arguments">The arguments needed for the method.</param>
         /// <param name="source">A description of where the query came from.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>The result of the query.</returns>
-        TReturn Call<TReturn>(Type interfaceType, string methodName, object[] arguments, string source, CancellationToken cancellationToken);
-        Task CallTask(Type interfaceType, string methodName, object[] arguments, string source, CancellationToken cancellationToken);
-        Task<TReturn> CallTaskGeneric<TReturn>(Type interfaceType, string methodName, object[] arguments, string source, CancellationToken cancellationToken);
+        TReturn Call<TReturn>(Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, CancellationToken cancellationToken);
+        /// <summary>
+        /// Executes a query from a query interface method asynchronously without returning a result.
+        /// </summary>
+        /// <param name="interfaceType">The query interface type.</param>
+        /// <param name="methodName">The method name on the query interface.</param>
+        /// <param name="argumentTypes">The types of the arguments needed for the method.</param>
+        /// <param name="arguments">The arguments needed for the method.</param>
+        /// <param name="source">A description of where the query came from.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <returns>A task that represents the asynchronous query operation.</returns>
+        Task CallTask(Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, CancellationToken cancellationToken);
+        /// <summary>
+        /// Executes a query from a query interface method asynchronously and returns a result.
+        /// </summary>
+        /// <typeparam name="TReturn">The expected return type.</typeparam>
+        /// <param name="interfaceType">The query interface type.</param>
+        /// <param name="methodName">The method name on the query interface.</param>
+        /// <param name="argumentTypes">The types of the arguments needed for the method.</param>
+        /// <param name="arguments">The arguments needed for the method.</param>
+        /// <param name="source">A description of where the query came from.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <returns>A task that represents the asynchronous query operation. The task result contains the query result.</returns>
+        Task<TReturn> CallTaskGeneric<TReturn>(Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, CancellationToken cancellationToken);
     }
 }

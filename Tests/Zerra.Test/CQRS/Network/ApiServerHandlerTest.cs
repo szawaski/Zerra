@@ -55,7 +55,7 @@ namespace Zerra.Test.CQRS.Network
             public void AddQueryClient<TInterface>(IQueryClient queryClient) => throw new NotImplementedException();
             public void AddQueryServer<TInterface>(IQueryServer queryServer) => throw new NotImplementedException();
 
-            public Task<RemoteQueryCallResponse> RemoteHandleQueryCallAsync(Type interfaceType, string methodName, string?[] arguments, string source, bool isApi, ISerializer serializer, CancellationToken cancellationToken)
+            public Task<RemoteQueryCallResponse> RemoteHandleQueryCallAsync(Type interfaceType, string methodName, byte[]?[] arguments, string source, bool isApi, ISerializer serializer, CancellationToken cancellationToken)
             {
                 return Task.FromResult(QueryResponse ?? new RemoteQueryCallResponse(null));
             }
@@ -125,7 +125,7 @@ namespace Zerra.Test.CQRS.Network
             {
                 ProviderType = typeof(ITestProvider).AssemblyQualifiedName,
                 ProviderMethod = "GetData",
-                ProviderArguments = Array.Empty<string>(),
+                ProviderArguments = Array.Empty<byte[]>(),
                 Source = "TestSource"
             };
 
@@ -146,7 +146,7 @@ namespace Zerra.Test.CQRS.Network
             {
                 ProviderType = typeof(ITestProvider).AssemblyQualifiedName,
                 ProviderMethod = "GetData",
-                ProviderArguments = Array.Empty<string>(),
+                ProviderArguments = Array.Empty<byte[]>(),
                 Source = "TestSource"
             };
 
@@ -168,7 +168,7 @@ namespace Zerra.Test.CQRS.Network
             {
                 ProviderType = typeof(ITestProvider).AssemblyQualifiedName,
                 ProviderMethod = "GetData",
-                ProviderArguments = Array.Empty<string>(),
+                ProviderArguments = Array.Empty<byte[]>(),
                 Source = "TestSource"
             };
 
@@ -251,7 +251,7 @@ namespace Zerra.Test.CQRS.Network
             {
                 ProviderType = typeof(ITestProvider).AssemblyQualifiedName,
                 ProviderMethod = null,
-                ProviderArguments = Array.Empty<string>(),
+                ProviderArguments = Array.Empty<byte[]>(),
                 Source = "TestSource"
             };
 
@@ -289,7 +289,7 @@ namespace Zerra.Test.CQRS.Network
             {
                 ProviderType = typeof(ITestProvider).AssemblyQualifiedName,
                 ProviderMethod = "GetData",
-                ProviderArguments = Array.Empty<string>(),
+                ProviderArguments = Array.Empty<byte[]>(),
                 Source = "TestSource"
             };
 
@@ -309,7 +309,7 @@ namespace Zerra.Test.CQRS.Network
             {
                 ProviderType = typeof(ITestProvider).AssemblyQualifiedName,
                 ProviderMethod = "GetData",
-                ProviderArguments = Array.Empty<string>(),
+                ProviderArguments = Array.Empty<byte[]>(),
                 Source = "TestSource"
             };
 
@@ -346,7 +346,7 @@ namespace Zerra.Test.CQRS.Network
             {
                 ProviderType = typeof(ITestProvider).AssemblyQualifiedName,
                 ProviderMethod = "GetData",
-                ProviderArguments = Array.Empty<string>(),
+                ProviderArguments = Array.Empty<byte[]>(),
                 Source = null
             };
 
@@ -400,7 +400,7 @@ namespace Zerra.Test.CQRS.Network
             {
                 ProviderType = typeof(ITestProvider).AssemblyQualifiedName,
                 ProviderMethod = "GetData",
-                ProviderArguments = Array.Empty<string>(),
+                ProviderArguments = Array.Empty<byte[]>(),
                 Source = null
             };
 

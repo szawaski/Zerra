@@ -96,16 +96,15 @@ namespace Zerra.CQRS.Network
                 throttle.Dispose();
         }
 
-        TReturn IQueryClient.Call<TReturn>(Type interfaceType, string methodName, object[] arguments, string source, CancellationToken cancellationToken)
+        TReturn IQueryClient.Call<TReturn>(Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, CancellationToken cancellationToken)
         {
             if (!throttleByInterfaceType.TryGetValue(interfaceType, out var throttle))
                 throw new Exception($"{interfaceType.Name} is not registered with {this.GetType().Name}");
 
-
             try
             {
                 var isStream = typeof(TReturn) == streamType;
-                var task = CallInternalAsync<TReturn>(throttle, isStream, interfaceType, methodName, arguments, source, cancellationToken);
+                var task = CallInternalAsync<TReturn>(throttle, isStream, interfaceType, methodName, argumentTypes, arguments, source, cancellationToken);
                 var result = Task.Run(() => task).GetAwaiter().GetResult();
                 return result;
             }
@@ -115,14 +114,14 @@ namespace Zerra.CQRS.Network
                 throw;
             }
         }
-        Task IQueryClient.CallTask(Type interfaceType, string methodName, object[] arguments, string source, CancellationToken cancellationToken)
+        Task IQueryClient.CallTask(Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, CancellationToken cancellationToken)
         {
             if (!throttleByInterfaceType.TryGetValue(interfaceType, out var throttle))
                 throw new Exception($"{interfaceType.Name} is not registered with {this.GetType().Name}");
 
             try
             {
-                return CallInternalAsync<object>(throttle, false, interfaceType, methodName, arguments, source, cancellationToken);
+                return CallInternalAsync<object>(throttle, false, interfaceType, methodName, argumentTypes, arguments, source, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -130,7 +129,7 @@ namespace Zerra.CQRS.Network
                 throw;
             }
         }
-        Task<TReturn> IQueryClient.CallTaskGeneric<TReturn>(Type interfaceType, string methodName, object[] arguments, string source, CancellationToken cancellationToken)
+        Task<TReturn> IQueryClient.CallTaskGeneric<TReturn>(Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, CancellationToken cancellationToken)
         {
             if (!throttleByInterfaceType.TryGetValue(interfaceType, out var throttle))
                 throw new Exception($"{interfaceType.Name} is not registered with {this.GetType().Name}");
@@ -138,7 +137,7 @@ namespace Zerra.CQRS.Network
             try
             {
                 var isStream = typeof(TReturn) == streamType;
-                return CallInternalAsync<TReturn>(throttle, isStream, interfaceType, methodName, arguments, source, cancellationToken);
+                return CallInternalAsync<TReturn>(throttle, isStream, interfaceType, methodName, argumentTypes, arguments, source, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -159,7 +158,7 @@ namespace Zerra.CQRS.Network
         /// <param name="source">A description of where the request came from.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>A task to await the result from the server.</returns>
-        protected abstract Task<TReturn> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source, CancellationToken cancellationToken);
+        protected abstract Task<TReturn> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, CancellationToken cancellationToken);
 
         Task ICommandProducer.DispatchAsync(ICommand command, string source, CancellationToken cancellationToken)
         {

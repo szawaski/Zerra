@@ -28,15 +28,6 @@ namespace Zerra.Serialization
         public ContentType ContentType => ContentType.Bytes;
 
         /// <inheritdoc />
-        public string SerializeString(object? obj) => Convert.ToBase64String(ByteSerializer.Serialize(obj, options));
-
-        /// <inheritdoc />
-        public string SerializeString(object? obj, Type type) => Convert.ToBase64String(ByteSerializer.Serialize(obj, type, options));
-
-        /// <inheritdoc />
-        public string SerializeString<T>(T? obj) => Convert.ToBase64String(ByteSerializer.Serialize<T>(obj, options));
-
-        /// <inheritdoc />
         public object? Deserialize(ReadOnlySpan<char> str, Type type) => ByteSerializer.Deserialize(Convert.FromBase64String(str.ToString()), type, options);
 
         /// <inheritdoc />

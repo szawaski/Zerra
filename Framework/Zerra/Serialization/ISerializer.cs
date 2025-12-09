@@ -22,29 +22,6 @@ namespace Zerra.Serialization
         ContentType ContentType { get; }
 
         /// <summary>
-        /// Serializes an object to a string.
-        /// </summary>
-        /// <param name="obj">The object to serialize, or null.</param>
-        /// <returns>The serialized string representation.</returns>
-        string SerializeString(object? obj);
-
-        /// <summary>
-        /// Serializes an object to a string with an explicit type.
-        /// </summary>
-        /// <param name="obj">The object to serialize, or null.</param>
-        /// <param name="type">The type to use for serialization.</param>
-        /// <returns>The serialized string representation.</returns>
-        string SerializeString(object? obj, Type type);
-
-        /// <summary>
-        /// Serializes a strongly-typed object to a string.
-        /// </summary>
-        /// <typeparam name="T">The type of the object.</typeparam>
-        /// <param name="obj">The object to serialize, or null.</param>
-        /// <returns>The serialized string representation.</returns>
-        string SerializeString<T>(T? obj);
-
-        /// <summary>
         /// Deserializes a string to an object of the specified type.
         /// </summary>
         /// <param name="bytes">The string containing serialized data.</param>

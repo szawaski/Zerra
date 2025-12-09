@@ -37,24 +37,24 @@ public static class GenericTypeGenerator
 
             var attributes = method.GetCustomAttributes(true).Cast<Attribute>().ToArray();
 
-            Delegate? caller = AccessorGenerator.GenerateCaller(method, method.ReturnType);
-            if (caller == null)
-                throw new InvalidOperationException($"Could not create caller for generic method {method.DeclaringType?.FullName}.{method.Name}");
-
-            Func<object, object?[]?, object?>? callerBoxed = AccessorGenerator.GenerateCaller(method);
-            if (callerBoxed == null)
-                throw new InvalidOperationException($"Could not create boxed caller for generic method {method.DeclaringType?.FullName}.{method.Name}");
-
             MethodDetail methodDetail;
-            if (method.ReturnType.ContainsGenericParameters || method.ReturnType.IsPointer || method.ReturnType.IsByRef || method.ReturnType.IsByRefLike)
+            if (generic.ReturnType.ContainsGenericParameters || generic.ReturnType.IsPointer || generic.ReturnType.IsByRef || generic.ReturnType.IsByRefLike)
             {
-                methodDetail = new MethodDetail(method.ReflectedType ?? method.DeclaringType!, method.Name, method.ReturnType, method.GetGenericArguments().Length, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false);
+                methodDetail = new MethodDetail(generic.ReflectedType ?? generic.DeclaringType!, generic.Name, generic.ReturnType, generic.GetGenericArguments().Length, parameterTypes, null, null, attributes, generic.IsStatic, false);
             }
             else
             {
-                var methodDetailGenericType = methodDetailType.MakeGenericType(method.ReturnType.Name == "Void" ? typeof(object) : method.ReturnType);
+                Delegate? caller = AccessorGenerator.GenerateCaller(generic, generic.ReturnType);
+                if (caller == null)
+                    throw new InvalidOperationException($"Could not create caller for generic method {method.DeclaringType?.FullName}.{method.Name}");
+
+                Func<object, object?[]?, object?>? callerBoxed = AccessorGenerator.GenerateCaller(generic);
+                if (callerBoxed == null)
+                    throw new InvalidOperationException($"Could not create boxed caller for generic method {method.DeclaringType?.FullName}.{method.Name}");
+
+                var methodDetailGenericType = methodDetailType.MakeGenericType(generic.ReturnType.Name == "Void" ? typeof(object) : generic.ReturnType);
                 var constructor = methodDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                methodDetail = (MethodDetail)constructor.Invoke([method.ReflectedType ?? method.DeclaringType!, method.Name, method.GetGenericArguments().Length, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false]);
+                methodDetail = (MethodDetail)constructor.Invoke([generic.ReflectedType ?? generic.DeclaringType!, generic.Name, generic.GetGenericArguments().Length, parameterTypes, caller, callerBoxed, attributes, generic.IsStatic, false]);
             }
             return methodDetail;
         });

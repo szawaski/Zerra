@@ -8,6 +8,7 @@ using Zerra.Logging;
 using System.Security.Claims;
 using Zerra.Buffers;
 using Zerra.Serialization;
+using Zerra.SourceGeneration;
 
 namespace Zerra.CQRS.Network
 {
@@ -38,7 +39,7 @@ namespace Zerra.CQRS.Network
         }
 
         /// <inheritdoc />
-        protected override async Task<TReturn> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source, CancellationToken cancellationToken) where TReturn : default
+        protected override async Task<TReturn> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, CancellationToken cancellationToken) where TReturn : default
         {
             await throttle.WaitAsync();
 
@@ -62,7 +63,10 @@ namespace Zerra.CQRS.Network
                     Claims = claims,
                     Source = source
                 };
-                data.ProviderArguments = arguments.Select(serializer.SerializeString).ToArray();
+
+                data.ProviderArguments = new byte[argumentTypes.Count][];
+                for (var i = 0; i < argumentTypes.Count; i++)
+                    data.ProviderArguments[i] = serializer.SerializeBytes(arguments[i], argumentTypes[i]);
 
                 Dictionary<string, List<string?>>? authHeaders = null;
                 if (authorizer is not null)

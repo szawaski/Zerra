@@ -58,7 +58,7 @@ namespace Zerra.Web
             this.client = new HttpClient(this.handler);
         }
 
-        protected override Task<TReturn> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source, CancellationToken cancellationToken) where TReturn : default
+        protected override Task<TReturn> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, CancellationToken cancellationToken) where TReturn : default
         {
             var providerName = interfaceType.Name;
             var stringArguments = new string?[arguments.Length];
@@ -77,7 +77,10 @@ namespace Zerra.Web
                 Claims = claims,
                 Source = source
             };
-            data.ProviderArguments = arguments.Select(x => serializer.SerializeString(x)).ToArray();
+
+            data.ProviderArguments = new byte[argumentTypes.Count][];
+            for (var i = 0; i < argumentTypes.Count; i++)
+                data.ProviderArguments[i] = serializer.SerializeBytes(arguments[i], argumentTypes[i]);
 
             var model = RequestAsync<TReturn>(throttle, isStream, routeUri, providerName, data, true, cancellationToken);
             return model;

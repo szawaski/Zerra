@@ -31,15 +31,6 @@ namespace Zerra.Serialization
         public ContentType ContentType => ContentType.Json;
 
         /// <inheritdoc />
-        public string SerializeString(object? obj) => JsonSerializer.Serialize(obj, options);
-
-        /// <inheritdoc />
-        public string SerializeString(object? obj, Type type) => JsonSerializer.Serialize(obj, type, options);
-
-        /// <inheritdoc />
-        public string SerializeString<T>(T? obj) => JsonSerializer.Serialize<T>(obj, options);
-
-        /// <inheritdoc />
         public object? Deserialize(ReadOnlySpan<char> str, Type type) => JsonSerializer.Deserialize(str, type, options);
 
         /// <inheritdoc />

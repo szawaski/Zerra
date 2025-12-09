@@ -60,7 +60,7 @@ namespace Zerra.Linq
                 case ExpressionType.AddAssign:
                     {
                         var cast = (BinaryExpression)exp;
-                        return Expression.Add(Rebind(cast.Left, context), Rebind(cast.Right, context), cast.Method);
+                        return Expression.AddAssign(Rebind(cast.Left, context), Rebind(cast.Right, context), cast.Method);
                     }
                 case ExpressionType.AddAssignChecked:
                     {
@@ -369,7 +369,7 @@ namespace Zerra.Linq
                 case ExpressionType.Modulo:
                     {
                         var cast = (BinaryExpression)exp;
-                        return Expression.ModuloAssign(Rebind(cast.Left, context), Rebind(cast.Right, context));
+                        return Expression.Modulo(Rebind(cast.Left, context), Rebind(cast.Right, context));
                     }
                 case ExpressionType.ModuloAssign:
                     {
@@ -648,8 +648,8 @@ namespace Zerra.Linq
                     }
                 case ExpressionType.TypeIs:
                     {
-                        var cast = (UnaryExpression)exp;
-                        return Expression.TypeIs(Rebind(cast.Operand, context), cast.Type);
+                        var cast = (TypeBinaryExpression)exp;
+                        return Expression.TypeIs(Rebind(cast.Expression, context), cast.Type);
                     }
                 case ExpressionType.UnaryPlus:
                     {

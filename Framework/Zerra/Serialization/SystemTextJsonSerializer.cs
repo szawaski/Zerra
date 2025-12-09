@@ -43,14 +43,6 @@ namespace Zerra.Serialization
 
 #pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
 #pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
-        /// <inheritdoc />
-        public string SerializeString(object? obj) => JsonSerializer.Serialize(obj, options);
-
-        /// <inheritdoc />
-        public string SerializeString(object? obj, Type type) => JsonSerializer.Serialize(obj, type, options);
-
-        /// <inheritdoc />
-        public string SerializeString<T>(T? obj) => JsonSerializer.Serialize<T>(obj, options);
 
         /// <inheritdoc />
         public object? Deserialize(ReadOnlySpan<char> str, Type type) => JsonSerializer.Deserialize(str, type, options);

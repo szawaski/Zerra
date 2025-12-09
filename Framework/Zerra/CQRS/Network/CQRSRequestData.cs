@@ -22,9 +22,8 @@ namespace Zerra.CQRS.Network
         public string? ProviderMethod { get; set; }
         /// <summary>
         /// The query arguments for the method called.
-        /// Serialized each using JSON.
         /// </summary>
-        public string?[]? ProviderArguments { get; set; }
+        public byte[]?[]? ProviderArguments { get; set; }
 
         /// <summary>
         /// The command or event type.
