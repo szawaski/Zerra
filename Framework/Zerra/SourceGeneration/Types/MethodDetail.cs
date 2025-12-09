@@ -11,6 +11,8 @@ namespace Zerra.SourceGeneration.Types
     /// </summary>
     public partial class MethodDetail
     {
+        protected readonly Lock locker = new();
+
         /// <summary>The parent type that owns this method.</summary>
         public readonly Type ParentType;
         /// <summary>The name of the method.</summary>

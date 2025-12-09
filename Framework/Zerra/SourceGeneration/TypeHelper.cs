@@ -274,7 +274,7 @@ namespace Zerra.SourceGeneration
         /// <returns>True if the type was successfully resolved; otherwise false.</returns>
         /// <exception cref="ArgumentNullException">Thrown if name is null or whitespace.</exception>
         /// <exception cref="Exception">Thrown if multiple types match the given name.</exception>
-        public static bool TryGetTypeFromName(string name, [MaybeNullWhen(false)] out Type? type)
+        public static bool TryGetTypeFromName(string name, [NotNullWhen(true)] out Type? type)
         {
             if (String.IsNullOrWhiteSpace(name))
                 throw new ArgumentNullException(nameof(name));

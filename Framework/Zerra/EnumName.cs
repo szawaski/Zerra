@@ -265,7 +265,7 @@ public sealed class EnumName : Attribute
 #if !NETSTANDARD2_0
         [MaybeNullWhen(false)]
 #endif
-    out T? value)
+    out T value)
         where T : Enum
     {
         if (TryParse(enumString, typeof(T), out var valueObject))
@@ -290,7 +290,7 @@ public sealed class EnumName : Attribute
 #if !NETSTANDARD2_0
         [MaybeNullWhen(false)]
 #endif
-    out object? value)
+    out object value)
     {
         if (enumString is null)
         {

@@ -90,12 +90,6 @@ namespace Zerra.SourceGeneration.Reflection
             {
                 try
                 {
-#if NETSTANDARD2_0
-                    var assemblyFileName = assemblyFilePath.Split(new char[] { System.IO.Path.DirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries).Last();
-#else
-                    var assemblyFileName = assemblyFilePath.Split(System.IO.Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries).Last();
-#endif
-
                     var assemblyName = AssemblyName.GetAssemblyName(assemblyFilePath);
 
                     if (assemblyName.Name is not null && assemblyName.Name.EndsWith(".Web.Views"))
@@ -109,10 +103,15 @@ namespace Zerra.SourceGeneration.Reflection
                         var assembly = Assembly.Load(assemblyName);
                         Console.WriteLine($"Discovery Loaded: {assembly.ToString()}");
                     }
-                    catch (System.IO.FileNotFoundException)
+                    catch (FileNotFoundException)
                     {
                         try
                         {
+#if NETSTANDARD2_0
+                            var assemblyFileName = assemblyFilePath.Split(new char[] { System.IO.Path.DirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries).Last();
+#else
+                            var assemblyFileName = assemblyFilePath.Split(System.IO.Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries).Last();
+#endif
                             var assembly = Assembly.LoadFrom(assemblyFileName);
                             Console.WriteLine($"Discovery Loaded: {assembly.ToString()}");
                         }
@@ -141,7 +140,7 @@ namespace Zerra.SourceGeneration.Reflection
                     continue;
                 if (assembly.FullName.StartsWith("System."))
                     continue;
-                if (assembly.FullName.StartsWith("Zerra,") || assembly.FullName.StartsWith("Zerra.Repository,"))
+                if (assembly.FullName.StartsWith("Zerra,") || assembly.FullName.StartsWith("Zerra."))
                     continue;
 
                 DiscoverAssembly(assembly);
@@ -229,7 +228,7 @@ namespace Zerra.SourceGeneration.Reflection
                             if (!classByInterfaceNameList.Contains(typeInAssembly))
                                 classByInterfaceNameList.Add(typeInAssembly);
 
-                            var typeByInterfaceGenericNameList = classByInterfaceName.GetOrAdd(interfaceTypeGenericName, static (key) => new());
+                            var typeByInterfaceGenericNameList = classByInterfaceName.GetOrAdd(interfaceTypeGenericName!, static (key) => new());
                             if (!typeByInterfaceGenericNameList.Contains(typeInAssembly))
                                 typeByInterfaceGenericNameList.Add(typeInAssembly);
                         }

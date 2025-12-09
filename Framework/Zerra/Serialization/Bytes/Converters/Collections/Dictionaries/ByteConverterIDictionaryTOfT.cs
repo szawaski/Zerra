@@ -43,7 +43,9 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Dictionaries
                     }
                     else
                     {
-                        value = typeDetail.Creator();
+                        if (!typeDetail.HasCreator)
+                            throw new InvalidOperationException($"{typeDetail.Type} does not have a parameterless constructor.");
+                        value = typeDetail.Creator!();
                         dictionary = (IDictionary<TKey, TValue>)value!;
                     }
                     if (state.Current.EnumerableLength!.Value == 0)

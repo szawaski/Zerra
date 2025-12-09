@@ -221,14 +221,14 @@ namespace Zerra.Web
 
                 if (isStream)
                 {
-                    return (TReturn?)(object)responseStream; //TODO better way to convert type???
+                    return (TReturn)(object)responseStream; //TODO better way to convert type???
                 }
                 else
                 {
                     var result = await serializer.DeserializeAsync<TReturn>(responseStream, cancellationToken);
                     await responseStream.DisposeAsync();
                     client.Dispose();
-                    return result;
+                    return result!;
                 }
             }
             catch

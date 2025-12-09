@@ -132,6 +132,6 @@ namespace Zerra.CQRS
         /// <typeparam name="TInterface">The service interface type to resolve.</typeparam>
         /// <param name="instance">When this method returns, contains an instance implementing <typeparamref name="TInterface"/> if found; otherwise, the default value. This parameter is passed uninitialized.</param>
         /// <returns>true if a service is registered for the specified type; otherwise, false.</returns>
-        bool TryGetService<TInterface>([MaybeNullWhen(false)] out TInterface? instance) where TInterface : notnull;
+        bool TryGetService<TInterface>([MaybeNullWhen(false)] out TInterface instance) where TInterface : notnull;
     }
 }

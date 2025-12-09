@@ -526,7 +526,7 @@ namespace Zerra.Serialization.Json.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryReadStringEscapedQuoted(bool hasStarted,
 #if !NETSTANDARD2_0
-            [MaybeNullWhen(false)]
+       [MaybeNullWhen(false)]
 #endif
         out string s, out int sizeNeeded)
         {
@@ -881,11 +881,7 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadStringQuotedBytes(bool hasStarted,
-#if !NETSTANDARD2_0
-    [MaybeNullWhen(false)]
-#endif
-        out ReadOnlySpan<byte> bytes, out int sizeNeeded)
+        public unsafe bool TryReadStringQuotedBytes(bool hasStarted, out ReadOnlySpan<byte> bytes, out int sizeNeeded)
         {
             if (!useBytes)
                 throw new InvalidOperationException($"{nameof(TryReadStringQuotedBytes)} {nameof(useBytes)} is the wrong setting for this call");
@@ -960,11 +956,7 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadStringQuotedChars(bool hasStarted,
-#if !NETSTANDARD2_0
-[MaybeNullWhen(false)]
-#endif
-        out ReadOnlySpan<char> chars, out int sizeNeeded)
+        public unsafe bool TryReadStringQuotedChars(bool hasStarted, out ReadOnlySpan<char> chars, out int sizeNeeded)
         {
             if (useBytes)
                 throw new InvalidOperationException($"{nameof(TryReadStringQuotedChars)} {nameof(useBytes)} is the wrong setting for this call");
@@ -1039,11 +1031,7 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadNumberBytes(
-#if !NETSTANDARD2_0
-[MaybeNullWhen(false)]
-#endif
-        out ReadOnlySpan<byte> bytes, out int sizeNeeded)
+        public unsafe bool TryReadNumberBytes(out ReadOnlySpan<byte> bytes, out int sizeNeeded)
         {
             if (!useBytes)
                 throw new InvalidOperationException($"{nameof(TryReadStringQuotedBytes)} {nameof(useBytes)} is the wrong setting for this call");
@@ -1087,11 +1075,7 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryReadNumberChars(
-#if !NETSTANDARD2_0
-[MaybeNullWhen(false)]
-#endif
-        out ReadOnlySpan<char> chars, out int sizeNeeded)
+        public unsafe bool TryReadNumberChars(out ReadOnlySpan<char> chars, out int sizeNeeded)
         {
             if (useBytes)
                 throw new InvalidOperationException($"{nameof(TryReadStringQuotedBytes)} {nameof(useBytes)} is the wrong setting for this call");
@@ -1137,7 +1121,7 @@ namespace Zerra.Serialization.Json.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryReadNumberString(
 #if !NETSTANDARD2_0
-[MaybeNullWhen(false)]
+            [MaybeNullWhen(false)]
 #endif
         out string str, out int sizeNeeded)
         {

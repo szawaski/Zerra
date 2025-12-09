@@ -934,9 +934,6 @@ namespace Zerra.Test.SourceGeneration.Reflection
         [Fact]
         public void GenerateGetter_NullPropertyInfo_HandlesGracefully()
         {
-            // Arrange
-            PropertyInfo propertyInfo = null;
-
             // Act & Assert - should handle null gracefully or throw appropriate exception
             // The method checks if ReflectedType is null, so passing null propertyInfo should be safe
             try

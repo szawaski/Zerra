@@ -16,7 +16,10 @@ namespace Zerra.SourceGeneration.Types
             get
             {
                 if (field == null && InnerType != null)
-                    field = TypeAnalyzer.GetTypeDetail(InnerType);
+                {
+                    lock (locker)
+                        field ??= TypeAnalyzer.GetTypeDetail(InnerType);
+                }
                 return field;
             }
         }
@@ -27,7 +30,10 @@ namespace Zerra.SourceGeneration.Types
             get
             {
                 if (field == null && IEnumerableGenericInnerType != null)
-                    field = TypeAnalyzer.GetTypeDetail(IEnumerableGenericInnerType);
+                {
+                    lock (locker)
+                        field ??= TypeAnalyzer.GetTypeDetail(IEnumerableGenericInnerType);
+                }
                 return field;
             }
         }
@@ -38,7 +44,10 @@ namespace Zerra.SourceGeneration.Types
             get
             {
                 if (field == null && DictionaryInnerType != null)
-                    field = TypeAnalyzer.GetTypeDetail(DictionaryInnerType);
+                {
+                    lock (locker)
+                        field ??= TypeAnalyzer.GetTypeDetail(DictionaryInnerType);
+                }
                 return field;
             }
         }
@@ -48,7 +57,11 @@ namespace Zerra.SourceGeneration.Types
         {
             get
             {
-                field ??= InnerTypes.Select(TypeAnalyzer.GetTypeDetail).ToArray();
+                if (field == null)
+                {
+                    lock (locker)
+                        field ??= InnerTypes.Select(TypeAnalyzer.GetTypeDetail).ToArray();
+                }
                 return field;
             }
         }
@@ -61,7 +74,11 @@ namespace Zerra.SourceGeneration.Types
         {
             get
             {
-                field ??= Members.Where(x => !x.IsStatic && x.IsBacked && !x.IsExplicitFromInterface && IsSerializableType(x.TypeDetail)).ToArray();
+                if (field == null)
+                {
+                    lock (locker)
+                        field ??= Members.Where(x => !x.IsStatic && x.IsBacked && !x.IsExplicitFromInterface && IsSerializableType(x.TypeDetail)).ToArray();
+                }
                 return field;
             }
         }
@@ -79,7 +96,11 @@ namespace Zerra.SourceGeneration.Types
 #endif
         out MemberDetail member)
         {
-            membersByName ??= Members.ToDictionary(x => x.Name);
+            if (membersByName == null)
+            {
+                lock (locker)
+                    membersByName ??= Members.ToDictionary(x => x.Name);
+            }
 
             if (membersByName.TryGetValue(name, out member))
                 return true;
@@ -107,7 +128,11 @@ namespace Zerra.SourceGeneration.Types
 #endif
         out MethodDetail method)
         {
-            methodsByName ??= Methods.GroupBy(x => x.Name).ToDictionary(g => g.Key, g => g.ToArray());
+            if (methodsByName == null)
+            {
+                lock (locker)
+                    methodsByName ??= Methods.GroupBy(x => x.Name).ToDictionary(g => g.Key, g => g.ToArray());
+            }
 
             if (methodsByName.TryGetValue(name, out var methodArray))
             {

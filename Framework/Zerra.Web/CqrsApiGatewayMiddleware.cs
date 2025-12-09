@@ -108,7 +108,7 @@ namespace Zerra.Web
                 throw new Exception("Invalid Request");
             }
 
-            if (requestContentType != serializer.ContentType.ToString())
+            if (contentType != serializer.ContentType)
                 throw new Exception("Invalid Request");
 
             var accepts = (string?)context.Request.Headers.Accept;

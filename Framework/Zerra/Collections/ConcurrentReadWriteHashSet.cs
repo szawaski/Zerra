@@ -168,7 +168,7 @@ namespace Zerra.Collections
             locker.ExitWriteLock();
         }
 #if !NETSTANDARD2_0
-        public bool TryGetValue(T equalValue, [MaybeNullWhen(false)] out T actualValue)
+        public bool TryGetValue(T equalValue, [NotNullWhen(true)] out T? actualValue)
         {
             locker.EnterReadLock();
             var result = hashSet.TryGetValue(equalValue, out var tryActualValue);

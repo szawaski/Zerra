@@ -26,7 +26,7 @@ namespace Zerra.Serialization.Json.Converters.General
                         value = default;
                         return false;
                     }
-                    if (EnumName.TryParse(str, typeDetail.IsNullable ? typeDetail.InnerType : typeDetail.Type, out var parsed))
+                    if (EnumName.TryParse(str, typeDetail.IsNullable ? typeDetail.InnerType! : typeDetail.Type, out var parsed))
                     {
                         value = (TValue?)parsed;
                     }
@@ -50,7 +50,7 @@ namespace Zerra.Serialization.Json.Converters.General
                             ThrowCannotConvert(ref reader);
                         try
                         {
-                            value = (TValue?)Enum.ToObject(typeDetail.IsNullable ? typeDetail.InnerType : typeDetail.Type, number);
+                            value = (TValue?)Enum.ToObject(typeDetail.IsNullable ? typeDetail.InnerType! : typeDetail.Type, number);
                         }
                         catch
                         {
@@ -75,7 +75,7 @@ namespace Zerra.Serialization.Json.Converters.General
                             ThrowCannotConvert(ref reader);
                         try
                         {
-                            value = (TValue?)Enum.ToObject(typeDetail.IsNullable ? typeDetail.InnerType : typeDetail.Type, number);
+                            value = (TValue?)Enum.ToObject(typeDetail.IsNullable ? typeDetail.InnerType! : typeDetail.Type, number);
                         }
                         catch
                         {
@@ -176,7 +176,7 @@ namespace Zerra.Serialization.Json.Converters.General
             }
             else
             {
-                if (!writer.TryWriteQuoted(EnumName.GetName(typeDetail.IsNullable ? typeDetail.InnerType : typeDetail.Type, value), out state.SizeNeeded))
+                if (!writer.TryWriteQuoted(EnumName.GetName(typeDetail.IsNullable ? typeDetail.InnerType! : typeDetail.Type, value), out state.SizeNeeded))
                     return false;
                 return true;
             }

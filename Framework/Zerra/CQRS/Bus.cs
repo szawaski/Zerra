@@ -1129,7 +1129,7 @@ namespace Zerra.CQRS
             => context.GetService<TInterface>();
 
         /// <inheritdoc />
-        public bool TryGetService<TInterface>([MaybeNullWhen(false)] out TInterface? instance) where TInterface : notnull
+        public bool TryGetService<TInterface>([MaybeNullWhen(false)] out TInterface instance) where TInterface : notnull
             => context.TryGetService<TInterface>(out instance);
     }
 }

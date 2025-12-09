@@ -53,13 +53,11 @@ namespace Zerra.Test.CQRS.Network
         public void Open_StartsListening()
         {
             var socket = CreateTestSocket();
-            var handlerCalled = false;
 
-            Func<Socket, CancellationToken, Task> handler = async (s, ct) =>
+            async Task handler(Socket s, CancellationToken ct)
             {
-                handlerCalled = true;
                 s.Dispose();
-            };
+            }
 
             var listener = new SocketListener(socket, handler);
             listener.Open();
@@ -75,11 +73,11 @@ namespace Zerra.Test.CQRS.Network
             var socket = CreateTestSocket();
             var handlerCallCount = 0;
 
-            Func<Socket, CancellationToken, Task> handler = async (s, ct) =>
+            async Task handler(Socket s, CancellationToken ct)
             {
                 handlerCallCount++;
                 s.Dispose();
-            };
+            }
 
             var listener = new SocketListener(socket, handler);
             listener.Open();
@@ -150,11 +148,11 @@ namespace Zerra.Test.CQRS.Network
             var handlerCalled = false;
             var port = ((IPEndPoint)socket.LocalEndPoint!).Port;
 
-            Func<Socket, CancellationToken, Task> handler = async (s, ct) =>
+            async Task handler(Socket s, CancellationToken ct)
             {
                 handlerCalled = true;
                 s.Close();
-            };
+            }
 
             var listener = new SocketListener(socket, handler);
             listener.Open();
@@ -217,11 +215,11 @@ namespace Zerra.Test.CQRS.Network
             var socket = CreateTestSocket();
             CancellationToken? receivedToken = null;
 
-            Func<Socket, CancellationToken, Task> handler = async (s, ct) =>
+            async Task handler(Socket s, CancellationToken ct)
             {
                 receivedToken = ct;
                 s.Dispose();
-            };
+            }
 
             var listener = new SocketListener(socket, handler);
             listener.Open();
@@ -237,11 +235,11 @@ namespace Zerra.Test.CQRS.Network
             var socket = CreateTestSocket();
             Socket? receivedSocket = null;
 
-            Func<Socket, CancellationToken, Task> handler = async (s, ct) =>
+            async Task handler(Socket s, CancellationToken ct)
             {
                 receivedSocket = s;
                 s.Dispose();
-            };
+            }
 
             var listener = new SocketListener(socket, handler);
             listener.Open();

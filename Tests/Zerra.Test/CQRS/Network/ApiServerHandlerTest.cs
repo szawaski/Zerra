@@ -91,7 +91,7 @@ namespace Zerra.Test.CQRS.Network
             public Task WaitForExitAsync(CancellationToken cancellationToken = default) => throw new NotImplementedException();
 
             public TInterface GetService<TInterface>() where TInterface : notnull => throw new NotImplementedException();
-            public bool TryGetService<TInterface>([MaybeNullWhen(false)] out TInterface? instance) where TInterface : notnull => throw new NotImplementedException();
+            public bool TryGetService<TInterface>([NotNullWhen(true)] out TInterface? instance) where TInterface : notnull => throw new NotImplementedException();
         }
 
         private static void RegisterTestTypes()

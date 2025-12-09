@@ -59,11 +59,9 @@ namespace Zerra.Test.CQRS.Network
         public async Task WriteStreamContent_WithAsyncDelegate_CanBeUsedInHttpRequestMessage()
         {
             var testData = new byte[] { 1, 2, 3, 4, 5 };
-            var delegateCalled = false;
 
             async Task asyncDelegate(Stream stream)
             {
-                delegateCalled = true;
                 await stream.WriteAsync(testData, 0, testData.Length);
             }
 

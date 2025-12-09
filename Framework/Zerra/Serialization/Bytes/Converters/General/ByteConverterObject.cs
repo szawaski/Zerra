@@ -140,7 +140,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                     else if (typeDetail.HasCreator)
                     {
-                        value = typeDetail.Creator();
+                        value = typeDetail.Creator!();
                         collectedValues = null;
                     }
                     else
@@ -434,7 +434,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 var current = enumerator[state.Current.EnumeratorIndex].Member;
                 //Base will write the property name or index if the value is not null.
                 //Done this way so we don't have to extract the value twice due to null checking.
-                if (!current.Converter.TryWriteFromParent(ref writer, ref state, value, false, current.Index, state.UseMemberNames ? current.NameAsBytes : null))
+                if (!current.Converter.TryWriteFromParent(ref writer, ref state, value!, false, current.Index, state.UseMemberNames ? current.NameAsBytes : null))
                     return false;
 
                 state.Current.EnumeratorIndex++;

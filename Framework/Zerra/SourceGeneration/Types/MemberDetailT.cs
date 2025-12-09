@@ -10,7 +10,7 @@ namespace Zerra.SourceGeneration.Types
     /// Inherits all base member metadata and boxed accessors from <see cref="MemberDetail"/>.
     /// </summary>
     /// <typeparam name="T">The type of the member value.</typeparam>
-    public sealed class MemberDetail<T> : MemberDetail
+    public sealed partial class MemberDetail<T> : MemberDetail
     {
         /// <summary>Indicates whether a strongly-typed getter delegate exists for type <typeparamref name="T"/>.</summary>
         public readonly new bool HasGetter;
@@ -44,19 +44,6 @@ namespace Zerra.SourceGeneration.Types
             this.Getter = getter;
             this.HasSetter = setter != null;
             this.Setter = setter;
-        }
-
-        /// <summary>
-        /// Gets the cached strongly-typed type detail for this member's type <typeparamref name="T"/>.
-        /// Lazily initializes and casts the base type detail to the generic form without boxing.
-        /// </summary>
-        public TypeDetail<T> TypeDetail
-        {
-            get
-            {
-                field ??= (TypeDetail<T>)base.TypeDetail;
-                return field;
-            }
         }
     }
 }

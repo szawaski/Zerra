@@ -10,10 +10,11 @@ namespace Zerra.Logging
     [Obsolete("Use Zerra.Logging.ILog interface with dependency injection instead")]
     public static class Log
     {
-        private static ILog log;
+        private static ILog? instance;
+        private static ILog Instance => instance ?? throw new InvalidOperationException("Log instance not set. Please set the Log instance before using.");
         public static void SetLog(ILog log)
         {
-            Log.log = log;
+            Log.instance = log;
         }
 
         /// <summary>
@@ -23,7 +24,7 @@ namespace Zerra.Logging
         /// <returns>A task to await completing of the logging.</returns>
         public static Task TraceAsync(string message)
         {
-            log.Info(message);
+            Instance.Info(message);
             return Task.CompletedTask;
         }
         /// <summary>
@@ -33,7 +34,7 @@ namespace Zerra.Logging
         /// <returns>A task to await completing of the logging.</returns>
         public static Task DebugAsync(string message)
         {
-            log.Debug(message);
+            Instance.Debug(message);
             return Task.CompletedTask;
         }
         /// <summary>
@@ -43,7 +44,7 @@ namespace Zerra.Logging
         /// <returns>A task to await completing of the logging.</returns>
         public static Task InfoAsync(string message)
         {
-            log.Info(message);
+            Instance.Info(message);
             return Task.CompletedTask;
         }
         /// <summary>
@@ -53,7 +54,7 @@ namespace Zerra.Logging
         /// <returns>A task to await completing of the logging.</returns>
         public static Task WarnAsync(string message)
         {
-            log.Warn(message);
+            Instance.Warn(message);
             return Task.CompletedTask;
         }
         /// <summary>
@@ -64,7 +65,7 @@ namespace Zerra.Logging
         /// <returns>A task to await completing of the logging.</returns>
         public static Task ErrorAsync(string message, Exception? exception = null)
         {
-            log.Error(message, exception);
+            Instance.Error(message, exception);
             return Task.CompletedTask;
         }
         /// <summary>
@@ -74,7 +75,7 @@ namespace Zerra.Logging
         /// <returns>A task to await completing of the logging.</returns>
         public static Task ErrorAsync(Exception exception)
         {
-            log.Error(exception);
+            Instance.Error(exception);
             return Task.CompletedTask;
         }
         /// <summary>
@@ -85,7 +86,7 @@ namespace Zerra.Logging
         /// <returns>A task to await completing of the logging.</returns>
         public static Task CriticalAsync(string message, Exception? exception = null)
         {
-            log.Critical(message, exception);
+            Instance.Critical(message, exception);
             return Task.CompletedTask;
         }
         /// <summary>
@@ -95,7 +96,7 @@ namespace Zerra.Logging
         /// <returns>A task to await completing of the logging.</returns>
         public static Task CriticalAsync(Exception exception)
         {
-            log.Critical(exception);
+            Instance.Critical(exception);
             return Task.CompletedTask;
         }
     }

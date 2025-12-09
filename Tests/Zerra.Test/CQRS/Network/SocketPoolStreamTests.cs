@@ -70,12 +70,12 @@ namespace Zerra.Test.CQRS.Network
             var closeSocketValue = false;
             var receivedSocket = (Socket?)null;
 
-            Action<Socket, HostAndPort, bool> returnSocket = (s, h, c) =>
+            void returnSocket(Socket s, HostAndPort h, bool c)
             {
                 returnSocketCalled = true;
                 closeSocketValue = c;
                 receivedSocket = s;
-            };
+            }
 
             var stream = new SocketPoolStream(client, hostAndPort, returnSocket, isNewConnection: true);
             stream.DisposeSocket();
@@ -94,10 +94,10 @@ namespace Zerra.Test.CQRS.Network
             var hostAndPort = new HostAndPort("127.0.0.1", port);
             var returnSocketCalled = false;
 
-            Action<Socket, HostAndPort, bool> returnSocket = (s, h, c) =>
+            void returnSocket(Socket s, HostAndPort h, bool c)
             {
                 returnSocketCalled = true;
-            };
+            }
 
             var stream = new SocketPoolStream(client, hostAndPort, returnSocket, isNewConnection: true);
             stream.DisposeNoReturnSocket();
@@ -114,10 +114,10 @@ namespace Zerra.Test.CQRS.Network
             var hostAndPort = new HostAndPort("127.0.0.1", port);
             var returnSocketCalled = false;
 
-            Action<Socket, HostAndPort, bool> returnSocket = (s, h, c) =>
+            void returnSocket(Socket s, HostAndPort h, bool c)
             {
                 returnSocketCalled = true;
-            };
+            }
 
             var stream = new SocketPoolStream(client, hostAndPort, returnSocket, isNewConnection: true);
             stream.Dispose();
@@ -134,10 +134,10 @@ namespace Zerra.Test.CQRS.Network
             var hostAndPort = new HostAndPort("127.0.0.1", port);
             var returnSocketCalled = false;
 
-            Action<Socket, HostAndPort, bool> returnSocket = (s, h, c) =>
+            void returnSocket(Socket s, HostAndPort h, bool c)
             {
                 returnSocketCalled = true;
-            };
+            }
 
             var stream = new SocketPoolStream(client, hostAndPort, returnSocket, isNewConnection: true);
             stream.DisposeNoReturnSocket();
@@ -155,10 +155,10 @@ namespace Zerra.Test.CQRS.Network
             var hostAndPort = new HostAndPort("127.0.0.1", port);
             var closeSocketValue = true;
 
-            Action<Socket, HostAndPort, bool> returnSocket = (s, h, c) =>
+            void returnSocket(Socket s, HostAndPort h, bool c)
             {
                 closeSocketValue = c;
-            };
+            }
 
             var stream = new SocketPoolStream(client, hostAndPort, returnSocket, isNewConnection: true);
             stream.Dispose();
@@ -175,10 +175,10 @@ namespace Zerra.Test.CQRS.Network
             var hostAndPort = new HostAndPort("127.0.0.1", port);
             HostAndPort? receivedHostAndPort = null;
 
-            Action<Socket, HostAndPort, bool> returnSocket = (s, h, c) =>
+            void returnSocket(Socket s, HostAndPort h, bool c)
             {
                 receivedHostAndPort = h;
-            };
+            }
 
             var stream = new SocketPoolStream(client, hostAndPort, returnSocket, isNewConnection: true);
             stream.Dispose();
@@ -197,10 +197,10 @@ namespace Zerra.Test.CQRS.Network
             var hostAndPort = new HostAndPort("127.0.0.1", port);
             var returnSocketCallCount = 0;
 
-            Action<Socket, HostAndPort, bool> returnSocket = (s, h, c) =>
+            void returnSocket(Socket s, HostAndPort h, bool c)
             {
                 returnSocketCallCount++;
-            };
+            }
 
             var stream = new SocketPoolStream(client, hostAndPort, returnSocket, isNewConnection: true);
             stream.Dispose();
@@ -218,10 +218,10 @@ namespace Zerra.Test.CQRS.Network
             var hostAndPort = new HostAndPort("127.0.0.1", port);
             Socket? capturedSocket = null;
 
-            Action<Socket, HostAndPort, bool> returnSocket = (s, h, c) =>
+            void returnSocket(Socket s, HostAndPort h, bool c)
             {
                 capturedSocket = s;
-            };
+            }
 
             var stream = new SocketPoolStream(client, hostAndPort, returnSocket, isNewConnection: true);
             stream.DisposeSocket();

@@ -2,6 +2,10 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using Zerra.SourceGeneration.Reflection;
+
 namespace Zerra.SourceGeneration.Types
 {
     /// <summary>
@@ -11,14 +15,35 @@ namespace Zerra.SourceGeneration.Types
     /// </summary>
     public partial class TypeDetail
     {
+        protected readonly Lock locker = new();
+
         /// <summary>The type being analyzed.</summary>
         public readonly Type Type;
+
         /// <summary>Collection of all members (properties and fields) declared or inherited by this type.</summary>
         public readonly IReadOnlyList<MemberDetail> Members;
+
         /// <summary>Collection of all constructors available for this type.</summary>
         public readonly IReadOnlyList<ConstructorDetail> Constructors;
+
+        private IReadOnlyList<MethodDetail>? methods;
         /// <summary>Collection of all methods declared or inherited by this type.</summary>
-        public readonly IReadOnlyList<MethodDetail> Methods;
+        public IReadOnlyList<MethodDetail> Methods
+        {
+            get
+            {
+                if (methods == null)
+                {
+                    if (!RuntimeFeature.IsDynamicCodeSupported)
+                        throw new NotSupportedException($"Cannot generate methods for {Type.Name}.  Dynamic code generation is not supported in this build configuration.");
+                    lock (locker)
+#pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
+                        methods ??= TypeDetailGenerator.GetMethods(this.Type, Interfaces);
+#pragma warning restore IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
+                }
+                return methods;
+            }
+        }
 
         /// <summary>Indicates whether a boxed creator delegate exists for instantiation.</summary>
         public readonly bool HasCreatorBoxed;
@@ -133,7 +158,7 @@ namespace Zerra.SourceGeneration.Types
             Type type,
             IReadOnlyList<MemberDetail> members,
             IReadOnlyList<ConstructorDetail> constructors,
-            IReadOnlyList<MethodDetail> methods,
+            IReadOnlyList<MethodDetail>? methods,
             Delegate? creator,
             Func<object>? creatorBoxed,
 
@@ -189,7 +214,7 @@ namespace Zerra.SourceGeneration.Types
             this.Type = type;
             this.Members = members;
             this.Constructors = constructors;
-            this.Methods = methods;
+            this.methods = methods;
             this.HasCreator = creator != null;
             this.Creator = creator;
             this.HasCreatorBoxed = creatorBoxed != null;

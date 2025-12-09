@@ -18,7 +18,11 @@ namespace Zerra.SourceGeneration.Types
         {
             get
             {
-                field ??= TypeAnalyzer.GetTypeDetail(this.Type);
+                if (field == null)
+                {
+                    lock (locker)
+                        field ??= TypeAnalyzer.GetTypeDetail(this.Type);
+                }
                 return field;
             }
         }

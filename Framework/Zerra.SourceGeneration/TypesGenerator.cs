@@ -65,9 +65,9 @@ namespace Zerra.SourceGeneration
 
                 _ = sb.Append(", ");
 
-                GenerateMethods(sb, isCoreType, model.TypeName, namedTypeSymbol, symbolMembers);
+                //GenerateMethods(sb, isCoreType, model.TypeName, namedTypeSymbol, symbolMembers);
 
-                _ = sb.Append(", ");
+                _ = sb.Append("null, ");
 
                 GenerateCreators(sb, model.TypeName, namedTypeSymbol, symbolMembers);
 

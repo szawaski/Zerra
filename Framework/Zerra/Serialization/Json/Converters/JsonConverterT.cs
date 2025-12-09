@@ -30,14 +30,12 @@ namespace Zerra.Serialization.Json.Converters
             if (getterDelegate is not null)
             {
                 getter = getterDelegate as Func<object, TValue?>;
-                if (getter == null)
-                    getter = (parent) => (TValue?)getterDelegate.DynamicInvoke(parent);
+                getter ??= (parent) => (TValue?)getterDelegate.DynamicInvoke(parent);
             }
             if (setterDelegate is not null)
             {
                 setter = setterDelegate as Action<object, TValue?>;
-                if (setter == null)
-                    setter = (parent, value) => setterDelegate.DynamicInvoke(parent, value);
+                setter ??= (parent, value) => setterDelegate.DynamicInvoke(parent, value);
             }
 
             canBeNull = typeDetail.IsNullable || !typeDetail.Type.IsValueType;

@@ -35,7 +35,7 @@ namespace Zerra.CQRS
         /// <param name="serviceName">The name of the current service.</param>
         /// <param name="log">The logger instance, or null if logging is not configured.</param>
         /// <param name="busServices">The bus servies containing registered dependencies.</param>
-        internal BusContext(IBus bus, string serviceName, ILog? log, BusServices busServices)
+        internal BusContext(IBus bus, string serviceName, ILog? log, BusServices? busServices)
         {
             this.Bus = bus;
             this.ServiceName = serviceName;
@@ -62,7 +62,7 @@ namespace Zerra.CQRS
         /// <typeparam name="TInterface">The type of the dependency to retrieve.</typeparam>
         /// <param name="instance">When this method returns, contains the registered dependency instance if found; otherwise, the default value. This parameter is passed uninitialized.</param>
         /// <returns>true if a dependency is registered for the specified type; otherwise, false.</returns>
-        public bool TryGetService<TInterface>([MaybeNullWhen(false)] out TInterface? instance) where TInterface : notnull
+        public bool TryGetService<TInterface>([MaybeNullWhen(false)] out TInterface instance) where TInterface : notnull
         {
             if (dependencies == null || !dependencies.TryGetValue(typeof(TInterface), out var instanceObject))
             {

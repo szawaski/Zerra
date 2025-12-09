@@ -22,22 +22,6 @@ namespace Zerra.Serialization
         ContentType ContentType { get; }
 
         /// <summary>
-        /// Deserializes a string to an object of the specified type.
-        /// </summary>
-        /// <param name="bytes">The string containing serialized data.</param>
-        /// <param name="type">The type to deserialize into.</param>
-        /// <returns>The deserialized object, or null if deserialization resulted in null.</returns>
-        object? Deserialize(ReadOnlySpan<char> bytes, Type type);
-
-        /// <summary>
-        /// Deserializes a string to a strongly-typed object.
-        /// </summary>
-        /// <typeparam name="T">The type to deserialize into.</typeparam>
-        /// <param name="bytes">The string containing serialized data.</param>
-        /// <returns>The deserialized object, or null if deserialization resulted in null.</returns>
-        T? Deserialize<T>(ReadOnlySpan<char> bytes);
-
-        /// <summary>
         /// Serializes an object to a byte array.
         /// </summary>
         /// <param name="obj">The object to serialize, or null.</param>

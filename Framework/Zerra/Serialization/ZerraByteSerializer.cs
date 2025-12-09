@@ -7,8 +7,7 @@ namespace Zerra.Serialization
     /// High-performance binary serializer implementation using compact byte format.
     /// </summary>
     /// <remarks>
-    /// Provides efficient serialization to and from binary format with optional compression.
-    /// String-based serialization uses Base64 encoding of the binary data.
+    /// Provides efficient serialization to and from binary format.
     /// All operations delegate to the ByteSerializer for actual serialization logic.
     /// </remarks>
     public sealed class ZerraByteSerializer : ISerializer
@@ -26,12 +25,6 @@ namespace Zerra.Serialization
 
         /// <inheritdoc />
         public ContentType ContentType => ContentType.Bytes;
-
-        /// <inheritdoc />
-        public object? Deserialize(ReadOnlySpan<char> str, Type type) => ByteSerializer.Deserialize(Convert.FromBase64String(str.ToString()), type, options);
-
-        /// <inheritdoc />
-        public T? Deserialize<T>(ReadOnlySpan<char> str) => ByteSerializer.Deserialize<T>(Convert.FromBase64String(str.ToString()), options);
 
         /// <inheritdoc />
         public byte[] SerializeBytes(object? obj) => ByteSerializer.Serialize(obj, options);

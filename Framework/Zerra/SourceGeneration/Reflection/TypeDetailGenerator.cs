@@ -64,7 +64,7 @@ namespace Zerra.SourceGeneration.Reflection
             var interfaces = GenerateInterfaces(type);
             var attributes = GenerateAttributes(type);
             var members = GenerateMembers(type, interfaces);
-            var methods = GetMethodDetails(type, interfaces);
+            var methods = GetMethods(type, interfaces);
 
             Delegate? creator = null;
             Func<object>? creatorBoxed = null;
@@ -249,7 +249,7 @@ namespace Zerra.SourceGeneration.Reflection
             var interfaces = GenerateInterfaces(type);
             var attributes = GenerateAttributes(type);
             var members = GenerateMembers(type, interfaces);
-            var methods = GetMethodDetails(type, interfaces);
+            var methods = GetMethods(type, interfaces);
 
             Func<T>? creator = null;
             Func<object>? creatorBoxed = null;
@@ -446,7 +446,7 @@ namespace Zerra.SourceGeneration.Reflection
             return typeDetail;
         }
 
-        private static List<MemberDetail> GenerateMembers(Type type, Type[] interfaces)
+        public static List<MemberDetail> GenerateMembers(Type type, Type[] interfaces)
         {
             var items = new List<MemberDetail>();
 
@@ -630,7 +630,7 @@ namespace Zerra.SourceGeneration.Reflection
 
             return items;
         }
-        private static List<ConstructorDetail<T>> GenerateConstructors<T>(Type type)
+        public static List<ConstructorDetail<T>> GenerateConstructors<T>(Type type)
         {
             var items = new List<ConstructorDetail<T>>();
             if (type.IsGenericTypeDefinition)
@@ -658,10 +658,10 @@ namespace Zerra.SourceGeneration.Reflection
             }
             return items;
         }
-        private static List<MethodDetail> GetMethodDetails(Type type, Type[] interfaces)
+        public static List<MethodDetail> GetMethods(Type type, IReadOnlyCollection<Type> interfaces)
         {
             var items = new List<MethodDetail>();
-            var hasInterfaces = interfaces.Length > 0;
+            var hasInterfaces = interfaces.Count > 0;
             var names = hasInterfaces ? new HashSet<string>() : null; //explicit declarations can create duplicates with interfaces
             if (!type.IsGenericTypeDefinition)
             {
@@ -678,7 +678,7 @@ namespace Zerra.SourceGeneration.Reflection
 
                     Delegate? caller = AccessorGenerator.GenerateCaller(method, method.ReturnType);
 
-                    Func<object, object?[]?, object?>? callerBoxed = AccessorGenerator.GenerateCaller(method);
+                    Func<object?, object?[]?, object?>? callerBoxed = AccessorGenerator.GenerateCaller(method);
 
                     MethodDetail methodDetail;
                     if (method.ReturnType.ContainsGenericParameters || method.ReturnType.IsPointer || method.ReturnType.IsByRef || method.ReturnType.IsByRefLike)
@@ -753,7 +753,7 @@ namespace Zerra.SourceGeneration.Reflection
             }
             return items;
         }
-        private static Type[] GenerateInnerTypes(Type type)
+        public static Type[] GenerateInnerTypes(Type type)
         {
             if (type.IsGenericType)
                 return type.GetGenericArguments();
@@ -762,7 +762,7 @@ namespace Zerra.SourceGeneration.Reflection
             else
                 return Array.Empty<Type>();
         }
-        private static List<Type> GenerateBaseTypes(Type type)
+        public static List<Type> GenerateBaseTypes(Type type)
         {
             var items = new List<Type>();
             var baseType = type.BaseType;
@@ -773,11 +773,11 @@ namespace Zerra.SourceGeneration.Reflection
             }
             return items;
         }
-        private static Type[] GenerateInterfaces(Type type)
+        public static Type[] GenerateInterfaces(Type type)
         {
             return type.GetInterfaces();
         }
-        private static Attribute[] GenerateAttributes(Type type)
+        public static Attribute[] GenerateAttributes(Type type)
         {
             return type.GetCustomAttributes(true).Cast<Attribute>().ToArray();
         }

@@ -703,7 +703,7 @@ namespace Zerra.Serialization.Json.Converters.General
                         }
                     }
 
-                    if (!current.Converter.TryWriteFromParent(ref writer, ref state, value, null, default, default, current.IgnoreCondition, true))
+                    if (!current.Converter.TryWriteFromParent(ref writer, ref state, value!, null, default, default, current.IgnoreCondition, true))
                     {
                         state.Current.HasWrittenStart = true;
                         state.Current.HasWrittenSeperator = true;
@@ -758,7 +758,7 @@ namespace Zerra.Serialization.Json.Converters.General
                         continue;
                     }
 
-                    if (!current.Converter.TryWriteFromParent(ref writer, ref state, value, current.Member.Name, current.JsonNameSegmentChars, current.JsonNameSegmentBytes, current.IgnoreCondition))
+                    if (!current.Converter.TryWriteFromParent(ref writer, ref state, value!, current.Member.Name, current.JsonNameSegmentChars, current.JsonNameSegmentBytes, current.IgnoreCondition))
                     {
                         state.Current.HasWrittenStart = true;
                         return false;

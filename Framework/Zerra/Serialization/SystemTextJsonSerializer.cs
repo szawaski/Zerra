@@ -45,12 +45,6 @@ namespace Zerra.Serialization
 #pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
 
         /// <inheritdoc />
-        public object? Deserialize(ReadOnlySpan<char> str, Type type) => JsonSerializer.Deserialize(str, type, options);
-
-        /// <inheritdoc />
-        public T? Deserialize<T>(ReadOnlySpan<char> str) => JsonSerializer.Deserialize<T>(str, options);
-
-        /// <inheritdoc />
         public byte[] SerializeBytes(object? obj) => JsonSerializer.SerializeToUtf8Bytes(obj, options);
 
         /// <inheritdoc />

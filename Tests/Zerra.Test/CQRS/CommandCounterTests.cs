@@ -19,7 +19,9 @@ namespace Zerra.Test.CQRS
         [Fact]
         public void ReceiveCountBeforeExit_Property_WhenLimited()
         {
+#pragma warning disable CS0219 // Variable is assigned but its value is never used
             var exitCalled = false;
+#pragma warning restore CS0219 // Variable is assigned but its value is never used
             var counter = new CommandCounter(5, () => exitCalled = true);
             Assert.Equal(5, counter.ReceiveCountBeforeExit);
         }

@@ -73,7 +73,7 @@ namespace Zerra.CQRS.Network
         /// <inheritdoc />
         protected override Task DispatchInternal(SemaphoreSlim throttle, Type commandType, ICommand command, bool messageAwait, string source, CancellationToken cancellationToken)
         {
-            var commandTypeName = commandType.AssemblyQualifiedName;
+            var commandTypeName = commandType.AssemblyQualifiedName ?? throw new ArgumentException("Command type must have AssemblyQualifiedName");
             var commandData = JsonSerializer.Serialize(command, commandType);
 
             var data = new ApiRequestData()
@@ -90,7 +90,7 @@ namespace Zerra.CQRS.Network
         /// <inheritdoc />
         protected override Task<TResult> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source, CancellationToken cancellationToken) where TResult : default
         {
-            var commandTypeName = commandType.AssemblyQualifiedName;
+            var commandTypeName = commandType.AssemblyQualifiedName ?? throw new ArgumentException("Command type must have AssemblyQualifiedName");
             var commandData = JsonSerializer.Serialize(command, commandType);
 
             var data = new ApiRequestData()
@@ -108,7 +108,7 @@ namespace Zerra.CQRS.Network
         /// <inheritdoc />
         protected override Task DispatchInternal(SemaphoreSlim throttle, Type eventType, IEvent @event, string source, CancellationToken cancellationToken)
         {
-            var commandTypeName = eventType.AssemblyQualifiedName;
+            var commandTypeName = eventType.AssemblyQualifiedName ?? throw new ArgumentException("Event type must have AssemblyQualifiedName");
             var commandData = JsonSerializer.Serialize(@event, eventType);
 
             var data = new ApiRequestData()
@@ -123,7 +123,7 @@ namespace Zerra.CQRS.Network
             return RequestAsync<object>(throttle, false, routeUri, commandTypeName, data, false, cancellationToken);
         }
 
-        private async Task<TReturn> RequestAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, string? providerType, ApiRequestData data, bool getResponseData, CancellationToken cancellationToken)
+        private async Task<TReturn> RequestAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, string providerType, ApiRequestData data, bool getResponseData, CancellationToken cancellationToken)
         {
             await throttle.WaitAsync(cancellationToken);
 
@@ -155,8 +155,7 @@ namespace Zerra.CQRS.Network
                         request.Headers.Add(authHeader.Key, authHeader.Value);
                 }
 
-                if (!String.IsNullOrWhiteSpace(providerType))
-                    request.Headers.Add(HttpCommon.ProviderTypeHeader, providerType);
+                request.Headers.Add(HttpCommon.ProviderTypeHeader, providerType);
 
                 using var response = await client.SendAsync(request);
 
@@ -192,7 +191,7 @@ namespace Zerra.CQRS.Network
                     await responseStream.DisposeAsync();
 #endif
                     client.Dispose();
-                    return result;
+                    return result!;
                 }
             }
             catch
