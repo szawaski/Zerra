@@ -37,7 +37,7 @@ namespace Zerra.SourceGeneration
                     var (targetTypeName, targetEnumerableTypeName, targetDictionaryKeyTypeName, targetDictionaryValueTypeName) = GetTypeParameters(targetType);
 
                     _ = sb.Append(Environment.NewLine).Append("            ");
-                    _ = sb.Append("global::Zerra.SourceGeneration.Register.CustomMap<")
+                    _ = sb.Append("global::Zerra.Reflection.Register.CustomMap<")
                         .Append(sourceTypeName).Append(",")
                         .Append(targetTypeName).Append(",")
                         .Append(sourceEnumerableTypeName).Append(",")
@@ -56,7 +56,7 @@ namespace Zerra.SourceGeneration
                     var (typeName, enumerableTypeName, dictionaryKeyTypeName, dictionaryValueTypeName) = GetTypeParameters(model.TypeSymbol);
 
                     _ = sb.Append(Environment.NewLine).Append("            ");
-                    _ = sb.Append("global::Zerra.SourceGeneration.Register.SerializersAndMap<")
+                    _ = sb.Append("global::Zerra.Reflection.Register.SerializersAndMap<")
                         .Append(typeName).Append(",")
                         .Append(enumerableTypeName).Append(",")
                         .Append(dictionaryKeyTypeName).Append(",")

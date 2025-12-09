@@ -7,9 +7,9 @@ using Xunit;
 using Zerra.CQRS;
 using Zerra.CQRS.Network;
 using Zerra.Logging;
+using Zerra.Reflection;
 using Zerra.Serialization;
 using Zerra.Serialization.Json;
-using Zerra.SourceGeneration;
 
 namespace Zerra.Test.CQRS.Network
 {
@@ -97,9 +97,9 @@ namespace Zerra.Test.CQRS.Network
         private static void RegisterTestTypes()
         {
             // Register types so TypeHelper can resolve them by name
-            TypeHelper.Register(typeof(ITestProvider));
-            TypeHelper.Register(typeof(TestCommand));
-            TypeHelper.Register(typeof(TestCommandWithResult));
+            TypeFinder.Register(typeof(ITestProvider));
+            TypeFinder.Register(typeof(TestCommand));
+            TypeFinder.Register(typeof(TestCommandWithResult));
         }
 
         [Fact]

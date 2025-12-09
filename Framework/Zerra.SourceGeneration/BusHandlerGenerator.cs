@@ -51,7 +51,7 @@ namespace Zerra.SourceGeneration
                 }
 
                 _ = sb.Append(Environment.NewLine).Append("            ");
-                _ = sb.Append("global::Zerra.SourceGeneration.Register.Handler(");
+                _ = sb.Append("global::Zerra.Reflection.Register.Handler(");
 
                 _ = sb.Append(typeOfForInterface).Append(", ");
                 _ = sb.Append("\"").Append(methodName).Append("\", ");

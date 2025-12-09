@@ -4,8 +4,7 @@
 
 using Xunit;
 using Zerra.Map;
-using Zerra.SourceGeneration;
-using Zerra.SourceGeneration.Reflection;
+using Zerra.Reflection;
 using Zerra.Test.Helpers.Models;
 
 namespace Zerra.Test.Map
@@ -16,7 +15,7 @@ namespace Zerra.Test.Map
         {
             //Discovery.Initialize(false);
             //MapDiscovery.Discover();
-            MapCustomizations.Register(new DefineModelAToModelB());
+            MapDefinition.Register(new DefineModelAToModelB());
         }
 
         [Fact]

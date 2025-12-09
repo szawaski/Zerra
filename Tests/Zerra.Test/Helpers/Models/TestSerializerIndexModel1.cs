@@ -7,7 +7,7 @@ using Zerra.Serialization.Bytes;
 
 namespace Zerra.Test.Helpers.Models
 {
-    [Zerra.SourceGeneration.GenerateTypeDetail]
+    [Zerra.Reflection.GenerateTypeDetail]
     public class TestSerializerIndexModel1
     {
         [SerializerIndex(1)]

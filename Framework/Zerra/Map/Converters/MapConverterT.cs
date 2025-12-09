@@ -3,8 +3,7 @@
 // Licensed to you under the MIT license
 
 using System.Runtime.CompilerServices;
-using Zerra.SourceGeneration;
-using Zerra.SourceGeneration.Types;
+using Zerra.Reflection;
 
 namespace Zerra.Map.Converters
 {

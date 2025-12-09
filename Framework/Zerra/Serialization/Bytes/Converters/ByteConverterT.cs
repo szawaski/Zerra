@@ -5,8 +5,7 @@
 using System.Runtime.CompilerServices;
 using Zerra.Serialization.Bytes.State;
 using Zerra.Serialization.Bytes.IO;
-using Zerra.SourceGeneration;
-using Zerra.SourceGeneration.Types;
+using Zerra.Reflection;
 
 namespace Zerra.Serialization.Bytes.Converters
 {
@@ -29,14 +28,12 @@ namespace Zerra.Serialization.Bytes.Converters
             if (getterDelegate is not null)
             {
                 getter = getterDelegate as Func<object, TValue?>;
-                if (getter == null)
-                    getter = (parent) => (TValue?)getterDelegate.DynamicInvoke(parent);
+                getter ??= (parent) => (TValue?)getterDelegate.DynamicInvoke(parent);
             }
             if (setterDelegate is not null)
             {
                 setter = setterDelegate as Action<object, TValue?>;
-                if (setter == null)
-                    setter = (parent, value) => setterDelegate.DynamicInvoke(parent, value);
+                setter ??= (parent, value) => setterDelegate.DynamicInvoke(parent, value);
             }
 
             canBeNull = typeDetail.IsNullable || !typeDetail.Type.IsValueType;
@@ -78,7 +75,7 @@ namespace Zerra.Serialization.Bytes.Converters
                     if (typeName is null)
                         throw new NotSupportedException($"Cannot deserialize {typeDetail.Type.Name} without type information");
 
-                    state.EntryReadType = TypeHelper.GetTypeFromName(typeName);
+                    state.EntryReadType = TypeFinder.GetTypeFromName(typeName);
                 }
 
                 if (state.EntryReadType != typeDetail.Type)
@@ -294,7 +291,7 @@ namespace Zerra.Serialization.Bytes.Converters
                     if (typeName is null)
                         throw new NotSupportedException($"Cannot deserialize {typeDetail.Type.Name} without type information");
 
-                    state.EntryReadType = TypeHelper.GetTypeFromName(typeName);
+                    state.EntryReadType = TypeFinder.GetTypeFromName(typeName);
                 }
 
                 if (state.EntryReadType != typeDetail.Type)
@@ -506,7 +503,7 @@ namespace Zerra.Serialization.Bytes.Converters
                     if (typeName is null)
                         throw new NotSupportedException($"Cannot deserialize {typeDetail.Type.Name} without type information");
 
-                    state.Current.ChildReadType = TypeHelper.GetTypeFromName(typeName);
+                    state.Current.ChildReadType = TypeFinder.GetTypeFromName(typeName);
                 }
 
                 if (state.Current.ChildReadType != typeDetail.Type)

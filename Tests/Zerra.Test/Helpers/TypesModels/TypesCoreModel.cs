@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Zerra.Test.Helpers.TypesModels
 {
-    [Zerra.SourceGeneration.GenerateTypeDetail]
+    [Zerra.Reflection.GenerateTypeDetail]
     public class TypesCoreModel
     {
         public bool BooleanThing { get; set; }

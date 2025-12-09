@@ -3,9 +3,9 @@
 // Licensed to you under the MIT license
 
 using System.Collections;
+using Zerra.Reflection;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
-using Zerra.SourceGeneration;
 
 namespace Zerra.Serialization.Json.Converters.Collections.Enumerables
 {

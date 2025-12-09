@@ -6,9 +6,9 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Zerra.Collections;
+using Zerra.CQRS.Reflection;
 using Zerra.Logging;
 using Zerra.Serialization;
-using Zerra.SourceGeneration;
 
 namespace Zerra.CQRS
 {

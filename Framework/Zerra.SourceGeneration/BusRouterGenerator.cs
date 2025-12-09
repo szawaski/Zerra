@@ -57,7 +57,7 @@ namespace Zerra.SourceGeneration
                 var typeNameForSymbol = Helper.GetTypeOfName(namedTypeSymbol);
                 var fullClassName = $"global::{ns}.SourceGeneration.{className}";
                 _ = sbInitializer.Append(Environment.NewLine).Append("            ");
-                _ = sbInitializer.Append("global::Zerra.SourceGeneration.Register.Router(").Append(typeNameForSymbol).Append(", static (global::Zerra.CQRS.IBusInternal bus, string source) => new ").Append(fullClassName).Append("(bus, source)").Append(");");
+                _ = sbInitializer.Append("global::Zerra.Reflection.Register.Router(").Append(typeNameForSymbol).Append(", static (global::Zerra.CQRS.IBusInternal bus, string source) => new ").Append(fullClassName).Append("(bus, source)").Append(");");
             }
             if (namedTypeSymbol.AllInterfaces.Any(x => x.MetadataName == "ICommandHandler`2"))
             {
@@ -208,7 +208,7 @@ namespace Zerra.SourceGeneration
                 var commandTypeName = Helper.GetFullName(commandType);
                 var returnType = namedTypeSymbol.TypeArguments[1];
                 _ = sb.Append(Environment.NewLine).Append("            ");
-                _ = sb.Append("global::Zerra.SourceGeneration.Register.Router(typeof(").Append(commandTypeName).Append("), ");
+                _ = sb.Append("global::Zerra.Reflection.Register.Router(typeof(").Append(commandTypeName).Append("), ");
 
                 _ = sb.Append("static (global::Zerra.CQRS.IBusInternal bus, global::Zerra.CQRS.ICommand command, global::System.Type type, string source, global::System.Threading.CancellationToken cancellationToken) => ");
 

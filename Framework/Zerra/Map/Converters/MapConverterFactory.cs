@@ -12,8 +12,7 @@ using Zerra.Map.Converters.Collections.List;
 using Zerra.Map.Converters.Collections.Sets;
 using Zerra.Map.Converters.CoreTypes;
 using Zerra.Map.Converters.General;
-using Zerra.SourceGeneration;
-using Zerra.SourceGeneration.Types;
+using Zerra.Reflection;
 
 namespace Zerra.Map.Converters
 {

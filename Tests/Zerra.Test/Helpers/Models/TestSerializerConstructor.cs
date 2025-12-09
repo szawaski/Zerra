@@ -4,7 +4,7 @@
 
 namespace Zerra.Test.Helpers.Models
 {
-    [Zerra.SourceGeneration.GenerateTypeDetail]
+    [Zerra.Reflection.GenerateTypeDetail]
     public class TestSerializerConstructor
     {
         public string _Value1 { get; init; }

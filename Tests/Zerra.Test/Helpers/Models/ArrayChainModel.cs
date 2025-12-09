@@ -4,7 +4,7 @@
 
 namespace Zerra.Test.Helpers.Models
 {
-    [Zerra.SourceGeneration.GenerateTypeDetail]
+    [Zerra.Reflection.GenerateTypeDetail]
     public class ArrayChainModel
     {
         public Guid? ID { get; set; }

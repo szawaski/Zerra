@@ -7,8 +7,7 @@ using System.Collections;
 using System.Globalization;
 using System.Text;
 using System.Reflection;
-using Zerra.SourceGeneration;
-using Zerra.SourceGeneration.Types;
+using Zerra.Reflection;
 
 namespace Zerra.Test.Helpers.Models
 {

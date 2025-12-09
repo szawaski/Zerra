@@ -7,7 +7,7 @@ using Zerra.Serialization.Json.Converters;
 using Zerra.Serialization.Json.State;
 using Zerra.Serialization.Json.IO;
 using Zerra.Buffers;
-using Zerra.SourceGeneration;
+using Zerra.Reflection;
 
 namespace Zerra.Serialization.Json
 {

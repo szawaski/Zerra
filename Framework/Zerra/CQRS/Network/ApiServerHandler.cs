@@ -2,9 +2,9 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using Zerra.Reflection;
 using Zerra.Serialization;
 using Zerra.Serialization.Json;
-using Zerra.SourceGeneration;
 
 namespace Zerra.CQRS.Network
 {
@@ -66,7 +66,7 @@ namespace Zerra.CQRS.Network
             if (data.ProviderArguments is null) throw new ArgumentNullException(nameof(ApiRequestData.ProviderArguments));
             if (String.IsNullOrWhiteSpace(data.Source)) throw new ArgumentNullException(nameof(ApiRequestData.Source));
 
-            var providerType = TypeHelper.GetTypeFromName(data.ProviderType);
+            var providerType = TypeFinder.GetTypeFromName(data.ProviderType);
             if (!providerType.IsInterface)
                 throw new ArgumentException($"Provider {data.ProviderType} is not an interface type");
             var typeDetail = TypeAnalyzer.GetTypeDetail(providerType);
@@ -80,7 +80,7 @@ namespace Zerra.CQRS.Network
             if (data.MessageData is null) throw new ArgumentNullException(nameof(ApiRequestData.MessageData));
             if (String.IsNullOrWhiteSpace(data.Source)) throw new ArgumentNullException(nameof(ApiRequestData.Source));
 
-            var commandType = TypeHelper.GetTypeFromName(data.MessageType);
+            var commandType = TypeFinder.GetTypeFromName(data.MessageType);
             var typeDetail = TypeAnalyzer.GetTypeDetail(commandType);
             if (!typeDetail.Interfaces.Contains(typeof(ICommand)))
                 throw new Exception($"Type {data.MessageType} is not a command");
@@ -100,7 +100,7 @@ namespace Zerra.CQRS.Network
             if (data.MessageData is null) throw new ArgumentNullException(nameof(ApiRequestData.MessageData));
             if (String.IsNullOrWhiteSpace(data.Source)) throw new ArgumentNullException(nameof(ApiRequestData.Source));
 
-            var commandType = TypeHelper.GetTypeFromName(data.MessageType);
+            var commandType = TypeFinder.GetTypeFromName(data.MessageType);
             var typeDetail = TypeAnalyzer.GetTypeDetail(commandType);
             if (!typeDetail.Interfaces.Contains(typeof(ICommand)))
                 throw new Exception($"Type {data.MessageType} is not a command");

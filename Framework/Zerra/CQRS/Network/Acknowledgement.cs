@@ -2,8 +2,8 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using Zerra.Reflection;
 using Zerra.Serialization.Bytes;
-using Zerra.SourceGeneration;
 
 namespace Zerra.CQRS.Network
 {
@@ -94,7 +94,7 @@ namespace Zerra.CQRS.Network
             {
                 try
                 {
-                    if (TypeHelper.TryGetTypeFromName(ack.DataType, out var type))
+                    if (TypeFinder.TryGetTypeFromName(ack.DataType, out var type))
                         ex = (Exception?)ByteSerializer.Deserialize(ack.Data, type, byteSerializerOptions);
                 }
                 catch { }
@@ -122,7 +122,7 @@ namespace Zerra.CQRS.Network
                 {
                     try
                     {
-                        if (TypeHelper.TryGetTypeFromName(ack.DataType, out var type))
+                        if (TypeFinder.TryGetTypeFromName(ack.DataType, out var type))
                             ex = (Exception?)ByteSerializer.Deserialize(ack.Data, type, byteSerializerOptions);
                     }
                     catch { }
@@ -134,7 +134,7 @@ namespace Zerra.CQRS.Network
             {
                 try
                 {
-                    var type = TypeHelper.GetTypeFromName(ack.DataType);
+                    var type = TypeFinder.GetTypeFromName(ack.DataType);
                     var result = ByteSerializer.Deserialize(ack.Data, type, byteSerializerOptions);
                     return result;
                 }

@@ -8,7 +8,7 @@ using Zerra.Serialization.Json.Converters;
 using Zerra.Serialization.Json.State;
 using System.Text;
 using Zerra.Buffers;
-using Zerra.SourceGeneration;
+using Zerra.Reflection;
 
 namespace Zerra.Serialization.Json
 {

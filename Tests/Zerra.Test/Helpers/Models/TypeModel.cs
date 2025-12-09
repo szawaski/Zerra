@@ -2,11 +2,9 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Zerra.SourceGeneration;
-
 namespace Zerra.Test.Helpers.Models
 {
-    [GenerateTypeDetail]
+    [Zerra.Reflection.GenerateTypeDetail]
     public class TypeModel
     {
         public Type Type1 { get; set; }

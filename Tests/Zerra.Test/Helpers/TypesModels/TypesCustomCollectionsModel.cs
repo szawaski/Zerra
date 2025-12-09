@@ -4,7 +4,7 @@
 
 namespace Zerra.Test.Helpers.TypesModels
 {
-    [Zerra.SourceGeneration.GenerateTypeDetail]
+    [Zerra.Reflection.GenerateTypeDetail]
     public class TypesCustomCollectionsModel
     {
         public CustomListGeneric ListGenericThing { get; set; }

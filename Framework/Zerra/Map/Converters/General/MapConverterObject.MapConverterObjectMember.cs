@@ -3,7 +3,7 @@
 // Licensed to you under the MIT license
 
 using Zerra.Map.Converters;
-using Zerra.SourceGeneration.Types;
+using Zerra.Reflection;
 
 namespace Zerra.Map
 {

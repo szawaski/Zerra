@@ -5,9 +5,7 @@
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using Zerra.Map.Converters;
-using Zerra.Map.Converters.General;
-using Zerra.SourceGeneration;
-using Zerra.SourceGeneration.Types;
+using Zerra.Reflection;
 
 namespace Zerra.Map
 {
@@ -19,7 +17,7 @@ namespace Zerra.Map
         {
             if (collectedValuesPool.TryPop(out var collectedValues))
                 return collectedValues;
-            return new(MemberNameComparer.Instance);
+            return new(MemberAndParameterNameComparer.Instance);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ReturnCollectedValues(Dictionary<string, object?> collectedValues)
@@ -28,7 +26,7 @@ namespace Zerra.Map
             collectedValuesPool.Push(collectedValues);
         }
 
-        private MapCustomizationInfo[]? customizations;
+        private MapDefinitionInfo[]? customizations;
         private MapConverter[]? customConverters;
         private IEnumerable<MapConverterObjectMember> members = null!;
         private Dictionary<string, MapConverterObjectMember>? membersByName = null!;
@@ -37,7 +35,7 @@ namespace Zerra.Map
 
         protected override sealed void Setup()
         {
-            customizations = MapCustomizations.Get<TSource, TTarget>();
+            customizations = MapDefinition.Get<TSource, TTarget>();
             HashSet<string>? customizedMemberNames = null;
             if (customizations != null)
             {
@@ -82,7 +80,7 @@ namespace Zerra.Map
                             break;
                         }
                         //must have a matching a member
-                        if (!members.Any(x => x.TargetMember.Type == parameter.Type && MemberNameComparer.Instance.Equals(x.TargetMember.Name, parameter.Name)))
+                        if (!members.Any(x => x.TargetMember.Type == parameter.Type && MemberAndParameterNameComparer.Instance.Equals(x.TargetMember.Name, parameter.Name)))
                         {
                             skip = true;
                             break;

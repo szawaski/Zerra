@@ -4,6 +4,7 @@
 
 using System.Runtime.CompilerServices;
 using Zerra.Collections;
+using Zerra.Reflection;
 using Zerra.Serialization.Json.Converters.Collections;
 using Zerra.Serialization.Json.Converters.Collections.Collections;
 using Zerra.Serialization.Json.Converters.Collections.Dictionaries;
@@ -13,8 +14,6 @@ using Zerra.Serialization.Json.Converters.Collections.Sets;
 using Zerra.Serialization.Json.Converters.CoreTypes.Values;
 using Zerra.Serialization.Json.Converters.General;
 using Zerra.Serialization.Json.Converters.Special;
-using Zerra.SourceGeneration;
-using Zerra.SourceGeneration.Types;
 
 namespace Zerra.Serialization.Json.Converters
 {

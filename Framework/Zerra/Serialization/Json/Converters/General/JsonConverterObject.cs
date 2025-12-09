@@ -4,9 +4,9 @@
 
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
+using Zerra.Reflection;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
-using Zerra.SourceGeneration.Types;
 
 namespace Zerra.Serialization.Json.Converters.General
 {
@@ -18,7 +18,7 @@ namespace Zerra.Serialization.Json.Converters.General
         {
             if (collectedValuesPool.TryPop(out var collectedValues))
                 return collectedValues;
-            return new(MemberNameComparer.Instance);
+            return new(MemberAndParameterNameComparer.Instance);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ReturnCollectedValues(Dictionary<string, object?> collectedValues)
@@ -124,7 +124,7 @@ namespace Zerra.Serialization.Json.Converters.General
                             break;
                         }
                         //must have a matching a member
-                        if (!members.Any(x => x.Member.Type == parameter.Type && MemberNameComparer.Instance.Equals(x.Member.Name, parameter.Name)))
+                        if (!members.Any(x => x.Member.Type == parameter.Type && MemberAndParameterNameComparer.Instance.Equals(x.Member.Name, parameter.Name)))
                         {
                             skip = true;
                             break;

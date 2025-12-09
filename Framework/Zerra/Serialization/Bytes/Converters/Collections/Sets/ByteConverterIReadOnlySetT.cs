@@ -4,9 +4,9 @@
 
 #if NET5_0_OR_GREATER
 
+using Zerra.Reflection;
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;
-using Zerra.SourceGeneration;
 
 namespace Zerra.Serialization.Bytes.Converters.Collections.Sets
 {

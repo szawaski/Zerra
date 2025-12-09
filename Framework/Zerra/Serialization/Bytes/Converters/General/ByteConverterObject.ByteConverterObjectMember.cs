@@ -2,8 +2,8 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using Zerra.Reflection;
 using Zerra.Serialization.Bytes.IO;
-using Zerra.SourceGeneration.Types;
 
 namespace Zerra.Serialization.Bytes.Converters.General
 {

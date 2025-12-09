@@ -3,9 +3,9 @@
 // Licensed to you under the MIT license
 
 using System.Buffers.Text;
+using Zerra.Reflection;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
-using Zerra.SourceGeneration.Types;
 
 namespace Zerra.Serialization.Json.Converters.General
 {

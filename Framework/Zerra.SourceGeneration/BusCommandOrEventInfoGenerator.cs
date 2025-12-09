@@ -37,7 +37,7 @@ namespace Zerra.SourceGeneration
             }
 
             _ = sb.Append(Environment.NewLine).Append("            ");
-            _ = sb.Append("global::Zerra.SourceGeneration.Register.CommandOrEventInfo(").Append(typeOfName).Append(", \"").Append(niceName).Append("\", [");
+            _ = sb.Append("global::Zerra.Reflection.Register.CommandOrEventInfo(").Append(typeOfName).Append(", \"").Append(niceName).Append("\", [");
 
             var hasFirst = false;
             foreach (var commandType in commandTypes)

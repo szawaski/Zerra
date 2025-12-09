@@ -7,7 +7,6 @@ using System.Net.Http.Headers;
 using Zerra.Logging;
 using Zerra.Serialization;
 using Zerra.Serialization.Json;
-using Zerra.SourceGeneration;
 
 namespace Zerra.CQRS.Network
 {

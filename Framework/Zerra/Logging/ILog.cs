@@ -2,6 +2,8 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using Zerra.Legacy;
+
 namespace Zerra.Logging
 {
     /// <summary>

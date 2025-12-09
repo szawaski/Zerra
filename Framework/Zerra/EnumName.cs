@@ -7,7 +7,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Zerra.Collections;
-using Zerra.SourceGeneration.Types;
+using Zerra.Reflection;
 
 /// <summary>
 /// An attribute for Enum values for a string represention.  Provides methods to convert Enums to strings and back.

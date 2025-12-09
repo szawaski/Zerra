@@ -4,6 +4,7 @@
 
 using System.Runtime.CompilerServices;
 using Zerra.Collections;
+using Zerra.Reflection;
 using Zerra.Serialization.Bytes.Converters.Collections;
 using Zerra.Serialization.Bytes.Converters.Collections.Collections;
 using Zerra.Serialization.Bytes.Converters.Collections.Dictionaries;
@@ -24,8 +25,6 @@ using Zerra.Serialization.Bytes.Converters.CoreTypes.ListTs;
 using Zerra.Serialization.Bytes.Converters.CoreTypes.Values;
 using Zerra.Serialization.Bytes.Converters.General;
 using Zerra.Serialization.Bytes.Converters.Special;
-using Zerra.SourceGeneration;
-using Zerra.SourceGeneration.Types;
 
 namespace Zerra.Serialization.Bytes.Converters
 {

@@ -2,9 +2,9 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using Zerra.Reflection;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
-using Zerra.SourceGeneration;
 
 namespace Zerra.Serialization.Json.Converters.Collections.Enumerables
 {

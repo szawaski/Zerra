@@ -2,9 +2,9 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using Zerra.Reflection;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
-using Zerra.SourceGeneration;
 
 namespace Zerra.Serialization.Json.Converters.General
 {
@@ -33,7 +33,7 @@ namespace Zerra.Serialization.Json.Converters.General
                         return false;
                     }
 
-                    value = TypeHelper.GetTypeFromName(str);
+                    value = TypeFinder.GetTypeFromName(str);
                     return true;
                 case JsonValueType.Number:
                     if (state.ErrorOnTypeMismatch)

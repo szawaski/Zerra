@@ -47,7 +47,7 @@ namespace Zerra.SourceGeneration
                 BusRouterGenerator.Generate(context, ns, sbInitializer, symbol);
                 BusHandlerGenerator.Generate(sbInitializer, symbol);
                 BusCommandOrEventInfoGenerator.Generate(sbInitializer, symbol);
-                TypeHelperGenerator.Generate(sbInitializer, symbol);
+                TypeFinderGenerator.Generate(sbInitializer, symbol);
                 EnumGenerator.Generate(sbInitializer, symbol);
             }
             TypesGenerator.Generate(sbInitializer, typesToGenerate);

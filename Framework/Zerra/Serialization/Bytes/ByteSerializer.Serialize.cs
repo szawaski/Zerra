@@ -4,10 +4,10 @@
 
 using System.Runtime.CompilerServices;
 using Zerra.Buffers;
+using Zerra.Reflection;
 using Zerra.Serialization.Bytes.Converters;
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;
-using Zerra.SourceGeneration;
 
 namespace Zerra.Serialization.Bytes
 {

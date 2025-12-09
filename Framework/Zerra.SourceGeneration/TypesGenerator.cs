@@ -11,7 +11,6 @@ namespace Zerra.SourceGeneration
 {
     public static class TypesGenerator
     {
-        private static readonly string nullaleTypeName = typeof(Nullable<>).Name;
         private static readonly string iEnumberableTypeName = nameof(IEnumerable);
         private static readonly string iEnumberableGenericTypeName = typeof(IEnumerable<>).Name;
 
@@ -55,13 +54,13 @@ namespace Zerra.SourceGeneration
                 _ = sb.Append("//").Append(Helper.GetFullName(model.TypeSymbol) + " - " + model.Source);
 
                 _ = sb.Append(Environment.NewLine).Append("            ");
-                _ = sb.Append("global::Zerra.SourceGeneration.Register.Type(new global::Zerra.SourceGeneration.Types.TypeDetail<").Append(model.TypeName).Append(">(");
+                _ = sb.Append("global::Zerra.Reflection.Register.Type(new global::Zerra.Reflection.TypeDetail<").Append(model.TypeName).Append(">(");
 
                 GenerateMembers(sb, isCoreType, model.TypeName, namedTypeSymbol, symbolMembers);
 
                 _ = sb.Append(", ");
 
-                GenerateConstructors(sb, isCoreType, namedTypeSymbol, symbolMembers);
+                GenerateConstructors(sb, isCoreType, model.TypeName, namedTypeSymbol, symbolMembers);
 
                 _ = sb.Append(", ");
 
@@ -115,10 +114,15 @@ namespace Zerra.SourceGeneration
                     if (isExplicitFromInterface)
                         continue;
 
-                    //<{property.Name}>k__BackingField
-                    //<{property.Name}>i__Field
+                    //try backing field pattern <{property.Name}>k__BackingField or <{property.Name}>i__Field
                     var backingName = $"<{property.Name}>";
                     var backingField = fields.FirstOrDefault(x => x.Name.StartsWith(backingName));
+                    //try same name without underscores case insensitive
+                    if (backingField == null)
+                    {
+                        var propertyNameLower = property.Name.Replace("_", "").ToLowerInvariant();
+                        backingField ??= fields.FirstOrDefault(x => x.Name.Replace("_", "").ToLowerInvariant() == propertyNameLower);
+                    }
                     var isBacked = backingField != null;
 
                     if (hasFirst)
@@ -130,7 +134,7 @@ namespace Zerra.SourceGeneration
 
                     _ = sb.Append(Environment.NewLine).Append("                ");
 
-                    _ = sb.Append("new global::Zerra.SourceGeneration.Types.MemberDetail<").Append(propertyTypeName).Append(">(");
+                    _ = sb.Append("new global::Zerra.Reflection.MemberDetail<").Append(propertyTypeName).Append(">(");
                     _ = sb.Append(Helper.GetTypeOfName(namedTypeSymbol)).Append(", ");
                     _ = sb.Append("\"").Append(propertyName).Append("\", false, ");
                     if (property.GetMethod != null && property.GetMethod.DeclaredAccessibility == Accessibility.Public)
@@ -188,7 +192,7 @@ namespace Zerra.SourceGeneration
 
                     _ = sb.Append(Environment.NewLine).Append("                ");
 
-                    _ = sb.Append("new global::Zerra.SourceGeneration.Types.MemberDetail<").Append(fieldTypeName).Append(">(");
+                    _ = sb.Append("new global::Zerra.Reflection.MemberDetail<").Append(fieldTypeName).Append(">(");
                     _ = sb.Append(Helper.GetTypeOfName(namedTypeSymbol)).Append(", ");
                     _ = sb.Append("\"").Append(@field.Name).Append("\", true, ");
 
@@ -232,16 +236,68 @@ namespace Zerra.SourceGeneration
 
             _ = sb.Append("]");
         }
-        private static void GenerateConstructors(StringBuilder sb, bool isCoreType, INamedTypeSymbol? namedTypeSymbol, ImmutableArray<ISymbol> symbolMembers)
+        private static void GenerateConstructors(StringBuilder sb, bool isCoreType, string typeName, INamedTypeSymbol? namedTypeSymbol, ImmutableArray<ISymbol> symbolMembers)
         {
             _ = sb.Append("[");
 
             if (!isCoreType && namedTypeSymbol != null)
             {
                 var constructors = TypeFinder.GetConstructors(namedTypeSymbol, symbolMembers);
+                var hasFirst = false;
                 foreach (var constructor in constructors)
                 {
-                    //TODO Constructors
+                    if (constructor.DeclaredAccessibility != Accessibility.Public)
+                        continue;
+                    if (constructor.Parameters.Any(x => x.Type.IsRefLikeType || x.RefKind == RefKind.Out))
+                        continue;
+
+                    if (hasFirst)
+                        _ = sb.Append(", ");
+                    else
+                        hasFirst = true;
+
+                    _ = sb.Append(Environment.NewLine).Append("                ");
+
+                    _ = sb.Append("new global::Zerra.Reflection.ConstructorDetail<").Append(typeName).Append(">(");
+
+                    GenerateParameters(sb, constructor.Parameters);
+                    sb.Append(", ");
+
+
+                    _ = sb.Append("static (object?[]? args) => new ").Append(typeName).Append("(");
+                    foreach (var parameter in constructor.Parameters)
+                    {
+                        var parameterTypeName = Helper.GetFullName(parameter.Type);
+                        if (parameter.Ordinal > 0)
+                            _ = sb.Append(", ");
+
+                        _ = parameter.RefKind switch
+                        {
+                            RefKind.Ref => sb.Append("ref (").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!"),
+                            RefKind.In => sb.Append("in (").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!"),
+                            RefKind.Out => sb.Append("out args![").Append(parameter.Ordinal).Append("]!"),
+                            _ => sb.Append("(").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!"),
+                        };
+                    }
+
+                    _ = sb.Append("), ");
+
+                    _ = sb.Append("static (object?[]? args) => new ").Append(typeName).Append("(");
+                    foreach (var parameter in constructor.Parameters)
+                    {
+                        var parameterTypeName = Helper.GetFullName(parameter.Type);
+                        if (parameter.Ordinal > 0)
+                            _ = sb.Append(", ");
+
+                        _ = parameter.RefKind switch
+                        {
+                            RefKind.Ref => sb.Append("ref (").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!"),
+                            RefKind.In => sb.Append("in (").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!"),
+                            RefKind.Out => sb.Append("out args![").Append(parameter.Ordinal).Append("]!"),
+                            _ => sb.Append("(").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!"),
+                        };
+                    }
+                    _ = sb.Append("))");
                 }
             }
 
@@ -284,7 +340,7 @@ namespace Zerra.SourceGeneration
 
                     _ = sb.Append(Environment.NewLine).Append("                ");
 
-                    _ = sb.Append("new global::Zerra.SourceGeneration.Types.MethodDetail<").Append(methodReturnTypeName).Append(">(");
+                    _ = sb.Append("new global::Zerra.Reflection.MethodDetail<").Append(methodReturnTypeName).Append(">(");
                     _ = sb.Append(Helper.GetTypeOfName(namedTypeSymbol)).Append(", ");
                     _ = sb.Append("\"").Append(methodName).Append("\", ");
 
@@ -339,23 +395,13 @@ namespace Zerra.SourceGeneration
                             if (parameter.Ordinal > 0)
                                 _ = sb.Append(", ");
 
-                            switch (parameter.RefKind)
+                            _ = parameter.RefKind switch
                             {
-                                case RefKind.Ref:
-                                    _ = sb.Append("ref (").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!");
-                                    break;
-                                case RefKind.In:
-                                    _ = sb.Append("in (").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!");
-                                    break;
-                                case RefKind.Out:
-                                    _ = sb.Append("out args![").Append(parameter.Ordinal).Append("]!");
-                                    break;
-                                case RefKind.None:
-                                default:
-                                    _ = sb.Append("(").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!");
-                                    break;
-                            }
-
+                                RefKind.Ref => sb.Append("ref (").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!"),
+                                RefKind.In => sb.Append("in (").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!"),
+                                RefKind.Out => sb.Append("out args![").Append(parameter.Ordinal).Append("]!"),
+                                _ => sb.Append("(").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!"),
+                            };
                         }
                         _ = sb.Append(")");
                         if (isVoid)
@@ -372,22 +418,13 @@ namespace Zerra.SourceGeneration
                             if (parameter.Ordinal > 0)
                                 _ = sb.Append(", ");
 
-                            switch (parameter.RefKind)
+                            _ = parameter.RefKind switch
                             {
-                                case RefKind.Ref:
-                                    _ = sb.Append("ref (").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!");
-                                    break;
-                                case RefKind.In:
-                                    _ = sb.Append("in (").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!");
-                                    break;
-                                case RefKind.Out:
-                                    _ = sb.Append("out args![").Append(parameter.Ordinal).Append("]!");
-                                    break;
-                                case RefKind.None:
-                                default:
-                                    _ = sb.Append("(").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!");
-                                    break;
-                            }
+                                RefKind.Ref => sb.Append("ref (").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!"),
+                                RefKind.In => sb.Append("in (").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!"),
+                                RefKind.Out => sb.Append("out args![").Append(parameter.Ordinal).Append("]!"),
+                                _ => sb.Append("(").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!"),
+                            };
                         }
                         _ = sb.Append(")");
                         if (isVoid)
@@ -418,22 +455,22 @@ namespace Zerra.SourceGeneration
                 if (namedTypeSymbol.Constructors.Any(x => x.Parameters.Length == 0))
                 {
                     _ = sb.Append(Environment.NewLine).Append("                ");
-                    _ = sb.Append("() => new ").Append(typeName).Append("(), ");
-                    _ = sb.Append("() => new ").Append(typeName).Append("()");
+                    _ = sb.Append("static () => new ").Append(typeName).Append("(), ");
+                    _ = sb.Append("static () => new ").Append(typeName).Append("()");
                     return;
                 }
                 else if (namedTypeSymbol.IsValueType)
                 {
                     _ = sb.Append(Environment.NewLine).Append("                ");
-                    _ = sb.Append("() => default(").Append(typeName).Append(")!, ");
-                    _ = sb.Append("() => default(").Append(typeName).Append(")!");
+                    _ = sb.Append("static () => default(").Append(typeName).Append(")!, ");
+                    _ = sb.Append("static () => default(").Append(typeName).Append(")!");
                     return;
                 }
                 else if (namedTypeSymbol.Name == "String")
                 {
                     _ = sb.Append(Environment.NewLine).Append("                ");
-                    _ = sb.Append("() => string.Empty, ");
-                    _ = sb.Append("() => string.Empty");
+                    _ = sb.Append("static () => string.Empty, ");
+                    _ = sb.Append("static () => string.Empty");
                     return;
                 }
             }
@@ -571,9 +608,9 @@ namespace Zerra.SourceGeneration
             _ = sb.Append(Environment.NewLine).Append("                ");
 
             _ = sb.Append(Helper.BoolString(isNullable)).Append(", ");
-            _ = sb.Append(coreType != null ? "global::Zerra.SourceGeneration.Types.CoreType." + coreType.Value.ToString() : "null").Append(", ");
-            _ = sb.Append(specialType != null ? "global::Zerra.SourceGeneration.Types.SpecialType." + specialType.Value.ToString() : "null").Append(", ");
-            _ = sb.Append(enumType != null ? "global::Zerra.SourceGeneration.Types.CoreEnumType." + enumType.Value.ToString() : "null").Append(", ");
+            _ = sb.Append(coreType != null ? "global::Zerra.Reflection.CoreType." + coreType.Value.ToString() : "null").Append(", ");
+            _ = sb.Append(specialType != null ? "global::Zerra.Reflection.SpecialType." + specialType.Value.ToString() : "null").Append(", ");
+            _ = sb.Append(enumType != null ? "global::Zerra.Reflection.CoreEnumType." + enumType.Value.ToString() : "null").Append(", ");
 
             _ = sb.Append(Helper.BoolString(hasIEnumerable)).Append(", ");
             _ = sb.Append(Helper.BoolString(hasIEnumerableGeneric)).Append(", ");
@@ -763,7 +800,7 @@ namespace Zerra.SourceGeneration
                     hasFirst = true;
                 var typeOfName = Helper.GetTypeOfName(parameterSymbol.Type);
 
-                _ = sb.Append("new global::Zerra.SourceGeneration.Types.ParameterDetail(").Append(typeOfName).Append(", \"").Append(parameterSymbol.Name).Append("\")");
+                _ = sb.Append("new global::Zerra.Reflection.ParameterDetail(").Append(typeOfName).Append(", \"").Append(parameterSymbol.Name).Append("\")");
             }
 
             _ = sb.Append("]");

@@ -8,7 +8,6 @@ using Zerra.Logging;
 using System.Security.Claims;
 using Zerra.Buffers;
 using Zerra.Serialization;
-using Zerra.SourceGeneration;
 
 namespace Zerra.CQRS.Network
 {

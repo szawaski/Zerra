@@ -5,8 +5,7 @@
 using System.Runtime.CompilerServices;
 using Zerra.Serialization.Json.State;
 using Zerra.Serialization.Json.IO;
-using Zerra.SourceGeneration;
-using Zerra.SourceGeneration.Types;
+using Zerra.Reflection;
 
 namespace Zerra.Serialization.Json.Converters
 {

@@ -2,8 +2,8 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using Zerra.Reflection;
 using Zerra.Serialization;
-using Zerra.SourceGeneration;
 
 namespace Zerra.CQRS.Network
 {
@@ -47,7 +47,7 @@ namespace Zerra.CQRS.Network
             {
                 try
                 {
-                    var type = TypeHelper.GetTypeFromName(content.ErrorType);
+                    var type = TypeFinder.GetTypeFromName(content.ErrorType);
 
                     if (type == null)
                         return new RemoteServiceException(content?.ErrorMessage, ex);
@@ -99,7 +99,7 @@ namespace Zerra.CQRS.Network
             {
                 try
                 {
-                    var type = TypeHelper.GetTypeFromName(content.ErrorType);
+                    var type = TypeFinder.GetTypeFromName(content.ErrorType);
 
                     if (type == null)
                         return new RemoteServiceException(content?.ErrorMessage, ex);

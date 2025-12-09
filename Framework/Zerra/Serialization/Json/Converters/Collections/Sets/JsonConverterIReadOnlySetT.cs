@@ -4,9 +4,9 @@
 
 #if NET5_0_OR_GREATER
 
+using Zerra.Reflection;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
-using Zerra.SourceGeneration;
 
 namespace Zerra.Serialization.Json.Converters.Collections.Sets
 {

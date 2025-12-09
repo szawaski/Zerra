@@ -3,7 +3,7 @@
 // Licensed to you under the MIT license
 
 using Xunit;
-using Zerra.SourceGeneration;
+using Zerra.Reflection;
 using Zerra.Test.Helpers.Models;
 
 namespace Zerra.Test.SourceGeneration

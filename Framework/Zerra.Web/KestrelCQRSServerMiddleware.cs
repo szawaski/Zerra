@@ -10,9 +10,9 @@ using Zerra.CQRS;
 using Zerra.CQRS.Network;
 using Zerra.Encryption;
 using Zerra.Logging;
+using Zerra.Reflection;
 using Zerra.Serialization;
 using Zerra.Serialization.Json;
-using Zerra.SourceGeneration;
 
 namespace Zerra.Web
 {
@@ -197,7 +197,7 @@ namespace Zerra.Web
                     if (data.ProviderArguments is null) throw new Exception("Invalid Request");
                     if (String.IsNullOrWhiteSpace(data.Source)) throw new Exception("Invalid Request");
 
-                    var providerType = TypeHelper.GetTypeFromName(data.ProviderType);
+                    var providerType = TypeFinder.GetTypeFromName(data.ProviderType);
 
                     if (!settings.Types.TryGetValue(providerType, out throttle))
                         throw new Exception($"{providerType.Name} is not registered with {nameof(KestrelCqrsServerMiddleware)}");
@@ -305,7 +305,7 @@ namespace Zerra.Web
                     if (data.MessageData is null) throw new Exception("Invalid Request");
                     if (String.IsNullOrWhiteSpace(data.Source)) throw new Exception("Invalid Request");
 
-                    var messageType = TypeHelper.GetTypeFromName(data.MessageType);
+                    var messageType = TypeFinder.GetTypeFromName(data.MessageType);
                     var typeDetail = TypeAnalyzer.GetTypeDetail(messageType);
 
                     if (!settings.Types.TryGetValue(messageType, out throttle))

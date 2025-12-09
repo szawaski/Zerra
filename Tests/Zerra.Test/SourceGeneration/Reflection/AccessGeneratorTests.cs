@@ -1,6 +1,6 @@
 ﻿using System.Reflection;
 using Xunit;
-using Zerra.SourceGeneration.Reflection;
+using Zerra.Reflection.Dynamic;
 
 namespace Zerra.Test.SourceGeneration.Reflection
 {

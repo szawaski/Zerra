@@ -2,11 +2,9 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Zerra.SourceGeneration;
-
 namespace Zerra.Test.Helpers.TypesModels
 {
-    [GenerateTypeDetail]
+    [Zerra.Reflection.GenerateTypeDetail]
     public class TypesCoreAlternatingModel
     {
         public bool BooleanThing { get; set; }

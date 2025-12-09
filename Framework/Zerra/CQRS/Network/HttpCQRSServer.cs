@@ -6,9 +6,10 @@ using System.Net.Sockets;
 using System.Security.Claims;
 using Zerra.Encryption;
 using Zerra.Buffers;
-using Zerra.SourceGeneration;
 using Zerra.Logging;
 using Zerra.Serialization;
+using Zerra.Reflection;
+using Zerra.CQRS.Reflection;
 
 namespace Zerra.CQRS.Network
 {
@@ -179,7 +180,7 @@ namespace Zerra.CQRS.Network
                             if (String.IsNullOrWhiteSpace(data.Source)) throw new Exception("Invalid Request");
                             if (requestHeader.ProviderType != data.ProviderType) throw new Exception("Invalid Request");
 
-                            var providerType = TypeHelper.GetTypeFromName(data.ProviderType);
+                            var providerType = TypeFinder.GetTypeFromName(data.ProviderType);
 
                             if (!this.types.Contains(providerType))
                                 throw new CqrsNetworkException($"Unhandled Provider Type {providerType.FullName}");
@@ -278,7 +279,7 @@ namespace Zerra.CQRS.Network
                             if (String.IsNullOrWhiteSpace(data.Source)) throw new Exception("Invalid Request");
                             if (requestHeader.ProviderType != data.MessageType) throw new Exception("Invalid Request");
 
-                            var messageType = TypeHelper.GetTypeFromName(data.MessageType);
+                            var messageType = TypeFinder.GetTypeFromName(data.MessageType);
 
                             if (!this.types.Contains(messageType))
                                 throw new CqrsNetworkException($"Unhandled Message Type {messageType.FullName}");

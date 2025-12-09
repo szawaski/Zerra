@@ -6,7 +6,7 @@ using Zerra.Test.Helpers.Models;
 
 namespace Zerra.Test.Helpers.TypesModels
 {
-    [Zerra.SourceGeneration.GenerateTypeDetail]
+    [Zerra.Reflection.GenerateTypeDetail]
     public class TypesIReadOnlyCollectionTModel
     {
         public IReadOnlyCollection<bool> BooleanIReadOnlyCollectionT { get; set; }
