@@ -16,6 +16,15 @@ namespace Zerra.Serialization.Json
     {
         private static ReadOnlyMemory<byte> nullBytes = Encoding.UTF8.GetBytes("null");
 
+        /// <summary>
+        /// Serializes an object to a JSON string using the default or provided serialization options.
+        /// </summary>
+        /// <typeparam name="T">The type of the object to serialize.</typeparam>
+        /// <param name="obj">The object to serialize. If null, returns "null".</param>
+        /// <param name="options">Optional serialization options. If null, uses default options.</param>
+        /// <param name="graph">Optional graph for handling circular references. If null, no circular reference detection is performed.</param>
+        /// <returns>A JSON string representation of the object, or "null" if the object is null.</returns>
+        /// <exception cref="EndOfStreamException">Thrown if there is insufficient space for serialization.</exception>
         public static string Serialize<T>(T? obj, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (obj is null)
@@ -35,6 +44,15 @@ namespace Zerra.Serialization.Json
 
             return result;
         }
+
+        /// <summary>
+        /// Serializes an object to a JSON string using its runtime type and the default or provided serialization options.
+        /// </summary>
+        /// <param name="obj">The object to serialize. If null, returns "null".</param>
+        /// <param name="options">Optional serialization options. If null, uses default options.</param>
+        /// <param name="graph">Optional graph for handling circular references. If null, no circular reference detection is performed.</param>
+        /// <returns>A JSON string representation of the object, or "null" if the object is null.</returns>
+        /// <exception cref="EndOfStreamException">Thrown if there is insufficient space for serialization.</exception>
         public static string Serialize(object? obj, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (obj is null)
@@ -55,6 +73,17 @@ namespace Zerra.Serialization.Json
             return result;
 
         }
+
+        /// <summary>
+        /// Serializes an object to a JSON string using the specified type and the default or provided serialization options.
+        /// </summary>
+        /// <param name="obj">The object to serialize. If null, returns "null".</param>
+        /// <param name="type">The type to use for serialization. Must not be null.</param>
+        /// <param name="options">Optional serialization options. If null, uses default options.</param>
+        /// <param name="graph">Optional graph for handling circular references. If null, no circular reference detection is performed.</param>
+        /// <returns>A JSON string representation of the object, or "null" if the object is null.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if type is null.</exception>
+        /// <exception cref="EndOfStreamException">Thrown if there is insufficient space for serialization.</exception>
         public static string Serialize(object? obj, Type type, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (type is null)
@@ -77,6 +106,15 @@ namespace Zerra.Serialization.Json
             return result;
         }
 
+        /// <summary>
+        /// Serializes an object to a UTF-8 encoded byte array using the default or provided serialization options.
+        /// </summary>
+        /// <typeparam name="T">The type of the object to serialize.</typeparam>
+        /// <param name="obj">The object to serialize. If null, returns the UTF-8 encoding of "null".</param>
+        /// <param name="options">Optional serialization options. If null, uses default options.</param>
+        /// <param name="graph">Optional graph for handling circular references. If null, no circular reference detection is performed.</param>
+        /// <returns>A byte array containing the JSON representation of the object, or the encoding of "null" if the object is null.</returns>
+        /// <exception cref="EndOfStreamException">Thrown if there is insufficient space for serialization.</exception>
         public static byte[] SerializeBytes<T>(T? obj, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (obj is null)
@@ -96,6 +134,15 @@ namespace Zerra.Serialization.Json
 
             return result;
         }
+
+        /// <summary>
+        /// Serializes an object to a UTF-8 encoded byte array using its runtime type and the default or provided serialization options.
+        /// </summary>
+        /// <param name="obj">The object to serialize. If null, returns the UTF-8 encoding of "null".</param>
+        /// <param name="options">Optional serialization options. If null, uses default options.</param>
+        /// <param name="graph">Optional graph for handling circular references. If null, no circular reference detection is performed.</param>
+        /// <returns>A byte array containing the JSON representation of the object, or the encoding of "null" if the object is null.</returns>
+        /// <exception cref="EndOfStreamException">Thrown if there is insufficient space for serialization.</exception>
         public static byte[] SerializeBytes(object? obj, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (obj is null)
@@ -116,6 +163,17 @@ namespace Zerra.Serialization.Json
             return result;
 
         }
+
+        /// <summary>
+        /// Serializes an object to a UTF-8 encoded byte array using the specified type and the default or provided serialization options.
+        /// </summary>
+        /// <param name="obj">The object to serialize. If null, returns the UTF-8 encoding of "null".</param>
+        /// <param name="type">The type to use for serialization. Must not be null.</param>
+        /// <param name="options">Optional serialization options. If null, uses default options.</param>
+        /// <param name="graph">Optional graph for handling circular references. If null, no circular reference detection is performed.</param>
+        /// <returns>A byte array containing the JSON representation of the object, or the encoding of "null" if the object is null.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if type is null.</exception>
+        /// <exception cref="EndOfStreamException">Thrown if there is insufficient space for serialization.</exception>
         public static byte[] SerializeBytes(object? obj, Type type, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (type is null)
@@ -138,6 +196,15 @@ namespace Zerra.Serialization.Json
             return result;
         }
 
+        /// <summary>
+        /// Serializes an object to a stream as JSON using the default or provided serialization options.
+        /// </summary>
+        /// <typeparam name="T">The type of the object to serialize.</typeparam>
+        /// <param name="stream">The stream to write the JSON to. Must not be null.</param>
+        /// <param name="obj">The object to serialize. If null, no data is written.</param>
+        /// <param name="options">Optional serialization options. If null, uses default options.</param>
+        /// <param name="graph">Optional graph for handling circular references. If null, no circular reference detection is performed.</param>
+        /// <exception cref="ArgumentNullException">Thrown if stream is null.</exception>
         public static void Serialize<T>(Stream stream, T? obj, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (stream is null)
@@ -180,6 +247,15 @@ namespace Zerra.Serialization.Json
                 ArrayPoolHelper<byte>.Return(buffer);
             }
         }
+
+        /// <summary>
+        /// Serializes an object to a stream as JSON using its runtime type and the default or provided serialization options.
+        /// </summary>
+        /// <param name="stream">The stream to write the JSON to. Must not be null.</param>
+        /// <param name="obj">The object to serialize. If null, no data is written.</param>
+        /// <param name="options">Optional serialization options. If null, uses default options.</param>
+        /// <param name="graph">Optional graph for handling circular references. If null, no circular reference detection is performed.</param>
+        /// <exception cref="ArgumentNullException">Thrown if stream is null.</exception>
         public static void Serialize(Stream stream, object? obj, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (stream is null)
@@ -222,6 +298,16 @@ namespace Zerra.Serialization.Json
                 ArrayPoolHelper<byte>.Return(buffer);
             }
         }
+
+        /// <summary>
+        /// Serializes an object to a stream as JSON using the specified type and the default or provided serialization options.
+        /// </summary>
+        /// <param name="stream">The stream to write the JSON to. Must not be null.</param>
+        /// <param name="obj">The object to serialize. If null, no data is written.</param>
+        /// <param name="type">The type to use for serialization. Must not be null.</param>
+        /// <param name="options">Optional serialization options. If null, uses default options.</param>
+        /// <param name="graph">Optional graph for handling circular references. If null, no circular reference detection is performed.</param>
+        /// <exception cref="ArgumentNullException">Thrown if stream or type is null.</exception>
         public static void Serialize(Stream stream, object? obj, Type type, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (stream is null)
@@ -267,6 +353,17 @@ namespace Zerra.Serialization.Json
             }
         }
 
+        /// <summary>
+        /// Asynchronously serializes an object to a stream as JSON using the default or provided serialization options.
+        /// </summary>
+        /// <typeparam name="T">The type of the object to serialize.</typeparam>
+        /// <param name="stream">The stream to write the JSON to. Must not be null.</param>
+        /// <param name="obj">The object to serialize. If null, writes "null" to the stream.</param>
+        /// <param name="options">Optional serialization options. If null, uses default options.</param>
+        /// <param name="graph">Optional graph for handling circular references. If null, no circular reference detection is performed.</param>
+        /// <param name="cancellationToken">A token to cancel the asynchronous operation.</param>
+        /// <returns>A task that represents the asynchronous serialization operation.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if stream is null.</exception>
         public static async Task SerializeAsync<T>(Stream stream, T? obj, JsonSerializerOptions? options = null, Graph? graph = null, CancellationToken cancellationToken = default)
         {
             if (stream is null)
@@ -316,6 +413,17 @@ namespace Zerra.Serialization.Json
                 ArrayPoolHelper<byte>.Return(buffer);
             }
         }
+
+        /// <summary>
+        /// Asynchronously serializes an object to a stream as JSON using its runtime type and the default or provided serialization options.
+        /// </summary>
+        /// <param name="stream">The stream to write the JSON to. Must not be null.</param>
+        /// <param name="obj">The object to serialize. If null, writes "null" to the stream.</param>
+        /// <param name="options">Optional serialization options. If null, uses default options.</param>
+        /// <param name="graph">Optional graph for handling circular references. If null, no circular reference detection is performed.</param>
+        /// <param name="cancellationToken">A token to cancel the asynchronous operation.</param>
+        /// <returns>A task that represents the asynchronous serialization operation.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if stream is null.</exception>
         public static async Task SerializeAsync(Stream stream, object? obj, JsonSerializerOptions? options = null, Graph? graph = null, CancellationToken cancellationToken = default)
         {
             if (stream is null)
@@ -365,6 +473,18 @@ namespace Zerra.Serialization.Json
                 ArrayPoolHelper<byte>.Return(buffer);
             }
         }
+
+        /// <summary>
+        /// Asynchronously serializes an object to a stream as JSON using the specified type and the default or provided serialization options.
+        /// </summary>
+        /// <param name="stream">The stream to write the JSON to. Must not be null.</param>
+        /// <param name="obj">The object to serialize. If null, writes "null" to the stream.</param>
+        /// <param name="type">The type to use for serialization. Must not be null.</param>
+        /// <param name="options">Optional serialization options. If null, uses default options.</param>
+        /// <param name="graph">Optional graph for handling circular references. If null, no circular reference detection is performed.</param>
+        /// <param name="cancellationToken">A token to cancel the asynchronous operation.</param>
+        /// <returns>A task that represents the asynchronous serialization operation.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if stream or type is null.</exception>
         public static async Task SerializeAsync(Stream stream, object? obj, Type type, JsonSerializerOptions? options = null, Graph? graph = null, CancellationToken cancellationToken = default)
         {
             if (stream is null)

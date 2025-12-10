@@ -2,7 +2,7 @@
 using Xunit;
 using Zerra.Reflection.Dynamic;
 
-namespace Zerra.Test.SourceGeneration.Reflection
+namespace Zerra.Test.Reflection.Dynamic
 {
     public class AccessGeneratorTests
     {

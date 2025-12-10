@@ -2,7 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-namespace Zerra.Test.SourceGeneration.Reflection
+namespace Zerra.Test.Reflection.Dynamic
 {
     public class TestAccessorModel
     {

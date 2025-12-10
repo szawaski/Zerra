@@ -4,6 +4,9 @@
 
 namespace Zerra.Serialization.Bytes
 {
+    /// <summary>
+    /// Options for configuring byte serialization and deserialization behavior.
+    /// </summary>
     public sealed class ByteSerializerOptions
     {
         /// <summary>

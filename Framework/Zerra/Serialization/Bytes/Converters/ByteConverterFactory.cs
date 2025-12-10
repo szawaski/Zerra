@@ -28,15 +28,35 @@ using Zerra.Serialization.Bytes.Converters.Special;
 
 namespace Zerra.Serialization.Bytes.Converters
 {
+    /// <summary>
+    /// Factory for creating and caching <see cref="ByteConverter"/> instances for various types.
+    /// </summary>
+    /// <remarks>
+    /// This factory uses dynamic code generation to create converters for types that don't have explicit implementations.
+    /// Converters are cached both by type and by member key to improve performance.
+    /// </remarks>
     public static class ByteConverterFactory
     {
         private static readonly ConcurrentFactoryDictionary<Type, Func<ByteConverter>> creators = new();
         private static readonly ConcurrentFactoryDictionary<Type, ConcurrentFactoryDictionary<string, ByteConverter>> cache = new();
         private static ByteConverterTypeRequired? cacheByteConverterTypeInfo;
 
+        /// <summary>
+        /// Gets or creates the root <see cref="ByteConverter"/> for the specified type detail.
+        /// </summary>
+        /// <param name="typeDetail">The type detail describing the type to create a converter for.</param>
+        /// <returns>A <see cref="ByteConverter"/> instance for the specified type.</returns>
         internal static ByteConverter GetRoot(TypeDetail typeDetail)
              => Get(typeDetail, "Root", null, null);
 
+        /// <summary>
+        /// Gets or creates a <see cref="ByteConverter"/> for the specified type detail and member information.
+        /// </summary>
+        /// <param name="typeDetail">The type detail describing the type to create a converter for.</param>
+        /// <param name="memberKey">A unique key identifying the member being converted.</param>
+        /// <param name="getter">An optional delegate for getting the value from an object.</param>
+        /// <param name="setter">An optional delegate for setting the value on an object.</param>
+        /// <returns>A <see cref="ByteConverter"/> instance configured for the specified member.</returns>
         public static ByteConverter Get(TypeDetail typeDetail, string memberKey, Delegate? getter, Delegate? setter)
         {
             var cache2 = cache.GetOrAdd(typeDetail.Type, static () => new());
@@ -50,11 +70,20 @@ namespace Zerra.Serialization.Bytes.Converters
             return converter;
         }
 
+        /// <summary>
+        /// Registers a custom converter creator for a specific type.
+        /// </summary>
+        /// <param name="converterType">The type for which to register the converter.</param>
+        /// <param name="converter">A factory function that creates instances of the converter.</param>
         internal static void AddConverter(Type converterType, Func<ByteConverter> converter)
         {
             creators[converterType] = converter;
         }
 
+        /// <summary>
+        /// Gets or creates a drain converter that discards bytes without processing them.
+        /// </summary>
+        /// <returns>A <see cref="ByteConverter"/> instance for draining bytes.</returns>
         internal static ByteConverter GetDrainBytes()
         {
             if (cacheByteConverterTypeInfo is null)

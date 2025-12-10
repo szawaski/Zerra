@@ -6,7 +6,7 @@ using Xunit;
 using Zerra.Reflection;
 using Zerra.Test.Helpers.Models;
 
-namespace Zerra.Test.SourceGeneration
+namespace Zerra.Test.Reflection
 {
     public class EmptyImplementationsTest
     {

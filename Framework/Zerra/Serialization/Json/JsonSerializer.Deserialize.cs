@@ -14,12 +14,41 @@ namespace Zerra.Serialization.Json
     public partial class JsonSerializer
     {
 #if NETSTANDARD2_0
+        /// <summary>
+        /// Deserializes a JSON string to an object of the specified type using the default or provided deserialization options.
+        /// </summary>
+        /// <typeparam name="T">The type to deserialize to.</typeparam>
+        /// <param name="str">The JSON string containing the serialized data. If null or empty, returns the default value for the type.</param>
+        /// <param name="options">Optional deserialization options. If null, uses default options.</param>
+        /// <param name="graph">Optional graph for handling circular references. If null, no circular reference detection is performed.</param>
+        /// <returns>The deserialized object, or the default value if the string is null or empty.</returns>
+        /// <exception cref="EndOfStreamException">Thrown if the data is invalid or incomplete.</exception>
         public static T? Deserialize<T>(string? str, JsonSerializerOptions? options = null, Graph? graph = null)
             => Deserialize<T>(str.AsSpan(), options, graph);
+
+        /// <summary>
+        /// Deserializes a JSON string to an object of the specified type using the default or provided deserialization options.
+        /// </summary>
+        /// <param name="type">The type to deserialize to. Must not be null.</param>
+        /// <param name="str">The JSON string containing the serialized data. If null or empty, returns null.</param>
+        /// <param name="options">Optional deserialization options. If null, uses default options.</param>
+        /// <param name="graph">Optional graph for handling circular references. If null, no circular reference detection is performed.</param>
+        /// <returns>The deserialized object, or null if the string is null or empty.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if type is null.</exception>
+        /// <exception cref="EndOfStreamException">Thrown if the data is invalid or incomplete.</exception>
         public static object? Deserialize(Type type, string? str, JsonSerializerOptions? options = null, Graph? graph = null)
             => Deserialize(str.AsSpan(), type, options, graph);
 #endif
 
+        /// <summary>
+        /// Deserializes a JSON character span to an object of the specified type using the default or provided deserialization options.
+        /// </summary>
+        /// <typeparam name="T">The type to deserialize to.</typeparam>
+        /// <param name="chars">The character span containing the JSON data. If empty, returns the default value for the type or an empty string if T is string.</param>
+        /// <param name="options">Optional deserialization options. If null, uses default options.</param>
+        /// <param name="graph">Optional graph for handling circular references. If null, no circular reference detection is performed.</param>
+        /// <returns>The deserialized object, or the default value if the span is empty.</returns>
+        /// <exception cref="EndOfStreamException">Thrown if the data is invalid or incomplete.</exception>
         public static T? Deserialize<T>(ReadOnlySpan<char> chars, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (chars.Length == 0)
@@ -41,10 +70,20 @@ namespace Zerra.Serialization.Json
             _ = Read(converter, chars, ref state, out result);
 
             if (state.SizeNeeded > 0)
-                throw new EndOfStreamException();
+                throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
 
             return result;
         }
+        /// <summary>
+        /// Deserializes a JSON character span to an object of the specified type using the default or provided deserialization options.
+        /// </summary>
+        /// <param name="chars">The character span containing the JSON data. If empty, returns null or an empty string if type is string.</param>
+        /// <param name="type">The type to deserialize to. Must not be null.</param>
+        /// <param name="options">Optional deserialization options. If null, uses default options.</param>
+        /// <param name="graph">Optional graph for handling circular references. If null, no circular reference detection is performed.</param>
+        /// <returns>The deserialized object, or null if the span is empty.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if type is null.</exception>
+        /// <exception cref="EndOfStreamException">Thrown if the data is invalid or incomplete.</exception>
         public static object? Deserialize(ReadOnlySpan<char> chars, Type type, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (type is null)
@@ -68,11 +107,20 @@ namespace Zerra.Serialization.Json
             _ = ReadBoxed(converter, chars, ref state, out result);
 
             if (state.SizeNeeded > 0)
-                throw new EndOfStreamException();
+                throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
 
             return result;
         }
 
+        /// <summary>
+        /// Deserializes a UTF-8 byte span to an object of the specified type using the default or provided deserialization options.
+        /// </summary>
+        /// <typeparam name="T">The type to deserialize to.</typeparam>
+        /// <param name="bytes">The byte span containing the JSON data. If empty, returns the default value for the type or an empty string if T is string.</param>
+        /// <param name="options">Optional deserialization options. If null, uses default options.</param>
+        /// <param name="graph">Optional graph for handling circular references. If null, no circular reference detection is performed.</param>
+        /// <returns>The deserialized object, or the default value if the span is empty.</returns>
+        /// <exception cref="EndOfStreamException">Thrown if the data is invalid or incomplete.</exception>
         public static T? Deserialize<T>(ReadOnlySpan<byte> bytes, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (bytes.Length == 0)
@@ -94,10 +142,20 @@ namespace Zerra.Serialization.Json
             _ = Read(converter, bytes, ref state, out result);
 
             if (state.SizeNeeded > 0)
-                throw new EndOfStreamException();
+                throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
 
             return result;
         }
+        /// <summary>
+        /// Deserializes a UTF-8 byte span to an object of the specified type using the default or provided deserialization options.
+        /// </summary>
+        /// <param name="bytes">The byte span containing the JSON data. If empty, returns null or an empty string if type is string.</param>
+        /// <param name="type">The type to deserialize to. Must not be null.</param>
+        /// <param name="options">Optional deserialization options. If null, uses default options.</param>
+        /// <param name="graph">Optional graph for handling circular references. If null, no circular reference detection is performed.</param>
+        /// <returns>The deserialized object, or null if the span is empty.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if type is null.</exception>
+        /// <exception cref="EndOfStreamException">Thrown if the data is invalid or incomplete.</exception>
         public static object? Deserialize(ReadOnlySpan<byte> bytes, Type type, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (type is null)
@@ -121,11 +179,21 @@ namespace Zerra.Serialization.Json
             _ = ReadBoxed(converter, bytes, ref state, out result);
 
             if (state.SizeNeeded > 0)
-                throw new EndOfStreamException();
+                throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
 
             return result;
         }
 
+        /// <summary>
+        /// Deserializes data from a stream to an object of the specified type using the default or provided deserialization options.
+        /// </summary>
+        /// <typeparam name="T">The type to deserialize to.</typeparam>
+        /// <param name="stream">The stream containing the JSON data. Must not be null.</param>
+        /// <param name="options">Optional deserialization options. If null, uses default options.</param>
+        /// <param name="graph">Optional graph for handling circular references. If null, no circular reference detection is performed.</param>
+        /// <returns>The deserialized object, or the default value if the stream is empty.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if stream is null.</exception>
+        /// <exception cref="EndOfStreamException">Thrown if the data is invalid or incomplete.</exception>
         public static T? Deserialize<T>(Stream stream, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (stream is null)
@@ -176,12 +244,12 @@ namespace Zerra.Serialization.Json
                     if (state.SizeNeeded == 0)
                     {
                         if (!state.IsFinalBlock)
-                            throw new EndOfStreamException();
+                            throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
                         break;
                     }
 
                     if (state.IsFinalBlock)
-                        throw new EndOfStreamException();
+                        throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
 
                     BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
@@ -206,7 +274,7 @@ namespace Zerra.Serialization.Json
                     }
 
                     if (length < state.SizeNeeded)
-                        throw new EndOfStreamException();
+                        throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
 
                     state.SizeNeeded = 0;
                 }
@@ -219,6 +287,16 @@ namespace Zerra.Serialization.Json
                 ArrayPoolHelper<byte>.Return(buffer);
             }
         }
+        /// <summary>
+        /// Deserializes data from a stream to an object of the specified type using the default or provided deserialization options.
+        /// </summary>
+        /// <param name="stream">The stream containing the JSON data. Must not be null.</param>
+        /// <param name="type">The type to deserialize to. Must not be null.</param>
+        /// <param name="options">Optional deserialization options. If null, uses default options.</param>
+        /// <param name="graph">Optional graph for handling circular references. If null, no circular reference detection is performed.</param>
+        /// <returns>The deserialized object, or null if the stream is empty.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if stream or type is null.</exception>
+        /// <exception cref="EndOfStreamException">Thrown if the data is invalid or incomplete.</exception>
         public static object? Deserialize(Stream stream, Type type, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (type is null)
@@ -271,15 +349,15 @@ namespace Zerra.Serialization.Json
                     if (state.SizeNeeded == 0)
                     {
                         if (!state.IsFinalBlock)
-                            throw new EndOfStreamException();
+                            throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
                         break;
                     }
 
                     if (state.IsFinalBlock)
-                        throw new EndOfStreamException();
+                        throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
 
                     if (state.IsFinalBlock)
-                        throw new EndOfStreamException();
+                        throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
 
                     BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
@@ -304,7 +382,7 @@ namespace Zerra.Serialization.Json
                     }
 
                     if (length < state.SizeNeeded)
-                        throw new EndOfStreamException();
+                        throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
 
                     state.SizeNeeded = 0;
                 }
@@ -318,6 +396,17 @@ namespace Zerra.Serialization.Json
             }
         }
 
+        /// <summary>
+        /// Asynchronously deserializes data from a stream to an object of the specified type using the default or provided deserialization options.
+        /// </summary>
+        /// <typeparam name="T">The type to deserialize to.</typeparam>
+        /// <param name="stream">The stream containing the JSON data. Must not be null.</param>
+        /// <param name="options">Optional deserialization options. If null, uses default options.</param>
+        /// <param name="graph">Optional graph for handling circular references. If null, no circular reference detection is performed.</param>
+        /// <param name="cancellationToken">A token to cancel the asynchronous operation.</param>
+        /// <returns>A task that represents the asynchronous deserialization operation and returns the deserialized object, or the default value if the stream is empty.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if stream is null.</exception>
+        /// <exception cref="EndOfStreamException">Thrown if the data is invalid or incomplete.</exception>
         public static async Task<T?> DeserializeAsync<T>(Stream stream, JsonSerializerOptions? options = null, Graph? graph = null, CancellationToken cancellationToken = default)
         {
             if (stream is null)
@@ -368,15 +457,15 @@ namespace Zerra.Serialization.Json
                     if (state.SizeNeeded == 0)
                     {
                         if (!state.IsFinalBlock)
-                            throw new EndOfStreamException();
+                            throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
                         break;
                     }
 
                     if (state.IsFinalBlock)
-                        throw new EndOfStreamException();
+                        throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
 
                     if (state.IsFinalBlock)
-                        throw new EndOfStreamException();
+                        throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
 
                     BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
@@ -401,7 +490,7 @@ namespace Zerra.Serialization.Json
                     }
 
                     if (length < state.SizeNeeded)
-                        throw new EndOfStreamException();
+                        throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
 
                     state.SizeNeeded = 0;
                 }
@@ -414,6 +503,17 @@ namespace Zerra.Serialization.Json
                 ArrayPoolHelper<byte>.Return(buffer);
             }
         }
+        /// <summary>
+        /// Asynchronously deserializes data from a stream to an object of the specified type using the default or provided deserialization options.
+        /// </summary>
+        /// <param name="stream">The stream containing the JSON data. Must not be null.</param>
+        /// <param name="type">The type to deserialize to. Must not be null.</param>
+        /// <param name="options">Optional deserialization options. If null, uses default options.</param>
+        /// <param name="graph">Optional graph for handling circular references. If null, no circular reference detection is performed.</param>
+        /// <param name="cancellationToken">A token to cancel the asynchronous operation.</param>
+        /// <returns>A task that represents the asynchronous deserialization operation and returns the deserialized object, or null if the stream is empty.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if stream or type is null.</exception>
+        /// <exception cref="EndOfStreamException">Thrown if the data is invalid or incomplete.</exception>
         public static async Task<object?> DeserializeAsync(Stream stream, Type type, JsonSerializerOptions? options = null, Graph? graph = null, CancellationToken cancellationToken = default)
         {
             if (type is null)
@@ -466,15 +566,15 @@ namespace Zerra.Serialization.Json
                     if (state.SizeNeeded == 0)
                     {
                         if (!state.IsFinalBlock)
-                            throw new EndOfStreamException();
+                            throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
                         break;
                     }
 
                     if (state.IsFinalBlock)
-                        throw new EndOfStreamException();
+                        throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
 
                     if (state.IsFinalBlock)
-                        throw new EndOfStreamException();
+                        throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
 
                     BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
@@ -499,7 +599,7 @@ namespace Zerra.Serialization.Json
                     }
 
                     if (length < state.SizeNeeded)
-                        throw new EndOfStreamException();
+                        throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
 
                     state.SizeNeeded = 0;
                 }

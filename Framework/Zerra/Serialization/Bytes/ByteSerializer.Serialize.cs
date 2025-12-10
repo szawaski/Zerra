@@ -13,6 +13,14 @@ namespace Zerra.Serialization.Bytes
 {
     public static partial class ByteSerializer
     {
+        /// <summary>
+        /// Serializes an object to a byte array using the default or provided serialization options.
+        /// </summary>
+        /// <typeparam name="T">The type of the object to serialize.</typeparam>
+        /// <param name="obj">The object to serialize. If null, returns an empty byte array.</param>
+        /// <param name="options">Optional serialization options. If null, uses default options.</param>
+        /// <returns>A byte array containing the serialized data, or an empty array if the object is null.</returns>
+        /// <exception cref="EndOfStreamException">Thrown if there is insufficient space for serialization.</exception>
         public static byte[] Serialize<T>(T? obj, ByteSerializerOptions? options = null)
         {
             if (obj is null)
@@ -32,6 +40,13 @@ namespace Zerra.Serialization.Bytes
 
             return result;
         }
+        /// <summary>
+        /// Serializes an object to a byte array using its runtime type and the default or provided serialization options.
+        /// </summary>
+        /// <param name="obj">The object to serialize. If null, returns an empty byte array.</param>
+        /// <param name="options">Optional serialization options. If null, uses default options.</param>
+        /// <returns>A byte array containing the serialized data, or an empty array if the object is null.</returns>
+        /// <exception cref="EndOfStreamException">Thrown if there is insufficient space for serialization.</exception>
         public static byte[] Serialize(object? obj, ByteSerializerOptions? options = null)
         {
             if (obj is null)
@@ -52,6 +67,15 @@ namespace Zerra.Serialization.Bytes
             return result;
 
         }
+        /// <summary>
+        /// Serializes an object to a byte array using the specified type and the default or provided serialization options.
+        /// </summary>
+        /// <param name="obj">The object to serialize. If null, returns an empty byte array.</param>
+        /// <param name="type">The type to use for serialization. Must not be null.</param>
+        /// <param name="options">Optional serialization options. If null, uses default options.</param>
+        /// <returns>A byte array containing the serialized data, or an empty array if the object is null.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if type is null.</exception>
+        /// <exception cref="EndOfStreamException">Thrown if there is insufficient space for serialization.</exception>
         public static byte[] Serialize(object? obj, Type type, ByteSerializerOptions? options = null)
         {
             if (type is null)
@@ -74,6 +98,14 @@ namespace Zerra.Serialization.Bytes
             return result;
         }
 
+        /// <summary>
+        /// Serializes an object to a stream using the default or provided serialization options.
+        /// </summary>
+        /// <typeparam name="T">The type of the object to serialize.</typeparam>
+        /// <param name="stream">The stream to write the serialized data to. Must not be null.</param>
+        /// <param name="obj">The object to serialize. If null, no data is written.</param>
+        /// <param name="options">Optional serialization options. If null, uses default options.</param>
+        /// <exception cref="ArgumentNullException">Thrown if stream is null.</exception>
         public static void Serialize<T>(Stream stream, T? obj, ByteSerializerOptions? options = null)
         {
             if (stream is null)
@@ -116,6 +148,13 @@ namespace Zerra.Serialization.Bytes
                 ArrayPoolHelper<byte>.Return(buffer);
             }
         }
+        /// <summary>
+        /// Serializes an object to a stream using its runtime type and the default or provided serialization options.
+        /// </summary>
+        /// <param name="stream">The stream to write the serialized data to. Must not be null.</param>
+        /// <param name="obj">The object to serialize. If null, no data is written.</param>
+        /// <param name="options">Optional serialization options. If null, uses default options.</param>
+        /// <exception cref="ArgumentNullException">Thrown if stream is null.</exception>
         public static void Serialize(Stream stream, object? obj, ByteSerializerOptions? options = null)
         {
             if (stream is null)
@@ -158,6 +197,14 @@ namespace Zerra.Serialization.Bytes
                 ArrayPoolHelper<byte>.Return(buffer);
             }
         }
+        /// <summary>
+        /// Serializes an object to a stream using the specified type and the default or provided serialization options.
+        /// </summary>
+        /// <param name="stream">The stream to write the serialized data to. Must not be null.</param>
+        /// <param name="obj">The object to serialize. If null, no data is written.</param>
+        /// <param name="type">The type to use for serialization. Must not be null.</param>
+        /// <param name="options">Optional serialization options. If null, uses default options.</param>
+        /// <exception cref="ArgumentNullException">Thrown if stream or type is null.</exception>
         public static void Serialize(Stream stream, object? obj, Type type, ByteSerializerOptions? options = null)
         {
             if (stream is null)
@@ -203,6 +250,16 @@ namespace Zerra.Serialization.Bytes
             }
         }
 
+        /// <summary>
+        /// Asynchronously serializes an object to a stream using the default or provided serialization options.
+        /// </summary>
+        /// <typeparam name="T">The type of the object to serialize.</typeparam>
+        /// <param name="stream">The stream to write the serialized data to. Must not be null.</param>
+        /// <param name="obj">The object to serialize. If null, no data is written.</param>
+        /// <param name="options">Optional serialization options. If null, uses default options.</param>
+        /// <param name="cancellationToken">A token to cancel the asynchronous operation.</param>
+        /// <returns>A task that represents the asynchronous serialization operation.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if stream is null.</exception>
         public static async Task SerializeAsync<T>(Stream stream, T? obj, ByteSerializerOptions? options = null, CancellationToken cancellationToken = default)
         {
             if (stream is null)
@@ -245,6 +302,15 @@ namespace Zerra.Serialization.Bytes
                 ArrayPoolHelper<byte>.Return(buffer);
             }
         }
+        /// <summary>
+        /// Asynchronously serializes an object to a stream using its runtime type and the default or provided serialization options.
+        /// </summary>
+        /// <param name="stream">The stream to write the serialized data to. Must not be null.</param>
+        /// <param name="obj">The object to serialize. If null, no data is written.</param>
+        /// <param name="options">Optional serialization options. If null, uses default options.</param>
+        /// <param name="cancellationToken">A token to cancel the asynchronous operation.</param>
+        /// <returns>A task that represents the asynchronous serialization operation.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if stream is null.</exception>
         public static async Task SerializeAsync(Stream stream, object? obj, ByteSerializerOptions? options = null, CancellationToken cancellationToken = default)
         {
             if (stream is null)
@@ -292,6 +358,16 @@ namespace Zerra.Serialization.Bytes
                 ArrayPoolHelper<byte>.Return(buffer);
             }
         }
+        /// <summary>
+        /// Asynchronously serializes an object to a stream using the specified type and the default or provided serialization options.
+        /// </summary>
+        /// <param name="stream">The stream to write the serialized data to. Must not be null.</param>
+        /// <param name="obj">The object to serialize. If null, no data is written.</param>
+        /// <param name="type">The type to use for serialization. Must not be null.</param>
+        /// <param name="options">Optional serialization options. If null, uses default options.</param>
+        /// <param name="cancellationToken">A token to cancel the asynchronous operation.</param>
+        /// <returns>A task that represents the asynchronous serialization operation.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if stream or type is null.</exception>
         public static async Task SerializeAsync(Stream stream, object? obj, Type type, ByteSerializerOptions? options = null, CancellationToken cancellationToken = default)
         {
             if (stream is null)

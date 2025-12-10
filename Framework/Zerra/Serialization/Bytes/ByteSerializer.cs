@@ -37,6 +37,11 @@ namespace Zerra.Serialization.Bytes
 
         private static readonly ByteSerializerOptions defaultOptions = new();
 
+        /// <summary>
+        /// Registers a custom converter for a specified type. This must be called before the first serialization or deserialization takes place.
+        /// </summary>
+        /// <param name="converterType">The type to register the converter for.</param>
+        /// <param name="converter">A factory function that creates instances of the converter.</param>
         public static void AddConverter(Type converterType, Func<ByteConverter> converter) => ByteConverterFactory.AddConverter(converterType, converter);
     }
 }

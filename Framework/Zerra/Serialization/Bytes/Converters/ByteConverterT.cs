@@ -9,8 +9,23 @@ using Zerra.Reflection;
 
 namespace Zerra.Serialization.Bytes.Converters
 {
+    /// <summary>
+    /// Generic abstract base class for type-specific byte serialization and deserialization converters.
+    /// </summary>
+    /// <typeparam name="TValue">The type of value this converter handles.</typeparam>
+    /// <remarks>
+    /// This generic class provides the foundation for converting strongly-typed values to and from byte format.
+    /// It manages type details, nullable type handling, and stack depth tracking during serialization/deserialization.
+    /// Derived classes implement specific conversion logic for different value types.
+    /// </remarks>
     public abstract class ByteConverter<TValue> : ByteConverter
     {
+        /// <summary>
+        /// Gets a value indicating whether stack frame management is required for this converter.
+        /// </summary>
+        /// <remarks>
+        /// Set to <c>true</c> if the converter needs to track stack depth to prevent stack overflow during nested conversions.
+        /// </remarks>
         protected virtual bool StackRequired { get; } = true;
 
         protected TypeDetail<TValue> typeDetail { get; private set; } = null!;
@@ -42,8 +57,18 @@ namespace Zerra.Serialization.Bytes.Converters
             Setup();
         }
 
+        /// <summary>
+        /// Provides a hook for derived classes to perform additional setup after initialization.
+        /// </summary>
         protected virtual void Setup() { }
 
+        /// <summary>
+        /// Attempts to read a boxed value from the byte stream.
+        /// </summary>
+        /// <param name="reader">The byte reader to read from.</param>
+        /// <param name="state">The current read state.</param>
+        /// <param name="returnValue">The deserialized boxed value if successful; otherwise, <c>null</c>.</param>
+        /// <returns><c>true</c> if the read operation completed successfully; otherwise, <c>false</c>.</returns>
         public override sealed bool TryReadBoxed(ref ByteReader reader, ref ReadState state, out object? returnValue)
         {
             if (canBeNull && !state.EntryHasNullChecked)
@@ -156,6 +181,13 @@ namespace Zerra.Serialization.Bytes.Converters
             returnValue = value;
             return true;
         }
+        /// <summary>
+        /// Attempts to write a boxed value to the byte stream.
+        /// </summary>
+        /// <param name="writer">The byte writer to write to.</param>
+        /// <param name="state">The current write state.</param>
+        /// <param name="value">The boxed value to serialize.</param>
+        /// <returns><c>true</c> if the write operation completed successfully; otherwise, <c>false</c>.</returns>
         public override sealed bool TryWriteBoxed(ref ByteWriter writer, ref WriteState state, in object? value)
         {
             if (canBeNull)
@@ -260,6 +292,13 @@ namespace Zerra.Serialization.Bytes.Converters
             return true;
         }
 
+        /// <summary>
+        /// Attempts to read a strongly-typed value from the byte reader.
+        /// </summary>
+        /// <param name="reader">The byte reader to read from.</param>
+        /// <param name="state">The current read state.</param>
+        /// <param name="returnValue">The deserialized value if successful; otherwise, the default value for <typeparamref name="TValue"/>.</param>
+        /// <returns><c>true</c> if the read operation completed successfully; <c>false</c> if more bytes are needed.</returns>
         public bool TryRead(ref ByteReader reader, ref ReadState state, out TValue? returnValue)
         {
             if (canBeNull && !state.EntryHasNullChecked)
@@ -372,6 +411,14 @@ namespace Zerra.Serialization.Bytes.Converters
             returnValue = value;
             return true;
         }
+
+        /// <summary>
+        /// Attempts to write a strongly-typed value to the byte writer.
+        /// </summary>
+        /// <param name="writer">The byte writer to write to.</param>
+        /// <param name="state">The current write state.</param>
+        /// <param name="value">The value to serialize.</param>
+        /// <returns><c>true</c> if the write operation completed successfully; <c>false</c> if more bytes are needed.</returns>
         public bool TryWrite(ref ByteWriter writer, ref WriteState state, in TValue? value)
         {
             if (canBeNull)
@@ -765,8 +812,23 @@ namespace Zerra.Serialization.Bytes.Converters
         public override sealed bool TryWriteValueBoxed(ref ByteWriter writer, ref WriteState state, in object value)
             => TryWriteValue(ref writer, ref state, (TValue)value);
 
+        /// <summary>
+        /// When implemented in a derived class, attempts to read a strongly-typed value from the byte reader.
+        /// </summary>
+        /// <param name="reader">The byte reader to read from.</param>
+        /// <param name="state">The current read state.</param>
+        /// <param name="value">The deserialized value if successful; otherwise, the default value for <typeparamref name="TValue"/>.</param>
+        /// <returns><c>true</c> if the read operation completed successfully; <c>false</c> if more bytes are needed.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected abstract bool TryReadValue(ref ByteReader reader, ref ReadState state, out TValue? value);
+
+        /// <summary>
+        /// When implemented in a derived class, attempts to write a strongly-typed value to the byte writer.
+        /// </summary>
+        /// <param name="writer">The byte writer to write to.</param>
+        /// <param name="state">The current write state.</param>
+        /// <param name="value">The value to serialize.</param>
+        /// <returns><c>true</c> if the write operation completed successfully; <c>false</c> if more bytes are needed.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected abstract bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in TValue value);
 
