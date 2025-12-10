@@ -31,9 +31,7 @@ namespace Zerra.Reflection
             if (typeDetail is null)
             {
                 lock (typeDetailLock)
-                {
                     typeDetail ??= (TypeDetail<T>)TypeAnalyzer.GetTypeDetail(typeof(T));
-                }
             }
             return typeDetail;
         }

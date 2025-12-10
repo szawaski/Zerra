@@ -4,11 +4,7 @@
 
 namespace Zerra.Reflection
 {
-    /// <summary>
-    /// Provides type lookup and classification utilities for core types, enum types, and special framework types.
-    /// Enables efficient categorization and routing of types during code generation and runtime type analysis.
-    /// </summary>
-    public static class TypeLookup
+    internal static class TypeLookup
     {
         private static readonly IReadOnlyDictionary<Type, CoreType> coreTypeLookup = new Dictionary<Type, CoreType>()
         {
@@ -59,12 +55,6 @@ namespace Zerra.Reflection
             { typeof(Guid?), CoreType.GuidNullable }
         };
         
-        /// <summary>
-        /// Attempts to look up a type in the core type catalog and retrieve its <see cref="CoreType"/> classification.
-        /// </summary>
-        /// <param name="type">The type to classify.</param>
-        /// <param name="coreType">The core type classification if found; otherwise the default value.</param>
-        /// <returns>True if the type is a recognized core type; otherwise false.</returns>
         public static bool GetCoreType(Type type, out CoreType coreType)
         {
             return coreTypeLookup.TryGetValue(type, out coreType);
@@ -91,25 +81,11 @@ namespace Zerra.Reflection
             { typeof(ulong?), CoreEnumType.UInt64Nullable },
         };
         
-        /// <summary>
-        /// Attempts to look up a type in the enum type catalog and retrieve its <see cref="CoreEnumType"/> classification.
-        /// Only integral types and their nullable equivalents are recognized as valid enum underlying types.
-        /// </summary>
-        /// <param name="type">The type to classify.</param>
-        /// <param name="coreType">The enum core type classification if found; otherwise the default value.</param>
-        /// <returns>True if the type is a recognized enum underlying type; otherwise false.</returns>
         public static bool GetCoreEnumType(Type type, out CoreEnumType coreType)
         {
             return coreEnumTypeLookup.TryGetValue(type, out coreType);
         }
 
-        /// <summary>
-        /// Attempts to classify a type as a special framework type.
-        /// Recognizes Task variants, Type, Dictionary variants, and other framework infrastructure types.
-        /// </summary>
-        /// <param name="type">The type to classify.</param>
-        /// <param name="specialType">The special type classification if recognized; otherwise the default value.</param>
-        /// <returns>True if the type is recognized as a special type; otherwise false.</returns>
         public static bool GetSpecialType(Type type, out SpecialType specialType)
         {
             switch (type.Name)

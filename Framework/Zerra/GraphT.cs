@@ -297,12 +297,5 @@ namespace Zerra
         {
             return typeof(T);
         }
-
-        ///// <summary>
-        ///// Generates a lambda expression that will create a new object of a different type based on the graph.
-        ///// </summary>
-        ///// <typeparam name="TSource">The new type of the object.</typeparam>
-        ///// <returns>The lamba expression to create a new object.</returns>
-        //public Expression<Func<TSource, T>> GenerateSelect<TSource>() { return GenerateSelect<TSource, T>(); }
     }
 }

@@ -19,6 +19,13 @@ namespace Zerra.CQRS
         public ILog? Log => Context.Log;
 
         private BusContext? context = null;
+        /// <summary>
+        /// Gets the current bus context for this handler.
+        /// </summary>
+        /// <remarks>
+        /// This property is populated when the handler is initialized via <see cref="IHandler.Initialize(BusContext)"/>.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">Thrown if the handler has not been initialized.</exception>
         public BusContext Context => context ?? throw new InvalidOperationException("Handler not initialized");
 
         /// <inheritdoc />
