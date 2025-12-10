@@ -8,7 +8,6 @@
         <PublishAot>true</PublishAot>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <LangVersion>14.0</LangVersion>
-        
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
@@ -22,9 +21,8 @@
         <Copyright>KaKush LLC</Copyright>
         <Product>Zerra Framework</Product>
         <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
-        <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM</PackageTags>
-        <Description>
-        </Description>
+        <PackageTags>Framework, CQRS, Microservice, Commands, Serialization, JSON, Reflection, Map, Copy</PackageTags>
+        <Description>Zerra Framework is a comprehensive .NET framework providing support for CQRS architecture, microservices, ORM capabilities, and high-performance serialization. Includes reflection utilities, and domain-driven design support.</Description>
     </PropertyGroup>
 
     <ItemGroup>

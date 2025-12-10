@@ -8,6 +8,21 @@
         <PublishAot>true</PublishAot>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <LangVersion>14.0</LangVersion>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <Version>6.0.0</Version>
+        <Authors>Steven Zawaski</Authors>
+        <Company>KaKush LLC</Company>
+        <Copyright>KaKush LLC</Copyright>
+        <Product>Zerra Framework</Product>
+        <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
+        <PackageTags>Zerra, RabbitMQ, Message Broker</PackageTags>
+        <Description>RabbitMQ transport provider for the Zerra CQRS framework. Enables command, query, and event routing through Apache Kafka for distributed message-driven architectures.</Description>
     </PropertyGroup>
 
     <ItemGroup>

@@ -4,25 +4,27 @@ A high-performance, distributed CQRS (Command Query Responsibility Segregation) 
 
 ## Features
 
-✨ **Pure CQRS Pattern** - Clear separation between commands (write), events (notifications), and queries (read)
+⚡ **Pure CQRS Pattern** - Clear separation between commands (write), events (notifications), and queries (read)
 
 🚀 **High Performance** - Source-generated proxy code eliminates reflection overhead; optimized for AOT compilation
 
-📦 **Multiple Transports** - Built-in support for Kafka, RabbitMQ, and Azure Service Bus message brokers
+🔌 **Multiple Transports** - Built-in support for Kafka, RabbitMQ, and Azure Service Bus message brokers
 
-🔄 **Local and Remote Routing** - Seamlessly route messages to local handlers or remote services via configurable brokers
+🔀 **Local and Remote Routing** - Seamlessly route messages to local handlers or remote services via configurable brokers
 
-📝 **Type-Safe Queries** - Query interfaces with automatic proxy generation for type-safe remote calls
+🔒 **Type-Safe Queries** - Query interfaces with automatic proxy generation for type-safe remote calls
 
-⚡ **Async-First** - Fully async/await support with configurable timeout and concurrency management
+⏱️ **Async-First** - Fully async/await support with configurable timeout and concurrency management
 
-🔌 **Dependency Injection** - Built-in scoped dependency management via `BusContext`
+🎛️ **Dependency Injection** - Built-in scoped dependency management via `BusContext`
 
 📊 **Observable** - Optional `IBusLogger` for cross-service message lifecycle tracking
 
 📦 **Built-in Serialization** - High-performance ZerraByteSerializer for compact binary serialization and flexible ZerraJsonSerializer for human-readable JSON format
 
 🔐 **Message Encryption** - Transparent symmetric encryption supporting AES, DES, TripleDES, RC2, and custom algorithms
+
+✨ **Zero Dependencies** - No external package dependencies, only .NET standard libraries
 
 ## Quick Start
 

@@ -8,6 +8,10 @@
         <PublishAot>true</PublishAot>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <LangVersion>14.0</LangVersion>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
     </PropertyGroup>
 
     <ItemGroup>

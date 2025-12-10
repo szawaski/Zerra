@@ -8,6 +8,21 @@
         <IsRoslynComponent>true</IsRoslynComponent>
         <IsRoslynAnalyzer>true</IsRoslynAnalyzer>
         <LangVersion>14.0</LangVersion>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <Version>6.0.0</Version>
+        <Authors>Steven Zawaski</Authors>
+        <Company>KaKush LLC</Company>
+        <Copyright>KaKush LLC</Copyright>
+        <Product>Zerra Framework</Product>
+        <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
+        <PackageTags>Zerra, Source Generation, AOT</PackageTags>
+        <Description>C# source generator for the Zerra CQRS framework. Automatically generates proxy implementations for query interfaces, message routing metadata, and handler invocation code to eliminate reflection overhead and enable AOT compilation.</Description>
     </PropertyGroup>
 
     <ItemGroup>
