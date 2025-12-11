@@ -63,7 +63,7 @@ namespace Zerra.Reflection.Dynamic
             var interfaces = GenerateInterfaces(type);
             var attributes = GenerateAttributes(type);
             var members = GenerateMembers(type, interfaces);
-            var methods = GetMethods(type, interfaces);
+            var methods = GenerateMethods(type, interfaces);
 
             Delegate? creator = null;
             Func<object>? creatorBoxed = null;
@@ -242,13 +242,13 @@ namespace Zerra.Reflection.Dynamic
         }
         private static TypeDetail<T> Generate<T>(Type type)
         {
-            var constructors = GenerateConstructors<T>(type);
+            //var constructors = GenerateConstructors<T>(type);
             var innerTypes = GenerateInnerTypes(type);
             var baseTypes = GenerateBaseTypes(type);
             var interfaces = GenerateInterfaces(type);
-            var attributes = GenerateAttributes(type);
-            var members = GenerateMembers(type, interfaces);
-            var methods = GetMethods(type, interfaces);
+            //var attributes = GenerateAttributes(type);
+            //var members = GenerateMembers(type, interfaces);
+            //var methods = GetMethods(type, interfaces);
 
             Func<T>? creator = null;
             Func<object>? creatorBoxed = null;
@@ -393,9 +393,9 @@ namespace Zerra.Reflection.Dynamic
             }
 
             var typeDetail = new TypeDetail<T>(
-                members: members,
-                constructors: constructors,
-                methods: methods,
+                members: null,
+                constructors: null,
+                methods: null,
                 creator: creator,
                 creatorBoxed: creatorBoxed,
                 isNullable: isNullable,
@@ -440,12 +440,12 @@ namespace Zerra.Reflection.Dynamic
                 innerTypes: innerTypes,
                 baseTypes: baseTypes,
                 interfaces: interfaces,
-                attributes: attributes
+                attributes: null
             );
             return typeDetail;
         }
 
-        public static List<MemberDetail> GenerateMembers(Type type, Type[] interfaces)
+        public static List<MemberDetail> GenerateMembers(Type type, IReadOnlyCollection<Type> interfaces)
         {
             var items = new List<MemberDetail>();
 
@@ -456,7 +456,7 @@ namespace Zerra.Reflection.Dynamic
             //take private fields to find backing fields and allow advanced serialization scenarios
             var fields = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static).ToList();
 
-            var hasInterfaces = interfaces.Length > 0;
+            var hasInterfaces = interfaces.Count > 0;
             var names = hasInterfaces ? new HashSet<string>() : null; //explicit declarations can create duplicates with interfaces
 
             foreach (var property in properties)
@@ -630,9 +630,14 @@ namespace Zerra.Reflection.Dynamic
 
             return items;
         }
-        public static List<ConstructorDetail<T>> GenerateConstructors<T>(Type type)
+        public static List<ConstructorDetail> GenerateConstructors(Type type)
         {
-            var items = new List<ConstructorDetail<T>>();
+            return (List<ConstructorDetail>)generateConstructorMethod.MakeGenericMethod(type).Invoke(null, [type])!;
+        }
+        private static MethodInfo generateConstructorMethod = typeof(TypeDetailGenerator).GetMethod(nameof(GenerateConstructorsGeneric), BindingFlags.Public | BindingFlags.Static)!;
+        public static List<ConstructorDetail> GenerateConstructorsGeneric<T>(Type type)
+        {
+            var items = new List<ConstructorDetail>();
             if (type.IsGenericTypeDefinition)
                 return items;
 
@@ -658,7 +663,7 @@ namespace Zerra.Reflection.Dynamic
             }
             return items;
         }
-        public static List<MethodDetail> GetMethods(Type type, IReadOnlyCollection<Type> interfaces)
+        public static List<MethodDetail> GenerateMethods(Type type, IReadOnlyCollection<Type> interfaces)
         {
             var items = new List<MethodDetail>();
             var hasInterfaces = interfaces.Count > 0;

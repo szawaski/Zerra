@@ -19,11 +19,43 @@ namespace Zerra.Reflection
         /// <summary>The type being analyzed.</summary>
         public readonly Type Type;
 
+        private IReadOnlyList<MemberDetail>? members;
         /// <summary>Collection of all members (properties and fields) declared or inherited by this type.</summary>
-        public readonly IReadOnlyList<MemberDetail> Members;
+        public IReadOnlyList<MemberDetail> Members
+        {
+            get
+            {
+                if (members == null)
+                {
+                    if (!RuntimeFeature.IsDynamicCodeSupported)
+                        throw new NotSupportedException($"Cannot generate methods for {Type.Name}.  Dynamic code generation is not supported in this build configuration.");
+                    lock (locker)
+#pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
+                        members ??= TypeDetailGenerator.GenerateMembers(this.Type, Interfaces);
+#pragma warning restore IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
+                }
+                return members;
+            }
+        }
 
+        private IReadOnlyList<ConstructorDetail>? constructors;
         /// <summary>Collection of all constructors available for this type.</summary>
-        public readonly IReadOnlyList<ConstructorDetail> Constructors;
+        public IReadOnlyList<ConstructorDetail> Constructors
+        {
+            get
+            {
+                if (constructors == null)
+                {
+                    if (!RuntimeFeature.IsDynamicCodeSupported)
+                        throw new NotSupportedException($"Cannot generate methods for {Type.Name}.  Dynamic code generation is not supported in this build configuration.");
+                    lock (locker)
+#pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
+                        constructors ??= TypeDetailGenerator.GenerateConstructors(this.Type);
+#pragma warning restore IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
+                }
+                return constructors;
+            }
+        }
 
         private IReadOnlyList<MethodDetail>? methods;
         /// <summary>Collection of all methods declared or inherited by this type.</summary>
@@ -37,7 +69,7 @@ namespace Zerra.Reflection
                         throw new NotSupportedException($"Cannot generate methods for {Type.Name}.  Dynamic code generation is not supported in this build configuration.");
                     lock (locker)
 #pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
-                        methods ??= TypeDetailGenerator.GetMethods(this.Type, Interfaces);
+                        methods ??= TypeDetailGenerator.GenerateMethods(this.Type, Interfaces);
 #pragma warning restore IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
                 }
                 return methods;
@@ -130,7 +162,7 @@ namespace Zerra.Reflection
         public readonly bool IsDictionaryGeneric;
 
         /// <summary>Collection of all inner generic type arguments for generic types.</summary>
-        public readonly IReadOnlyList<Type> InnerTypes;
+        public readonly IReadOnlyList<Type> InnerTypes;    
 
         /// <summary>Collection of all direct base types (parent classes).</summary>
         public readonly IReadOnlyList<Type> BaseTypes;
@@ -138,8 +170,24 @@ namespace Zerra.Reflection
         /// <summary>Collection of all interfaces implemented by this type.</summary>
         public readonly IReadOnlyList<Type> Interfaces;
 
+        private IReadOnlyList<Attribute>? attributes;
         /// <summary>Collection of all custom attributes applied to this type.</summary>
-        public readonly IReadOnlyList<Attribute> Attributes;
+        public IReadOnlyList<Attribute> Attributes
+        {
+            get
+            {
+                if (attributes == null)
+                {
+                    if (!RuntimeFeature.IsDynamicCodeSupported)
+                        throw new NotSupportedException($"Cannot generate methods for {Type.Name}.  Dynamic code generation is not supported in this build configuration.");
+                    lock (locker)
+#pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
+                        attributes ??= TypeDetailGenerator.GenerateAttributes(this.Type);
+#pragma warning restore IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
+                }
+                return attributes;
+            }
+        }
 
         /// <summary>The inner type of nullable types; null if this type is not nullable.</summary>
         public readonly Type? InnerType;
@@ -155,8 +203,8 @@ namespace Zerra.Reflection
         /// </summary>
         public TypeDetail(
             Type type,
-            IReadOnlyList<MemberDetail> members,
-            IReadOnlyList<ConstructorDetail> constructors,
+            IReadOnlyList<MemberDetail>? members,
+            IReadOnlyList<ConstructorDetail>? constructors,
             IReadOnlyList<MethodDetail>? methods,
             Delegate? creator,
             Func<object>? creatorBoxed,
@@ -204,15 +252,15 @@ namespace Zerra.Reflection
             Type? iEnumerableGenericInnerType,
             Type? dictionaryInnerType,
 
-            IReadOnlyList<Type> innerTypes,
+            IReadOnlyList<Type>? innerTypes,
             IReadOnlyList<Type> baseTypes,
             IReadOnlyList<Type> interfaces,
-            IReadOnlyList<Attribute> attributes
+            IReadOnlyList<Attribute>? attributes
             )
         {
             this.Type = type;
-            this.Members = members;
-            this.Constructors = constructors;
+            this.members = members;
+            this.constructors = constructors;
             this.methods = methods;
             this.HasCreator = creator != null;
             this.Creator = creator;
@@ -265,7 +313,7 @@ namespace Zerra.Reflection
             this.InnerTypes = innerTypes;
             this.BaseTypes = baseTypes;
             this.Interfaces = interfaces;
-            this.Attributes = attributes;
+            this.attributes = attributes;
         }
     }
 }

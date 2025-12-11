@@ -7,6 +7,8 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Runtime.CompilerServices;
+
 namespace Zerra.Reflection
 {
     /// <summary>
@@ -17,8 +19,24 @@ namespace Zerra.Reflection
     /// <typeparam name="T">The type being analyzed.</typeparam>
     public sealed class TypeDetail<T> : TypeDetail
     {
+        private IReadOnlyList<ConstructorDetail<T>>? constructors;
         /// <summary>Strongly-typed collection of constructors available for type <typeparamref name="T"/>.</summary>
-        public readonly new IReadOnlyList<ConstructorDetail<T>> Constructors;
+        public new IReadOnlyList<ConstructorDetail<T>> Constructors
+        {
+            get
+            {
+                if (constructors == null)
+                {
+                    if (!RuntimeFeature.IsDynamicCodeSupported)
+                        throw new NotSupportedException($"Cannot generate methods for {Type.Name}.  Dynamic code generation is not supported in this build configuration.");
+                    lock (locker)
+#pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
+                        constructors ??= base.Constructors.Cast<ConstructorDetail<T>>().ToArray();
+#pragma warning restore IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
+                }
+                return constructors;
+            }
+        }
 
         /// <summary>Indicates whether a strongly-typed creator delegate exists for instantiation of type <typeparamref name="T"/>.</summary>
         public readonly new bool HasCreator;
@@ -30,10 +48,10 @@ namespace Zerra.Reflection
         /// Provides strongly-typed access to constructors and creation delegates for type <typeparamref name="T"/>.
         /// </summary>
         public TypeDetail(
-            IReadOnlyList<MemberDetail> members,
-            IReadOnlyList<ConstructorDetail<T>> constructors, 
+            IReadOnlyList<MemberDetail>? members,
+            IReadOnlyList<ConstructorDetail<T>>? constructors,
             IReadOnlyList<MethodDetail>? methods,
-            Func<T>? creator, 
+            Func<T>? creator,
             Func<object>? creatorBoxed,
 
             bool isNullable,
@@ -82,7 +100,7 @@ namespace Zerra.Reflection
             IReadOnlyList<Type> innerTypes,
             IReadOnlyList<Type> baseTypes,
             IReadOnlyList<Type> interfaces,
-            IReadOnlyList<Attribute> attributes
+            IReadOnlyList<Attribute>? attributes
             )
             : base(
                 typeof(T),
@@ -141,7 +159,7 @@ namespace Zerra.Reflection
                 attributes
               )
         {
-            this.Constructors = constructors;
+            this.constructors = constructors;
             this.HasCreator = creator != null;
             this.Creator = creator;
         }
