@@ -12,9 +12,9 @@ using Zerra.Test.Helpers.TypesModels;
 
 namespace Zerra.Test.Serialization
 {
-    public class JsonSerializerTest
+    public class JsonSerializerDataTests
     {
-        public JsonSerializerTest()
+        public JsonSerializerDataTests()
         {
 #if DEBUG
             Zerra.Serialization.Json.IO.JsonReader.Testing = true;
@@ -1004,6 +1004,18 @@ namespace Zerra.Test.Serialization
             (var model2, var graph) = JsonSerializer.DeserializePatch<Dictionary<string, string>>(json);
             Assert.True(graph.HasMember("One"));
             Assert.True(graph.HasMember("Two"));
+        }
+
+        [Fact]
+        public void StringRequired()
+        {
+            var model1 = new TestSerializerRequired { Value1 = 1, Value2 = 2, Value3 = 3 };
+            var bytes1 = JsonSerializer.Serialize(model1);
+            var model2 = JsonSerializer.Deserialize<TestSerializerRequired>(bytes1);
+            Assert.NotNull(model2);
+            Assert.Equal(model1.Value1, model2.Value1);
+            Assert.Equal(model1.Value2, model2.Value2);
+            Assert.Equal(model1.Value3, model2.Value3);
         }
 
         [Fact]
@@ -2232,6 +2244,20 @@ namespace Zerra.Test.Serialization
             (var model2, var graph) = await JsonSerializer.DeserializePatchAsync<Dictionary<string, string>>(stream1);
             Assert.True(graph.HasMember("One"));
             Assert.True(graph.HasMember("Two"));
+        }
+
+        [Fact]
+        public async Task StreamRequired()
+        {
+            var model1 = new TestSerializerRequired { Value1 = 1, Value2 = 2, Value3 = 3 };
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, model1);
+            stream.Position = 0;
+            var model2 = await JsonSerializer.DeserializeAsync<TestSerializerRequired>(stream);
+            Assert.NotNull(model2);
+            Assert.Equal(model1.Value1, model2.Value1);
+            Assert.Equal(model1.Value2, model2.Value2);
+            Assert.Equal(model1.Value3, model2.Value3);
         }
     }
 }

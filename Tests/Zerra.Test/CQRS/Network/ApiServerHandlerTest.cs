@@ -75,6 +75,7 @@ namespace Zerra.Test.CQRS.Network
                 return Task.FromResult(CommandResult);
             }
 
+
             public Task RemoteHandleEventDispatchAsync(IEvent @event, string source, bool isApi)
             {
                 return Task.CompletedTask;
@@ -85,6 +86,10 @@ namespace Zerra.Test.CQRS.Network
             public Task DispatchAwaitAsync(ICommand command, CancellationToken? cancellationToken = null) => throw new NotImplementedException();
             public Task DispatchAsync(IEvent @event, CancellationToken? cancellationToken = null) => throw new NotImplementedException();
             public Task<TResult> DispatchAwaitAsync<TResult>(ICommand<TResult> command, CancellationToken? cancellationToken = null) where TResult : notnull => throw new NotImplementedException();
+            public Task DispatchAsync(ICommand command, TimeSpan timeout) => throw new NotImplementedException();
+            public Task DispatchAwaitAsync(ICommand command, TimeSpan timeout) => throw new NotImplementedException();
+            public Task DispatchAsync(IEvent @event, TimeSpan timeout) => throw new NotImplementedException();
+            public Task<TResult> DispatchAwaitAsync<TResult>(ICommand<TResult> command, TimeSpan timeout) where TResult : notnull => throw new NotImplementedException();
             public void StopServices() => throw new NotImplementedException();
             public Task StopServicesAsync() => throw new NotImplementedException();
             public void WaitForExit(CancellationToken cancellationToken = default) => throw new NotImplementedException();

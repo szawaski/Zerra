@@ -18,8 +18,8 @@ namespace Zerra.Serialization.Json
         /// <summary>
         /// Registers a custom converter for a specified type. This must be called before the first serialization or deserialization takes place.
         /// </summary>
-        /// <param name="converterType">The type to register the converter for.</param>
+        /// <param name="type">The type to register the converter for.</param>
         /// <param name="converter">A factory function that creates instances of the converter.</param>
-        public static void AddConverter(Type converterType, Func<JsonConverter> converter) => JsonConverterFactory.AddConverter(converterType, converter);
+        public static void AddConverter(Type type, Func<JsonConverter> converter) => JsonConverterFactory.AddConverter(type, converter);
     }
 }

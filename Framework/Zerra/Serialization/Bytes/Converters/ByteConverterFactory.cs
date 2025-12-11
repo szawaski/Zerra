@@ -73,11 +73,11 @@ namespace Zerra.Serialization.Bytes.Converters
         /// <summary>
         /// Registers a custom converter creator for a specific type.
         /// </summary>
-        /// <param name="converterType">The type for which to register the converter.</param>
+        /// <param name="type">The type for which to register the converter.</param>
         /// <param name="converter">A factory function that creates instances of the converter.</param>
-        internal static void AddConverter(Type converterType, Func<ByteConverter> converter)
+        internal static void AddConverter(Type type, Func<ByteConverter> converter)
         {
-            creators[converterType] = converter;
+            creators[type] = converter;
         }
 
         /// <summary>

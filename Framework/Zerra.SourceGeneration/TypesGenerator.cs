@@ -104,9 +104,9 @@ namespace Zerra.SourceGeneration
                 var hasFirst = false;
                 foreach (var propertySets in properties)
                 {
-                    var property = propertySets.Item1;
-                    var propertyName = propertySets.Item2;
-                    var isExplicitFromInterface = propertySets.Item3;
+                    var property = propertySets.PropertySymbol;
+                    var propertyName = propertySets.Name;
+                    var isExplicitFromInterface = propertySets.IsExplicitFromInterface;
                     if (property.IsIndexer)
                         continue;
                     if (property.DeclaredAccessibility != Accessibility.Public)
@@ -207,7 +207,7 @@ namespace Zerra.SourceGeneration
                         _ = sb.Append("static (object x) => ((").Append(typeName).Append(")x).").Append(@field.Name).Append(", ");
                     }
 
-                    if (!field.IsReadOnly)
+                    if (!field.IsReadOnly && !field.IsConst)
                     {
                         if (@field.IsStatic)
                         {
@@ -242,6 +242,9 @@ namespace Zerra.SourceGeneration
 
             if (!isCoreType && namedTypeSymbol != null)
             {
+                (var properties, var fields) = TypeFinder.GetPropertiesAndFields(namedTypeSymbol, symbolMembers);
+                var requiredMembers = TypeFinder.GetRequiredMembers(properties, fields);
+
                 var constructors = TypeFinder.GetConstructors(namedTypeSymbol, symbolMembers);
                 var hasFirst = false;
                 foreach (var constructor in constructors)
@@ -260,7 +263,7 @@ namespace Zerra.SourceGeneration
 
                     _ = sb.Append("new global::Zerra.Reflection.ConstructorDetail<").Append(typeName).Append(">(");
 
-                    GenerateParameters(sb, constructor.Parameters);
+                    GenerateParameters(sb, constructor.Parameters, requiredMembers);
                     sb.Append(", ");
 
 
@@ -280,7 +283,24 @@ namespace Zerra.SourceGeneration
                         };
                     }
 
-                    _ = sb.Append("), ");
+                    _ = sb.Append(")");
+                    if (requiredMembers.Length > 0)
+                    {
+                        var argCount = constructor.Parameters.Length;
+                        _ = sb.Append("{ ");
+                        var hasFirstRequired = false;
+                        foreach (var member in requiredMembers)
+                        {
+                            if (hasFirstRequired)
+                                _ = sb.Append(", ");
+                            else
+                                hasFirstRequired = true;
+                            var memberTypeName = Helper.GetFullName(member.Type);
+                            _ = sb.Append(member.Name).Append(" = (").Append(memberTypeName).Append(")args![").Append(argCount++).Append("]!");
+                        }
+                        _ = sb.Append(" }");
+                    }
+                    _ = sb.Append(", ");
 
                     _ = sb.Append("static (object?[]? args) => new ").Append(typeName).Append("(");
                     foreach (var parameter in constructor.Parameters)
@@ -297,7 +317,24 @@ namespace Zerra.SourceGeneration
                             _ => sb.Append("(").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!"),
                         };
                     }
-                    _ = sb.Append("))");
+                    _ = sb.Append(")");
+                    if (requiredMembers.Length > 0)
+                    {
+                        var argCount = constructor.Parameters.Length;
+                        _ = sb.Append("{ ");
+                        var hasFirstRequired = false;
+                        foreach (var member in requiredMembers)
+                        {
+                            if (hasFirstRequired)
+                                _ = sb.Append(", ");
+                            else
+                                hasFirstRequired = true;
+                            var memberTypeName = Helper.GetFullName(member.Type);
+                            _ = sb.Append(member.Name).Append(" = (").Append(memberTypeName).Append(")args![").Append(argCount++).Append("]!");
+                        }
+                        _ = sb.Append(" }");
+                    }
+                    _ = sb.Append(")");
                 }
             }
 
@@ -313,9 +350,9 @@ namespace Zerra.SourceGeneration
                 var hasFirst = false;
                 foreach (var methodSet in methods)
                 {
-                    var method = methodSet.Item1;
-                    var methodName = methodSet.Item2;
-                    var isExplicitFromInterface = methodSet.Item3;
+                    var method = methodSet.MethodSymbol;
+                    var methodName = methodSet.Name;
+                    var isExplicitFromInterface = methodSet.IsExplicitFromInterface;
 
                     if (method.DeclaredAccessibility != Accessibility.Public)
                         continue;
@@ -346,7 +383,7 @@ namespace Zerra.SourceGeneration
 
                     _ = sb.Append(method.TypeParameters.Length).Append(", ");
 
-                    GenerateParameters(sb, method.Parameters);
+                    GenerateParameters(sb, method.Parameters, null);
                     sb.Append(", ");
 
                     if (method.IsStatic)
@@ -445,17 +482,19 @@ namespace Zerra.SourceGeneration
         {
             if (namedTypeSymbol != null && !namedTypeSymbol.IsAbstract && !namedTypeSymbol.IsUnboundGenericType && namedTypeSymbol.TypeKind != TypeKind.Interface)
             {
-                (var properties, var fields) = TypeFinder.GetPropertiesAndFields(namedTypeSymbol, symbolMembers);
-                if (properties.Any(x => x.Item1.IsRequired || fields.Any(x => x.IsRequired)))
-                {
-                    _ = sb.Append("null, null");
-                    return;
-                }
-
                 if (namedTypeSymbol.Constructors.Any(x => x.Parameters.Length == 0))
                 {
+                    (var properties, var fields) = TypeFinder.GetPropertiesAndFields(namedTypeSymbol, symbolMembers);
+                    var requiredMembers = TypeFinder.GetRequiredMembers(properties, fields);
+                    if (requiredMembers.Length > 0)
+                    {
+                        _ = sb.Append("null, null");
+                        return;
+                    }
+
                     _ = sb.Append(Environment.NewLine).Append("                ");
-                    _ = sb.Append("static () => new ").Append(typeName).Append("(), ");
+                    _ = sb.Append("static () => new ").Append(typeName).Append("()");
+                    _ = sb.Append(", ");
                     _ = sb.Append("static () => new ").Append(typeName).Append("()");
                     return;
                 }
@@ -787,7 +826,7 @@ namespace Zerra.SourceGeneration
 
             _ = sb.Append("]");
         }
-        private static void GenerateParameters(StringBuilder sb, ImmutableArray<IParameterSymbol> parameterSymbols)
+        private static void GenerateParameters(StringBuilder sb, ImmutableArray<IParameterSymbol> parameterSymbols, TypeFinder.RequiredMembers[]? requiredMembers)
         {
             _ = sb.Append("[");
 
@@ -801,6 +840,19 @@ namespace Zerra.SourceGeneration
                 var typeOfName = Helper.GetTypeOfName(parameterSymbol.Type);
 
                 _ = sb.Append("new global::Zerra.Reflection.ParameterDetail(").Append(typeOfName).Append(", \"").Append(parameterSymbol.Name).Append("\")");
+            }
+            if (requiredMembers != null)
+            {
+                foreach (var member in requiredMembers)
+                {
+                    if (hasFirst)
+                        _ = sb.Append(", ");
+                    else
+                        hasFirst = true;
+                    var typeOfName = Helper.GetTypeOfName(member.Type);
+
+                    _ = sb.Append("new global::Zerra.Reflection.ParameterDetail(").Append(typeOfName).Append(", \"").Append(member.Name).Append("\")");
+                }
             }
 
             _ = sb.Append("]");

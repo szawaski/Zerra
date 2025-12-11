@@ -61,11 +61,11 @@ namespace Zerra.Serialization.Json.Converters
         /// <summary>
         /// Registers a custom converter creator for a specific type.
         /// </summary>
-        /// <param name="converterType">The type for which to register the converter.</param>
+        /// <param name="type">The type for which to register the converter.</param>
         /// <param name="converter">A factory function that creates instances of the converter.</param>
-        internal static void AddConverter(Type converterType, Func<JsonConverter> converter)
+        internal static void AddConverter(Type type, Func<JsonConverter> converter)
         {
-            creators[converterType] = converter;
+            creators[type] = converter;
         }
 
         internal static Func<JsonConverter> GenerateJsonConverterCreator(TypeDetail typeDetail)

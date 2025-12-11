@@ -1,5 +1,6 @@
 ﻿using Pets.Domain;
 using Pets.Domain.Commands;
+using Pets.Domain.Models;
 using Pets.Service;
 using System.Diagnostics;
 using Zerra.CQRS;

@@ -10,9 +10,9 @@ using Zerra.Test.Helpers.TypesModels;
 
 namespace Zerra.Test.Serialization
 {
-    public class ByteSerializerTest
+    public class ByteSerializerDataTests
     {
-        public ByteSerializerTest()
+        public ByteSerializerDataTests()
         {
 #if DEBUG
             Zerra.Serialization.Bytes.IO.ByteReader.Testing = true;
@@ -661,6 +661,18 @@ namespace Zerra.Test.Serialization
             Assert.NotNull(model2);
             Assert.Equal(model1._Value1, model2._Value1);
             Assert.Equal(model1.value2, model2.value2);
+        }
+
+        [Fact]
+        public void Required()
+        {
+            var model1 = new TestSerializerRequired { Value1 = 1, Value2 = 2, Value3 = 3 };
+            var bytes1 = ByteSerializer.Serialize(model1);
+            var model2 = ByteSerializer.Deserialize<TestSerializerRequired>(bytes1);
+            Assert.NotNull(model2);
+            Assert.Equal(model1.Value1, model2.Value1);
+            Assert.Equal(model1.Value2, model2.Value2);
+            Assert.Equal(model1.Value3, model2.Value3);
         }
     }
 }

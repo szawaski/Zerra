@@ -12,6 +12,11 @@ using Zerra.Serialization;
 
 namespace Zerra.CQRS
 {
+    /// <summary>
+    /// A CQRS (Command Query Responsibility Segregation) message bus that manages distributed command, event, and query patterns.
+    /// Supports local in-process handlers as well as remote producers and consumers for commands and events.
+    /// Also supports query client/server patterns for request-response scenarios.
+    /// </summary>
     public sealed partial class Bus : IBusSetup, IBusInternal
     {
         private static readonly Type streamType = typeof(Stream);
@@ -114,23 +119,23 @@ namespace Zerra.CQRS
             var asyncDisposed = new HashSet<IAsyncDisposable>();
             var disposed = new HashSet<IDisposable>();
 
-            if (commandProducers != null)
-            {
-                foreach (var commandProducer in commandProducers.Values)
-                {
-                    if (commandProducer is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
-                    {
-                        await asyncDisposable.DisposeAsync();
-                        _ = asyncDisposed.Add(asyncDisposable);
-                    }
-                    else if (commandProducer is IDisposable disposable && !disposed.Contains(disposable))
-                    {
-                        disposable.Dispose();
-                        _ = disposed.Add(disposable);
-                    }
-                }
-                commandProducers.Clear();
-            }
+            //if (commandProducers != null)
+            //{
+            //    foreach (var commandProducer in commandProducers.Values)
+            //    {
+            //        if (commandProducer is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
+            //        {
+            //            await asyncDisposable.DisposeAsync();
+            //            _ = asyncDisposed.Add(asyncDisposable);
+            //        }
+            //        else if (commandProducer is IDisposable disposable && !disposed.Contains(disposable))
+            //        {
+            //            disposable.Dispose();
+            //            _ = disposed.Add(disposable);
+            //        }
+            //    }
+            //    commandProducers.Clear();
+            //}
 
             if (commandConsumers != null)
             {
@@ -151,23 +156,23 @@ namespace Zerra.CQRS
                 commandConsumers.Clear();
             }
 
-            if (eventProducers != null)
-            {
-                foreach (var eventProducer in eventProducers.Values)
-                {
-                    if (eventProducer is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
-                    {
-                        await asyncDisposable.DisposeAsync();
-                        _ = asyncDisposed.Add(asyncDisposable);
-                    }
-                    else if (eventProducer is IDisposable disposable && !disposed.Contains(disposable))
-                    {
-                        disposable.Dispose();
-                        _ = disposed.Add(disposable);
-                    }
-                }
-                eventProducers.Clear();
-            }
+            //if (eventProducers != null)
+            //{
+            //    foreach (var eventProducer in eventProducers.Values)
+            //    {
+            //        if (eventProducer is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
+            //        {
+            //            await asyncDisposable.DisposeAsync();
+            //            _ = asyncDisposed.Add(asyncDisposable);
+            //        }
+            //        else if (eventProducer is IDisposable disposable && !disposed.Contains(disposable))
+            //        {
+            //            disposable.Dispose();
+            //            _ = disposed.Add(disposable);
+            //        }
+            //    }
+            //    eventProducers.Clear();
+            //}
 
             if (eventConsumers != null)
             {
@@ -188,23 +193,23 @@ namespace Zerra.CQRS
                 eventConsumers.Clear();
             }
 
-            if (queryClients != null)
-            {
-                foreach (var client in queryClients.Values)
-                {
-                    if (client is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
-                    {
-                        await asyncDisposable.DisposeAsync();
-                        _ = asyncDisposed.Add(asyncDisposable);
-                    }
-                    else if (client is IDisposable disposable && !disposed.Contains(disposable))
-                    {
-                        disposable.Dispose();
-                        _ = disposed.Add(disposable);
-                    }
-                }
-                queryClients.Clear();
-            }
+            //if (queryClients != null)
+            //{
+            //    foreach (var client in queryClients.Values)
+            //    {
+            //        if (client is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
+            //        {
+            //            await asyncDisposable.DisposeAsync();
+            //            _ = asyncDisposed.Add(asyncDisposable);
+            //        }
+            //        else if (client is IDisposable disposable && !disposed.Contains(disposable))
+            //        {
+            //            disposable.Dispose();
+            //            _ = disposed.Add(disposable);
+            //        }
+            //    }
+            //    queryClients.Clear();
+            //}
 
             if (queryServers != null)
             {
@@ -341,7 +346,12 @@ namespace Zerra.CQRS
 
             var cancellationTokenSource = new CancellationTokenSource(defaultDispatchTimeout.Value);
             var task = _DispatchCommandInternalAsync(command, command.GetType(), false, context.ServiceName, cancellationTokenSource.Token);
-            _ = task.ContinueWith((_) => cancellationTokenSource.Dispose());
+            task = task.ContinueWith(x =>
+            {
+                cancellationTokenSource.Dispose();
+                if ((x.IsCanceled || x.IsFaulted) && cancellationTokenSource.IsCancellationRequested && (x.Exception == null || x.Exception.InnerExceptions.Any(e => e is OperationCanceledException)))
+                    throw new TimeoutException($"{nameof(DispatchAsync)} for {command.GetType()} has timed out");
+            });
             return task;
         }
         /// <inheritdoc />
@@ -354,7 +364,12 @@ namespace Zerra.CQRS
 
             var cancellationTokenSource = new CancellationTokenSource(defaultDispatchAwaitTimeout.Value);
             var task = _DispatchCommandInternalAsync(command, command.GetType(), true, context.ServiceName, cancellationTokenSource.Token);
-            _ = task.ContinueWith((_) => cancellationTokenSource.Dispose());
+            task = task.ContinueWith(x =>
+            {
+                cancellationTokenSource.Dispose();
+                if ((x.IsCanceled || x.IsFaulted) && cancellationTokenSource.IsCancellationRequested && (x.Exception == null || x.Exception.InnerExceptions.Any(e => e is OperationCanceledException)))
+                    throw new TimeoutException($"{nameof(DispatchAwaitAsync)} for {command.GetType()} has timed out");
+            });
             return task;
         }
         /// <inheritdoc />
@@ -367,7 +382,12 @@ namespace Zerra.CQRS
 
             var cancellationTokenSource = new CancellationTokenSource(defaultDispatchTimeout.Value);
             var task = _DispatchEventInternalAsync(@event, @event.GetType(), context.ServiceName, cancellationTokenSource.Token);
-            _ = task.ContinueWith((_) => cancellationTokenSource.Dispose());
+            task = task.ContinueWith(x =>
+            {
+                cancellationTokenSource.Dispose();
+                if ((x.IsCanceled || x.IsFaulted) && cancellationTokenSource.IsCancellationRequested && (x.Exception == null || x.Exception.InnerExceptions.Any(e => e is OperationCanceledException)))
+                    throw new TimeoutException($"{nameof(DispatchAsync)} for {@event.GetType()} has timed out");
+            });
             return task;
         }
         /// <inheritdoc />
@@ -380,9 +400,107 @@ namespace Zerra.CQRS
 
             var cancellationTokenSource = new CancellationTokenSource(defaultDispatchAwaitTimeout.Value);
             var task = _DispatchCommandWithResultInternalAsync(command, command.GetType(), context.ServiceName, cancellationTokenSource.Token);
-            _ = task.ContinueWith((_) => cancellationTokenSource.Dispose());
+            task = task.ContinueWith(x =>
+            {
+                cancellationTokenSource.Dispose();
+                if ((x.IsCanceled || x.IsFaulted) && cancellationTokenSource.IsCancellationRequested && (x.Exception == null || x.Exception.InnerExceptions.Any(e => e is OperationCanceledException)))
+                    throw new TimeoutException($"{nameof(DispatchAwaitAsync)} for {command.GetType()} has timed out");
+                return x.Result;
+            });
             return task;
         }
+
+        /// <summary>
+        /// Send a command to the configured destination.
+        /// This follows the eventual consistency pattern so the sender does not know when the command is processed.
+        /// A destination may be an implementation in the same assembly or calling a remote service.
+        /// </summary>
+        /// <param name="command">The command to send.</param>
+        /// <param name="timeout">The time to wait before a cancellation request. Use <see cref="Timeout.InfiniteTimeSpan"/> for no timeout. This overrides <see cref="Bus.DefaultDispatchTimeout"/>.</param>
+        /// <returns>A task to complete sending the command.</returns>
+        Task IBus.DispatchAsync(ICommand command, TimeSpan timeout)
+        {
+            if (timeout == Timeout.InfiniteTimeSpan)
+                return _DispatchCommandInternalAsync(command, command.GetType(), false, context.ServiceName, default);
+            var cancellationTokenSource = new CancellationTokenSource(timeout);
+            var task = _DispatchCommandInternalAsync(command, command.GetType(), false, context.ServiceName, cancellationTokenSource.Token);
+            task = task.ContinueWith(x =>
+            {
+                cancellationTokenSource.Dispose();
+                if ((x.IsCanceled || x.IsFaulted) && cancellationTokenSource.IsCancellationRequested && (x.Exception == null || x.Exception.InnerExceptions.Any(e => e is OperationCanceledException)))
+                    throw new TimeoutException($"{nameof(DispatchAsync)} for {command.GetType()} has timed out");
+            });
+            return task;
+        }
+        /// <summary>
+        /// Send a command to the configured destination and wait for it to process.
+        /// This will await until the reciever has returned a signal or an exception that the command has been processed.
+        /// A destination may be an implementation in the same assembly or calling a remote service.
+        /// </summary>
+        /// <param name="command">The command to send.</param>
+        /// <param name="timeout">The time to wait before a cancellation request. Use <see cref="Timeout.InfiniteTimeSpan"/> for no timeout. This overrides <see cref="Bus.DefaultDispatchTimeout"/>.</param>
+        /// <returns>A task to await processing of the command.</returns>
+        Task IBus.DispatchAwaitAsync(ICommand command, TimeSpan timeout)
+        {
+            if (timeout == Timeout.InfiniteTimeSpan)
+                return _DispatchCommandInternalAsync(command, command.GetType(), true, context.ServiceName, default);
+            var cancellationTokenSource = new CancellationTokenSource(timeout);
+            var task = _DispatchCommandInternalAsync(command, command.GetType(), true, context.ServiceName, cancellationTokenSource.Token);
+            task = task.ContinueWith(x =>
+            {
+                cancellationTokenSource.Dispose();
+                if ((x.IsCanceled || x.IsFaulted) && cancellationTokenSource.IsCancellationRequested && (x.Exception == null || x.Exception.InnerExceptions.Any(e => e is OperationCanceledException)))
+                    throw new TimeoutException($"{nameof(DispatchAwaitAsync)} for {command.GetType()} has timed out");
+            });
+            return task;
+        }
+        /// <summary>
+        /// Send an event to the configured destination.
+        /// Events will go to any number of destinations that wish to recieve the event.
+        /// It is not possible to recieve information back from destinations.
+        /// A destination may be an implementation in the same assembly or calling a remote service.
+        /// </summary>
+        /// <param name="event">The command to send.</param>
+        /// <param name="timeout">The time to wait before a cancellation request. Use <see cref="Timeout.InfiniteTimeSpan"/> for no timeout. This overrides <see cref="Bus.DefaultDispatchTimeout"/>.</param>
+        /// <returns>A task to complete sending the event.</returns>
+        Task IBus.DispatchAsync(IEvent @event, TimeSpan timeout)
+        {
+            if (timeout == Timeout.InfiniteTimeSpan)
+                return _DispatchEventInternalAsync(@event, @event.GetType(), context.ServiceName, default);
+            var cancellationTokenSource = new CancellationTokenSource(timeout);
+            var task = _DispatchEventInternalAsync(@event, @event.GetType(), context.ServiceName, cancellationTokenSource.Token);
+            task = task.ContinueWith(x =>
+            {
+                cancellationTokenSource.Dispose();
+                if ((x.IsCanceled || x.IsFaulted) && cancellationTokenSource.IsCancellationRequested && (x.Exception == null || x.Exception.InnerExceptions.Any(e => e is OperationCanceledException)))
+                    throw new TimeoutException($"{nameof(DispatchAsync)} for {@event.GetType()} has timed out");
+            });
+            return task;
+        }
+        /// <summary>
+        /// Send a command to the configured destination and wait for a result.
+        /// This will await until the reciever has returned a result or an exception.
+        /// A destination may be an implementation in the same assembly or calling a remote service.
+        /// </summary>
+        /// <param name="command">The command to send.</param>
+        /// <param name="timeout">The time to wait before a cancellation request. Use <see cref="Timeout.InfiniteTimeSpan"/> for no timeout. This overrides <see cref="Bus.DefaultDispatchTimeout"/>.</param>
+        /// <returns>A task to await the result of the command.</returns>
+        Task<TResult> IBus.DispatchAwaitAsync<TResult>(ICommand<TResult> command, TimeSpan timeout)
+        {
+            if (timeout == Timeout.InfiniteTimeSpan)
+                return _DispatchCommandWithResultInternalAsync(command, command.GetType(), context.ServiceName, default);
+            var cancellationTokenSource = new CancellationTokenSource(timeout);
+            var task = _DispatchCommandWithResultInternalAsync(command, command.GetType(), context.ServiceName, cancellationTokenSource.Token);
+            task = task.ContinueWith(x =>
+            {
+                cancellationTokenSource.Dispose();
+                if ((x.IsCanceled || x.IsFaulted) && cancellationTokenSource.IsCancellationRequested && (x.Exception == null || x.Exception.InnerExceptions.Any(e => e is OperationCanceledException)))
+                    throw new TimeoutException($"{nameof(DispatchAwaitAsync)} for {command.GetType()} has timed out");
+                return x.Result;
+            });
+            return task;
+        }
+
 
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         /// <inheritdoc />
@@ -958,6 +1076,11 @@ namespace Zerra.CQRS
             ArgumentNullException.ThrowIfNull(commandProducer);
 
             var info = BusCommandOrEventInfo.GetByType(interfaceType, handledTypes);
+            if (info.CommandTypes.Count == 0)
+            {
+                context.Log?.Error($"Cannot add Command Producer: no command types found in interface {interfaceType.Name}");
+                return;
+            }
             var topic = info.InterfaceName;
             foreach (var commandType in info.CommandTypes)
             {
@@ -993,6 +1116,11 @@ namespace Zerra.CQRS
             _ = commandConsumers.Add(commandConsumer);
 
             var info = BusCommandOrEventInfo.GetByType(interfaceType, handledTypes);
+            if (info.CommandTypes.Count == 0)
+            {
+                context.Log?.Error($"Cannot add Command Consumer: no command types found in interface {interfaceType.Name}");
+                return;
+            }
             var topic = info.InterfaceName;
             foreach (var commandType in info.CommandTypes)
             {
@@ -1019,6 +1147,11 @@ namespace Zerra.CQRS
             ArgumentNullException.ThrowIfNull(eventProducer);
 
             var info = BusCommandOrEventInfo.GetByType(interfaceType, handledTypes);
+            if (info.EventTypes.Count == 0)
+            {
+                context.Log?.Error($"Cannot add Event Producer: no event types found in interface {interfaceType.Name}");
+                return;
+            }
             var topic = info.InterfaceName;
             foreach (var eventType in info.EventTypes)
             {
@@ -1054,6 +1187,11 @@ namespace Zerra.CQRS
             _ = eventConsumers.Add(eventConsumer);
 
             var info = BusCommandOrEventInfo.GetByType(interfaceType, handledTypes);
+            if (info.EventTypes.Count == 0)
+            {
+                context.Log?.Error($"Cannot add Event Consumer: no event types found in interface {interfaceType.Name}");
+                return;
+            }
             var topic = info.InterfaceName;
             foreach (var eventType in info.EventTypes)
             {

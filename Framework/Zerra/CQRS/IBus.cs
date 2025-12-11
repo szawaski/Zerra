@@ -61,6 +61,44 @@ namespace Zerra.CQRS
         Task<TResult> DispatchAwaitAsync<TResult>(ICommand<TResult> command, CancellationToken? cancellationToken = null);
 
         /// <summary>
+        /// Send a command to the configured destination.
+        /// This follows the eventual consistency pattern so the sender does not know when the command is processed.
+        /// A destination may be an implementation in the same assembly or calling a remote service.
+        /// </summary>
+        /// <param name="command">The command to send.</param>
+        /// <param name="timeout">The time to wait before a cancellation request. Use <see cref="Timeout.InfiniteTimeSpan"/> for no timeout. This overrides <see cref="Bus.DefaultDispatchTimeout"/>.</param>
+        /// <returns>A task to complete sending the command.</returns>
+        Task DispatchAsync(ICommand command, TimeSpan timeout);
+        /// <summary>
+        /// Send a command to the configured destination and wait for it to process.
+        /// This will await until the reciever has returned a signal or an exception that the command has been processed.
+        /// A destination may be an implementation in the same assembly or calling a remote service.
+        /// </summary>
+        /// <param name="command">The command to send.</param>
+        /// <param name="timeout">The time to wait before a cancellation request. Use <see cref="Timeout.InfiniteTimeSpan"/> for no timeout. This overrides <see cref="Bus.DefaultDispatchTimeout"/>.</param>
+        /// <returns>A task to await processing of the command.</returns>
+        Task DispatchAwaitAsync(ICommand command, TimeSpan timeout);
+        /// <summary>
+        /// Send an event to the configured destination.
+        /// Events will go to any number of destinations that wish to recieve the event.
+        /// It is not possible to recieve information back from destinations.
+        /// A destination may be an implementation in the same assembly or calling a remote service.
+        /// </summary>
+        /// <param name="event">The command to send.</param>
+        /// <param name="timeout">The time to wait before a cancellation request. Use <see cref="Timeout.InfiniteTimeSpan"/> for no timeout. This overrides <see cref="Bus.DefaultDispatchTimeout"/>.</param>
+        /// <returns>A task to complete sending the event.</returns>
+        Task DispatchAsync(IEvent @event, TimeSpan timeout);
+        /// <summary>
+        /// Send a command to the configured destination and wait for a result.
+        /// This will await until the reciever has returned a result or an exception.
+        /// A destination may be an implementation in the same assembly or calling a remote service.
+        /// </summary>
+        /// <param name="command">The command to send.</param>
+        /// <param name="timeout">The time to wait before a cancellation request. Use <see cref="Timeout.InfiniteTimeSpan"/> for no timeout. This overrides <see cref="Bus.DefaultDispatchTimeout"/>.</param>
+        /// <returns>A task to await the result of the command.</returns>
+        Task<TResult> DispatchAwaitAsync<TResult>(ICommand<TResult> command, TimeSpan timeout);
+
+        /// <summary>
         /// Handle a remote query call and return the result.
         /// </summary>
         /// <param name="interfaceType">The interface type for the query.</param>

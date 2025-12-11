@@ -164,16 +164,16 @@ namespace Zerra.Test.CQRS
 
         private async Task BusDispatches(IBus bus, SemaphoreSlim waiter, List<int> results)
         {
-            await bus.DispatchAsync(new TestCommand { Thing = 21 });
+            await bus.DispatchAsync(new TestCommand { Thing = 21, Delay = 50 });
             Assert.DoesNotContain(21, results);
             await waiter.WaitAsync();
             Assert.Contains(21, results);
 
-            await bus.DispatchAwaitAsync(new TestCommand { Thing = 22 });
+            await bus.DispatchAwaitAsync(new TestCommand { Thing = 22, Delay = 50 });
             Assert.Contains(22, results);
             await waiter.WaitAsync();
 
-            var result = await bus.DispatchAwaitAsync(new TestCommandWithResult { Thing = 23 });
+            var result = await bus.DispatchAwaitAsync(new TestCommandWithResult { Thing = 23, Delay = 50 });
             Assert.Equal(46, result);
             Assert.Contains(46, results);
 
@@ -184,16 +184,26 @@ namespace Zerra.Test.CQRS
 
             using (var cancellationTokenSource = new CancellationTokenSource())
             {
-                var task = bus.DispatchAwaitAsync(new TestCommand { Thing = 24 }, cancellationTokenSource.Token);
+                var task = bus.DispatchAwaitAsync(new TestCommand { Thing = 24, Delay = 50 }, cancellationTokenSource.Token);
                 cancellationTokenSource.Cancel();
                 _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await task);
             }
 
             using (var cancellationTokenSource = new CancellationTokenSource())
             {
-                var task = bus.DispatchAwaitAsync(new TestCommandWithResult { Thing = 25 }, cancellationTokenSource.Token);
+                var task = bus.DispatchAwaitAsync(new TestCommandWithResult { Thing = 25, Delay = 50 }, cancellationTokenSource.Token);
                 cancellationTokenSource.Cancel();
                 _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await task);
+            }
+
+            {
+                var task = bus.DispatchAwaitAsync(new TestCommand { Thing = 26, Delay = 200 }, TimeSpan.FromMilliseconds(100));
+                _ = await Assert.ThrowsAnyAsync<TimeoutException>(async () => await task);
+            }
+
+            {
+                var task = bus.DispatchAwaitAsync(new TestCommandWithResult { Thing = 27, Delay = 200 }, TimeSpan.FromMilliseconds(100));
+                _ = await Assert.ThrowsAnyAsync<TimeoutException>(async () => await task);
             }
         }
 
@@ -265,10 +275,12 @@ namespace Zerra.Test.CQRS
         public sealed class TestCommand : ICommand
         {
             public int Thing { get; set; }
+            public int Delay { get; set; }
         }
         public sealed class TestCommandWithResult : ICommand<int>
         {
             public int Thing { get; set; }
+            public int Delay { get; set; }
         }
 
         public interface ITestCommandHandler :
@@ -288,14 +300,14 @@ namespace Zerra.Test.CQRS
 
             public async Task Handle(TestCommand command, CancellationToken cancellationToken)
             {
-                await Task.Delay(50, cancellationToken);
+                await Task.Delay(command.Delay, cancellationToken);
                 results.Add(command.Thing);
                 _ = waiter.Release();
             }
 
             public async Task<int> Handle(TestCommandWithResult command, CancellationToken cancellationToken)
             {
-                await Task.Delay(50, cancellationToken);
+                await Task.Delay(command.Delay, cancellationToken);
                 results.Add(command.Thing * 2);
                 return command.Thing * 2;
             }

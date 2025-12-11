@@ -13,6 +13,8 @@ namespace Zerra.SourceGeneration
         {
             if (typeSymbol.TypeKind != TypeKind.Class && typeSymbol.TypeKind != TypeKind.Interface)
                 return;
+            if (typeSymbol.DeclaredAccessibility != Accessibility.Public)
+                return;
             if (typeSymbol is not INamedTypeSymbol namedTypeSymbol)
                 return;
             if (!namedTypeSymbol.AllInterfaces.Any(x => x.Name == "ICommand" || x.Name == "IEvent" || x.Name == "IQueryHandler" || x.Name == "ICommandHandler"))

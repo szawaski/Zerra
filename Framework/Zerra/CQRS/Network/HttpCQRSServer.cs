@@ -65,6 +65,7 @@ namespace Zerra.CQRS.Network
 
                     var inHandlerContext = false;
                     var throttleUsed = false;
+                    var commandCounterUsedContinuation = false;
                     var monitorIsCancellationRequested = false;
                     try
                     {
@@ -334,7 +335,10 @@ namespace Zerra.CQRS.Network
                                 else
                                 {
                                     if (commandHandlerAsync is null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
-                                    _ = Task.Run(() => commandHandlerAsync(command, data.Source, false, default));
+                                    var commandHandlerTask = Task.Run(() => commandHandlerAsync(command, data.Source, false, default));
+                                    if (commandCounter != null)
+                                        _ = commandHandlerTask.ContinueWith(x => commandCounter.CompleteReceive(throttle));
+                                    commandCounterUsedContinuation = true;
                                     hasResult = false;
                                 }
                                 inHandlerContext = false;
@@ -488,7 +492,7 @@ namespace Zerra.CQRS.Network
 #endif
                         }
                         ArrayPoolHelper<byte>.Return(bufferOwner);
-                        if (throttleUsed)
+                        if (throttleUsed && !commandCounterUsedContinuation)
                         {
                             if (isCommand && commandCounter is not null)
                                 commandCounter.CompleteReceive(throttle);
