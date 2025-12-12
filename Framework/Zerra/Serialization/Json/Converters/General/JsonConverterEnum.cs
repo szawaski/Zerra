@@ -15,7 +15,7 @@ namespace Zerra.Serialization.Json.Converters.General
 
         protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out TValue? value)
         {
-            if (!typeDetail.EnumUnderlyingType.HasValue)
+            if (!TypeDetail.EnumUnderlyingType.HasValue)
                 throw new InvalidOperationException($"{nameof(JsonConverterEnum<TValue>)} can only handle enum types.");
 
             switch (valueType)
@@ -26,7 +26,7 @@ namespace Zerra.Serialization.Json.Converters.General
                         value = default;
                         return false;
                     }
-                    if (EnumName.TryParse(str, typeDetail.IsNullable ? typeDetail.InnerType! : typeDetail.Type, out var parsed))
+                    if (EnumName.TryParse(str, TypeDetail.IsNullable ? TypeDetail.InnerType! : TypeDetail.Type, out var parsed))
                     {
                         value = (TValue?)parsed;
                     }
@@ -50,7 +50,7 @@ namespace Zerra.Serialization.Json.Converters.General
                             ThrowCannotConvert(ref reader);
                         try
                         {
-                            value = (TValue?)Enum.ToObject(typeDetail.IsNullable ? typeDetail.InnerType! : typeDetail.Type, number);
+                            value = (TValue?)Enum.ToObject(TypeDetail.IsNullable ? TypeDetail.InnerType! : TypeDetail.Type, number);
                         }
                         catch
                         {
@@ -75,7 +75,7 @@ namespace Zerra.Serialization.Json.Converters.General
                             ThrowCannotConvert(ref reader);
                         try
                         {
-                            value = (TValue?)Enum.ToObject(typeDetail.IsNullable ? typeDetail.InnerType! : typeDetail.Type, number);
+                            value = (TValue?)Enum.ToObject(TypeDetail.IsNullable ? TypeDetail.InnerType! : TypeDetail.Type, number);
                         }
                         catch
                         {
@@ -86,7 +86,7 @@ namespace Zerra.Serialization.Json.Converters.General
                         return true;
                     }
                 case JsonValueType.Null_Completed:
-                    if (!typeDetail.IsNullable && state.ErrorOnTypeMismatch)
+                    if (!TypeDetail.IsNullable && state.ErrorOnTypeMismatch)
                         ThrowCannotConvert(ref reader);
                     value = default;
                     return true;
@@ -124,12 +124,12 @@ namespace Zerra.Serialization.Json.Converters.General
                 return true;
             }
 
-            if (!typeDetail.EnumUnderlyingType.HasValue)
+            if (!TypeDetail.EnumUnderlyingType.HasValue)
                 throw new InvalidOperationException($"{nameof(JsonConverterEnum<TValue>)} can only handle enum types.");
 
             if (state.EnumAsNumber)
             {
-                switch (typeDetail.EnumUnderlyingType.Value)
+                switch (TypeDetail.EnumUnderlyingType.Value)
                 {
                     case CoreEnumType.Byte:
                     case CoreEnumType.ByteNullable:
@@ -176,7 +176,7 @@ namespace Zerra.Serialization.Json.Converters.General
             }
             else
             {
-                if (!writer.TryWriteQuoted(EnumName.GetName(typeDetail.IsNullable ? typeDetail.InnerType! : typeDetail.Type, value), out state.SizeNeeded))
+                if (!writer.TryWriteQuoted(EnumName.GetName(TypeDetail.IsNullable ? TypeDetail.InnerType! : TypeDetail.Type, value), out state.SizeNeeded))
                     return false;
                 return true;
             }

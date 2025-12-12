@@ -35,14 +35,14 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
 
                 if (!state.Current.DrainBytes)
                 {
-                    if (typeDetail.Type.IsInterface)
+                    if (TypeDetail.Type.IsInterface)
                     {
                         accessor = new ArrayAccessor<TValue>(new TValue[length]);
                         value = accessor.Array;
                     }
                     else
                     {
-                        throw new InvalidOperationException($"{nameof(ByteSerializer)} cannot deserialize {typeDetail.Type.Name}");
+                        throw new InvalidOperationException($"{nameof(ByteSerializer)} cannot deserialize {TypeDetail.Type.Name}");
                     }
                     if (length == 0)
                         return true;
@@ -66,7 +66,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
 
             for (; ; )
             {
-                if (!converter.TryReadFromParent(ref reader, ref state, accessor, true))
+                if (!converter.TryReadFromParent(ref reader, ref state, accessor))
                 {
                     state.Current.Object = accessor;
                     return false;
@@ -105,7 +105,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
 
             while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
             {
-                if (!converter.TryWriteFromParent(ref writer, ref state, enumerator, true))
+                if (!converter.TryWriteFromParent(ref writer, ref state, enumerator))
                 {
                     state.Current.Object = enumerator;
                     state.Current.EnumeratorInProgress = true;

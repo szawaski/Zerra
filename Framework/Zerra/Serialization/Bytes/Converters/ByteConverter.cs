@@ -19,16 +19,8 @@ namespace Zerra.Serialization.Bytes.Converters
     /// </remarks>
     public abstract class ByteConverter
     {
-        //In byte array, object properties start with index values from SerializerIndexAttribute or property order
-        protected const ushort indexOffset = 1; //offset index values to reserve for Flag: 0
-
-        //Flag: 0 indicating the end of an object
-        protected const ushort endObjectFlagUShort = 0;
-        protected const byte endObjectFlagByte = 0;
-        protected static readonly byte[] endObjectFlagUInt16 = [0, 0];
-
         //The max converter stack before we unwind
-        protected const int maxStackDepth = 31;
+        protected const int MaxStackDepth = 31;
 
         /// <summary>
         /// Initializes the converter with member-specific information.
@@ -57,27 +49,44 @@ namespace Zerra.Serialization.Bytes.Converters
         public abstract bool TryWriteBoxed(ref ByteWriter writer, ref WriteState state, in object? value);
 
         /// <summary>
-        /// Attempts to read a value from a parent object in byte format.
+        /// Attempts to read a value from a parent object.
         /// </summary>
         /// <param name="reader">The byte reader to read from.</param>
         /// <param name="state">The current read state.</param>
-        /// <param name="parent">The parent object to populate.</param>
-        /// <param name="nullFlags">Whether to use null flags during reading.</param>
-        /// <param name="drainBytes">Whether to drain remaining bytes without processing them.</param>
+        /// <param name="parent">The parent object to read from; may be <c>null</c>.</param>
         /// <returns><c>true</c> if the read operation completed successfully; <c>false</c> if more bytes are needed.</returns>
-        public abstract bool TryReadFromParent(ref ByteReader reader, ref ReadState state, object? parent, bool nullFlags, bool drainBytes = false);
+        public abstract bool TryReadFromParent(ref ByteReader reader, ref ReadState state, object? parent);
 
         /// <summary>
-        /// Attempts to write a value from a parent object to byte format.
+        /// Attempts to write a value from a parent object.
         /// </summary>
         /// <param name="writer">The byte writer to write to.</param>
         /// <param name="state">The current write state.</param>
-        /// <param name="parent">The parent object to serialize.</param>
-        /// <param name="nullFlags">Whether to use null flags during writing.</param>
-        /// <param name="indexProperty">An optional property index value.</param>
-        /// <param name="indexPropertyName">An optional property name as a byte span.</param>
+        /// <param name="parent">The parent object to write from.</param>
         /// <returns><c>true</c> if the write operation completed successfully; <c>false</c> if more bytes are needed.</returns>
-        public abstract bool TryWriteFromParent(ref ByteWriter writer, ref WriteState state, object parent, bool nullFlags, ushort indexProperty = default, ReadOnlySpan<byte> indexPropertyName = default);
+        public abstract bool TryWriteFromParent(ref ByteWriter writer, ref WriteState state, object parent);
+
+        /// <summary>
+        /// Attempts to read a member value from a parent object.
+        /// </summary>
+        /// <param name="reader">The byte reader to read from.</param>
+        /// <param name="state">The current read state.</param>
+        /// <param name="parent">The parent object to read from; may be <c>null</c>.</param>
+        /// <param name="drainBytes">If <c>true</c>, any remaining bytes should be consumed; otherwise, <c>false</c>.</param>
+        /// <returns><c>true</c> if the read operation completed successfully; <c>false</c> if more bytes are needed.</returns>
+        public abstract bool TryReadFromParentMember(ref ByteReader reader, ref ReadState state, object? parent, bool drainBytes);
+
+        /// <summary>
+        /// Attempts to write a member value from a parent object.
+        /// </summary>
+        /// <param name="writer">The byte writer to write to.</param>
+        /// <param name="state">The current write state.</param>
+        /// <param name="parent">The parent object to write from.</param>
+        /// <param name="indexProperty">An optional index property identifier; defaults to zero if not specified.</param>
+        /// <param name="indexPropertyName">An optional index property name as a byte span; defaults to an empty span if not specified.</param>
+        /// <returns><c>true</c> if the write operation completed successfully; <c>false</c> if more bytes are needed.</returns>
+        public abstract bool TryWriteFromParentMember(ref ByteWriter writer, ref WriteState state, object parent, ushort indexProperty, ReadOnlySpan<byte> indexPropertyName);
+
 
         /// <summary>
         /// Attempts to read a boxed value from the byte reader.

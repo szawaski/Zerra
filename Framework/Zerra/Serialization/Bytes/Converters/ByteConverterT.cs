@@ -28,7 +28,7 @@ namespace Zerra.Serialization.Bytes.Converters
         /// </remarks>
         protected virtual bool StackRequired { get; } = true;
 
-        protected TypeDetail<TValue> typeDetail { get; private set; } = null!;
+        protected TypeDetail<TValue> TypeDetail { get; private set; } = null!;
         private string memberKey = null!;
         private Func<object, TValue?>? getter;
         private Action<object, TValue?>? setter;
@@ -36,9 +36,10 @@ namespace Zerra.Serialization.Bytes.Converters
         private bool canBeNull;
         private bool isInterfacedObject;
 
+        /// <inheritdoc/>
         public override sealed void Setup(string memberKey, Delegate? getterDelegate, Delegate? setterDelegate)
         {
-            this.typeDetail = TypeAnalyzer<TValue>.GetTypeDetail();
+            this.TypeDetail = TypeAnalyzer<TValue>.GetTypeDetail();
             this.memberKey = memberKey;
             if (getterDelegate is not null)
             {
@@ -51,8 +52,8 @@ namespace Zerra.Serialization.Bytes.Converters
                 setter ??= (parent, value) => setterDelegate.DynamicInvoke(parent, value);
             }
 
-            canBeNull = typeDetail.IsNullable || !typeDetail.Type.IsValueType;
-            isInterfacedObject = typeDetail.Type.IsInterface && !typeDetail.HasIEnumerableGeneric && !typeDetail.HasIEnumerable;
+            canBeNull = TypeDetail.IsNullable || !TypeDetail.Type.IsValueType;
+            isInterfacedObject = TypeDetail.Type.IsInterface && !TypeDetail.HasIEnumerableGeneric && !TypeDetail.HasIEnumerable;
 
             Setup();
         }
@@ -62,26 +63,20 @@ namespace Zerra.Serialization.Bytes.Converters
         /// </summary>
         protected virtual void Setup() { }
 
-        /// <summary>
-        /// Attempts to read a boxed value from the byte stream.
-        /// </summary>
-        /// <param name="reader">The byte reader to read from.</param>
-        /// <param name="state">The current read state.</param>
-        /// <param name="returnValue">The deserialized boxed value if successful; otherwise, <c>null</c>.</param>
-        /// <returns><c>true</c> if the read operation completed successfully; otherwise, <c>false</c>.</returns>
-        public override sealed bool TryReadBoxed(ref ByteReader reader, ref ReadState state, out object? returnValue)
+        /// <inheritdoc/>
+        public override sealed bool TryReadBoxed(ref ByteReader reader, ref ReadState state, out object? value)
         {
             if (canBeNull && !state.EntryHasNullChecked)
             {
                 if (!reader.TryReadIsNull(out var isNull, out state.SizeNeeded))
                 {
-                    returnValue = default;
+                    value = default;
                     return false;
                 }
 
                 if (isNull)
                 {
-                    returnValue = default;
+                    value = default;
                     return true;
                 }
             }
@@ -93,30 +88,28 @@ namespace Zerra.Serialization.Bytes.Converters
                     if (!reader.TryRead(out string? typeName, out state.SizeNeeded))
                     {
                         state.EntryHasNullChecked = true;
-                        returnValue = default;
+                        value = default;
                         return false;
                     }
 
                     if (typeName is null)
-                        throw new NotSupportedException($"Cannot deserialize {typeDetail.Type.Name} without type information");
+                        throw new NotSupportedException($"Cannot deserialize {TypeDetail.Type.Name} without type information");
 
                     state.EntryReadType = TypeFinder.GetTypeFromName(typeName);
                 }
 
-                if (state.EntryReadType != typeDetail.Type)
+                if (state.EntryReadType != TypeDetail.Type)
                 {
                     var newTypeDetail = state.EntryReadType.GetTypeDetail();
-                    if (newTypeDetail.HasCreatorBoxed)
+                    //overrides potentially boxed type with actual type if exists in assembly
+                    //otherwise we read the type as is and drain bytes feature will handle missing members
+                    if ((TypeDetail.IsNullable && TypeDetail.InnerType == newTypeDetail.Type) || newTypeDetail.Interfaces.Contains(TypeDetail.Type) || newTypeDetail.BaseTypes.Contains(TypeDetail.Type))
                     {
-                        //overrides potentially boxed type with actual type if exists in assembly
-                        if ((!typeDetail.IsNullable || typeDetail.InnerType != newTypeDetail.Type) && !newTypeDetail.Interfaces.Contains(typeDetail.Type) && !newTypeDetail.BaseTypes.Contains(typeDetail.Type))
-                            throw new NotSupportedException($"{newTypeDetail.Type.Name} does not convert to {typeDetail.Type.Name}");
-
                         var newConverter = ByteConverterFactory.Get(newTypeDetail, memberKey, getter, setter);
 
                         if (StackRequired)
                         {
-                            if (state.StackSize >= maxStackDepth)
+                            if (state.StackSize >= MaxStackDepth)
                                 throw new StackOverflowException($"{nameof(ByteConverter)} has reach the max depth of {state.StackSize}");
                             state.PushFrame(false);
                         }
@@ -126,13 +119,13 @@ namespace Zerra.Serialization.Bytes.Converters
                             if (StackRequired)
                                 state.StashFrame();
                             state.EntryHasNullChecked = true;
-                            returnValue = default;
+                            value = default;
                             return false;
                         }
 
                         if (StackRequired)
                             state.EndFrame();
-                        returnValue = valueObject;
+                        value = valueObject;
                         return true;
                     }
                 }
@@ -140,14 +133,14 @@ namespace Zerra.Serialization.Bytes.Converters
 
             if (StackRequired)
             {
-                if (state.StackSize >= maxStackDepth)
+                if (state.StackSize >= MaxStackDepth)
                     throw new StackOverflowException($"{nameof(ByteConverter)} has reach the max depth of {state.StackSize}");
                 state.PushFrame(false);
             }
 
             if (isInterfacedObject)
             {
-                var emptyImplementationType = EmptyImplementations.GetType(typeDetail.Type);
+                var emptyImplementationType = EmptyImplementations.GetType(TypeDetail.Type);
                 var newTypeDetail = emptyImplementationType.GetTypeDetail();
 
                 var newConverter = ByteConverterFactory.Get(newTypeDetail, memberKey, getter, setter);
@@ -157,37 +150,31 @@ namespace Zerra.Serialization.Bytes.Converters
                     if (StackRequired)
                         state.StashFrame();
                     state.EntryHasNullChecked = true;
-                    returnValue = default;
+                    value = default;
                     return false;
                 }
 
                 if (StackRequired)
                     state.EndFrame();
-                returnValue = valueObject;
+                value = valueObject;
                 return true;
             }
 
-            if (!TryReadValue(ref reader, ref state, out var value))
+            if (!TryReadValue(ref reader, ref state, out var returnValue))
             {
                 if (StackRequired)
                     state.StashFrame();
                 state.EntryHasNullChecked = true;
-                returnValue = value;
+                value = returnValue;
                 return false;
             }
 
             if (StackRequired)
                 state.EndFrame();
-            returnValue = value;
+            value = returnValue;
             return true;
         }
-        /// <summary>
-        /// Attempts to write a boxed value to the byte stream.
-        /// </summary>
-        /// <param name="writer">The byte writer to write to.</param>
-        /// <param name="state">The current write state.</param>
-        /// <param name="value">The boxed value to serialize.</param>
-        /// <returns><c>true</c> if the write operation completed successfully; otherwise, <c>false</c>.</returns>
+        /// <inheritdoc/>
         public override sealed bool TryWriteBoxed(ref ByteWriter writer, ref WriteState state, in object? value)
         {
             if (canBeNull)
@@ -227,14 +214,14 @@ namespace Zerra.Serialization.Bytes.Converters
                     state.EntryWriteType = writeType;
                 }
 
-                if (state.EntryWriteType != typeDetail.Type)
+                if (state.EntryWriteType != TypeDetail.Type)
                 {
                     var typeFromValueDetail = state.EntryWriteType.GetTypeDetail();
                     var newConverter = ByteConverterFactory.Get(typeFromValueDetail, memberKey, getter, setter);
 
                     if (StackRequired)
                     {
-                        if (state.StackSize >= maxStackDepth)
+                        if (state.StackSize >= MaxStackDepth)
                             throw new StackOverflowException($"{nameof(ByteConverter)} has reach the max depth of {state.StackSize}");
                         state.PushFrame();
                     }
@@ -255,7 +242,7 @@ namespace Zerra.Serialization.Bytes.Converters
 
             if (StackRequired)
             {
-                if (state.StackSize >= maxStackDepth)
+                if (state.StackSize >= MaxStackDepth)
                     throw new StackOverflowException($"{nameof(ByteConverter)} has reach the max depth of {state.StackSize}");
                 state.PushFrame();
             }
@@ -264,7 +251,7 @@ namespace Zerra.Serialization.Bytes.Converters
             {
                 var typeFromValue = value!.GetType();
 
-                if (typeFromValue != typeDetail.Type)
+                if (typeFromValue != TypeDetail.Type)
                 {
                     var newConverter = ByteConverterFactory.Get(typeFromValue.GetTypeDetail(), memberKey, getter, setter);
                     if (!newConverter.TryWriteValueBoxed(ref writer, ref state, value!))
@@ -328,25 +315,23 @@ namespace Zerra.Serialization.Bytes.Converters
                     }
 
                     if (typeName is null)
-                        throw new NotSupportedException($"Cannot deserialize {typeDetail.Type.Name} without type information");
+                        throw new NotSupportedException($"Cannot deserialize {TypeDetail.Type.Name} without type information");
 
                     state.EntryReadType = TypeFinder.GetTypeFromName(typeName);
                 }
 
-                if (state.EntryReadType != typeDetail.Type)
+                if (state.EntryReadType != TypeDetail.Type)
                 {
                     var newTypeDetail = state.EntryReadType.GetTypeDetail();
-                    if (newTypeDetail.HasCreatorBoxed)
+                    //overrides potentially boxed type with actual type if exists in assembly
+                    //otherwise we read the type as is and drain bytes feature will handle missing members
+                    if ((TypeDetail.IsNullable && TypeDetail.InnerType == newTypeDetail.Type) || newTypeDetail.Interfaces.Contains(TypeDetail.Type) || newTypeDetail.BaseTypes.Contains(TypeDetail.Type))
                     {
-                        //overrides potentially boxed type with actual type if exists in assembly
-                        if ((!typeDetail.IsNullable || typeDetail.InnerType != newTypeDetail.Type) && !newTypeDetail.Interfaces.Contains(typeDetail.Type) && !newTypeDetail.BaseTypes.Contains(typeDetail.Type))
-                            throw new NotSupportedException($"{newTypeDetail.Type.Name} does not convert to {typeDetail.Type.Name}");
-
                         var newConverter = ByteConverterFactory.Get(newTypeDetail, memberKey, getter, setter);
 
                         if (StackRequired)
                         {
-                            if (state.StackSize >= maxStackDepth)
+                            if (state.StackSize >= MaxStackDepth)
                                 throw new StackOverflowException($"{nameof(ByteConverter)} has reach the max depth of {state.StackSize}");
                             state.PushFrame(false);
                         }
@@ -370,14 +355,14 @@ namespace Zerra.Serialization.Bytes.Converters
 
             if (StackRequired)
             {
-                if (state.StackSize >= maxStackDepth)
+                if (state.StackSize >= MaxStackDepth)
                     throw new StackOverflowException($"{nameof(ByteConverter)} has reach the max depth of {state.StackSize}");
                 state.PushFrame(false);
             }
 
             if (isInterfacedObject)
             {
-                var emptyImplementationType = EmptyImplementations.GetType(typeDetail.Type);
+                var emptyImplementationType = EmptyImplementations.GetType(TypeDetail.Type);
                 var newTypeDetail = emptyImplementationType.GetTypeDetail();
 
                 var newConverter = ByteConverterFactory.Get(newTypeDetail, memberKey, getter, setter);
@@ -397,18 +382,16 @@ namespace Zerra.Serialization.Bytes.Converters
                 return true;
             }
 
-            if (!TryReadValue(ref reader, ref state, out var value))
+            if (!TryReadValue(ref reader, ref state, out returnValue))
             {
                 if (StackRequired)
                     state.StashFrame();
                 state.EntryHasNullChecked = true;
-                returnValue = value;
                 return false;
             }
 
             if (StackRequired)
                 state.EndFrame();
-            returnValue = value;
             return true;
         }
 
@@ -458,14 +441,14 @@ namespace Zerra.Serialization.Bytes.Converters
                     state.EntryWriteType = writeType;
                 }
 
-                if (state.EntryWriteType != typeDetail.Type)
+                if (state.EntryWriteType != TypeDetail.Type)
                 {
                     var typeFromValueDetail = state.EntryWriteType.GetTypeDetail();
                     var newConverter = ByteConverterFactory.Get(typeFromValueDetail, memberKey, getter, setter);
 
                     if (StackRequired)
                     {
-                        if (state.StackSize >= maxStackDepth)
+                        if (state.StackSize >= MaxStackDepth)
                             throw new StackOverflowException($"{nameof(ByteConverter)} has reach the max depth of {state.StackSize}");
                         state.PushFrame();
                     }
@@ -485,7 +468,7 @@ namespace Zerra.Serialization.Bytes.Converters
 
             if (StackRequired)
             {
-                if (state.StackSize >= maxStackDepth)
+                if (state.StackSize >= MaxStackDepth)
                     throw new StackOverflowException($"{nameof(ByteConverter)} has reach the max depth of {state.StackSize}");
                 state.PushFrame();
             }
@@ -494,7 +477,7 @@ namespace Zerra.Serialization.Bytes.Converters
             {
                 var typeFromValue = value!.GetType();
 
-                if (typeFromValue != typeDetail.Type)
+                if (typeFromValue != TypeDetail.Type)
                 {
                     var newConverter = ByteConverterFactory.Get(typeFromValue.GetTypeDetail(), memberKey, getter, setter);
                     if (!newConverter.TryWriteValueBoxed(ref writer, ref state, value!))
@@ -522,9 +505,10 @@ namespace Zerra.Serialization.Bytes.Converters
             return true;
         }
 
-        public override sealed bool TryReadFromParent(ref ByteReader reader, ref ReadState state, object? parent, bool nullFlags, bool drainBytes = false)
+        /// <inheritdoc/>
+        public override sealed bool TryReadFromParent(ref ByteReader reader, ref ReadState state, object? parent)
         {
-            if (nullFlags && canBeNull && !state.Current.ChildHasNullChecked)
+            if (canBeNull && !state.Current.ChildHasNullChecked)
             {
                 if (!reader.TryReadIsNull(out var isNull, out state.SizeNeeded))
                     return false;
@@ -548,27 +532,25 @@ namespace Zerra.Serialization.Bytes.Converters
                     }
 
                     if (typeName is null)
-                        throw new NotSupportedException($"Cannot deserialize {typeDetail.Type.Name} without type information");
+                        throw new NotSupportedException($"Cannot deserialize {TypeDetail.Type.Name} without type information");
 
                     state.Current.ChildReadType = TypeFinder.GetTypeFromName(typeName);
                 }
 
-                if (state.Current.ChildReadType != typeDetail.Type)
+                if (state.Current.ChildReadType != TypeDetail.Type)
                 {
                     var newTypeDetail = state.Current.ChildReadType.GetTypeDetail();
-                    if (newTypeDetail.HasCreatorBoxed)
+                    //overrides potentially boxed type with actual type if exists in assembly
+                    //otherwise we read the type as is and drain bytes feature will handle missing members
+                    if ((TypeDetail.IsNullable && TypeDetail.InnerType == newTypeDetail.Type) || newTypeDetail.Interfaces.Contains(TypeDetail.Type) || newTypeDetail.BaseTypes.Contains(TypeDetail.Type))
                     {
-                        //overrides potentially boxed type with actual type if exists in assembly
-                        if ((!typeDetail.IsNullable || typeDetail.InnerType != newTypeDetail.Type) && !newTypeDetail.Interfaces.Contains(typeDetail.Type) && !newTypeDetail.BaseTypes.Contains(typeDetail.Type))
-                            throw new NotSupportedException($"{newTypeDetail.Type.Name} does not convert to {typeDetail.Type.Name}");
-
                         var newConverter = ByteConverterFactory.Get(newTypeDetail, memberKey, getter, setter);
 
                         if (StackRequired)
                         {
-                            if (state.StackSize >= maxStackDepth)
+                            if (state.StackSize >= MaxStackDepth)
                                 throw new StackOverflowException($"{nameof(ByteConverter)} has reach the max depth of {state.StackSize}");
-                            state.PushFrame(drainBytes);
+                            state.PushFrame(false);
                         }
 
                         if (!newConverter.TryReadValueBoxed(ref reader, ref state, out var valueObject))
@@ -591,14 +573,14 @@ namespace Zerra.Serialization.Bytes.Converters
 
             if (StackRequired)
             {
-                if (state.StackSize >= maxStackDepth)
+                if (state.StackSize >= MaxStackDepth)
                     throw new StackOverflowException($"{nameof(ByteConverter)} has reach the max depth of {state.StackSize}");
-                state.PushFrame(drainBytes);
+                state.PushFrame(false);
             }
 
             if (isInterfacedObject)
             {
-                var emptyImplementationType = EmptyImplementations.GetType(typeDetail.Type);
+                var emptyImplementationType = EmptyImplementations.GetType(TypeDetail.Type);
                 var newTypeDetail = emptyImplementationType.GetTypeDetail();
 
                 var newConverter = ByteConverterFactory.Get(newTypeDetail, memberKey, getter, setter);
@@ -638,7 +620,8 @@ namespace Zerra.Serialization.Bytes.Converters
             state.Current.ChildHasNullChecked = false;
             return true;
         }
-        public override sealed bool TryWriteFromParent(ref ByteWriter writer, ref WriteState state, object parent, bool nullFlags, ushort indexProperty = default, ReadOnlySpan<byte> indexPropertyName = default)
+        /// <inheritdoc/>
+        public override sealed bool TryWriteFromParent(ref ByteWriter writer, ref WriteState state, object parent)
         {
             if (getter is null)
                 return true;
@@ -648,21 +631,214 @@ namespace Zerra.Serialization.Bytes.Converters
             {
                 if (value is null)
                 {
-                    if (nullFlags)
-                    {
-                        if (!writer.TryWriteNull(out state.BytesNeeded))
-                            return false;
-                    }
+                    if (!writer.TryWriteNull(out state.BytesNeeded))
+                        return false;
                     return true;
                 }
                 else
                 {
-                    if (nullFlags)
+                    if (!writer.TryWriteNotNull(out state.BytesNeeded))
+                        return false;
+                }
+            }
+
+            if (state.UseTypes)
+            {
+                if (state.Current.ChildWriteType is null)
+                {
+                    var writeType = value!.GetType();
+                    var typeName = writeType.AssemblyQualifiedName ?? throw new InvalidOperationException($"Type {writeType} does not have {nameof(writeType.AssemblyQualifiedName)}");
+
+                    if (!writer.TryWrite(typeName, out state.BytesNeeded))
                     {
-                        if (!writer.TryWriteNotNull(out state.BytesNeeded))
+                        state.Current.ChildHasWrittenIsNull = true;
+                        return false;
+                    }
+
+                    state.Current.ChildWriteType = writeType;
+                }
+
+                if (state.Current.ChildWriteType != TypeDetail.Type)
+                {
+                    var typeFromValueDetail = state.Current.ChildWriteType.GetTypeDetail();
+                    var newConverter = ByteConverterFactory.Get(typeFromValueDetail, memberKey, getter, setter);
+
+                    if (StackRequired)
+                    {
+                        if (state.StackSize >= MaxStackDepth)
+                            throw new StackOverflowException($"{nameof(ByteConverter)} has reach the max depth of {state.StackSize}");
+                        state.PushFrame();
+                    }
+
+                    if (!newConverter.TryWriteValueBoxed(ref writer, ref state, value!))
+                    {
+                        if (StackRequired)
+                            state.StashFrame();
+                        state.Current.ChildHasWrittenIsNull = true;
+                        return false;
+                    }
+
+                    if (StackRequired)
+                        state.EndFrame();
+                    state.Current.ChildWriteType = null;
+                    state.Current.ChildHasWrittenIsNull = false;
+                    return true;
+                }
+            }
+
+            if (StackRequired)
+            {
+                if (state.StackSize >= MaxStackDepth)
+                    throw new StackOverflowException($"{nameof(ByteConverter)} has reach the max depth of {state.StackSize}");
+                state.PushFrame();
+            }
+
+            if (isInterfacedObject)
+            {
+                var typeFromValue = value!.GetType();
+
+                if (typeFromValue != TypeDetail.Type)
+                {
+                    var newConverter = ByteConverterFactory.Get(typeFromValue.GetTypeDetail(), memberKey, getter, setter);
+
+                    if (!newConverter.TryWriteValueBoxed(ref writer, ref state, value))
+                    {
+                        if (StackRequired)
+                            state.StashFrame();
+                        state.Current.ChildHasWrittenIsNull = true;
+                        return false;
+                    }
+
+                    if (StackRequired)
+                        state.EndFrame();
+                    if (state.UseTypes)
+                        state.Current.ChildWriteType = null;
+                    state.Current.ChildHasWrittenIsNull = false;
+                    return true;
+                }
+            }
+
+            if (!TryWriteValue(ref writer, ref state, value!))
+            {
+                if (StackRequired)
+                    state.StashFrame();
+                state.Current.ChildHasWrittenIsNull = true;
+                return false;
+            }
+
+            if (StackRequired)
+                state.EndFrame();
+            if (state.UseTypes)
+                state.Current.ChildWriteType = null;
+            state.Current.ChildHasWrittenIsNull = false;
+            return true;
+        }
+
+        /// <inheritdoc/>
+        public override sealed bool TryReadFromParentMember(ref ByteReader reader, ref ReadState state, object? parent, bool drainBytes)
+        {
+            if (state.UseTypes)
+            {
+                if (state.Current.ChildReadType is null)
+                {
+                    if (!reader.TryRead(out string? typeName, out state.SizeNeeded))
+                        return false;
+
+                    if (typeName is null)
+                        throw new NotSupportedException($"Cannot deserialize {TypeDetail.Type.Name} without type information");
+
+                    state.Current.ChildReadType = TypeFinder.GetTypeFromName(typeName);
+                }
+
+                if (state.Current.ChildReadType != TypeDetail.Type)
+                {
+                    var newTypeDetail = state.Current.ChildReadType.GetTypeDetail();
+                    //overrides potentially boxed type with actual type if exists in assembly
+                    //otherwise we read the type as is and drain bytes feature will handle missing members
+                    if ((TypeDetail.IsNullable && TypeDetail.InnerType == newTypeDetail.Type) || newTypeDetail.Interfaces.Contains(TypeDetail.Type) || newTypeDetail.BaseTypes.Contains(TypeDetail.Type))
+                    {
+                        var newConverter = ByteConverterFactory.Get(newTypeDetail, memberKey, getter, setter);
+
+                        if (StackRequired)
+                        {
+                            if (state.StackSize >= MaxStackDepth)
+                                throw new StackOverflowException($"{nameof(ByteConverter)} has reach the max depth of {state.StackSize}");
+                            state.PushFrame(drainBytes);
+                        }
+
+                        if (!newConverter.TryReadValueBoxed(ref reader, ref state, out var valueObject))
+                        {
+                            if (StackRequired)
+                                state.StashFrame();
                             return false;
+                        }
+
+                        if (setter is not null && parent is not null)
+                            setter(parent, (TValue?)valueObject);
+                        if (StackRequired)
+                            state.EndFrame();
+                        state.Current.ChildReadType = null;
+                        return true;
                     }
                 }
+            }
+
+            if (StackRequired)
+            {
+                if (state.StackSize >= MaxStackDepth)
+                    throw new StackOverflowException($"{nameof(ByteConverter)} has reach the max depth of {state.StackSize}");
+                state.PushFrame(drainBytes);
+            }
+
+            if (isInterfacedObject)
+            {
+                var emptyImplementationType = EmptyImplementations.GetType(TypeDetail.Type);
+                var newTypeDetail = emptyImplementationType.GetTypeDetail();
+
+                var newConverter = ByteConverterFactory.Get(newTypeDetail, memberKey, getter, setter);
+
+                if (!newConverter.TryReadValueBoxed(ref reader, ref state, out var valueObject))
+                {
+                    if (StackRequired)
+                        state.StashFrame();
+                    return false;
+                }
+
+                if (setter is not null && parent is not null)
+                    setter(parent, (TValue?)valueObject);
+                if (StackRequired)
+                    state.EndFrame();
+                if (state.UseTypes)
+                    state.Current.ChildReadType = null;
+                return true;
+            }
+
+            if (!TryReadValue(ref reader, ref state, out var value))
+            {
+                if (StackRequired)
+                    state.StashFrame();
+                return false;
+            }
+
+            if (setter is not null && parent is not null)
+                setter(parent, value);
+            if (StackRequired)
+                state.EndFrame();
+            if (state.UseTypes)
+                state.Current.ChildReadType = null;
+            return true;
+        }
+        /// <inheritdoc/>
+        public override sealed bool TryWriteFromParentMember(ref ByteWriter writer, ref WriteState state, object parent, ushort indexProperty, ReadOnlySpan<byte> indexPropertyName)
+        {
+            if (getter is null)
+                return true;
+            var value = getter(parent);
+
+            if (canBeNull)
+            {
+                if (value is null)
+                    return true;
             }
 
             if (!state.Current.HasWrittenPropertyIndex)
@@ -672,10 +848,7 @@ namespace Zerra.Serialization.Bytes.Converters
                     if (indexPropertyName.Length > 0)
                     {
                         if (!writer.TryWritePropertyName(indexPropertyName, out state.BytesNeeded))
-                        {
-                            state.Current.ChildHasWrittenIsNull = true;
                             return false;
-                        }
                     }
                 }
                 else
@@ -685,18 +858,12 @@ namespace Zerra.Serialization.Bytes.Converters
                         if (state.UseIndexSizeUInt16)
                         {
                             if (!writer.TryWrite(indexProperty, out state.BytesNeeded))
-                            {
-                                state.Current.ChildHasWrittenIsNull = true;
                                 return false;
-                            }
                         }
                         else
                         {
                             if (!writer.TryWrite((byte)indexProperty, out state.BytesNeeded))
-                            {
-                                state.Current.ChildHasWrittenIsNull = true;
                                 return false;
-                            }
                         }
                     }
                 }
@@ -712,21 +879,20 @@ namespace Zerra.Serialization.Bytes.Converters
                     if (!writer.TryWrite(typeName, out state.BytesNeeded))
                     {
                         state.Current.HasWrittenPropertyIndex = true;
-                        state.Current.ChildHasWrittenIsNull = true;
                         return false;
                     }
 
                     state.Current.ChildWriteType = writeType;
                 }
 
-                if (state.Current.ChildWriteType != typeDetail.Type)
+                if (state.Current.ChildWriteType != TypeDetail.Type)
                 {
                     var typeFromValueDetail = state.Current.ChildWriteType.GetTypeDetail();
                     var newConverter = ByteConverterFactory.Get(typeFromValueDetail, memberKey, getter, setter);
 
                     if (StackRequired)
                     {
-                        if (state.StackSize >= maxStackDepth)
+                        if (state.StackSize >= MaxStackDepth)
                             throw new StackOverflowException($"{nameof(ByteConverter)} has reach the max depth of {state.StackSize}");
                         state.PushFrame();
                     }
@@ -736,7 +902,6 @@ namespace Zerra.Serialization.Bytes.Converters
                         if (StackRequired)
                             state.StashFrame();
                         state.Current.HasWrittenPropertyIndex = true;
-                        state.Current.ChildHasWrittenIsNull = true;
                         return false;
                     }
 
@@ -744,14 +909,13 @@ namespace Zerra.Serialization.Bytes.Converters
                         state.EndFrame();
                     state.Current.HasWrittenPropertyIndex = false;
                     state.Current.ChildWriteType = null;
-                    state.Current.ChildHasWrittenIsNull = false;
                     return true;
                 }
             }
 
             if (StackRequired)
             {
-                if (state.StackSize >= maxStackDepth)
+                if (state.StackSize >= MaxStackDepth)
                     throw new StackOverflowException($"{nameof(ByteConverter)} has reach the max depth of {state.StackSize}");
                 state.PushFrame();
             }
@@ -760,7 +924,7 @@ namespace Zerra.Serialization.Bytes.Converters
             {
                 var typeFromValue = value!.GetType();
 
-                if (typeFromValue != typeDetail.Type)
+                if (typeFromValue != TypeDetail.Type)
                 {
                     var newConverter = ByteConverterFactory.Get(typeFromValue.GetTypeDetail(), memberKey, getter, setter);
 
@@ -769,7 +933,6 @@ namespace Zerra.Serialization.Bytes.Converters
                         if (StackRequired)
                             state.StashFrame();
                         state.Current.HasWrittenPropertyIndex = true;
-                        state.Current.ChildHasWrittenIsNull = true;
                         return false;
                     }
 
@@ -778,7 +941,6 @@ namespace Zerra.Serialization.Bytes.Converters
                     state.Current.HasWrittenPropertyIndex = false;
                     if (state.UseTypes)
                         state.Current.ChildWriteType = null;
-                    state.Current.ChildHasWrittenIsNull = false;
                     return true;
                 }
             }
@@ -788,7 +950,6 @@ namespace Zerra.Serialization.Bytes.Converters
                 if (StackRequired)
                     state.StashFrame();
                 state.Current.HasWrittenPropertyIndex = true;
-                state.Current.ChildHasWrittenIsNull = true;
                 return false;
             }
 
@@ -796,18 +957,19 @@ namespace Zerra.Serialization.Bytes.Converters
                 state.EndFrame();
             state.Current.HasWrittenPropertyIndex = false;
             if (state.UseTypes)
-                state.Current.ChildWriteType = null;
-            state.Current.ChildHasWrittenIsNull = false;
+                state.Current.ChildWriteType = null; ;
             return true;
         }
 
+        /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override sealed bool TryReadValueBoxed(ref ByteReader reader, ref ReadState state, out object? value)
         {
-            var read = TryReadValue(ref reader, ref state, out var v);
-            value = v;
+            var read = TryReadValue(ref reader, ref state, out var returnValue);
+            value = returnValue;
             return read;
         }
+        /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override sealed bool TryWriteValueBoxed(ref ByteWriter writer, ref WriteState state, in object value)
             => TryWriteValue(ref writer, ref state, (TValue)value);
@@ -832,6 +994,7 @@ namespace Zerra.Serialization.Bytes.Converters
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected abstract bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in TValue value);
 
+        /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override sealed void CollectedValuesSetter(object? parent, in object? value)
         {

@@ -36,9 +36,9 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
 
                 if (!state.Current.DrainBytes)
                 {
-                    if (!typeDetail.HasCreator)
-                        throw new InvalidOperationException($"{typeDetail.Type} does not have a parameterless constructor.");
-                    value = typeDetail.Creator!();
+                    if (!TypeDetail.HasCreator)
+                        throw new InvalidOperationException($"{TypeDetail.Type} does not have a parameterless constructor.");
+                    value = TypeDetail.Creator!();
                     list = (IList)value!;
                     if (state.Current.EnumerableLength!.Value == 0)
                         return true;
@@ -65,7 +65,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
 
             for (; ; )
             {
-                if (!converter.TryReadFromParent(ref reader, ref state, list, true))
+                if (!converter.TryReadFromParent(ref reader, ref state, list))
                 {
                     state.Current.Object = list;
                     return false;
@@ -102,7 +102,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
 
             while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
             {
-                if (!converter.TryWriteFromParent(ref writer, ref state, enumerator, true))
+                if (!converter.TryWriteFromParent(ref writer, ref state, enumerator))
                 {
                     state.Current.Object = enumerator;
                     state.Current.EnumeratorInProgress = true;

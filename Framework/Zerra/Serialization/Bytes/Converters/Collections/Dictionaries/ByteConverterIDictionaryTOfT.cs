@@ -36,16 +36,16 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Dictionaries
 
                 if (!state.Current.DrainBytes)
                 {
-                    if (typeDetail.Type.IsInterface || typeDetail.Type.Name == "Dictionary`2")
+                    if (TypeDetail.Type.IsInterface || TypeDetail.Type.Name == "Dictionary`2")
                     {
                         dictionary = new Dictionary<TKey, TValue>();
                         value = (TDictionary?)dictionary;
                     }
                     else
                     {
-                        if (!typeDetail.HasCreator)
-                            throw new InvalidOperationException($"{typeDetail.Type} does not have a parameterless constructor.");
-                        value = typeDetail.Creator!();
+                        if (!TypeDetail.HasCreator)
+                            throw new InvalidOperationException($"{TypeDetail.Type} does not have a parameterless constructor.");
+                        value = TypeDetail.Creator!();
                         dictionary = (IDictionary<TKey, TValue>)value!;
                     }
                     if (state.Current.EnumerableLength!.Value == 0)
@@ -73,7 +73,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Dictionaries
 
             for (; ; )
             {
-                if (!converter.TryReadFromParent(ref reader, ref state, dictionary, true))
+                if (!converter.TryReadFromParent(ref reader, ref state, dictionary))
                 {
                     state.Current.Object = dictionary;
                     return false;
@@ -110,7 +110,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Dictionaries
 
             while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
             {
-                if (!converter.TryWriteFromParent(ref writer, ref state, enumerator, true))
+                if (!converter.TryWriteFromParent(ref writer, ref state, enumerator))
                 {
                     state.Current.Object = enumerator;
                     state.Current.EnumeratorInProgress = true;

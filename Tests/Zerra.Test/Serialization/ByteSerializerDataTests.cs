@@ -674,5 +674,21 @@ namespace Zerra.Test.Serialization
             Assert.Equal(model1.Value2, model2.Value2);
             Assert.Equal(model1.Value3, model2.Value3);
         }
+
+        [Fact]
+        public void DrainBytes()
+        {
+            var options = new ByteSerializerOptions()
+            {
+                IndexType = ByteSerializerIndexType.MemberNames,
+                UseTypes = true,
+            };
+
+            var model1 = TypesAllModel.Create();
+            var bytes = ByteSerializer.Serialize(model1, options);
+            Assert.Equal(199229, bytes.Length);
+            var model2 = ByteSerializer.Deserialize<TypesBasicModel>(bytes, options);
+            AssertHelper.AreEqual(model1, model2);
+        }
     }
 }

@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+
 using System.Runtime.CompilerServices;
 using Zerra.Serialization.Json.State;
 using Zerra.Serialization.Json.IO;
@@ -29,7 +30,7 @@ namespace Zerra.Serialization.Json.Converters
         /// </remarks>
         protected virtual bool StackRequired { get; } = true;
 
-        protected TypeDetail<TValue> typeDetail { get; private set; } = null!;
+        protected TypeDetail<TValue> TypeDetail { get; private set; } = null!;
         private string memberKey = null!;
         private Func<object, TValue?>? getter;
         private Action<object, TValue?>? setter;
@@ -38,15 +39,10 @@ namespace Zerra.Serialization.Json.Converters
         private bool isObject;
         private bool isInterfacedObject;
 
-        /// <summary>
-        /// Sets up the converter with the specified member key and optional getter and setter delegates.
-        /// </summary>
-        /// <param name="memberKey">The member key for this converter instance.</param>
-        /// <param name="getterDelegate">The delegate to use for getting values (optional).</param>
-        /// <param name="setterDelegate">The delegate to use for setting values (optional).</param>
+        /// <inheritdoc/>
         public override sealed void Setup(string memberKey, Delegate? getterDelegate, Delegate? setterDelegate)
         {
-            this.typeDetail = TypeAnalyzer<TValue>.GetTypeDetail();
+            this.TypeDetail = TypeAnalyzer<TValue>.GetTypeDetail();
             this.memberKey = memberKey;
             if (getterDelegate is not null)
             {
@@ -59,9 +55,9 @@ namespace Zerra.Serialization.Json.Converters
                 setter ??= (parent, value) => setterDelegate.DynamicInvoke(parent, value);
             }
 
-            canBeNull = typeDetail.IsNullable || !typeDetail.Type.IsValueType;
-            isObject = typeDetail.Type == typeof(object);
-            isInterfacedObject = typeDetail.Type.IsInterface && !typeDetail.HasIEnumerableGeneric && !typeDetail.HasIEnumerable;
+            canBeNull = TypeDetail.IsNullable || !TypeDetail.Type.IsValueType;
+            isObject = TypeDetail.Type == typeof(object);
+            isInterfacedObject = TypeDetail.Type.IsInterface && !TypeDetail.HasIEnumerableGeneric && !TypeDetail.HasIEnumerable;
 
             Setup();
         }
@@ -71,25 +67,19 @@ namespace Zerra.Serialization.Json.Converters
         /// </summary>
         protected virtual void Setup() { }
 
-        /// <summary>
-        /// Attempts to read a JSON value and convert it to the specified boxed type.
-        /// </summary>
-        /// <param name="reader">The JSON reader to read from.</param>
-        /// <param name="state">The current read state.</param>
-        /// <param name="returnValue">The deserialized value if successful; otherwise, null.</param>
-        /// <returns><c>true</c> if the read operation completed successfully; <c>false</c> if more bytes are needed.</returns>
-        public override sealed bool TryReadBoxed(ref JsonReader reader, ref ReadState state, out object? returnValue)
+        /// <inheritdoc/>
+        public override sealed bool TryReadBoxed(ref JsonReader reader, ref ReadState state, out object? value)
         {
             if (state.EntryValueType == JsonValueType.NotDetermined)
             {
                 if (!reader.TryReadValueType(out state.EntryValueType, out state.SizeNeeded))
                 {
-                    returnValue = default;
+                    value = default;
                     return false;
                 }
                 if (state.EntryValueType == JsonValueType.Null_Completed)
                 {
-                    returnValue = default;
+                    value = default;
                     return true;
                 }
             }
@@ -97,7 +87,7 @@ namespace Zerra.Serialization.Json.Converters
 
             if (StackRequired)
             {
-                if (state.StackSize >= maxStackDepth)
+                if (state.StackSize >= MaxStackDepth)
                     throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
                 state.PushFrame(state.Graph);
             }
@@ -120,19 +110,19 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (StackRequired)
                         state.StashFrame();
-                    returnValue = default;
+                    value = default;
                     return false;
                 }
 
                 if (StackRequired)
                     state.EndFrame();
-                returnValue = valueObject;
+                value = valueObject;
                 return true;
             }
 
             if (isInterfacedObject)
             {
-                var emptyImplementationType = EmptyImplementations.GetType(typeDetail.Type);
+                var emptyImplementationType = EmptyImplementations.GetType(TypeDetail.Type);
                 var newTypeDetail = emptyImplementationType.GetTypeDetail();
 
                 var newConverter = JsonConverterFactory.Get(newTypeDetail, memberKey, getter, setter);
@@ -141,36 +131,30 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (StackRequired)
                         state.StashFrame();
-                    returnValue = default;
+                    value = default;
                     return false;
                 }
 
                 if (StackRequired)
                     state.EndFrame();
-                returnValue = valueObject;
+                value = valueObject;
                 return true;
             }
 
-            if (!TryReadValue(ref reader, ref state, valueType, out var value))
+            if (!TryReadValue(ref reader, ref state, valueType, out var returnValue))
             {
                 if (StackRequired)
                     state.StashFrame();
-                returnValue = value;
+                value = returnValue;
                 return false;
             }
 
             if (StackRequired)
                 state.EndFrame();
-            returnValue = value;
+            value = returnValue;
             return true;
         }
-        /// <summary>
-        /// Attempts to write a boxed value to the JSON writer.
-        /// </summary>
-        /// <param name="writer">The JSON writer to write to.</param>
-        /// <param name="state">The current write state.</param>
-        /// <param name="value">The value to serialize.</param>
-        /// <returns><c>true</c> if the write operation completed successfully; <c>false</c> if more bytes are needed.</returns>
+        /// <inheritdoc/>
         public override sealed bool TryWriteBoxed(ref JsonWriter writer, ref WriteState state, in object? value)
         {
             if (canBeNull)
@@ -187,16 +171,16 @@ namespace Zerra.Serialization.Json.Converters
 
             if (StackRequired)
             {
-                if (state.StackSize >= maxStackDepth)
+                if (state.StackSize >= MaxStackDepth)
                     throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
                 state.PushFrame(state.Graph);
             }
 
             if (isInterfacedObject)
             {
-                var typeFromValue = value is null ? typeDetail : value.GetType().GetTypeDetail();
+                var typeFromValue = value is null ? TypeDetail : value.GetType().GetTypeDetail();
 
-                if (typeFromValue.Type != typeDetail.Type)
+                if (typeFromValue.Type != TypeDetail.Type)
                 {
                     var newConverter = JsonConverterFactory.Get(typeFromValue, memberKey, getter, setter);
                     if (!newConverter.TryWriteValueBoxed(ref writer, ref state, value!))
@@ -250,7 +234,7 @@ namespace Zerra.Serialization.Json.Converters
 
             if (StackRequired)
             {
-                if (state.StackSize >= maxStackDepth)
+                if (state.StackSize >= MaxStackDepth)
                     throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
                 state.PushFrame(state.Graph);
             }
@@ -285,7 +269,7 @@ namespace Zerra.Serialization.Json.Converters
 
             if (isInterfacedObject)
             {
-                var emptyImplementationType = EmptyImplementations.GetType(typeDetail.Type);
+                var emptyImplementationType = EmptyImplementations.GetType(TypeDetail.Type);
                 var newTypeDetail = emptyImplementationType.GetTypeDetail();
 
                 var newConverter = JsonConverterFactory.Get(newTypeDetail, memberKey, getter, setter);
@@ -340,16 +324,16 @@ namespace Zerra.Serialization.Json.Converters
 
             if (StackRequired)
             {
-                if (state.StackSize >= maxStackDepth)
+                if (state.StackSize >= MaxStackDepth)
                     throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
                 state.PushFrame(state.Graph);
             }
 
             if (isInterfacedObject)
             {
-                var typeFromValue = value is null ? typeDetail : value.GetType().GetTypeDetail();
+                var typeFromValue = value is null ? TypeDetail : value.GetType().GetTypeDetail();
 
-                if (typeFromValue.Type != typeDetail.Type)
+                if (typeFromValue.Type != TypeDetail.Type)
                 {
                     var newConverter = JsonConverterFactory.Get(typeFromValue, memberKey, getter, setter);
                     if (!newConverter.TryWriteValueBoxed(ref writer, ref state, value!))
@@ -375,7 +359,159 @@ namespace Zerra.Serialization.Json.Converters
             return true;
         }
 
-        public override sealed bool TryReadFromParent(ref JsonReader reader, ref ReadState state, object? parent, string? propertyName = default)
+        /// <inheritdoc/>
+        public override sealed bool TryReadFromParent(ref JsonReader reader, ref ReadState state, object? parent)
+        {
+            if (state.Current.ChildValueType == JsonValueType.NotDetermined)
+            {
+                if (!reader.TryReadValueType(out state.Current.ChildValueType, out state.SizeNeeded))
+                {
+                    return false;
+                }
+                if (state.Current.ChildValueType == JsonValueType.Null_Completed)
+                {
+                    if (setter is not null && parent is not null)
+                        setter(parent, default);
+
+                    state.Current.ChildValueType = JsonValueType.NotDetermined;
+                    return true;
+                }
+            }
+            var valueType = state.Current.ChildValueType;
+
+            if (StackRequired)
+            {
+                if (state.StackSize >= MaxStackDepth)
+                    throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
+                state.PushFrame(null);
+            }
+
+            if (isObject && valueType != JsonValueType.Object)
+            {
+                TypeDetail newTypeDetail = valueType switch
+                {
+                    JsonValueType.Object => TypeAnalyzer<object>.GetTypeDetail(),
+                    JsonValueType.Array => TypeAnalyzer<object[]>.GetTypeDetail(),
+                    JsonValueType.String => TypeAnalyzer<string>.GetTypeDetail(),
+                    JsonValueType.Number => TypeAnalyzer<decimal>.GetTypeDetail(),
+                    JsonValueType.True_Completed or JsonValueType.False_Completed => TypeAnalyzer<bool>.GetTypeDetail(),
+                    _ => throw new NotSupportedException(),
+                };
+
+                var newConverter = JsonConverterFactory.Get(newTypeDetail, memberKey, getter, setter);
+
+                if (!newConverter.TryReadValueBoxed(ref reader, ref state, valueType, out var valueObject))
+                {
+                    if (StackRequired)
+                        state.StashFrame();
+                    return false;
+                }
+
+                if (setter is not null && parent is not null)
+                    setter(parent, (TValue?)valueObject);
+                if (StackRequired)
+                    state.EndFrame();
+                state.Current.ChildValueType = JsonValueType.NotDetermined;
+                return true;
+            }
+
+            if (isInterfacedObject)
+            {
+                var emptyImplementationType = EmptyImplementations.GetType(TypeDetail.Type);
+                var newTypeDetail = emptyImplementationType.GetTypeDetail();
+
+                var newConverter = JsonConverterFactory.Get(newTypeDetail, memberKey, getter, setter);
+
+                if (!newConverter.TryReadValueBoxed(ref reader, ref state, valueType, out var valueObject))
+                {
+                    if (StackRequired)
+                        state.StashFrame();
+                    return false;
+                }
+
+                if (setter is not null && parent is not null)
+                    setter(parent, (TValue?)valueObject);
+                if (StackRequired)
+                    state.EndFrame();
+                state.Current.ChildValueType = JsonValueType.NotDetermined;
+                return true;
+            }
+
+            if (!TryReadValue(ref reader, ref state, valueType, out var value))
+            {
+                if (StackRequired)
+                    state.StashFrame();
+                return false;
+            }
+
+            if (setter is not null && parent is not null)
+                setter(parent, value);
+            if (StackRequired)
+            {
+                state.EndFrame();
+            }
+            state.Current.ChildValueType = JsonValueType.NotDetermined;
+            return true;
+        }
+        /// <inheritdoc/>
+        public override sealed bool TryWriteFromParent(ref JsonWriter writer, ref WriteState state, object parent)
+        {
+            if (getter is null)
+                return true;
+            var value = getter(parent);
+
+            if (canBeNull && value is null)
+            {
+                if (!writer.TryWriteNull(out state.SizeNeeded))
+                {
+                    return false;
+                }
+                return true;
+            }
+
+            if (StackRequired)
+            {
+                if (state.StackSize >= MaxStackDepth)
+                    throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
+                state.PushFrame(null);
+            }
+
+            if (isInterfacedObject || isObject)
+            {
+                var typeFromValue = value is null ? TypeDetail : value.GetType().GetTypeDetail();
+
+                if (typeFromValue.Type != TypeDetail.Type)
+                {
+                    var newConverter = JsonConverterFactory.Get(typeFromValue, memberKey, getter, setter);
+                    if (!newConverter.TryWriteValueBoxed(ref writer, ref state, value!))
+                    {
+                        if (StackRequired)
+                            state.StashFrame();
+                        return false;
+                    }
+
+                    if (StackRequired)
+                        state.EndFrame();
+                    state.Current.HasWrittenPropertyName = false;
+                    return true;
+                }
+            }
+
+            if (!TryWriteValue(ref writer, ref state, value!))
+            {
+                if (StackRequired)
+                    state.StashFrame();
+                return false;
+            }
+
+            if (StackRequired)
+                state.EndFrame();
+            state.Current.HasWrittenPropertyName = false;
+            return true;
+        }
+
+        /// <inheritdoc/>
+        public override sealed bool TryReadFromParentMember(ref JsonReader reader, ref ReadState state, object? parent, string? propertyName = default)
         {
             if (state.Current.ChildValueType == JsonValueType.NotDetermined)
             {
@@ -399,7 +535,7 @@ namespace Zerra.Serialization.Json.Converters
 
             if (StackRequired)
             {
-                if (state.StackSize >= maxStackDepth)
+                if (state.StackSize >= MaxStackDepth)
                     throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
                 if (propertyName is not null)
                 {
@@ -443,7 +579,7 @@ namespace Zerra.Serialization.Json.Converters
 
             if (isInterfacedObject)
             {
-                var emptyImplementationType = EmptyImplementations.GetType(typeDetail.Type);
+                var emptyImplementationType = EmptyImplementations.GetType(TypeDetail.Type);
                 var newTypeDetail = emptyImplementationType.GetTypeDetail();
 
                 var newConverter = JsonConverterFactory.Get(newTypeDetail, memberKey, getter, setter);
@@ -499,7 +635,8 @@ namespace Zerra.Serialization.Json.Converters
             state.Current.ChildValueType = JsonValueType.NotDetermined;
             return true;
         }
-        public override sealed bool TryWriteFromParent(ref JsonWriter writer, ref WriteState state, object parent, string? propertyName = default, ReadOnlySpan<char> jsonNameSegmentChars = default, ReadOnlySpan<byte> jsonNameSegmentBytes = default, JsonIgnoreCondition ignoreCondition = default, bool ignoreDoNotWriteNullProperties = default)
+        /// <inheritdoc/>
+        public override sealed bool TryWriteFromParentMember(ref JsonWriter writer, ref WriteState state, object parent, string? propertyName = default, ReadOnlySpan<char> jsonNameSegmentChars = default, ReadOnlySpan<byte> jsonNameSegmentBytes = default, JsonIgnoreCondition ignoreCondition = default, bool ignoreDoNotWriteNullProperties = default)
         {
             if (getter is null)
                 return true;
@@ -582,7 +719,7 @@ namespace Zerra.Serialization.Json.Converters
 
             if (StackRequired)
             {
-                if (state.StackSize >= maxStackDepth)
+                if (state.StackSize >= MaxStackDepth)
                     throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
                 if (propertyName is not null)
                 {
@@ -597,9 +734,9 @@ namespace Zerra.Serialization.Json.Converters
 
             if (isInterfacedObject || isObject)
             {
-                var typeFromValue = value is null ? typeDetail : value.GetType().GetTypeDetail();
+                var typeFromValue = value is null ? TypeDetail : value.GetType().GetTypeDetail();
 
-                if (typeFromValue.Type != typeDetail.Type)
+                if (typeFromValue.Type != TypeDetail.Type)
                 {
                     var newConverter = JsonConverterFactory.Get(typeFromValue, memberKey, getter, setter);
                     if (!newConverter.TryWriteValueBoxed(ref writer, ref state, value!))
@@ -629,13 +766,15 @@ namespace Zerra.Serialization.Json.Converters
             return true;
         }
 
+        /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override sealed bool TryReadValueBoxed(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out object? value)
         {
-            var read = TryReadValue(ref reader, ref state, valueType, out var v);
-            value = v;
+            var read = TryReadValue(ref reader, ref state, valueType, out var returnValue);
+            value = returnValue;
             return read;
         }
+        /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override sealed bool TryWriteValueBoxed(ref JsonWriter writer, ref WriteState state, in object value)
             => TryWriteValue(ref writer, ref state, (TValue)value);
@@ -661,6 +800,7 @@ namespace Zerra.Serialization.Json.Converters
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected abstract bool TryWriteValue(ref JsonWriter writer, ref WriteState state, in TValue value);
 
+        /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override sealed void CollectedValuesSetter(object? parent, in object? value)
         {
@@ -674,6 +814,6 @@ namespace Zerra.Serialization.Json.Converters
         /// <param name="reader">The JSON reader from which the exception context is derived.</param>
         /// <exception cref="InvalidOperationException">Always thrown with a message indicating the conversion failure.</exception>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected void ThrowCannotConvert(ref JsonReader reader) => throw reader.CreateException($"Cannot convert to {typeDetail.Type.Name} (disable {nameof(ReadState.ErrorOnTypeMismatch)} to prevent this exception)");
+        protected void ThrowCannotConvert(ref JsonReader reader) => throw reader.CreateException($"Cannot convert to {TypeDetail.Type.Name} (disable {nameof(ReadState.ErrorOnTypeMismatch)} to prevent this exception)");
     }
 }

@@ -22,7 +22,7 @@ namespace Zerra.Serialization.Json.Converters
     public abstract partial class JsonConverter
     {
         //The max converter stack before we unwind
-        protected const int maxStackDepth = 31;
+        protected const int MaxStackDepth = 31;
 
         /// <summary>
         /// Initializes the converter with member-specific information.
@@ -56,9 +56,27 @@ namespace Zerra.Serialization.Json.Converters
         /// <param name="reader">The JSON reader to read from.</param>
         /// <param name="state">The current read state.</param>
         /// <param name="parent">The parent object to populate.</param>
+        /// <returns><c>true</c> if the read operation completed successfully; <c>false</c> if more bytes are needed.</returns>
+        public abstract bool TryReadFromParent(ref JsonReader reader, ref ReadState state, object? parent);
+
+        /// <summary>
+        /// Attempts to write a value from a parent object to JSON format.
+        /// </summary>
+        /// <param name="writer">The JSON writer to write to.</param>
+        /// <param name="state">The current write state.</param>
+        /// <param name="parent">The parent object to serialize.</param>
+        /// <returns><c>true</c> if the write operation completed successfully; <c>false</c> if more bytes are needed.</returns>
+        public abstract bool TryWriteFromParent(ref JsonWriter writer, ref WriteState state, object parent);
+
+        /// <summary>
+        /// Attempts to read a value from a parent object in JSON format.
+        /// </summary>
+        /// <param name="reader">The JSON reader to read from.</param>
+        /// <param name="state">The current read state.</param>
+        /// <param name="parent">The parent object to populate.</param>
         /// <param name="propertyName">The optional property name being deserialized.</param>
         /// <returns><c>true</c> if the read operation completed successfully; <c>false</c> if more bytes are needed.</returns>
-        public abstract bool TryReadFromParent(ref JsonReader reader, ref ReadState state, object? parent, string? propertyName = null);
+        public abstract bool TryReadFromParentMember(ref JsonReader reader, ref ReadState state, object? parent, string? propertyName = null);
 
         /// <summary>
         /// Attempts to write a value from a parent object to JSON format.
@@ -72,7 +90,7 @@ namespace Zerra.Serialization.Json.Converters
         /// <param name="ignoreCondition">The condition determining whether to ignore this property.</param>
         /// <param name="ignoreDoNotWriteNullProperties">Whether to skip writing properties with null values.</param>
         /// <returns><c>true</c> if the write operation completed successfully; <c>false</c> if more bytes are needed.</returns>
-        public abstract bool TryWriteFromParent(ref JsonWriter writer, ref WriteState state, object parent, string? propertyName = null, ReadOnlySpan<char> jsonNameSegmentChars = default, ReadOnlySpan<byte> jsonNameSegmentBytes = default, JsonIgnoreCondition ignoreCondition = JsonIgnoreCondition.Never, bool ignoreDoNotWriteNullProperties = false);
+        public abstract bool TryWriteFromParentMember(ref JsonWriter writer, ref WriteState state, object parent, string? propertyName = null, ReadOnlySpan<char> jsonNameSegmentChars = default, ReadOnlySpan<byte> jsonNameSegmentBytes = default, JsonIgnoreCondition ignoreCondition = JsonIgnoreCondition.Never, bool ignoreDoNotWriteNullProperties = false);
 
         /// <summary>
         /// Attempts to read a boxed value from the JSON reader with the specified value type information.

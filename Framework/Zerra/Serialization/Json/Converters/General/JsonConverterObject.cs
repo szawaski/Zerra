@@ -36,7 +36,7 @@ namespace Zerra.Serialization.Json.Converters.General
 
         protected override sealed void Setup()
         {
-            foreach (var member in typeDetail.SerializableMemberDetails)
+            foreach (var member in TypeDetail.SerializableMemberDetails)
             {
                 var found = false;
                 var ignoreCondition = JsonIgnoreCondition.Never;
@@ -81,7 +81,7 @@ namespace Zerra.Serialization.Json.Converters.General
 
                     if (attribute is JsonPropertyNameAttribute jsonPropertyName)
                     {
-                        var detail = new JsonConverterObjectMember(typeDetail, member, jsonPropertyName.Name, ignoreCondition);
+                        var detail = new JsonConverterObjectMember(TypeDetail, member, jsonPropertyName.Name, ignoreCondition);
                         membersByName.Add(jsonPropertyName.Name, detail);
                         members.Add(detail);
                         found = true;
@@ -89,7 +89,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     }
                     else if (attribute is System.Text.Json.Serialization.JsonPropertyNameAttribute jsonPropertyName2)
                     {
-                        var detail = new JsonConverterObjectMember(typeDetail, member, jsonPropertyName2.Name, ignoreCondition);
+                        var detail = new JsonConverterObjectMember(TypeDetail, member, jsonPropertyName2.Name, ignoreCondition);
                         membersByName.Add(jsonPropertyName2.Name, detail);
                         members.Add(detail);
                         found = true;
@@ -101,7 +101,7 @@ namespace Zerra.Serialization.Json.Converters.General
 
                 if (!found)
                 {
-                    var detail = new JsonConverterObjectMember(typeDetail, member, member.Name, ignoreCondition);
+                    var detail = new JsonConverterObjectMember(TypeDetail, member, member.Name, ignoreCondition);
                     membersByName.Add(member.Name, detail);
                     members.Add(detail);
                 }
@@ -109,16 +109,16 @@ namespace Zerra.Serialization.Json.Converters.General
                 membersKeyed = members.Select(x => new MemberKey(x)).ToArray();
             }
 
-            if (typeDetail.Type.IsValueType || !typeDetail.HasCreator)
+            if (TypeDetail.Type.IsValueType || !TypeDetail.HasCreator)
             {
                 //find best constructor
-                foreach (var constructor in typeDetail.Constructors.OrderByDescending(x => x.Parameters.Count))
+                foreach (var constructor in TypeDetail.Constructors.OrderByDescending(x => x.Parameters.Count))
                 {
                     var skip = false;
                     foreach (var parameter in constructor.Parameters)
                     {
                         //cannot have argument of itself or a null name
-                        if (parameter.Type == typeDetail.Type || parameter.Name is null)
+                        if (parameter.Type == TypeDetail.Type || parameter.Name is null)
                         {
                             skip = true;
                             break;
@@ -169,9 +169,9 @@ namespace Zerra.Serialization.Json.Converters.General
                         value = default;
                         collectedValues = RentCollectedValues();
                     }
-                    else if (typeDetail.HasCreator)
+                    else if (TypeDetail.HasCreator)
                     {
-                        value = typeDetail.Creator!();
+                        value = TypeDetail.Creator!();
                         collectedValues = null;
                     }
                     else
@@ -212,7 +212,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     {
                         if (collectValues)
                         {
-                            if (!current.ConverterSetCollectedValues.TryReadFromParent(ref reader, ref state, collectedValues, current.Member.Name))
+                            if (!current.ConverterSetCollectedValues.TryReadFromParentMember(ref reader, ref state, collectedValues, current.Member.Name))
                             {
                                 state.Current.HasReadProperty = true;
                                 state.Current.HasReadSeperator = true;
@@ -225,7 +225,7 @@ namespace Zerra.Serialization.Json.Converters.General
                         }
                         else
                         {
-                            if (!current.Converter.TryReadFromParent(ref reader, ref state, value, current.Member.Name))
+                            if (!current.Converter.TryReadFromParentMember(ref reader, ref state, value, current.Member.Name))
                             {
                                 state.Current.HasReadProperty = true;
                                 state.Current.HasReadSeperator = true;
@@ -288,9 +288,9 @@ namespace Zerra.Serialization.Json.Converters.General
                         value = default;
                         collectedValues = RentCollectedValues();
                     }
-                    else if (typeDetail.HasCreator)
+                    else if (TypeDetail.HasCreator)
                     {
-                        value = typeDetail.Creator!();
+                        value = TypeDetail.Creator!();
                         collectedValues = null;
                     }
                     else
@@ -572,7 +572,7 @@ namespace Zerra.Serialization.Json.Converters.General
                         {
                             if (collectValues)
                             {
-                                if (!member.ConverterSetCollectedValues.TryReadFromParent(ref reader, ref state, collectedValues, member.Member.Name))
+                                if (!member.ConverterSetCollectedValues.TryReadFromParentMember(ref reader, ref state, collectedValues, member.Member.Name))
                                 {
                                     state.Current.HasReadProperty = true;
                                     state.Current.HasReadSeperator = true;
@@ -586,7 +586,7 @@ namespace Zerra.Serialization.Json.Converters.General
                             }
                             else
                             {
-                                if (!member.Converter.TryReadFromParent(ref reader, ref state, value, member.Member.Name))
+                                if (!member.Converter.TryReadFromParentMember(ref reader, ref state, value, member.Member.Name))
                                 {
                                     state.Current.HasReadProperty = true;
                                     state.Current.HasReadSeperator = true;
@@ -640,7 +640,7 @@ namespace Zerra.Serialization.Json.Converters.General
 #endif
                 }
 
-                if (typeDetail.Type.IsValueType)
+                if (TypeDetail.Type.IsValueType)
                     value = (TValue?)parameterConstructor.CreatorBoxed(args);
                 else
                     value = parameterConstructor.Creator(args);
@@ -703,7 +703,7 @@ namespace Zerra.Serialization.Json.Converters.General
                         }
                     }
 
-                    if (!current.Converter.TryWriteFromParent(ref writer, ref state, value!, null, default, default, current.IgnoreCondition, true))
+                    if (!current.Converter.TryWriteFromParentMember(ref writer, ref state, value!, null, default, default, current.IgnoreCondition, true))
                     {
                         state.Current.HasWrittenStart = true;
                         state.Current.HasWrittenSeperator = true;
@@ -758,7 +758,7 @@ namespace Zerra.Serialization.Json.Converters.General
                         continue;
                     }
 
-                    if (!current.Converter.TryWriteFromParent(ref writer, ref state, value!, current.Member.Name, current.JsonNameSegmentChars, current.JsonNameSegmentBytes, current.IgnoreCondition))
+                    if (!current.Converter.TryWriteFromParentMember(ref writer, ref state, value!, current.Member.Name, current.JsonNameSegmentChars, current.JsonNameSegmentBytes, current.IgnoreCondition))
                     {
                         state.Current.HasWrittenStart = true;
                         return false;

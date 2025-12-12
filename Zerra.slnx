@@ -13,6 +13,7 @@
     <Project Path="Framework/Zerra/Zerra.csproj" />
   </Folder>
   <Folder Name="/Test/">
+    <Project Path="Tests/Zerra.Benchmark/Zerra.Benchmark.csproj" />
     <Project Path="Tests/Zerra.SourceGeneration.Test/Zerra.SourceGeneration.Test.csproj" />
     <Project Path="Tests/Zerra.Test/Zerra.Test.csproj" />
   </Folder>

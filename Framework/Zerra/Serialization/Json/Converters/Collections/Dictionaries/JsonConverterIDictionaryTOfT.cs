@@ -63,9 +63,9 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                         return false;
                     }
 
-                    if (!typeDetail.HasCreator)
-                        throw new InvalidOperationException($"{typeDetail.Type} does not have a parameterless constructor.");
-                    accessor = new IDictionaryAccessor<TKey, TValue>((IDictionary<TKey, TValue>)typeDetail.Creator!()!);
+                    if (!TypeDetail.HasCreator)
+                        throw new InvalidOperationException($"{TypeDetail.Type} does not have a parameterless constructor.");
+                    accessor = new IDictionaryAccessor<TKey, TValue>((IDictionary<TKey, TValue>)TypeDetail.Creator!()!);
 
                     if (c == '}')
                     {
@@ -113,7 +113,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
 
                     if (!state.Current.HasReadValue)
                     {
-                        if (!valueConverter.TryReadFromParent(ref reader, ref state, accessor, state.IncludeReturnGraph ? accessor.CurrentKeyString : null))
+                        if (!valueConverter.TryReadFromParentMember(ref reader, ref state, accessor, state.IncludeReturnGraph ? accessor.CurrentKeyString : null))
                         {
                             state.Current.HasReadProperty = true;
                             state.Current.HasReadSeperator = true;
@@ -161,9 +161,9 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                         return false;
                     }
 
-                    if (!typeDetail.HasCreator)
-                        throw new InvalidOperationException($"{typeDetail.Type} does not have a parameterless constructor.");
-                    dictionary = (IDictionary<TKey, TValue>)typeDetail.Creator!()!;
+                    if (!TypeDetail.HasCreator)
+                        throw new InvalidOperationException($"{TypeDetail.Type} does not have a parameterless constructor.");
+                    dictionary = (IDictionary<TKey, TValue>)TypeDetail.Creator!()!;
 
                     if (c == ']')
                     {
@@ -256,7 +256,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                     var name = enumerator.Current.Key.ToString();
                     var nameSegmentBytes = writer.UseBytes ? StringHelper.EscapeAndEncodeString(name, true) : null;
                     var nameSegmentChars = writer.UseBytes ? null : StringHelper.EscapeString(name, true);
-                    if (!valueConverter.TryWriteFromParent(ref writer, ref state, enumerator, name, nameSegmentChars, nameSegmentBytes, default, true))
+                    if (!valueConverter.TryWriteFromParentMember(ref writer, ref state, enumerator, name, nameSegmentChars, nameSegmentBytes, default, true))
                     {
                         state.Current.HasWrittenStart = true;
                         state.Current.Object = enumerator;

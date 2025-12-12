@@ -46,16 +46,16 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
 
                 if (c == ']')
                 {
-                    if (!typeDetail.HasCreator)
-                        throw new InvalidOperationException($"{typeDetail.Type} does not have a parameterless constructor.");
-                    value = typeDetail.Creator!();
+                    if (!TypeDetail.HasCreator)
+                        throw new InvalidOperationException($"{TypeDetail.Type} does not have a parameterless constructor.");
+                    value = TypeDetail.Creator!();
                     return true;
                 }
 
                 reader.BackOne();
-                if (!typeDetail.HasCreator)
-                    throw new InvalidOperationException($"{typeDetail.Type} does not have a parameterless constructor.");
-                value = typeDetail.Creator!();
+                if (!TypeDetail.HasCreator)
+                    throw new InvalidOperationException($"{TypeDetail.Type} does not have a parameterless constructor.");
+                value = TypeDetail.Creator!();
                 list = (IList<TValue>)value!;
             }
             else
