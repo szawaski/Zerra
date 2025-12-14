@@ -13,21 +13,21 @@ namespace Zerra.Serialization.Bytes.IO
 #if DEBUG
         public static bool Testing = false;
 
-        private static bool Alternate = false;
+        public bool Alternate = false;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool Skip()
+        private bool DebugShouldReturn()
         {
             if (!ByteReader.Testing)
                 return false;
-            if (ByteReader.Alternate)
+            if (Alternate)
             {
-                ByteReader.Alternate = false;
+                Alternate = false;
                 return false;
             }
             else
             {
-                ByteReader.Alternate = true;
+                Alternate = true;
                 return true;
             }
         }
@@ -39,7 +39,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 1;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -58,7 +58,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 1;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -76,7 +76,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 1;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -93,7 +93,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -131,7 +131,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -169,7 +169,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -215,7 +215,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -254,7 +254,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -297,7 +297,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -349,7 +349,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 1;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -366,7 +366,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 1;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -383,7 +383,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -423,7 +423,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -461,7 +461,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -507,7 +507,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -546,7 +546,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -589,7 +589,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -641,7 +641,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 1;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -658,7 +658,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 1;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -675,7 +675,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -713,7 +713,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -751,7 +751,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -797,7 +797,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -836,7 +836,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -879,7 +879,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -931,7 +931,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 2;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -948,7 +948,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 2;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -965,7 +965,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1003,7 +1003,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1041,7 +1041,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1088,7 +1088,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1127,7 +1127,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1170,7 +1170,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1222,7 +1222,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 2;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1239,7 +1239,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 2;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1256,7 +1256,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1294,7 +1294,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1332,7 +1332,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1378,7 +1378,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1417,7 +1417,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1460,7 +1460,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1512,7 +1512,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1529,7 +1529,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1546,7 +1546,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1584,7 +1584,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1622,7 +1622,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1668,7 +1668,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1707,7 +1707,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1750,7 +1750,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1802,7 +1802,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1819,7 +1819,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1836,7 +1836,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1874,7 +1874,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1912,7 +1912,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1959,7 +1959,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1998,7 +1998,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2041,7 +2041,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2093,7 +2093,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 8;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2112,7 +2112,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 8;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2131,7 +2131,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2171,7 +2171,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2211,7 +2211,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2259,7 +2259,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2300,7 +2300,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2345,7 +2345,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2399,7 +2399,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 8;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2418,7 +2418,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 8;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2437,7 +2437,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2477,7 +2477,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2517,7 +2517,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2565,7 +2565,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2606,7 +2606,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2651,7 +2651,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2705,7 +2705,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2723,7 +2723,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2741,7 +2741,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2780,7 +2780,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2819,7 +2819,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2866,7 +2866,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2906,7 +2906,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2950,7 +2950,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3003,7 +3003,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 8;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3023,7 +3023,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 8;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3043,7 +3043,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3084,7 +3084,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3125,7 +3125,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3174,7 +3174,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3216,7 +3216,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3262,7 +3262,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3317,7 +3317,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 16;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3338,7 +3338,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 16;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3359,7 +3359,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3401,7 +3401,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3443,7 +3443,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3493,7 +3493,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3536,7 +3536,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3583,7 +3583,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3639,7 +3639,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 8;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3659,7 +3659,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 8;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3679,7 +3679,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3720,7 +3720,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3761,7 +3761,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3810,7 +3810,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3852,7 +3852,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3898,7 +3898,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3953,7 +3953,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 10;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3974,7 +3974,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 10;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3995,7 +3995,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4037,7 +4037,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4079,7 +4079,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4129,7 +4129,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4172,7 +4172,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4219,7 +4219,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4275,7 +4275,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 8;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4295,7 +4295,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 8;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4315,7 +4315,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4356,7 +4356,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4397,7 +4397,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4446,7 +4446,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4488,7 +4488,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4534,7 +4534,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4590,7 +4590,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4608,7 +4608,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4626,7 +4626,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4665,7 +4665,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4704,7 +4704,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4751,7 +4751,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4791,7 +4791,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4835,7 +4835,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4888,7 +4888,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 8;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4908,7 +4908,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 8;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4928,7 +4928,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4969,7 +4969,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5010,7 +5010,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5059,7 +5059,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5101,7 +5101,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5147,7 +5147,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5203,7 +5203,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 16;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5225,7 +5225,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 16;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5248,7 +5248,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5291,7 +5291,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5334,7 +5334,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5385,7 +5385,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5429,7 +5429,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5477,7 +5477,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5534,7 +5534,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 2;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5555,7 +5555,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 2;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5576,7 +5576,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5620,7 +5620,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5663,7 +5663,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5715,7 +5715,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5760,7 +5760,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5808,7 +5808,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5865,7 +5865,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5902,7 +5902,7 @@ namespace Zerra.Serialization.Bytes.IO
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {

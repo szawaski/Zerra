@@ -13,6 +13,6 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.Arrays
             => reader.TryRead(out value, out state.SizeNeeded);
 
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in ushort[] value)
-            => writer.TryWrite(value, value.Length, out state.BytesNeeded);
+            => writer.TryWrite(value, value.Length, out state.SizeNeeded);
     }
 }

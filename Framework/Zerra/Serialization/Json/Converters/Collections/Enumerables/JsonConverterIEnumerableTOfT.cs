@@ -21,7 +21,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Enumerables
             converter = JsonConverterFactory.Get(valueTypeDetail, nameof(JsonConverterIEnumerableTOfT<TEnumerable, TValue>), Getter, Setter);
         }
 
-        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out TEnumerable? value)
+        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonToken token, out TEnumerable? value)
             => throw new NotSupportedException($"Cannot deserialize {TypeDetail.Type.Name} because no interface to populate the collection");
 
         protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, in TEnumerable value)

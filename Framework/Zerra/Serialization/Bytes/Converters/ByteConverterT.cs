@@ -183,7 +183,7 @@ namespace Zerra.Serialization.Bytes.Converters
                 {
                     if (!state.EntryHasWrittenIsNull)
                     {
-                        if (!writer.TryWriteNull(out state.BytesNeeded))
+                        if (!writer.TryWriteNull(out state.SizeNeeded))
                             return false;
                     }
                     return true;
@@ -192,7 +192,7 @@ namespace Zerra.Serialization.Bytes.Converters
                 {
                     if (!state.EntryHasWrittenIsNull)
                     {
-                        if (!writer.TryWriteNotNull(out state.BytesNeeded))
+                        if (!writer.TryWriteNotNull(out state.SizeNeeded))
                             return false;
                     }
                 }
@@ -205,7 +205,7 @@ namespace Zerra.Serialization.Bytes.Converters
                     var writeType = value!.GetType();
                     var typeName = writeType.AssemblyQualifiedName ?? throw new InvalidOperationException($"Type {writeType} does not have {nameof(writeType.AssemblyQualifiedName)}");
 
-                    if (!writer.TryWrite(typeName, out state.BytesNeeded))
+                    if (!writer.TryWrite(typeName, out state.SizeNeeded))
                     {
                         state.EntryHasWrittenIsNull = true;
                         return false;
@@ -410,7 +410,7 @@ namespace Zerra.Serialization.Bytes.Converters
                 {
                     if (!state.EntryHasWrittenIsNull)
                     {
-                        if (!writer.TryWriteNull(out state.BytesNeeded))
+                        if (!writer.TryWriteNull(out state.SizeNeeded))
                             return false;
                     }
                     return true;
@@ -419,7 +419,7 @@ namespace Zerra.Serialization.Bytes.Converters
                 {
                     if (!state.EntryHasWrittenIsNull)
                     {
-                        if (!writer.TryWriteNotNull(out state.BytesNeeded))
+                        if (!writer.TryWriteNotNull(out state.SizeNeeded))
                             return false;
                     }
                 }
@@ -432,7 +432,7 @@ namespace Zerra.Serialization.Bytes.Converters
                     var writeType = value!.GetType();
                     var typeName = writeType.AssemblyQualifiedName ?? throw new InvalidOperationException($"Type {writeType} does not have {nameof(writeType.AssemblyQualifiedName)}");
 
-                    if (!writer.TryWrite(typeName, out state.BytesNeeded))
+                    if (!writer.TryWrite(typeName, out state.SizeNeeded))
                     {
                         state.EntryHasWrittenIsNull = true;
                         return false;
@@ -631,13 +631,13 @@ namespace Zerra.Serialization.Bytes.Converters
             {
                 if (value is null)
                 {
-                    if (!writer.TryWriteNull(out state.BytesNeeded))
+                    if (!writer.TryWriteNull(out state.SizeNeeded))
                         return false;
                     return true;
                 }
                 else
                 {
-                    if (!writer.TryWriteNotNull(out state.BytesNeeded))
+                    if (!writer.TryWriteNotNull(out state.SizeNeeded))
                         return false;
                 }
             }
@@ -649,7 +649,7 @@ namespace Zerra.Serialization.Bytes.Converters
                     var writeType = value!.GetType();
                     var typeName = writeType.AssemblyQualifiedName ?? throw new InvalidOperationException($"Type {writeType} does not have {nameof(writeType.AssemblyQualifiedName)}");
 
-                    if (!writer.TryWrite(typeName, out state.BytesNeeded))
+                    if (!writer.TryWrite(typeName, out state.SizeNeeded))
                     {
                         state.Current.ChildHasWrittenIsNull = true;
                         return false;
@@ -847,7 +847,7 @@ namespace Zerra.Serialization.Bytes.Converters
                 {
                     if (indexPropertyName.Length > 0)
                     {
-                        if (!writer.TryWritePropertyName(indexPropertyName, out state.BytesNeeded))
+                        if (!writer.TryWritePropertyName(indexPropertyName, out state.SizeNeeded))
                             return false;
                     }
                 }
@@ -857,12 +857,12 @@ namespace Zerra.Serialization.Bytes.Converters
                     {
                         if (state.UseIndexSizeUInt16)
                         {
-                            if (!writer.TryWrite(indexProperty, out state.BytesNeeded))
+                            if (!writer.TryWrite(indexProperty, out state.SizeNeeded))
                                 return false;
                         }
                         else
                         {
-                            if (!writer.TryWrite((byte)indexProperty, out state.BytesNeeded))
+                            if (!writer.TryWrite((byte)indexProperty, out state.SizeNeeded))
                                 return false;
                         }
                     }
@@ -876,7 +876,7 @@ namespace Zerra.Serialization.Bytes.Converters
                     var writeType = value!.GetType();
                     var typeName = writeType.AssemblyQualifiedName ?? throw new InvalidOperationException($"Type {writeType} does not have {nameof(writeType.AssemblyQualifiedName)}");
 
-                    if (!writer.TryWrite(typeName, out state.BytesNeeded))
+                    if (!writer.TryWrite(typeName, out state.SizeNeeded))
                     {
                         state.Current.HasWrittenPropertyIndex = true;
                         return false;

@@ -307,7 +307,7 @@ namespace Zerra.Serialization.Json
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Read(ReadOnlySpan<byte> buffer, ref ReadState state, out JsonObject? result)
         {
-            var reader = new JsonReader(buffer, state.IsFinalBlock);
+            var reader = new JsonReader(buffer, state.IsFinalBlock, state.LastReaderToken);
 #if DEBUG
         again:
 #endif
@@ -324,16 +324,23 @@ namespace Zerra.Serialization.Json
                 state.SizeNeeded = 1;
 #endif
             }
+            else
+            {
+                state.LastReaderToken = reader.Token;
+            }
 #if DEBUG
-            if (!read && JsonReader.Testing && reader.Position + state.SizeNeeded <= reader.Length)
+            if (!read && JsonReader.Testing && reader.Alternate)
+            {
+                state.LastReaderToken = reader.Token;
                 goto again;
+            }
 #endif
             return reader.Position;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Read(ReadOnlySpan<char> buffer, ref ReadState state, out JsonObject? result)
         {
-            var reader = new JsonReader(buffer, state.IsFinalBlock);
+            var reader = new JsonReader(buffer, state.IsFinalBlock, state.LastReaderToken);
 #if DEBUG
         again:
 #endif
@@ -350,9 +357,16 @@ namespace Zerra.Serialization.Json
                 state.SizeNeeded = 1;
 #endif
             }
+            else
+            {
+                state.LastReaderToken = reader.Token;
+            }
 #if DEBUG
-            if (!read && JsonReader.Testing && reader.Position + state.SizeNeeded <= reader.Length)
+            if (!read && JsonReader.Testing && reader.Alternate)
+            {
+                state.LastReaderToken = reader.Token;
                 goto again;
+            }
 #endif
             return reader.Position;
         }

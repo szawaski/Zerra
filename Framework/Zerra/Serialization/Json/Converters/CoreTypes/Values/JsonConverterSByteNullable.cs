@@ -12,67 +12,47 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
     {
         protected override bool StackRequired => false;
 
-        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out sbyte? value)
+        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonToken token, out sbyte? value)
         {
-            switch (valueType)
+            switch (token)
             {
-                case JsonValueType.Number:
+                case JsonToken.Number:
                     if (reader.UseBytes)
                     {
-                        if (!reader.TryReadNumberBytes(out var bytes, out state.SizeNeeded))
-                        {
-                            value = default;
-                            return false;
-                        }
-                        if ((!Utf8Parser.TryParse(bytes, out sbyte parsed, out var consumed) || consumed != bytes.Length) && state.ErrorOnTypeMismatch)
+                        if ((!Utf8Parser.TryParse(reader.StringBytes, out sbyte parsed, out var consumed) || consumed != reader.StringBytes.Length) && state.ErrorOnTypeMismatch)
                             ThrowCannotConvert(ref reader);
                         value = parsed;
                         return true;
                     }
                     else
                     {
-                        if (!reader.TryReadNumberChars(out var chars, out state.SizeNeeded))
-                        {
-                            value = default;
-                            return false;
-                        }
 #if NETSTANDARD2_0
-                        if (!SByte.TryParse(chars.ToString(), out sbyte parsed) && state.ErrorOnTypeMismatch)
+                        if (!SByte.TryParse(reader.ValueChars.ToString(), out sbyte parsed) && state.ErrorOnTypeMismatch)
 #else
-                        if (!SByte.TryParse(chars, out sbyte parsed) && state.ErrorOnTypeMismatch)
+                        if (!SByte.TryParse(reader.StringChars, out sbyte parsed) && state.ErrorOnTypeMismatch)
 #endif
                             ThrowCannotConvert(ref reader);
                         value = parsed;
                         return true;
                     }
-                case JsonValueType.String:
+                case JsonToken.String:
                     if (reader.UseBytes)
                     {
-                        if (!reader.TryReadStringQuotedBytes(true, out var bytes, out state.SizeNeeded))
-                        {
-                            value = default;
-                            return false;
-                        }
-                        if (bytes.Length == 0)
+                        if (reader.StringBytes.Length == 0)
                         {
                             if (state.ErrorOnTypeMismatch)
                                 ThrowCannotConvert(ref reader);
                             value = null;
                             return true;
                         }
-                        if ((!Utf8Parser.TryParse(bytes, out sbyte parsed, out var consumed) || bytes.Length != consumed) && state.ErrorOnTypeMismatch)
+                        if ((!Utf8Parser.TryParse(reader.StringBytes, out sbyte parsed, out var consumed) || reader.StringBytes.Length != consumed) && state.ErrorOnTypeMismatch)
                             ThrowCannotConvert(ref reader);
                         value = parsed;
                         return true;
                     }
                     else
                     {
-                        if (!reader.TryReadStringQuotedChars(true, out var chars, out state.SizeNeeded))
-                        {
-                            value = default;
-                            return false;
-                        }
-                        if (chars.Length == 0)
+                        if (reader.StringChars.Length == 0)
                         {
                             if (state.ErrorOnTypeMismatch)
                                 ThrowCannotConvert(ref reader);
@@ -80,35 +60,35 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                             return true;
                         }
 #if NETSTANDARD2_0
-                        if (!SByte.TryParse(chars.ToString(), out sbyte parsed) && state.ErrorOnTypeMismatch)
+                        if (!SByte.TryParse(reader.ValueChars.ToString(), out sbyte parsed) && state.ErrorOnTypeMismatch)
 #else
-                        if (!SByte.TryParse(chars, out sbyte parsed) && state.ErrorOnTypeMismatch)
+                        if (!SByte.TryParse(reader.StringChars, out sbyte parsed) && state.ErrorOnTypeMismatch)
 #endif
                             ThrowCannotConvert(ref reader);
                         value = parsed;
                         return true;
                     }
-                case JsonValueType.Null_Completed:
+                case JsonToken.Null:
                     value = null;
                     return true;
-                case JsonValueType.False_Completed:
+                case JsonToken.False:
                     value = (sbyte)0;
                     return true;
-                case JsonValueType.True_Completed:
+                case JsonToken.True:
                     value = (sbyte)1;
                     return true;
-                case JsonValueType.Object:
+                case JsonToken.ObjectStart:
                     if (state.ErrorOnTypeMismatch)
                         ThrowCannotConvert(ref reader);
                     value = default;
                     return DrainObject(ref reader, ref state);
-                case JsonValueType.Array:
+                case JsonToken.ArrayStart:
                     if (state.ErrorOnTypeMismatch)
                         ThrowCannotConvert(ref reader);
                     value = default;
                     return DrainArray(ref reader, ref state);
                 default:
-                    throw new NotImplementedException();
+                    throw reader.CreateException();
             }
         }
 

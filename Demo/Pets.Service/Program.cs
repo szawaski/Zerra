@@ -9,9 +9,16 @@ using Zerra.Encryption;
 using Zerra.Logging;
 using Zerra.Map;
 using Zerra.Serialization;
+using Zerra.Serialization.Json;
 
 Console.WriteLine();
 var timer = Stopwatch.StartNew();
+
+var stuff = NormalJsonModel.Create();
+var json = JsonSerializer.Serialize(stuff);
+var stuff2 = System.Text.Json.JsonSerializer.Deserialize<NormalJsonModel>(json);
+var stuff3 = JsonSerializer.Deserialize<NormalJsonModel>(json);
+
 
 ISerializer serializer = new ZerraByteSerializer();
 IEncryptor encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AESwithPrefix);

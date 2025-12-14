@@ -35,7 +35,6 @@ namespace Zerra.Buffers
         /// </summary>
         /// <param name="values">The values to be written.</param>
         /// <exception cref="InvalidOperationException">Throws if the values excede the remaining length of the span.</exception>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(ReadOnlySpan<T> values)
         {
             values.CopyTo(span[position..]);

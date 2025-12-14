@@ -24,7 +24,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.IReadOnlySetTs
         }
 
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in IReadOnlySet<long> value)
-            => writer.TryWrite(value, value.Count, out state.BytesNeeded);
+            => writer.TryWrite(value, value.Count, out state.SizeNeeded);
     }
 }
 

@@ -35,7 +35,7 @@ namespace Zerra.Serialization.Bytes
 
             var result = Write(converter, defaultBufferSize, ref state, obj);
 
-            if (state.BytesNeeded > 0)
+            if (state.SizeNeeded > 0)
                 throw new EndOfStreamException();
 
             return result;
@@ -61,7 +61,7 @@ namespace Zerra.Serialization.Bytes
 
             var result = WriteBoxed(converter, defaultBufferSize, ref state, obj);
 
-            if (state.BytesNeeded > 0)
+            if (state.SizeNeeded > 0)
                 throw new EndOfStreamException();
 
             return result;
@@ -92,7 +92,7 @@ namespace Zerra.Serialization.Bytes
 
             var result = WriteBoxed(converter, defaultBufferSize, ref state, obj);
 
-            if (state.BytesNeeded > 0)
+            if (state.SizeNeeded > 0)
                 throw new EndOfStreamException();
 
             return result;
@@ -134,13 +134,13 @@ namespace Zerra.Serialization.Bytes
                     stream.Write(buffer.AsSpan(0, usedBytes));
 #endif
 
-                    if (state.BytesNeeded == 0)
+                    if (state.SizeNeeded == 0)
                         break;
 
-                    if (state.BytesNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, state.BytesNeeded);
+                    if (state.SizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, state.SizeNeeded);
 
-                    state.BytesNeeded = 0;
+                    state.SizeNeeded = 0;
                 }
             }
             finally
@@ -183,13 +183,13 @@ namespace Zerra.Serialization.Bytes
                     stream.Write(buffer.AsSpan(0, usedBytes));
 #endif
 
-                    if (state.BytesNeeded == 0)
+                    if (state.SizeNeeded == 0)
                         break;
 
-                    if (state.BytesNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, state.BytesNeeded);
+                    if (state.SizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, state.SizeNeeded);
 
-                    state.BytesNeeded = 0;
+                    state.SizeNeeded = 0;
                 }
             }
             finally
@@ -235,13 +235,13 @@ namespace Zerra.Serialization.Bytes
                     stream.Write(buffer.AsSpan(0, usedBytes));
 #endif
 
-                    if (state.BytesNeeded == 0)
+                    if (state.SizeNeeded == 0)
                         break;
 
-                    if (state.BytesNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, state.BytesNeeded);
+                    if (state.SizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, state.SizeNeeded);
 
-                    state.BytesNeeded = 0;
+                    state.SizeNeeded = 0;
                 }
             }
             finally
@@ -288,13 +288,13 @@ namespace Zerra.Serialization.Bytes
                     await stream.WriteAsync(buffer.AsMemory(0, usedBytes), cancellationToken);
 #endif
 
-                    if (state.BytesNeeded == 0)
+                    if (state.SizeNeeded == 0)
                         break;
 
-                    if (state.BytesNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, state.BytesNeeded);
+                    if (state.SizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, state.SizeNeeded);
 
-                    state.BytesNeeded = 0;
+                    state.SizeNeeded = 0;
                 }
             }
             finally
@@ -344,13 +344,13 @@ namespace Zerra.Serialization.Bytes
                     await stream.WriteAsync(buffer.AsMemory(0, usedBytes), cancellationToken);
 #endif
 
-                    if (state.BytesNeeded == 0)
+                    if (state.SizeNeeded == 0)
                         break;
 
-                    if (state.BytesNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, state.BytesNeeded);
+                    if (state.SizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, state.SizeNeeded);
 
-                    state.BytesNeeded = 0;
+                    state.SizeNeeded = 0;
                 }
             }
             finally
@@ -403,13 +403,13 @@ namespace Zerra.Serialization.Bytes
                     await stream.WriteAsync(buffer.AsMemory(0, usedBytes), cancellationToken);
 #endif
 
-                    if (state.BytesNeeded == 0)
+                    if (state.SizeNeeded == 0)
                         break;
 
-                    if (state.BytesNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, state.BytesNeeded);
+                    if (state.SizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, state.SizeNeeded);
 
-                    state.BytesNeeded = 0;
+                    state.SizeNeeded = 0;
                 }
             }
             finally
@@ -430,19 +430,19 @@ namespace Zerra.Serialization.Bytes
                 var write = converter.TryWrite(ref writer, ref state, value);
                 if (write)
                 {
-                    state.BytesNeeded = 0;
+                    state.SizeNeeded = 0;
                 }
-                else if (state.BytesNeeded == 0)
+                else if (state.SizeNeeded == 0)
                 {
 #if DEBUG
                     if (!ByteWriter.Testing)
-                        throw new Exception($"{nameof(state.BytesNeeded)} not indicated");
+                        throw new Exception($"{nameof(state.SizeNeeded)} not indicated");
 #else
-                    state.BytesNeeded = 1;
+                    state.SizeNeeded = 1;
 #endif
                 }
 #if DEBUG
-                if (!write && ByteWriter.Testing && writer.Position + state.BytesNeeded <= writer.Length)
+                if (!write && ByteWriter.Testing && writer.Position + state.SizeNeeded <= writer.Length)
                     goto again;
 #endif
                 var result = writer.ToArray();
@@ -465,19 +465,19 @@ namespace Zerra.Serialization.Bytes
                 var write = converter.TryWriteBoxed(ref writer, ref state, value);
                 if (write)
                 {
-                    state.BytesNeeded = 0;
+                    state.SizeNeeded = 0;
                 }
-                else if (state.BytesNeeded == 0)
+                else if (state.SizeNeeded == 0)
                 {
 #if DEBUG
                     if (!ByteWriter.Testing)
-                        throw new Exception($"{nameof(state.BytesNeeded)} not indicated");
+                        throw new Exception($"{nameof(state.SizeNeeded)} not indicated");
 #else
-                    state.BytesNeeded = 1;
+                    state.SizeNeeded = 1;
 #endif
                 }
 #if DEBUG
-                if (!write && ByteWriter.Testing && writer.Position + state.BytesNeeded <= writer.Length)
+                if (!write && ByteWriter.Testing && writer.Position + state.SizeNeeded <= writer.Length)
                     goto again;
 #endif
                 var result = writer.ToArray();
@@ -499,19 +499,19 @@ namespace Zerra.Serialization.Bytes
             var write = converter.TryWrite(ref writer, ref state, value);
             if (write)
             {
-                state.BytesNeeded = 0;
+                state.SizeNeeded = 0;
             }
-            else if (state.BytesNeeded == 0)
+            else if (state.SizeNeeded == 0)
             {
 #if DEBUG
                 if (!ByteWriter.Testing)
-                    throw new Exception($"{nameof(state.BytesNeeded)} not indicated");
+                    throw new Exception($"{nameof(state.SizeNeeded)} not indicated");
 #else
-                state.BytesNeeded = 1;
+                state.SizeNeeded = 1;
 #endif
             }
 #if DEBUG
-            if (!write && ByteWriter.Testing && writer.Position + state.BytesNeeded <= writer.Length)
+            if (!write && ByteWriter.Testing && writer.Position + state.SizeNeeded <= writer.Length)
                 goto again;
 #endif
             return writer.Position;
@@ -526,20 +526,20 @@ namespace Zerra.Serialization.Bytes
             var write = converter.TryWriteBoxed(ref writer, ref state, value);
             if (write)
             {
-                state.BytesNeeded = 0;
+                state.SizeNeeded = 0;
             }
-            else if (state.BytesNeeded == 0)
+            else if (state.SizeNeeded == 0)
             {
 
 #if DEBUG
                 if (!ByteWriter.Testing)
-                    throw new Exception($"{nameof(state.BytesNeeded)} not indicated");
+                    throw new Exception($"{nameof(state.SizeNeeded)} not indicated");
 #else
-                state.BytesNeeded = 1;
+                state.SizeNeeded = 1;
 #endif
             }
 #if DEBUG
-            if (!write && ByteWriter.Testing && writer.Position + state.BytesNeeded <= writer.Length)
+            if (!write && ByteWriter.Testing && writer.Position + state.SizeNeeded <= writer.Length)
                 goto again;
 #endif
             return writer.Position;

@@ -13,6 +13,6 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.HashSetTs
             => reader.TryRead(out value, out state.SizeNeeded);
 
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in HashSet<long> value)
-            => writer.TryWrite(value, value.Count, out state.BytesNeeded);
+            => writer.TryWrite(value, value.Count, out state.SizeNeeded);
     }
 }

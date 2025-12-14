@@ -138,8 +138,9 @@ namespace Zerra.Serialization.Bytes
                     BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
 
-                    if (length + state.SizeNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, length + state.SizeNeeded);
+                    var totalSizeNeeded = length + state.SizeNeeded;
+                    if (totalSizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, totalSizeNeeded);
 
                     while (length < buffer.Length)
                     {
@@ -157,7 +158,7 @@ namespace Zerra.Serialization.Bytes
                         length += read;
                     }
 
-                    if (length < state.SizeNeeded)
+                    if (length < totalSizeNeeded)
                         throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)} or the stream ended early");
 
                     state.SizeNeeded = 0;
@@ -239,8 +240,9 @@ namespace Zerra.Serialization.Bytes
                     BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
 
-                    if (length + state.SizeNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, length + state.SizeNeeded);
+                    var totalSizeNeeded = length + state.SizeNeeded;
+                    if (totalSizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, totalSizeNeeded);
 
                     while (length < buffer.Length)
                     {
@@ -258,7 +260,7 @@ namespace Zerra.Serialization.Bytes
                         length += read;
                     }
 
-                    if (length < state.SizeNeeded)
+                    if (length < totalSizeNeeded)
                         throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)} or the stream ended early");
 
                     state.SizeNeeded = 0;
@@ -340,8 +342,9 @@ namespace Zerra.Serialization.Bytes
                     BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
 
-                    if (length + state.SizeNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, length + state.SizeNeeded);
+                    var totalSizeNeeded = length + state.SizeNeeded;
+                    if (totalSizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, totalSizeNeeded);
 
                     while (length < buffer.Length)
                     {
@@ -359,7 +362,7 @@ namespace Zerra.Serialization.Bytes
                         length += read;
                     }
 
-                    if (length < state.SizeNeeded)
+                    if (length < totalSizeNeeded)
                         throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)} or the stream ended early");
 
                     state.SizeNeeded = 0;
@@ -444,8 +447,9 @@ namespace Zerra.Serialization.Bytes
                     BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
 
-                    if (length + state.SizeNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, length + state.SizeNeeded);
+                    var totalSizeNeeded = length + state.SizeNeeded;
+                    if (totalSizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, totalSizeNeeded);
 
                     while (length < buffer.Length)
                     {
@@ -463,7 +467,7 @@ namespace Zerra.Serialization.Bytes
                         length += read;
                     }
 
-                    if (length < state.SizeNeeded)
+                    if (length < totalSizeNeeded)
                         throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)} or the stream ended early");
 
                     state.SizeNeeded = 0;
@@ -508,8 +512,10 @@ namespace Zerra.Serialization.Bytes
 #endif
             }
 #if DEBUG
-            if (!read && ByteReader.Testing && reader.Position + state.SizeNeeded <= reader.Length)
+            if (!read && ByteReader.Testing && reader.Alternate)
                 goto again;
+            if (!read && reader.Position + state.SizeNeeded <= reader.Length)
+                System.Diagnostics.Debugger.Break();
 #endif
             return reader.Position;
         }
@@ -544,8 +550,10 @@ namespace Zerra.Serialization.Bytes
 #endif
             }
 #if DEBUG
-            if (!read && ByteReader.Testing && reader.Position + state.SizeNeeded <= reader.Length)
+            if (!read && ByteReader.Testing && reader.Alternate)
                 goto again;
+            if (!read && reader.Position + state.SizeNeeded <= reader.Length)
+                System.Diagnostics.Debugger.Break();
 #endif
             return reader.Position;
         }

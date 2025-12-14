@@ -12,72 +12,62 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
     {
         protected override bool StackRequired => false;
 
-        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out Guid? value)
+        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonToken token, out Guid? value)
         {
-            switch (valueType)
+            switch (token)
             {
-                case JsonValueType.String:
+                case JsonToken.String:
                     if (reader.UseBytes)
                     {
-                        if (!reader.TryReadStringQuotedBytes(true, out var bytes, out state.SizeNeeded))
-                        {
-                            value = default;
-                            return false;
-                        }
-                        if ((!Utf8Parser.TryParse(bytes, out Guid parsed, out var consumed) || bytes.Length != consumed) && state.ErrorOnTypeMismatch)
+                        if ((!Utf8Parser.TryParse(reader.StringBytes, out Guid parsed, out var consumed) || reader.StringBytes.Length != consumed) && state.ErrorOnTypeMismatch)
                             ThrowCannotConvert(ref reader);
                         value = parsed;
                         return true;
                     }
                     else
                     {
-                        if (!reader.TryReadStringQuotedChars(true, out var chars, out state.SizeNeeded))
-                        {
-                            value = default;
-                            return false;
-                        }
 #if NETSTANDARD2_0
-                        if (!Guid.TryParse(chars.ToString(), out Guid parsed) && state.ErrorOnTypeMismatch)
+                        if (!Guid.TryParse(reader.ValueChars.ToString(), out Guid parsed) && state.ErrorOnTypeMismatch)
 #else
-                        if (!Guid.TryParse(chars, out Guid parsed) && state.ErrorOnTypeMismatch)
+                        if (!Guid.TryParse(reader.StringChars, out Guid parsed) && state.ErrorOnTypeMismatch)
 #endif
                             ThrowCannotConvert(ref reader);
                         value = parsed;
                         return true;
                     }
-                case JsonValueType.Null_Completed:
+                case JsonToken.Null:
                     if (state.ErrorOnTypeMismatch)
                         ThrowCannotConvert(ref reader);
                     value = default;
                     return true;
-                case JsonValueType.Number:
-                    if (state.ErrorOnTypeMismatch)
-                        ThrowCannotConvert(ref reader);
-                    value = default;
-                    return DrainNumber(ref reader, ref state);
-                case JsonValueType.False_Completed:
+                case JsonToken.Number:
                     if (state.ErrorOnTypeMismatch)
                         ThrowCannotConvert(ref reader);
                     value = default;
                     return true;
-                case JsonValueType.True_Completed:
+                case JsonToken.False:
                     if (state.ErrorOnTypeMismatch)
                         ThrowCannotConvert(ref reader);
                     value = default;
                     return true;
-                case JsonValueType.Object:
+                case JsonToken.True:
+                    if (state.ErrorOnTypeMismatch)
+                        ThrowCannotConvert(ref reader);
+                    value = default;
+                    return true;
+                case JsonToken.ObjectStart:
                     if (state.ErrorOnTypeMismatch)
                         ThrowCannotConvert(ref reader);
                     value = default;
                     return DrainObject(ref reader, ref state);
-                case JsonValueType.Array:
+                case JsonToken.ArrayStart:
                     if (state.ErrorOnTypeMismatch)
                         ThrowCannotConvert(ref reader);
                     value = default;
                     return DrainArray(ref reader, ref state);
 
                 default:
-                    throw new NotImplementedException();
+                    throw reader.CreateException();
             }
         }
 

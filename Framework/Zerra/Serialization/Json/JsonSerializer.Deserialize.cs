@@ -254,8 +254,9 @@ namespace Zerra.Serialization.Json
                     BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
 
-                    if (length + state.SizeNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, length + state.SizeNeeded);
+                    var totalSizeNeeded = length + state.SizeNeeded;
+                    if (totalSizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, totalSizeNeeded);
 
                     while (length < buffer.Length)
                     {
@@ -273,7 +274,7 @@ namespace Zerra.Serialization.Json
                         length += read;
                     }
 
-                    if (length < state.SizeNeeded)
+                    if (length < totalSizeNeeded)
                         throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
 
                     state.SizeNeeded = 0;
@@ -362,8 +363,9 @@ namespace Zerra.Serialization.Json
                     BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
 
-                    if (length + state.SizeNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, length + state.SizeNeeded);
+                    var totalSizeNeeded = length + state.SizeNeeded;
+                    if (totalSizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, totalSizeNeeded);
 
                     while (length < buffer.Length)
                     {
@@ -381,7 +383,7 @@ namespace Zerra.Serialization.Json
                         length += read;
                     }
 
-                    if (length < state.SizeNeeded)
+                    if (length < totalSizeNeeded)
                         throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
 
                     state.SizeNeeded = 0;
@@ -470,8 +472,9 @@ namespace Zerra.Serialization.Json
                     BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
 
-                    if (length + state.SizeNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, length + state.SizeNeeded);
+                    var totalSizeNeeded = length + state.SizeNeeded;
+                    if (totalSizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, totalSizeNeeded);
 
                     while (length < buffer.Length)
                     {
@@ -489,7 +492,7 @@ namespace Zerra.Serialization.Json
                         length += read;
                     }
 
-                    if (length < state.SizeNeeded)
+                    if (length < totalSizeNeeded)
                         throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
 
                     state.SizeNeeded = 0;
@@ -579,8 +582,9 @@ namespace Zerra.Serialization.Json
                     BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
 
-                    if (length + state.SizeNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, length + state.SizeNeeded);
+                    var totalSizeNeeded = length + state.SizeNeeded;
+                    if (totalSizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, totalSizeNeeded);
 
                     while (length < buffer.Length)
                     {
@@ -598,7 +602,7 @@ namespace Zerra.Serialization.Json
                         length += read;
                     }
 
-                    if (length < state.SizeNeeded)
+                    if (length < totalSizeNeeded)
                         throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
 
                     state.SizeNeeded = 0;
@@ -616,7 +620,7 @@ namespace Zerra.Serialization.Json
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Read<T>(JsonConverter<T> converter, ReadOnlySpan<byte> buffer, ref ReadState state, out T? result)
         {
-            var reader = new JsonReader(buffer, state.IsFinalBlock);
+            var reader = new JsonReader(buffer, state.IsFinalBlock, state.LastReaderToken);
 #if DEBUG
         again:
 #endif
@@ -633,16 +637,23 @@ namespace Zerra.Serialization.Json
                 state.SizeNeeded = 1;
 #endif
             }
+            else
+            {
+                state.LastReaderToken = reader.Token;
+            }
 #if DEBUG
-            if (!read && JsonReader.Testing && reader.Position + state.SizeNeeded <= reader.Length)
+            if (!read && JsonReader.Testing && reader.Alternate)
+            {
+                state.LastReaderToken = reader.Token;
                 goto again;
+            }
 #endif
             return reader.Position;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int ReadBoxed(JsonConverter converter, ReadOnlySpan<byte> buffer, ref ReadState state, out object? result)
         {
-            var reader = new JsonReader(buffer, state.IsFinalBlock);
+            var reader = new JsonReader(buffer, state.IsFinalBlock, state.LastReaderToken);
 #if DEBUG
         again:
 #endif
@@ -659,9 +670,16 @@ namespace Zerra.Serialization.Json
                 state.SizeNeeded = 1;
 #endif
             }
+            else
+            {
+                state.LastReaderToken = reader.Token;
+            }
 #if DEBUG
-            if (!read && JsonReader.Testing && reader.Position + state.SizeNeeded <= reader.Length)
+            if (!read && JsonReader.Testing && reader.Alternate)
+            {
+                state.LastReaderToken = reader.Token;
                 goto again;
+            }
 #endif
             return reader.Position;
         }
@@ -669,7 +687,7 @@ namespace Zerra.Serialization.Json
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Read<T>(JsonConverter<T> converter, ReadOnlySpan<char> buffer, ref ReadState state, out T? result)
         {
-            var reader = new JsonReader(buffer, state.IsFinalBlock);
+            var reader = new JsonReader(buffer, state.IsFinalBlock, state.LastReaderToken);
 #if DEBUG
         again:
 #endif
@@ -686,16 +704,23 @@ namespace Zerra.Serialization.Json
                 state.SizeNeeded = 1;
 #endif
             }
+            else
+            {
+                state.LastReaderToken = reader.Token;
+            }
 #if DEBUG
-            if (!read && JsonReader.Testing && reader.Position + state.SizeNeeded <= reader.Length)
+            if (!read && JsonReader.Testing && reader.Alternate)
+            {
+                state.LastReaderToken = reader.Token;
                 goto again;
+            }
 #endif
             return reader.Position;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int ReadBoxed(JsonConverter converter, ReadOnlySpan<char> buffer, ref ReadState state, out object? result)
         {
-            var reader = new JsonReader(buffer, state.IsFinalBlock);
+            var reader = new JsonReader(buffer, state.IsFinalBlock, state.LastReaderToken);
 #if DEBUG
         again:
 #endif
@@ -712,9 +737,16 @@ namespace Zerra.Serialization.Json
                 state.SizeNeeded = 1;
 #endif
             }
+            else
+            {
+                state.LastReaderToken = reader.Token;
+            }
 #if DEBUG
-            if (!read && JsonReader.Testing && reader.Position + state.SizeNeeded <= reader.Length)
+            if (!read && JsonReader.Testing && reader.Alternate)
+            {
+                state.LastReaderToken = reader.Token;
                 goto again;
+            }
 #endif
             return reader.Position;
         }

@@ -30,6 +30,6 @@ namespace Zerra.Serialization.Bytes.Converters.General
         }
 
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in Type? value)
-            => writer.TryWrite(value!.FullName ?? throw new InvalidOperationException($"Type {value} does not have a {nameof(value.FullName)}"), out state.BytesNeeded);
+            => writer.TryWrite(value!.FullName ?? throw new InvalidOperationException($"Type {value} does not have a {nameof(value.FullName)}"), out state.SizeNeeded);
     }
 }

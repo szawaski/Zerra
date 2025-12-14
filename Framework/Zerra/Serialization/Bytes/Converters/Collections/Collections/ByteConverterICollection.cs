@@ -84,7 +84,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Collections
 
             if (state.Current.Object is null)
             {
-                if (!writer.TryWrite(value.Count, out state.BytesNeeded))
+                if (!writer.TryWrite(value.Count, out state.SizeNeeded))
                 {
                     return false;
                 }
