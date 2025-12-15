@@ -75,7 +75,7 @@ namespace Zerra.SourceGeneration
                         public static void Initialize()
                         {
                             var timer = global::System.Diagnostics.Stopwatch.StartNew();{{lines}}
-                            global::System.Console.WriteLine($"Source Generation Startup: {timer.ElapsedMilliseconds} ms");
+                            global::System.Console.WriteLine($"Source Generation Startup - {System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}: {timer.ElapsedMilliseconds} ms");
                         }
                     }
                 }

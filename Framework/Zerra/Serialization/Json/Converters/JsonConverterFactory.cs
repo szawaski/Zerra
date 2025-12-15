@@ -99,49 +99,49 @@ namespace Zerra.Serialization.Json.Converters
             {
                 switch (typeDetail.CoreType.Value)
                 {
-                    case CoreType.Boolean: return () => new JsonConverterBoolean();
-                    case CoreType.Byte: return () => new JsonConverterByte();
-                    case CoreType.SByte: return () => new JsonConverterSByte();
-                    case CoreType.Int16: return () => new JsonConverterInt16();
-                    case CoreType.UInt16: return () => new JsonConverterUInt16();
-                    case CoreType.Int32: return () => new JsonConverterInt32();
-                    case CoreType.UInt32: return () => new JsonConverterUInt32();
-                    case CoreType.Int64: return () => new JsonConverterInt64();
-                    case CoreType.UInt64: return () => new JsonConverterUInt64();
-                    case CoreType.Single: return () => new JsonConverterSingle();
-                    case CoreType.Double: return () => new JsonConverterDouble();
-                    case CoreType.Decimal: return () => new JsonConverterDecimal();
-                    case CoreType.Char: return () => new JsonConverterChar();
-                    case CoreType.DateTime: return () => new JsonConverterDateTime();
-                    case CoreType.DateTimeOffset: return () => new JsonConverterDateTimeOffset();
-                    case CoreType.TimeSpan: return () => new JsonConverterTimeSpan();
+                    case CoreType.Boolean: return static () => new JsonConverterBoolean();
+                    case CoreType.Byte: return static () => new JsonConverterByte();
+                    case CoreType.SByte: return static () => new JsonConverterSByte();
+                    case CoreType.Int16: return static () => new JsonConverterInt16();
+                    case CoreType.UInt16: return static () => new JsonConverterUInt16();
+                    case CoreType.Int32: return static () => new JsonConverterInt32();
+                    case CoreType.UInt32: return static () => new JsonConverterUInt32();
+                    case CoreType.Int64: return static () => new JsonConverterInt64();
+                    case CoreType.UInt64: return static () => new JsonConverterUInt64();
+                    case CoreType.Single: return static () => new JsonConverterSingle();
+                    case CoreType.Double: return static () => new JsonConverterDouble();
+                    case CoreType.Decimal: return static () => new JsonConverterDecimal();
+                    case CoreType.Char: return static () => new JsonConverterChar();
+                    case CoreType.DateTime: return static () => new JsonConverterDateTime();
+                    case CoreType.DateTimeOffset: return static () => new JsonConverterDateTimeOffset();
+                    case CoreType.TimeSpan: return static () => new JsonConverterTimeSpan();
 #if NET6_0_OR_GREATER
-                    case CoreType.DateOnly: return () => new JsonConverterDateOnly();
-                    case CoreType.TimeOnly: return () => new JsonConverterTimeOnly();
+                    case CoreType.DateOnly: return static () => new JsonConverterDateOnly();
+                    case CoreType.TimeOnly: return static () => new JsonConverterTimeOnly();
 #endif
-                    case CoreType.Guid: return () => new JsonConverterGuid();
-                    case CoreType.BooleanNullable: return () => new JsonConverterBooleanNullable();
-                    case CoreType.ByteNullable: return () => new JsonConverterByteNullable();
-                    case CoreType.SByteNullable: return () => new JsonConverterSByteNullable();
-                    case CoreType.Int16Nullable: return () => new JsonConverterInt16Nullable();
-                    case CoreType.UInt16Nullable: return () => new JsonConverterUInt16Nullable();
-                    case CoreType.Int32Nullable: return () => new JsonConverterInt32Nullable();
-                    case CoreType.UInt32Nullable: return () => new JsonConverterUInt32Nullable();
-                    case CoreType.Int64Nullable: return () => new JsonConverterInt64Nullable();
-                    case CoreType.UInt64Nullable: return () => new JsonConverterUInt64Nullable();
-                    case CoreType.SingleNullable: return () => new JsonConverterSingleNullable();
-                    case CoreType.DoubleNullable: return () => new JsonConverterDoubleNullable();
-                    case CoreType.DecimalNullable: return () => new JsonConverterDecimalNullable();
-                    case CoreType.CharNullable: return () => new JsonConverterCharNullable();
-                    case CoreType.DateTimeNullable: return () => new JsonConverterDateTimeNullable();
-                    case CoreType.DateTimeOffsetNullable: return () => new JsonConverterDateTimeOffsetNullable();
-                    case CoreType.TimeSpanNullable: return () => new JsonConverterTimeSpanNullable();
+                    case CoreType.Guid: return static () => new JsonConverterGuid();
+                    case CoreType.BooleanNullable: return static () => new JsonConverterBooleanNullable();
+                    case CoreType.ByteNullable: return static () => new JsonConverterByteNullable();
+                    case CoreType.SByteNullable: return static () => new JsonConverterSByteNullable();
+                    case CoreType.Int16Nullable: return static () => new JsonConverterInt16Nullable();
+                    case CoreType.UInt16Nullable: return static () => new JsonConverterUInt16Nullable();
+                    case CoreType.Int32Nullable: return static () => new JsonConverterInt32Nullable();
+                    case CoreType.UInt32Nullable: return static () => new JsonConverterUInt32Nullable();
+                    case CoreType.Int64Nullable: return static () => new JsonConverterInt64Nullable();
+                    case CoreType.UInt64Nullable: return static () => new JsonConverterUInt64Nullable();
+                    case CoreType.SingleNullable: return static () => new JsonConverterSingleNullable();
+                    case CoreType.DoubleNullable: return static () => new JsonConverterDoubleNullable();
+                    case CoreType.DecimalNullable: return static () => new JsonConverterDecimalNullable();
+                    case CoreType.CharNullable: return static () => new JsonConverterCharNullable();
+                    case CoreType.DateTimeNullable: return static () => new JsonConverterDateTimeNullable();
+                    case CoreType.DateTimeOffsetNullable: return static () => new JsonConverterDateTimeOffsetNullable();
+                    case CoreType.TimeSpanNullable: return static () => new JsonConverterTimeSpanNullable();
 #if NET6_0_OR_GREATER
-                    case CoreType.DateOnlyNullable: return () => new JsonConverterDateOnlyNullable();
-                    case CoreType.TimeOnlyNullable: return () => new JsonConverterTimeOnlyNullable();
+                    case CoreType.DateOnlyNullable: return static () => new JsonConverterDateOnlyNullable();
+                    case CoreType.TimeOnlyNullable: return static () => new JsonConverterTimeOnlyNullable();
 #endif
-                    case CoreType.GuidNullable: return () => new JsonConverterGuidNullable();
-                    case CoreType.String: return () => new JsonConverterString();
+                    case CoreType.GuidNullable: return static () => new JsonConverterGuidNullable();
+                    case CoreType.String: return static () => new JsonConverterString();
                 }
             }
 
@@ -150,99 +150,99 @@ namespace Zerra.Serialization.Json.Converters
                 if (typeDetail.Type.IsArray)
                 {
                     if (typeDetail.IEnumerableGenericInnerTypeDetail.CoreType.Value == CoreType.Byte)
-                        return () => new JsonConverterByteArray();
+                        return static () => new JsonConverterByteArray();
                 }
             }
 
             if (typeDetail.IsIList)
-                return () => new JsonConverterIList();
+                return static () => new JsonConverterIList();
             if (typeDetail.IsIListGeneric)
-                return () => new JsonConverterIListT<TEnumerableType>();
+                return static () => new JsonConverterIListT<TEnumerableType>();
             if (typeDetail.IsIReadOnlyListGeneric)
-                return () => new JsonConverterIReadOnlyListT<TEnumerableType>();
+                return static () => new JsonConverterIReadOnlyListT<TEnumerableType>();
             if (typeDetail.IsListGeneric)
-                return () => new JsonConverterListT<TEnumerableType>();
+                return static () => new JsonConverterListT<TEnumerableType>();
 
             if (typeDetail.IsISetGeneric)
-                return () => new JsonConverterISetT<TEnumerableType>();
+                return static () => new JsonConverterISetT<TEnumerableType>();
             if (typeDetail.IsIReadOnlySetGeneric)
-                return () => new JsonConverterIReadOnlySetT<TEnumerableType>();
+                return static () => new JsonConverterIReadOnlySetT<TEnumerableType>();
             if (typeDetail.IsHashSetGeneric)
-                return () => new JsonConverterHashSetT<TEnumerableType>();
+                return static () => new JsonConverterHashSetT<TEnumerableType>();
 
             if (typeDetail.IsICollection)
-                return () => new JsonConverterICollection();
+                return static () => new JsonConverterICollection();
             if (typeDetail.IsICollectionGeneric)
-                return () => new JsonConverterICollectionT<TEnumerableType>();
+                return static () => new JsonConverterICollectionT<TEnumerableType>();
             if (typeDetail.IsIReadOnlyCollectionGeneric)
-                return () => new JsonConverterIReadOnlyCollectionT<TEnumerableType>();
+                return static () => new JsonConverterIReadOnlyCollectionT<TEnumerableType>();
 
             if (typeDetail.IsIDictionary)
-                return () => new JsonConverterIDictionary();
+                return static () => new JsonConverterIDictionary();
             if (typeDetail.IsIDictionaryGeneric)
-                return () => new JsonConverterIDictionaryT<TDictionaryKey, TDictionaryValue>();
+                return static () => new JsonConverterIDictionaryT<TDictionaryKey, TDictionaryValue>();
             if (typeDetail.IsIReadOnlyDictionaryGeneric)
-                return () => new JsonConverterIReadOnlyDictionaryT<TDictionaryKey, TDictionaryValue>();
+                return static () => new JsonConverterIReadOnlyDictionaryT<TDictionaryKey, TDictionaryValue>();
             if (typeDetail.IsDictionaryGeneric)
-                return () => new JsonConverterDictionaryT<TDictionaryKey, TDictionaryValue>();
+                return static () => new JsonConverterDictionaryT<TDictionaryKey, TDictionaryValue>();
 
             if (typeDetail.IsIEnumerable)
-                return () => new JsonConverterIEnumerable();
+                return static () => new JsonConverterIEnumerable();
             if (typeDetail.IsIEnumerableGeneric)
-                return () => new JsonConverterIEnumerableT<TEnumerableType>();
+                return static () => new JsonConverterIEnumerableT<TEnumerableType>();
 
             if (typeDetail.Type.FullName == "System.Type")
-                return () => new JsonConverterType();
+                return static () => new JsonConverterType();
             if (typeDetail.Type.FullName == "System.Threading.CancellationToken")
-                return () => new JsonConverterCancellationToken();
+                return static () => new JsonConverterCancellationToken();
             if (typeDetail.IsNullable && typeDetail.InnerType!.FullName == "System.Threading.CancellationToken")
-                return () => new JsonConverterCancellationTokenNullable();
+                return static () => new JsonConverterCancellationTokenNullable();
 
             if (typeDetail.CoreType.HasValue)
                 throw new NotSupportedException($"No JsonConverter found to support {typeDetail.Type.Name}");
 
             //Enum
             if (typeDetail.Type.IsEnum || typeDetail.IsNullable && typeDetail.InnerType!.IsEnum)
-                return () => new JsonConverterEnum<TType>();
+                return static () => new JsonConverterEnum<TType>();
 
             //Array
             if (typeDetail.Type.IsArray)
-                return () => new JsonConverterArrayT<TEnumerableType>();
+                return static () => new JsonConverterArrayT<TEnumerableType>();
 
             //IList<T> of type - specific types that inherit this
             if (typeDetail.HasIListGeneric)
-                return () => new JsonConverterIListTOfT<TType, TEnumerableType>();
+                return static () => new JsonConverterIListTOfT<TType, TEnumerableType>();
 
             //IList of type - specific types that inherit this
             if (typeDetail.HasIList)
-                return () => new JsonConverterIListOfT<TType>();
+                return static () => new JsonConverterIListOfT<TType>();
 
             //ISet<T> of type - specific types that inherit this
             if (typeDetail.HasISetGeneric)
-                return () => new JsonConverterISetTOfT<TType, TEnumerableType>();
+                return static () => new JsonConverterISetTOfT<TType, TEnumerableType>();
 
             //IDictionary<,> of type - specific types that inherit this
             if (typeDetail.HasIDictionaryGeneric)
-                return () => new JsonConverterIDictionaryTOfT<TType, TDictionaryKey, TDictionaryValue>();
+                return static () => new JsonConverterIDictionaryTOfT<TType, TDictionaryKey, TDictionaryValue>();
 
             //IDictionary of type - specific types that inherit this
             if (typeDetail.HasIDictionary)
-                return () => new JsonConverterIDictionaryOfT<TType>();
+                return static () => new JsonConverterIDictionaryOfT<TType>();
 
             //ICollection<T> of type - specific types that inherit this
             if (typeDetail.HasICollectionGeneric)
-                return () => new JsonConverterICollectionTOfT<TType, TEnumerableType>();
+                return static () => new JsonConverterICollectionTOfT<TType, TEnumerableType>();
 
             //IEnumerable<T> of type  - specific types that inherit this (This cannot read because we have no interface to populate the collection)
             if (typeDetail.HasIEnumerableGeneric)
-                return () => new JsonConverterIEnumerableTOfT<TType, TEnumerableType>();
+                return static () => new JsonConverterIEnumerableTOfT<TType, TEnumerableType>();
 
             //IEnumerable - specific types that inherit this (This cannot read because we have no interface to populate the collection)
             if (typeDetail.HasIEnumerable)
-                return () => new JsonConverterIEnumerableOfT<TType>();
+                return static () => new JsonConverterIEnumerableOfT<TType>();
 
             //Object
-            return () => new JsonConverterObject<TType>();
+            return static () => new JsonConverterObject<TType>();
         }
     }
 }
