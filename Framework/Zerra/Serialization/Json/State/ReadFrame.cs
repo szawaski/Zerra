@@ -9,7 +9,7 @@ namespace Zerra.Serialization.Json.State
     [StructLayout(LayoutKind.Auto)]
     public struct ReadFrame
     {
-        public JsonValueType ChildValueType;
+        public JsonToken ChildJsonToken;
 
         public byte State;
 
@@ -17,6 +17,7 @@ namespace Zerra.Serialization.Json.State
         public object? Object;
         public int EnumeratorIndex;
 
+        public bool HasReadFirstToken;
         public bool HasReadProperty;
         public bool HasReadSeperator;
         public bool HasReadValue;

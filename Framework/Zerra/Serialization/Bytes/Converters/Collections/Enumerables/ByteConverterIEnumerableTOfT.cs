@@ -32,7 +32,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
             {
                 if (value is ICollection<TValue> collection1)
                 {
-                    if (!writer.TryWrite(collection1.Count, out state.BytesNeeded))
+                    if (!writer.TryWrite(collection1.Count, out state.SizeNeeded))
                     {
                         return false;
                     }
@@ -45,7 +45,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
                 }
                 else if (value is IReadOnlyCollection<TValue> collection2)
                 {
-                    if (!writer.TryWrite(collection2.Count, out state.BytesNeeded))
+                    if (!writer.TryWrite(collection2.Count, out state.SizeNeeded))
                     {
                         return false;
                     }
@@ -64,7 +64,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
                     foreach (var item in enumerable)
                         count++;
 
-                    if (!writer.TryWrite(count, out state.BytesNeeded))
+                    if (!writer.TryWrite(count, out state.SizeNeeded))
                     {
                         return false;
                     }

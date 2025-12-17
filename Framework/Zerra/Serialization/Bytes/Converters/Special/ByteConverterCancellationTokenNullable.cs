@@ -23,6 +23,6 @@ namespace Zerra.Serialization.Bytes.Converters.Special
         }
 
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in CancellationToken? value)
-            => value is null ? writer.TryWriteNull(out state.BytesNeeded) : writer.TryWriteNotNull(out state.BytesNeeded);
+            => value is null ? writer.TryWriteNull(out state.SizeNeeded) : writer.TryWriteNotNull(out state.SizeNeeded);
     }
 }

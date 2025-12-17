@@ -70,20 +70,21 @@ namespace Zerra.Serialization.Json.Converters
         /// <inheritdoc/>
         public override sealed bool TryReadBoxed(ref JsonReader reader, ref ReadState state, out object? value)
         {
-            if (state.EntryValueType == JsonValueType.NotDetermined)
+            if (state.EntryToken == JsonToken.NotDetermined)
             {
-                if (!reader.TryReadValueType(out state.EntryValueType, out state.SizeNeeded))
+                if (!reader.TryReadToken(out state.SizeNeeded))
                 {
                     value = default;
                     return false;
                 }
-                if (state.EntryValueType == JsonValueType.Null_Completed)
+                if (reader.Token == JsonToken.Null)
                 {
                     value = default;
                     return true;
                 }
+                state.EntryToken = reader.Token;
             }
-            var valueType = state.EntryValueType;
+
 
             if (StackRequired)
             {
@@ -92,21 +93,21 @@ namespace Zerra.Serialization.Json.Converters
                 state.PushFrame(state.Graph);
             }
 
-            if (isObject && valueType != JsonValueType.Object)
+            if (isObject && state.EntryToken != JsonToken.ObjectStart)
             {
-                TypeDetail newTypeDetail = valueType switch
+                TypeDetail newTypeDetail = state.EntryToken switch
                 {
-                    JsonValueType.Object => TypeAnalyzer<object>.GetTypeDetail(),
-                    JsonValueType.Array => TypeAnalyzer<object[]>.GetTypeDetail(),
-                    JsonValueType.String => TypeAnalyzer<string>.GetTypeDetail(),
-                    JsonValueType.Number => TypeAnalyzer<decimal>.GetTypeDetail(),
-                    JsonValueType.True_Completed or JsonValueType.False_Completed => TypeAnalyzer<bool>.GetTypeDetail(),
+                    JsonToken.ObjectStart => TypeAnalyzer<object>.GetTypeDetail(),
+                    JsonToken.ArrayStart => TypeAnalyzer<object[]>.GetTypeDetail(),
+                    JsonToken.String => TypeAnalyzer<string>.GetTypeDetail(),
+                    JsonToken.Number => TypeAnalyzer<decimal>.GetTypeDetail(),
+                    JsonToken.True or JsonToken.False => TypeAnalyzer<bool>.GetTypeDetail(),
                     _ => throw new NotSupportedException(),
                 };
 
                 var newConverter = JsonConverterFactory.Get(newTypeDetail, memberKey, getter, setter);
 
-                if (!newConverter.TryReadValueBoxed(ref reader, ref state, valueType, out var valueObject))
+                if (!newConverter.TryReadValueBoxed(ref reader, ref state, state.EntryToken, out var valueObject))
                 {
                     if (StackRequired)
                         state.StashFrame();
@@ -127,7 +128,7 @@ namespace Zerra.Serialization.Json.Converters
 
                 var newConverter = JsonConverterFactory.Get(newTypeDetail, memberKey, getter, setter);
 
-                if (!newConverter.TryReadValueBoxed(ref reader, ref state, valueType, out var valueObject))
+                if (!newConverter.TryReadValueBoxed(ref reader, ref state, state.EntryToken, out var valueObject))
                 {
                     if (StackRequired)
                         state.StashFrame();
@@ -141,7 +142,7 @@ namespace Zerra.Serialization.Json.Converters
                 return true;
             }
 
-            if (!TryReadValue(ref reader, ref state, valueType, out var returnValue))
+            if (!TryReadValue(ref reader, ref state, state.EntryToken, out var returnValue))
             {
                 if (StackRequired)
                     state.StashFrame();
@@ -217,20 +218,20 @@ namespace Zerra.Serialization.Json.Converters
         /// <returns><c>true</c> if the read operation completed successfully; <c>false</c> if more bytes are needed.</returns>
         public bool TryRead(ref JsonReader reader, ref ReadState state, out TValue? returnValue)
         {
-            if (state.EntryValueType == JsonValueType.NotDetermined)
+            if (state.EntryToken == JsonToken.NotDetermined)
             {
-                if (!reader.TryReadValueType(out state.EntryValueType, out state.SizeNeeded))
+                if (!reader.TryReadToken(out state.SizeNeeded))
                 {
                     returnValue = default;
                     return false;
                 }
-                if (state.EntryValueType == JsonValueType.Null_Completed)
+                if (reader.Token == JsonToken.Null)
                 {
                     returnValue = default;
                     return true;
                 }
+                state.EntryToken = reader.Token;
             }
-            var valueType = state.EntryValueType;
 
             if (StackRequired)
             {
@@ -239,21 +240,21 @@ namespace Zerra.Serialization.Json.Converters
                 state.PushFrame(state.Graph);
             }
 
-            if (isObject && valueType != JsonValueType.Object)
+            if (isObject && state.EntryToken != JsonToken.ObjectStart)
             {
-                TypeDetail newTypeDetail = valueType switch
+                TypeDetail newTypeDetail = state.EntryToken switch
                 {
-                    JsonValueType.Object => TypeAnalyzer<object>.GetTypeDetail(),
-                    JsonValueType.Array => TypeAnalyzer<object[]>.GetTypeDetail(),
-                    JsonValueType.String => TypeAnalyzer<string>.GetTypeDetail(),
-                    JsonValueType.Number => TypeAnalyzer<decimal>.GetTypeDetail(),
-                    JsonValueType.True_Completed or JsonValueType.False_Completed => TypeAnalyzer<bool>.GetTypeDetail(),
+                    JsonToken.ObjectStart => TypeAnalyzer<object>.GetTypeDetail(),
+                    JsonToken.ArrayStart => TypeAnalyzer<object[]>.GetTypeDetail(),
+                    JsonToken.String => TypeAnalyzer<string>.GetTypeDetail(),
+                    JsonToken.Number => TypeAnalyzer<decimal>.GetTypeDetail(),
+                    JsonToken.True or JsonToken.False => TypeAnalyzer<bool>.GetTypeDetail(),
                     _ => throw new NotSupportedException(),
                 };
 
                 var newConverter = JsonConverterFactory.Get(newTypeDetail, memberKey, getter, setter);
 
-                if (!newConverter.TryReadValueBoxed(ref reader, ref state, valueType, out var valueObject))
+                if (!newConverter.TryReadValueBoxed(ref reader, ref state, state.EntryToken, out var valueObject))
                 {
                     if (StackRequired)
                         state.StashFrame();
@@ -274,7 +275,7 @@ namespace Zerra.Serialization.Json.Converters
 
                 var newConverter = JsonConverterFactory.Get(newTypeDetail, memberKey, getter, setter);
 
-                if (!newConverter.TryReadValueBoxed(ref reader, ref state, valueType, out var valueObject))
+                if (!newConverter.TryReadValueBoxed(ref reader, ref state, state.EntryToken, out var valueObject))
                 {
                     if (StackRequired)
                         state.StashFrame();
@@ -288,7 +289,7 @@ namespace Zerra.Serialization.Json.Converters
                 return true;
             }
 
-            if (!TryReadValue(ref reader, ref state, valueType, out var value))
+            if (!TryReadValue(ref reader, ref state, state.EntryToken, out var value))
             {
                 if (StackRequired)
                     state.StashFrame();
@@ -362,22 +363,19 @@ namespace Zerra.Serialization.Json.Converters
         /// <inheritdoc/>
         public override sealed bool TryReadFromParent(ref JsonReader reader, ref ReadState state, object? parent)
         {
-            if (state.Current.ChildValueType == JsonValueType.NotDetermined)
+            if (state.Current.ChildJsonToken == JsonToken.NotDetermined)
             {
-                if (!reader.TryReadValueType(out state.Current.ChildValueType, out state.SizeNeeded))
-                {
-                    return false;
-                }
-                if (state.Current.ChildValueType == JsonValueType.Null_Completed)
+                if (reader.Token == JsonToken.Null)
                 {
                     if (setter is not null && parent is not null)
                         setter(parent, default);
 
-                    state.Current.ChildValueType = JsonValueType.NotDetermined;
+                    state.Current.ChildJsonToken = JsonToken.NotDetermined;
                     return true;
                 }
+                state.Current.ChildJsonToken = reader.Token;
             }
-            var valueType = state.Current.ChildValueType;
+            var token = state.Current.ChildJsonToken;
 
             if (StackRequired)
             {
@@ -386,21 +384,21 @@ namespace Zerra.Serialization.Json.Converters
                 state.PushFrame(null);
             }
 
-            if (isObject && valueType != JsonValueType.Object)
+            if (isObject && token != JsonToken.ObjectStart)
             {
-                TypeDetail newTypeDetail = valueType switch
+                TypeDetail newTypeDetail = token switch
                 {
-                    JsonValueType.Object => TypeAnalyzer<object>.GetTypeDetail(),
-                    JsonValueType.Array => TypeAnalyzer<object[]>.GetTypeDetail(),
-                    JsonValueType.String => TypeAnalyzer<string>.GetTypeDetail(),
-                    JsonValueType.Number => TypeAnalyzer<decimal>.GetTypeDetail(),
-                    JsonValueType.True_Completed or JsonValueType.False_Completed => TypeAnalyzer<bool>.GetTypeDetail(),
+                    JsonToken.ObjectStart => TypeAnalyzer<object>.GetTypeDetail(),
+                    JsonToken.ArrayStart => TypeAnalyzer<object[]>.GetTypeDetail(),
+                    JsonToken.String => TypeAnalyzer<string>.GetTypeDetail(),
+                    JsonToken.Number => TypeAnalyzer<decimal>.GetTypeDetail(),
+                    JsonToken.True or JsonToken.False => TypeAnalyzer<bool>.GetTypeDetail(),
                     _ => throw new NotSupportedException(),
                 };
 
                 var newConverter = JsonConverterFactory.Get(newTypeDetail, memberKey, getter, setter);
 
-                if (!newConverter.TryReadValueBoxed(ref reader, ref state, valueType, out var valueObject))
+                if (!newConverter.TryReadValueBoxed(ref reader, ref state, token, out var valueObject))
                 {
                     if (StackRequired)
                         state.StashFrame();
@@ -411,7 +409,7 @@ namespace Zerra.Serialization.Json.Converters
                     setter(parent, (TValue?)valueObject);
                 if (StackRequired)
                     state.EndFrame();
-                state.Current.ChildValueType = JsonValueType.NotDetermined;
+                state.Current.ChildJsonToken = JsonToken.NotDetermined;
                 return true;
             }
 
@@ -422,7 +420,7 @@ namespace Zerra.Serialization.Json.Converters
 
                 var newConverter = JsonConverterFactory.Get(newTypeDetail, memberKey, getter, setter);
 
-                if (!newConverter.TryReadValueBoxed(ref reader, ref state, valueType, out var valueObject))
+                if (!newConverter.TryReadValueBoxed(ref reader, ref state, token, out var valueObject))
                 {
                     if (StackRequired)
                         state.StashFrame();
@@ -433,11 +431,11 @@ namespace Zerra.Serialization.Json.Converters
                     setter(parent, (TValue?)valueObject);
                 if (StackRequired)
                     state.EndFrame();
-                state.Current.ChildValueType = JsonValueType.NotDetermined;
+                state.Current.ChildJsonToken = JsonToken.NotDetermined;
                 return true;
             }
 
-            if (!TryReadValue(ref reader, ref state, valueType, out var value))
+            if (!TryReadValue(ref reader, ref state, token, out var value))
             {
                 if (StackRequired)
                     state.StashFrame();
@@ -450,7 +448,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 state.EndFrame();
             }
-            state.Current.ChildValueType = JsonValueType.NotDetermined;
+            state.Current.ChildJsonToken = JsonToken.NotDetermined;
             return true;
         }
         /// <inheritdoc/>
@@ -511,27 +509,29 @@ namespace Zerra.Serialization.Json.Converters
         }
 
         /// <inheritdoc/>
-        public override sealed bool TryReadFromParentMember(ref JsonReader reader, ref ReadState state, object? parent, string? propertyName = default)
+        public override sealed bool TryReadFromParentMember(ref JsonReader reader, ref ReadState state, object? parent, string? propertyName, bool readToken)
         {
-            if (state.Current.ChildValueType == JsonValueType.NotDetermined)
+            if (state.Current.ChildJsonToken == JsonToken.NotDetermined)
             {
-                if (!reader.TryReadValueType(out state.Current.ChildValueType, out state.SizeNeeded))
+                if (readToken)
                 {
-                    return false;
+                    if (!reader.TryReadToken(out state.SizeNeeded))
+                        return false;
                 }
-                if (state.Current.ChildValueType == JsonValueType.Null_Completed)
+                if (reader.Token == JsonToken.Null)
                 {
                     if (setter is not null && parent is not null)
                         setter(parent, default);
 
-                    if (state.IncludeReturnGraph && propertyName is not null)
-                        state.Current.ReturnGraph!.AddMember(propertyName);
+                    if (state.IncludeReturnGraph && state.Current.ReturnGraph is not null && propertyName is not null)
+                        state.Current.ReturnGraph.AddMember(propertyName);
 
-                    state.Current.ChildValueType = JsonValueType.NotDetermined;
+                    state.Current.ChildJsonToken = JsonToken.NotDetermined;
                     return true;
                 }
+                state.Current.ChildJsonToken = reader.Token;
             }
-            var valueType = state.Current.ChildValueType;
+            var token = state.Current.ChildJsonToken;
 
             if (StackRequired)
             {
@@ -548,21 +548,21 @@ namespace Zerra.Serialization.Json.Converters
                 }
             }
 
-            if (isObject && valueType != JsonValueType.Object)
+            if (isObject && token != JsonToken.ObjectStart)
             {
-                TypeDetail newTypeDetail = valueType switch
+                TypeDetail newTypeDetail = token switch
                 {
-                    JsonValueType.Object => TypeAnalyzer<object>.GetTypeDetail(),
-                    JsonValueType.Array => TypeAnalyzer<object[]>.GetTypeDetail(),
-                    JsonValueType.String => TypeAnalyzer<string>.GetTypeDetail(),
-                    JsonValueType.Number => TypeAnalyzer<decimal>.GetTypeDetail(),
-                    JsonValueType.True_Completed or JsonValueType.False_Completed => TypeAnalyzer<bool>.GetTypeDetail(),
+                    JsonToken.ObjectStart => TypeAnalyzer<object>.GetTypeDetail(),
+                    JsonToken.ArrayStart => TypeAnalyzer<object[]>.GetTypeDetail(),
+                    JsonToken.String => TypeAnalyzer<string>.GetTypeDetail(),
+                    JsonToken.Number => TypeAnalyzer<decimal>.GetTypeDetail(),
+                    JsonToken.True or JsonToken.False => TypeAnalyzer<bool>.GetTypeDetail(),
                     _ => throw new NotSupportedException(),
                 };
 
                 var newConverter = JsonConverterFactory.Get(newTypeDetail, memberKey, getter, setter);
 
-                if (!newConverter.TryReadValueBoxed(ref reader, ref state, valueType, out var valueObject))
+                if (!newConverter.TryReadValueBoxed(ref reader, ref state, token, out var valueObject))
                 {
                     if (StackRequired)
                         state.StashFrame();
@@ -573,7 +573,7 @@ namespace Zerra.Serialization.Json.Converters
                     setter(parent, (TValue?)valueObject);
                 if (StackRequired)
                     state.EndFrame();
-                state.Current.ChildValueType = JsonValueType.NotDetermined;
+                state.Current.ChildJsonToken = JsonToken.NotDetermined;
                 return true;
             }
 
@@ -584,7 +584,7 @@ namespace Zerra.Serialization.Json.Converters
 
                 var newConverter = JsonConverterFactory.Get(newTypeDetail, memberKey, getter, setter);
 
-                if (!newConverter.TryReadValueBoxed(ref reader, ref state, valueType, out var valueObject))
+                if (!newConverter.TryReadValueBoxed(ref reader, ref state, token, out var valueObject))
                 {
                     if (StackRequired)
                         state.StashFrame();
@@ -595,11 +595,11 @@ namespace Zerra.Serialization.Json.Converters
                     setter(parent, (TValue?)valueObject);
                 if (StackRequired)
                     state.EndFrame();
-                state.Current.ChildValueType = JsonValueType.NotDetermined;
+                state.Current.ChildJsonToken = JsonToken.NotDetermined;
                 return true;
             }
 
-            if (!TryReadValue(ref reader, ref state, valueType, out var value))
+            if (!TryReadValue(ref reader, ref state, token, out var value))
             {
                 if (StackRequired)
                     state.StashFrame();
@@ -632,11 +632,11 @@ namespace Zerra.Serialization.Json.Converters
                 if (state.IncludeReturnGraph && state.Current.ReturnGraph is not null && propertyName is not null)
                     state.Current.ReturnGraph.AddMember(propertyName);
             }
-            state.Current.ChildValueType = JsonValueType.NotDetermined;
+            state.Current.ChildJsonToken = JsonToken.NotDetermined;
             return true;
         }
         /// <inheritdoc/>
-        public override sealed bool TryWriteFromParentMember(ref JsonWriter writer, ref WriteState state, object parent, string? propertyName = default, ReadOnlySpan<char> jsonNameSegmentChars = default, ReadOnlySpan<byte> jsonNameSegmentBytes = default, JsonIgnoreCondition ignoreCondition = default, bool ignoreDoNotWriteNullProperties = default)
+        public override sealed bool TryWriteFromParentMember(ref JsonWriter writer, ref WriteState state, object parent, string? propertyName, ReadOnlySpan<char> jsonNameSegmentChars, ReadOnlySpan<byte> jsonNameSegmentBytes, JsonIgnoreCondition ignoreCondition, bool ignoreDoNotWriteNullProperties)
         {
             if (getter is null)
                 return true;
@@ -768,9 +768,9 @@ namespace Zerra.Serialization.Json.Converters
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override sealed bool TryReadValueBoxed(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out object? value)
+        public override sealed bool TryReadValueBoxed(ref JsonReader reader, ref ReadState state, JsonToken token, out object? value)
         {
-            var read = TryReadValue(ref reader, ref state, valueType, out var returnValue);
+            var read = TryReadValue(ref reader, ref state, token, out var returnValue);
             value = returnValue;
             return read;
         }
@@ -788,7 +788,7 @@ namespace Zerra.Serialization.Json.Converters
         /// <param name="value">The deserialized value if successful; otherwise, the default value for <typeparamref name="TValue"/>.</param>
         /// <returns><c>true</c> if the read operation completed successfully; <c>false</c> if more bytes are needed.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected abstract bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out TValue? value);
+        protected abstract bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonToken token, out TValue? value);
 
         /// <summary>
         /// When implemented in a derived class, attempts to write a strongly-typed value to the JSON writer.

@@ -29,7 +29,7 @@ namespace Zerra.Encryption
                     length--;
             }
 
-            Span<char> filtered = stackalloc char[0];
+            scoped Span<char> filtered;
             char[]? rentedArray = null;
             if (length <= 128)
             {
@@ -72,7 +72,7 @@ namespace Zerra.Encryption
                 _ => throw new FormatException("Invalid string"),
             };
 
-            Span<char> filtered = stackalloc char[0];
+            scoped Span<char> filtered;
             char[]? rentedArray = null;
             if (filteredLength <= 128)
             {

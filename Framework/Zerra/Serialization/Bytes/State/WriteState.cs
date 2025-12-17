@@ -22,7 +22,7 @@ namespace Zerra.Serialization.Bytes.State
         public bool UseIndexSizeUInt16;
 
         public WriteFrame Current;
-        public int BytesNeeded;
+        public int SizeNeeded;
 
         public bool EntryHasWrittenIsNull;
         public Type? EntryWriteType;

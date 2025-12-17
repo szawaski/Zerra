@@ -87,7 +87,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
                 foreach (var item in value)
                     count++;
 
-                if (!writer.TryWrite(count, out state.BytesNeeded))
+                if (!writer.TryWrite(count, out state.SizeNeeded))
                 {
                     return false;
                 }

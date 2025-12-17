@@ -22,6 +22,6 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.IListTs
         }
 
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in IList<DateTimeOffset?> value)
-            => writer.TryWrite(value, value.Count, out state.BytesNeeded);
+            => writer.TryWrite(value, value.Count, out state.SizeNeeded);
     }
 }

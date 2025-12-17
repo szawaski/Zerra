@@ -83,7 +83,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Sets
             {
                 var collection = (ISet<TValue>)value!;
 
-                if (!writer.TryWrite(collection.Count, out state.BytesNeeded))
+                if (!writer.TryWrite(collection.Count, out state.SizeNeeded))
                 {
                     return false;
                 }

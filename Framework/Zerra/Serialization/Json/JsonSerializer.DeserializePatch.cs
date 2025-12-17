@@ -252,8 +252,9 @@ namespace Zerra.Serialization.Json
                     BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
 
-                    if (length + state.SizeNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, length + state.SizeNeeded);
+                    var totalSizeNeeded = length + state.SizeNeeded;
+                    if (totalSizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, totalSizeNeeded);
 
                     while (length < buffer.Length)
                     {
@@ -271,7 +272,7 @@ namespace Zerra.Serialization.Json
                         length += read;
                     }
 
-                    if (length < state.SizeNeeded)
+                    if (length < totalSizeNeeded)
                         throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
 
                     state.SizeNeeded = 0;
@@ -360,8 +361,9 @@ namespace Zerra.Serialization.Json
                     BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
 
-                    if (length + state.SizeNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, length + state.SizeNeeded);
+                    var totalSizeNeeded = length + state.SizeNeeded;
+                    if (totalSizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, totalSizeNeeded);
 
                     while (length < buffer.Length)
                     {
@@ -379,7 +381,7 @@ namespace Zerra.Serialization.Json
                         length += read;
                     }
 
-                    if (length < state.SizeNeeded)
+                    if (length < totalSizeNeeded)
                         throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
 
                     state.SizeNeeded = 0;
@@ -468,8 +470,9 @@ namespace Zerra.Serialization.Json
                     BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
 
-                    if (length + state.SizeNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, length + state.SizeNeeded);
+                    var totalSizeNeeded = length + state.SizeNeeded;
+                    if (totalSizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, totalSizeNeeded);
 
                     while (length < buffer.Length)
                     {
@@ -487,7 +490,7 @@ namespace Zerra.Serialization.Json
                         length += read;
                     }
 
-                    if (length < state.SizeNeeded)
+                    if (length <  totalSizeNeeded)
                         throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
 
                     state.SizeNeeded = 0;
@@ -577,8 +580,9 @@ namespace Zerra.Serialization.Json
                     BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
 
-                    if (length + state.SizeNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, length + state.SizeNeeded);
+                    var totalSizeNeeded = length + state.SizeNeeded;
+                    if (totalSizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, totalSizeNeeded);
 
                     while (length < buffer.Length)
                     {
@@ -596,7 +600,7 @@ namespace Zerra.Serialization.Json
                         length += read;
                     }
 
-                    if (length < state.SizeNeeded)
+                    if (length < totalSizeNeeded)
                         throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
 
                     state.SizeNeeded = 0;

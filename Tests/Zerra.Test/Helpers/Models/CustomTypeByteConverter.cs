@@ -31,7 +31,7 @@ namespace Zerra.Test.Helpers.Models
         protected override bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in CustomType value)
         {
             var str = $"{value.Things1} - {value.Things2}";
-            return writer.TryWrite(str, out state.BytesNeeded);
+            return writer.TryWrite(str, out state.SizeNeeded);
         }
     }
 }

@@ -276,68 +276,68 @@ namespace Zerra.Serialization.Bytes.Converters.General
             switch (TypeDetail.EnumUnderlyingType)
             {
                 case CoreEnumType.Byte:
-                    if (!writer.TryWrite((byte)obj, out state.BytesNeeded))
+                    if (!writer.TryWrite((byte)obj, out state.SizeNeeded))
                         return false;
                     return true;
                 case CoreEnumType.SByte:
-                    if (!writer.TryWrite((sbyte)obj, out state.BytesNeeded))
+                    if (!writer.TryWrite((sbyte)obj, out state.SizeNeeded))
                         return false;
                     return true;
                 case CoreEnumType.Int16:
-                    if (!writer.TryWrite((short)obj, out state.BytesNeeded))
+                    if (!writer.TryWrite((short)obj, out state.SizeNeeded))
                         return false;
                     return true;
                 case CoreEnumType.UInt16:
-                    if (!writer.TryWrite((ushort)obj, out state.BytesNeeded))
+                    if (!writer.TryWrite((ushort)obj, out state.SizeNeeded))
                         return false;
                     return true;
                 case CoreEnumType.Int32:
-                    if (!writer.TryWrite((int)obj, out state.BytesNeeded))
+                    if (!writer.TryWrite((int)obj, out state.SizeNeeded))
                         return false;
                     return true;
                 case CoreEnumType.UInt32:
-                    if (!writer.TryWrite((uint)obj, out state.BytesNeeded))
+                    if (!writer.TryWrite((uint)obj, out state.SizeNeeded))
                         return false;
                     return true;
                 case CoreEnumType.Int64:
-                    if (!writer.TryWrite((long)obj, out state.BytesNeeded))
+                    if (!writer.TryWrite((long)obj, out state.SizeNeeded))
                         return false;
                     return true;
                 case CoreEnumType.UInt64:
-                    if (!writer.TryWrite((ulong)obj, out state.BytesNeeded))
+                    if (!writer.TryWrite((ulong)obj, out state.SizeNeeded))
                         return false;
                     return true;
 
                 case CoreEnumType.ByteNullable:
-                    if (!writer.TryWrite((byte)obj, out state.BytesNeeded))
+                    if (!writer.TryWrite((byte)obj, out state.SizeNeeded))
                         return false;
                     return true;
                 case CoreEnumType.SByteNullable:
-                    if (!writer.TryWrite((sbyte)obj, out state.BytesNeeded))
+                    if (!writer.TryWrite((sbyte)obj, out state.SizeNeeded))
                         return false;
                     return true;
                 case CoreEnumType.Int16Nullable:
-                    if (!writer.TryWrite((short)obj, out state.BytesNeeded))
+                    if (!writer.TryWrite((short)obj, out state.SizeNeeded))
                         return false;
                     return true;
                 case CoreEnumType.UInt16Nullable:
-                    if (!writer.TryWrite((ushort)obj, out state.BytesNeeded))
+                    if (!writer.TryWrite((ushort)obj, out state.SizeNeeded))
                         return false;
                     return true;
                 case CoreEnumType.Int32Nullable:
-                    if (!writer.TryWrite((int)obj, out state.BytesNeeded))
+                    if (!writer.TryWrite((int)obj, out state.SizeNeeded))
                         return false;
                     return true;
                 case CoreEnumType.UInt32Nullable:
-                    if (!writer.TryWrite((uint)obj, out state.BytesNeeded))
+                    if (!writer.TryWrite((uint)obj, out state.SizeNeeded))
                         return false;
                     return true;
                 case CoreEnumType.Int64Nullable:
-                    if (!writer.TryWrite((long)obj, out state.BytesNeeded))
+                    if (!writer.TryWrite((long)obj, out state.SizeNeeded))
                         return false;
                     return true;
                 case CoreEnumType.UInt64Nullable:
-                    if (!writer.TryWrite((ulong)obj, out state.BytesNeeded))
+                    if (!writer.TryWrite((ulong)obj, out state.SizeNeeded))
                         return false;
                     return true;
                 default:

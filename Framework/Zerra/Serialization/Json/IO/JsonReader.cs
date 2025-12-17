@@ -4,6 +4,7 @@
 
 using System.Runtime.CompilerServices;
 using System.Text;
+using Zerra.Serialization.Json.State;
 
 namespace Zerra.Serialization.Json.IO
 {
@@ -31,34 +32,27 @@ namespace Zerra.Serialization.Json.IO
             throw new NotSupportedException($"{nameof(JsonReader)} cannot use default constructor");
         }
 
-        public JsonReader(ReadOnlySpan<char> chars, bool isFinalBlock)
+        public JsonReader(ReadOnlySpan<char> chars, bool isFinalBlock, JsonToken lastToken)
         {
             this.bufferChars = chars;
             this.position = 0;
             this.length = chars.Length;
             this.useBytes = false;
             this.isFinalBlock = isFinalBlock;
+            this.Token = lastToken;
         }
 
-        public JsonReader(ReadOnlySpan<byte> bytes, bool isFinalBlock)
+        public JsonReader(ReadOnlySpan<byte> bytes, bool isFinalBlock, JsonToken lastToken)
         {
             this.bufferBytes = bytes;
             this.position = 0;
             this.length = bytes.Length;
             this.useBytes = true;
             this.isFinalBlock = isFinalBlock;
+            this.Token = lastToken;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void BackOne()
-        {
-#if DEBUG
-            if (position == 0)
-                throw new InvalidOperationException($"Cannot {nameof(BackOne)} before position of zero.");
-#endif
-            position--;
-        }
-
+        public readonly FormatException CreateException() => CreateException("Invalid JSON format");
         public readonly FormatException CreateException(string message)
         {
             var charPostion = Math.Max(position - 1, 0);

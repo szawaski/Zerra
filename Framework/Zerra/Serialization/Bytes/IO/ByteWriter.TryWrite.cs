@@ -11,21 +11,21 @@ namespace Zerra.Serialization.Bytes.IO
 #if DEBUG
         public static bool Testing = false;
 
-        private static bool Alternate = false;
+        private bool Alternate = false;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool Skip()
+        private bool DebugShouldReturn()
         {
             if (!ByteWriter.Testing)
                 return false;
-            if (ByteWriter.Alternate)
+            if (Alternate)
             {
-                ByteWriter.Alternate = false;
+                Alternate = false;
                 return false;
             }
             else
             {
-                ByteWriter.Alternate = true;
+                Alternate = true;
                 return true;
             }
         }
@@ -41,7 +41,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -63,7 +63,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -95,7 +95,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -112,7 +112,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -130,7 +130,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -147,7 +147,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -172,7 +172,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -206,7 +206,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -223,7 +223,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -248,7 +248,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -282,7 +282,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -299,7 +299,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -324,7 +324,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -358,7 +358,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -376,7 +376,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -402,7 +402,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -437,7 +437,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -455,7 +455,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -481,7 +481,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -516,7 +516,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -536,7 +536,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -564,7 +564,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -601,7 +601,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -621,7 +621,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -649,7 +649,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -686,7 +686,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -710,7 +710,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -742,7 +742,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -783,7 +783,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -807,7 +807,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -839,7 +839,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -880,7 +880,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -901,7 +901,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -930,7 +930,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -969,7 +969,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -994,7 +994,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1027,7 +1027,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1070,7 +1070,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1107,7 +1107,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1152,7 +1152,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1206,7 +1206,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1233,7 +1233,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1270,7 +1270,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1316,7 +1316,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1343,7 +1343,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1378,7 +1378,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1422,7 +1422,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1446,7 +1446,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1478,7 +1478,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1520,7 +1520,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1540,7 +1540,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1568,7 +1568,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1605,7 +1605,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1629,7 +1629,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1661,7 +1661,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1703,7 +1703,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1728,7 +1728,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1761,7 +1761,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1803,7 +1803,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1821,7 +1821,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1847,7 +1847,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1882,7 +1882,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1916,7 +1916,7 @@ namespace Zerra.Serialization.Bytes.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 

@@ -61,21 +61,21 @@ namespace Zerra.Serialization.Json.IO
 #if DEBUG
         public static bool Testing = false;
 
-        private static bool Alternate = false;
+        private bool Alternate = false;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool Skip()
+        private bool DebugShouldReturn()
         {
             if (!JsonWriter.Testing)
                 return false;
-            if (JsonWriter.Alternate)
+            if (Alternate)
             {
-                JsonWriter.Alternate = false;
+                Alternate = false;
                 return false;
             }
             else
             {
-                JsonWriter.Alternate = true;
+                Alternate = true;
                 return true;
             }
         }
@@ -91,7 +91,7 @@ namespace Zerra.Serialization.Json.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -131,7 +131,7 @@ namespace Zerra.Serialization.Json.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -171,7 +171,7 @@ namespace Zerra.Serialization.Json.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -211,7 +211,7 @@ namespace Zerra.Serialization.Json.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -251,7 +251,7 @@ namespace Zerra.Serialization.Json.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -291,7 +291,7 @@ namespace Zerra.Serialization.Json.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -364,7 +364,7 @@ namespace Zerra.Serialization.Json.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -404,7 +404,7 @@ namespace Zerra.Serialization.Json.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -445,7 +445,7 @@ namespace Zerra.Serialization.Json.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -486,7 +486,7 @@ namespace Zerra.Serialization.Json.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -534,7 +534,7 @@ namespace Zerra.Serialization.Json.IO
                         return false;
                 }
 #if DEBUG
-                if (Skip())
+                if (DebugShouldReturn())
                     return false;
 #endif
 
@@ -560,7 +560,7 @@ namespace Zerra.Serialization.Json.IO
                         return false;
                 }
 #if DEBUG
-                if (Skip())
+                if (DebugShouldReturn())
                     return false;
 #endif
 
@@ -583,7 +583,7 @@ namespace Zerra.Serialization.Json.IO
                         return false;
                 }
 #if DEBUG
-                if (Skip())
+                if (DebugShouldReturn())
                     return false;
 #endif
 
@@ -611,7 +611,7 @@ namespace Zerra.Serialization.Json.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -827,7 +827,7 @@ namespace Zerra.Serialization.Json.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1006,7 +1006,7 @@ namespace Zerra.Serialization.Json.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1210,7 +1210,7 @@ namespace Zerra.Serialization.Json.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1284,7 +1284,7 @@ namespace Zerra.Serialization.Json.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1392,7 +1392,7 @@ namespace Zerra.Serialization.Json.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1451,7 +1451,7 @@ namespace Zerra.Serialization.Json.IO
                         return false;
                 }
 #if DEBUG
-                if (Skip())
+                if (DebugShouldReturn())
                     return false;
 #endif
 
@@ -1471,7 +1471,7 @@ namespace Zerra.Serialization.Json.IO
                         return false;
                 }
 #if DEBUG
-                if (Skip())
+                if (DebugShouldReturn())
                     return false;
 #endif
 
@@ -1525,7 +1525,7 @@ namespace Zerra.Serialization.Json.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1557,7 +1557,7 @@ namespace Zerra.Serialization.Json.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1589,7 +1589,7 @@ namespace Zerra.Serialization.Json.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1626,7 +1626,7 @@ namespace Zerra.Serialization.Json.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1655,7 +1655,7 @@ namespace Zerra.Serialization.Json.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1682,7 +1682,7 @@ namespace Zerra.Serialization.Json.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1708,7 +1708,7 @@ namespace Zerra.Serialization.Json.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1734,7 +1734,7 @@ namespace Zerra.Serialization.Json.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1760,7 +1760,7 @@ namespace Zerra.Serialization.Json.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1788,7 +1788,7 @@ namespace Zerra.Serialization.Json.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1814,7 +1814,7 @@ namespace Zerra.Serialization.Json.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1840,7 +1840,7 @@ namespace Zerra.Serialization.Json.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1868,7 +1868,7 @@ namespace Zerra.Serialization.Json.IO
                     return false;
             }
 #if DEBUG
-            if (Skip())
+            if (DebugShouldReturn())
                 return false;
 #endif
 
@@ -1904,7 +1904,7 @@ namespace Zerra.Serialization.Json.IO
                         return false;
                 }
 #if DEBUG
-                if (Skip())
+                if (DebugShouldReturn())
                     return false;
 #endif
                 if (useBytes)
@@ -1945,7 +1945,7 @@ namespace Zerra.Serialization.Json.IO
                                 return false;
                         }
 #if DEBUG
-                        if (Skip())
+                        if (DebugShouldReturn())
                             return false;
 #endif
 
@@ -1965,7 +1965,7 @@ namespace Zerra.Serialization.Json.IO
                             return false;
                     }
 #if DEBUG
-                    if (Skip())
+                    if (DebugShouldReturn())
                         return false;
 #endif
 
@@ -2076,7 +2076,7 @@ namespace Zerra.Serialization.Json.IO
                                 return false;
                         }
 #if DEBUG
-                        if (Skip())
+                        if (DebugShouldReturn())
                             return false;
 #endif
 
@@ -2097,7 +2097,7 @@ namespace Zerra.Serialization.Json.IO
                             return false;
                     }
 #if DEBUG
-                    if (Skip())
+                    if (DebugShouldReturn())
                         return false;
 #endif
 
@@ -2214,7 +2214,7 @@ namespace Zerra.Serialization.Json.IO
                                     return false;
                             }
 #if DEBUG
-                            if (Skip())
+                            if (DebugShouldReturn())
                                 return false;
 #endif
 
@@ -2248,7 +2248,7 @@ namespace Zerra.Serialization.Json.IO
                                     return false;
                             }
 #if DEBUG
-                            if (Skip())
+                            if (DebugShouldReturn())
                                 return false;
 #endif
                             fixed (byte* pCode = code, pBuffer = bufferBytes)
@@ -2268,7 +2268,7 @@ namespace Zerra.Serialization.Json.IO
                             return false;
                     }
 #if DEBUG
-                    if (Skip())
+                    if (DebugShouldReturn())
                         return false;
 #endif
 
@@ -2291,7 +2291,7 @@ namespace Zerra.Serialization.Json.IO
                                 return false;
                         }
 #if DEBUG
-                        if (Skip())
+                        if (DebugShouldReturn())
                             return false;
 #endif
                         fixed (byte* pCode = surrogateCode, pBuffer = bufferBytes)
@@ -2311,7 +2311,7 @@ namespace Zerra.Serialization.Json.IO
                             return false;
                     }
 #if DEBUG
-                    if (Skip())
+                    if (DebugShouldReturn())
                         return false;
 #endif
 
@@ -2349,7 +2349,7 @@ namespace Zerra.Serialization.Json.IO
                                     return false;
                             }
 #if DEBUG
-                            if (Skip())
+                            if (DebugShouldReturn())
                                 return false;
 #endif
 
@@ -2370,7 +2370,7 @@ namespace Zerra.Serialization.Json.IO
                                 return false;
                         }
 #if DEBUG
-                        if (Skip())
+                        if (DebugShouldReturn())
                             return false;
 #endif
 
@@ -2405,7 +2405,7 @@ namespace Zerra.Serialization.Json.IO
                                 return false;
                         }
 #if DEBUG
-                        if (Skip())
+                        if (DebugShouldReturn())
                             return false;
 #endif
 
@@ -2426,7 +2426,7 @@ namespace Zerra.Serialization.Json.IO
                         return false;
                 }
 #if DEBUG
-                if (Skip())
+                if (DebugShouldReturn())
                     return false;
 #endif
 

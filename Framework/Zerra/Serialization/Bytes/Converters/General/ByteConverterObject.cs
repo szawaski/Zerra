@@ -450,19 +450,19 @@ namespace Zerra.Serialization.Bytes.Converters.General
 
             if (state.UseMemberNames)
             {
-                if (!writer.TryWrite(0, out state.BytesNeeded))
+                if (!writer.TryWrite(0, out state.SizeNeeded))
                     return false;
             }
             else
             {
                 if (state.UseIndexSizeUInt16)
                 {
-                    if (!writer.TryWriteRaw(endObjectFlagUInt16, out state.BytesNeeded))
+                    if (!writer.TryWriteRaw(endObjectFlagUInt16, out state.SizeNeeded))
                         return false;
                 }
                 else
                 {
-                    if (!writer.TryWrite(endObjectFlagByte, out state.BytesNeeded))
+                    if (!writer.TryWrite(endObjectFlagByte, out state.SizeNeeded))
                         return false;
                 }
             }

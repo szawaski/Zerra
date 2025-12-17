@@ -22,7 +22,8 @@ namespace Zerra.Serialization.Json.State
         public bool IsFinalBlock;
         public bool IncludeReturnGraph;
 
-        public JsonValueType EntryValueType;
+        public JsonToken EntryToken;
+
         public bool Nameless { get; set; }
         public bool EnumAsNumber { get; set; }
         public bool ErrorOnTypeMismatch { get; set; }
@@ -48,6 +49,8 @@ namespace Zerra.Serialization.Json.State
         public bool NumberWorkingIsNegative;
 
         public Graph? Graph;
+
+        public JsonToken LastReaderToken;
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
         public ReadState(JsonSerializerOptions options, Graph? graph, bool isFinalBlock, bool hasReturnGraph)

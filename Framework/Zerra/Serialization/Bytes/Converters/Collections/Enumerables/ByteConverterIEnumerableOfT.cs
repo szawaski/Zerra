@@ -33,7 +33,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
             {
                 if (value is ICollection collection)
                 {
-                    if (!writer.TryWrite(collection.Count, out state.BytesNeeded))
+                    if (!writer.TryWrite(collection.Count, out state.SizeNeeded))
                     {
                         return false;
                     }
@@ -52,7 +52,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
                     foreach (var item in enumerable)
                         count++;
 
-                    if (!writer.TryWrite(count, out state.BytesNeeded))
+                    if (!writer.TryWrite(count, out state.SizeNeeded))
                     {
                         return false;
                     }

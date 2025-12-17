@@ -9,43 +9,43 @@ namespace Zerra.Serialization.Json.Converters.Special
 {
     internal sealed class JsonConverterCancellationTokenNullable : JsonConverter<CancellationToken?>
     {
-        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out CancellationToken? value)
+        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonToken token, out CancellationToken? value)
         {
-            switch (valueType)
+            switch (token)
             {
-                case JsonValueType.Object:
+                case JsonToken.ObjectStart:
                     value = CancellationToken.None;
                     return DrainObject(ref reader, ref state);
-                case JsonValueType.Array:
+                case JsonToken.ArrayStart:
                     if (state.ErrorOnTypeMismatch)
                         ThrowCannotConvert(ref reader);
                     value = null;
                     return DrainArray(ref reader, ref state);
-                case JsonValueType.String:
-                    if (state.ErrorOnTypeMismatch)
-                        ThrowCannotConvert(ref reader);
-                    value = null;
-                    return DrainString(ref reader, ref state);
-                case JsonValueType.Number:
-                    if (state.ErrorOnTypeMismatch)
-                        ThrowCannotConvert(ref reader);
-                    value = null;
-                    return DrainNumber(ref reader, ref state);
-                case JsonValueType.Null_Completed:
-                    value = null;
-                    return true;
-                case JsonValueType.False_Completed:
+                case JsonToken.String:
                     if (state.ErrorOnTypeMismatch)
                         ThrowCannotConvert(ref reader);
                     value = null;
                     return true;
-                case JsonValueType.True_Completed:
+                case JsonToken.Number:
+                    if (state.ErrorOnTypeMismatch)
+                        ThrowCannotConvert(ref reader);
+                    value = null;
+                    return true;
+                case JsonToken.Null:
+                    value = null;
+                    return true;
+                case JsonToken.False:
+                    if (state.ErrorOnTypeMismatch)
+                        ThrowCannotConvert(ref reader);
+                    value = null;
+                    return true;
+                case JsonToken.True:
                     if (state.ErrorOnTypeMismatch)
                         ThrowCannotConvert(ref reader);
                     value = null;
                     return true;
                 default:
-                    throw new NotImplementedException();
+                    throw reader.CreateException();
             }
         }
 

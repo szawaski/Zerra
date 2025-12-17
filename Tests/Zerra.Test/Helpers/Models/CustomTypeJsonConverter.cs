@@ -10,16 +10,16 @@ namespace Zerra.Test.Helpers.Models
 {
     public class CustomTypeJsonConverter : JsonConverter<CustomType>
     {
-        protected override bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out CustomType? value)
+        protected override bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonToken token, out CustomType? value)
         {
-            switch (valueType)
+            switch (token)
             {
-                case JsonValueType.String:
-                    if (!reader.TryReadStringEscapedQuoted(true, out string str, out state.SizeNeeded))
-                    {
-                        value = null;
-                        return false;
-                    }
+                case JsonToken.String:
+                    string str;
+                    if (reader.UseBytes)
+                        str = reader.UnescapeStringBytes();
+                    else
+                        str = reader.StringPositionOfFirstEscape == -1 ? reader.StringChars.ToString() : reader.UnescapeStringChars();
                     var values = str.Split(" - ");
                     value = new CustomType()
                     {
@@ -27,30 +27,30 @@ namespace Zerra.Test.Helpers.Models
                         Things2 = values.Length > 0 ? values[1] : null
                     };
                     return true;
-                case JsonValueType.Null_Completed:
+                case JsonToken.Null:
                     value = null;
                     return true;
-                case JsonValueType.Number:
+                case JsonToken.Number:
                     if (state.ErrorOnTypeMismatch)
                         ThrowCannotConvert(ref reader);
                     value = null;
                     return true;
-                case JsonValueType.False_Completed:
+                case JsonToken.False:
                     if (state.ErrorOnTypeMismatch)
                         ThrowCannotConvert(ref reader);
                     value = null;
                     return true;
-                case JsonValueType.True_Completed:
+                case JsonToken.True:
                     if (state.ErrorOnTypeMismatch)
                         ThrowCannotConvert(ref reader);
                     value = null;
                     return true;
-                case JsonValueType.Object:
+                case JsonToken.ObjectStart:
                     if (state.ErrorOnTypeMismatch)
                         ThrowCannotConvert(ref reader);
                     value = null;
                     return DrainObject(ref reader, ref state);
-                case JsonValueType.Array:
+                case JsonToken.ArrayStart:
                     if (state.ErrorOnTypeMismatch)
                         ThrowCannotConvert(ref reader);
                     value = null;

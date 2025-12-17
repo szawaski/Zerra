@@ -9,30 +9,35 @@ namespace Zerra.Serialization.Json.Converters.Special
 {
     internal sealed class JsonConverterByteArray : JsonConverter<byte[]>
     {
-        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out byte[]? value)
+        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonToken token, out byte[]? value)
         {
-            if (valueType != JsonValueType.String)
+            if (token != JsonToken.String)
             {
                 if (state.ErrorOnTypeMismatch)
                     ThrowCannotConvert(ref reader);
 
                 value = default;
-                return Drain(ref reader, ref state, valueType);
+                return Drain(ref reader, ref state, token);
             }
 
-            if (!reader.TryReadStringEscapedQuoted(true, out var str, out state.SizeNeeded))
+            if (reader.UseBytes)
             {
-                value = default;
-                return false;
+                if (reader.StringBytes.Length == 0)
+                {
+                    value = Array.Empty<byte>();
+                    return true;
+                }
+                value = Convert.FromBase64String(reader.UnescapeStringBytes());
             }
-
-            if (str.Length == 0)
+            else
             {
-                value = Array.Empty<byte>();
-                return true;
+                if (reader.StringChars.Length == 0)
+                {
+                    value = Array.Empty<byte>();
+                    return true;
+                }
+                value = Convert.FromBase64String(reader.StringChars.ToString());
             }
-
-            value = Convert.FromBase64String(str);
             return true;
         }
 
