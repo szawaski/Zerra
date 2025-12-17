@@ -25,7 +25,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     if (reader.UseBytes)
                         str = reader.UnescapeStringBytes();
                     else
-                        str = reader.StringPositionOfFirstEscape == -1 ? reader.StringChars.ToString() : reader.UnescapeStringChars();
+                        str = reader.PositionOfFirstEscape == -1 ? reader.ValueChars.ToString() : reader.UnescapeStringChars();
                     if (EnumName.TryParse(str, TypeDetail.IsNullable ? TypeDetail.InnerType! : TypeDetail.Type, out var parsed))
                     {
                         value = (TValue?)parsed;
@@ -40,7 +40,7 @@ namespace Zerra.Serialization.Json.Converters.General
                 case JsonToken.Number:
                     if (reader.UseBytes)
                     {
-                        if ((!Utf8Parser.TryParse(reader.StringBytes, out long number, out var consumed) || consumed != reader.StringBytes.Length) && state.ErrorOnTypeMismatch)
+                        if ((!Utf8Parser.TryParse(reader.ValueBytes, out long number, out var consumed) || consumed != reader.ValueBytes.Length) && state.ErrorOnTypeMismatch)
                             ThrowCannotConvert(ref reader);
                         try
                         {
@@ -59,7 +59,7 @@ namespace Zerra.Serialization.Json.Converters.General
 #if NETSTANDARD2_0
                         if (!UInt64.TryParse(reader.ValueChars.ToString(), out var number) && state.ErrorOnTypeMismatch)
 #else
-                        if (!UInt64.TryParse(reader.StringChars, out var number) && state.ErrorOnTypeMismatch)
+                        if (!UInt64.TryParse(reader.ValueChars, out var number) && state.ErrorOnTypeMismatch)
 #endif
                             ThrowCannotConvert(ref reader);
                         try

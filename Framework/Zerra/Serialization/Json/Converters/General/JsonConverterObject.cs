@@ -363,24 +363,24 @@ namespace Zerra.Serialization.Json.Converters.General
                             if (state.IgnoreCase || collectValues)
                             {
                                 //slow path
-                                if (reader.StringBytes.Length == 0)
+                                if (reader.ValueBytes.Length == 0)
                                     throw reader.CreateException();
 
-                                var name = System.Text.Encoding.UTF8.GetString(reader.StringBytes);
+                                var name = System.Text.Encoding.UTF8.GetString(reader.ValueBytes);
 
                                 if (!membersByName.TryGetValue(name, out member))
                                     member = null;
                             }
                             else
                             {
-                                var nameKey = MemberKey.GetHashCode(reader.StringBytes);
+                                var nameKey = MemberKey.GetHashCode(reader.ValueBytes);
 
                                 for (; ; )
                                 {
                                     if (nextIndex < memberLength)
                                     {
                                         memberKey = membersKeyed[nextIndex];
-                                        if (MemberKey.IsEqual(memberKey, reader.StringBytes, nameKey))
+                                        if (MemberKey.IsEqual(memberKey, reader.ValueBytes, nameKey))
                                         {
                                             member = memberKey.Member;
                                             if (member.IgnoreCondition == JsonIgnoreCondition.WhenReading || (state.Current.Graph is not null && !state.Current.Graph.HasMember(member.Member.Name)))
@@ -395,7 +395,7 @@ namespace Zerra.Serialization.Json.Converters.General
                                         if (prevIndex >= 0)
                                         {
                                             memberKey = membersKeyed[prevIndex];
-                                            if (MemberKey.IsEqual(memberKey, reader.StringBytes, nameKey))
+                                            if (MemberKey.IsEqual(memberKey, reader.ValueBytes, nameKey))
                                             {
                                                 member = memberKey.Member;
                                                 if (member.IgnoreCondition == JsonIgnoreCondition.WhenReading || (state.Current.Graph is not null && !state.Current.Graph.HasMember(member.Member.Name)))
@@ -415,7 +415,7 @@ namespace Zerra.Serialization.Json.Converters.General
                                     else if (prevIndex >= 0)
                                     {
                                         memberKey = membersKeyed[prevIndex];
-                                        if (MemberKey.IsEqual(memberKey, reader.StringBytes, nameKey))
+                                        if (MemberKey.IsEqual(memberKey, reader.ValueBytes, nameKey))
                                         {
                                             member = memberKey.Member;
                                             if (member.IgnoreCondition == JsonIgnoreCondition.WhenReading || (state.Current.Graph is not null && !state.Current.Graph.HasMember(member.Member.Name)))
@@ -442,25 +442,25 @@ namespace Zerra.Serialization.Json.Converters.General
                             if (state.IgnoreCase || collectValues)
                             {
                                 //slow path
-                                if (reader.StringChars.Length == 0)
+                                if (reader.ValueChars.Length == 0)
                                     throw reader.CreateException();
 
-                                if (!membersByName.TryGetValue(reader.StringChars.ToString(), out member))
+                                if (!membersByName.TryGetValue(reader.ValueChars.ToString(), out member))
                                     member = null;
                             }
                             else
                             {
-                                if (reader.StringChars.Length == 0)
+                                if (reader.ValueChars.Length == 0)
                                     throw reader.CreateException();
 
-                                var nameKey = MemberKey.GetHashCode(reader.StringChars);
+                                var nameKey = MemberKey.GetHashCode(reader.ValueChars);
 
                                 for (; ; )
                                 {
                                     if (nextIndex < memberLength)
                                     {
                                         memberKey = membersKeyed[nextIndex];
-                                        if (MemberKey.IsEqual(memberKey, reader.StringChars, nameKey))
+                                        if (MemberKey.IsEqual(memberKey, reader.ValueChars, nameKey))
                                         {
                                             member = memberKey.Member;
                                             if (member.IgnoreCondition == JsonIgnoreCondition.WhenReading || (state.Current.Graph is not null && !state.Current.Graph.HasMember(member.Member.Name)))
@@ -475,7 +475,7 @@ namespace Zerra.Serialization.Json.Converters.General
                                         if (prevIndex >= 0)
                                         {
                                             memberKey = membersKeyed[prevIndex];
-                                            if (MemberKey.IsEqual(memberKey, reader.StringChars, nameKey))
+                                            if (MemberKey.IsEqual(memberKey, reader.ValueChars, nameKey))
                                             {
                                                 member = memberKey.Member;
                                                 if (member.IgnoreCondition == JsonIgnoreCondition.WhenReading || (state.Current.Graph is not null && !state.Current.Graph.HasMember(member.Member.Name)))
@@ -495,7 +495,7 @@ namespace Zerra.Serialization.Json.Converters.General
                                     else if (prevIndex >= 0)
                                     {
                                         memberKey = membersKeyed[prevIndex];
-                                        if (MemberKey.IsEqual(memberKey, reader.StringChars, nameKey))
+                                        if (MemberKey.IsEqual(memberKey, reader.ValueChars, nameKey))
                                         {
                                             member = memberKey.Member;
                                             if (member.IgnoreCondition == JsonIgnoreCondition.WhenReading || (state.Current.Graph is not null && !state.Current.Graph.HasMember(member.Member.Name)))

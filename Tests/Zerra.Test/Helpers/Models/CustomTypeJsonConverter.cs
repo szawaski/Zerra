@@ -19,7 +19,7 @@ namespace Zerra.Test.Helpers.Models
                     if (reader.UseBytes)
                         str = reader.UnescapeStringBytes();
                     else
-                        str = reader.StringPositionOfFirstEscape == -1 ? reader.StringChars.ToString() : reader.UnescapeStringChars();
+                        str = reader.PositionOfFirstEscape == -1 ? reader.ValueChars.ToString() : reader.UnescapeStringChars();
                     var values = str.Split(" - ");
                     value = new CustomType()
                     {

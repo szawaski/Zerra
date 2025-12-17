@@ -31,7 +31,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     if (reader.UseBytes)
                         str = reader.UnescapeStringBytes();
                     else
-                        str = reader.StringPositionOfFirstEscape == -1 ? reader.StringChars.ToString() : reader.UnescapeStringChars();
+                        str = reader.PositionOfFirstEscape == -1 ? reader.ValueChars.ToString() : reader.UnescapeStringChars();
 
                     value = TypeFinder.GetTypeFromName(str);
                     return true;

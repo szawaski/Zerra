@@ -28,7 +28,7 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                 case JsonToken.String:
                     if (reader.UseBytes)
                     {
-                        if ((!Utf8Parser.TryParse(reader.StringBytes, out bool parsed, out var consumed) || reader.StringBytes.Length != consumed) && state.ErrorOnTypeMismatch)
+                        if ((!Utf8Parser.TryParse(reader.ValueBytes, out bool parsed, out var consumed) || reader.ValueBytes.Length != consumed) && state.ErrorOnTypeMismatch)
                             ThrowCannotConvert(ref reader);
                         value = parsed;
                         return true;
@@ -38,7 +38,7 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
 #if NETSTANDARD2_0
                         if (!Boolean.TryParse(reader.ValueChars.ToString(), out bool parsed) && state.ErrorOnTypeMismatch)
 #else
-                        if (!Boolean.TryParse(reader.StringChars, out bool parsed) && state.ErrorOnTypeMismatch)
+                        if (!Boolean.TryParse(reader.ValueChars, out bool parsed) && state.ErrorOnTypeMismatch)
 #endif
                             ThrowCannotConvert(ref reader);
                         value = parsed;
@@ -47,7 +47,7 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                 case JsonToken.Number:
                     if (reader.UseBytes)
                     {
-                        if ((!Utf8Parser.TryParse(reader.StringBytes, out float number, out var consumed) || consumed != reader.StringBytes.Length) && state.ErrorOnTypeMismatch)
+                        if ((!Utf8Parser.TryParse(reader.ValueBytes, out float number, out var consumed) || consumed != reader.ValueBytes.Length) && state.ErrorOnTypeMismatch)
                             ThrowCannotConvert(ref reader);
                         value = number > 0;
                         return true;
@@ -57,7 +57,7 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
 #if NETSTANDARD2_0
                         if (!Single.TryParse(reader.ValueChars.ToString(), out var number) && state.ErrorOnTypeMismatch)
 #else
-                        if (!Single.TryParse(reader.StringChars, out var number) && state.ErrorOnTypeMismatch)
+                        if (!Single.TryParse(reader.ValueChars, out var number) && state.ErrorOnTypeMismatch)
 #endif
                             ThrowCannotConvert(ref reader);
                         value = number > 0;

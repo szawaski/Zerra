@@ -19,7 +19,7 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                 case JsonToken.Number:
                     if (reader.UseBytes)
                     {
-                        if ((!Utf8Parser.TryParse(reader.StringBytes, out ulong parsed, out var consumed) || consumed != reader.StringBytes.Length) && state.ErrorOnTypeMismatch)
+                        if ((!Utf8Parser.TryParse(reader.ValueBytes, out ulong parsed, out var consumed) || consumed != reader.ValueBytes.Length) && state.ErrorOnTypeMismatch)
                             ThrowCannotConvert(ref reader);
                         value = parsed;
                         return true;
@@ -29,7 +29,7 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
 #if NETSTANDARD2_0
                         if (!UInt64.TryParse(reader.ValueChars.ToString(), out ulong parsed) && state.ErrorOnTypeMismatch)
 #else
-                        if (!UInt64.TryParse(reader.StringChars, out ulong parsed) && state.ErrorOnTypeMismatch)
+                        if (!UInt64.TryParse(reader.ValueChars, out ulong parsed) && state.ErrorOnTypeMismatch)
 #endif
                             ThrowCannotConvert(ref reader);
                         value = parsed;
@@ -38,21 +38,21 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                 case JsonToken.String:
                     if (reader.UseBytes)
                     {
-                        if (reader.StringBytes.Length == 0)
+                        if (reader.ValueBytes.Length == 0)
                         {
                             if (state.ErrorOnTypeMismatch)
                                 ThrowCannotConvert(ref reader);
                             value = null;
                             return true;
                         }
-                        if ((!Utf8Parser.TryParse(reader.StringBytes, out ulong parsed, out var consumed) || reader.StringBytes.Length != consumed) && state.ErrorOnTypeMismatch)
+                        if ((!Utf8Parser.TryParse(reader.ValueBytes, out ulong parsed, out var consumed) || reader.ValueBytes.Length != consumed) && state.ErrorOnTypeMismatch)
                             ThrowCannotConvert(ref reader);
                         value = parsed;
                         return true;
                     }
                     else
                     {
-                        if (reader.StringChars.Length == 0)
+                        if (reader.ValueChars.Length == 0)
                         {
                             if (state.ErrorOnTypeMismatch)
                                 ThrowCannotConvert(ref reader);
@@ -62,7 +62,7 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
 #if NETSTANDARD2_0
                         if (!UInt64.TryParse(reader.ValueChars.ToString(), out ulong parsed) && state.ErrorOnTypeMismatch)
 #else
-                        if (!UInt64.TryParse(reader.StringChars, out ulong parsed) && state.ErrorOnTypeMismatch)
+                        if (!UInt64.TryParse(reader.ValueChars, out ulong parsed) && state.ErrorOnTypeMismatch)
 #endif
                             ThrowCannotConvert(ref reader);
                         value = parsed;

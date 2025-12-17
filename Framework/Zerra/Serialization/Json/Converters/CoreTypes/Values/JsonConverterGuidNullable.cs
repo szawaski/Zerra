@@ -19,7 +19,7 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                 case JsonToken.String:
                     if (reader.UseBytes)
                     {
-                        if ((!Utf8Parser.TryParse(reader.StringBytes, out Guid parsed, out var consumed) || reader.StringBytes.Length != consumed) && state.ErrorOnTypeMismatch)
+                        if ((!Utf8Parser.TryParse(reader.ValueBytes, out Guid parsed, out var consumed) || reader.ValueBytes.Length != consumed) && state.ErrorOnTypeMismatch)
                             ThrowCannotConvert(ref reader);
                         value = parsed;
                         return true;
@@ -29,7 +29,7 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
 #if NETSTANDARD2_0
                         if (!Guid.TryParse(reader.ValueChars.ToString(), out Guid parsed) && state.ErrorOnTypeMismatch)
 #else
-                        if (!Guid.TryParse(reader.StringChars, out Guid parsed) && state.ErrorOnTypeMismatch)
+                        if (!Guid.TryParse(reader.ValueChars, out Guid parsed) && state.ErrorOnTypeMismatch)
 #endif
                             ThrowCannotConvert(ref reader);
                         value = parsed;

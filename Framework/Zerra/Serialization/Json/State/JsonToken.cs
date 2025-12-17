@@ -6,19 +6,19 @@ namespace Zerra.Serialization.Json.State
 {
     public enum JsonToken : byte
     {
-        NotDetermined = 0,
+        NotDetermined,
 
-        ObjectStart = 1,
-        ObjectEnd = 2,
-        ArrayStart = 3,
-        ArrayEnd = 4,
-        NextItem = 5,
-        PropertySeperator = 6,
+        ObjectStart,
+        ObjectEnd,
+        ArrayStart,
+        ArrayEnd,
+        NextItem,
+        PropertySeperator,
 
-        Null= 7,
-        False = 8,
-        True = 9,
-        String = 10,
-        Number = 11,
+        Null,
+        False,
+        True,
+        String,
+        Number
     }
 }

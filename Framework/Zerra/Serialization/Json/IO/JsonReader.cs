@@ -2,7 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Runtime.CompilerServices;
 using System.Text;
 using Zerra.Serialization.Json.State;
 

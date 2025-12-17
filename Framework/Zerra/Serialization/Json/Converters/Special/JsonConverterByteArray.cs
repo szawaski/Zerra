@@ -22,7 +22,7 @@ namespace Zerra.Serialization.Json.Converters.Special
 
             if (reader.UseBytes)
             {
-                if (reader.StringBytes.Length == 0)
+                if (reader.ValueBytes.Length == 0)
                 {
                     value = Array.Empty<byte>();
                     return true;
@@ -31,12 +31,12 @@ namespace Zerra.Serialization.Json.Converters.Special
             }
             else
             {
-                if (reader.StringChars.Length == 0)
+                if (reader.ValueChars.Length == 0)
                 {
                     value = Array.Empty<byte>();
                     return true;
                 }
-                value = Convert.FromBase64String(reader.StringChars.ToString());
+                value = Convert.FromBase64String(reader.ValueChars.ToString());
             }
             return true;
         }

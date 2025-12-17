@@ -18,15 +18,15 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                 case JsonToken.String:
                     if (reader.UseBytes)
                     {
-                        if (state.ErrorOnTypeMismatch && reader.StringBytes.Length != 1)
+                        if (state.ErrorOnTypeMismatch && reader.ValueBytes.Length != 1)
                             ThrowCannotConvert(ref reader);
-                        value = (char)reader.StringBytes[0];
+                        value = (char)reader.ValueBytes[0];
                     }
                     else
                     {
-                        if (state.ErrorOnTypeMismatch && reader.StringChars.Length != 1)
+                        if (state.ErrorOnTypeMismatch && reader.ValueChars.Length != 1)
                             ThrowCannotConvert(ref reader);
-                        value = reader.StringChars[0];
+                        value = reader.ValueChars[0];
                     }
                     return true;
                 case JsonToken.Number:

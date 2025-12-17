@@ -18,14 +18,14 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                 case JsonToken.String:
                     if (reader.UseBytes)
                     {
-                        if (!Utf8Helper.TryParse(reader.StringBytes, out DateTime parsed) && state.ErrorOnTypeMismatch)
+                        if (!Utf8Helper.TryParse(reader.ValueBytes, out DateTime parsed) && state.ErrorOnTypeMismatch)
                             ThrowCannotConvert(ref reader);
                         value = parsed;
                         return true;
                     }
                     else
                     {
-                        if (!Utf8Helper.TryParse(reader.StringChars, out DateTime parsed) && state.ErrorOnTypeMismatch)
+                        if (!Utf8Helper.TryParse(reader.ValueChars, out DateTime parsed) && state.ErrorOnTypeMismatch)
                             ThrowCannotConvert(ref reader);
                         value = parsed;
                         return true;

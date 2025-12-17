@@ -19,16 +19,16 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                     if (reader.UseBytes)
                         value = reader.UnescapeStringBytes();
                     else
-                        value = reader.StringPositionOfFirstEscape == -1 ? reader.StringChars.ToString() : reader.UnescapeStringChars();
+                        value = reader.PositionOfFirstEscape == -1 ? reader.ValueChars.ToString() : reader.UnescapeStringChars();
                     return true;
                 case JsonToken.Null:
                     value = null;
                     return true;
                 case JsonToken.Number:
                     if (reader.UseBytes)
-                        value = System.Text.Encoding.UTF8.GetString(reader.StringBytes);
+                        value = System.Text.Encoding.UTF8.GetString(reader.ValueBytes);
                     else
-                        value = reader.StringChars.ToString();
+                        value = reader.ValueChars.ToString();
                     return true;
                 case JsonToken.False:
                     value = "false";

@@ -20,7 +20,7 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                     if (reader.UseBytes)
                         str = reader.UnescapeStringBytes();
                     else
-                        str = reader.StringPositionOfFirstEscape == -1 ? reader.StringChars.ToString() : reader.UnescapeStringChars();
+                        str = reader.PositionOfFirstEscape == -1 ? reader.ValueChars.ToString() : reader.UnescapeStringChars();
                     if (state.ErrorOnTypeMismatch && str.Length != 1)
                         ThrowCannotConvert(ref reader);
                     if (str.Length > 0)
@@ -35,7 +35,7 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                     if (reader.UseBytes)
                         str = reader.UnescapeStringBytes();
                     else
-                        str = reader.StringChars.ToString();
+                        str = reader.ValueChars.ToString();
                     if (state.ErrorOnTypeMismatch && str.Length != 1)
                         ThrowCannotConvert(ref reader);
                     if (str.Length > 0)

@@ -92,9 +92,9 @@ namespace Zerra.Serialization.Json.IO
 #endif
 
         public JsonToken Token;
-        public int StringPositionOfFirstEscape = -1;
-        public ReadOnlySpan<byte> StringBytes;
-        public ReadOnlySpan<char> StringChars;
+        public int PositionOfFirstEscape = -1;
+        public ReadOnlySpan<byte> ValueBytes;
+        public ReadOnlySpan<char> ValueChars;
 
         public unsafe bool TryReadToken(out int sizeNeeded)
         {
@@ -231,7 +231,7 @@ namespace Zerra.Serialization.Json.IO
                                     return false;
                                 }
 
-                                StringPositionOfFirstEscape = -1;
+                                PositionOfFirstEscape = -1;
 
                                 var stringLength = localBufferBytes.Slice(position).IndexOfAny(quoteEscapeBytes);
                                 if (stringLength == -1)
@@ -246,11 +246,11 @@ namespace Zerra.Serialization.Json.IO
                                 {
                                     if (position - startPosition == 0)
                                     {
-                                        StringBytes = Span<byte>.Empty;
+                                        ValueBytes = Span<byte>.Empty;
                                         position++;
                                         return true;
                                     }
-                                    StringBytes = localBufferBytes.Slice(startPosition, position - startPosition);
+                                    ValueBytes = localBufferBytes.Slice(startPosition, position - startPosition);
                                     position++;
                                     return true;
                                 }
@@ -262,7 +262,7 @@ namespace Zerra.Serialization.Json.IO
                                         sizeNeeded = 1;
                                         return false;
                                     }
-                                    StringPositionOfFirstEscape = position - startPosition;
+                                    PositionOfFirstEscape = position - startPosition;
                                     position++;
                                     if (localBufferBytes[position] == uByte)
                                     {
@@ -293,7 +293,7 @@ namespace Zerra.Serialization.Json.IO
 
                                     if (localBufferBytes[position] == quoteByte)
                                     {
-                                        StringBytes = localBufferBytes.Slice(startPosition, position - startPosition);
+                                        ValueBytes = localBufferBytes.Slice(startPosition, position - startPosition);
                                         position++;
                                         return true;
                                     }
@@ -345,7 +345,7 @@ namespace Zerra.Serialization.Json.IO
                                     position += numberLength;
                                 }
 
-                                StringBytes = localBufferBytes.Slice(startPosition, position - startPosition);
+                                ValueBytes = localBufferBytes.Slice(startPosition, position - startPosition);
                                 return true;
                             }
 
@@ -469,7 +469,7 @@ namespace Zerra.Serialization.Json.IO
                                     return false;
                                 }
 
-                                StringPositionOfFirstEscape = -1;
+                                PositionOfFirstEscape = -1;
 
                                 var stringLength = localBufferChars.Slice(position).IndexOfAny(quoteEscapeChars);
                                 if (stringLength == -1)
@@ -484,11 +484,11 @@ namespace Zerra.Serialization.Json.IO
                                 {
                                     if (position - startPosition == 0)
                                     {
-                                        StringChars = Span<char>.Empty;
+                                        ValueChars = Span<char>.Empty;
                                         position++;
                                         return true;
                                     }
-                                    StringChars = localBufferChars.Slice(startPosition, position - startPosition);
+                                    ValueChars = localBufferChars.Slice(startPosition, position - startPosition);
                                     position++;
                                     return true;
                                 }
@@ -500,7 +500,7 @@ namespace Zerra.Serialization.Json.IO
                                         sizeNeeded = 1;
                                         return false;
                                     }
-                                    StringPositionOfFirstEscape = position - startPosition;
+                                    PositionOfFirstEscape = position - startPosition;
                                     position++;
                                     if (localBufferChars[position] == 'u')
                                     {
@@ -531,7 +531,7 @@ namespace Zerra.Serialization.Json.IO
 
                                     if (localBufferChars[position] == '"')
                                     {
-                                        StringChars = localBufferChars.Slice(startPosition, position - startPosition);
+                                        ValueChars = localBufferChars.Slice(startPosition, position - startPosition);
                                         position++;
                                         return true;
                                     }
@@ -583,7 +583,7 @@ namespace Zerra.Serialization.Json.IO
                                     position += numberLength;
                                 }
 
-                                StringChars = localBufferChars.Slice(startPosition, position - startPosition);
+                                ValueChars = localBufferChars.Slice(startPosition, position - startPosition);
                                 return true;
                             }
 
@@ -596,18 +596,18 @@ namespace Zerra.Serialization.Json.IO
 
         public unsafe string UnescapeStringBytes()
         {
-            if (StringBytes.Length == 0)
+            if (ValueBytes.Length == 0)
                 return String.Empty;
 
-            fixed (byte* pBuffer = StringBytes)
+            fixed (byte* pBuffer = ValueBytes)
             {
-                if (StringPositionOfFirstEscape == -1)
-                    return encoding.GetString(pBuffer, StringBytes.Length);
+                if (PositionOfFirstEscape == -1)
+                    return encoding.GetString(pBuffer, ValueBytes.Length);
 
-                var localStringBytes = StringBytes;
+                var localStringBytes = ValueBytes;
                 var length = localStringBytes.Length;
 
-                var position = StringPositionOfFirstEscape;
+                var position = PositionOfFirstEscape;
                 var escapeStart = position;
 
                 var maxSize = encoding.GetMaxCharCount(length);
@@ -700,17 +700,17 @@ namespace Zerra.Serialization.Json.IO
 
         public unsafe string UnescapeStringChars()
         {
-            if (StringChars.Length == 0)
+            if (ValueChars.Length == 0)
                 return String.Empty;
-            if (StringPositionOfFirstEscape == -1)
-                return StringChars.ToString();
+            if (PositionOfFirstEscape == -1)
+                return ValueChars.ToString();
 
-            var localStringChars = StringChars;
+            var localStringChars = ValueChars;
             var length = localStringChars.Length;
 
             fixed (char* pBuffer = localStringChars)
             {
-                var position = StringPositionOfFirstEscape;
+                var position = PositionOfFirstEscape;
                 var escapeStart = position;
 
                 var maxSize = localStringChars.Length;
@@ -850,8 +850,7 @@ namespace Zerra.Serialization.Json.IO
                                 {
                                     if (--openBrackets == 0)
                                     {
-                                        if (i != position)
-                                            length++;
+                                        length++;
                                         return true;
                                     }
                                 }
@@ -925,8 +924,7 @@ namespace Zerra.Serialization.Json.IO
                                 {
                                     if (--openBrackets == 0)
                                     {
-                                        if (i != position)
-                                            length++;
+                                        length++;
                                         return true;
                                     }
                                 }
