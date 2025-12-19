@@ -1638,7 +1638,11 @@ namespace Zerra.CQRS
                         {
                             if (String.IsNullOrEmpty(serviceType))
                                 throw new Exception($"{serviceType ?? "null"} is not an interface");
-                            var interfaceType = Discovery.GetTypeFromName(serviceType);
+                            if (!Discovery.TryGetTypeFromName(serviceType, out var interfaceType))
+                            {
+                                _ = Log.InfoAsync($"{serviceType} not found in this service");
+                                continue;
+                            }
                             if (!interfaceType.IsInterface)
                                 throw new Exception($"{interfaceType.GetNiceName()} is not an interface");
 
@@ -1659,7 +1663,11 @@ namespace Zerra.CQRS
                         {
                             if (String.IsNullOrEmpty(serviceType))
                                 throw new Exception($"{serviceType ?? "null"} is not an interface");
-                            var interfaceType = Discovery.GetTypeFromName(serviceType);
+                            if (!Discovery.TryGetTypeFromName(serviceType, out var interfaceType))
+                            {
+                                _ = Log.InfoAsync($"{serviceType} not found in this service");
+                                continue;
+                            }
                             if (!interfaceType.IsInterface)
                                 throw new Exception($"{interfaceType.GetNiceName()} is not an interface");
 
@@ -1695,7 +1703,11 @@ namespace Zerra.CQRS
                             if (String.IsNullOrEmpty(serviceType))
                                 throw new Exception($"{serviceType ?? "null"} is not an interface");
 
-                            var interfaceType = Discovery.GetTypeFromName(serviceType);
+                            if (!Discovery.TryGetTypeFromName(serviceType, out var interfaceType))
+                            {
+                                _ = Log.InfoAsync($"{serviceType} not found in this service");
+                                continue;
+                            }
                             if (!interfaceType.IsInterface)
                             {
                                 _ = Log.ErrorAsync($"{interfaceType.GetNiceName()} is not an interface");
@@ -1829,7 +1841,11 @@ namespace Zerra.CQRS
                         {
                             if (String.IsNullOrEmpty(serviceType))
                                 throw new Exception($"{serviceType ?? "null"} is not an interface");
-                            var interfaceType = Discovery.GetTypeFromName(serviceType);
+                            if (!Discovery.TryGetTypeFromName(serviceType, out var interfaceType))
+                            {
+                                _ = Log.InfoAsync($"{serviceType} not found in this service");
+                                continue;
+                            }
                             if (!interfaceType.IsInterface)
                             {
                                 _ = Log.ErrorAsync($"{interfaceType.GetNiceName()} is not an interface");
