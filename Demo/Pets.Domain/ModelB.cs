@@ -11,7 +11,7 @@ namespace Pets.Service
         public int Prop1 { get; set; }
         public int PropB { get; set; }
         public int PropD { get; set; }
-        public int PropZ { get; set; }
+        public string PropZ { get; set; }
     }
     [GenerateTypeDetail]
     public class NormalJsonModel
