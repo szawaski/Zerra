@@ -5,7 +5,7 @@
 namespace Zerra.CQRS
 {
     /// <summary>
-    /// Methods to implement <see cref="Bus"/> logging. The implementaion must be registered with the <see cref="Bus"/> using <see cref="Bus.AddLogger(IBusLog)"/>
+    /// Methods to implement <see cref="Bus"/> logging. The implementaion must be added to the <see cref="Bus"/> using <see cref="Bus.New" />
     /// </summary>
     public interface IBusLog
     {

@@ -22,51 +22,98 @@ namespace Zerra.IO
         /// </summary>
         protected readonly bool leaveOpen;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="StreamTransform"/> class.
+        /// </summary>
+        /// <param name="stream">The underlying stream to wrap.</param>
+        /// <param name="leaveOpen">If true, the underlying stream will not be closed when this stream closes or disposes; otherwise false.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="stream"/> is null.</exception>
         public StreamTransform(Stream stream, bool leaveOpen)
         {
             this.stream = stream ?? throw new ArgumentNullException(nameof(stream));
             this.leaveOpen = leaveOpen;
         }
 
+        /// <summary>
+        /// Gets a value indicating whether the underlying stream supports reading.
+        /// </summary>
         public override bool CanRead => stream.CanRead;
+        /// <summary>
+        /// Gets a value indicating whether the underlying stream supports seeking.
+        /// </summary>
         public override bool CanSeek => stream.CanSeek;
+        /// <summary>
+        /// Gets a value indicating whether the underlying stream supports writing.
+        /// </summary>
         public override bool CanWrite => stream.CanWrite;
+        /// <summary>
+        /// Gets the length of the stream in bytes. This is an abstract property that must be implemented by derived classes.
+        /// </summary>
         public override abstract long Length { get; }
+        /// <summary>
+        /// Gets or sets the current position within the stream. This is an abstract property that must be implemented by derived classes.
+        /// </summary>
         public override abstract long Position { get; set; }
+        /// <inheritdoc/>
         public override sealed bool CanTimeout => stream.CanTimeout;
+        /// <inheritdoc/>
         public override sealed int ReadTimeout { get => stream.ReadTimeout; set => stream.ReadTimeout = value; }
+        /// <inheritdoc/>
         public override sealed int WriteTimeout { get => stream.WriteTimeout; set => stream.WriteTimeout = value; }
 
+        /// <inheritdoc/>
         public override void Flush() => stream.Flush();
+        /// <inheritdoc/>
         public override Task FlushAsync(CancellationToken cancellationToken) => stream.FlushAsync(cancellationToken);
 
+        /// <summary>
+        /// Sets the position within the stream. This is an abstract method that must be implemented by derived classes.
+        /// </summary>
+        /// <param name="offset">The byte offset relative to the <paramref name="origin"/> parameter.</param>
+        /// <param name="origin">A value indicating the reference point used to obtain the new position.</param>
+        /// <returns>The new position within the stream.</returns>
         public override abstract long Seek(long offset, SeekOrigin origin);
+        /// <summary>
+        /// Sets the length of the stream. This is an abstract method that must be implemented by derived classes.
+        /// </summary>
+        /// <param name="value">The desired length of the stream in bytes.</param>
         public override abstract void SetLength(long value);
 
+        /// <inheritdoc/>
         public override sealed int ReadByte()
         {
             Span<byte> buffer = stackalloc byte[1];
             return InternalRead(buffer);
         }
+        /// <inheritdoc/>
         public override sealed void WriteByte(byte value)
         {
             Span<byte> buffer = stackalloc byte[1];
             InternalWrite(buffer);
         }
 
+        /// <inheritdoc/>
         public override sealed IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback? callback, object? state) => throw new NotSupportedException();
+        /// <inheritdoc/>
         public override sealed int EndRead(IAsyncResult asyncResult) => throw new NotSupportedException();
 
+        /// <inheritdoc/>
         public override sealed IAsyncResult BeginWrite(byte[] buffer, int offset, int count, AsyncCallback? callback, object? state) => throw new NotSupportedException();
+        /// <inheritdoc/>
         public override sealed void EndWrite(IAsyncResult asyncResult) => throw new NotSupportedException();
 
+        /// <inheritdoc/>
         public override sealed int Read(byte[] buffer, int offset, int count) => InternalRead(buffer.AsSpan().Slice(offset, count));
+        /// <inheritdoc/>
         public override sealed void Write(byte[] buffer, int offset, int count) => InternalWrite(buffer.AsSpan().Slice(offset, count));
 
+        /// <inheritdoc/>
         public override sealed Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) => InternalReadAsync(buffer.AsMemory().Slice(offset, count), cancellationToken).AsTask();
+        /// <inheritdoc/>
         public override sealed Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) => InternalWriteAsync(buffer.AsMemory().Slice(offset, count), cancellationToken).AsTask();
 
 #if NETSTANDARD2_0
+        /// <inheritdoc/>
         public override sealed async Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
         {
             var bufferOwner = ArrayPoolHelper<byte>.Rent(bufferSize);
@@ -87,6 +134,7 @@ namespace Zerra.IO
             }
         }
 #else
+        /// <inheritdoc/>
         public override sealed async Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
         {
             var bufferOwner = ArrayPoolHelper<byte>.Rent(bufferSize);
@@ -109,11 +157,13 @@ namespace Zerra.IO
             }
         }
 #endif
+        /// <inheritdoc/>
         public override sealed void Close()
         {
             base.Close(); //calls dispose underneath
         }
 
+        /// <inheritdoc/>
         protected override void Dispose(bool disposing)
         {
             if (!disposed)
@@ -126,12 +176,17 @@ namespace Zerra.IO
         }
 
 #if !NETSTANDARD2_0
+        /// <inheritdoc/>
         public override sealed int Read(Span<byte> buffer) => InternalRead(buffer);
+        /// <inheritdoc/>
         public override sealed ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default) => InternalReadAsync(buffer, cancellationToken);
 
+        /// <inheritdoc/>
         public override sealed void Write(ReadOnlySpan<byte> buffer) => InternalWrite(buffer);
+        /// <inheritdoc/>
         public override sealed ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default) => InternalWriteAsync(buffer, cancellationToken);
 
+        /// <inheritdoc/>
         public override sealed void CopyTo(Stream destination, int bufferSize)
         {
             var bufferOwner = ArrayPoolHelper<byte>.Rent(bufferSize);
@@ -154,6 +209,7 @@ namespace Zerra.IO
             }
         }
 
+        /// <inheritdoc/>
         public override async ValueTask DisposeAsync()
         {
             if (!disposed)

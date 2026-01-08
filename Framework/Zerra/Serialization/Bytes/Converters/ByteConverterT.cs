@@ -28,6 +28,9 @@ namespace Zerra.Serialization.Bytes.Converters
         /// </remarks>
         protected virtual bool StackRequired { get; } = true;
 
+        /// <summary>
+        /// Gets the type detail information for the value type being converted.
+        /// </summary>
         protected TypeDetail<TValue> TypeDetail { get; private set; } = null!;
         private string memberKey = null!;
         private Func<object, TValue?>? getter;

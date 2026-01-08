@@ -22,12 +22,13 @@ namespace Zerra.CQRS.Network
         private readonly SocketClientPool socketPool;
 
         /// <summary>
-        /// Creates a new HTTP Client.
+        /// Creates a new HTTP CQRS Client.
         /// </summary>
-        /// <param name="contentType">The format of the body of the request and response.</param>
-        /// <param name="serviceUrl">The url of the server.</param>
-        /// <param name="symmetricConfig">If provided, information to encrypt the data.</param>
+        /// <param name="serviceUrl">The URL of the server.</param>
+        /// <param name="serializer">The serializer for converting request/response data.</param>
+        /// <param name="encryptor">If provided, encryption/decryption of the request and response data.</param>
         /// <param name="authorizer">An authorizer for adding headers needed for the server to validate requests.</param>
+        /// <param name="log">Optional logger for recording diagnostic information.</param>
         public HttpCqrsClient(string serviceUrl, ISerializer serializer, IEncryptor? encryptor, ICqrsAuthorizer? authorizer, ILog? log)
             : base(serviceUrl, log)
         {

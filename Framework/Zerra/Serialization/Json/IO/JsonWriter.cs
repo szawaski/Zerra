@@ -8,6 +8,10 @@ using Zerra.Buffers;
 
 namespace Zerra.Serialization.Json.IO
 {
+    /// <summary>
+    /// A ref struct for efficiently writing JSON data to either a byte buffer or character buffer.
+    /// Provides buffering and automatic growth capabilities for building JSON content.
+    /// </summary>
     public ref partial struct JsonWriter
     {
         private static readonly Encoding encoding = Encoding.UTF8;
@@ -20,19 +24,39 @@ namespace Zerra.Serialization.Json.IO
         private Span<byte> bufferBytes;
 
         private readonly bool useBytes;
+
+        /// <summary>
+        /// Gets a value indicating whether the writer uses a byte buffer.
+        /// </summary>
         public readonly bool UseBytes => useBytes;
 
         private int position;
         private int length;
 
+        /// <summary>
+        /// Gets the current position in the buffer.
+        /// </summary>
         public readonly int Position => position;
+
+        /// <summary>
+        /// Gets the total length of the buffer.
+        /// </summary>
         public readonly int Length => length;
 
+        /// <summary>
+        /// Not supported default constructor.
+        /// </summary>
+        /// <exception cref="NotSupportedException"></exception>
         public JsonWriter()
         {
             throw new NotSupportedException($"{nameof(JsonWriter)} cannot use default constructor");
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="JsonWriter"/> struct with a pooled buffer.
+        /// </summary>
+        /// <param name="useBytes">A value indicating whether to use a byte buffer; otherwise a character buffer is used.</param>
+        /// <param name="initialSize">The initial size of the buffer.</param>
         public JsonWriter(bool useBytes, int initialSize)
         {
             if (useBytes)
@@ -50,6 +74,10 @@ namespace Zerra.Serialization.Json.IO
             this.useBytes = useBytes;
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="JsonWriter"/> struct with a provided byte buffer.
+        /// </summary>
+        /// <param name="buffer">The byte buffer to write to.</param>
         public JsonWriter(Span<byte> buffer)
         {
             this.bufferBytes = buffer;
@@ -82,10 +110,20 @@ namespace Zerra.Serialization.Json.IO
             return true;
         }
 
+        /// <summary>
+        /// Converts the written content to a byte array.
+        /// </summary>
+        /// <returns>A byte array containing the written data.</returns>
         public readonly byte[] ToByteArray()
         {
             return bufferBytes.Slice(0, position).ToArray();
         }
+
+        /// <summary>
+        /// Converts the written content to a string.
+        /// </summary>
+        /// <returns>A string containing the written data.</returns>
+        /// <exception cref="NotSupportedException">Thrown when the writer uses a byte buffer instead of a character buffer.</exception>
         public override readonly string ToString()
         {
             if (useBytes)
@@ -94,6 +132,9 @@ namespace Zerra.Serialization.Json.IO
             return bufferChars.Slice(0, position).ToString();
         }
 
+        /// <summary>
+        /// Releases the pooled buffers back to the array pool.
+        /// </summary>
         public void Dispose()
         {
             if (bufferCharsOwner is not null)

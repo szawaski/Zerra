@@ -10,8 +10,8 @@ using Zerra.Collections;
 using Zerra.Reflection;
 
 /// <summary>
-/// An attribute for Enum values for a string represention.  Provides methods to convert Enums to strings and back.
-/// Excluding the attribute means the string representation will be exact name of the value.
+/// An attribute for specifying the string representation of enum values. When applied to enum fields, provides methods to convert enums to strings and back.
+/// Excluding the attribute means the string representation will be the exact name of the value.
 /// </summary>
 [AttributeUsage(AttributeTargets.Field)]
 #pragma warning disable CA1050 // Declare types in namespaces
@@ -19,26 +19,26 @@ public sealed class EnumName : Attribute
 #pragma warning restore CA1050 // Declare types in namespaces
 {
     /// <summary>
-    /// The string representation of the Enum value.
+    /// Gets the string representation of the enum value.
     /// </summary>
     public string Text { get; set; }
 
     /// <summary>
-    /// Creats a new EnumName attribute for an Enum value with a string reprsentation.
+    /// Initializes a new instance of the <see cref="EnumName"/> attribute with the specified string representation.
     /// </summary>
-    /// <param name="text">The string representation of the Enum value.</param>
+    /// <param name="text">The string representation of the enum value.</param>
     public EnumName(string text) => this.Text = text;
 
     private const char seperator = '|';
 
     /// <summary>
-    /// Get the string representation of an Enum using EnumName Attributes.
+    /// Gets the string representation of an enum value using <see cref="EnumName"/> attributes.
     /// </summary>
-    /// <param name="type">The Enum type.</param>
-    /// <param name="value">The Enum value.</param>
-    /// <returns>The Enum as a string.</returns>
-    /// <exception cref="ArgumentException">Throws if type is not an Enum.</exception>
-    /// <exception cref="InvalidOperationException">Throws if the value is not a member of the Enum.</exception>
+    /// <param name="type">The enum type.</param>
+    /// <param name="value">The enum value.</param>
+    /// <returns>The enum as a string.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="type"/> is not an enum type.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the value is not a member of the enum.</exception>
     public static string GetName(Type type, object value)
     {
         if (!type.IsEnum)
@@ -114,12 +114,12 @@ public sealed class EnumName : Attribute
         throw new InvalidOperationException($"Value {value.ToString()} is not found in enum {type.Name}");
     }
     /// <summary>
-    /// Get the string representation of an Enum using EnumName Attributes.
+    /// Gets the string representation of an enum value using <see cref="EnumName"/> attributes.
     /// </summary>
-    /// <typeparam name="T">The Enum type.</typeparam>
-    /// <param name="value">The Enum value.</param>
-    /// <returns>The Enum as a string.</returns>
-    /// <exception cref="InvalidOperationException">Throws if the value is not a member of the Enum.</exception>
+    /// <typeparam name="T">The enum type.</typeparam>
+    /// <param name="value">The enum value.</param>
+    /// <returns>The enum as a string.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the value is not a member of the enum.</exception>
     public static string GetName<T>(T value)
         where T : Enum
     {
@@ -130,23 +130,23 @@ public sealed class EnumName : Attribute
     }
 
     /// <summary>
-    /// Parses a string into an Enum while using EnumName Attributes.
+    /// Parses a string into an enum value using <see cref="EnumName"/> attributes.
     /// </summary>
-    /// <typeparam name="T">The Enum type.</typeparam>
-    /// <param name="enumString">The string to parse to an Enum.</param>
-    /// <returns>The resulting Enum value.</returns>
-    /// <exception cref="InvalidOperationException">Throw if the Enum could not be parsed</exception>
+    /// <typeparam name="T">The enum type.</typeparam>
+    /// <param name="enumString">The string to parse to an enum.</param>
+    /// <returns>The resulting enum value.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if the enum could not be parsed.</exception>
     public static T Parse<T>(string? enumString)
     {
         return (T)Parse(enumString, typeof(T));
     }
     /// <summary>
-    /// Parses a string into an Enum while using EnumName Attributes.
+    /// Parses a string into an enum value using <see cref="EnumName"/> attributes.
     /// </summary>
-    /// <param name="enumString">The string to parse to an Enum.</param>
-    /// <param name="type">The Enum type.</param>
-    /// <returns>The resulting Enum value.</returns>
-    /// <exception cref="InvalidOperationException">Throw if the Enum could not be parsed</exception>
+    /// <param name="enumString">The string to parse to an enum.</param>
+    /// <param name="type">The enum type.</param>
+    /// <returns>The resulting enum value.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if the enum could not be parsed.</exception>
     public static object Parse(string? enumString, Type type)
     {
         if (TryParse(enumString, type, out var value))
@@ -156,12 +156,12 @@ public sealed class EnumName : Attribute
     }
 
     /// <summary>
-    /// Attempts to parse a string into an Enum while using EnumName Attributes.
+    /// Attempts to parse a string into an enum value using <see cref="EnumName"/> attributes.
     /// </summary>
-    /// <typeparam name="T">The Enum type.</typeparam>
-    /// <param name="enumString">The string to parse to an Enum.</param>
-    /// <param name="value">The resulting Enum value if succesfully parsed.</param>
-    /// <returns>True if the value was parsed; otherwise, False</returns>
+    /// <typeparam name="T">The enum type.</typeparam>
+    /// <param name="enumString">The string to parse to an enum.</param>
+    /// <param name="value">The resulting enum value if successfully parsed.</param>
+    /// <returns>True if the value was successfully parsed; otherwise, false.</returns>
     public static bool TryParse<T>(string? enumString,
 #if !NETSTANDARD2_0
         [MaybeNullWhen(false)]
@@ -181,12 +181,12 @@ public sealed class EnumName : Attribute
         }
     }
     /// <summary>
-    /// Attempts to parse a string into an Enum while using EnumName Attributes.
+    /// Attempts to parse a string into an enum value using <see cref="EnumName"/> attributes.
     /// </summary>
-    /// <param name="enumString">The string to parse to an Enum.</param>
-    /// <param name="type">The Enum type.</param>
-    /// <param name="value">The resulting Enum value if succesfully parsed.</param>
-    /// <returns>True if the value was parsed; otherwise, False</returns>
+    /// <param name="enumString">The string to parse to an enum.</param>
+    /// <param name="type">The enum type.</param>
+    /// <param name="value">The resulting enum value if successfully parsed.</param>
+    /// <returns>True if the value was successfully parsed; otherwise, false.</returns>
     public static bool TryParse(string? enumString, Type type,
 #if !NETSTANDARD2_0
         [MaybeNullWhen(false)]
@@ -374,11 +374,29 @@ public sealed class EnumName : Attribute
         }
     }
 
+    /// <summary>
+    /// Provides metadata about an enum field including its name, optional string representation, and value.
+    /// </summary>
     public sealed class EnumFieldInfo
     {
+        /// <summary>
+        /// Gets the name of the enum field.
+        /// </summary>
         public readonly string Name;
+        /// <summary>
+        /// Gets the optional string representation of the enum field, or null if not specified via the <see cref="EnumName"/> attribute.
+        /// </summary>
         public readonly string? Text;
+        /// <summary>
+        /// Gets the enum field value.
+        /// </summary>
         public readonly object Value;
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EnumFieldInfo"/> class.
+        /// </summary>
+        /// <param name="name">The name of the enum field.</param>
+        /// <param name="text">The optional string representation of the enum field.</param>
+        /// <param name="value">The enum field value.</param>
         public EnumFieldInfo(string name, string? text, object value)
         {
             this.Name = name;

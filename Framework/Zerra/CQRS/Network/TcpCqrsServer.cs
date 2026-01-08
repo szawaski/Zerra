@@ -23,11 +23,12 @@ namespace Zerra.CQRS.Network
         private readonly IEncryptor? encryptor;
 
         /// <summary>
-        /// Creates a new TCP Server
+        /// Creates a new TCP CQRS server.
         /// </summary>
-        /// <param name="contentType">The format of the body of the request and response.</param>
-        /// <param name="serverUrl">The url of the server.</param>
-        /// <param name="symmetricConfig">If provided, information to encrypt the data.</param>
+        /// <param name="serverUrl">The URL of the server.</param>
+        /// <param name="serializer">The serializer for request and response data.</param>
+        /// <param name="encryptor">Optional encryption provider for encrypting request and response data.</param>
+        /// <param name="log">Optional logging provider.</param>
         public TcpCqrsServer(string serverUrl, ISerializer serializer, IEncryptor? encryptor, ILog? log)
             : base(serverUrl, log)
         {

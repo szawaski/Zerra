@@ -91,11 +91,28 @@ namespace Zerra.Serialization.Json.IO
         }
 #endif
 
+        /// <summary>
+        /// Gets the last read token.
+        /// </summary>
         public JsonToken Token;
+        /// <summary>
+        /// Gets the position of the first escape character.
+        /// </summary>
         public int PositionOfFirstEscape = -1;
+        /// <summary>
+        /// Gets the bytes of the last read value.
+        /// </summary>
         public ReadOnlySpan<byte> ValueBytes;
+        /// <summary>
+        /// Gets the characters of the last read value.
+        /// </summary>
         public ReadOnlySpan<char> ValueChars;
 
+        /// <summary>
+        /// Attempts to read the next JSON token from the buffer.
+        /// </summary>
+        /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
+        /// <returns><c>true</c> if a token was successfully read; <c>false</c> if more bytes are needed.</returns>
         public unsafe bool TryReadToken(out int sizeNeeded)
         {
 #if DEBUG
@@ -594,6 +611,9 @@ namespace Zerra.Serialization.Json.IO
             }
         }
 
+        /// <summary>
+        /// Unescapes the current string token bytes.
+        /// </summary>
         public unsafe string UnescapeStringBytes()
         {
             if (ValueBytes.Length == 0)
@@ -698,6 +718,9 @@ namespace Zerra.Serialization.Json.IO
             }
         }
 
+        /// <summary>
+        /// Unescapes the current string token bytes.
+        /// </summary>
         public unsafe string UnescapeStringChars()
         {
             if (ValueChars.Length == 0)
@@ -810,6 +833,9 @@ namespace Zerra.Serialization.Json.IO
             }
         }
 
+        /// <summary>
+        /// Peaks the length of the next array.
+        /// </summary>
         public unsafe bool TryPeakArrayLength(out int length)
         {
             var openBrackets = 1;

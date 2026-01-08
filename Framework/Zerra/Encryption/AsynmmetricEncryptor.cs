@@ -12,6 +12,10 @@ namespace Zerra.Encryption
     /// </summary>
     public static class AsynmmetricEncryptor
     {
+        /// <summary>
+        /// Generates a new asymmetric key pair for encryption and decryption.
+        /// </summary>
+        /// <returns>An <see cref="AsymmetricKeyPair"/> containing the public and private keys.</returns>
         public static AsymmetricKeyPair GenerateKey()
         {
             using (var RSA = new RSACryptoServiceProvider())
@@ -20,6 +24,7 @@ namespace Zerra.Encryption
                 return keys;
             }
         }
+
         /// <summary>
         /// Performs an asymmetric encryption using the Rivest, Shamir, and Adleman (RSA) algorithm.
         /// </summary>
@@ -37,6 +42,7 @@ namespace Zerra.Encryption
                 return encryptedData;
             }
         }
+
         /// <summary>
         /// Performs an asymmetric decryption using the Rivest, Shamir, and Adleman (RSA) algorithm.
         /// </summary>

@@ -7,6 +7,10 @@ using Zerra.Serialization.Json.State;
 
 namespace Zerra.Serialization.Json.IO
 {
+    /// <summary>
+    /// A ref struct for efficiently reading JSON data from either a byte buffer or character buffer.
+    /// Provides parsing capabilities and error reporting for JSON content.
+    /// </summary>
     public ref partial struct JsonReader
     {
         private static readonly Encoding encoding = Encoding.UTF8;
@@ -18,19 +22,43 @@ namespace Zerra.Serialization.Json.IO
         private readonly bool isFinalBlock;
 
         private readonly bool useBytes;
+
+        /// <summary>
+        /// Gets a value indicating whether the reader uses a byte buffer.
+        /// </summary>
         public readonly bool UseBytes => useBytes;
 
         private int position;
         private readonly int length;
 
+        /// <summary>
+        /// Gets the current position in the buffer.
+        /// </summary>
         public readonly int Position => position;
+
+        /// <summary>
+        /// Gets the total length of the buffer.
+        /// </summary>
         public readonly int Length => length;
 
+        /// <summary>
+        /// Not supported default constructor.
+        /// </summary>
+        /// <exception cref="NotSupportedException"></exception>
         public JsonReader()
         {
             throw new NotSupportedException($"{nameof(JsonReader)} cannot use default constructor");
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="JsonReader"/> struct with a character buffer.
+        /// </summary>
+        /// <param name="chars">The character buffer to read from.</param>
+        /// <param name="isFinalBlock">A value indicating whether this is the final block of data.</param>
+        /// <param name="lastToken">The last JSON token that was read.</param>
+        /// <remarks>
+        /// This constructor is typically used when you have a JSON string that you want to read and parse.
+        /// </remarks>
         public JsonReader(ReadOnlySpan<char> chars, bool isFinalBlock, JsonToken lastToken)
         {
             this.bufferChars = chars;
@@ -41,6 +69,12 @@ namespace Zerra.Serialization.Json.IO
             this.Token = lastToken;
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="JsonReader"/> struct with a byte buffer.
+        /// </summary>
+        /// <param name="bytes">The byte buffer to read from.</param>
+        /// <param name="isFinalBlock">A value indicating whether this is the final block of data.</param>
+        /// <param name="lastToken">The last JSON token that was read.</param>
         public JsonReader(ReadOnlySpan<byte> bytes, bool isFinalBlock, JsonToken lastToken)
         {
             this.bufferBytes = bytes;
@@ -51,7 +85,17 @@ namespace Zerra.Serialization.Json.IO
             this.Token = lastToken;
         }
 
+        /// <summary>
+        /// Creates a <see cref="FormatException"/> with a default error message and context information.
+        /// </summary>
+        /// <returns>A format exception with details about the current position and surrounding content.</returns>
         public readonly FormatException CreateException() => CreateException("Invalid JSON format");
+
+        /// <summary>
+        /// Creates a <see cref="FormatException"/> with the specified error message and context information.
+        /// </summary>
+        /// <param name="message">The error message to include in the exception.</param>
+        /// <returns>A format exception with the message and details about the current position and surrounding content.</returns>
         public readonly FormatException CreateException(string message)
         {
             var charPostion = Math.Max(position - 1, 0);

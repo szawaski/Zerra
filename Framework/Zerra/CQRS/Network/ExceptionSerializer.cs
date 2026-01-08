@@ -13,9 +13,9 @@ namespace Zerra.CQRS.Network
     public static class ExceptionSerializer
     {
         /// <summary>
-        /// Serializes an Exception selecting a serializer from the specified ContentType
+        /// Serializes an Exception using the specified serializer.
         /// </summary>
-        /// <param name="contentType">Determines which serializer will be used for this data format.</param>
+        /// <param name="serializer">The serializer to use for serialization.</param>
         /// <param name="stream">The destination stream of the bytes.</param>
         /// <param name="ex">The Exception to be serialized.</param>
         public static void Serialize(ISerializer serializer, Stream stream, Exception ex)
@@ -31,9 +31,9 @@ namespace Zerra.CQRS.Network
             serializer.Serialize(stream, content);
         }
         /// <summary>
-        /// Deserializes an Exception selecting a serializer from the specified ContentType
+        /// Deserializes an Exception using the specified serializer.
         /// </summary>
-        /// <param name="contentType">Determines which serializer will be used for this data format.</param>
+        /// <param name="serializer">The serializer to use for deserialization.</param>
         /// <param name="stream">The source stream of the bytes.</param>
         /// <returns>The deserialized Exception.</returns>
         public static Exception Deserialize(ISerializer serializer, Stream stream)
@@ -62,13 +62,13 @@ namespace Zerra.CQRS.Network
         }
 
         /// <summary>
-        /// Serializes an Exception selecting a serializer from the specified ContentType
+        /// Asynchronously serializes an Exception using the specified serializer.
         /// </summary>
-        /// <param name="contentType">Determines which serializer will be used for this data format.</param>
+        /// <param name="serializer">The serializer to use for serialization.</param>
         /// <param name="stream">The destination stream of the bytes.</param>
         /// <param name="ex">The Exception to be serialized.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-        /// <returns>The deserialized Exception.</returns>
+        /// <returns>A task representing the asynchronous serialization operation.</returns>
         public static Task SerializeAsync(ISerializer serializer, Stream stream, Exception ex, CancellationToken cancellationToken)
         {
             var errorType = ex.GetType();
@@ -82,12 +82,12 @@ namespace Zerra.CQRS.Network
             return serializer.SerializeAsync(stream, content, cancellationToken);
         }
         /// <summary>
-        /// Deserializes an Exception selecting a serializer from the specified ContentType
+        /// Asynchronously deserializes an Exception using the specified serializer.
         /// </summary>
-        /// <param name="contentType">Determines which serializer will be used for this data format.</param>
+        /// <param name="serializer">The serializer to use for deserialization.</param>
         /// <param name="stream">The source stream of the bytes.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-        /// <returns>The deserialized Exception.</returns>
+        /// <returns>A task representing the asynchronous deserialization operation that returns the deserialized Exception.</returns>
         public static async Task<Exception> DeserializeAsync(ISerializer serializer, Stream stream, CancellationToken cancellationToken)
         {
             var content = await serializer.DeserializeAsync<ExceptionContent>(stream, cancellationToken);

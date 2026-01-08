@@ -15,12 +15,13 @@ namespace Zerra.CQRS.Network
     public static class ApiServerHandler
     {
         /// <summary>
-        /// Handles an external API request.
+        /// Handles an external API request by routing it to either a remote query call or a command dispatch.
         /// </summary>
-        /// <param name="contentType">The serialized content type of the request.</param>
-        /// <param name="data">The data received for the API request.</param>
+        /// <param name="bus">The message bus used to dispatch commands or make remote queries.</param>
+        /// <param name="serializer">The serializer used to serialize and deserialize request/response data.</param>
+        /// <param name="data">The API request data containing the provider type, method, message type, or other routing information.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-        /// <returns>The response from the API request.</returns>
+        /// <returns>The response from the API request, or null if the request could not be routed.</returns>
         public static async Task<ApiResponseData?> HandleRequestAsync(IBus bus, ISerializer serializer, ApiRequestData data, CancellationToken cancellationToken)
         {
             if (!String.IsNullOrWhiteSpace(data.ProviderType))

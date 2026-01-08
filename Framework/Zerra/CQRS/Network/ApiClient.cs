@@ -11,7 +11,7 @@ using Zerra.Serialization.Json;
 namespace Zerra.CQRS.Network
 {
     /// <summary>
-    /// A client for making API requests to externaly exposed CQRS services or Gateways.
+    /// A client for making API requests to externally exposed CQRS services or Gateways.
     /// </summary>
     public sealed class ApiClient : CqrsClientBase
     {
@@ -24,10 +24,11 @@ namespace Zerra.CQRS.Network
         /// <summary>
         /// Creates a new API client.
         /// </summary>
-        /// <param name="endpoint">The url of the service receiving CQRS requests.</param>
-        /// <param name="contentType">The content type of the communications.</param>
-        /// <param name="authorizer">An authorizer for adding headers needed for the server to validate requests.</param>
-        /// <param name="route">Adds n route argument to the base endpoint url if needed.</param>
+        /// <param name="endpoint">The URL of the service receiving CQRS requests.</param>
+        /// <param name="serializer">The serializer to use for serializing and deserializing messages.</param>
+        /// <param name="log">An optional logger for diagnostic messages.</param>
+        /// <param name="authorizer">An optional authorizer for adding headers needed for the server to validate requests.</param>
+        /// <param name="route">An optional route argument to append to the base endpoint URL.</param>
         public ApiClient(string endpoint, ISerializer serializer, ILog? log, ICqrsAuthorizer? authorizer, string? route = null) : base(endpoint, log)
         {
             this.serializer = serializer;

@@ -7,7 +7,7 @@ namespace Zerra.CQRS
     /// <summary>
     /// Manages service dependencies for the bus initialization.
     /// Provides a container for registering service instances that are made available to handlers during message processing.
-    /// Instances are retrieved from handlers via <see cref="BusContext.Resolve{TInterface}()"/>.
+    /// Instances are retrieved from handlers via <see cref="BusContext.GetService{TInterface}()"/> or <see cref="BusContext.TryGetService{TInterface}(out TInterface)"/>.
     /// </summary>
     public sealed class BusServices
     {

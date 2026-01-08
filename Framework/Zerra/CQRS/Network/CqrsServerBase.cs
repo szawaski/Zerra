@@ -9,7 +9,7 @@ using Zerra.Logging;
 namespace Zerra.CQRS.Network
 {
     /// <summary>
-    /// The base class for a CQRS Server using Sockets.
+    /// The base class for a CQRS server using sockets.
     /// </summary>
     public abstract class CqrsServerBase : IQueryServer, ICommandConsumer, IEventConsumer, IDisposable
     {
@@ -45,11 +45,11 @@ namespace Zerra.CQRS.Network
         private bool disposed = false;
 
         /// <summary>
-        /// A counter to limit the number commands the running service will receive before termination.
+        /// A counter to limit the number of commands the running service will receive before termination.
         /// </summary>
         protected CommandCounter? commandCounter = null;
         /// <summary>
-        /// A throttle to limit the number of requests processed simulataneously.
+        /// A throttle to limit the number of requests processed simultaneously.
         /// </summary>
         protected SemaphoreSlim? throttle = null;
 
@@ -60,9 +60,11 @@ namespace Zerra.CQRS.Network
         protected readonly ILog? log;
 
         /// <summary>
-        /// Required by the inheriting class to call this constructor for information the Socket needs.
+        /// Initializes a new instance of the <see cref="CqrsServerBase"/> class.
+        /// Required by the inheriting class to call this constructor for information the socket needs.
         /// </summary>
-        /// <param name="serviceUrl">The url under which the Socket will be listening.</param>
+        /// <param name="serviceUrl">The URL under which the socket will be listening.</param>
+        /// <param name="log">The optional logging provider.</param>
         public CqrsServerBase(string serviceUrl, ILog? log)
         {
             this.serviceUrl = serviceUrl;
@@ -172,11 +174,11 @@ namespace Zerra.CQRS.Network
         }
 
         /// <summary>
-        /// Handles all incomming CQRS requests.
+        /// Handles all incoming CQRS requests.
         /// </summary>
-        /// <param name="socket">The raw socket connection</param>
-        /// <param name="cancellationToken">The Cancellation Token to observe.</param>
-        /// <returns>A Task to await completion of handling the request.</returns>
+        /// <param name="socket">The raw socket connection.</param>
+        /// <param name="cancellationToken">The cancellation token to observe.</param>
+        /// <returns>A task to await completion of handling the request.</returns>
         protected abstract Task Handle(Socket socket, CancellationToken cancellationToken);
 
         void IQueryServer.Close()

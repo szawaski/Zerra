@@ -30,6 +30,9 @@ namespace Zerra.Serialization.Json.Converters
         /// </remarks>
         protected virtual bool StackRequired { get; } = true;
 
+        /// <summary>
+        /// Gets the type detail information for the value type being converted.
+        /// </summary>
         protected TypeDetail<TValue> TypeDetail { get; private set; } = null!;
         private string memberKey = null!;
         private Func<object, TValue?>? getter;
@@ -784,7 +787,7 @@ namespace Zerra.Serialization.Json.Converters
         /// </summary>
         /// <param name="reader">The JSON reader to read from.</param>
         /// <param name="state">The current read state.</param>
-        /// <param name="valueType">The determined JSON value type.</param>
+        /// <param name="token">The determined JSON token type.</param>
         /// <param name="value">The deserialized value if successful; otherwise, the default value for <typeparamref name="TValue"/>.</param>
         /// <returns><c>true</c> if the read operation completed successfully; <c>false</c> if more bytes are needed.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -337,7 +337,7 @@ namespace Zerra.CQRS
             => (TInterface)BusRouters.GetBusCaller(typeof(TInterface), this, context.ServiceName);
 
         /// <inheritdoc />
-        Task IBus.DispatchAsync(ICommand command, CancellationToken? cancellationToken = null)
+        Task IBus.DispatchAsync(ICommand command, CancellationToken? cancellationToken)
         {
             if (cancellationToken.HasValue)
                 return _DispatchCommandInternalAsync(command, command.GetType(), false, context.ServiceName, cancellationToken.Value);
@@ -355,7 +355,7 @@ namespace Zerra.CQRS
             return task;
         }
         /// <inheritdoc />
-        Task IBus.DispatchAwaitAsync(ICommand command, CancellationToken? cancellationToken = null)
+        Task IBus.DispatchAwaitAsync(ICommand command, CancellationToken? cancellationToken)
         {
             if (cancellationToken.HasValue)
                 return _DispatchCommandInternalAsync(command, command.GetType(), true, context.ServiceName, cancellationToken.Value);
@@ -373,7 +373,7 @@ namespace Zerra.CQRS
             return task;
         }
         /// <inheritdoc />
-        Task IBus.DispatchAsync(IEvent @event, CancellationToken? cancellationToken = null)
+        Task IBus.DispatchAsync(IEvent @event, CancellationToken? cancellationToken)
         {
             if (cancellationToken.HasValue)
                 return _DispatchEventInternalAsync(@event, @event.GetType(), context.ServiceName, cancellationToken.Value);
@@ -391,7 +391,7 @@ namespace Zerra.CQRS
             return task;
         }
         /// <inheritdoc />
-        Task<TResult> IBus.DispatchAwaitAsync<TResult>(ICommand<TResult> command, CancellationToken? cancellationToken = null)
+        Task<TResult> IBus.DispatchAwaitAsync<TResult>(ICommand<TResult> command, CancellationToken? cancellationToken)
         {
             if (cancellationToken.HasValue)
                 return _DispatchCommandWithResultInternalAsync(command, command.GetType(), context.ServiceName, cancellationToken.Value);
@@ -416,7 +416,7 @@ namespace Zerra.CQRS
         /// A destination may be an implementation in the same assembly or calling a remote service.
         /// </summary>
         /// <param name="command">The command to send.</param>
-        /// <param name="timeout">The time to wait before a cancellation request. Use <see cref="Timeout.InfiniteTimeSpan"/> for no timeout. This overrides <see cref="Bus.DefaultDispatchTimeout"/>.</param>
+        /// <param name="timeout">The time to wait before a cancellation request. Use <see cref="Timeout.InfiniteTimeSpan"/> for no timeout.</param>
         /// <returns>A task to complete sending the command.</returns>
         Task IBus.DispatchAsync(ICommand command, TimeSpan timeout)
         {
@@ -438,7 +438,7 @@ namespace Zerra.CQRS
         /// A destination may be an implementation in the same assembly or calling a remote service.
         /// </summary>
         /// <param name="command">The command to send.</param>
-        /// <param name="timeout">The time to wait before a cancellation request. Use <see cref="Timeout.InfiniteTimeSpan"/> for no timeout. This overrides <see cref="Bus.DefaultDispatchTimeout"/>.</param>
+        /// <param name="timeout">The time to wait before a cancellation request. Use <see cref="Timeout.InfiniteTimeSpan"/> for no timeout.</param>
         /// <returns>A task to await processing of the command.</returns>
         Task IBus.DispatchAwaitAsync(ICommand command, TimeSpan timeout)
         {
@@ -461,7 +461,7 @@ namespace Zerra.CQRS
         /// A destination may be an implementation in the same assembly or calling a remote service.
         /// </summary>
         /// <param name="event">The command to send.</param>
-        /// <param name="timeout">The time to wait before a cancellation request. Use <see cref="Timeout.InfiniteTimeSpan"/> for no timeout. This overrides <see cref="Bus.DefaultDispatchTimeout"/>.</param>
+        /// <param name="timeout">The time to wait before a cancellation request. Use <see cref="Timeout.InfiniteTimeSpan"/> for no timeout.</param>
         /// <returns>A task to complete sending the event.</returns>
         Task IBus.DispatchAsync(IEvent @event, TimeSpan timeout)
         {
@@ -483,7 +483,7 @@ namespace Zerra.CQRS
         /// A destination may be an implementation in the same assembly or calling a remote service.
         /// </summary>
         /// <param name="command">The command to send.</param>
-        /// <param name="timeout">The time to wait before a cancellation request. Use <see cref="Timeout.InfiniteTimeSpan"/> for no timeout. This overrides <see cref="Bus.DefaultDispatchTimeout"/>.</param>
+        /// <param name="timeout">The time to wait before a cancellation request. Use <see cref="Timeout.InfiniteTimeSpan"/> for no timeout.</param>
         /// <returns>A task to await the result of the command.</returns>
         Task<TResult> IBus.DispatchAwaitAsync<TResult>(ICommand<TResult> command, TimeSpan timeout)
         {
@@ -502,8 +502,8 @@ namespace Zerra.CQRS
         }
 
 
-        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         /// <inheritdoc />
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         public TReturn _CallMethod<TReturn>(Type interfaceType, string methodName, object[] arguments, string source)
         {
             var metadata = BusMetadata.GetByType(interfaceType);
@@ -567,8 +567,8 @@ namespace Zerra.CQRS
 
             return result;
         }
-        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         /// <inheritdoc />
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         public Task _CallMethodTask(Type interfaceType, string methodName, object[] arguments, string source)
         {
             var metadata = BusMetadata.GetByType(interfaceType);
@@ -632,8 +632,8 @@ namespace Zerra.CQRS
 
             return result;
         }
-        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         /// <inheritdoc />
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         public Task<TReturn> _CallMethodTaskGeneric<TReturn>(Type interfaceType, string methodName, object[] arguments, string source)
         {
             var metadata = BusMetadata.GetByType(interfaceType);
@@ -798,8 +798,8 @@ namespace Zerra.CQRS
             return taskresult;
         }
 
-        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         /// <inheritdoc />
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         public Task _DispatchCommandInternalAsync(ICommand command, Type commandType, bool requireAffirmation, string source, CancellationToken cancellationToken)
         {
             var info = BusCommandOrEventInfo.GetByType(commandType, handledTypes);
@@ -855,8 +855,8 @@ namespace Zerra.CQRS
 
             return result;
         }
-        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         /// <inheritdoc />
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         public Task<TResult> _DispatchCommandWithResultInternalAsync<TResult>(ICommand<TResult> command, Type commandType, string source, CancellationToken cancellationToken)
         {
             var info = BusCommandOrEventInfo.GetByType(commandType, handledTypes);
@@ -901,8 +901,8 @@ namespace Zerra.CQRS
 
             return result;
         }
-        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         /// <inheritdoc />
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         public Task _DispatchEventInternalAsync(IEvent @event, Type eventType, string source, CancellationToken cancellationToken)
         {
             var info = BusCommandOrEventInfo.GetByType(eventType, handledTypes);

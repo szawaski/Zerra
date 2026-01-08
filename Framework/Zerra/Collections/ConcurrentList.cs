@@ -7,13 +7,20 @@ using System.Collections;
 namespace Zerra.Collections
 {
     /// <summary>
-    /// Thread safe generic list
+    /// Thread safe generic list implementation with full list operations support.
     /// </summary>
+    /// <typeparam name="T">The type of elements in the list.</typeparam>
     public class ConcurrentList<T> : ICollection<T>, IEnumerable<T>, IEnumerable, IList<T>, IReadOnlyCollection<T>, IReadOnlyList<T>, ICollection, IList
     {
         private readonly Lock locker = new();
         private readonly List<T> list = new();
 
+        /// <summary>
+        /// Gets or sets the element at the specified index.
+        /// </summary>
+        /// <param name="index">The zero-based index of the element to get or set.</param>
+        /// <returns>The element at the specified index.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the index is out of range.</exception>
         public T this[int index]
         {
             get
@@ -41,6 +48,9 @@ namespace Zerra.Collections
             }
         }
 
+        /// <summary>
+        /// Gets the number of elements in the list.
+        /// </summary>
         public int Count
         {
             get
@@ -53,6 +63,9 @@ namespace Zerra.Collections
             }
         }
 
+        /// <summary>
+        /// Gets a value indicating whether the list is read-only. Always returns false.
+        /// </summary>
         public bool IsReadOnly => false;
 
         int ICollection.Count => list.Count;
@@ -126,6 +139,10 @@ namespace Zerra.Collections
         }
         void IList.RemoveAt(int index) => RemoveAt(index);
 
+        /// <summary>
+        /// Adds an element to the end of the list.
+        /// </summary>
+        /// <param name="item">The element to add.</param>
         public void Add(T item)
         {
             lock (locker)
@@ -134,6 +151,10 @@ namespace Zerra.Collections
             }
         }
 
+        /// <summary>
+        /// Adds all elements from the specified collection to the end of the list.
+        /// </summary>
+        /// <param name="items">The collection of elements to add.</param>
         public void AddRange(IEnumerable<T> items)
         {
             lock (locker)
@@ -143,6 +164,9 @@ namespace Zerra.Collections
             }
         }
 
+        /// <summary>
+        /// Removes all elements from the list.
+        /// </summary>
         public void Clear()
         {
             lock (locker)
@@ -151,6 +175,11 @@ namespace Zerra.Collections
             }
         }
 
+        /// <summary>
+        /// Determines whether the list contains a specific element.
+        /// </summary>
+        /// <param name="item">The element to locate.</param>
+        /// <returns>True if the element is found; otherwise, false.</returns>
         public bool Contains(T item)
         {
             lock (locker)
@@ -160,6 +189,12 @@ namespace Zerra.Collections
             }
         }
 
+        /// <summary>
+        /// Copies the elements of the list to an array, starting at a specified index.
+        /// </summary>
+        /// <param name="array">The destination array.</param>
+        /// <param name="arrayIndex">The zero-based index at which copying begins.</param>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when arrayIndex is out of range.</exception>
         public void CopyTo(T[] array, int arrayIndex)
         {
             if (arrayIndex < 0 || arrayIndex > array.Length - 1)
@@ -171,6 +206,10 @@ namespace Zerra.Collections
             }
         }
 
+        /// <summary>
+        /// Creates a copy of the list as an array.
+        /// </summary>
+        /// <returns>An array containing all elements from the list.</returns>
         public T[] ToArray()
         {
             lock (locker)
@@ -180,6 +219,10 @@ namespace Zerra.Collections
             }
         }
 
+        /// <summary>
+        /// Returns an enumerator that iterates through the list.
+        /// </summary>
+        /// <returns>An enumerator for the list.</returns>
         public IEnumerator<T> GetEnumerator()
         {
             lock (locker)
@@ -189,6 +232,11 @@ namespace Zerra.Collections
             }
         }
 
+        /// <summary>
+        /// Searches for the specified element and returns the zero-based index of the first occurrence.
+        /// </summary>
+        /// <param name="item">The element to locate.</param>
+        /// <returns>The zero-based index of the first occurrence of the element, or -1 if not found.</returns>
         public int IndexOf(T item)
         {
             lock (locker)
@@ -198,6 +246,12 @@ namespace Zerra.Collections
             }
         }
 
+        /// <summary>
+        /// Inserts an element at the specified index.
+        /// </summary>
+        /// <param name="index">The zero-based index at which the element should be inserted.</param>
+        /// <param name="item">The element to insert.</param>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the index is out of range.</exception>
         public void Insert(int index, T item)
         {
             lock (locker)
@@ -210,6 +264,11 @@ namespace Zerra.Collections
             }
         }
 
+        /// <summary>
+        /// Removes the first occurrence of a specific element from the list.
+        /// </summary>
+        /// <param name="item">The element to remove.</param>
+        /// <returns>True if the element was found and removed; otherwise, false.</returns>
         public bool Remove(T item)
         {
             lock (locker)
@@ -219,6 +278,11 @@ namespace Zerra.Collections
             }
         }
 
+        /// <summary>
+        /// Removes the element at the specified index.
+        /// </summary>
+        /// <param name="index">The zero-based index of the element to remove.</param>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the index is out of range.</exception>
         public void RemoveAt(int index)
         {
             lock (locker)
@@ -231,6 +295,10 @@ namespace Zerra.Collections
             }
         }
 
+        /// <summary>
+        /// Returns an enumerator that iterates through the list.
+        /// </summary>
+        /// <returns>An enumerator for the list.</returns>
         IEnumerator IEnumerable.GetEnumerator()
         {
             return this.GetEnumerator();

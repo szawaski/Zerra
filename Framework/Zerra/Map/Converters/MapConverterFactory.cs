@@ -16,6 +16,9 @@ using Zerra.Reflection;
 
 namespace Zerra.Map.Converters
 {
+    /// <summary>
+    /// Provides a factory for creating and managing map converters that transform objects between different types.
+    /// </summary>
     public static class MapConverterFactory
     {
         private static readonly ConcurrentFactoryDictionary<TypePairKey, Func<MapConverter>> creators = new();
@@ -24,6 +27,16 @@ namespace Zerra.Map.Converters
         internal static MapConverter GetRoot(TypeDetail sourceTypeDetail, TypeDetail targetTypeDetail)
             => Get(sourceTypeDetail, targetTypeDetail, "Root", null, null, null);
 
+        /// <summary>
+        /// Gets or creates a map converter for the specified source and target types.
+        /// </summary>
+        /// <param name="sourceTypeDetail">The type detail of the source type.</param>
+        /// <param name="targetTypeDetail">The type detail of the target type.</param>
+        /// <param name="memberKey">A unique key for caching the converter instance.</param>
+        /// <param name="sourceGetterDelegate">An optional delegate to get the source value from a parent object.</param>
+        /// <param name="targetGetterDelegate">An optional delegate to get the target value from a parent object.</param>
+        /// <param name="targetSetterDelegate">An optional delegate to set the target value on a parent object.</param>
+        /// <returns>A map converter configured for the specified types and delegates.</returns>
         public static MapConverter Get(TypeDetail sourceTypeDetail, TypeDetail targetTypeDetail, string memberKey, Delegate? sourceGetterDelegate, Delegate? targetGetterDelegate, Delegate? targetSetterDelegate)
         {
             var key = new TypePairKey(sourceTypeDetail.Type, targetTypeDetail.Type);
@@ -65,7 +78,18 @@ namespace Zerra.Map.Converters
             return creator;
         }
 
-        internal static void RegisterCreator<TSource, TTarget, TSourceEnumerable, TTargetEnumerable, TSourceKey, TSourceValue, TTargetKey, TTargetValue>()
+        /// <summary>
+        /// Registers a map converter creator for the specified source and target types with support for collections and dictionaries.
+        /// </summary>
+        /// <typeparam name="TSource">The source type.</typeparam>
+        /// <typeparam name="TTarget">The target type.</typeparam>
+        /// <typeparam name="TSourceEnumerable">The enumerable inner type of the source, if applicable.</typeparam>
+        /// <typeparam name="TTargetEnumerable">The enumerable inner type of the target, if applicable.</typeparam>
+        /// <typeparam name="TSourceKey">The key type of the source dictionary, if applicable.</typeparam>
+        /// <typeparam name="TSourceValue">The value type of the source dictionary, if applicable.</typeparam>
+        /// <typeparam name="TTargetKey">The key type of the target dictionary, if applicable.</typeparam>
+        /// <typeparam name="TTargetValue">The value type of the target dictionary, if applicable.</typeparam>
+        public static void RegisterCreator<TSource, TTarget, TSourceEnumerable, TTargetEnumerable, TSourceKey, TSourceValue, TTargetKey, TTargetValue>()
             where TSourceKey : notnull
             where TTargetKey : notnull
         {

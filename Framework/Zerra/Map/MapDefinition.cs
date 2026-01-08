@@ -7,6 +7,9 @@ using Zerra.Map.Converters;
 
 namespace Zerra.Map
 {
+    /// <summary>
+    /// Provides static methods to register and manage custom map definitions for type conversions.
+    /// </summary>
     public static class MapDefinition
     {
         private readonly static ConcurrentFactoryDictionary<TypePairKey, object> customMapsByPair = new();
@@ -19,10 +22,29 @@ namespace Zerra.Map
             return null;
         }
 
+        /// <summary>
+        /// Registers a map definition for the specified source and target types.
+        /// </summary>
+        /// <typeparam name="TSource">The source type.</typeparam>
+        /// <typeparam name="TTarget">The target type.</typeparam>
+        /// <param name="mapDefinition">The map definition to register.</param>
         public static void Register<TSource, TTarget>(IMapDefinition<TSource, TTarget> mapDefinition)
         {
             Register<TSource, TTarget, TSource, TTarget, object, object, object, object>(mapDefinition);
         }
+
+        /// <summary>
+        /// Registers a map definition for the specified source and target types with support for collections and dictionaries.
+        /// </summary>
+        /// <typeparam name="TSource">The source type.</typeparam>
+        /// <typeparam name="TTarget">The target type.</typeparam>
+        /// <typeparam name="TSourceEnumerable">The enumerable inner type of the source, if applicable.</typeparam>
+        /// <typeparam name="TTargetEnumerable">The enumerable inner type of the target, if applicable.</typeparam>
+        /// <typeparam name="TSourceKey">The key type of the source dictionary, if applicable.</typeparam>
+        /// <typeparam name="TSourceValue">The value type of the source dictionary, if applicable.</typeparam>
+        /// <typeparam name="TTargetKey">The key type of the target dictionary, if applicable.</typeparam>
+        /// <typeparam name="TTargetValue">The value type of the target dictionary, if applicable.</typeparam>
+        /// <param name="mapDefinition">The map definition to register.</param>
         public static void Register<TSource, TTarget, TSourceEnumerable, TTargetEnumerable, TSourceKey, TSourceValue, TTargetKey, TTargetValue>(IMapDefinition<TSource, TTarget> mapDefinition)
             where TSourceKey : notnull
             where TTargetKey : notnull

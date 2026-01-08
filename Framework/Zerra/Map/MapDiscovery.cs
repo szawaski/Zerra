@@ -10,10 +10,20 @@ using Zerra.Reflection.Dynamic;
 
 namespace Zerra.Map
 {
+    /// <summary>
+    /// Provides dynamic discovery and initialization of map definitions.
+    /// </summary>
+    /// <remarks>
+    /// This class requires dynamic code support and is not supported in AOT (Ahead-of-Time) compiled applications.
+    /// </remarks>
     [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
     [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
     public static class MapDiscovery
     {
+        /// <summary>
+        /// Initializes map discovery by finding and registering all types that implement <see cref="IMapDefinition{TSource, TTarget}"/>
+        /// </summary>
+        /// <exception cref="NotSupportedException">Thrown when dynamic code generation is not supported in the current build configuration.</exception>
         public static void Initialize()
         {
             if (!RuntimeFeature.IsDynamicCodeSupported)

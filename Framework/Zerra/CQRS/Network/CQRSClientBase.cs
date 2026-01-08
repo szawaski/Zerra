@@ -34,9 +34,11 @@ namespace Zerra.CQRS.Network
         private readonly ConcurrentDictionary<string, SemaphoreSlim> throttleByTopic;
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="CqrsClientBase"/> class.
         /// Required by the inheriting class to call this constructor for information the connection needs.
         /// </summary>
-        /// <param name="serviceUrl">The url of the server to connect.</param>
+        /// <param name="serviceUrl">The URL of the server to connect to.</param>
+        /// <param name="log">The optional logging provider.</param>
         public CqrsClientBase(string serviceUrl, ILog? log)
         {
             if (String.IsNullOrWhiteSpace(serviceUrl))
@@ -147,13 +149,14 @@ namespace Zerra.CQRS.Network
         }
 
         /// <summary>
-        /// Sends CQRS queries and returns the result from the server asyncronously.
+        /// Sends CQRS queries and returns the result from the server asynchronously.
         /// </summary>
         /// <typeparam name="TReturn">The type returned from the server.</typeparam>
         /// <param name="throttle">Used to limit simultaneous requests.</param>
         /// <param name="isStream">Indicates the result is a stream.</param>
         /// <param name="interfaceType">The interface type of the query.</param>
         /// <param name="methodName">The query method to call in the interface type.</param>
+        /// <param name="argumentTypes">The types of the arguments for the query method.</param>
         /// <param name="arguments">The raw arguments for the query method.</param>
         /// <param name="source">A description of where the request came from.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
@@ -245,8 +248,9 @@ namespace Zerra.CQRS.Network
         /// <param name="messageAwait">If the request will wait for a response from the server when the command is completed.</param>
         /// <param name="source">A description of where the request came from.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-        /// <returns>A Task to await sending or await completion of the command.</returns>
+        /// <returns>A task to await sending or await completion of the command.</returns>
         protected abstract Task DispatchInternal(SemaphoreSlim throttle, Type commandType, ICommand command, bool messageAwait, string source, CancellationToken cancellationToken);
+
         /// <summary>
         /// Sends a CQRS command and gets a result.
         /// </summary>
@@ -257,7 +261,7 @@ namespace Zerra.CQRS.Network
         /// <param name="command">The command object itself.</param>
         /// <param name="source">A description of where the request came from.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-        /// <returns>A Task to await the result of the command from the server.</returns>
+        /// <returns>A task to await the result of the command from the server.</returns>
         protected abstract Task<TResult> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source, CancellationToken cancellationToken);
 
         /// <summary>
@@ -268,7 +272,7 @@ namespace Zerra.CQRS.Network
         /// <param name="event">The event object itself.</param>
         /// <param name="source">A description of where the request came from.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-        /// <returns>A Task to await sending the event.</returns>
+        /// <returns>A task to await sending the event.</returns>
         protected abstract Task DispatchInternal(SemaphoreSlim throttle, Type eventType, IEvent @event, string source, CancellationToken cancellationToken);
 
         /// <inheritdoc />

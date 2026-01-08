@@ -4,6 +4,13 @@
 
 namespace Zerra.Serialization.Json
 {
+    /// <summary>
+    /// Provides options to control the behavior of JSON serialization and deserialization.
+    /// </summary>
+    /// <remarks>Use this class to customize how objects are converted to and from JSON, including property
+    /// naming, value handling, enum representation, error handling, and case sensitivity. These options affect both
+    /// serialization and deserialization processes. Changing certain options, such as enabling case-insensitive
+    /// property matching, may impact performance.</remarks>
     public sealed class JsonSerializerOptions
     {
         /// <summary>

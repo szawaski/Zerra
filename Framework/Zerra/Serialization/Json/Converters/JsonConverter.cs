@@ -91,11 +91,11 @@ namespace Zerra.Serialization.Json.Converters
         public abstract bool TryWriteFromParentMember(ref JsonWriter writer, ref WriteState state, object parent, string? propertyName, ReadOnlySpan<char> jsonNameSegmentChars, ReadOnlySpan<byte> jsonNameSegmentBytes, JsonIgnoreCondition ignoreCondition, bool ignoreDoNotWriteNullProperties);
 
         /// <summary>
-        /// Attempts to read a boxed value from the JSON reader with the specified value type information.
+        /// Attempts to read a boxed value from the JSON reader with the specified JSON token type.
         /// </summary>
         /// <param name="reader">The JSON reader to read from.</param>
         /// <param name="state">The current read state.</param>
-        /// <param name="valueType">The determined JSON value type.</param>
+        /// <param name="token">The determined JSON token type.</param>
         /// <param name="value">The deserialized boxed value if successful; otherwise, <c>null</c>.</param>
         /// <returns><c>true</c> if the read operation completed successfully; <c>false</c> if more bytes are needed.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

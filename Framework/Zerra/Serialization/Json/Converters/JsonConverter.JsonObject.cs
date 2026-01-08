@@ -92,6 +92,13 @@ namespace Zerra.Serialization.Json.Converters
             }
         }
 
+        /// <summary>
+        /// Attempts to read a <see cref="JsonObject"/> from the JSON reader and add it to a collection.
+        /// </summary>
+        /// <param name="reader">The JSON reader to read from.</param>
+        /// <param name="state">The current read state.</param>
+        /// <param name="addMethod">A delegate to add the deserialized <see cref="JsonObject"/> to the collection.</param>
+        /// <returns><c>true</c> if the read operation completed successfully; <c>false</c> if more bytes are needed.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected static bool ReadJsonObjectFromParent(ref JsonReader reader, ref ReadState state, in Action<JsonObject> addMethod)
         {
@@ -168,6 +175,14 @@ namespace Zerra.Serialization.Json.Converters
                     throw new NotImplementedException();
             }
         }
+        /// <summary>
+        /// Attempts to read a <see cref="JsonObject"/> from the JSON reader and set it as a property on a parent object.
+        /// </summary>
+        /// <param name="reader">The JSON reader to read from.</param>
+        /// <param name="state">The current read state.</param>
+        /// <param name="parent">The parent <see cref="JsonObject"/> to set the property on.</param>
+        /// <param name="property">The property name to set.</param>
+        /// <returns><c>true</c> if the read operation completed successfully; <c>false</c> if more bytes are needed.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected static bool ReadJsonObjectFromParentMember(ref JsonReader reader, ref ReadState state, in JsonObject parent, string property)
         {
@@ -246,6 +261,14 @@ namespace Zerra.Serialization.Json.Converters
                     throw new NotImplementedException();
             }
         }
+        /// <summary>
+        /// Attempts to read a <see cref="JsonObject"/> from the JSON reader based on the specified JSON token type.
+        /// </summary>
+        /// <param name="reader">The JSON reader to read from.</param>
+        /// <param name="state">The current read state.</param>
+        /// <param name="token">The JSON token type indicating the value format.</param>
+        /// <param name="value">The deserialized <see cref="JsonObject"/> if successful; otherwise, <c>null</c>.</param>
+        /// <returns><c>true</c> if the read operation completed successfully; <c>false</c> if more bytes are needed.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected static bool ReadJsonObject(ref JsonReader reader, ref ReadState state, JsonToken token, out JsonObject? value)
         {
@@ -292,6 +315,13 @@ namespace Zerra.Serialization.Json.Converters
                     throw new NotImplementedException();
             }
         }
+        /// <summary>
+        /// Attempts to read a JSON object (dictionary) from the JSON reader.
+        /// </summary>
+        /// <param name="reader">The JSON reader to read from.</param>
+        /// <param name="state">The current read state.</param>
+        /// <param name="value">The deserialized <see cref="JsonObject"/> containing the object data if successful; otherwise, <c>null</c>.</param>
+        /// <returns><c>true</c> if the read operation completed successfully; <c>false</c> if more bytes are needed.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected static bool ReadJsonObjectObject(ref JsonReader reader, ref ReadState state, out JsonObject? value)
         {
@@ -396,6 +426,13 @@ namespace Zerra.Serialization.Json.Converters
 
             return true;
         }
+        /// <summary>
+        /// Attempts to read a JSON array from the JSON reader.
+        /// </summary>
+        /// <param name="reader">The JSON reader to read from.</param>
+        /// <param name="state">The current read state.</param>
+        /// <param name="value">The deserialized <see cref="JsonObject"/> containing the array data if successful; otherwise, <c>null</c>.</param>
+        /// <returns><c>true</c> if the read operation completed successfully; <c>false</c> if more bytes are needed.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected static bool ReadJsonObjectArray(ref JsonReader reader, ref ReadState state, out JsonObject? value)
         {

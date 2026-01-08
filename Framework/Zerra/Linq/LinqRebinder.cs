@@ -7,20 +7,31 @@ using System.Runtime.CompilerServices;
 
 namespace Zerra.Linq
 {
+    /// <summary>
+    /// Provides functionality to rebind expression trees by replacing specified expressions with replacement expressions.
+    /// </summary>
     public sealed partial class LinqRebinder
     {
+        /// <summary>
+        /// Rebinds an expression by replacing a single specified expression with a replacement expression.
+        /// </summary>
+        /// <param name="exp">The expression to rebind.</param>
+        /// <param name="current">The expression to find and replace.</param>
+        /// <param name="replacement">The expression to use as the replacement.</param>
+        /// <returns>A new expression with the specified replacement applied.</returns>
         public static Expression RebindExpression(Expression exp, Expression current, Expression replacement)
         {
-            var expressionReplacements = new Dictionary<Expression, Expression>
-            {
-                { current, replacement }
-            };
-
-            var context = new RebinderContext(current, replacement, expressionReplacements, null);
+            var context = new RebinderContext(current, replacement, null, null);
             var result = Rebind(exp, context);
             return result;
         }
 
+        /// <summary>
+        /// Rebinds an expression using a dictionary of expression replacements.
+        /// </summary>
+        /// <param name="exp">The expression to rebind.</param>
+        /// <param name="expressionReplacements">A dictionary mapping expressions to their replacements.</param>
+        /// <returns>A new expression with all specified replacements applied.</returns>
         public static Expression Rebind(Expression exp, Dictionary<Expression, Expression> expressionReplacements)
         {
             var context = new RebinderContext(null, null, expressionReplacements, null);
@@ -28,6 +39,12 @@ namespace Zerra.Linq
             return result;
         }
 
+        /// <summary>
+        /// Rebinds an expression using a dictionary of string-based expression replacements.
+        /// </summary>
+        /// <param name="exp">The expression to rebind.</param>
+        /// <param name="expressionStringReplacements">A dictionary mapping expression string representations to their replacements.</param>
+        /// <returns>A new expression with all specified replacements applied.</returns>
         public static Expression Rebind(Expression exp, Dictionary<string, Expression> expressionStringReplacements)
         {
             var context = new RebinderContext(null, null, null, expressionStringReplacements);

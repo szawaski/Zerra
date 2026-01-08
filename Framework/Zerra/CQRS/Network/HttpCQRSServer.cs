@@ -24,12 +24,14 @@ namespace Zerra.CQRS.Network
         private readonly string[]? allowOrigins;
 
         /// <summary>
-        /// Creates a new HTTP Server
+        /// Creates a new HTTP CQRS server.
         /// </summary>
-        /// <param name="serverUrl">The url of the server.</param>
-        /// <param name="symmetricConfig">If provided, information to encrypt the data.</param>
-        /// <param name="authorizer">An authorizer for the server to validate requests.</param>
-        /// <param name="allowOrigins">CORS HTTP headers for Allow-Origins</param>
+        /// <param name="serverUrl">The URL of the server.</param>
+        /// <param name="serializer">The serializer for request and response data.</param>
+        /// <param name="encryptor">Optional encryption provider for encrypting request and response data.</param>
+        /// <param name="authorizer">Optional authorizer for validating requests.</param>
+        /// <param name="allowOrigins">Optional CORS HTTP headers for allowed origins.</param>
+        /// <param name="log">Optional logging provider.</param>
         public HttpCqrsServer(string serverUrl, ISerializer serializer, IEncryptor? encryptor, ICqrsAuthorizer? authorizer, string[]? allowOrigins, ILog? log = null)
             : base(serverUrl, log)
         {

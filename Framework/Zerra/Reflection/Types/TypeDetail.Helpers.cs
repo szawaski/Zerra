@@ -8,7 +8,6 @@ using Zerra.Reflection;
 using Zerra.Reflection.Dynamic;
 
 namespace Zerra.Reflection
-
 {
     public partial class TypeDetail
     {
@@ -300,7 +299,7 @@ namespace Zerra.Reflection
             return false;
         }
 
-        protected static bool SignatureCompare(string name1, int? parameterCount, Type[]? parameters1, MethodDetail methodDetail2)
+        private static bool SignatureCompare(string name1, int? parameterCount, Type[]? parameters1, MethodDetail methodDetail2)
         {
             if (name1 != methodDetail2.Name)
                 return false;
@@ -326,7 +325,7 @@ namespace Zerra.Reflection
 
             return true;
         }
-        protected static bool SignatureCompare(int? parameterCount, Type[]? parameters1, ConstructorDetail constructorDetail2)
+        private static bool SignatureCompare(int? parameterCount, Type[]? parameters1, ConstructorDetail constructorDetail2)
         {
             if (parameterCount is not null)
             {

@@ -14,6 +14,13 @@ namespace Zerra.Legacy
     {
         private static ILog? instance;
         private static ILog Instance => instance ?? throw new InvalidOperationException("Log instance not set. Please set the Log instance before using.");
+        /// <summary>
+        /// Sets the logging implementation to be used by the application.
+        /// </summary>
+        /// <remarks>Call this method to configure the logging behavior before any logging operations are
+        /// performed. Subsequent log messages will be handled by the specified <paramref name="log"/>
+        /// instance.</remarks>
+        /// <param name="log">The logging instance that provides log message handling. Cannot be null.</param>
         public static void SetLog(ILog log)
         {
             Log.instance = log;

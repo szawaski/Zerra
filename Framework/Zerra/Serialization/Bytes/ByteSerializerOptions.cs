@@ -7,6 +7,8 @@ namespace Zerra.Serialization.Bytes
     /// <summary>
     /// Options for configuring byte serialization and deserialization behavior.
     /// </summary>
+    /// <remarks>Use this class to customize how objects are converted to and from byte arrays, including type handling,
+    /// value handling, and error handling. These options affect both serialization and deserialization processes.</remarks>
     public sealed class ByteSerializerOptions
     {
         /// <summary>

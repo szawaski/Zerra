@@ -59,9 +59,9 @@ namespace Zerra.Encryption
         /// <summary>
         /// Converts a URL-safe base64 string into bytes.
         /// </summary>
-        /// <param name="s">The string to convert.</param>
+        /// <param name="chars">The string to convert.</param>
         /// <returns>The resulting bytes.</returns>
-        /// <exception cref="FormatException"></exception>
+        /// <exception cref="FormatException">Thrown when the string format is invalid.</exception>
         public static byte[] FromBase64UrlString(ReadOnlySpan<char> chars)
         {
             var filteredLength = (chars.Length % 4) switch

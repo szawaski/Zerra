@@ -482,14 +482,6 @@ namespace Zerra.Serialization.Bytes
             }
         }
 
-        /// <summary>
-        /// Deserializes a byte span to an object of the specified type using the default or provided deserialization options.
-        /// </summary>
-        /// <typeparam name="T">The type to deserialize to.</typeparam>
-        /// <param name="bytes">The byte span containing the serialized data. If empty, returns the default value for the type.</param>
-        /// <param name="options">Optional deserialization options. If null, uses default options.</param>
-        /// <returns>The deserialized object, or the default value if the byte span is empty.</returns>
-        /// <exception cref="EndOfStreamException">Thrown if the data is invalid or incomplete.</exception>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Read<T>(ByteConverter<T> converter, ReadOnlySpan<byte> buffer, ref ReadState state, out T? result)
         {
@@ -519,15 +511,7 @@ namespace Zerra.Serialization.Bytes
 #endif
             return reader.Position;
         }
-        /// <summary>
-        /// Deserializes a byte span to an object of the specified type using the default or provided deserialization options.
-        /// </summary>
-        /// <param name="bytes">The byte span containing the serialized data. If empty, returns null.</param>
-        /// <param name="type">The type to deserialize to. Must not be null.</param>
-        /// <param name="options">Optional deserialization options. If null, uses default options.</param>
-        /// <returns>The deserialized object, or null if the byte span is empty.</returns>
-        /// <exception cref="ArgumentNullException">Thrown if type is null.</exception>
-        /// <exception cref="EndOfStreamException">Thrown if the data is invalid or incomplete.</exception>
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int ReadBoxed(ByteConverter converter, ReadOnlySpan<byte> buffer, ref ReadState state, out object? result)
         {

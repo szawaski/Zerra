@@ -9,8 +9,8 @@ namespace Zerra
 {
     /// <summary>
     /// A mapping of members and child members of an object to be used in a process.
-    /// Members indiciated are strings and not enforced to match the object.  Use the generic <see cref="Graph{T}" /> to help enforce correct naming.
-    /// Specific graphs for different object instances can be also be mapped within a graph.
+    /// Members indicated are strings and not enforced to match the object. Use the generic <see cref="Graph{T}"/> to help enforce correct naming.
+    /// Specific graphs for different object instances can also be mapped within a graph.
     /// </summary>
     public class Graph
     {
@@ -21,12 +21,12 @@ namespace Zerra
         private Dictionary<object, Graph>? instanceGraphs;
 
         /// <summary>
-        /// All members that were explicity added and not removed.
+        /// Gets all members that were explicitly added and not removed.
         /// </summary>
         public IEnumerable<string> ExplicitMembers => addedMembers is null ? Array.Empty<string>() : (removedMembers is null ? addedMembers : addedMembers.Where(x => !removedMembers.Contains(x)));
 
         /// <summary>
-        /// All members are included unless explicity removed.
+        /// Gets or sets a value indicating whether all members are included unless explicitly removed.
         /// </summary>
         public bool IncludeAllMembers
         {
@@ -40,10 +40,13 @@ namespace Zerra
 
         //private static readonly TypeDetail graphTType = typeof(Graph<>).GetTypeDetail();
 
+        /// <summary>
+        /// Stores the signature string associated with the current instance.
+        /// </summary>
         [NonSerialized]
         protected string? signature = null;
         /// <summary>
-        /// The unique signature of the graph used for comparing graphs.
+        /// Gets the unique signature of the graph used for comparing graphs.
         /// </summary>
         public string Signature
         {
@@ -58,9 +61,9 @@ namespace Zerra
         }
 
         /// <summary>
-        /// Creates a Graph copy from another graph.
+        /// Initializes a new instance of the <see cref="Graph"/> class as a copy of another graph.
         /// </summary>
-        /// <param name="graph">The graph to copy.</param>
+        /// <param name="graph">The graph to copy, or null to create an empty signature.</param>
         public Graph(Graph? graph)
         {
             if (graph is not null)
@@ -81,36 +84,36 @@ namespace Zerra
         }
 
         /// <summary>
-        /// Creates an empty graph with no members included.
+        /// Initializes a new instance of the <see cref="Graph"/> class with no members included.
         /// </summary>
         public Graph()
         {
             this.signature = "";
         }
         /// <summary>
-        /// Creates an empty graph with the to option to include all memebers.
+        /// Initializes a new instance of the <see cref="Graph"/> class with the option to include all members.
         /// </summary>
-        /// <param name="includeAllMembers">Indiciates if all members should be included.</param>
+        /// <param name="includeAllMembers">Indicates if all members should be included.</param>
         public Graph(bool includeAllMembers)
         {
             this.includeAllMembers = true;
             this.signature = "A";
         }
         /// <summary>
-        /// Creates a graph with the specified members included.
+        /// Initializes a new instance of the <see cref="Graph"/> class with the specified members included.
         /// </summary>
-        /// <param name="members">The members to include</param>
+        /// <param name="members">The members to include.</param>
         public Graph(params string[] members) : this(false, members) { }
         /// <summary>
-        /// Creates a graph with the specified members included.
+        /// Initializes a new instance of the <see cref="Graph"/> class with the specified members included.
         /// </summary>
-        /// <param name="members">The members to include</param>
+        /// <param name="members">The members to include.</param>
         public Graph(IEnumerable<string>? members) : this(false, members) { }
         /// <summary>
-        /// Creates a graph with the specified members included.
+        /// Initializes a new instance of the <see cref="Graph"/> class with the specified members included.
         /// </summary>
-        /// <param name="includeAllMembers">Indiciates if all members should be included.</param>
-        /// <param name="members">The members to include</param>
+        /// <param name="includeAllMembers">Indicates if all members should be included.</param>
+        /// <param name="members">The members to include.</param>
         public Graph(bool includeAllMembers, params string[] members)
         {
             this.includeAllMembers = includeAllMembers;
@@ -119,10 +122,10 @@ namespace Zerra
                 AddMembers(members);
         }
         /// <summary>
-        /// Creates a graph with the specified members included.
+        /// Initializes a new instance of the <see cref="Graph"/> class with the specified members included.
         /// </summary>
-        /// <param name="includeAllMembers">Indiciates if all members should be included.</param>
-        /// <param name="members">The members to include</param>
+        /// <param name="includeAllMembers">Indicates if all members should be included.</param>
+        /// <param name="members">The members to include.</param>
         public Graph(bool includeAllMembers, IEnumerable<string>? members)
         {
             this.includeAllMembers = includeAllMembers;
@@ -132,7 +135,7 @@ namespace Zerra
         }
 
         /// <summary>
-        /// Indicates that the graph has no members included.
+        /// Gets a value indicating whether the graph has no members included.
         /// </summary>
         public bool IsEmpty => !includeAllMembers && (addedMembers?.Count ?? 0) == 0 && (childGraphs?.Count ?? 0) == 0;
 
@@ -148,9 +151,9 @@ namespace Zerra
             return this.Signature == objCasted.Signature;
         }
         /// <summary>
-        /// Gets the Hash Code for a graph.  Graphs with instances cannot use Hash Codes.
+        /// Gets the hash code for a graph. Graphs with instances cannot use hash codes.
         /// </summary>
-        /// <returns>The Hash Code of the graph.</returns>
+        /// <returns>The hash code of the graph.</returns>
         public override int GetHashCode()
         {
             return this.Signature.GetHashCode();
@@ -246,12 +249,12 @@ namespace Zerra
         }
 
         /// <summary>
-        /// Removes members from the graph. This overrides IncludeAllMembers.
+        /// Removes members from the graph. This overrides <see cref="IncludeAllMembers"/>.
         /// </summary>
         /// <param name="members">The members to remove.</param>
         public void RemoveMembers(params string[] members) => RemoveMembers((IEnumerable<string>)members);
         /// <summary>
-        /// Removes members from the graph. This overrides IncludeAllMembers.
+        /// Removes members from the graph. This overrides <see cref="IncludeAllMembers"/>.
         /// </summary>
         /// <param name="members">The members to remove.</param>
         public void RemoveMembers(IEnumerable<string> members)
@@ -264,7 +267,7 @@ namespace Zerra
         }
 
         /// <summary>
-        /// Adds a members to include in the graph.
+        /// Adds a member to include in the graph.
         /// </summary>
         /// <param name="member">The member to include.</param>
         public void AddMember(string member)
@@ -287,7 +290,7 @@ namespace Zerra
 
         }
         /// <summary>
-        /// Removes a member from the graph. This overrides IncludeAllMembers.
+        /// Removes a member from the graph. This overrides <see cref="IncludeAllMembers"/>.
         /// </summary>
         /// <param name="member">The member to remove.</param>
         public void RemoveMember(string member)
@@ -303,7 +306,7 @@ namespace Zerra
             signature = null;
         }
         /// <summary>
-        /// Adds a child graph. If there is an existing child graph the members of the child will be merged.
+        /// Adds a child graph. If there is an existing child graph, the members of the child will be merged.
         /// </summary>
         /// <param name="member">The member of the child graph.</param>
         /// <param name="graph">The child graph for the member.</param>
@@ -344,7 +347,7 @@ namespace Zerra
             signature = null;
         }
         /// <summary>
-        /// Adds a child graph. If there is an existing child graph it will be replaced.
+        /// Adds or replaces a child graph.
         /// </summary>
         /// <param name="member">The member of the child graph.</param>
         /// <param name="graph">The child graph for the member.</param>
@@ -365,7 +368,7 @@ namespace Zerra
         }
 
         /// <summary>
-        /// Adds a child graph that is specific for an instance. This graph no longer able to be compared with other graphs.
+        /// Adds a child graph that is specific to an instance. After this is called, the graph can no longer be compared with other graphs.
         /// </summary>
         /// <param name="instance">The instance for the graph.</param>
         /// <param name="graph">The graph for the specific instance.</param>
@@ -382,9 +385,9 @@ namespace Zerra
             signature = null;
         }
         /// <summary>
-        /// Removes a child graph that is specific for an instance.
+        /// Removes the child graph that is specific to an instance.
         /// </summary>
-        /// <param name="instance">The instance for whoms graph should be removed.</param>
+        /// <param name="instance">The instance for which the graph should be removed.</param>
         public void RemoveInstanceGraph(object instance)
         {
             if (instanceGraphs is null)
@@ -394,10 +397,10 @@ namespace Zerra
         }
 
         /// <summary>
-        /// Indicates if the graph includes a member
+        /// Determines whether the graph includes a member.
         /// </summary>
-        /// <param name="member">The member to see if it is included.</param>
-        /// <returns>True if the graph has the member; otherwise, False.</returns>
+        /// <param name="member">The member to check.</param>
+        /// <returns>True if the graph has the member; otherwise false.</returns>
         public bool HasMember(string member)
         {
             return (includeAllMembers && (removedMembers is null || !removedMembers.Contains(member))) || (addedMembers is not null && addedMembers.Contains(member)) || (childGraphs is not null && childGraphs.ContainsKey(member));
@@ -407,7 +410,7 @@ namespace Zerra
         /// Returns the child graph of a member if the child graph exists.
         /// </summary>
         /// <param name="member">The member for the child graph.</param>
-        /// <returns>The child graph of the member if it exists; otherwise, null.</returns>
+        /// <returns>The child graph of the member if it exists; otherwise null.</returns>
         public Graph? GetChildGraph(string member)
         {
             if (childGraphs is null || childGraphs.Count == 0)
@@ -437,7 +440,7 @@ namespace Zerra
         /// </summary>
         /// <typeparam name="TGraph">The generic type of the child graph.</typeparam>
         /// <param name="member">The member for the child graph.</param>
-        /// <returns>The child graph of the member if it exists; otherwise, null.</returns>
+        /// <returns>The child graph of the member if it exists; otherwise null.</returns>
         public Graph<TGraph>? GetChildGraph<TGraph>(string member)
         {
             if (childGraphs is null || childGraphs.Count == 0)
@@ -450,9 +453,9 @@ namespace Zerra
         }
 
         /// <summary>
-        /// Returns the graph specific for an instance. If there is none, this graph itself will be returned.
+        /// Returns the graph specific to an instance. If there is none, this graph itself will be returned.
         /// </summary>
-        /// <param name="instance">The instance for whoms graph should be returned.</param>
+        /// <param name="instance">The instance for which the graph should be returned.</param>
         /// <returns>The graph for the instance.</returns>
         public Graph GetInstanceGraph(object instance)
         {
@@ -461,11 +464,11 @@ namespace Zerra
             return this;
         }
         /// <summary>
-        /// Returns the child graph specific for an instance. If there is none, the containing child graph will be returned.
+        /// Returns the child graph specific to an instance. If there is none, the containing child graph will be returned.
         /// </summary>
         /// <param name="member">The member for the child graph.</param>
-        /// <param name="instance">The instance for whoms graph should be returned.</param>
-        /// <returns>The child graph for the instance.</returns>
+        /// <param name="instance">The instance for which the graph should be returned.</param>
+        /// <returns>The child graph for the instance, or null if the child graph does not exist.</returns>
         public Graph? GetChildInstanceGraph(string member, object instance)
         {
             if (childGraphs is null || childGraphs.Count == 0)
@@ -498,12 +501,12 @@ namespace Zerra
         //    return Convert(nonGenericGraph, type);
         //}
         /// <summary>
-        /// Returns the generic child graph specific for an instance. If there is none, the containing child graph will be returned.
+        /// Returns the generic child graph specific to an instance. If there is none, the containing child graph will be returned.
         /// </summary>
         /// <typeparam name="TGraph">The generic type of the child graph.</typeparam>
         /// <param name="member">The member for the child graph.</param>
-        /// <param name="instance">The instance for whoms graph should be returned.</param>
-        /// <returns>The generic child graph for the instance.</returns>
+        /// <param name="instance">The instance for which the graph should be returned.</param>
+        /// <returns>The generic child graph for the instance, or null if the child graph does not exist.</returns>
         public Graph<TGraph>? GetChildInstanceGraph<TGraph>(string member, object instance)
         {
             if (childGraphs is null || childGraphs.Count == 0)
@@ -587,9 +590,9 @@ namespace Zerra
         }
 
         /// <summary>
-        /// If the graph members are directed an object type, this returns that type.
+        /// If the graph members are directed to an object type, this returns that type.
         /// </summary>
-        /// <returns>The object type to which the graph members are directed.</returns>
+        /// <returns>The object type to which the graph members are directed, or null if not applicable.</returns>
         protected virtual Type? GetModelType() => null;
 
         internal static Graph? InternalGetChildGraph(Graph graph, MemberInfo member, bool canCreate)
@@ -625,5 +628,4 @@ namespace Zerra
 
             return childGraph;
         }
-    }
-}
+    }}
