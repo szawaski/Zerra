@@ -75,6 +75,7 @@ namespace Zerra.CQRS.Network
 
                 var buffer = bufferOwner.AsMemory();
 
+                var requireNewConnection = false;
             newconnection:
                 try
                 {
@@ -82,9 +83,9 @@ namespace Zerra.CQRS.Network
                     var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, null, data.ProviderType, contentType, authHeaders);
 
 #if NETSTANDARD2_0
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength, cancellationToken);
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength, requireNewConnection, cancellationToken);
 #else
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength), cancellationToken);
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength), requireNewConnection, cancellationToken);
 #endif
 
                     requestBodyStream = new HttpProtocolBodyStream(null, stream, null, true);
@@ -237,6 +238,7 @@ namespace Zerra.CQRS.Network
                             {
                                 _ = Log.ErrorAsync(ex);
                                 stream = null;
+                                requireNewConnection = true;
                                 goto newconnection;
                             }
                         }
@@ -289,6 +291,7 @@ namespace Zerra.CQRS.Network
 
                 var buffer = bufferOwner.AsMemory();
 
+                var requireNewConnection = false;
             newconnection:
                 try
                 {
@@ -296,9 +299,9 @@ namespace Zerra.CQRS.Network
                     var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, null, data.ProviderType, contentType, authHeaders);
 
 #if NETSTANDARD2_0
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength, cancellationToken);
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength, requireNewConnection, cancellationToken);
 #else
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength), cancellationToken);
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength), requireNewConnection, cancellationToken);
 #endif
 
                     requestBodyStream = new HttpProtocolBodyStream(null, stream, null, true);
@@ -440,6 +443,7 @@ namespace Zerra.CQRS.Network
                             {
                                 _ = Log.ErrorAsync(ex);
                                 stream = null;
+                                requireNewConnection = true;
                                 goto newconnection;
                             }
                         }
@@ -491,6 +495,7 @@ namespace Zerra.CQRS.Network
 
                 var buffer = bufferOwner.AsMemory();
 
+                var requireNewConnection = false;
             newconnection:
                 try
                 {
@@ -498,9 +503,9 @@ namespace Zerra.CQRS.Network
                     var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, null, data.ProviderType, contentType, authHeaders);
 
 #if NETSTANDARD2_0
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength, cancellationToken);
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength, requireNewConnection, cancellationToken);
 #else
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength), cancellationToken);
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength), requireNewConnection, cancellationToken);
 #endif
 
                     requestBodyStream = new HttpProtocolBodyStream(null, stream, null, true);
@@ -651,6 +656,7 @@ namespace Zerra.CQRS.Network
                             {
                                 _ = Log.ErrorAsync(ex);
                                 stream = null;
+                                requireNewConnection = true;
                                 goto newconnection;
                             }
                         }
@@ -703,6 +709,7 @@ namespace Zerra.CQRS.Network
 
                 var buffer = bufferOwner.AsMemory();
 
+                var requireNewConnection = false;
             newconnection:
                 try
                 {
@@ -710,9 +717,9 @@ namespace Zerra.CQRS.Network
                     var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, null, data.ProviderType, contentType, authHeaders);
 
 #if NETSTANDARD2_0
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength, cancellationToken);
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength, requireNewConnection, cancellationToken);
 #else
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength), cancellationToken);
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength), requireNewConnection, cancellationToken);
 #endif
 
                     requestBodyStream = new HttpProtocolBodyStream(null, stream, null, true);
@@ -854,6 +861,7 @@ namespace Zerra.CQRS.Network
                             {
                                 _ = Log.ErrorAsync(ex);
                                 stream = null;
+                                requireNewConnection = true;
                                 goto newconnection;
                             }
                         }
