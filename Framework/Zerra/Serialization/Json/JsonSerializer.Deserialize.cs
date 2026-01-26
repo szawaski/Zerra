@@ -180,7 +180,17 @@ namespace Zerra.Serialization.Json
                     if (state.SizeNeeded == 0)
                     {
                         if (!state.IsFinalBlock)
-                            throw new EndOfStreamException();
+                        {
+                            BufferShift(buffer, bytesUsed);
+                            length -= bytesUsed;
+#if NETSTANDARD2_0
+                            read = stream.Read(buffer, length, buffer.Length - length);
+#else
+                            read = stream.Read(buffer.AsSpan(length));
+#endif
+                            if (read == 0)
+                                throw new EndOfStreamException();
+                        }
                         break;
                     }
 
@@ -275,12 +285,19 @@ namespace Zerra.Serialization.Json
                     if (state.SizeNeeded == 0)
                     {
                         if (!state.IsFinalBlock)
-                            throw new EndOfStreamException();
+                        {
+                            BufferShift(buffer, bytesUsed);
+                            length -= bytesUsed;
+#if NETSTANDARD2_0
+                            read = stream.Read(buffer, length, buffer.Length - length);
+#else
+                            read = stream.Read(buffer.AsSpan(length));
+#endif
+                            if (read == 0)
+                                throw new EndOfStreamException();
+                        }
                         break;
                     }
-
-                    if (state.IsFinalBlock)
-                        throw new EndOfStreamException();
 
                     if (state.IsFinalBlock)
                         throw new EndOfStreamException();
@@ -372,12 +389,19 @@ namespace Zerra.Serialization.Json
                     if (state.SizeNeeded == 0)
                     {
                         if (!state.IsFinalBlock)
-                            throw new EndOfStreamException();
+                        {
+                            BufferShift(buffer, bytesUsed);
+                            length -= bytesUsed;
+#if NETSTANDARD2_0
+                            read = await stream.ReadAsync(buffer, length, buffer.Length - length, cancellationToken);
+#else
+                            read = await stream.ReadAsync(buffer.AsMemory(length), cancellationToken);
+#endif
+                            if (read == 0)
+                                throw new EndOfStreamException();
+                        }
                         break;
                     }
-
-                    if (state.IsFinalBlock)
-                        throw new EndOfStreamException();
 
                     if (state.IsFinalBlock)
                         throw new EndOfStreamException();
@@ -470,12 +494,19 @@ namespace Zerra.Serialization.Json
                     if (state.SizeNeeded == 0)
                     {
                         if (!state.IsFinalBlock)
-                            throw new EndOfStreamException();
+                        {
+                            BufferShift(buffer, bytesUsed);
+                            length -= bytesUsed;
+#if NETSTANDARD2_0
+                            read = await stream.ReadAsync(buffer, length, buffer.Length - length, cancellationToken);
+#else
+                            read = await stream.ReadAsync(buffer.AsMemory(length), cancellationToken);
+#endif
+                            if (read == 0)
+                                throw new EndOfStreamException();
+                        }
                         break;
                     }
-
-                    if (state.IsFinalBlock)
-                        throw new EndOfStreamException();
 
                     if (state.IsFinalBlock)
                         throw new EndOfStreamException();

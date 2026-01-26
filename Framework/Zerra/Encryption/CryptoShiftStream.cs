@@ -398,6 +398,9 @@ namespace Zerra.Encryption
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private unsafe void Shift(bool deshift, Span<byte> buffer, int offset, int count, Span<byte> key)
         {
+            if (count == 0)
+                return;
+
             fixed (byte* pBuffer = &buffer[offset], pKey = key)
             {
                 if (!deshift)
