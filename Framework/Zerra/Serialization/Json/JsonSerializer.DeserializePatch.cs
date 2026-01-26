@@ -242,7 +242,18 @@ namespace Zerra.Serialization.Json
                     if (state.SizeNeeded == 0)
                     {
                         if (!state.IsFinalBlock)
-                            throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
+                        {
+
+                            BufferShift(buffer, bytesUsed);
+                            length -= bytesUsed;
+#if NETSTANDARD2_0
+                            read = stream.Read(buffer, length, buffer.Length - length);
+#else
+                            read = stream.Read(buffer.AsSpan(length));
+#endif
+                            if (read != 0)
+                                throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
+                        }
                         break;
                     }
 
@@ -348,12 +359,20 @@ namespace Zerra.Serialization.Json
                     if (state.SizeNeeded == 0)
                     {
                         if (!state.IsFinalBlock)
-                            throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
+                        {
+
+                            BufferShift(buffer, bytesUsed);
+                            length -= bytesUsed;
+#if NETSTANDARD2_0
+                            read = stream.Read(buffer, length, buffer.Length - length);
+#else
+                            read = stream.Read(buffer.AsSpan(length));
+#endif
+                            if (read != 0)
+                                throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
+                        }
                         break;
                     }
-
-                    if (state.IsFinalBlock)
-                        throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
 
                     if (state.IsFinalBlock)
                         throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
@@ -457,12 +476,20 @@ namespace Zerra.Serialization.Json
                     if (state.SizeNeeded == 0)
                     {
                         if (!state.IsFinalBlock)
-                            throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
+                        {
+
+                            BufferShift(buffer, bytesUsed);
+                            length -= bytesUsed;
+#if NETSTANDARD2_0
+                            read = await stream.ReadAsync(buffer, length, buffer.Length - length, cancellationToken);
+#else
+                            read = await stream.ReadAsync(buffer.AsMemory(length), cancellationToken);
+#endif
+                            if (read != 0)
+                                throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
+                        }
                         break;
                     }
-
-                    if (state.IsFinalBlock)
-                        throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
 
                     if (state.IsFinalBlock)
                         throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
@@ -567,12 +594,20 @@ namespace Zerra.Serialization.Json
                     if (state.SizeNeeded == 0)
                     {
                         if (!state.IsFinalBlock)
-                            throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
+                        {
+
+                            BufferShift(buffer, bytesUsed);
+                            length -= bytesUsed;
+#if NETSTANDARD2_0
+                            read = await stream.ReadAsync(buffer, length, buffer.Length - length, cancellationToken);
+#else
+                            read = await stream.ReadAsync(buffer.AsMemory(length), cancellationToken);
+#endif
+                            if (read != 0)
+                                throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
+                        }
                         break;
                     }
-
-                    if (state.IsFinalBlock)
-                        throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
 
                     if (state.IsFinalBlock)
                         throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");

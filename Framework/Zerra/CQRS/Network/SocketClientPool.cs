@@ -41,7 +41,7 @@ namespace Zerra.CQRS.Network
         private readonly ConcurrentFactoryDictionary<HostAndPort, SemaphoreSlim> throttleByHostAndPort = new();
 
 #if NETSTANDARD2_0
-        public async Task<SocketPoolStream> BeginStreamAsync(string host, int port, ProtocolType protocol, byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        public async Task<SocketPoolStream> BeginStreamAsync(string host, int port, ProtocolType protocol, byte[] buffer, int offset, int count, bool requireNewConnection, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -55,36 +55,53 @@ namespace Zerra.CQRS.Network
             try
             {
                 SocketPoolStream? stream = null;
-                while (pool.TryDequeue(out var holder))
-                {
-                    lock (holder)
-                    {
-                        if (holder.Used)
-                            continue;
-                        holder.MarkUsed();
-                    }
-                    if (IsConnected(holder.Socket))
-                    {
-                        stream = new SocketPoolStream(holder.Socket, hostAndPort, ReturnSocket, false);
-                        try
-                        {
-#if !NETSTANDARD2_0
-                        await stream.WriteAsync(buffer, cancellationToken);
-#else
-                            await stream.WriteAsync(buffer, offset, count, cancellationToken);
-#endif
-                            noRelease = true;
-                            return stream;
-                        }
-                        catch (Exception ex)
-                        {
-                            if (ex.GetBaseException() is not SocketException)
-                                throw;
 
-                            stream.Dispose();
+                if (!requireNewConnection)
+                {
+                    while (pool.TryDequeue(out var holder))
+                    {
+                        lock (holder)
+                        {
+                            if (holder.Used)
+                                continue;
+                            holder.MarkUsed();
+                        }
+                        if (IsConnected(holder.Socket))
+                        {
+                            stream = new SocketPoolStream(holder.Socket, hostAndPort, ReturnSocket, false);
+                            try
+                            {
+#if !NETSTANDARD2_0
+                            await stream.WriteAsync(buffer, cancellationToken);
+#else
+                                await stream.WriteAsync(buffer, offset, count, cancellationToken);
+#endif
+                                noRelease = true;
+                                return stream;
+                            }
+                            catch (Exception ex)
+                            {
+                                if (ex.GetBaseException() is not SocketException)
+                                    throw;
+
+                                stream.Dispose();
+                            }
+                        }
+                        holder.Socket.Dispose();
+                    }
+                }
+                else
+                {
+                    if (pool.Count == maxConnectionsPerHost)
+                    {
+                        while (pool.TryDequeue(out var holder))
+                        {
+                            if (holder.Used)
+                                continue;
+                            holder.Socket.Dispose();
+                            break;
                         }
                     }
-                    holder.Socket.Dispose();
                 }
 
 #if NET6_0_OR_GREATER
@@ -143,7 +160,7 @@ namespace Zerra.CQRS.Network
             }
         }
 #else
-        public async Task<SocketPoolStream> BeginStreamAsync(string host, int port, ProtocolType protocol, Memory<byte> buffer, CancellationToken cancellationToken)
+        public async Task<SocketPoolStream> BeginStreamAsync(string host, int port, ProtocolType protocol, Memory<byte> buffer, bool requireNewConnection, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -157,34 +174,51 @@ namespace Zerra.CQRS.Network
             try
             {
                 SocketPoolStream? stream = null;
-                while (pool.TryDequeue(out var holder))
+
+                if (!requireNewConnection)
                 {
-                    lock (holder)
+                    while (pool.TryDequeue(out var holder))
                     {
-                        if (holder.Used)
-                            continue;
-                        holder.MarkUsed();
+                        lock (holder)
+                        {
+                            if (holder.Used)
+                                continue;
+                            holder.MarkUsed();
+                        }
+                        if (IsConnected(holder.Socket))
+                        {
+                            stream = new SocketPoolStream(holder.Socket, hostAndPort, ReturnSocket, false);
+
+                            try
+                            {
+                                await stream.WriteAsync(buffer, cancellationToken);
+
+                                noRelease = true;
+                                return stream;
+                            }
+                            catch (Exception ex)
+                            {
+                                if (ex.GetBaseException() is not SocketException)
+                                    throw;
+
+                                stream.Dispose();
+                            }
+                        }
+                        holder.Socket.Dispose();
                     }
-                    if (IsConnected(holder.Socket))
+                }
+                else
+                {
+                    if (pool.Count == maxConnectionsPerHost)
                     {
-                        stream = new SocketPoolStream(holder.Socket, hostAndPort, ReturnSocket, false);
-
-                        try
+                        while (pool.TryDequeue(out var holder))
                         {
-                            await stream.WriteAsync(buffer, cancellationToken);
-
-                            noRelease = true;
-                            return stream;
-                        }
-                        catch (Exception ex)
-                        {
-                            if (ex.GetBaseException() is not SocketException)
-                                throw;
-
-                            stream.Dispose();
+                            if (holder.Used)
+                                continue;
+                            holder.Socket.Dispose();
+                            break;
                         }
                     }
-                    holder.Socket.Dispose();
                 }
 
 #if NET6_0_OR_GREATER

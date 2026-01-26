@@ -58,7 +58,7 @@ namespace Zerra.Test.CQRS.Network
 
             try
             {
-                var stream = await pool.BeginStreamAsync("localhost", 80, ProtocolType.Tcp, buffer.AsMemory(), CancellationToken.None);
+                var stream = await pool.BeginStreamAsync("localhost", 80, ProtocolType.Tcp, buffer.AsMemory(), false, CancellationToken.None);
 
                 Assert.NotNull(stream);
                 stream.Dispose();
@@ -78,7 +78,7 @@ namespace Zerra.Test.CQRS.Network
             cts.Cancel();
 
             await Assert.ThrowsAsync<OperationCanceledException>(() => 
-                pool.BeginStreamAsync("localhost", 80, ProtocolType.Tcp, buffer.AsMemory(), cts.Token));
+                pool.BeginStreamAsync("localhost", 80, ProtocolType.Tcp, buffer.AsMemory(), false, cts.Token));
         }
 
         [Fact]
@@ -88,7 +88,7 @@ namespace Zerra.Test.CQRS.Network
             var buffer = new byte[] { 1, 2, 3 };
 
             await Assert.ThrowsAnyAsync<SocketException>(() => 
-                pool.BeginStreamAsync("invalid.host.that.does.not.exist.example", 9999, ProtocolType.Tcp, buffer.AsMemory(), CancellationToken.None));
+                pool.BeginStreamAsync("invalid.host.that.does.not.exist.example", 9999, ProtocolType.Tcp, buffer.AsMemory(), false, CancellationToken.None));
         }
 
         [Fact]
@@ -99,7 +99,7 @@ namespace Zerra.Test.CQRS.Network
 
             try
             {
-                var stream = await pool.BeginStreamAsync("localhost", 80, ProtocolType.Tcp, buffer.AsMemory(), CancellationToken.None);
+                var stream = await pool.BeginStreamAsync("localhost", 80, ProtocolType.Tcp, buffer.AsMemory(), false, CancellationToken.None);
                 stream.Dispose();
             }
             catch (ConnectionFailedException)
@@ -172,7 +172,7 @@ namespace Zerra.Test.CQRS.Network
 
             // Attempt to connect to localhost on a port likely not listening
             await Assert.ThrowsAsync<ConnectionFailedException>(() => 
-                pool.BeginStreamAsync("127.0.0.1", 54321, ProtocolType.Tcp, buffer.AsMemory(), CancellationToken.None));
+                pool.BeginStreamAsync("127.0.0.1", 54321, ProtocolType.Tcp, buffer.AsMemory(), false, CancellationToken.None));
         }
 
         [Fact]
@@ -183,7 +183,7 @@ namespace Zerra.Test.CQRS.Network
 
             // Connect to a port unlikely to have a service
             var exception = await Assert.ThrowsAsync<ConnectionFailedException>(() => 
-                pool.BeginStreamAsync("localhost", 1, ProtocolType.Tcp, buffer.AsMemory(), CancellationToken.None));
+                pool.BeginStreamAsync("localhost", 1, ProtocolType.Tcp, buffer.AsMemory(), false, CancellationToken.None));
 
             Assert.NotNull(exception);
         }
@@ -208,7 +208,7 @@ namespace Zerra.Test.CQRS.Network
 
             try
             {
-                var stream = await pool.BeginStreamAsync("localhost", 80, ProtocolType.Tcp, buffer.AsMemory(), CancellationToken.None);
+                var stream = await pool.BeginStreamAsync("localhost", 80, ProtocolType.Tcp, buffer.AsMemory(), false, CancellationToken.None);
                 stream.Dispose();
             }
             catch (ConnectionFailedException)

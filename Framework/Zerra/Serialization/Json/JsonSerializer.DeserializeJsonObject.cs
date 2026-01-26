@@ -157,7 +157,22 @@ namespace Zerra.Serialization.Json
                     var bytesUsed = Read(buffer.AsSpan().Slice(0, read), ref state, out result);
 
                     if (state.SizeNeeded == 0)
+                    {
+                        if (!state.IsFinalBlock)
+                        {
+
+                            BufferShift(buffer, bytesUsed);
+                            length -= bytesUsed;
+#if NETSTANDARD2_0
+                            read = stream.Read(buffer, position, buffer.Length - position);
+#else
+                            read = stream.Read(buffer.AsSpan(position));
+#endif
+                            if (read != 0)
+                                throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
+                        }
                         break;
+                    }
 
                     if (state.IsFinalBlock)
                         throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
@@ -259,16 +274,31 @@ namespace Zerra.Serialization.Json
 
                 for (; ; )
                 {
-                    var usedBytes = Read(buffer.AsSpan().Slice(0, length), ref state, out result);
+                    var bytesUsed = Read(buffer.AsSpan().Slice(0, length), ref state, out result);
 
                     if (state.SizeNeeded == 0)
+                    {
+                        if (!state.IsFinalBlock)
+                        {
+
+                            BufferShift(buffer, bytesUsed);
+                            length -= bytesUsed;
+#if NETSTANDARD2_0
+                            read = stream.Read(buffer, position, buffer.Length - position);
+#else
+                            read = stream.Read(buffer.AsSpan(position));
+#endif
+                            if (read != 0)
+                                throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
+                        }
                         break;
+                    }
 
                     if (state.IsFinalBlock)
                         throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
 
-                    Buffer.BlockCopy(buffer, usedBytes, buffer, 0, length - usedBytes);
-                    position = length - usedBytes;
+                    Buffer.BlockCopy(buffer, bytesUsed, buffer, 0, length - bytesUsed);
+                    position = length - bytesUsed;
 
                     if (position + state.SizeNeeded > buffer.Length)
                         ArrayPoolHelper<byte>.Grow(ref buffer, position + state.SizeNeeded);
