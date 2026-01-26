@@ -21,7 +21,7 @@ Zerra.Web.CheckBoxList
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <LangVersion>14.0</LangVersion>
-        <Version>5.2.1</Version>
+        <Version>5.2.2</Version>
     </PropertyGroup>
 
     <ItemGroup>
