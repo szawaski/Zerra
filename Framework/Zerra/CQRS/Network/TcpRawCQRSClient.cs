@@ -137,6 +137,7 @@ namespace Zerra.CQRS.Network
                             else
                             {
                                 stream = null;
+                                requireNewConnection = true;
                                 goto newconnection;
                             }
                         }
@@ -358,6 +359,7 @@ namespace Zerra.CQRS.Network
                             else
                             {
                                 stream = null;
+                                requireNewConnection = true;
                                 goto newconnection;
                             }
                         }
@@ -561,6 +563,7 @@ namespace Zerra.CQRS.Network
                             else
                             {
                                 stream = null;
+                                requireNewConnection = true;
                                 goto newconnection;
                             }
                         }
@@ -774,6 +777,7 @@ namespace Zerra.CQRS.Network
                             else
                             {
                                 stream = null;
+                                requireNewConnection = true;
                                 goto newconnection;
                             }
                         }

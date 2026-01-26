@@ -93,8 +93,13 @@ namespace Zerra.CQRS.Network
                 {
                     if (pool.Count == maxConnectionsPerHost)
                     {
-                        if (pool.TryDequeue(out var holder))
+                        while (pool.TryDequeue(out var holder))
+                        {
+                            if (holder.Used)
+                                continue;
                             holder.Socket.Dispose();
+                            break;
+                        }
                     }
                 }
 
@@ -192,8 +197,13 @@ namespace Zerra.CQRS.Network
                 {
                     if (pool.Count == maxConnectionsPerHost)
                     {
-                        if (pool.TryDequeue(out var holder))
+                        while (pool.TryDequeue(out var holder))
+                        {
+                            if (holder.Used)
+                                continue;
                             holder.Socket.Dispose();
+                            break;
+                        }
                     }
                 }
 
