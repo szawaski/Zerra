@@ -16,7 +16,7 @@ namespace Zerra.CQRS
         public IBus Bus => Context.Bus;
 
         /// <inheritdoc />
-        public ILog? Log => Context.Log;
+        public ILogger? Log => Context.Log;
 
         private BusContext? context = null;
         /// <summary>

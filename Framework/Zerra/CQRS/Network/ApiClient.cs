@@ -29,7 +29,7 @@ namespace Zerra.CQRS.Network
         /// <param name="log">An optional logger for diagnostic messages.</param>
         /// <param name="authorizer">An optional authorizer for adding headers needed for the server to validate requests.</param>
         /// <param name="route">An optional route argument to append to the base endpoint URL.</param>
-        public ApiClient(string endpoint, ISerializer serializer, ILog? log, ICqrsAuthorizer? authorizer, string? route = null) : base(endpoint, log)
+        public ApiClient(string endpoint, ISerializer serializer, ILogger? log, ICqrsAuthorizer? authorizer, string? route = null) : base(endpoint, log)
         {
             this.serializer = serializer;
             this.authorizer = authorizer;

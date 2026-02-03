@@ -22,7 +22,7 @@ namespace Zerra.Test.CQRS
 
         private class MockBus : IBus
         {
-            public ILog Log => null;
+            public ILogger Log => null;
 
             public string ServiceName => "Mock";
 

@@ -9,11 +9,11 @@ namespace Zerra.Legacy
     /// <summary>
     /// Support for legacy version
     /// </summary>
-    [Obsolete("Use Zerra.Logging.ILog interface with dependency injection instead")]
+    [Obsolete("Use Zerra.Logging.ILogger interface with dependency injection instead")]
     public static class Log
     {
-        private static ILog? instance;
-        private static ILog Instance => instance ?? throw new InvalidOperationException("Log instance not set. Please set the Log instance before using.");
+        private static ILogger? instance;
+        private static ILogger Instance => instance ?? throw new InvalidOperationException("Log instance not set. Please set the Log instance before using.");
         /// <summary>
         /// Sets the logging implementation to be used by the application.
         /// </summary>
@@ -21,7 +21,7 @@ namespace Zerra.Legacy
         /// performed. Subsequent log messages will be handled by the specified <paramref name="log"/>
         /// instance.</remarks>
         /// <param name="log">The logging instance that provides log message handling. Cannot be null.</param>
-        public static void SetLog(ILog log)
+        public static void SetLog(ILogger log)
         {
             Log.instance = log;
         }

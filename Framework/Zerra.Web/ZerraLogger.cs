@@ -15,13 +15,13 @@ namespace Zerra.Web
     /// </remarks>
     public sealed class ZerraLogger : ILogger
     {
-        private readonly Zerra.Logging.ILog log;
+        private readonly Zerra.Logging.ILogger log;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ZerraLogger"/> class.
         /// </summary>
         /// <param name="log">The underlying Zerra logger implementation.</param>
-        public ZerraLogger(Zerra.Logging.ILog log)
+        public ZerraLogger(Zerra.Logging.ILogger log)
         {
             this.log = log;
         }

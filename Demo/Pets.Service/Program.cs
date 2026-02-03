@@ -14,20 +14,21 @@ using Zerra.Serialization.Json;
 Console.WriteLine();
 var timer = Stopwatch.StartNew();
 
-var stuff = NormalJsonModel.Create();
-var json = JsonSerializer.Serialize(stuff);
-var stuff2 = System.Text.Json.JsonSerializer.Deserialize<NormalJsonModel>(json);
-var stuff3 = JsonSerializer.Deserialize<NormalJsonModel>(json);
+//var stuff = NormalJsonModel.Create();
+//var json = JsonSerializer.Serialize(stuff);
+//var stuff2 = System.Text.Json.JsonSerializer.Deserialize<NormalJsonModel>(json);
+//var stuff3 = JsonSerializer.Deserialize<NormalJsonModel>(json);
 
-
+//Setup Components
 ISerializer serializer = new ZerraByteSerializer();
 IEncryptor encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AESwithPrefix);
-ILog log = new Logger();
-IBusLog busLog = new BusLogger();
+ILogger log = new Logger();
+IBusLogger busLog = new BusLogger();
 
 var busServices = new BusServices();
 busServices.AddService<IThing>(new Thing("Hello"));
 
+//Create Server-Side Bus
 IBusSetup busServer = Bus.New("pets-service-server", log, busLog, busServices);
 busServer.AddHandler<IPetsQueryHandler>(new PetsQueryHandler());
 busServer.AddHandler<IPetsCommandHandler>(new PetsCommandHandler());
@@ -35,6 +36,7 @@ var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, log);
 busServer.AddQueryServer<IPetsQueryHandler>(server);
 busServer.AddCommandConsumer<IPetsCommandHandler>(server);
 
+//Create Client-Side Bus
 IBusSetup busClient = Bus.New("pets-service-client", log, busLog, busServices);
 var client = new TcpCqrsClient("localhost:9001", serializer, encryptor, log);
 busClient.AddQueryClient<IPetsQueryHandler>(client);
@@ -44,6 +46,8 @@ Console.WriteLine($"Started Bus: {timer.ElapsedMilliseconds} ms");
 Console.WriteLine();
 timer.Restart();
 
+//Run Demo Calls
+//------------------------------------------------------------------------------------
 var species = await busClient.Call<IPetsQueryHandler>().GetSpecies();
 Console.WriteLine($"Call GetSpecies: {timer.ElapsedMilliseconds} ms");
 timer.Restart();

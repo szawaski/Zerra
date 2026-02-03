@@ -39,7 +39,7 @@ namespace Zerra.CQRS
         private static readonly ConcurrentFactoryDictionary<Type, HandlerMetadata> handlerMetadata = new();
 
         private readonly BusContext context;
-        private readonly IBusLog? busLog;
+        private readonly IBusLogger? busLog;
         private readonly CommandCounter commandCounter;
         private readonly TimeSpan? defaultCallTimeout;
         private readonly TimeSpan? defaultDispatchTimeout;
@@ -63,7 +63,7 @@ namespace Zerra.CQRS
         /// <param name="maxConcurrentCommandsPerTopic">Optional maximum concurrent commands per topic; defaults to ProcessorCount * 8.</param>
         /// <param name="maxConcurrentEventsPerTopic">Optional maximum concurrent events per topic; defaults to ProcessorCount * 16.</param>
         /// <returns>A configured bus setup instance ready for handler and producer/consumer registration.</returns>
-        public static IBusSetup New(string service, ILog? log, IBusLog? busLog, BusServices? busServices, int? commandToReceiveUntilExit = null,
+        public static IBusSetup New(string service, ILogger? log, IBusLogger? busLog, BusServices? busServices, int? commandToReceiveUntilExit = null,
             TimeSpan? defaultCallTimeout = null, TimeSpan? defaultDispatchTimeout = null, TimeSpan? defaultDispatchAwaitTimeout = null,
             int? maxConcurrentQueries = null, int? maxConcurrentCommandsPerTopic = null, int? maxConcurrentEventsPerTopic = null)
         {
@@ -74,7 +74,7 @@ namespace Zerra.CQRS
             return bus;
         }
 
-        private Bus(string service, ILog? log, IBusLog? busLog, BusServices? busServices, int? commandToReceiveUntilExit = null,
+        private Bus(string service, ILogger? log, IBusLogger? busLog, BusServices? busServices, int? commandToReceiveUntilExit = null,
             TimeSpan? defaultCallTimeout = null, TimeSpan? defaultDispatchTimeout = null, TimeSpan? defaultDispatchAwaitTimeout = null,
             int? maxConcurrentQueries = null, int? maxConcurrentCommandsPerTopic = null, int? maxConcurrentEventsPerTopic = null)
         {
@@ -1257,7 +1257,7 @@ namespace Zerra.CQRS
         }
 
         /// <inheritdoc />
-        public ILog? Log => context.Log;
+        public ILogger? Log => context.Log;
 
         /// <inheritdoc />
         public string ServiceName => context.ServiceName;

@@ -22,7 +22,7 @@ namespace Zerra.CQRS.RabbitMQ
         private readonly string host;
         private readonly ISerializer serializer;
         private readonly IEncryptor? encryptor;
-        private readonly ILog? log;
+        private readonly ILogger? log;
         private readonly string? environment;
 
         private readonly Dictionary<string, CommandConsumer> commandExchanges;
@@ -47,7 +47,7 @@ namespace Zerra.CQRS.RabbitMQ
         /// <param name="log">Optional logger for diagnostic information and errors.</param>
         /// <param name="environment">Optional environment name to match exchange name prefixes for isolation.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="host"/> is null or empty.</exception>
-        public RabbitMQConsumer(string host, ISerializer serializer, IEncryptor? encryptor, ILog? log, string? environment)
+        public RabbitMQConsumer(string host, ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 

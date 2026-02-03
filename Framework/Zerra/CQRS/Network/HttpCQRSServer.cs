@@ -32,7 +32,7 @@ namespace Zerra.CQRS.Network
         /// <param name="authorizer">Optional authorizer for validating requests.</param>
         /// <param name="allowOrigins">Optional CORS HTTP headers for allowed origins.</param>
         /// <param name="log">Optional logging provider.</param>
-        public HttpCqrsServer(string serverUrl, ISerializer serializer, IEncryptor? encryptor, ICqrsAuthorizer? authorizer, string[]? allowOrigins, ILog? log = null)
+        public HttpCqrsServer(string serverUrl, ISerializer serializer, IEncryptor? encryptor, ICqrsAuthorizer? authorizer, string[]? allowOrigins, ILogger? log = null)
             : base(serverUrl, log)
         {
             this.serializer = serializer;

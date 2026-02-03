@@ -29,7 +29,7 @@ namespace Zerra.CQRS.Network
         /// <param name="serializer">The serializer for request and response data.</param>
         /// <param name="encryptor">Optional encryption provider for encrypting request and response data.</param>
         /// <param name="log">Optional logging provider.</param>
-        public TcpCqrsServer(string serverUrl, ISerializer serializer, IEncryptor? encryptor, ILog? log)
+        public TcpCqrsServer(string serverUrl, ISerializer serializer, IEncryptor? encryptor, ILogger? log)
             : base(serverUrl, log)
         {
             this.serializer = serializer;

@@ -39,7 +39,7 @@ namespace Zerra.Test.CQRS.Network
             public RemoteQueryCallResponse? QueryResponse { get; set; }
             public object? CommandResult { get; set; }
 
-            public ILog Log => null;
+            public ILogger Log => null;
 
             public string ServiceName => "Mock";
 

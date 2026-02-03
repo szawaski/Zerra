@@ -16,7 +16,7 @@ namespace Zerra.CQRS.Network
         /// <summary>
         /// The logging provider.
         /// </summary>
-        protected readonly ILog? log;
+        protected readonly ILogger? log;
         /// <summary>
         /// The URI of the target server.
         /// </summary>
@@ -39,7 +39,7 @@ namespace Zerra.CQRS.Network
         /// </summary>
         /// <param name="serviceUrl">The URL of the server to connect to.</param>
         /// <param name="log">The optional logging provider.</param>
-        public CqrsClientBase(string serviceUrl, ILog? log)
+        public CqrsClientBase(string serviceUrl, ILogger? log)
         {
             if (String.IsNullOrWhiteSpace(serviceUrl))
                 throw new ArgumentNullException(nameof(serviceUrl));

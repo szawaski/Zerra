@@ -57,7 +57,7 @@ namespace Zerra.CQRS.Network
         /// <summary>
         /// The logging provider.
         /// </summary>
-        protected readonly ILog? log;
+        protected readonly ILogger? log;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CqrsServerBase"/> class.
@@ -65,7 +65,7 @@ namespace Zerra.CQRS.Network
         /// </summary>
         /// <param name="serviceUrl">The URL under which the socket will be listening.</param>
         /// <param name="log">The optional logging provider.</param>
-        public CqrsServerBase(string serviceUrl, ILog? log)
+        public CqrsServerBase(string serviceUrl, ILogger? log)
         {
             this.serviceUrl = serviceUrl;
             this.log = log;

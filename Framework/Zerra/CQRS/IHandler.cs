@@ -17,7 +17,7 @@ namespace Zerra.CQRS
         /// Gets the logger instance for recording diagnostic and operational events for this handler.
         /// May be <see langword="null"/> if logging is not configured.
         /// </summary>
-        ILog? Log { get; }
+        ILogger? Log { get; }
 
         /// <summary>
         /// Gets the bus context containing scope and contextual information for the current operation.

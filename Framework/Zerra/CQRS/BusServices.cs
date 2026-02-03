@@ -35,10 +35,28 @@ namespace Zerra.CQRS
         {
             if (instance is null)
                 throw new ArgumentNullException(nameof(instance));
-            var type = typeof(TInterface);
-            if (!type.IsInterface)
+            var interfaceType = typeof(TInterface);
+            if (!interfaceType.IsInterface)
                 throw new ArgumentException("TInterface must be an interface type");
-            Dependencies[type] = instance;
+            Dependencies[interfaceType] = instance;
+        }
+
+        /// <summary>
+        /// Registers a service dependency instance for the specified interface type to be available to handlers.
+        /// </summary>
+        /// <param name="interfaceType">The interface type to register. Must be an interface type.</param>
+        /// <param name="instance">The instance to register for the interface type.</param>
+        /// <exception cref="ArgumentNullException">Thrown if the instance is null.</exception>
+        /// <exception cref="ArgumentException">Thrown if interfaceType is not an interface type or if instance is not of the provided interface type.</exception>
+        public void AddService(Type interfaceType, object instance)
+        {
+            if (instance is null)
+                throw new ArgumentNullException(nameof(instance));
+            if (!interfaceType.IsInterface)
+                throw new ArgumentException("TInterface must be an interface type");
+            if (!interfaceType.IsInstanceOfType(instance))
+                throw new ArgumentException("Instance must be of the provided interface type");
+            Dependencies[interfaceType] = instance;
         }
     }
 }

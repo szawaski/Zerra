@@ -252,7 +252,7 @@ namespace Zerra.Reflection
             Type? iEnumerableGenericInnerType,
             Type? dictionaryInnerType,
 
-            IReadOnlyList<Type>? innerTypes,
+            IReadOnlyList<Type> innerTypes,
             IReadOnlyList<Type> baseTypes,
             IReadOnlyList<Type> interfaces,
             IReadOnlyList<Attribute>? attributes

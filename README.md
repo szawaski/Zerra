@@ -232,11 +232,15 @@ Zerra's routing mechanism is agnostic to whether services are local or remote. C
 ### Local Processing
 
 ```csharp
-// Register local handler
+// Register local handlers
 bus.AddHandler<IUserCommandHandlers>(userCommandHandler);
+bus.AddHandler<IUserQueries>(userQueryHandler);
 
-// Messages routed to local handler immediately
+// Commands routed to local handler immediately
 await bus.DispatchAsync(new CreateUserCommand { Email = "user@example.com" });
+
+// Queries routed to local handler immediately
+var user = await bus.Call<IUserQueries>().GetUserById(123, cancellationToken);
 ```
 
 ### Remote Query Processing

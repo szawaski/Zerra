@@ -2,8 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Zerra.Legacy;
-
 namespace Zerra.Logging
 {
     /// <summary>
@@ -14,7 +12,7 @@ namespace Zerra.Logging
     /// from Trace (most verbose) to Critical (most severe). Implementations should handle message
     /// formatting, filtering, and output routing based on configured log levels.
     /// </remarks>
-    public interface ILog
+    public interface ILogger
     {
         /// <summary>
         /// Log an event with a level of Trace.

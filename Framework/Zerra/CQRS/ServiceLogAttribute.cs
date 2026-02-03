@@ -6,7 +6,7 @@ namespace Zerra.CQRS
 {
     /// <summary>
     /// An attribute to indicate if the event, command, or query interface will be logged.
-    /// The <see cref="Bus"/> must have a <see cref="IBusLog"/>.
+    /// The <see cref="Bus"/> must have a <see cref="IBusLogger"/>.
     /// Note that logging has a slightly degraded performance impact.
     /// </summary>
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface)]
