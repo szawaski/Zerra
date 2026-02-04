@@ -17,7 +17,7 @@ namespace Zerra.CQRS
         /// <param name="command">The command to send.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>A task to complete sending the command.</returns>
-        [Obsolete("Use IBus instance with depencendy injection instead", false)]
+        //[Obsolete("Use IBus instance with depencendy injection instead", false)]
         public static Task DispatchAsync(ICommand command, CancellationToken? cancellationToken = null)
             => StaticBus.DispatchAsync(command, cancellationToken);
         /// <summary>
@@ -28,7 +28,7 @@ namespace Zerra.CQRS
         /// <param name="command">The command to send.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>A task to await processing of the command.</returns>
-        [Obsolete("Use IBus instance with depencendy injection instead", false)]
+        //[Obsolete("Use IBus instance with depencendy injection instead", false)]
         public static Task DispatchAwaitAsync(ICommand command, CancellationToken? cancellationToken = null)
             => StaticBus.DispatchAwaitAsync(command, cancellationToken);
         /// <summary>
@@ -40,7 +40,7 @@ namespace Zerra.CQRS
         /// <param name="event">The command to send.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>A task to complete sending the event.</returns>
-        [Obsolete("Use IBus instance with depencendy injection instead", false)]
+        //[Obsolete("Use IBus instance with depencendy injection instead", false)]
         public static Task DispatchAsync(IEvent @event, CancellationToken? cancellationToken = null)
             => StaticBus.DispatchAsync(@event, cancellationToken);
         /// <summary>
@@ -51,7 +51,7 @@ namespace Zerra.CQRS
         /// <param name="command">The command to send.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>A task to await the result of the command.</returns>
-        [Obsolete("Use IBus instance with depencendy injection instead", false)]
+        //[Obsolete("Use IBus instance with depencendy injection instead", false)]
         public static Task<TResult> DispatchAwaitAsync<TResult>(ICommand<TResult> command, CancellationToken? cancellationToken = null)
             => StaticBus.DispatchAwaitAsync<TResult>(command, cancellationToken);
 
@@ -74,7 +74,7 @@ namespace Zerra.CQRS
         /// <param name="command">The command to send.</param>
         /// <param name="timeout">The time to wait before a cancellation request. Use <see cref="Timeout.InfiniteTimeSpan"/> for no timeout.</param>
         /// <returns>A task to await processing of the command.</returns>
-        [Obsolete("Use IBus instance with depencendy injection instead", false)]
+        //[Obsolete("Use IBus instance with depencendy injection instead", false)]
         public static Task DispatchAwaitAsync(ICommand command, TimeSpan timeout)
             => StaticBus.DispatchAwaitAsync(command, timeout);
         /// <summary>
@@ -86,7 +86,7 @@ namespace Zerra.CQRS
         /// <param name="event">The command to send.</param>
         /// <param name="timeout">The time to wait before a cancellation request. Use <see cref="Timeout.InfiniteTimeSpan"/> for no timeout.</param>
         /// <returns>A task to complete sending the event.</returns>
-        [Obsolete("Use IBus instance with depencendy injection instead", false)]
+        //[Obsolete("Use IBus instance with depencendy injection instead", false)]
         public static Task DispatchAsync(IEvent @event, TimeSpan timeout)
             => StaticBus.DispatchAsync(@event, timeout);
         /// <summary>
@@ -97,7 +97,7 @@ namespace Zerra.CQRS
         /// <param name="command">The command to send.</param>
         /// <param name="timeout">The time to wait before a cancellation request. Use <see cref="Timeout.InfiniteTimeSpan"/> for no timeout.</param>
         /// <returns>A task to await the result of the command.</returns>\
-        [Obsolete("Use IBus instance with depencendy injection instead", false)]
+        //[Obsolete("Use IBus instance with depencendy injection instead", false)]
         public static Task<TResult> DispatchAwaitAsync<TResult>(ICommand<TResult> command, TimeSpan timeout)
             => StaticBus.DispatchAwaitAsync<TResult>(command, timeout);
 
@@ -107,7 +107,7 @@ namespace Zerra.CQRS
         /// </summary>
         /// <typeparam name="TInterface">The interface type.</typeparam>
         /// <returns>An instance of the interface to route queries.</returns>
-        [Obsolete("Use IBus instance with depencendy injection instead", false)]
+        //[Obsolete("Use IBus instance with depencendy injection instead", false)]
         public static TInterface Call<TInterface>()
             => StaticBus.Call<TInterface>();
     }
