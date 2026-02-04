@@ -15,10 +15,7 @@ namespace Zerra.Reflection
             get
             {
                 if (field == null)
-                {
-                    lock (locker)
                         field ??= (TypeDetail<T>)base.TypeDetail;
-                }
                 return field;
             }
         }

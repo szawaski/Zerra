@@ -47,7 +47,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
         protected override sealed void Setup()
         {
             var validMembers = new List<MemberDetail>();
-            foreach (var member in TypeDetail.SerializableMemberDetails)
+            foreach (var member in TypeDetail.SerializableMembers)
             {
                 if (member.Attributes.Any(x => x is NonSerializedAttribute))
                     continue;

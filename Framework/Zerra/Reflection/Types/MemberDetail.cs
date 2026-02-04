@@ -11,8 +11,6 @@ namespace Zerra.Reflection
     /// </summary>
     public partial class MemberDetail
     {
-        protected readonly Lock locker = new();
-
         /// <summary>The parent type that owns this member.</summary>
         public readonly Type ParentType;
         /// <summary>The type of this member.</summary>

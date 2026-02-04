@@ -51,9 +51,9 @@ namespace Zerra.Map
 
             var membersList = new List<MapConverterObjectMember>();
             membersByName ??= new();
-            foreach (var sourceMember in sourceTypeDetail.SerializableMemberDetails)
+            foreach (var sourceMember in sourceTypeDetail.SerializableMembers)
             {
-                var targetMember = targetTypeDetail.SerializableMemberDetails.FirstOrDefault(x => String.Equals(x.Name, sourceMember.Name, StringComparison.Ordinal));
+                var targetMember = targetTypeDetail.SerializableMembers.FirstOrDefault(x => String.Equals(x.Name, sourceMember.Name, StringComparison.Ordinal));
                 if (targetMember is null)
                     continue;
                 if (customizedMemberNames is not null && customizedMemberNames.Contains(targetMember.Name))

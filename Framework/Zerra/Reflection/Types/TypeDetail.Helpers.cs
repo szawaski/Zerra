@@ -17,10 +17,7 @@ namespace Zerra.Reflection
             get
             {
                 if (field == null && InnerType != null)
-                {
-                    lock (locker)
-                        field ??= TypeAnalyzer.GetTypeDetail(InnerType);
-                }
+                    field ??= TypeAnalyzer.GetTypeDetail(InnerType);
                 return field;
             }
         }
@@ -31,10 +28,7 @@ namespace Zerra.Reflection
             get
             {
                 if (field == null && IEnumerableGenericInnerType != null)
-                {
-                    lock (locker)
-                        field ??= TypeAnalyzer.GetTypeDetail(IEnumerableGenericInnerType);
-                }
+                    field ??= TypeAnalyzer.GetTypeDetail(IEnumerableGenericInnerType);
                 return field;
             }
         }
@@ -45,10 +39,7 @@ namespace Zerra.Reflection
             get
             {
                 if (field == null && DictionaryInnerType != null)
-                {
-                    lock (locker)
-                        field ??= TypeAnalyzer.GetTypeDetail(DictionaryInnerType);
-                }
+                    field ??= TypeAnalyzer.GetTypeDetail(DictionaryInnerType);
                 return field;
             }
         }
@@ -71,7 +62,7 @@ namespace Zerra.Reflection
         /// Gets a cached collection of members that can be serialized.
         /// Includes non-static, members with getters, members with setters or are present in a constructor, have explicit implementations, and and have serializable types.
         /// </summary>
-        public IReadOnlyList<MemberDetail> SerializableMemberDetails
+        public IReadOnlyList<MemberDetail> SerializableMembers
         {
             get
             {

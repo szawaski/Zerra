@@ -120,9 +120,9 @@ namespace Zerra.Test.Helpers.Models
             }
 
             var valid = true;
-            foreach (var member1 in type1.SerializableMemberDetails)
+            foreach (var member1 in type1.SerializableMembers)
             {
-                var member2 = type2.SerializableMemberDetails.FirstOrDefault(x => x.Name == member1.Name);
+                var member2 = type2.SerializableMembers.FirstOrDefault(x => x.Name == member1.Name);
                 if (member2 is null)
                     continue;
 

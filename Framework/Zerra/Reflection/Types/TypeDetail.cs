@@ -189,7 +189,7 @@ namespace Zerra.Reflection
             }
         }
 
-        /// <summary>The inner type of nullable types; null if this type is not nullable.</summary>
+        /// <summary>The inner type if it has a generic argument; null if this type is not generic.</summary>
         public readonly Type? InnerType;
 
         /// <summary>The element type of <see cref="System.Collections.Generic.IEnumerable{T}"/> if implemented; otherwise null.</summary>

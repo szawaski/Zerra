@@ -36,7 +36,7 @@ namespace Zerra.Serialization.Json.Converters.General
 
         protected override sealed void Setup()
         {
-            foreach (var member in TypeDetail.SerializableMemberDetails)
+            foreach (var member in TypeDetail.SerializableMembers)
             {
                 var found = false;
                 var ignoreCondition = JsonIgnoreCondition.Never;
