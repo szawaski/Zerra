@@ -25,7 +25,7 @@ namespace Zerra.Reflection
 
         [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
         [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
-        public MethodInfo GetMemberInfo()
+        public MethodInfo GetMethodInfo()
         {
             if (!RuntimeFeature.IsDynamicCodeSupported)
                 throw new NotSupportedException($"Cannot get member info.  Dynamic code generation is not supported in this build configuration.");

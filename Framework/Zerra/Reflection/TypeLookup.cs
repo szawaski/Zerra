@@ -4,7 +4,10 @@
 
 namespace Zerra.Reflection
 {
-    internal static class TypeLookup
+    /// <summary>
+    /// Provides type classification and lookup functionality for core types, enum types, and special types.
+    /// </summary>
+    public static class TypeLookup
     {
         private static readonly IReadOnlyDictionary<Type, CoreType> coreTypeLookup = new Dictionary<Type, CoreType>()
         {
@@ -55,6 +58,12 @@ namespace Zerra.Reflection
             { typeof(Guid?), CoreType.GuidNullable }
         };
         
+        /// <summary>
+        /// Determines if the specified type is a core type and returns the corresponding CoreType value.
+        /// </summary>
+        /// <param name="type">The type to check.</param>
+        /// <param name="coreType">When this method returns, contains the CoreType value if the type is a core type; otherwise, the default value.</param>
+        /// <returns>true if the type is a core type; otherwise, false.</returns>
         public static bool GetCoreType(Type type, out CoreType coreType)
         {
             return coreTypeLookup.TryGetValue(type, out coreType);
@@ -81,11 +90,23 @@ namespace Zerra.Reflection
             { typeof(ulong?), CoreEnumType.UInt64Nullable },
         };
         
+        /// <summary>
+        /// Determines if the specified type is a core enum underlying type and returns the corresponding CoreEnumType value.
+        /// </summary>
+        /// <param name="type">The type to check.</param>
+        /// <param name="coreType">When this method returns, contains the CoreEnumType value if the type is a core enum type; otherwise, the default value.</param>
+        /// <returns>true if the type is a core enum type; otherwise, false.</returns>
         public static bool GetCoreEnumType(Type type, out CoreEnumType coreType)
         {
             return coreEnumTypeLookup.TryGetValue(type, out coreType);
         }
 
+        /// <summary>
+        /// Determines if the specified type is a special type and returns the corresponding SpecialType value.
+        /// </summary>
+        /// <param name="type">The type to check.</param>
+        /// <param name="specialType">When this method returns, contains the SpecialType value if the type is a special type; otherwise, the default value.</param>
+        /// <returns>true if the type is a special type; otherwise, false.</returns>
         public static bool GetSpecialType(Type type, out SpecialType specialType)
         {
             switch (type.Name)

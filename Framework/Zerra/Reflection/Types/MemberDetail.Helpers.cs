@@ -19,10 +19,7 @@ namespace Zerra.Reflection
             get
             {
                 if (field == null)
-                {
-                    lock (locker)
                         field ??= TypeAnalyzer.GetTypeDetail(this.Type);
-                }
                 return field;
             }
         }

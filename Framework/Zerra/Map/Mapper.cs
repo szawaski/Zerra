@@ -23,7 +23,6 @@ namespace Zerra.Map
         /// <returns>A new instance of <typeparamref name="TTarget"/> populated with mapped values from the source.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="source"/> is null.</exception>
         public static TTarget Map<TTarget>(this object source, Graph? graph = null)
-            where TTarget : notnull
         {
             if (source is null)
                 throw new ArgumentNullException(nameof(source));
@@ -44,8 +43,6 @@ namespace Zerra.Map
         /// <returns>A new instance of <typeparamref name="TTarget"/> populated with mapped values from the source.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="source"/> is null.</exception>
         public static TTarget Map<TSource, TTarget>(this TSource source, Graph? graph = null)
-            where TSource : notnull
-            where TTarget : notnull
         {
             if (source is null)
                 throw new ArgumentNullException(nameof(source));
@@ -86,7 +83,6 @@ namespace Zerra.Map
         /// <returns>A new instance of <typeparamref name="TTarget"/> that is a copy of the source.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="source"/> is null.</exception>
         public static TTarget Copy<TTarget>(this TTarget source, Graph? graph = null)
-            where TTarget : notnull
         {
             if (source is null)
                 throw new ArgumentNullException(nameof(source));
@@ -97,8 +93,6 @@ namespace Zerra.Map
         }
 
         internal static Func<TSource, TTarget?, Graph?, TTarget?> GetMap<TSource, TTarget>()
-            where TSource : notnull
-            where TTarget : notnull
         {
             var sourceType = typeof(TSource);
             var targetType = typeof(TTarget);
@@ -108,7 +102,6 @@ namespace Zerra.Map
         }
 
         private static Func<object, TTarget?, Graph?, TTarget?> GetMap<TTarget>(Type sourceType)
-            where TTarget : notnull
         {
             var targetType = typeof(TTarget);
             var key = new TypePairKey(sourceType, targetType);
