@@ -594,6 +594,24 @@ namespace Zerra.Reflection.Dynamic
         }
 
         /// <summary>
+        /// Gets all interfaces implemented by the specified type.
+        /// </summary>
+        /// <param name="type">The type to look up.</param>
+        /// <returns>A read-only list of interfaces implemented by the type; empty if none found.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when discovery has not been run.</exception>
+        /// <exception cref="ArgumentNullException">Thrown when type is null.</exception>
+        public static IReadOnlyList<Type> GetInterfacesByType(Type type)
+        {
+            if (!discovered)
+                throw new InvalidOperationException($"Discovery has not been run. Call {nameof(Discovery)}.{nameof(Initialize)}() first.");
+            if (type is null)
+                throw new ArgumentNullException(nameof(type));
+            if (!interfaceByType.TryGetValue(type, out var interfaceList))
+                return Type.EmptyTypes;
+            return interfaceList;
+        }
+
+        /// <summary>
         /// Defines a class implementation for an interface type.
         /// </summary>
         /// <typeparam name="T">The interface type.</typeparam>

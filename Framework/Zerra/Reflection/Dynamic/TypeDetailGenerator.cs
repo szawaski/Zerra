@@ -529,6 +529,8 @@ namespace Zerra.Reflection.Dynamic
             {
                 if (@field.IsLiteral)
                     continue;
+                if (field.IsPrivate)
+                    continue;
 
                 Delegate? getter = null;
                 Func<object, object?>? getterBoxed = null;

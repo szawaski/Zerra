@@ -82,6 +82,12 @@ namespace Zerra.Serialization.Json.IO
 #endif
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <summary>
+        /// Attempts to write a byte value to the buffer.
+        /// </summary>
+        /// <param name="value">The byte value to write.</param>
+        /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
+        /// <returns><c>true</c> if the value was successfully written; <c>false</c> if more bytes are needed.</returns>
         public unsafe bool TryWrite(byte value, out int sizeNeeded)
         {
             sizeNeeded = 4;
@@ -122,6 +128,12 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <summary>
+        /// Attempts to write a signed byte value to the buffer.
+        /// </summary>
+        /// <param name="value">The signed byte value to write.</param>
+        /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
+        /// <returns><c>true</c> if the value was successfully written; <c>false</c> if more bytes are needed.</returns>
         public unsafe bool TryWrite(sbyte value, out int sizeNeeded)
         {
             sizeNeeded = 3;
@@ -162,6 +174,12 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <summary>
+        /// Attempts to write a short value to the buffer.
+        /// </summary>
+        /// <param name="value">The short value to write.</param>
+        /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
+        /// <returns><c>true</c> if the value was successfully written; <c>false</c> if more bytes are needed.</returns>
         public unsafe bool TryWrite(short value, out int sizeNeeded)
         {
             sizeNeeded = 6;
@@ -202,6 +220,12 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <summary>
+        /// Attempts to write an unsigned short value to the buffer.
+        /// </summary>
+        /// <param name="value">The unsigned short value to write.</param>
+        /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
+        /// <returns><c>true</c> if the value was successfully written; <c>false</c> if more bytes are needed.</returns>
         public unsafe bool TryWrite(ushort value, out int sizeNeeded)
         {
             sizeNeeded = 5;
@@ -242,6 +266,12 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <summary>
+        /// Attempts to write an int value to the buffer.
+        /// </summary>
+        /// <param name="value">The int value to write.</param>
+        /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
+        /// <returns><c>true</c> if the value was successfully written; <c>false</c> if more bytes are needed.</returns>
         public unsafe bool TryWrite(int value, out int sizeNeeded)
         {
             sizeNeeded = 11;
@@ -282,6 +312,12 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <summary>
+        /// Attempts to write an unsigned int value to the buffer.
+        /// </summary>
+        /// <param name="value">The unsigned int value to write.</param>
+        /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
+        /// <returns><c>true</c> if the value was successfully written; <c>false</c> if more bytes are needed.</returns>
         public unsafe bool TryWrite(uint value, out int sizeNeeded)
         {
             sizeNeeded = 10;
@@ -322,6 +358,12 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <summary>
+        /// Attempts to write a long value to the buffer.
+        /// </summary>
+        /// <param name="value">The long value to write.</param>
+        /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
+        /// <returns><c>true</c> if the value was successfully written; <c>false</c> if more bytes are needed.</returns>
         public unsafe bool TryWrite(long value, out int sizeNeeded)
         {
             sizeNeeded = 20;
@@ -355,6 +397,12 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <summary>
+        /// Attempts to write an unsigned long value to the buffer.
+        /// </summary>
+        /// <param name="value">The unsigned long value to write.</param>
+        /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
+        /// <returns><c>true</c> if the value was successfully written; <c>false</c> if more bytes are needed.</returns>
         public unsafe bool TryWrite(ulong value, out int sizeNeeded)
         {
             sizeNeeded = 20;
@@ -395,6 +443,12 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <summary>
+        /// Attempts to write a float value to the buffer.
+        /// </summary>
+        /// <param name="value">The float value to write.</param>
+        /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
+        /// <returns><c>true</c> if the value was successfully written; <c>false</c> if more bytes are needed.</returns>
         public unsafe bool TryWrite(float value, out int sizeNeeded)
         {
             sizeNeeded = 16; //min
@@ -436,6 +490,12 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <summary>
+        /// Attempts to write a double value to the buffer.
+        /// </summary>
+        /// <param name="value">The double value to write.</param>
+        /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
+        /// <returns><c>true</c> if the value was successfully written; <c>false</c> if more bytes are needed.</returns>
         public unsafe bool TryWrite(double value, out int sizeNeeded)
         {
             sizeNeeded = 32; //min
@@ -477,6 +537,12 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <summary>
+        /// Attempts to write a decimal value to the buffer.
+        /// </summary>
+        /// <param name="value">The decimal value to write.</param>
+        /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
+        /// <returns><c>true</c> if the value was successfully written; <c>false</c> if more bytes are needed.</returns>
         public unsafe bool TryWrite(decimal value, out int sizeNeeded)
         {
             sizeNeeded = 31;
@@ -518,6 +584,12 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <summary>
+        /// Attempts to write a quoted string value to the buffer.
+        /// </summary>
+        /// <param name="value">The string value to write. If null, returns true without writing.</param>
+        /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
+        /// <returns><c>true</c> if the value was successfully written; <c>false</c> if more bytes are needed.</returns>
         public unsafe bool TryWriteQuoted(string? value, out int sizeNeeded)
         {
             if (value is null)
@@ -600,6 +672,12 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <summary>
+        /// Attempts to write a DateTime value in ISO8601 format to the buffer.
+        /// </summary>
+        /// <param name="value">The DateTime value to write.</param>
+        /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
+        /// <returns><c>true</c> if the value was successfully written; <c>false</c> if more bytes are needed.</returns>
         public bool TryWrite(DateTime value, out int sizeNeeded)
         {
             //ISO8601
@@ -816,6 +894,12 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <summary>
+        /// Attempts to write a DateTimeOffset value in ISO8601 format to the buffer.
+        /// </summary>
+        /// <param name="value">The DateTimeOffset value to write.</param>
+        /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
+        /// <returns><c>true</c> if the value was successfully written; <c>false</c> if more bytes are needed.</returns>
         public bool TryWrite(DateTimeOffset value, out int sizeNeeded)
         {
             //ISO8601
@@ -976,16 +1060,16 @@ namespace Zerra.Serialization.Json.IO
                 }
 
                 if (value.Offset.Hours < 0)
-                    bufferChars[position++] = '-';
-                else
-                    bufferChars[position++] = '+';
+                                bufferChars[position++] = '-';
+                            else
+                                bufferChars[position++] = '+';
                 if (value.Offset.Hours < 10)
-                    bufferChars[position++] = '0';
+                                bufferChars[position++] = '0';
                 WriteInt32Chars(value.Offset.Hours < 0 ? -value.Offset.Hours : value.Offset.Hours);
-                bufferChars[position++] = ':';
+                            bufferChars[position++] = ':';
 
                 if (value.Offset.Minutes < 10)
-                    bufferChars[position++] = '0';
+                                bufferChars[position++] = '0';
                 WriteInt32Chars(value.Offset.Minutes);
 
                 bufferChars[position++] = '"';
@@ -995,6 +1079,12 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <summary>
+        /// Attempts to write a TimeSpan value in ISO8601 format to the buffer.
+        /// </summary>
+        /// <param name="value">The TimeSpan value to write.</param>
+        /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
+        /// <returns><c>true</c> if the value was successfully written; <c>false</c> if more bytes are needed.</returns>
         public bool TryWrite(TimeSpan value, out int sizeNeeded)
         {
             //ISO8601
@@ -1188,6 +1278,8 @@ namespace Zerra.Serialization.Json.IO
                         bufferChars[position++] = '0';
                     if (fraction < 1000000)
                         bufferChars[position++] = '0';
+                    //while (fraction % 10 == 0)  System.Text.Json does all figures
+                    //    fraction /= 10;
                     WriteInt64Chars(fraction);
                 }
 
@@ -1199,6 +1291,12 @@ namespace Zerra.Serialization.Json.IO
 
 #if NET6_0_OR_GREATER
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <summary>
+        /// Attempts to write a DateOnly value in ISO8601 format to the buffer.
+        /// </summary>
+        /// <param name="value">The DateOnly value to write.</param>
+        /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
+        /// <returns><c>true</c> if the value was successfully written; <c>false</c> if more bytes are needed.</returns>
         public bool TryWrite(DateOnly value, out int sizeNeeded)
         {
             //ISO8601
@@ -1273,6 +1371,12 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <summary>
+        /// Attempts to write a TimeOnly value in ISO8601 format to the buffer.
+        /// </summary>
+        /// <param name="value">The TimeOnly value to write.</param>
+        /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
+        /// <returns><c>true</c> if the value was successfully written; <c>false</c> if more bytes are needed.</returns>
         public bool TryWrite(TimeOnly value, out int sizeNeeded)
         {
             //ISO8601
@@ -1383,6 +1487,12 @@ namespace Zerra.Serialization.Json.IO
 #endif
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <summary>
+        /// Attempts to write a GUID value to the buffer.
+        /// </summary>
+        /// <param name="value">The GUID value to write.</param>
+        /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
+        /// <returns><c>true</c> if the value was successfully written; <c>false</c> if more bytes are needed.</returns>
         public unsafe bool TryWrite(Guid value, out int sizeNeeded)
         {
             sizeNeeded = 38;
@@ -1434,6 +1544,12 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <summary>
+        /// Attempts to write a character span to the buffer.
+        /// </summary>
+        /// <param name="value">The character span to write.</param>
+        /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
+        /// <returns><c>true</c> if the value was successfully written; <c>false</c> if more bytes are needed.</returns>
         public unsafe bool TryWrite(ReadOnlySpan<char> value, out int sizeNeeded)
         {
             if (value.Length == 0)
@@ -1516,6 +1632,11 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <summary>
+        /// Attempts to write a null value to the buffer.
+        /// </summary>
+        /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
+        /// <returns><c>true</c> if the value was successfully written; <c>false</c> if more bytes are needed.</returns>
         public unsafe bool TryWriteNull(out int sizeNeeded)
         {
             sizeNeeded = 4;
@@ -1548,6 +1669,11 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <summary>
+        /// Attempts to write the literal "true" to the buffer.
+        /// </summary>
+        /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
+        /// <returns><c>true</c> if the value was successfully written; <c>false</c> if more bytes are needed.</returns>
         public unsafe bool TryWriteTrue(out int sizeNeeded)
         {
             sizeNeeded = 4;
@@ -1580,6 +1706,11 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <summary>
+        /// Attempts to write the literal "false" to the buffer.
+        /// </summary>
+        /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
+        /// <returns><c>true</c> if the value was successfully written; <c>false</c> if more bytes are needed.</returns>
         public unsafe bool TryWriteFalse(out int sizeNeeded)
         {
             sizeNeeded = 5;
@@ -1614,6 +1745,13 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <summary>
+        /// Attempts to write a property name segment to the buffer, optionally prefixed with a comma.
+        /// </summary>
+        /// <param name="value">The property name segment to write.</param>
+        /// <param name="startWithComma">Whether to prefix the segment with a comma.</param>
+        /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
+        /// <returns><c>true</c> if the segment was successfully written; <c>false</c> if more bytes are needed.</returns>
         public unsafe bool TryWriteNameSegment(ReadOnlySpan<char> value, bool startWithComma, out int sizeNeeded)
         {
             if (useBytes)
@@ -1643,6 +1781,13 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <summary>
+        /// Attempts to write a property name segment to the buffer, optionally prefixed with a comma.
+        /// </summary>
+        /// <param name="value">The property name segment to write.</param>
+        /// <param name="startWithComma">Whether to prefix the segment with a comma.</param>
+        /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
+        /// <returns><c>true</c> if the segment was successfully written; <c>false</c> if more bytes are needed.</returns>
         public unsafe bool TryWriteNameSegment(ReadOnlySpan<byte> value, bool startWithComma, out int sizeNeeded)
         {
             if (!useBytes)
@@ -1673,6 +1818,11 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <summary>
+        /// Attempts to write a comma to the buffer.
+        /// </summary>
+        /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
+        /// <returns><c>true</c> if the comma was successfully written; <c>false</c> if more bytes are needed.</returns>
         public unsafe bool TryWriteComma(out int sizeNeeded)
         {
             sizeNeeded = 1;
@@ -1699,6 +1849,11 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <summary>
+        /// Attempts to write an opening bracket to the buffer.
+        /// </summary>
+        /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
+        /// <returns><c>true</c> if the bracket was successfully written; <c>false</c> if more bytes are needed.</returns>
         public unsafe bool TryWriteOpenBracket(out int sizeNeeded)
         {
             sizeNeeded = 1;
@@ -1725,6 +1880,11 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <summary>
+        /// Attempts to write a closing bracket to the buffer.
+        /// </summary>
+        /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
+        /// <returns><c>true</c> if the bracket was successfully written; <c>false</c> if more bytes are needed.</returns>
         public unsafe bool TryWriteCloseBracket(out int sizeNeeded)
         {
             sizeNeeded = 1;
@@ -1751,6 +1911,11 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <summary>
+        /// Attempts to write an empty bracket pair to the buffer.
+        /// </summary>
+        /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
+        /// <returns><c>true</c> if the brackets were successfully written; <c>false</c> if more bytes are needed.</returns>
         public unsafe bool TryWriteEmptyBracket(out int sizeNeeded)
         {
             sizeNeeded = 2;
@@ -1779,6 +1944,11 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <summary>
+        /// Attempts to write an opening brace to the buffer.
+        /// </summary>
+        /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
+        /// <returns><c>true</c> if the brace was successfully written; <c>false</c> if more bytes are needed.</returns>
         public unsafe bool TryWriteOpenBrace(out int sizeNeeded)
         {
             sizeNeeded = 1;
@@ -1805,6 +1975,11 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <summary>
+        /// Attempts to write a closing brace to the buffer.
+        /// </summary>
+        /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
+        /// <returns><c>true</c> if the brace was successfully written; <c>false</c> if more bytes are needed.</returns>
         public unsafe bool TryWriteCloseBrace(out int sizeNeeded)
         {
             sizeNeeded = 1;
@@ -1831,6 +2006,11 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <summary>
+        /// Attempts to write an empty brace pair to the buffer.
+        /// </summary>
+        /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
+        /// <returns><c>true</c> if the braces were successfully written; <c>false</c> if more bytes are needed.</returns>
         public unsafe bool TryWriteEmptyBrace(out int sizeNeeded)
         {
             sizeNeeded = 2;
@@ -1859,6 +2039,11 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <summary>
+        /// Attempts to write an empty quoted string to the buffer.
+        /// </summary>
+        /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
+        /// <returns><c>true</c> if the empty string was successfully written; <c>false</c> if more bytes are needed.</returns>
         public unsafe bool TryWriteEmptyString(out int sizeNeeded)
         {
             sizeNeeded = 2;
@@ -1886,6 +2071,12 @@ namespace Zerra.Serialization.Json.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <summary>
+        /// Attempts to write a string value to the buffer with escape character handling.
+        /// </summary>
+        /// <param name="value">The string value to write. If null, returns true without writing.</param>
+        /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
+        /// <returns><c>true</c> if the value was successfully written; <c>false</c> if more bytes are needed.</returns>
         public unsafe bool TryWriteEscapedQuoted(string? value, out int sizeNeeded)
         {
             const int maxEscapeCharacterSize = 6;
