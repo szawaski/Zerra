@@ -527,7 +527,7 @@ namespace Zerra
 
         //private static Graph Convert(Graph graph, Type type)
         //{
-        //    var constructor = TypeAnalyzer.GetGenericTypeDetail(typeof(Graph<>), type).GetConstructor([typeof(Graph)]);
+        //    var constructor = GenericTypeCache.GetGenericTypeDetail(typeof(Graph<>), type).GetConstructor([typeof(Graph)]);
         //    var genericGraph = (Graph)constructor.CreatorBoxed([graph]);
         //    return genericGraph;
         //}

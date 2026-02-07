@@ -1,11 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
     <PropertyGroup>
         <TargetFrameworks>net10.0</TargetFrameworks>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <InvariantGlobalization>true</InvariantGlobalization>
-        <PublishAot>true</PublishAot>
+        <!--<PublishAot>true</PublishAot>-->
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <LangVersion>14.0</LangVersion>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -19,21 +18,21 @@
         <Authors>Steven Zawaski</Authors>
         <Company>KaKush LLC</Company>
         <Copyright>KaKush LLC</Copyright>
-        <Product>Zerra Framework</Product>
+        <Product>Zerra Repository Framework</Product>
         <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
-        <PackageTags>Framework, CQRS, Microservice, Commands, Serialization, JSON, Reflection, Map, Copy</PackageTags>
-        <Description>Zerra Framework is a comprehensive .NET framework providing support for CQRS architecture, microservices, ORM capabilities, and high-performance serialization. Includes reflection utilities, and domain-driven design support.</Description>
+        <PackageTags></PackageTags>
+        <Description></Description>
     </PropertyGroup>
 
     <ItemGroup>
-        <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
+        <None Include="..\..\LICENSE">
+            <Pack>True</Pack>
+            <PackagePath></PackagePath>
+        </None>
     </ItemGroup>
 
     <ItemGroup>
-        <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+        <ProjectReference Include="..\Zerra\Zerra.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-        <ProjectReference Include="..\..\Framework\Zerra.SourceGeneration\Zerra.SourceGeneration.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PackAsAnalyzer="true" />
-    </ItemGroup>
 </Project>

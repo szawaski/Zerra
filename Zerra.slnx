@@ -8,6 +8,7 @@
     <Project Path="Framework/Zerra.CQRS.AzureServiceBus/Zerra.CQRS.AzureServiceBus.csproj" />
     <Project Path="Framework/Zerra.CQRS.Kafka/Zerra.CQRS.Kafka.csproj" />
     <Project Path="Framework/Zerra.CQRS.RabbitMQ/Zerra.CQRS.RabbitMQ.csproj" />
+    <Project Path="Framework/Zerra.Repository/Zerra.Repository.csproj" />
     <Project Path="Framework/Zerra.SourceGeneration/Zerra.SourceGeneration.csproj" />
     <Project Path="Framework/Zerra.Web/Zerra.Web.csproj" />
     <Project Path="Framework/Zerra/Zerra.csproj" />
