@@ -60,10 +60,17 @@ namespace Zerra.Collections
 
         internal ConcurrentFactoryDictionary(int concurrencyLevel, int capacity, IEnumerable<KeyValuePair<TKey, TValue>>? collection, IEqualityComparer<TKey>? comparer)
         {
+#if NET8_0_OR_GREATER
             if (collection is not null)
                 this.dictionary = new ConcurrentDictionary<TKey, TValue>(concurrencyLevel, collection, comparer);
             else
                 this.dictionary = new ConcurrentDictionary<TKey, TValue>(concurrencyLevel, capacity, comparer);
+#else
+            if (collection is not null)
+                this.dictionary = new ConcurrentDictionary<TKey, TValue>(concurrencyLevel, collection, comparer ?? EqualityComparer<TKey>.Default);
+            else
+                this.dictionary = new ConcurrentDictionary<TKey, TValue>(concurrencyLevel, capacity, comparer ?? EqualityComparer<TKey>.Default);
+#endif
 
             this.factoryLocks = new object[concurrencyLevel];
             this.factoryLocks[0] = this.factoryLocks;
