@@ -46,7 +46,7 @@ namespace Zerra.Identity.OpenID.Bindings
             }
             else
             {
-                throw new IdentityProviderException("Missing JWT Token");
+                throw new IdentityProviderException("Missing JWT Token", request.QueryString);
             }
 
             var parts = token.Split(OpenIDJwtQueryBinding.tokenDelimiter);

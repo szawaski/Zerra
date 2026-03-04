@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Text;
+using System.Linq;
 
 namespace Zerra.Identity.OpenID.Bindings
 {
@@ -55,7 +56,7 @@ namespace Zerra.Identity.OpenID.Bindings
             }
             else
             {
-                throw new IdentityProviderException("Missing JWT Token");
+                throw new IdentityProviderException("Missing JWT Token", String.Join(", ", request.Form.Select(x => $"{x.Key}: {x.Value}")));
             }
 
             var parts = token.Split(OpenIDJwtFormBinding.tokenDelimiter);
