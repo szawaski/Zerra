@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net10.0</TargetFramework>
+        <TargetFrameworks>netstandard2.0;netstandard2.1;net8.0;net9.0;net10.0</TargetFrameworks>
         <CheckEolTargetFramework>false</CheckEolTargetFramework>
         <Authors>Steven Zawaski</Authors>
         <Copyright>KaKush LLC</Copyright>
@@ -21,7 +21,7 @@
         <Company>KaKush LLC</Company>
         <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
         <LangVersion>14.0</LangVersion>
-        <Version>0.9.2</Version>
+        <Version>0.9.3</Version>
         <SignAssembly>false</SignAssembly>
         <AssemblyVersion></AssemblyVersion>
         <FileVersion></FileVersion>
