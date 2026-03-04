@@ -21,7 +21,7 @@
         <Company>KaKush LLC</Company>
         <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
         <LangVersion>14.0</LangVersion>
-        <Version>0.9.4</Version>
+        <Version>0.9.5</Version>
         <SignAssembly>false</SignAssembly>
         <AssemblyVersion></AssemblyVersion>
         <FileVersion></FileVersion>

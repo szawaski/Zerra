@@ -81,11 +81,11 @@ namespace Zerra.Identity.Consumers
                 var sb = new StringBuilder();
                 _ = sb.Append("openid");
                 if (document.ScopesSupported.Contains("profile"))
-                    _ = sb.Append("+profile");
+                    _ = sb.Append(" profile");
                 if (document.ScopesSupported.Contains("email"))
-                    _ = sb.Append("+email");
+                    _ = sb.Append(" email");
                 if (document.ScopesSupported.Contains("offline_access"))
-                    _ = sb.Append("+offline_access");
+                    _ = sb.Append(" offline_access");
 
                 scope = sb.ToString();
             }
@@ -139,9 +139,9 @@ namespace Zerra.Identity.Consumers
                 var callbackCodeDocument = new OpenIDLoginResponse(callbackCodeBinding);
                 if (!String.IsNullOrWhiteSpace(callbackCodeDocument.Error))
                     throw new IdentityProviderException($"{callbackCodeDocument.Error}: {callbackCodeDocument.ErrorDescription}");
-
+                
                 //Get Token--------------------
-                var requestTokenDocument = new OpenIDTokenRequest(callbackCodeDocument.AccessCode, this.secret, OpenIDGrantType.authorization_code, redirectUrl);
+                var requestTokenDocument = new OpenIDTokenRequest(this.serviceProvider, callbackCodeDocument.AccessCode, this.secret, OpenIDGrantType.authorization_code, redirectUrl);
                 var requestTokenBinding = OpenIDBinding.GetBindingForDocument(requestTokenDocument, BindingType.Form);
 
 #if NET48

@@ -10,14 +10,16 @@ namespace Zerra.Identity.OpenID.Documents
     public sealed class OpenIDTokenRequest : OpenIDDocument
     {
         public OpenIDGrantType? GrantType { get; }
+        public string ClientId { get; }
         public string Code { get; }
         public string Secret { get; }
         public string RedirectUrl { get; }
 
         public override BindingDirection BindingDirection => BindingDirection.Request;
 
-        public OpenIDTokenRequest(string code, string secret, OpenIDGrantType? grantType, string redirectUrl)
+        public OpenIDTokenRequest(string clientId, string code, string secret, OpenIDGrantType? grantType, string redirectUrl)
         {
+            this.ClientId = clientId;
             this.Code = code;
             this.Secret = secret;
             this.GrantType = grantType;
@@ -34,6 +36,7 @@ namespace Zerra.Identity.OpenID.Documents
             if (json is null)
                 return;
 
+            this.ClientId = json["client_id"]?.ToObject<string>();
             this.Code = json["code"]?.ToObject<string>();
             this.Secret = json["client_secret"]?.ToObject<string>();
 
@@ -49,6 +52,8 @@ namespace Zerra.Identity.OpenID.Documents
 
             if (this.GrantType is not null)
                 json.Add("grant_type", JToken.FromObject(this.GrantType?.EnumName()));
+            if (this.ClientId is not null)
+                json.Add("client_id", JToken.FromObject(this.ClientId));
             if (this.Code is not null)
                 json.Add("code", JToken.FromObject(this.Code));
             if (this.Secret is not null)
