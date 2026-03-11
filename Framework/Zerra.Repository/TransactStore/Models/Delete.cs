@@ -27,19 +27,19 @@ namespace Zerra.Repository
             this.Models = [model];
             this.Graph = graph;
         }
-        public Delete(ICollection<TModel> models) : this(null, null, models, null) { }
-        public Delete(string? eventName, ICollection<TModel> models) : this(eventName, null, models, null) { }
-        public Delete(string? eventName, object? source, ICollection<TModel> models) : this(eventName, source, models, null) { }
-        public Delete(ICollection<TModel> models, Graph<TModel>? graph) : this(null, null, models, graph) { }
-        public Delete(string? eventName, ICollection<TModel> models, Graph<TModel>? graph) : this(eventName, null, models, graph) { }
-        public Delete(string? eventName, object? source, ICollection<TModel> models, Graph<TModel>? graph)
+        public Delete(IEnumerable<TModel> models) : this(null, null, models, null) { }
+        public Delete(string? eventName, IEnumerable<TModel> models) : this(eventName, null, models, null) { }
+        public Delete(string? eventName, object? source, IEnumerable<TModel> models) : this(eventName, source, models, null) { }
+        public Delete(IEnumerable<TModel> models, Graph<TModel>? graph) : this(null, null, models, graph) { }
+        public Delete(string? eventName, IEnumerable<TModel> models, Graph<TModel>? graph) : this(eventName, null, models, graph) { }
+        public Delete(string? eventName, object? source, IEnumerable<TModel> models, Graph<TModel>? graph)
             : base(PersistOperation.Delete, eventName, source)
         {
             this.Models = models.ToArray();
             this.Graph = graph;
         }
-        public Delete(PersistEvent @event, ICollection<TModel> models) : this(@event, models, null) { }
-        public Delete(PersistEvent @event, ICollection<TModel> models, Graph<TModel>? graph)
+        public Delete(PersistEvent @event, IEnumerable<TModel> models) : this(@event, models, null) { }
+        public Delete(PersistEvent @event, IEnumerable<TModel> models, Graph<TModel>? graph)
             : base(PersistOperation.Delete, @event)
         {
             this.Models = models.ToArray();

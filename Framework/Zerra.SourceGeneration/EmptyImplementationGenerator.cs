@@ -85,7 +85,7 @@ namespace Zerra.SourceGeneration.Discovery
 
                 var interfacefullTypeOf = Helper.GetTypeOfName(model.TypeSymbol);
                 var classFullTypeOf = $"typeof({className})";
-                _ = sbInitializer.Append(Environment.NewLine).Append("            ");
+                _ = sbInitializer.Append(Environment.NewLine);
                 _ = sbInitializer.Append("global::Zerra.Reflection.Register.EmptyImplementation(").Append(interfacefullTypeOf).Append(", ").Append(classFullTypeOf).Append(");");
             }
         }

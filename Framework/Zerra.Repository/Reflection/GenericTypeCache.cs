@@ -15,27 +15,27 @@ namespace Zerra.Reflection
             var key = new TypeKey(method.ToString(), types);
             var genericMethod = genericMethodDetailsByMethod.GetOrAdd(key, method, types, static (method, types) =>
             {
-                var type = method.ReflectedType ?? method.DeclaringType!;
                 var generic = method.MakeGenericMethod(types);
-                var parameters = method.GetParameters();
+                var type = generic.ReflectedType ?? generic.DeclaringType!;
+                var parameters = generic.GetParameters();
                 var parameterTypes = parameters.Select(x => new ParameterDetail(x.ParameterType, x.Name!)).ToArray();
 
-                var attributes = method.GetCustomAttributes(true).Cast<Attribute>().ToArray();
+                var attributes = generic.GetCustomAttributes(true).Cast<Attribute>().ToArray();
 
-                Delegate? caller = AccessorGenerator.GenerateCaller(method, method.ReturnType);
+                Delegate? caller = AccessorGenerator.GenerateCaller(generic, generic.ReturnType);
 
-                Func<object?, object?[]?, object?>? callerBoxed = AccessorGenerator.GenerateCaller(method);
+                Func<object?, object?[]?, object?>? callerBoxed = AccessorGenerator.GenerateCaller(generic);
 
                 MethodDetail methodDetail;
-                if (method.ReturnType.ContainsGenericParameters || method.ReturnType.IsPointer || method.ReturnType.IsByRef || method.ReturnType.IsByRefLike)
+                if (generic.ReturnType.ContainsGenericParameters || generic.ReturnType.IsPointer || generic.ReturnType.IsByRef || generic.ReturnType.IsByRefLike)
                 {
-                    methodDetail = new MethodDetail(type, method.Name, method.ReturnType, method.GetGenericArguments().Length, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false);
+                    methodDetail = new MethodDetail(type, generic.Name, generic.ReturnType, generic.GetGenericArguments().Length, parameterTypes, caller, callerBoxed, attributes, generic.IsStatic, false);
                 }
                 else
                 {
-                    var methodDetailGenericType = methodDetailType.MakeGenericType(method.ReturnType.Name == "Void" ? typeof(object) : method.ReturnType);
+                    var methodDetailGenericType = methodDetailType.MakeGenericType(generic.ReturnType.Name == "Void" ? typeof(object) : generic.ReturnType);
                     var constructor = methodDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                    methodDetail = (MethodDetail)constructor.Invoke([type, method.Name, method.GetGenericArguments().Length, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false]);
+                    methodDetail = (MethodDetail)constructor.Invoke([type, generic.Name, method.GetGenericArguments().Length, parameterTypes, caller, callerBoxed, attributes, generic.IsStatic, false]);
                 }
                 return methodDetail;
             });

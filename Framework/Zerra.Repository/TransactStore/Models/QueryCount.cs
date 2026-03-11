@@ -9,7 +9,8 @@ namespace Zerra.Repository
 {
     public class QueryCount<TModel> : Query<TModel> where TModel : class, new()
     {
-        public QueryCount(Expression<Func<TModel, bool>>? where = null)
+        public QueryCount() : this(null) { }
+        public QueryCount(Expression<Func<TModel, bool>>? where)
           : base(QueryOperation.Count)
         {
             this.Where = where;

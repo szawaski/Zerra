@@ -9,7 +9,8 @@ namespace Zerra.Repository
 {
     public class QueryAny<TModel> : Query<TModel> where TModel : class, new()
     {
-        public QueryAny(Expression<Func<TModel, bool>>? where = null)
+        public QueryAny() : this(null) { }
+        public QueryAny(Expression<Func<TModel, bool>>? where)
             : base(QueryOperation.Any)
         {
             this.Where = where;

@@ -37,9 +37,9 @@ namespace Zerra.Repository
                     validated = true;
                     isValid = engine.ValidateDataSource();
                     if (isValid)
-                        Log.InfoAsync($"{this.GetType().Name} connected");
+                        Log.Info($"{this.GetType().Name} connected");
                     else
-                        Log.InfoAsync($"{this.GetType().Name} failed to connect");
+                        Log.Info($"{this.GetType().Name} failed to connect");
                 }
 
                 if (!isValid)
@@ -67,9 +67,9 @@ namespace Zerra.Repository
                     validated = true;
                     isValid = engine.ValidateDataSource();
                     if (isValid)
-                        Log.InfoAsync($"{this.GetType().Name} connected");
+                        Log.Info($"{this.GetType().Name} connected");
                     else
-                        Log.InfoAsync($"{this.GetType().Name} failed to connect");
+                        Log.Info($"{this.GetType().Name} failed to connect");
                 }
                 if (!isValid)
                     throw new Exception($"{this.GetType().Name} could not validate");
@@ -83,7 +83,7 @@ namespace Zerra.Repository
 
                     if (dataStoreGenerationType.HasFlag(DataStoreGenerationType.CodeFirst))
                     {
-                        Log.InfoAsync($"{this.GetType().Name} Initializing {dataStoreGenerationType.EnumName()}");
+                        Log.Info($"{this.GetType().Name} Initializing {dataStoreGenerationType.EnumName()}");
 
                         var thisType = this.GetType();
                         var allModelTypes = Discovery.GetTypesFromAttribute(typeof(EntityAttribute));
@@ -125,7 +125,7 @@ namespace Zerra.Repository
                             _ = sb.AppendLine($"CodeFirst Plan Preview: {steps.Count} Steps");
                             foreach (var step in steps)
                                 _ = sb.AppendLine(step);
-                            _ = Log.InfoAsync(sb.ToString());
+                            Log.Info(sb.ToString());
                         }
                         else
                         {

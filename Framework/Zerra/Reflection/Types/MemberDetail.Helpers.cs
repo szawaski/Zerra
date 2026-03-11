@@ -38,7 +38,7 @@ namespace Zerra.Reflection
             {
                 if (!RuntimeFeature.IsDynamicCodeSupported)
                     throw new NotSupportedException($"Cannot get member info.  Dynamic code generation is not supported in this build configuration.");
-                var memberInfo = Type.GetMember(Name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static).FirstOrDefault();
+                var memberInfo = ParentType.GetMember(Name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static).FirstOrDefault();
                 if (memberInfo == null)
                     throw new InvalidOperationException($"MemberInfo '{Name}' was not found.");
                 return memberInfo;

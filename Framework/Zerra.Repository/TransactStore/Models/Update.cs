@@ -27,19 +27,19 @@ namespace Zerra.Repository
             this.Models = [model];
             this.Graph = graph;
         }
-        public Update(ICollection<TModel> models) : this(null, null, models, null) { }
-        public Update(string? eventName, ICollection<TModel> models) : this(eventName, null, models, null) { }
-        public Update(string? eventName, object? source, ICollection<TModel> models) : this(eventName, source, models, null) { }
-        public Update(ICollection<TModel> models, Graph<TModel>? graph) : this(null, null, models, graph) { }
-        public Update(string? eventName, ICollection<TModel> models, Graph<TModel>? graph) : this(eventName, null, models, graph) { }
-        public Update(string? eventName, object? source, ICollection<TModel> models, Graph<TModel>? graph)
+        public Update(IEnumerable<TModel> models) : this(null, null, models, null) { }
+        public Update(string? eventName, IEnumerable<TModel> models) : this(eventName, null, models, null) { }
+        public Update(string? eventName, object? source, IEnumerable<TModel> models) : this(eventName, source, models, null) { }
+        public Update(IEnumerable<TModel> models, Graph<TModel>? graph) : this(null, null, models, graph) { }
+        public Update(string? eventName, IEnumerable<TModel> models, Graph<TModel>? graph) : this(eventName, null, models, graph) { }
+        public Update(string? eventName, object? source, IEnumerable<TModel> models, Graph<TModel>? graph)
             : base(PersistOperation.Update, eventName, source)
         {
             this.Models = models.ToArray();
             this.Graph = graph;
         }
-        public Update(PersistEvent @event, ICollection<TModel> models) : this(@event, models, null) { }
-        public Update(PersistEvent @event, ICollection<TModel> models, Graph<TModel>? graph)
+        public Update(PersistEvent @event, IEnumerable<TModel> models) : this(@event, models, null) { }
+        public Update(PersistEvent @event, IEnumerable<TModel> models, Graph<TModel>? graph)
             : base(PersistOperation.Update, @event)
         {
             this.Models = models.ToArray();

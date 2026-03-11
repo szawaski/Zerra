@@ -29,7 +29,7 @@ namespace Zerra.SourceGeneration
             var shortName = fullName.Substring(index);
 
             var typeOf = Helper.GetTypeOfName(namedTypeSymbol);
-            _ = sbInitializer.Append(Environment.NewLine).Append("            ");
+            _ = sbInitializer.Append(Environment.NewLine);
             //_ = sbInitializer.Append("global::Zerra.Reflection.Register.NiceName(").Append(typeOf).Append(", \"").Append(shortName).Append("\", \"").Append(fullName).Append("\");");
             _ = sbInitializer.Append("global::Zerra.Reflection.Register.Finder(").Append(typeOf).Append(");");
         }

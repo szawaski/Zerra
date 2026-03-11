@@ -320,7 +320,7 @@ namespace Zerra.Repository
                                 {
                                     if (ModelAnalyzer.CompareIdentities(foreignIdentity, relatedModel.Value))
                                     {
-                                        modelPropertyInfo.Setter(model, relatedModel.Key);
+                                        modelPropertyInfo.SetterBoxed(model, relatedModel.Key);
                                         break;
                                     }
                                 }
@@ -389,7 +389,7 @@ namespace Zerra.Repository
                                     }
                                 }
 
-                                modelPropertyInfo.Setter(model, relatedForModel);
+                                modelPropertyInfo.SetterBoxed(model, relatedForModel);
                             }
                         }
                         //});
@@ -480,7 +480,7 @@ namespace Zerra.Repository
                                 {
                                     if (ModelAnalyzer.CompareIdentities(foreignIdentity, relatedModel.Value))
                                     {
-                                        modelPropertyInfo.Setter(model, relatedModel.Key);
+                                        modelPropertyInfo.SetterBoxed(model, relatedModel.Key);
                                         break;
                                     }
                                 }
@@ -551,7 +551,7 @@ namespace Zerra.Repository
                                     }
                                 }
 
-                                modelPropertyInfo.Setter(model, relatedForModel);
+                                modelPropertyInfo.SetterBoxed(model, relatedForModel);
                             }
                         }
                         //});
@@ -586,11 +586,11 @@ namespace Zerra.Repository
                             {
                                 foreach (var model in models)
                                 {
-                                    var related = (IEnumerable)property.Getter(model)!;
+                                    var related = (IEnumerable)property.GetterBoxed(model)!;
                                     if (related is not null)
                                     {
                                         var returnModels = relatedProviderGeneric.OnGetIncludingBase(related, relatedGraph);
-                                        property.Setter(model, returnModels);
+                                        property.SetterBoxed(model, returnModels);
                                     }
                                 }
                             }
@@ -600,7 +600,7 @@ namespace Zerra.Repository
                                 var relatedModelsDictionary = new Dictionary<object, List<TModel>>();
                                 foreach (var model in models)
                                 {
-                                    var related = property.Getter(model);
+                                    var related = property.GetterBoxed(model);
                                     if (related is not null)
                                     {
                                         _ = relatedModels.Add(related);
@@ -625,7 +625,7 @@ namespace Zerra.Repository
                                     {
                                         foreach (var model in relatedModelSet.Value)
                                         {
-                                            property.Setter(model, null);
+                                            property.SetterBoxed(model, null);
                                         }
                                     }
                                 }
@@ -658,11 +658,11 @@ namespace Zerra.Repository
                             {
                                 foreach (var model in models)
                                 {
-                                    var related = (IEnumerable)property.Getter(model)!;
+                                    var related = (IEnumerable)property.GetterBoxed(model)!;
                                     if (related is not null)
                                     {
                                         var returnModels = relatedProviderGeneric.OnGetIncludingBaseAsync(related, relatedGraph);
-                                        property.Setter(model, returnModels);
+                                        property.SetterBoxed(model, returnModels);
                                     }
                                 }
                             }
@@ -672,7 +672,7 @@ namespace Zerra.Repository
                                 var relatedModelsDictionary = new Dictionary<object, List<TModel>>();
                                 foreach (var model in models)
                                 {
-                                    var related = property.Getter(model);
+                                    var related = property.GetterBoxed(model);
                                     if (related is not null)
                                     {
                                         _ = relatedModels.Add(related);
@@ -697,7 +697,7 @@ namespace Zerra.Repository
                                     {
                                         foreach (var model in relatedModelSet.Value)
                                         {
-                                            property.Setter(model, null);
+                                            property.SetterBoxed(model, null);
                                         }
                                     }
                                 }
@@ -1304,7 +1304,7 @@ namespace Zerra.Repository
                         throw new Exception($"Model {modelPropertyInfo.Type.Name} missing Foreign Identity");
                     graph.AddMembers(modelPropertyInfo.ForeignIdentity);
 
-                    var relatedModel = modelPropertyInfo.Getter(model);
+                    var relatedModel = modelPropertyInfo.GetterBoxed(model);
 
                     if (relatedModel is not null)
                     {
@@ -1356,7 +1356,7 @@ namespace Zerra.Repository
                     //{
                     var relatedType = modelPropertyInfo.InnerType;
 
-                    var relatedModels = (IEnumerable)modelPropertyInfo.Getter(model)!;
+                    var relatedModels = (IEnumerable)modelPropertyInfo.GetterBoxed(model)!;
 
                     var identity = ModelAnalyzer.GetIdentity(model);
 
@@ -1566,7 +1566,7 @@ namespace Zerra.Repository
                         throw new Exception($"Model {modelPropertyInfo.Type.Name} missing Foreign Identity");
                     graph.AddMembers(modelPropertyInfo.ForeignIdentity);
 
-                    var relatedModel = modelPropertyInfo.Getter(model);
+                    var relatedModel = modelPropertyInfo.GetterBoxed(model);
 
                     if (relatedModel is not null)
                     {
@@ -1618,7 +1618,7 @@ namespace Zerra.Repository
                     //{
                     var relatedType = modelPropertyInfo.InnerType;
 
-                    var relatedModels = (IEnumerable)modelPropertyInfo.Getter(model)!;
+                    var relatedModels = (IEnumerable)modelPropertyInfo.GetterBoxed(model)!;
 
                     var identity = ModelAnalyzer.GetIdentity(model);
 

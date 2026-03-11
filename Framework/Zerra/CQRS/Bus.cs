@@ -51,7 +51,7 @@ namespace Zerra.CQRS
         /// <summary>
         /// Creates a new bus instance with the specified configuration.
         /// </summary>
-        /// <param name="service">The logical service name for this bus.</param>
+        /// <param name="serviceName">The logical service name for this bus.</param>
         /// <param name="log">Optional logger for bus operations.</param>
         /// <param name="busLog">Optional bus logger for detailed message logging.</param>
         /// <param name="busServices">Optional services provider for handler dependency resolution.</param>
@@ -63,22 +63,22 @@ namespace Zerra.CQRS
         /// <param name="maxConcurrentCommandsPerTopic">Optional maximum concurrent commands per topic; defaults to ProcessorCount * 8.</param>
         /// <param name="maxConcurrentEventsPerTopic">Optional maximum concurrent events per topic; defaults to ProcessorCount * 16.</param>
         /// <returns>A configured bus setup instance ready for handler and producer/consumer registration.</returns>
-        public static IBusSetup New(string service, ILogger? log, IBusLogger? busLog, BusServices? busServices, int? commandToReceiveUntilExit = null,
+        public static IBusSetup New(string serviceName, ILogger? log = null, IBusLogger? busLog = null, BusServices? busServices = null, int? commandToReceiveUntilExit = null,
             TimeSpan? defaultCallTimeout = null, TimeSpan? defaultDispatchTimeout = null, TimeSpan? defaultDispatchAwaitTimeout = null,
             int? maxConcurrentQueries = null, int? maxConcurrentCommandsPerTopic = null, int? maxConcurrentEventsPerTopic = null)
         {
-            var bus = new Bus(service, log, busLog, busServices, commandToReceiveUntilExit,
+            var bus = new Bus(serviceName, log, busLog, busServices, commandToReceiveUntilExit,
                 defaultCallTimeout, defaultDispatchTimeout, defaultDispatchAwaitTimeout,
                 maxConcurrentQueries, maxConcurrentCommandsPerTopic, maxConcurrentEventsPerTopic);
             Bus.staticBus = bus;
             return bus;
         }
 
-        private Bus(string service, ILogger? log, IBusLogger? busLog, BusServices? busServices, int? commandToReceiveUntilExit = null,
+        private Bus(string serviceName, ILogger? log, IBusLogger? busLog, BusServices? busServices, int? commandToReceiveUntilExit = null,
             TimeSpan? defaultCallTimeout = null, TimeSpan? defaultDispatchTimeout = null, TimeSpan? defaultDispatchAwaitTimeout = null,
             int? maxConcurrentQueries = null, int? maxConcurrentCommandsPerTopic = null, int? maxConcurrentEventsPerTopic = null)
         {
-            this.context = new BusContext(this, service, log, busServices);
+            this.context = new BusContext(this, serviceName, log, busServices);
             this.busLog = busLog;
             this.commandCounter = new CommandCounter(commandToReceiveUntilExit, HandleProcessExit);
             this.defaultCallTimeout = defaultCallTimeout;

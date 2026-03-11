@@ -50,7 +50,7 @@ namespace Zerra.SourceGeneration
                         typeOfTaskInnerType = Helper.GetTypeOfName(returnType.TypeArguments[0]);
                 }
 
-                _ = sb.Append(Environment.NewLine).Append("            ");
+                _ = sb.Append(Environment.NewLine);
                 _ = sb.Append("global::Zerra.Reflection.Register.Handler(");
 
                 _ = sb.Append(typeOfForInterface).Append(", ");

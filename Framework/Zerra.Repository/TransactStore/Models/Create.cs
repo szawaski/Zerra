@@ -27,19 +27,19 @@ namespace Zerra.Repository
             this.Models = [model];
             this.Graph = graph;
         }
-        public Create(ICollection<TModel> models) : this(null, null, models, null) { }
-        public Create(string? eventName, ICollection<TModel> models) : this(eventName, null, models, null) { }
-        public Create(string? eventName, object? source, ICollection<TModel> models) : this(eventName, source, models, null) { }
-        public Create(ICollection<TModel> models, Graph<TModel>? graph) : this(null, null, models, graph) { }
-        public Create(string? eventName, ICollection<TModel> models, Graph<TModel>? graph) : this(eventName, null, models, graph) { }
-        public Create(string? eventName, object? source, ICollection<TModel> models, Graph<TModel>? graph)
+        public Create(IEnumerable<TModel> models) : this(null, null, models, null) { }
+        public Create(string? eventName, IEnumerable<TModel> models) : this(eventName, null, models, null) { }
+        public Create(string? eventName, object? source, IEnumerable<TModel> models) : this(eventName, source, models, null) { }
+        public Create(IEnumerable<TModel> models, Graph<TModel>? graph) : this(null, null, models, graph) { }
+        public Create(string? eventName, IEnumerable<TModel> models, Graph<TModel>? graph) : this(eventName, null, models, graph) { }
+        public Create(string? eventName, object? source, IEnumerable<TModel> models, Graph<TModel>? graph)
             : base(PersistOperation.Create, eventName, source)
         {
             this.Models = models.ToArray();
             this.Graph = graph;
         }
-        public Create(PersistEvent @event, ICollection<TModel> models) : this(@event, models, null) { }
-        public Create(PersistEvent @event, ICollection<TModel> models, Graph<TModel>? graph)
+        public Create(PersistEvent @event, IEnumerable<TModel> models) : this(@event, models, null) { }
+        public Create(PersistEvent @event, IEnumerable<TModel> models, Graph<TModel>? graph)
             : base(PersistOperation.Create, @event)
         {
             this.Models = models.ToArray();

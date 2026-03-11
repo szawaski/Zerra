@@ -1,0 +1,11 @@
+<#@ template language="C#" debug="false" hostspecific="true" #>
+<#@ assembly name="Zerra.T4\bin\Debug\net48\Zerra.T4.dll" #>
+<#
+	const string connectionString = "data source=.;initial catalog=DatabaseName;integrated security=True;MultipleActiveResultSets=True;";
+	const string namespaceString = "KaKush.Domain.Sql";
+	const string modelSuffix = "DataModel";
+	const string baseProvider = "ProjectNameSqlBaseProvider";
+	const string usingNamespace = "ProjectName.Domain.DataModels";
+	var result = Zerra.T4.MsSqlFirst.GenerateProviders(connectionString, namespaceString, modelSuffix, baseProvider, usingNamespace);
+	#><#=result#><#
+#>

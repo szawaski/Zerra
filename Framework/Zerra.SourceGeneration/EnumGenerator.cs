@@ -25,7 +25,7 @@ namespace Zerra.SourceGeneration
             _ = TypeLookup.CoreEnumTypeLookup(namedTypeSymbol.EnumUnderlyingType.Name, out CoreEnumType enumType);
             var hasFlagsAttribute = namedTypeSymbol.GetAttributes().Any(x => x.AttributeClass?.Name == "FlagsAttribute");
 
-            _ = sb.Append(Environment.NewLine).Append("            ");
+            _ = sb.Append(Environment.NewLine);
             _ = sb.Append("global::Zerra.Reflection.Register.Enum(").Append(typeOfName).Append(", ");
             _ = sb.Append("global::Zerra.Reflection.CoreEnumType." + enumType.ToString()).Append(", ");
             _ = sb.Append(Helper.BoolString(hasFlagsAttribute)).Append(", ");

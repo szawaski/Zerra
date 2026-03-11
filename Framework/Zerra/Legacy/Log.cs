@@ -11,7 +11,6 @@ namespace Zerra.Logging
     public static class Log
     {
         private static ILogger? instance;
-        private static ILogger Instance => instance ?? throw new InvalidOperationException("Log instance not set. Please set the Log instance before using.");
         /// <summary>
         /// Sets the logging implementation to be used by the application.
         /// </summary>
@@ -30,7 +29,7 @@ namespace Zerra.Logging
         /// <param name="message">The message to log.</param>
         public static void Trace(string message)
         {
-            Instance.Info(message);
+            instance?.Info(message);
         }
         /// <summary>
         /// Log an event with a level of Debug.
@@ -38,7 +37,7 @@ namespace Zerra.Logging
         /// <param name="message">The message to log.</param>
         public static void Debug(string message)
         {
-            Instance.Debug(message);
+            instance?.Debug(message);
         }
         /// <summary>
         /// Log an event with a level of Trace.
@@ -46,7 +45,7 @@ namespace Zerra.Logging
         /// <param name="message">The message to log.</param>
         public static void Info(string message)
         {
-            Instance.Info(message);
+            instance?.Info(message);
         }
         /// <summary>
         /// Log an event with a level of Warning.
@@ -54,7 +53,7 @@ namespace Zerra.Logging
         /// <param name="message">The message to log.</param>
         public static void Warn(string message)
         {
-            Instance.Warn(message);
+            instance?.Warn(message);
         }
         /// <summary>
         /// Log an event with a level of Error.
@@ -63,7 +62,7 @@ namespace Zerra.Logging
         /// <param name="exception">The exception to log.</param>
         public static void Error(string message, Exception? exception = null)
         {
-            Instance.Error(message, exception);
+            instance?.Error(message, exception);
         }
         /// <summary>
         /// Log an event with a level of Error.
@@ -71,7 +70,7 @@ namespace Zerra.Logging
         /// <param name="exception">The exception to log.</param>
         public static void Error(Exception exception)
         {
-            Instance.Error(exception);
+            instance?.Error(exception);
         }
         /// <summary>
         /// Log an event with a level of Critical.
@@ -80,7 +79,7 @@ namespace Zerra.Logging
         /// <param name="exception">The exception to log.</param>
         public static void Critical(string message, Exception? exception = null)
         {
-            Instance.Critical(message, exception);
+            instance?.Critical(message, exception);
         }
 
         /// <summary>
@@ -89,7 +88,7 @@ namespace Zerra.Logging
         /// <param name="exception">The exception to log.</param>
         public static void Critical(Exception exception)
         {
-            Instance.Critical(exception);
+            instance?.Critical(exception);
         }
 
         /// <summary>
@@ -100,7 +99,7 @@ namespace Zerra.Logging
         [Obsolete("Use non-async version")]
         public static Task TraceAsync(string message)
         {
-            Instance.Info(message);
+            instance?.Info(message);
             return Task.CompletedTask;
         }
         /// <summary>
@@ -111,7 +110,7 @@ namespace Zerra.Logging
         [Obsolete("Use non-async version")]
         public static Task DebugAsync(string message)
         {
-            Instance.Debug(message);
+            instance?.Debug(message);
             return Task.CompletedTask;
         }
         /// <summary>
@@ -122,7 +121,7 @@ namespace Zerra.Logging
         [Obsolete("Use non-async version")]
         public static Task InfoAsync(string message)
         {
-            Instance.Info(message);
+            instance?.Info(message);
             return Task.CompletedTask;
         }
         /// <summary>
@@ -133,7 +132,7 @@ namespace Zerra.Logging
         [Obsolete("Use non-async version")]
         public static Task WarnAsync(string message)
         {
-            Instance.Warn(message);
+            instance?.Warn(message);
             return Task.CompletedTask;
         }
         /// <summary>
@@ -145,7 +144,7 @@ namespace Zerra.Logging
         [Obsolete("Use non-async version")]
         public static Task ErrorAsync(string message, Exception? exception = null)
         {
-            Instance.Error(message, exception);
+            instance?.Error(message, exception);
             return Task.CompletedTask;
         }
         /// <summary>
@@ -156,7 +155,7 @@ namespace Zerra.Logging
         [Obsolete("Use non-async version")]
         public static Task ErrorAsync(Exception exception)
         {
-            Instance.Error(exception);
+            instance?.Error(exception);
             return Task.CompletedTask;
         }
         /// <summary>
@@ -168,7 +167,7 @@ namespace Zerra.Logging
         [Obsolete("Use non-async version")]
         public static Task CriticalAsync(string message, Exception? exception = null)
         {
-            Instance.Critical(message, exception);
+            instance?.Critical(message, exception);
             return Task.CompletedTask;
         }
         /// <summary>
@@ -179,7 +178,7 @@ namespace Zerra.Logging
         [Obsolete("Use non-async version")]
         public static Task CriticalAsync(Exception exception)
         {
-            Instance.Critical(exception);
+            instance?.Critical(exception);
             return Task.CompletedTask;
         }
     }

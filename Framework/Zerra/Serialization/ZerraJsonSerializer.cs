@@ -17,6 +17,7 @@ namespace Zerra.Serialization
     public sealed class ZerraJsonSerializer : ISerializer
     {
         private readonly JsonSerializerOptions? options;
+        private readonly ContentType contentType;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ZerraJsonSerializer"/> class.
@@ -25,10 +26,11 @@ namespace Zerra.Serialization
         public ZerraJsonSerializer(JsonSerializerOptions? options = null)
         {
             this.options = options;
+            contentType = options != null && options.Nameless ? ContentType.JsonNameless : ContentType.Json;
         }
 
         /// <inheritdoc />
-        public ContentType ContentType => ContentType.Json;
+        public ContentType ContentType => contentType;
 
         /// <inheritdoc />
         public byte[] SerializeBytes(object? obj) => JsonSerializer.SerializeBytes(obj, options);

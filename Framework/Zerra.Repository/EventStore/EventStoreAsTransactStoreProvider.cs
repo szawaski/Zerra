@@ -891,7 +891,7 @@ namespace Zerra.Repository
 
                 var where = ModelAnalyzer.GetIdentityExpression<TModel>(id);
 
-                var eventStates = Repo.Query(new EventQueryMany<TModel>(null, thisEventData.Date, thisEventData.Date, null, null, null, null, where));
+                var eventStates = Repo.Query(new EventQueryMany<TModel>(thisEventData.Date, thisEventData.Date, where));
                 var eventState = eventStates.Where(x => x.Number == eventNumber).Single();
 
                 SaveModelState(id, eventState.Model, eventState.Number);
@@ -932,7 +932,7 @@ namespace Zerra.Repository
 
                 var where = ModelAnalyzer.GetIdentityExpression<TModel>(id);
 
-                var eventStates = await Repo.QueryAsync(new EventQueryMany<TModel>(null, thisEventData.Date, thisEventData.Date, null, null, null, null, where));
+                var eventStates = await Repo.QueryAsync(new EventQueryMany<TModel>(thisEventData.Date, thisEventData.Date, where));
                 var eventState = eventStates.Where(x => x.Number == eventNumber).Single();
 
                 await SaveModelStateAsync(id, eventState.Model, eventState.Number);

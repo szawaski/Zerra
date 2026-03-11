@@ -50,10 +50,10 @@ namespace Zerra.SourceGeneration
                 if (isCoreType)
                     coreType = coreTypeParsed;
 
-                _ = sb.Append(Environment.NewLine).Append("            ");
+                _ = sb.Append(Environment.NewLine);
                 _ = sb.Append("//").Append(Helper.GetFullName(model.TypeSymbol) + " - " + model.Source);
 
-                _ = sb.Append(Environment.NewLine).Append("            ");
+                _ = sb.Append(Environment.NewLine);
                 _ = sb.Append("global::Zerra.Reflection.Register.Type(new global::Zerra.Reflection.TypeDetail<").Append(model.TypeName).Append(">(");
 
                 GenerateMembers(sb, isCoreType, model.TypeName, namedTypeSymbol, symbolMembers);

@@ -22,7 +22,12 @@ namespace Zerra.Repository
             return $"{operation} {typeof(TModel).Name}";
         }
 
-        public Persist(PersistOperation operation, string? eventName = null, object? source = null)
+        public Persist(PersistOperation operation)
+        {
+            this.Operation = operation;
+            this.Event = new PersistEvent(Guid.NewGuid(), Persist<TModel>.GetEventName(operation), null);
+        }
+        public Persist(PersistOperation operation, string? eventName, object? source)
         {
             this.Operation = operation;
             this.Event = new PersistEvent(Guid.NewGuid(), String.IsNullOrWhiteSpace(eventName) ? Persist<TModel>.GetEventName(operation) : eventName, source);

@@ -28,22 +28,7 @@ namespace Zerra.Web
         private readonly string? route;
         private readonly ICqrsAuthorizer? authorizer;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CqrsApiGatewayMiddleware"/> class.
-        /// </summary>
-        /// <param name="requestDelegate">The next middleware in the pipeline.</param>
-        /// <param name="bus">The CQRS bus for dispatching commands, queries, and events.</param>
-        /// <param name="serializer">The serializer for request/response serialization and deserialization.</param>
-        /// <param name="log">Optional logger for diagnostic information and errors.</param>
-        /// <param name="route">Optional route path to restrict the middleware to specific requests (e.g., "/cqrs"). If null, all POST/OPTIONS requests are processed.</param>
-        public CqrsApiGatewayMiddleware(RequestDelegate requestDelegate, IBus bus, ISerializer serializer, ILogger? log, string? route)
-        {
-            this.requestDelegate = requestDelegate;
-            this.bus = bus;
-            this.serializer = serializer;
-            this.log = log;
-            this.route = route;
-        }
+        private ISerializer? namelessSerializer = null;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CqrsApiGatewayMiddleware"/> class with authorization support.
@@ -54,7 +39,7 @@ namespace Zerra.Web
         /// <param name="log">Optional logger for diagnostic information and errors.</param>
         /// <param name="authorizer">Optional authorizer for custom request authentication and authorization. If null, no authorization is performed.</param>
         /// <param name="route">Optional route path to restrict the middleware to specific requests (e.g., "/cqrs"). If null, all POST/OPTIONS requests are processed.</param>
-        public CqrsApiGatewayMiddleware(RequestDelegate requestDelegate, IBus bus, ISerializer serializer, ILogger? log, ICqrsAuthorizer? authorizer, string? route)
+        public CqrsApiGatewayMiddleware(RequestDelegate requestDelegate, IBus bus, ISerializer serializer, ILogger? log = null, ICqrsAuthorizer? authorizer = null, string? route = null)
         {
             this.requestDelegate = requestDelegate;
             this.bus = bus;
@@ -129,8 +114,23 @@ namespace Zerra.Web
                 acceptContentType = null;
             }
 
+            ISerializer acceptSerializer = serializer;
             if (acceptContentType.HasValue && acceptContentType.Value != serializer.ContentType)
-                throw new Exception("Invalid Request");
+            {
+                if (acceptContentType == ContentType.JsonNameless && serializer.ContentType == ContentType.Json)
+                {
+                    //special case
+                    namelessSerializer ??= new ZerraJsonSerializer(new Serialization.Json.JsonSerializerOptions()
+                    {
+                        Nameless = true
+                    });
+                    acceptSerializer = namelessSerializer;
+                }
+                else
+                {
+                    throw new Exception("Invalid Request");
+                }
+            }
 
             if (authorizer is not null)
             {

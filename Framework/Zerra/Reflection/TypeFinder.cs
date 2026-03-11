@@ -90,7 +90,9 @@ namespace Zerra.Reflection
                         if ((matches.Count == 0 || type is not null) && !matches.Contains(type))
                             matches.Add(type);
                     }
+#pragma warning disable CS8762 // Parameter must have a non-null value when exiting in some condition.
                     return true;
+#pragma warning restore CS8762 // Parameter must have a non-null value when exiting in some condition.
                 }
                 else
                 {
@@ -123,6 +125,13 @@ namespace Zerra.Reflection
             if (type.AssemblyQualifiedName != null)
             {
                 var types = typeByName.GetOrAdd(type.AssemblyQualifiedName, static (key) => new());
+                if (!types.Contains(type))
+                    types.Add(type);
+            }
+
+            if (type.FullName != null)
+            {
+                var types = typeByName.GetOrAdd(type.FullName, static (key) => new());
                 if (!types.Contains(type))
                     types.Add(type);
             }

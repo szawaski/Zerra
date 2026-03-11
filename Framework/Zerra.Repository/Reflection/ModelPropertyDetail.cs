@@ -2,8 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Linq;
 using System.Reflection;
 using Zerra.Reflection;
 
@@ -11,9 +9,9 @@ namespace Zerra.Repository.Reflection
 {
     public sealed class ModelPropertyDetail
     {
+        public MemberDetail MemberDetail { get; }
         public MemberInfo MemberInfo { get; }
         public bool IsDataSourceEntity { get; }
-
         public string Name { get; }
         public Type Type { get; }
         public CoreType? CoreType { get; }
@@ -32,10 +30,12 @@ namespace Zerra.Repository.Reflection
         public StoreTextEncoding TextEncoding { get; }
         public StoreDatePart DatePart { get; }
 
-        public Func<object, object?> Getter { get; }
-        public Action<object, object?> Setter { get; }
+        public Func<object, object?> GetterBoxed { get; }
+        public Action<object, object?> SetterBoxed { get; }
 
-        public object CoreTypeSetter { get; }
+        public Delegate Setter { get; }
+
+        public Func<object> CreatorBoxed { get; }
 
         public override string ToString()
         {
@@ -44,6 +44,8 @@ namespace Zerra.Repository.Reflection
 
         internal ModelPropertyDetail(MemberDetail memberDetail, bool declaringTypeIsDataSourceEntity)
         {
+            this.MemberDetail = memberDetail;
+
             this.MemberInfo = memberDetail.MemberInfo;
 
             this.Name = memberDetail.Name;
@@ -91,7 +93,7 @@ namespace Zerra.Repository.Reflection
                 if (attribute is EntityAttribute entityAttributeFound)
                 {
                     entityAttribute = entityAttributeFound;
-                        break;
+                    break;
                 }
             }
 
@@ -118,10 +120,12 @@ namespace Zerra.Repository.Reflection
             if (!this.IsDataSourceNotNull && this.IsIdentity)
                 throw new Exception($"{this.Type.Name} {this.Name} cannot be both an identity and nullable");
 
-            this.Getter = memberDetail.GetterBoxed;
-            this.Setter = memberDetail.SetterBoxed;
+            this.GetterBoxed = memberDetail.GetterBoxed;
+            this.SetterBoxed = memberDetail.SetterBoxed;
 
-            this.CoreTypeSetter = CoreTypeSetterGenerator.Get(this.MemberInfo, this.CoreType, this.Type.IsArray && this.InnerCoreType == Zerra.Reflection.CoreType.Byte);
+            this.Setter = memberDetail.Setter;
+
+            this.CreatorBoxed = this.MemberDetail.TypeDetail.CreatorBoxed;
         }
     }
 }

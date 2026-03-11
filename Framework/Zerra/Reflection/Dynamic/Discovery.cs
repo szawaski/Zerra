@@ -34,8 +34,6 @@ namespace Zerra.Reflection.Dynamic
 
         private static readonly ConcurrentDictionary<Type, List<Type>> interfaceByType = new();
 
-        private static readonly ConcurrentDictionary<string, ConcurrentReadWriteList<Type?>> typeByName = new();
-
         private static readonly ConcurrentFactoryDictionary<Type, string> niceFullNames = new();
         private static readonly ConcurrentFactoryDictionary<Type, string> niceFullGenericNames = new();
 
@@ -182,13 +180,7 @@ namespace Zerra.Reflection.Dynamic
             if (!skipDiscoveredCheck && !discoveredTypes.Add(typeInAssembly))
                 return;
 
-            var typeList1 = typeByName.GetOrAdd(typeInAssembly.Name, static (key) => new());
-            typeList1.Add(typeInAssembly);
-            if (typeInAssembly.FullName is not null && typeInAssembly.Name != typeInAssembly.FullName)
-            {
-                var typeList2 = typeByName.GetOrAdd(typeInAssembly.FullName, static (key) => new());
-                typeList2.Add(typeInAssembly);
-            }
+            TypeFinder.Register(typeInAssembly);
 
             var test = typeInAssembly.Name;
             if (interfaceTypes.Length > 0)
