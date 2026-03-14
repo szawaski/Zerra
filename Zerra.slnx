@@ -20,6 +20,7 @@
   <Folder Name="/Test/">
     <Project Path="Tests/Zerra.Benchmark/Zerra.Benchmark.csproj" />
     <Project Path="Tests/Zerra.SourceGeneration.Test/Zerra.SourceGeneration.Test.csproj" />
+    <Project Path="Tests/Zerra.T4.TestDev/Zerra.T4.TestDev.csproj" />
     <Project Path="Tests/Zerra.Test/Zerra.Test.csproj" />
   </Folder>
   <Folder Name="/docs/">
