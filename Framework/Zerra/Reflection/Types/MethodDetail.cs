@@ -17,8 +17,8 @@ namespace Zerra.Reflection
         public readonly string Name;
         /// <summary>The return type of the method.</summary>
         public readonly Type ReturnType;
-        /// <summary>The number of generic argument for this method.</summary>
-        public readonly int GenericArgumentCount;
+        /// <summary>Collection of generic argument types for this method.</summary>
+        public readonly IReadOnlyList<Type> GenericArguments;
         /// <summary>Collection of parameters required by this method.</summary>
         public readonly IReadOnlyList<ParameterDetail> Parameters;
         /// <summary>Indicates whether this method has a callable delegate.</summary>
@@ -43,18 +43,19 @@ namespace Zerra.Reflection
         /// <param name="name">The name of the method.</param>
         /// <param name="returnType">The return type of the method.</param>
         /// <param name="genericArgumentCount">The number of generic arguments for this method.</param>
+        /// <param name="genericArguments">The collection of generic argument types for this method.</param>
         /// <param name="parameters">The parameters required by this method.</param>
         /// <param name="caller">The unboxed delegate for invoking this method.</param>
         /// <param name="callerBoxed">Boxed delegate for invoking this method.</param>
         /// <param name="attributes">Custom attributes applied to the method.</param>
         /// <param name="isStatic">Whether this method is static.</param>
         /// <param name="isExplicitFromInterface">Whether this method is an explicit interface implementation.</param>
-        public MethodDetail(Type parentType, string name, Type returnType, int genericArgumentCount, IReadOnlyList<ParameterDetail> parameters, Delegate? caller, Func<object?, object?[]?, object?>? callerBoxed, IReadOnlyList<Attribute> attributes, bool isStatic, bool isExplicitFromInterface)
+        public MethodDetail(Type parentType, string name, Type returnType, IReadOnlyList<Type> genericArguments, IReadOnlyList<ParameterDetail> parameters, Delegate? caller, Func<object?, object?[]?, object?>? callerBoxed, IReadOnlyList<Attribute> attributes, bool isStatic, bool isExplicitFromInterface)
         {
             this.ParentType = parentType;
             this.Name = name;
             this.ReturnType = returnType;
-            this.GenericArgumentCount = genericArgumentCount;
+            this.GenericArguments = genericArguments;
             this.Parameters = parameters;
             this.HasCaller = caller != null;
             this.Caller = caller;

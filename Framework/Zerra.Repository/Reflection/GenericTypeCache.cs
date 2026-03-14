@@ -26,16 +26,18 @@ namespace Zerra.Reflection
 
                 Func<object?, object?[]?, object?>? callerBoxed = AccessorGenerator.GenerateCaller(generic);
 
+                var genericArguments = generic.GetGenericArguments();
+
                 MethodDetail methodDetail;
                 if (generic.ReturnType.ContainsGenericParameters || generic.ReturnType.IsPointer || generic.ReturnType.IsByRef || generic.ReturnType.IsByRefLike)
                 {
-                    methodDetail = new MethodDetail(type, generic.Name, generic.ReturnType, generic.GetGenericArguments().Length, parameterTypes, caller, callerBoxed, attributes, generic.IsStatic, false);
+                    methodDetail = new MethodDetail(type, generic.Name, generic.ReturnType, genericArguments, parameterTypes, caller, callerBoxed, attributes, generic.IsStatic, false);
                 }
                 else
                 {
                     var methodDetailGenericType = methodDetailType.MakeGenericType(generic.ReturnType.Name == "Void" ? typeof(object) : generic.ReturnType);
                     var constructor = methodDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                    methodDetail = (MethodDetail)constructor.Invoke([type, generic.Name, method.GetGenericArguments().Length, parameterTypes, caller, callerBoxed, attributes, generic.IsStatic, false]);
+                    methodDetail = (MethodDetail)constructor.Invoke([type, generic.Name, genericArguments, parameterTypes, caller, callerBoxed, attributes, generic.IsStatic, false]);
                 }
                 return methodDetail;
             });

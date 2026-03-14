@@ -381,7 +381,14 @@ namespace Zerra.SourceGeneration
                     _ = sb.Append(Helper.GetTypeOfName(namedTypeSymbol)).Append(", ");
                     _ = sb.Append("\"").Append(methodName).Append("\", ");
 
-                    _ = sb.Append(method.TypeParameters.Length).Append(", ");
+                    _ = sb.Append("new Type[] { ");
+                    for (var i = 0; i < method.TypeParameters.Length; i++)
+                    {
+                        if (i > 0)  
+                            _ = sb.Append(", ");
+                        var typeOfName = Helper.GetTypeOfName(method.TypeParameters[i]);
+                    }
+                    _ = sb.Append(" }, ");
 
                     GenerateParameters(sb, method.Parameters, null);
                     sb.Append(", ");

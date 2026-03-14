@@ -687,16 +687,18 @@ namespace Zerra.Reflection.Dynamic
 
                     Func<object?, object?[]?, object?>? callerBoxed = AccessorGenerator.GenerateCaller(method);
 
+                    var genericArguments = method.GetGenericArguments();
+
                     MethodDetail methodDetail;
                     if (method.ReturnType.ContainsGenericParameters || method.ReturnType.IsPointer || method.ReturnType.IsByRef || method.ReturnType.IsByRefLike)
                     {
-                        methodDetail = new MethodDetail(type, method.Name, method.ReturnType, method.GetGenericArguments().Length, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false);
+                        methodDetail = new MethodDetail(type, method.Name, method.ReturnType, genericArguments, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false);
                     }
                     else
                     {
                         var methodDetailGenericType = methodDetailType.MakeGenericType(method.ReturnType.Name == "Void" ? typeof(object) : method.ReturnType);
                         var constructor = methodDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                        methodDetail = (MethodDetail)constructor.Invoke([type, method.Name, method.GetGenericArguments().Length, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false]);
+                        methodDetail = (MethodDetail)constructor.Invoke([type, method.Name, genericArguments, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false]);
                     }
 
                     items.Add(methodDetail);
@@ -739,16 +741,18 @@ namespace Zerra.Reflection.Dynamic
                                 if (callerBoxed == null)
                                     continue;
 
+                                var genericArguments = method.GetGenericArguments();
+
                                 MethodDetail methodDetail;
                                 if (method.ReturnType.ContainsGenericParameters || method.ReturnType.IsPointer || method.ReturnType.IsByRef || method.ReturnType.IsByRefLike)
                                 {
-                                    methodDetail = new MethodDetail(type, name, method.ReturnType, method.GetGenericArguments().Length, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false);
+                                    methodDetail = new MethodDetail(type, name, method.ReturnType, genericArguments, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false);
                                 }
                                 else
                                 {
                                     var methodDetailGenericType = methodDetailType.MakeGenericType(method.ReturnType.Name == "Void" ? typeof(object) : method.ReturnType);
                                     var constructor = methodDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                                    methodDetail = (MethodDetail)constructor.Invoke([type, name, method.GetGenericArguments().Length, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, isExplicitFromInterface]);
+                                    methodDetail = (MethodDetail)constructor.Invoke([type, name, genericArguments, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, isExplicitFromInterface]);
                                 }
                                 items.Add(methodDetail);
                                 if (hasInterfaces)

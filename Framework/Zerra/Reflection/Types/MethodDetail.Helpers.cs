@@ -37,9 +37,60 @@ namespace Zerra.Reflection
             {
                 if (!RuntimeFeature.IsDynamicCodeSupported)
                     throw new NotSupportedException($"Cannot get member info.  Dynamic code generation is not supported in this build configuration.");
-                var method = ParentType.GetMethod(Name, GenericArgumentCount, Parameters.Select(x => x.Type).ToArray());
+
+                MethodInfo? method = null;
+
+                if (GenericArguments.Count == 0)
+                {
+                    method = ParentType.GetMethod(Name, Parameters.Select(x => x.Type).ToArray());
+                    if (method == null)
+                        throw new InvalidOperationException($"MethodInfo '{Name}' was not found.");
+                    return method;
+                }
+
+                var methodCandidates = ParentType.GetMethods().Where(x =>
+                    x.Name == Name &&
+                    x.GetGenericArguments().Length == GenericArguments.Count &&
+                    x.GetParameters().Length == Parameters.Count
+                ).ToArray();
+
+                if (methodCandidates.Length == 1)
+                {
+                    return methodCandidates[0].MakeGenericMethod(GenericArguments.ToArray());
+                }
+
+                foreach (var candidate in methodCandidates)
+                {
+                    try
+                    {
+                        method = candidate.MakeGenericMethod(GenericArguments.ToArray());
+                    }
+                    catch
+                    {
+                        continue;
+                    }
+
+                    if (method.ReturnType != ReturnType)
+                    {
+                        method = null;
+                        continue;
+                    }
+                    if (!method.GetParameters().Select(x => x.ParameterType).SequenceEqual(Parameters.Select(x => x.Type)))
+                    {
+                        method = null;
+                        continue;
+                    }
+                    if (!method.GetGenericArguments().SequenceEqual(GenericArguments))
+                    {
+                        method = null;
+                        continue;
+                    }
+                    break;
+                }
+
                 if (method == null)
-                    throw new InvalidOperationException($"MethodInfo '{Name}' with {GenericArgumentCount} generic parameters was not found.");
+                    throw new InvalidOperationException($"MethodInfo '{Name}' with generic parameters was not found.");
+
                 return method;
             }
         }

@@ -36,10 +36,12 @@ public static class GenericTypeGenerator
 
             var attributes = method.GetCustomAttributes(true).Cast<Attribute>().ToArray();
 
+            var genericArguments = generic.GetGenericArguments();
+
             MethodDetail methodDetail;
             if (generic.ReturnType.ContainsGenericParameters || generic.ReturnType.IsPointer || generic.ReturnType.IsByRef || generic.ReturnType.IsByRefLike)
             {
-                methodDetail = new MethodDetail(generic.ReflectedType ?? generic.DeclaringType!, generic.Name, generic.ReturnType, generic.GetGenericArguments().Length, parameterTypes, null, null, attributes, generic.IsStatic, false);
+                methodDetail = new MethodDetail(generic.ReflectedType ?? generic.DeclaringType!, generic.Name, generic.ReturnType, genericArguments, parameterTypes, null, null, attributes, generic.IsStatic, false);
             }
             else
             {
@@ -53,7 +55,7 @@ public static class GenericTypeGenerator
 
                 var methodDetailGenericType = methodDetailType.MakeGenericType(generic.ReturnType.Name == "Void" ? typeof(object) : generic.ReturnType);
                 var constructor = methodDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                methodDetail = (MethodDetail)constructor.Invoke([generic.ReflectedType ?? generic.DeclaringType!, generic.Name, generic.GetGenericArguments().Length, parameterTypes, caller, callerBoxed, attributes, generic.IsStatic, false]);
+                methodDetail = (MethodDetail)constructor.Invoke([generic.ReflectedType ?? generic.DeclaringType!, generic.Name, genericArguments, parameterTypes, caller, callerBoxed, attributes, generic.IsStatic, false]);
             }
             return methodDetail;
         });
