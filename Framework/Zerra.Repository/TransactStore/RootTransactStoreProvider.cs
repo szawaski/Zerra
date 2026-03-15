@@ -30,6 +30,8 @@ namespace Zerra.Repository
         protected static readonly Type expressionType = typeof(Expression<>);
         protected static readonly Type boolType = typeof(bool);
 
+        private static readonly MethodDetail getChildGraph = TypeAnalyzer<Graph>.GetTypeDetail().GetMethod("GetChildGraph", 1, 1);
+
         protected virtual bool EventLinking { get { return false; } }
         protected virtual bool QueryLinking { get { return true; } }
         protected virtual bool PersistLinking { get { return true; } }
@@ -92,7 +94,8 @@ namespace Zerra.Repository
                     if (appendWhereExpressionMethodInfo is not null)
                     {
                         var relatedProvider = Resolver.GetSingle(appendWhereExpressionMethodInfo.RelatedProviderType);
-                        var relatedGraph = graph?.GetChildGraph(property.Name);
+                        var getChildGraphGeneric = GenericTypeCache.GetGenericMethodDetail(getChildGraph, property.Type);
+                        var relatedGraph = (Graph)getChildGraphGeneric.CallerBoxed!(graph, [property.Name])!;
 
                         Expression? returnWhereExpression = null;
                         if (relatedProvider is IProviderRelation relatedProviderGeneric)
@@ -160,7 +163,8 @@ namespace Zerra.Repository
                     if (onQueryMethodInfo is not null)
                     {
                         var relatedProvider = Resolver.GetSingle(onQueryMethodInfo.RelatedProviderType);
-                        var relatedGraph = graph.GetChildGraph(property.Name);
+                        var getChildGraphGeneric = GenericTypeCache.GetGenericMethodDetail(getChildGraph, property.Type);
+                        var relatedGraph = (Graph)getChildGraphGeneric.CallerBoxed!(graph, [property.Name])!;
 
                         if (relatedProvider is IProviderRelation relatedProviderGeneric)
                         {
@@ -266,7 +270,8 @@ namespace Zerra.Repository
                         {
                             //related single
                             var relatedType = modelPropertyInfo.InnerType;
-                            var relatedGraph = graph.GetChildGraph(modelPropertyInfo.Name);
+                            var getChildGraphGeneric = GenericTypeCache.GetGenericMethodDetail(getChildGraph, relatedType);
+                            var relatedGraph = (Graph)getChildGraphGeneric.CallerBoxed!(graph, [modelPropertyInfo.Name])!;
 
                             var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
 
@@ -330,7 +335,8 @@ namespace Zerra.Repository
                         {
                             //related many
                             var relatedType = modelPropertyInfo.InnerType;
-                            var relatedGraph = graph.GetChildGraph(modelPropertyInfo.Name);
+                            var getChildGraphGeneric = GenericTypeCache.GetGenericMethodDetail(getChildGraph, relatedType);
+                            var relatedGraph = (Graph)getChildGraphGeneric.CallerBoxed!(graph, [modelPropertyInfo.Name])!;
 
                             var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
 
@@ -424,7 +430,8 @@ namespace Zerra.Repository
                         {
                             //related single
                             var relatedType = modelPropertyInfo.InnerType;
-                            var relatedGraph = graph.GetChildGraph(modelPropertyInfo.Name);
+                            var getChildGraphGeneric = GenericTypeCache.GetGenericMethodDetail(getChildGraph, relatedType);
+                            var relatedGraph = (Graph)getChildGraphGeneric.CallerBoxed!(graph, [modelPropertyInfo.Name])!;
 
                             var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
 
@@ -490,7 +497,8 @@ namespace Zerra.Repository
                         {
                             //related many
                             var relatedType = modelPropertyInfo.InnerType;
-                            var relatedGraph = graph.GetChildGraph(modelPropertyInfo.Name);
+                            var getChildGraphGeneric = GenericTypeCache.GetGenericMethodDetail(getChildGraph, relatedType);
+                            var relatedGraph = (Graph)getChildGraphGeneric.CallerBoxed!(graph, [modelPropertyInfo.Name])!;
 
                             var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
 
@@ -581,7 +589,9 @@ namespace Zerra.Repository
                         var relatedProvider = Resolver.GetSingle(onGetMethodInfo.RelatedProviderType);
                         if (relatedProvider is IProviderRelation relatedProviderGeneric)
                         {
-                            var relatedGraph = graph.GetChildGraph(property.Name);
+                            var getChildGraphGeneric = GenericTypeCache.GetGenericMethodDetail(getChildGraph, property.Type);
+                            var relatedGraph = (Graph)getChildGraphGeneric.CallerBoxed!(graph, [property.Name])!;
+                            
                             if (onGetMethodInfo.Collection)
                             {
                                 foreach (var model in models)
@@ -653,7 +663,9 @@ namespace Zerra.Repository
                         var relatedProvider = Resolver.GetSingle(onGetMethodInfo.RelatedProviderType);
                         if (relatedProvider is IProviderRelation relatedProviderGeneric)
                         {
-                            var relatedGraph = graph.GetChildGraph(property.Name);
+                            var getChildGraphGeneric = GenericTypeCache.GetGenericMethodDetail(getChildGraph, property.Type);
+                            var relatedGraph = (Graph)getChildGraphGeneric.CallerBoxed!(graph, [property.Name])!;
+
                             if (onGetMethodInfo.Collection)
                             {
                                 foreach (var model in models)
@@ -1308,7 +1320,8 @@ namespace Zerra.Repository
 
                     if (relatedModel is not null)
                     {
-                        var relatedGraph = graph.GetChildGraph(modelPropertyInfo.Name);
+                        var getChildGraphGeneric = GenericTypeCache.GetGenericMethodDetail(getChildGraph, relatedType);
+                        var relatedGraph = (Graph)getChildGraphGeneric.CallerBoxed!(graph, [modelPropertyInfo.Name])!;
 
                         if (create)
                         {
@@ -1365,7 +1378,9 @@ namespace Zerra.Repository
                     if (modelPropertyInfo.ForeignIdentity is null || !relatedModelInfo.TryGetProperty(modelPropertyInfo.ForeignIdentity, out var relatedForeignIdentityPropertyInfo))
                         throw new Exception($"Missing ForeignIdentity {modelPropertyInfo.ForeignIdentity} for {relatedModelInfo.Name} defined in {ModelDetail.Name}");
 
-                    var relatedGraph = graph.GetChildGraph(modelPropertyInfo.Name);
+                    var getChildGraphGeneric = GenericTypeCache.GetGenericMethodDetail(getChildGraph, relatedType);
+                    var relatedGraph = (Graph)getChildGraphGeneric.CallerBoxed!(graph, [modelPropertyInfo.Name])!;
+
                     var relatedGraphType = GenericTypeCache.GetGenericTypeDetail(graphType, relatedType);
 
                     var listTypeDetail = GenericTypeCache.GetGenericTypeDetail(listType, relatedType);
@@ -1508,7 +1523,9 @@ namespace Zerra.Repository
                     if (modelPropertyInfo.ForeignIdentity is null || !relatedModelInfo.TryGetProperty(modelPropertyInfo.ForeignIdentity, out var relatedForeignIdentityPropertyInfo))
                         throw new Exception($"Missing ForeignIdentity {modelPropertyInfo.ForeignIdentity} for {relatedModelInfo.Name} defined in {ModelDetail.Name}");
 
-                    var relatedGraph = graph.GetChildGraph(modelPropertyInfo.Name);
+                    var getChildGraphGeneric = GenericTypeCache.GetGenericMethodDetail(getChildGraph, relatedType);
+                    var relatedGraph = (Graph)getChildGraphGeneric.CallerBoxed!(graph, [modelPropertyInfo.Name])!;
+
                     var relatedGraphType = GenericTypeCache.GetGenericTypeDetail(graphType, relatedType);
 
                     var relatedModelsExisting = (IList)GenericTypeCache.GetGenericTypeDetail(listType, relatedType).CreatorBoxed();
@@ -1570,7 +1587,8 @@ namespace Zerra.Repository
 
                     if (relatedModel is not null)
                     {
-                        var relatedGraph = graph.GetChildGraph(modelPropertyInfo.Name);
+                        var getChildGraphGeneric = GenericTypeCache.GetGenericMethodDetail(getChildGraph, relatedType);
+                        var relatedGraph = (Graph)getChildGraphGeneric.CallerBoxed!(graph, [modelPropertyInfo.Name])!;
 
                         if (create)
                         {
@@ -1627,7 +1645,9 @@ namespace Zerra.Repository
                     if (modelPropertyInfo.ForeignIdentity is null || !relatedModelInfo.TryGetProperty(modelPropertyInfo.ForeignIdentity, out var relatedForeignIdentityPropertyInfo))
                         throw new Exception($"Missing ForeignIdentity {modelPropertyInfo.ForeignIdentity} for {relatedModelInfo.Name} defined in {ModelDetail.Name}");
 
-                    var relatedGraph = graph.GetChildGraph(modelPropertyInfo.Name);
+                    var getChildGraphGeneric = GenericTypeCache.GetGenericMethodDetail(getChildGraph, relatedType);
+                    var relatedGraph = (Graph)getChildGraphGeneric.CallerBoxed!(graph, [modelPropertyInfo.Name])!;
+
                     var relatedGraphType = GenericTypeCache.GetGenericTypeDetail(graphType, relatedType);
 
                     var listTypeDetail = GenericTypeCache.GetGenericTypeDetail(listType, relatedType);
@@ -1772,7 +1792,9 @@ namespace Zerra.Repository
                     if (modelPropertyInfo.ForeignIdentity is null || !relatedModelInfo.TryGetProperty(modelPropertyInfo.ForeignIdentity, out var relatedForeignIdentityPropertyInfo))
                         throw new Exception($"Missing ForeignIdentity {modelPropertyInfo.ForeignIdentity} for {relatedModelInfo.Name} defined in {ModelDetail.Name}");
 
-                    var relatedGraph = graph.GetChildGraph(modelPropertyInfo.Name);
+                    var getChildGraphGeneric = GenericTypeCache.GetGenericMethodDetail(getChildGraph, relatedType);
+                    var relatedGraph = (Graph)getChildGraphGeneric.CallerBoxed!(graph, [modelPropertyInfo.Name])!;
+
                     var relatedGraphType = GenericTypeCache.GetGenericTypeDetail(graphType, relatedType);
 
                     var relatedModelsExisting = (IList)TypeAnalyzer.GetTypeDetail(GenericTypeCache.GetGenericType(listType, relatedType)).CreatorBoxed();

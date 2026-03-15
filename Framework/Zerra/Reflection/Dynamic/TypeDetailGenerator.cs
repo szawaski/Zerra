@@ -44,9 +44,9 @@ namespace Zerra.Reflection.Dynamic
         private static readonly MethodInfo generateTypeDetailGeneric = typeof(TypeDetailGenerator).GetMethod(nameof(Generate), BindingFlags.NonPublic | BindingFlags.Static)!;
         public static TypeDetail GenerateTypeDetail(Type type)
         {
-            if (type.ContainsGenericParameters)
+            if (type.ContainsGenericParameters || type.IsByRefLike)
             {
-                return GenerateIncompleteGeneric(type);
+                return GenerateIncomplete(type);
             }
             else
             {
@@ -55,7 +55,7 @@ namespace Zerra.Reflection.Dynamic
             }
         }
 
-        private static TypeDetail GenerateIncompleteGeneric(Type type)
+        private static TypeDetail GenerateIncomplete(Type type)
         {
             var constructors = new List<ConstructorDetail>(0);
             var innerTypes = GenerateInnerTypes(type);
@@ -538,11 +538,14 @@ namespace Zerra.Reflection.Dynamic
                 Delegate? setter = null;
                 Action<object, object?>? setterBoxed = null;
 
-                getter = AccessorGenerator.GenerateGetter(@field, @field.FieldType);
-                getterBoxed = AccessorGenerator.GenerateGetter(@field);
+                if (!@field.FieldType.IsByRef && !@field.FieldType.IsByRefLike)
+                {
+                    getter = AccessorGenerator.GenerateGetter(@field, @field.FieldType);
+                    getterBoxed = AccessorGenerator.GenerateGetter(@field);
 
-                setter = AccessorGenerator.GenerateSetter(@field, @field.FieldType);
-                setterBoxed = AccessorGenerator.GenerateSetter(@field);
+                    setter = AccessorGenerator.GenerateSetter(@field, @field.FieldType);
+                    setterBoxed = AccessorGenerator.GenerateSetter(@field);
+                }
 
                 var attributes = @field.GetCustomAttributes(true).Cast<Attribute>().ToArray();
 
@@ -599,15 +602,18 @@ namespace Zerra.Reflection.Dynamic
                             Delegate? setter = null;
                             Action<object, object?>? setterBoxed = null;
 
-                            if (property.GetMethod != null && property.GetMethod.IsPublic)
+                            if (!property.PropertyType.IsByRef && !property.PropertyType.IsByRefLike)
                             {
-                                getter = AccessorGenerator.GenerateGetter(property, property.PropertyType);
-                                getterBoxed = AccessorGenerator.GenerateGetter(property);
-                            }
-                            if (property.SetMethod != null && property.SetMethod.IsPublic)
-                            {
-                                setter = AccessorGenerator.GenerateSetter(property, property.PropertyType);
-                                setterBoxed = AccessorGenerator.GenerateSetter(property);
+                                if (property.GetMethod != null && property.GetMethod.IsPublic)
+                                {
+                                    getter = AccessorGenerator.GenerateGetter(property, property.PropertyType);
+                                    getterBoxed = AccessorGenerator.GenerateGetter(property);
+                                }
+                                if (property.SetMethod != null && property.SetMethod.IsPublic)
+                                {
+                                    setter = AccessorGenerator.GenerateSetter(property, property.PropertyType);
+                                    setterBoxed = AccessorGenerator.GenerateSetter(property);
+                                }
                             }
 
                             var attributes = property.GetCustomAttributes(true).Cast<Attribute>().ToArray();

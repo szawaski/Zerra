@@ -5,7 +5,9 @@
 /// <summary>
 /// Global extensions for enum name resolution and parsing using the <see cref="global::EnumName"/> system.
 /// </summary>
+#pragma warning disable CA1050 // Declare types in namespaces
 public static class EnumNameExtensions
+#pragma warning restore CA1050 // Declare types in namespaces
 {
     /// <summary>
     /// Gets the string representation of an enum value using EnumName attributes.

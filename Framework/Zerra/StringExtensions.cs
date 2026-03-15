@@ -5,7 +5,9 @@
 /// <summary>
 /// Provides extension methods for string manipulation and conversion operations.
 /// </summary>
+#pragma warning disable CA1050 // Declare types in namespaces
 public static class StringExtensions
+#pragma warning restore CA1050 // Declare types in namespaces
 {
     /// <summary>
     /// Truncates the string to the specified maximum length.

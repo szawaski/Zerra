@@ -146,24 +146,24 @@ namespace Zerra.Reflection
         }
 
         private ConcurrentFactoryDictionary<TypeKey, MethodDetail?>? methodLookups = null;
-        private MethodDetail? GetMethodInternal(string name, int? parameterCount, Type[]? parameterTypes)
+        private MethodDetail? GetMethodInternal(string name, int? genericArgumentCount, int? parameterCount, Type[]? parameterTypes)
         {
             if (parameterCount is not null && parameterTypes is not null && parameterTypes.Length != parameterCount)
                 throw new InvalidOperationException($"Number of parameters does not match the specified count");
 
             var key = new TypeKey(name, parameterCount, parameterTypes);
             methodLookups ??= new();
-            var method = methodLookups.GetOrAdd(key, Methods, name, parameterCount, parameterTypes, static (Methods, name, parameterCount, parameterTypes) =>
+            var method = methodLookups.GetOrAdd(key, Methods, name, genericArgumentCount, parameterCount, parameterTypes, static (Methods, name, genericArgumentCount, parameterCount, parameterTypes) =>
             {
                 MethodDetail? found = null;
                 foreach (var methodDetail in Methods)
                 {
-                    if (SignatureCompare(name, parameterCount, parameterTypes, methodDetail))
-                    {
-                        if (found is not null)
-                            throw new InvalidOperationException($"More than one method found for {name}");
-                        found = methodDetail;
-                    }
+                    if (!SignatureCompare(name, genericArgumentCount, parameterCount, parameterTypes, methodDetail))
+                        continue;
+
+                    if (found is not null)
+                        throw new InvalidOperationException($"More than one method found for {name}");
+                    found = methodDetail;
                 }
                 return found;
             });
@@ -177,7 +177,7 @@ namespace Zerra.Reflection
         /// <exception cref="MissingMethodException">Thrown when no method with the specified name is found.</exception>
         public MethodDetail GetMethod(string name)
         {
-            var method = GetMethodInternal(name, null, null);
+            var method = GetMethodInternal(name, null, null, null);
             if (method is null)
                 throw new MissingMethodException($"{Type.Name}.{name} method not found");
             return method;
@@ -191,7 +191,22 @@ namespace Zerra.Reflection
         /// <exception cref="MissingMethodException">Thrown when no method matching the criteria is found.</exception>
         public MethodDetail GetMethod(string name, int parameterCount)
         {
-            var method = GetMethodInternal(name, parameterCount, null);
+            var method = GetMethodInternal(name, null, parameterCount, null);
+            if (method is null)
+                throw new MissingMethodException($"{Type.Name}.{name} method not found");
+            return method;
+        }
+        /// <summary>
+        /// Retrieves a method by its name, generic argument count, and parameter count.
+        /// </summary>
+        /// <param name="name">The method name to look up.</param>
+        /// <param name="genericArgumentCount">The number of generic arguments the method should have.</param>
+        /// <param name="parameterCount">The number of parameters the method should have.</param>
+        /// <returns>The <see cref="MethodDetail"/> for the specified method name, generic argument count, and parameter count.</returns>
+        /// <exception cref="MissingMethodException">Thrown when no method matching the criteria is found.</exception>
+        public MethodDetail GetMethod(string name, int genericArgumentCount, int parameterCount)
+        {
+            var method = GetMethodInternal(name, genericArgumentCount, parameterCount, null);
             if (method is null)
                 throw new MissingMethodException($"{Type.Name}.{name} method not found");
             return method;
@@ -205,7 +220,22 @@ namespace Zerra.Reflection
         /// <exception cref="MissingMethodException">Thrown when no method matching the criteria is found.</exception>
         public MethodDetail GetMethod(string name, Type[] parameterTypes)
         {
-            var method = GetMethodInternal(name, null, parameterTypes);
+            var method = GetMethodInternal(name, null, null, parameterTypes);
+            if (method is null)
+                throw new MissingMethodException($"{Type.Name}.{name} method not found");
+            return method;
+        }
+        /// <summary>
+        /// Retrieves a method by its name, generic argument count, and parameter types.
+        /// </summary>
+        /// <param name="name">The method name to look up.</param>
+        /// <param name="genericArgumentCount">The number of generic arguments the method should have.</param>
+        /// <param name="parameterTypes">The types of parameters the method should have.</param>
+        /// <returns>The <see cref="MethodDetail"/> for the specified method name, generic argument count, and parameter types.</returns>
+        /// <exception cref="MissingMethodException">Thrown when no method matching the criteria is found.</exception>
+        public MethodDetail GetMethod(string name, int genericArgumentCount, Type[] parameterTypes)
+        {
+            var method = GetMethodInternal(name, genericArgumentCount, null, parameterTypes);
             if (method is null)
                 throw new MissingMethodException($"{Type.Name}.{name} method not found");
             return method;
@@ -290,10 +320,16 @@ namespace Zerra.Reflection
             return false;
         }
 
-        private static bool SignatureCompare(string name1, int? parameterCount, Type[]? parameters1, MethodDetail methodDetail2)
+        private static bool SignatureCompare(string name1, int? genericArgumentCount, int? parameterCount, Type[]? parameters1, MethodDetail methodDetail2)
         {
             if (name1 != methodDetail2.Name)
                 return false;
+
+            if (genericArgumentCount is not null)
+            {
+                if (genericArgumentCount != methodDetail2.GenericArguments.Count)
+                    return false;
+            }
 
             if (parameterCount is not null)
             {
