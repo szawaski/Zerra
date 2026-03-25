@@ -2,18 +2,13 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Zerra.Reflection;
-using Zerra.Reflection.Dynamic;
 using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository
 {
     public abstract class TransactStoreProvider<TContext, TModel> : RootTransactStoreProvider<TModel>
-        where TContext : DataContext
+        where TContext : DataContext, new()
         where TModel : class, new()
     {
         private const int deleteBatchSizeSingleIdentity = 1028;
@@ -26,7 +21,7 @@ namespace Zerra.Repository
         public TransactStoreProvider()
         {
             this.deleteBatchSize = ModelDetail.IdentityProperties.Count == 1 ? deleteBatchSizeSingleIdentity : deleteBatchSizeManyIdentity;
-            var context = Instantiator.GetSingle<TContext>();
+            var context = new TContext();
             this.Engine = context.InitializeEngine<ITransactStoreEngine>();
         }
 

@@ -6,7 +6,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Reflection.Emit;
 using Zerra.Collections;
-using Zerra.CQRS;
 using Zerra.Reflection.Dynamic;
 using static Zerra.CQRS.Reflection.BusRouters;
 

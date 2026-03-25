@@ -7,7 +7,7 @@ namespace Zerra.Logging
     /// <summary>
     /// Support for legacy version
     /// </summary>
-    //[Obsolete("Use Zerra.Logging.ILogger interface with dependency injection instead")]
+    //[Obsolete("Use Zerra.Logging.ILogger interface with dependency injection instead", false)]
     public static class Log
     {
         private static ILogger? instance;

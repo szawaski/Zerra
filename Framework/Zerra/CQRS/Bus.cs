@@ -2,10 +2,8 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using Zerra.Collections;
 using Zerra.CQRS.Reflection;
 using Zerra.Logging;
 using Zerra.Serialization;
@@ -34,9 +32,6 @@ namespace Zerra.CQRS
         private static readonly Lock exitLock = new();
         private static bool exited = false;
         private static SemaphoreSlim? processWaiter = null;
-
-        private static readonly ConcurrentDictionary<string, ConcurrentReadWriteList<Type?>> typeByName = new();
-        private static readonly ConcurrentFactoryDictionary<Type, HandlerMetadata> handlerMetadata = new();
 
         private readonly BusContext context;
         private readonly IBusLogger? busLog;

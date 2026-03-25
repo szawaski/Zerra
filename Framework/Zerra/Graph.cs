@@ -563,17 +563,6 @@ namespace Zerra
                 if (graph.removedMembers is not null && graph.removedMembers.Contains(member.Name))
                     return null;
 
-                //if (member.MemberType == MemberTypes.Property)
-                //{
-                //    var graphTTypeGeneric = graphTType.GetGenericTypeDetail(((PropertyInfo)member).PropertyType);
-                //    childGraph = (Graph)graphTTypeGeneric.CreatorBoxed();
-                //}
-                //else
-                //{
-                //    var graphTTypeGeneric = graphTType.GetGenericTypeDetail(((FieldInfo)member).FieldType);
-                //    childGraph = (Graph)graphTTypeGeneric.CreatorBoxed();
-                //}
-
                 childGraph = new();
 
                 if (graph.includeAllMembers || (graph.addedMembers is not null && graph.addedMembers.Contains(member.Name)))

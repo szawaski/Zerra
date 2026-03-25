@@ -1153,7 +1153,7 @@ namespace Zerra.Repository.MsSql
             }
             catch (Exception ex)
             {
-                _ = Log.ErrorAsync($"{nameof(MsSqlEngine)} error while reading datastore.", ex);
+                Log.Error($"{nameof(MsSqlEngine)} error while reading datastore.", ex);
                 throw;
             }
 
