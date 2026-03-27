@@ -2,8 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using Zerra.Reflection;
@@ -12,25 +10,7 @@ namespace Zerra.Linq
 {
     public static class LinqAppender
     {
-        public static Expression<Func<T, bool>> AppendAnd<T>(Expression<Func<T, bool>> it, params Expression<Func<T, bool>>[] expressions)
-        {
-            if (it is not LambdaExpression itLambda)
-                throw new ArgumentException("Expression must be a LambdaExpression", nameof(it));
-
-            var exp = itLambda.Body;
-            var parameter = itLambda.Parameters[0];
-            foreach (Expression expression in expressions)
-            {
-                if (expression is not LambdaExpression expressionLambda)
-                    throw new ArgumentException("Expression must be a LambdaExpression", nameof(expressions));
-
-                var convertedExpression = LinqRebinder.RebindExpression(expressionLambda.Body, expressionLambda.Parameters[0], parameter);
-                exp = Expression.AndAlso(exp, convertedExpression);
-            }
-            return Expression.Lambda<Func<T, bool>>(exp, itLambda.Parameters);
-        }
-
-        public static Expression<Func<T, bool>> AppendOr<T>(Expression<Func<T, bool>> it, params Expression<Func<T, bool>>[] expressions)
+        public static Expression<Func<T, bool>> AppendAnd<T>(Expression it, params Expression[] expressions)
         {
             if (it is not LambdaExpression itLambda)
                 throw new ArgumentException("Expression must be a LambdaExpression", nameof(it));

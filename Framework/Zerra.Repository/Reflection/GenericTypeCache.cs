@@ -44,40 +44,12 @@ namespace Zerra.Reflection
             return genericMethod;
         }
 
-        private static readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail> genericMethodDetails = new();
-        public static MethodDetail GetGenericMethodDetail(MethodDetail methodDetail, params Type[] types)
-        {
-            var key = new TypeKey(methodDetail.MethodInfo.ToString(), types);
-            var genericMethod = genericMethodDetails.GetOrAdd(key, methodDetail, types, static (methodDetail, types) => GetGenericMethodDetail(methodDetail.MethodInfo, types));
-            return genericMethod;
-        }
-
-        private static readonly ConcurrentFactoryDictionary<TypeKey, TypeDetail> genericTypeDetails = new();
-        public static TypeDetail GetGenericTypeDetail(TypeDetail typeDetail, params Type[] types)
-        {
-            var key = new TypeKey(typeDetail.Type, types);
-            var genericType = genericTypeDetails.GetOrAdd(key, typeDetail, types, static (typeDetail, types) =>
-            {
-                var generic = typeDetail.Type.MakeGenericType(types);
-                return TypeAnalyzer.GetTypeDetail(generic);
-            });
-            return genericType;
-        }
-
         private static readonly ConcurrentFactoryDictionary<TypeKey, Type> genericTypesByType = new();
         public static Type GetGenericType(Type type, params Type[] types)
         {
             var key = new TypeKey(type, types);
             var genericType = genericTypesByType.GetOrAdd(key, type, types, static (type, types) => type.MakeGenericType(types));
             return genericType;
-        }
-
-        private static readonly ConcurrentFactoryDictionary<TypeKey, TypeDetail> genericTypeDetailsByType = new();
-        public static TypeDetail GetGenericTypeDetail(Type type, params Type[] types)
-        {
-            var key = new TypeKey(type, types);
-            var genericTypeDetail = genericTypeDetailsByType.GetOrAdd(key, type, types, static (type, types) => TypeAnalyzer.GetTypeDetail(type.MakeGenericType(types)));
-            return genericTypeDetail;
         }
     }
 }

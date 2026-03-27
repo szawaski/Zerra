@@ -2,46 +2,60 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Collections;
 
 namespace Zerra.Repository
 {
-    public class Persist<TModel> where TModel : class, new()
+    public class Persist
     {
         public PersistOperation Operation { get; }
-        public PersistEvent Event { get; }
+        public PersistEvent Event { get; init; }
 
-        public Graph<TModel>? Graph { get; set; }
+        public Graph? Graph { get; init; }
 
-        public TModel[]? Models { get; set; }
-        public ICollection? IDs { get; set; }
+        public object[]? Models { get; init; }
+        public object[]? IDs { get; init; }
 
-        private static string GetEventName(PersistOperation operation)
+        protected Type? modelType = null;
+        public Type ModelType
         {
-            return $"{operation} {typeof(TModel).Name}";
+            get
+            {
+                if (modelType is null)
+                {
+                    if (Models is null || Models.Length == 0)
+                        throw new InvalidOperationException("Models must be set to get model type");
+                    modelType = Models[0].GetType();
+                }
+                return modelType;
+            }
+        }
+
+        private string GetEventName(PersistOperation operation)
+        {
+            return $"{operation} {ModelType.FullName}";
         }
 
         public Persist(PersistOperation operation)
         {
             this.Operation = operation;
-            this.Event = new PersistEvent(Guid.NewGuid(), Persist<TModel>.GetEventName(operation), null);
+            this.Event = new PersistEvent(Guid.NewGuid(), GetEventName(operation), null);
         }
         public Persist(PersistOperation operation, string? eventName, object? source)
         {
             this.Operation = operation;
-            this.Event = new PersistEvent(Guid.NewGuid(), String.IsNullOrWhiteSpace(eventName) ? Persist<TModel>.GetEventName(operation) : eventName, source);
+            this.Event = new PersistEvent(Guid.NewGuid(), String.IsNullOrWhiteSpace(eventName) ? GetEventName(operation) : eventName, source);
         }
         public Persist(PersistOperation operation, PersistEvent @event)
         {
             this.Operation = operation;
             this.Event = @event;
         }
-        public Persist(Persist<TModel> persist)
+        public Persist(Persist persist)
         {
             this.Operation = persist.Operation;
             this.Event = persist.Event;
-            this.Graph = persist.Graph is null ? null : new Graph<TModel>(persist.Graph);
+            this.Graph = persist.Graph is null ? null : new Graph(persist.Graph);
             this.Models = persist.Models;
             this.IDs = persist.IDs;
         }

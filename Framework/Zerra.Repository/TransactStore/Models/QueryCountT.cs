@@ -7,11 +7,11 @@ using System.Linq.Expressions;
 
 namespace Zerra.Repository
 {
-    public class QueryAny<TModel> : Query<TModel> where TModel : class, new()
+    public class QueryCount<TModel> : Query<TModel> where TModel : class, new()
     {
-        public QueryAny() : this(null) { }
-        public QueryAny(Expression<Func<TModel, bool>>? where)
-            : base(QueryOperation.Any)
+        public QueryCount() : this(null) { }
+        public QueryCount(Expression<Func<TModel, bool>>? where)
+          : base(QueryOperation.Count, typeof(TModel))
         {
             this.Where = where;
             this.Order = null;

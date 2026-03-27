@@ -18,7 +18,7 @@ namespace Zerra.Repository
         where TNextProviderInterface : ITransactStoreProvider<TModel>
         where TModel : class, new()
     {
-        private Expression<Func<TModel, bool>>? AppendWhereExpression(Expression<Func<TModel, bool>>? whereExpression, Graph<TModel>? graph)
+        private Expression? AppendWhereExpression(Expression? whereExpression, Graph? graph)
         {
             var appendWhereExpression = WhereExpression(graph);
             if (whereExpression is null && appendWhereExpression is null)
@@ -35,19 +35,19 @@ namespace Zerra.Repository
             }
             else
             {
-                return whereExpression.AppendAnd(appendWhereExpression);
+                return LinqAppender.AppendAnd<TModel>(whereExpression, appendWhereExpression);
             }
         }
 
-        public virtual Expression<Func<TModel, bool>>? WhereExpression(Graph<TModel>? graph)
+        public virtual Expression? WhereExpression(Graph? graph)
         {
             return null;
         }
-        public Expression<Func<TModel, bool>>? GetWhereExpression(Graph<TModel>? graph)
+        public Expression? GetWhereExpression(Graph? graph)
         {
             return this.WhereExpression(graph);
         }
-        public override sealed Expression<Func<TModel, bool>>? GetWhereExpressionIncludingBase(Graph<TModel>? graph)
+        public override sealed Expression? GetWhereExpressionIncludingBase(Graph? graph)
         {
             var expression1 = this.GetWhereExpression(graph);
             var expression2 = ProviderRelation?.GetWhereExpressionIncludingBase(graph);
@@ -65,19 +65,19 @@ namespace Zerra.Repository
             }
             else
             {
-                return expression1.AppendAnd(expression2);
+                return LinqAppender.AppendAnd<TModel>(expression1, expression2);
             }
         }
 
-        public virtual void OnQuery(Graph<TModel>? graph) { }
-        public override sealed void OnQueryIncludingBase(Graph<TModel>? graph)
+        public virtual void OnQuery(Graph? graph) { }
+        public override sealed void OnQueryIncludingBase(Graph? graph)
         {
             this.OnQuery(graph);
             ProviderRelation?.OnQueryIncludingBase(graph);
         }
 
-        public virtual IReadOnlyCollection<TModel> OnGet(IReadOnlyCollection<TModel> models, Graph<TModel>? graph) { return models; }
-        public override sealed async Task<IReadOnlyCollection<TModel>> OnGetIncludingBaseAsync(IReadOnlyCollection<TModel> models, Graph<TModel>? graph)
+        public virtual IEnumerable OnGet(IEnumerable models, Graph? graph) { return models; }
+        public override sealed async Task<IEnumerable> OnGetIncludingBaseAsync(IEnumerable models, Graph? graph)
         {
             if (ProviderRelation is not null)
             {
@@ -92,9 +92,9 @@ namespace Zerra.Repository
             }
         }
 
-        public override sealed async Task<object?> ManyAsync(Query<TModel> query)
+        public override sealed async Task<object?> ManyAsync(Query query)
         {
-            var appenedQuery = new Query<TModel>(query);
+            var appenedQuery = new Query(query);
 
             OnQuery(appenedQuery.Graph);
             var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
@@ -103,7 +103,7 @@ namespace Zerra.Repository
 
             var models = (IReadOnlyCollection<TModel>)(await NextProvider.QueryAsync(appenedQuery))!;
 
-            IReadOnlyCollection<TModel> returnModels;
+            IEnumerable returnModels;
             if (models.Count > 0)
             {
                 returnModels = OnGet(models, appenedQuery.Graph);
@@ -116,9 +116,9 @@ namespace Zerra.Repository
             return returnModels;
         }
 
-        public override sealed async Task<object?> FirstAsync(Query<TModel> query)
+        public override sealed async Task<object?> FirstAsync(Query query)
         {
-            var appenedQuery = new Query<TModel>(query);
+            var appenedQuery = new Query(query);
 
             OnQuery(appenedQuery.Graph);
             var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
@@ -137,9 +137,9 @@ namespace Zerra.Repository
             return returnModel;
         }
 
-        public override sealed async Task<object?> SingleAsync(Query<TModel> query)
+        public override sealed async Task<object?> SingleAsync(Query query)
         {
-            var appenedQuery = new Query<TModel>(query);
+            var appenedQuery = new Query(query);
 
             OnQuery(appenedQuery.Graph);
 
@@ -158,9 +158,9 @@ namespace Zerra.Repository
             return returnModel;
         }
 
-        public override sealed Task<object?> CountAsync(Query<TModel> query)
+        public override sealed Task<object?> CountAsync(Query query)
         {
-            var appenedQuery = new Query<TModel>(query);
+            var appenedQuery = new Query(query);
 
             OnQuery(appenedQuery.Graph);
 
@@ -172,9 +172,9 @@ namespace Zerra.Repository
             return count;
         }
 
-        public override sealed Task<object?> AnyAsync(Query<TModel> query)
+        public override sealed Task<object?> AnyAsync(Query query)
         {
-            var appenedQuery = new Query<TModel>(query);
+            var appenedQuery = new Query(query);
 
             OnQuery(appenedQuery.Graph);
 
@@ -186,9 +186,9 @@ namespace Zerra.Repository
             return any;
         }
 
-        public override sealed async Task<object?> EventManyAsync(Query<TModel> query)
+        public override sealed async Task<object?> EventManyAsync(Query query)
         {
-            var appenedQuery = new Query<TModel>(query);
+            var appenedQuery = new Query(query);
 
             OnQuery(appenedQuery.Graph);
 
@@ -213,37 +213,37 @@ namespace Zerra.Repository
             return returnEventModels;
         }
 
-        protected virtual ICollection<TModel> OnCreate(ICollection<TModel> models, Graph<TModel>? graph) { return models; }
-        protected virtual ICollection<TModel> OnUpdate(ICollection<TModel> models, Graph<TModel>? graph) { return models; }
+        protected virtual IEnumerable OnCreate(IEnumerable models, Graph? graph) { return models; }
+        protected virtual IEnumerable OnUpdate(IEnumerable models, Graph? graph) { return models; }
         protected virtual ICollection OnDelete(ICollection identities) { return identities; }
 
-        protected virtual void OnCreateComplete(ICollection<TModel> models, Graph<TModel>? graph) { }
-        protected virtual void OnUpdateComplete(ICollection<TModel> models, Graph<TModel>? graph) { }
+        protected virtual void OnCreateComplete(IEnumerable models, Graph? graph) { }
+        protected virtual void OnUpdateComplete(IEnumerable models, Graph? graph) { }
         protected virtual void OnDeleteComplete(ICollection identities) { }
 
-        public override sealed async Task CreateAsync(Persist<TModel> persist)
+        public override sealed async Task CreateAsync(Persist persist)
         {
             if (persist.Models is null)
-                throw new Exception($"Invalid {nameof(Persist<TModel>)} for {nameof(CreateAsync)}");
+                throw new Exception($"Invalid {nameof(Persist)} for {nameof(CreateAsync)}");
 
-            var appenedPersist = new Persist<TModel>(persist);
+            var appenedPersist = new Persist(persist);
             var returnModels = OnCreate(appenedPersist.Models!, appenedPersist.Graph);
-            await NextProvider.PersistAsync(new Create<TModel>(appenedPersist.Event, returnModels, appenedPersist.Graph));
+            await NextProvider.PersistAsync(new Create(appenedPersist.Event, returnModels, appenedPersist.Graph));
             OnCreateComplete(returnModels, appenedPersist.Graph);
         }
 
-        public override sealed async Task UpdateAsync(Persist<TModel> persist)
+        public override sealed async Task UpdateAsync(Persist persist)
         {
             if (persist.Models is null)
-                throw new Exception($"Invalid {nameof(Persist<TModel>)} for {nameof(UpdateAsync)}");
+                throw new Exception($"Invalid {nameof(Persist)} for {nameof(UpdateAsync)}");
 
-            var appenedPersist = new Persist<TModel>(persist);
+            var appenedPersist = new Persist(persist);
             var returnModels = OnUpdate(appenedPersist.Models!, appenedPersist.Graph);
-            await NextProvider.PersistAsync(new Update<TModel>(appenedPersist.Event, returnModels, appenedPersist.Graph));
+            await NextProvider.PersistAsync(new Update(appenedPersist.Event, returnModels, appenedPersist.Graph));
             OnUpdateComplete(returnModels, appenedPersist.Graph);
         }
 
-        public override sealed async Task DeleteAsync(Persist<TModel> persist)
+        public override sealed async Task DeleteAsync(Persist persist)
         {
             ICollection returnIds;
             if (persist.IDs is not null)
@@ -255,7 +255,7 @@ namespace Zerra.Repository
                 var ids = new List<object>();
                 foreach (var model in persist.Models)
                 {
-                    var id = ModelAnalyzer.GetIdentity(model);
+                    var id = ModelAnalyzer.GetIdentity(modelType, model);
                     if (id is null)
                         throw new Exception($"Model {typeof(TModel).Name} missing Identity");
                     ids.Add(id);
@@ -265,7 +265,7 @@ namespace Zerra.Repository
             }
             else
             {
-                throw new Exception($"Invalid {nameof(Persist<TModel>)} for {nameof(DeleteAsync)}");
+                throw new Exception($"Invalid {nameof(Persist)} for {nameof(DeleteAsync)}");
             }
 
             await NextProvider.PersistAsync(new DeleteByID<TModel>(persist.Event, returnIds));

@@ -3,25 +3,14 @@
 // Licensed to you under the MIT license
 
 using System.Linq.Expressions;
-using Zerra.Linq;
 
 namespace Zerra.Repository
 {
     public abstract class OrderExpression
     {
-        public Expression Expression { get; protected set; }
-        public bool Descending { get; protected set; }
+        public abstract Expression Expression { get; }
+        public abstract bool Descending { get; }
 
-        public OrderExpression(Expression expression, bool descending)
-        {
-            this.Expression = expression;
-            this.Descending = descending;
-        }
-
-        //public override string? ToString()
-        //{
-        //    return this.Expression.ToLinqString() + (this.Descending ? " DESC" : null);
-        //}
+        public abstract IOrderedQueryable<T> OrderBy<T>(IQueryable<T> source) where T : class, new();
     }
 }
-

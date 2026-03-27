@@ -14,7 +14,11 @@ namespace Zerra.Repository
         where TNextProviderInterface : ITransactStoreProvider<TModel>
         where TModel : class, new()
     {
-        protected ITransactStoreProvider<TModel> ThisProvider
+        protected static readonly Type modelType = typeof(TModel);
+
+        public Type ModelType => modelType;
+
+        protected ITransactStoreProvider ThisProvider
         {
             get
             {
@@ -23,7 +27,7 @@ namespace Zerra.Repository
             }
         }
 
-        public object? Query(Query<TModel> query)
+        public object? Query(Query query)
         {
             if (query.IsTemporal)
             {
@@ -35,7 +39,7 @@ namespace Zerra.Repository
             }
         }
 
-        public Task<object?> QueryAsync(Query<TModel> query)
+        public Task<object?> QueryAsync(Query query)
         {
             if (query.IsTemporal)
             {
@@ -47,13 +51,13 @@ namespace Zerra.Repository
             }
         }
 
-        public void Persist(Persist<TModel> persist)
+        public void Persist(Persist persist)
         {
             ThisProvider.Persist(persist);
             NextProvider.Persist(persist);
         }
 
-        public async Task PersistAsync(Persist<TModel> persist)
+        public async Task PersistAsync(Persist persist)
         {
             await ThisProvider.PersistAsync(persist);
             await NextProvider.PersistAsync(persist);

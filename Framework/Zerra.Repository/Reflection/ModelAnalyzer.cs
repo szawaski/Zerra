@@ -2,9 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using Zerra.Collections;
@@ -32,23 +29,21 @@ namespace Zerra.Repository.Reflection
         }
 
         private static readonly ConcurrentFactoryDictionary<TypeKey, object?> getterFunctionsByAttribute = new();
-        private static Func<T, object?>? GetGetterFunctionByNameOrAttribute<T>(string? propertyNames, Type? attributeType)
+        private static Func<object, object?>? GetGetterFunctionByNameOrAttribute(Type type, string? propertyNames, Type? attributeType)
         {
             TypeKey key;
             if (attributeType is not null)
-                key = new TypeKey(propertyNames, typeof(T), attributeType);
+                key = new TypeKey(propertyNames, type, attributeType);
             else
-                key = new TypeKey(propertyNames, typeof(T));
+                key = new TypeKey(propertyNames, type);
 
-            var getter = getterFunctionsByAttribute.GetOrAdd(key, propertyNames, attributeType, static (propertyNames, attributeType) => GenerateGetterFunctionByNameOrAttribute<T>(propertyNames, attributeType));
+            var getter = getterFunctionsByAttribute.GetOrAdd(key, type, propertyNames, attributeType, static (type, propertyNames, attributeType) => GenerateGetterFunctionByNameOrAttribute(type, propertyNames, attributeType));
 
-            var expression = (Func<T, object>?)getter;
+            var expression = (Func<object, object>?)getter;
             return expression;
         }
-        private static Func<T, object>? GenerateGetterFunctionByNameOrAttribute<T>(string? propertyNames, Type? attributeType)
+        private static Func<object, object>? GenerateGetterFunctionByNameOrAttribute(Type type, string? propertyNames, Type? attributeType)
         {
-            var type = typeof(T);
-
             var propertyNamesArray = propertyNames is null ? null : propertyNames.Split(',');
 
             var sourceExpression = Expression.Parameter(type, "x");
@@ -88,31 +83,29 @@ namespace Zerra.Repository.Reflection
                 throw new InvalidOperationException($"Getter function not found on {type.Name}");
             }
 
-            var lambda = Expression.Lambda<Func<T, object>>(accessor, sourceExpression);
+            var lambda = Expression.Lambda<Func<object, object>>(accessor, sourceExpression);
             return lambda.Compile();
         }
 
         private static readonly ConcurrentFactoryDictionary<TypeKey, object> setterFunctionsByAttribute = new();
-        private static Action<T, object?> GetSetterFunctionByNameOrAttribute<T>(string? propertyNames, Type? attributeType)
+        private static Action<object, object?> GetSetterFunctionByNameOrAttribute(Type type,string? propertyNames, Type? attributeType)
         {
             TypeKey key;
             if (attributeType is not null)
-                key = new TypeKey(propertyNames, typeof(T), attributeType);
+                key = new TypeKey(propertyNames, type, attributeType);
             else
-                key = new TypeKey(propertyNames, typeof(T));
+                key = new TypeKey(propertyNames, type);
 
-            var setter = setterFunctionsByAttribute.GetOrAdd(key, propertyNames, attributeType, static (propertyNames, attributeType) => GenerateSetterFunctionByNameOrAttribute<T>(propertyNames, attributeType));
+            var setter = setterFunctionsByAttribute.GetOrAdd(key, type, propertyNames, attributeType, static (type, propertyNames, attributeType) => GenerateSetterFunctionByNameOrAttribute(type, propertyNames, attributeType));
 
-            var expression = (Action<T, object?>)setter;
+            var expression = (Action<object, object?>)setter;
             return expression;
         }
-        private static Action<T, object?> GenerateSetterFunctionByNameOrAttribute<T>(string? propertyNames, Type? attributeType)
+        private static Action<object, object?> GenerateSetterFunctionByNameOrAttribute(Type type, string? propertyNames, Type? attributeType)
         {
-            var type = typeof(T);
-
             var propertyNamesArray = propertyNames is null ? null : propertyNames.Split(',');
 
-            var sourceExpression = Expression.Parameter(type, "x");
+            var sourceExpression = Expression.Parameter(typeof(object), "x");
             var parameterValue = Expression.Parameter(typeof(object), "y");
 
             var typeProperties = type.GetProperties();
@@ -158,7 +151,7 @@ namespace Zerra.Repository.Reflection
                 throw new InvalidOperationException($"Setter function not found on {type.Name}");
             }
 
-            var lambda = Expression.Lambda<Action<T, object?>>(setter, sourceExpression, parameterValue);
+            var lambda = Expression.Lambda<Action<object, object?>>(setter, sourceExpression, parameterValue);
             return lambda.Compile();
         }
 
@@ -185,60 +178,36 @@ namespace Zerra.Repository.Reflection
             return properties.Select(x => x.Name).ToArray();
         }
 
-        private static readonly MethodInfo getIdentityMethod = typeof(ModelAnalyzer).GetMethods(BindingFlags.Public | BindingFlags.Static).First(x => x.Name == nameof(ModelAnalyzer.GetIdentity) && x.IsGenericMethod);
-        public static object GetIdentity<TModel>(TModel model) where TModel : class, new()
-        {
-            var modelIdentityAccessor = GetGetterFunctionByNameOrAttribute<TModel>(null, typeof(IdentityAttribute));
-            if (modelIdentityAccessor is null)
-                throw new Exception($"Model {typeof(TModel).Name} missing Identity");
-            var id = modelIdentityAccessor.Invoke(model);
-            if (id is null)
-                throw new Exception($"Model {typeof(TModel).Name} missing Identity");
-            return id;
-        }
         public static object GetIdentity(Type type, object model)
         {
-            var genericGetIdentityMethod = GenericTypeCache.GetGenericMethodDetail(getIdentityMethod, type);
-            return genericGetIdentityMethod.CallerBoxed(null, [model])!;
+            var modelIdentityAccessor = GetGetterFunctionByNameOrAttribute(type, null, typeof(IdentityAttribute));
+            if (modelIdentityAccessor is null)
+                throw new Exception($"Model {type.Name} missing Identity");
+            var id = modelIdentityAccessor.Invoke(model);
+            if (id is null)
+                throw new Exception($"Model {type.Name} missing Identity");
+            return id;
         }
 
-        private static readonly MethodInfo setIdentityMethod = typeof(ModelAnalyzer).GetMethods(BindingFlags.Public | BindingFlags.Static).First(x => x.Name == nameof(ModelAnalyzer.SetIdentity) && x.IsGenericMethod);
-        public static void SetIdentity<TModel>(TModel model, object? identity) where TModel : class, new()
-        {
-            var setter = GetSetterFunctionByNameOrAttribute<TModel>(null, typeof(IdentityAttribute));
-            setter.Invoke(model, identity);
-        }
         public static void SetIdentity(Type type, object model, object? identity)
         {
-            var genericSetIdentityMethod = GenericTypeCache.GetGenericMethodDetail(setIdentityMethod, type);
-            _ = genericSetIdentityMethod.CallerBoxed(null, [model, identity]);
+            var setter = GetSetterFunctionByNameOrAttribute(type, null, typeof(IdentityAttribute));
+            setter.Invoke(model, identity);
         }
 
-        private static readonly MethodInfo getForeignIdentityMethod = typeof(ModelAnalyzer).GetMethods(BindingFlags.Public | BindingFlags.Static).First(x => x.Name == nameof(ModelAnalyzer.GetForeignIdentity) && x.IsGenericMethod);
-        public static object? GetForeignIdentity<TModel>(string foreignIdentityNames, TModel model) where TModel : class, new()
+        public static object? GetForeignIdentity(Type type, string foreignIdentityNames, object model)
         {
-            var modelIdentityAccessor = GetGetterFunctionByNameOrAttribute<TModel>(foreignIdentityNames, null);
+            var modelIdentityAccessor = GetGetterFunctionByNameOrAttribute(type, foreignIdentityNames, null);
             if (modelIdentityAccessor is null)
-                throw new Exception($"Model {typeof(TModel).Name} missing Foreign Identity");
+                throw new Exception($"Model {type.Name} missing Foreign Identity");
             var id = modelIdentityAccessor.Invoke(model);
             return id;
         }
-        public static object? GetForeignIdentity(Type type, string foreignIdentityNames, object model)
-        {
-            var genericGetForeignIdentityMethod = GenericTypeCache.GetGenericMethodDetail(getForeignIdentityMethod, type);
-            return genericGetForeignIdentityMethod.CallerBoxed!(null, [foreignIdentityNames, model])!;
-        }
 
-        private static readonly MethodInfo setForeignIdentityMethod = typeof(ModelAnalyzer).GetMethods(BindingFlags.Public | BindingFlags.Static).First(x => x.Name == nameof(ModelAnalyzer.SetForeignIdentity) && x.IsGenericMethod);
-        public static void SetForeignIdentity<TModel>(string foreignIdentityNames, TModel model, object? identity) where TModel : class, new()
-        {
-            var setter = GetSetterFunctionByNameOrAttribute<TModel>(foreignIdentityNames, null);
-            setter.Invoke(model, identity);
-        }
         public static void SetForeignIdentity(Type type, string foreignIdentityNames, object model, object identity)
         {
-            var genericSetForeignIdentityMethod = GenericTypeCache.GetGenericMethodDetail(setForeignIdentityMethod, type);
-            _ = genericSetForeignIdentityMethod.CallerBoxed!(null, [foreignIdentityNames, model, identity]);
+            var setter = GetSetterFunctionByNameOrAttribute(type, foreignIdentityNames, null);
+            setter.Invoke(model, identity);
         }
 
         public static bool CompareIdentities(object? identity1, object? identity2)

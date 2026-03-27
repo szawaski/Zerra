@@ -17,7 +17,7 @@ namespace Zerra.Repository
         public bool Deleted { get; set; }
 
         public TModel ModelChange { get; set; } = null!;
-        public Graph<TModel>? GraphChange { get; set; }
+        public Graph? GraphChange { get; set; }
 
         public TModel Model { get; set; } = null!;
         public object? Source { get; set; }

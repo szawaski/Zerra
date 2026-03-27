@@ -2,24 +2,35 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Linq.Expressions;
 
 namespace Zerra.Repository
 {
-    public sealed class OrderExpression<TModel> : OrderExpression
-        where TModel : class, new()
+    public sealed class OrderExpression<TSource, TKey> : OrderExpression
+        where TSource : class, new()
     {
-        private OrderExpression(Expression expression, bool descending)
-            : base(expression, descending) { }
+        private readonly Expression<Func<TSource, TKey>> expression;
+        private readonly bool descending;
 
-        public static OrderExpression<TModel> Create<TKey>(Expression<Func<TModel, TKey>> expression)
+        public override Expression Expression => expression;
+        public override bool Descending => descending;
+
+        public OrderExpression(Expression<Func<TSource, TKey>> expression, bool descending)
         {
-            return new OrderExpression<TModel>(expression, false);
+            this.expression = expression;
+            this.descending = descending;
         }
-        public static OrderExpression<TModel> Create<TKey>(Expression<Func<TModel, TKey>> expression, bool descending)
+
+        public override sealed IOrderedQueryable<T> OrderBy<T>(IQueryable<T> source)
         {
-            return new OrderExpression<TModel>(expression, descending);
+            var querable = source as IQueryable<TSource>;
+            if (querable == null)
+                throw new ArgumentException($"Type mismatch between source and order expression. Source Generic Argument: {typeof(T).FullName}, Order Expression: {typeof(TSource).FullName}");
+
+            if (!descending)
+                return (IOrderedQueryable<T>)querable.OrderBy(expression);
+            else
+                return (IOrderedQueryable<T>)querable.OrderByDescending(expression);
         }
     }
 }

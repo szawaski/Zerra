@@ -2,7 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Linq.Expressions;
 
 namespace Zerra.Repository
@@ -22,7 +21,7 @@ namespace Zerra.Repository
         public QueryMany(Expression<Func<TModel, bool>>? where, Graph<TModel>? graph) : this(where, null, null, null, graph) { }
         public QueryMany(Expression<Func<TModel, bool>>? where, QueryOrder<TModel>? order, Graph<TModel>? graph) : this(where, order, null, null, graph) { }
         public QueryMany(Expression<Func<TModel, bool>>? where, QueryOrder<TModel>? order, int? skip, int? take, Graph<TModel>? graph)
-            : base(QueryOperation.Many)
+            : base(QueryOperation.Many, typeof(TModel))
         {
             this.Where = where;
             this.Order = order;

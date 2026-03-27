@@ -37,7 +37,7 @@ namespace Zerra.Repository.Reflection
             if (!typeDetail.BaseTypes.Contains(dataContextType))
                 throw new Exception($"{nameof(TransactStoreEntityAttribute<T>)} is not placed on a {dataContextType.Name}");
 
-            var baseType = GenericTypeCache.GetGenericType(transactStoreProviderType, type, entityType);
+            var baseType = transactStoreProviderType.MakeGenericType(type, entityType);
 
             var typeSignature = $"{entityType.Name}_{type.Name}_Provider";
 
@@ -121,7 +121,7 @@ namespace Zerra.Repository.Reflection
             if (!typeDetail.BaseTypes.Contains(dataContextType))
                 throw new Exception($"{nameof(EventStoreEntityAttribute<T>)} is not placed on a {dataContextType.Name}");
 
-            var baseType = GenericTypeCache.GetGenericType(eventStoreProviderType, type, entityType);
+            var baseType = eventStoreProviderType.MakeGenericType(type, entityType);
 
             var typeSignature = $"{entityType.Name}_{type.Name}_Provider";
 
@@ -205,7 +205,7 @@ namespace Zerra.Repository.Reflection
             if (!typeDetail.BaseTypes.Contains(dataContextType))
                 throw new Exception($"{nameof(EventStoreAggregateAttribute<T>)} is not placed on a {dataContextType.Name}");
 
-            var baseType = GenericTypeCache.GetGenericType(eventProviderType, type, aggregateType);
+            var baseType = eventProviderType.MakeGenericType(type, aggregateType);
 
             var typeSignature = $"{aggregateType.Name}_{type.Name}_Provider";
 

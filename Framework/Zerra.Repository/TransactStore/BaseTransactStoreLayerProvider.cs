@@ -11,10 +11,12 @@ using Zerra.Providers;
 
 namespace Zerra.Repository
 {
-    public abstract class BaseTransactStoreLayerProvider<TNextProviderInterface, TModel> : LayerProvider<TNextProviderInterface>, ITransactStoreProvider<TModel>, IProviderRelation<TModel>
+    public abstract class BaseTransactStoreLayerProvider<TNextProviderInterface, TModel> : LayerProvider<TNextProviderInterface>, ITransactStoreProvider<TModel>, IProviderRelation
         where TNextProviderInterface : ITransactStoreProvider<TModel>
         where TModel : class, new()
     {
+        protected static readonly Type modelType = typeof(TModel);
+
         protected IProviderRelation<TModel>? ProviderRelation = null;
 
         public BaseTransactStoreLayerProvider()
@@ -22,48 +24,34 @@ namespace Zerra.Repository
             ProviderRelation = NextProvider as IProviderRelation<TModel>;
         }
 
-        public Expression? GetWhereExpressionIncludingBase(Graph? graph)
-        {
-            return GetWhereExpressionIncludingBase((Graph<TModel>?)graph);
-        }
-        public virtual Expression<Func<TModel, bool>>? GetWhereExpressionIncludingBase(Graph<TModel>? graph)
+        public Type ModelType => modelType;
+
+        public virtual Expression? GetWhereExpressionIncludingBase(Graph? graph)
         {
             var expression = ProviderRelation?.GetWhereExpressionIncludingBase(graph);
             return expression;
         }
 
-        public void OnQueryIncludingBase(Graph? graph)
-        {
-            OnQueryIncludingBase((Graph<TModel>?)graph);
-        }
-        public virtual void OnQueryIncludingBase(Graph<TModel>? graph)
+        public virtual void OnQueryIncludingBase(Graph? graph)
         {
             ProviderRelation?.OnQueryIncludingBase(graph);
         }
 
-        public IEnumerable OnGetIncludingBase(IEnumerable models, Graph? graph)
-        {
-            return OnGetIncludingBase((IEnumerable<TModel>)(object)models, (Graph<TModel>?)graph);
-        }
-        public virtual IReadOnlyCollection<TModel> OnGetIncludingBase(IReadOnlyCollection<TModel> models, Graph<TModel>? graph)
+        public virtual IEnumerable OnGetIncludingBase(IEnumerable models, Graph? graph)
         {
             if (ProviderRelation is null)
                 return models;
             return ProviderRelation.OnGetIncludingBase(models, graph);
         }
 
-        public async Task<IEnumerable> OnGetIncludingBaseAsync(IEnumerable models, Graph? graph)
-        {
-            return (ICollection)await OnGetIncludingBaseAsync((ICollection<TModel>)models, (Graph<TModel>?)graph);
-        }
-        public virtual Task<IReadOnlyCollection<TModel>> OnGetIncludingBaseAsync(IReadOnlyCollection<TModel> models, Graph<TModel>? graph)
+        public virtual Task<IEnumerable> OnGetIncludingBaseAsync(IEnumerable models, Graph? graph)
         {
             if (ProviderRelation is null)
                 return Task.FromResult(models);
             return ProviderRelation.OnGetIncludingBaseAsync(models, graph);
         }
 
-        public object? Query(Query<TModel> query)
+        public object? Query(Query query)
         {
             return query.Operation switch
             {
@@ -77,7 +65,7 @@ namespace Zerra.Repository
             };
             ;
         }
-        public Task<object?> QueryAsync(Query<TModel> query)
+        public Task<object?> QueryAsync(Query query)
         {
             return query.Operation switch
             {
@@ -92,21 +80,21 @@ namespace Zerra.Repository
             ;
         }
 
-        public abstract object Many(Query<TModel> query);
-        public abstract object? First(Query<TModel> query);
-        public abstract object? Single(Query<TModel> query);
-        public abstract object Count(Query<TModel> query);
-        public abstract object Any(Query<TModel> query);
-        public abstract object EventMany(Query<TModel> query);
+        public abstract object Many(Query query);
+        public abstract object? First(Query query);
+        public abstract object? Single(Query query);
+        public abstract object Count(Query query);
+        public abstract object Any(Query query);
+        public abstract object EventMany(Query query);
 
-        public abstract Task<object?> ManyAsync(Query<TModel> query);
-        public abstract Task<object?> FirstAsync(Query<TModel> query);
-        public abstract Task<object?> SingleAsync(Query<TModel> query);
-        public abstract Task<object?> CountAsync(Query<TModel> query);
-        public abstract Task<object?> AnyAsync(Query<TModel> query);
-        public abstract Task<object?> EventManyAsync(Query<TModel> query);
+        public abstract Task<object?> ManyAsync(Query query);
+        public abstract Task<object?> FirstAsync(Query query);
+        public abstract Task<object?> SingleAsync(Query query);
+        public abstract Task<object?> CountAsync(Query query);
+        public abstract Task<object?> AnyAsync(Query query);
+        public abstract Task<object?> EventManyAsync(Query query);
 
-        public void Persist(Persist<TModel> persist)
+        public void Persist(Persist persist)
         {
             switch (persist.Operation)
             {
@@ -123,7 +111,7 @@ namespace Zerra.Repository
                     throw new NotImplementedException();
             }
         }
-        public Task PersistAsync(Persist<TModel> persist)
+        public Task PersistAsync(Persist persist)
         {
             return persist.Operation switch
             {
@@ -134,12 +122,12 @@ namespace Zerra.Repository
             };
         }
 
-        public abstract void Create(Persist<TModel> persist);
-        public abstract void Update(Persist<TModel> persist);
-        public abstract void Delete(Persist<TModel> persist);
+        public abstract void Create(Persist persist);
+        public abstract void Update(Persist persist);
+        public abstract void Delete(Persist persist);
 
-        public abstract Task CreateAsync(Persist<TModel> persist);
-        public abstract Task UpdateAsync(Persist<TModel> persist);
-        public abstract Task DeleteAsync(Persist<TModel> persist);
+        public abstract Task CreateAsync(Persist persist);
+        public abstract Task UpdateAsync(Persist persist);
+        public abstract Task DeleteAsync(Persist persist);
     }
 }

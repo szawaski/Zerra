@@ -47,7 +47,7 @@ namespace Zerra.Linq
         public override string ToString()
         {
             var result = Build();
-            return result.ToLinqString();
+            return LinqStringConverter.Convert(result);
         }
 
         public Expression<Func<TModel, bool>> Build()

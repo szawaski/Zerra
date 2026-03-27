@@ -22,7 +22,7 @@ namespace Zerra.Repository
         public static IReadOnlyCollection<EventModel<TModel>> Query<TModel>(EventQueryMany<TModel> query) where TModel : class, new()
             => StaticRepo.Query(query);
 
-        public static void Persist<TModel>(Persist<TModel> persist) where TModel : class, new()
+        public static void Persist(Persist persist)
             => StaticRepo.Persist(persist);
 
         public static Task<IReadOnlyCollection<TModel>> QueryAsync<TModel>(QueryMany<TModel> query) where TModel : class, new()
@@ -38,7 +38,7 @@ namespace Zerra.Repository
         public static Task<IReadOnlyCollection<EventModel<TModel>>> QueryAsync<TModel>(EventQueryMany<TModel> query) where TModel : class, new()
              => StaticRepo.QueryAsync(query);
 
-        public static Task PersistAsync<TModel>(Persist<TModel> persist) where TModel : class, new()
+        public static Task PersistAsync(Persist persist)
             => StaticRepo.PersistAsync(persist);
     }
 }

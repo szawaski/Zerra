@@ -18,7 +18,7 @@ namespace Zerra.Repository
         public QueryFirst(QueryOrder<TModel>? order, Graph<TModel> graph) : this(null, order, graph) { }
         public QueryFirst(Expression<Func<TModel, bool>>? where, Graph<TModel>? graph) : this(where, null, graph) { }
         public QueryFirst(Expression<Func<TModel, bool>>? where, QueryOrder<TModel>? order, Graph<TModel>? graph)
-            : base(QueryOperation.First)
+            : base(QueryOperation.First, typeof(TModel))
         {
             this.Where = where;
             this.Order = order;

@@ -122,7 +122,7 @@ namespace Zerra.Repository
         public EventQueryMany(TemporalOrder temporalOrder, ulong? temporalNumberFrom, ulong? temporalNumberTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where, QueryOrder<TModel>? order, int? skip, int? take, Graph<TModel>? graph) : this(temporalOrder, null, null, temporalNumberFrom, temporalNumberTo, temporalSkip, temporalTake, where, order, skip, take, graph) { }
 
         public EventQueryMany(TemporalOrder? temporalOrder, DateTime? temporalDateFrom, DateTime? temporalDateTo, ulong? temporalNumberFrom, ulong? temporalNumberTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where, QueryOrder<TModel>? order, int? skip, int? take, Graph<TModel>? graph)
-            : base(QueryOperation.EventMany)
+            : base(QueryOperation.EventMany, typeof(TModel))
         {
             this.TemporalOrder = temporalOrder ?? Repository.TemporalOrder.Newest;
             this.TemporalDateFrom = temporalDateFrom;

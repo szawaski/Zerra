@@ -16,7 +16,7 @@ namespace Zerra.Repository.Models
         public EventQueryCount(ulong? temporalNumberFrom, ulong? temporalNumberTo, Expression<Func<TModel, bool>>? where) : this(null, null, temporalNumberFrom, temporalNumberTo, where) { }
 
         public EventQueryCount(DateTime? temporalDateFrom, DateTime? temporalDateTo, ulong? temporalNumberFrom, ulong? temporalNumberTo, Expression<Func<TModel, bool>>? where)
-            : base(QueryOperation.EventCount)
+            : base(QueryOperation.EventCount, typeof(TModel))
         {
             this.TemporalOrder = Repository.TemporalOrder.Newest;
             this.TemporalDateFrom = temporalDateFrom;

@@ -27,7 +27,7 @@ namespace Zerra.Repository
             this.Engine = context.InitializeEngine<IEventStoreEngine>();
         }
 
-        protected override sealed IReadOnlyCollection<TModel> QueryMany(Query<TModel> query)
+        protected override sealed IReadOnlyCollection<TModel> QueryMany(Query query)
         {
             var models = ReadModels(query);
 
@@ -39,7 +39,7 @@ namespace Zerra.Repository
 
             return selectedArray;
         }
-        protected override sealed TModel? QueryFirst(Query<TModel> query)
+        protected override sealed TModel? QueryFirst(Query query)
         {
             var models = ReadModels(query);
 
@@ -51,7 +51,7 @@ namespace Zerra.Repository
 
             return selected;
         }
-        protected override sealed TModel? QuerySingle(Query<TModel> query)
+        protected override sealed TModel? QuerySingle(Query query)
         {
             var models = ReadModels(query);
 
@@ -63,7 +63,7 @@ namespace Zerra.Repository
 
             return selected;
         }
-        protected override sealed long QueryCount(Query<TModel> query)
+        protected override sealed long QueryCount(Query query)
         {
             var models = ReadModels(query);
 
@@ -75,7 +75,7 @@ namespace Zerra.Repository
 
             return count;
         }
-        protected override sealed bool QueryAny(Query<TModel> query)
+        protected override sealed bool QueryAny(Query query)
         {
             var models = ReadModels(query);
 
@@ -87,7 +87,7 @@ namespace Zerra.Repository
 
             return any;
         }
-        protected override sealed IReadOnlyCollection<EventModel<TModel>> QueryEventMany(Query<TModel> query)
+        protected override sealed IReadOnlyCollection<EventModel<TModel>> QueryEventMany(Query query)
         {
             var eventModels = ReadEventModels(query);
 
@@ -103,7 +103,7 @@ namespace Zerra.Repository
 
             return eventModelSelectedArray;
         }
-        protected override sealed EventModel<TModel>? QueryEventFirst(Query<TModel> query)
+        protected override sealed EventModel<TModel>? QueryEventFirst(Query query)
         {
             var eventModels = ReadEventModels(query);
 
@@ -121,7 +121,7 @@ namespace Zerra.Repository
 
             return eventModelSelected;
         }
-        protected override sealed EventModel<TModel>? QueryEventSingle(Query<TModel> query)
+        protected override sealed EventModel<TModel>? QueryEventSingle(Query query)
         {
             var eventModels = ReadEventModels(query);
 
@@ -139,7 +139,7 @@ namespace Zerra.Repository
 
             return eventModelSelected;
         }
-        protected override sealed long QueryEventCount(Query<TModel> query)
+        protected override sealed long QueryEventCount(Query query)
         {
             var eventModels = ReadEventModels(query);
 
@@ -153,7 +153,7 @@ namespace Zerra.Repository
 
             return count;
         }
-        protected override sealed bool QueryEventAny(Query<TModel> query)
+        protected override sealed bool QueryEventAny(Query query)
         {
             var eventModels = ReadEventModels(query);
 
@@ -168,7 +168,7 @@ namespace Zerra.Repository
             return any;
         }
 
-        protected override sealed async Task<IReadOnlyCollection<TModel>> QueryManyAsync(Query<TModel> query)
+        protected override sealed async Task<IReadOnlyCollection<TModel>> QueryManyAsync(Query query)
         {
             var models = await ReadModelsAsync(query);
 
@@ -180,7 +180,7 @@ namespace Zerra.Repository
 
             return selectedArray;
         }
-        protected override sealed async Task<TModel?> QueryFirstAsync(Query<TModel> query)
+        protected override sealed async Task<TModel?> QueryFirstAsync(Query query)
         {
             var models = await ReadModelsAsync(query);
 
@@ -192,7 +192,7 @@ namespace Zerra.Repository
 
             return selected;
         }
-        protected override sealed async Task<TModel?> QuerySingleAsync(Query<TModel> query)
+        protected override sealed async Task<TModel?> QuerySingleAsync(Query query)
         {
             var models = await ReadModelsAsync(query);
 
@@ -204,7 +204,7 @@ namespace Zerra.Repository
 
             return selected;
         }
-        protected override sealed async Task<long> QueryCountAsync(Query<TModel> query)
+        protected override sealed async Task<long> QueryCountAsync(Query query)
         {
             var models = await ReadModelsAsync(query);
 
@@ -216,7 +216,7 @@ namespace Zerra.Repository
 
             return count;
         }
-        protected override sealed async Task<bool> QueryAnyAsync(Query<TModel> query)
+        protected override sealed async Task<bool> QueryAnyAsync(Query query)
         {
             var models = await ReadModelsAsync(query);
 
@@ -228,7 +228,7 @@ namespace Zerra.Repository
 
             return any;
         }
-        protected override sealed async Task<IReadOnlyCollection<EventModel<TModel>>> QueryEventManyAsync(Query<TModel> query)
+        protected override sealed async Task<IReadOnlyCollection<EventModel<TModel>>> QueryEventManyAsync(Query query)
         {
             var eventModels = await ReadEventModelsAsync(query);
 
@@ -244,7 +244,7 @@ namespace Zerra.Repository
 
             return eventModelSelectedArray;
         }
-        protected override sealed async Task<EventModel<TModel>?> QueryEventFirstAsync(Query<TModel> query)
+        protected override sealed async Task<EventModel<TModel>?> QueryEventFirstAsync(Query query)
         {
             var eventModels = await ReadEventModelsAsync(query);
 
@@ -262,7 +262,7 @@ namespace Zerra.Repository
 
             return eventModelSelected;
         }
-        protected override sealed async Task<EventModel<TModel>?> QueryEventSingleAsync(Query<TModel> query)
+        protected override sealed async Task<EventModel<TModel>?> QueryEventSingleAsync(Query query)
         {
             var eventModels = await ReadEventModelsAsync(query);
 
@@ -280,7 +280,7 @@ namespace Zerra.Repository
 
             return eventModelSelected;
         }
-        protected override sealed async Task<long> QueryEventCountAsync(Query<TModel> query)
+        protected override sealed async Task<long> QueryEventCountAsync(Query query)
         {
             var eventModels = await ReadEventModelsAsync(query);
 
@@ -294,7 +294,7 @@ namespace Zerra.Repository
 
             return count;
         }
-        protected override sealed async Task<bool> QueryEventAnyAsync(Query<TModel> query)
+        protected override sealed async Task<bool> QueryEventAnyAsync(Query query)
         {
             var eventModels = await ReadEventModelsAsync(query);
 
@@ -309,7 +309,7 @@ namespace Zerra.Repository
             return any;
         }
 
-        private ICollection<TModel> ReadModels(Query<TModel> query)
+        private ICollection<TModel> ReadModels(Query query)
         {
             var many = query.Operation == QueryOperation.Many || query.Operation == QueryOperation.Count;
             var ids = GetIDs(query);
@@ -329,7 +329,7 @@ namespace Zerra.Repository
             }
             return models;
         }
-        private async Task<ICollection<TModel>> ReadModelsAsync(Query<TModel> query)
+        private async Task<ICollection<TModel>> ReadModelsAsync(Query query)
         {
             var many = query.Operation == QueryOperation.Many || query.Operation == QueryOperation.Count;
             var ids = GetIDs(query);
@@ -350,7 +350,7 @@ namespace Zerra.Repository
             return models;
         }
 
-        private ICollection<EventModel<TModel>> ReadEventModels(Query<TModel> query)
+        private ICollection<EventModel<TModel>> ReadEventModels(Query query)
         {
             var many = query.Operation == QueryOperation.EventMany || query.Operation == QueryOperation.EventCount;
             var ids = GetIDs(query);
@@ -370,7 +370,7 @@ namespace Zerra.Repository
             }
             return models;
         }
-        private async Task<ICollection<EventModel<TModel>>> ReadEventModelsAsync(Query<TModel> query)
+        private async Task<ICollection<EventModel<TModel>>> ReadEventModelsAsync(Query query)
         {
             var many = query.Operation == QueryOperation.EventMany || query.Operation == QueryOperation.EventCount;
             var ids = GetIDs(query);
@@ -391,7 +391,7 @@ namespace Zerra.Repository
             return models;
         }
 
-        private static ICollection<TModel> LoadModelsFromEventDatas(EventStoreEventData[] eventDatas, TModel? modelState, bool many, Query<TModel> query)
+        private static ICollection<TModel> LoadModelsFromEventDatas(EventStoreEventData[] eventDatas, TModel? modelState, bool many, Query query)
         {
             if (modelState is null && eventDatas.Length == 0)
                 return Array.Empty<TModel>();
@@ -527,7 +527,7 @@ namespace Zerra.Repository
                 }
             }
         }
-        private static ICollection<EventModel<TModel>> LoadEventModelsFromEventDatas(EventStoreEventData[] eventDatas, TModel? modelState, bool many, Query<TModel> query)
+        private static ICollection<EventModel<TModel>> LoadEventModelsFromEventDatas(EventStoreEventData[] eventDatas, TModel? modelState, bool many, Query query)
         {
             if (modelState is null && eventDatas.Length == 0)
                 return Array.Empty<EventModel<TModel>>();
@@ -793,7 +793,7 @@ namespace Zerra.Repository
             return (model, modelEventNumber);
         }
 
-        private static object[] GetIDs(Query<TModel> query)
+        private static object[] GetIDs(Query query)
         {
             if (query.Where is null)
                 throw new NotSupportedException("No identity clauses found in the query. These are required for event stores.");
@@ -865,9 +865,9 @@ namespace Zerra.Repository
             return list.ToArray();
         }
 
-        protected override sealed void PersistModel(PersistEvent @event, TModel model, Graph<TModel>? graph, bool create)
+        protected override sealed void PersistModel(PersistEvent @event, object model, Graph? graph, bool create)
         {
-            var id = ModelAnalyzer.GetIdentity(model);
+            var id = ModelAnalyzer.GetIdentity(modelType, model);
             if (id is null)
                 throw new NotSupportedException("No identity on model. These are required for event stores.");
 
@@ -877,7 +877,7 @@ namespace Zerra.Repository
             {
                 Source = @event.Source,
                 SourceType = @event.Source?.GetType().Name,
-                Model = model,
+                Model = (TModel)model,
                 Graph = graph
             };
 
@@ -909,16 +909,16 @@ namespace Zerra.Repository
             }
         }
 
-        protected override sealed async Task PersistModelAsync(PersistEvent @event, TModel model, Graph<TModel>? graph, bool create)
+        protected override sealed async Task PersistModelAsync(PersistEvent @event, object model, Graph? graph, bool create)
         {
-            var id = ModelAnalyzer.GetIdentity(model);
+            var id = ModelAnalyzer.GetIdentity(modelType, model);
             var streamName = EventStoreCommon.GetStreamName<TModel>(id);
 
             var eventStoreModel = new EventStoreEventModelData<TModel>()
             {
                 Source = @event.Source,
                 SourceType = @event.Source?.GetType().Name,
-                Model = model,
+                Model = (TModel)model,
                 Graph = graph
             };
 

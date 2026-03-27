@@ -4,12 +4,17 @@
 
 namespace Zerra.Repository
 {
-    public interface ITransactStoreProvider<TModel> where TModel : class, new()
+    public interface ITransactStoreProvider<TModel> : ITransactStoreProvider where TModel : class, new()
     {
-        object? Query(Query<TModel> query);
-        Task<object?> QueryAsync(Query<TModel> query);
+    }
+    public interface ITransactStoreProvider
+    {
+        Type ModelType { get; }
 
-        void Persist(Persist<TModel> persist);
-        Task PersistAsync(Persist<TModel> persist);
+        object? Query(Query query);
+        Task<object?> QueryAsync(Query query);
+
+        void Persist(Persist persist);
+        Task PersistAsync(Persist persist);
     }
 }

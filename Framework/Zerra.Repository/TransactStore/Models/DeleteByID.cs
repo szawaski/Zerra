@@ -16,6 +16,7 @@ namespace Zerra.Repository
         public DeleteByID(string? eventName, object? source, object id, Graph<TModel>? graph)
             : base(PersistOperation.Delete, eventName, source)
         {
+            this.modelType = typeof(TModel);
             this.IDs = new object[] { id };
             this.Graph = graph;
         }
@@ -23,6 +24,7 @@ namespace Zerra.Repository
         public DeleteByID(PersistEvent @event, object id, Graph<TModel>? graph)
             : base(PersistOperation.Delete, @event)
         {
+            this.modelType = typeof(TModel);
             this.IDs = new object[] { id };
             this.Graph = graph;
         }
@@ -34,14 +36,16 @@ namespace Zerra.Repository
         public DeleteByID(string? eventName, object? source, ICollection ids, Graph<TModel>? graph)
             : base(PersistOperation.Delete, eventName, source)
         {
-            this.IDs = ids;
+            this.modelType = typeof(TModel);
+            this.IDs = ids.Cast<object>().ToArray();
             this.Graph = graph;
         }
         public DeleteByID(PersistEvent @event, ICollection ids) : this(@event, ids, null) { }
         public DeleteByID(PersistEvent @event, ICollection ids, Graph<TModel>? graph)
             : base(PersistOperation.Delete, @event)
         {
-            this.IDs = ids;
+            this.modelType = typeof(TModel);
+            this.IDs = ids.Cast<object>().ToArray();
             this.Graph = graph;
         }
     }

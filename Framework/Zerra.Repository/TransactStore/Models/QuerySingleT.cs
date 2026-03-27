@@ -14,7 +14,7 @@ namespace Zerra.Repository
 
         public QuerySingle(Graph<TModel>? graph) : this(null, graph) { }
         public QuerySingle(Expression<Func<TModel, bool>>? where, Graph<TModel>? graph)
-            : base(QueryOperation.Single)
+            : base(QueryOperation.Single, typeof(TModel))
         {
             this.Where = where;
             this.Order = null;

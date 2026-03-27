@@ -30,7 +30,7 @@ namespace Zerra.Repository.Models
         public EventQueryNewest(ulong? temporalNumberFrom, ulong? temporalNumberTo, Expression<Func<TModel, bool>>? where, QueryOrder<TModel>? order, Graph<TModel>? graph) : this(null, null, temporalNumberFrom, temporalNumberTo, where, order, graph) { }
 
         public EventQueryNewest(DateTime? temporalDateFrom, DateTime? temporalDateTo, ulong? temporalNumberFrom, ulong? temporalNumberTo, Expression<Func<TModel, bool>>? where, QueryOrder<TModel>? order, Graph<TModel>? graph)
-            : base(QueryOperation.EventMany)
+            : base(QueryOperation.EventMany, typeof(TModel))
         {
             this.TemporalOrder = Repository.TemporalOrder.Newest;
             this.TemporalDateFrom = temporalDateFrom;
