@@ -131,7 +131,7 @@ namespace Zerra.Repository
 
             if (model is not null)
             {
-                returnModel = OnGet(new TModel[] { model }, appenedQuery.Graph).SingleOrDefault();
+                returnModel = OnGet(new TModel[] { model }, appenedQuery.Graph).Cast<TModel>().SingleOrDefault();
             }
 
             return returnModel;
@@ -152,7 +152,7 @@ namespace Zerra.Repository
 
             if (model is not null)
             {
-                returnModel = OnGet(new TModel[] { model }, appenedQuery.Graph).SingleOrDefault();
+                returnModel = OnGet(new TModel[] { model }, appenedQuery.Graph).Cast<TModel>().SingleOrDefault();
             }
 
             return returnModel;
@@ -202,7 +202,7 @@ namespace Zerra.Repository
             ICollection<EventModel<TModel>>? returnEventModels = null;
             if (models.Length > 0)
             {
-                var returnModels = OnGet(models, appenedQuery.Graph);
+                var returnModels = OnGet(models, appenedQuery.Graph).Cast<TModel>();
                 returnEventModels = eventModels.Where(x => returnModels.Contains(x.Model)).ToArray();
             }
             else

@@ -421,7 +421,7 @@ namespace Zerra.Repository
             var i = 0;
             foreach (var argument in newExp.Arguments)
             {
-                var argumentValue = Expression.Lambda(argument).Compile().DynamicInvoke();
+                var argumentValue = Evaluate(argument);
                 parameters[i++] = argumentValue;
             }
 
@@ -802,7 +802,7 @@ namespace Zerra.Repository
             return value is null;
         }
 
-        private object? Evaluate(Expression exp)
+        private static object? Evaluate(Expression exp)
         {
             return exp.NodeType switch
             {
@@ -811,12 +811,12 @@ namespace Zerra.Repository
                 _ => EvaluateInvoke(exp),
             };
         }
-        private object? EvaluateConstant(Expression exp)
+        private static object? EvaluateConstant(Expression exp)
         {
             var constant = (ConstantExpression)exp;
             return constant.Value;
         }
-        private object? EvaluateMemberAccess(Expression exp)
+        private static object? EvaluateMemberAccess(Expression exp)
         {
             var member = (MemberExpression)exp;
             var expressionValue = member.Expression is null ? null : Evaluate(member.Expression);
@@ -844,14 +844,14 @@ namespace Zerra.Repository
 
             return value;
         }
-        private object? EvaluateInvoke(Expression exp)
+        private static object? EvaluateInvoke(Expression exp)
         {
             if (exp.NodeType == ExpressionType.Call && exp.Type.Name == "ReadOnlySpan`1" || exp.Type.Name == "Span`1")
             {
                 var call = (MethodCallExpression)exp;
                 if (call.Method.Name == "op_Implicit")
                 {
-                    var valueInner = Expression.Lambda(call.Arguments[0]).Compile().DynamicInvoke();
+                    var valueInner = Evaluate(call.Arguments[0]);
                     return valueInner;
                 }
             }

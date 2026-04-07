@@ -295,7 +295,7 @@ namespace Zerra.Repository
             if (encryptedModels is null)
                 return null;
 
-            var model = DecryptModels(new object[] { encryptedModels }, query.Graph, true).FirstOrDefault();
+            var model = DecryptModels(new object[] { encryptedModels }, query.Graph, true).Cast<TModel>().FirstOrDefault();
             return model;
         }
         public override sealed async Task<object?> SingleAsync(Query query)
@@ -310,7 +310,7 @@ namespace Zerra.Repository
             if (encryptedModels is null)
                 return null;
 
-            var model = DecryptModels(new TModel[] { encryptedModels }, query.Graph, true).FirstOrDefault();
+            var model = DecryptModels(new TModel[] { encryptedModels }, query.Graph, true).Cast<TModel>().FirstOrDefault();
             return model;
         }
         public override sealed Task<object?> CountAsync(Query query)

@@ -277,7 +277,7 @@ namespace Zerra.Repository.MySql
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static string GenerateSqlInsert<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail, bool getIdentities) where TModel : class, new()
+        private static string GenerateSqlInsert<TModel>(TModel model, Graph? graph, ModelDetail modelDetail, bool getIdentities) where TModel : class, new()
         {
             var sbColumns = new CharWriter();
             var sbValues = new CharWriter();
@@ -335,7 +335,7 @@ namespace Zerra.Repository.MySql
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static string? GenerateSqlUpdate<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
+        private static string? GenerateSqlUpdate<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             if (modelDetail.IdentityProperties.Count == 0)
                 return null;
@@ -873,7 +873,7 @@ namespace Zerra.Repository.MySql
             }
         }
 
-        public IReadOnlyCollection<object> ExecuteInsertGetIdentities<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
+        public IReadOnlyCollection<object> ExecuteInsertGetIdentities<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = MySqlEngine.GenerateSqlInsert(model, graph, modelDetail, true);
 
@@ -914,7 +914,7 @@ namespace Zerra.Repository.MySql
 
             return allValues;
         }
-        public int ExecuteInsert<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
+        public int ExecuteInsert<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = MySqlEngine.GenerateSqlInsert(model, graph, modelDetail, false);
 
@@ -929,7 +929,7 @@ namespace Zerra.Repository.MySql
                 }
             }
         }
-        public int ExecuteUpdate<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
+        public int ExecuteUpdate<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = MySqlEngine.GenerateSqlUpdate(model, graph, modelDetail);
             if (sql is null)
@@ -962,7 +962,7 @@ namespace Zerra.Repository.MySql
             }
         }
 
-        public async Task<IReadOnlyCollection<object>> ExecuteInsertGetIdentitiesAsync<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
+        public async Task<IReadOnlyCollection<object>> ExecuteInsertGetIdentitiesAsync<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = MySqlEngine.GenerateSqlInsert(model, graph, modelDetail, true);
 
@@ -1003,7 +1003,7 @@ namespace Zerra.Repository.MySql
 
             return allValues;
         }
-        public async Task<int> ExecuteInsertAsync<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
+        public async Task<int> ExecuteInsertAsync<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = MySqlEngine.GenerateSqlInsert(model, graph, modelDetail, false);
 
@@ -1018,7 +1018,7 @@ namespace Zerra.Repository.MySql
                 }
             }
         }
-        public async Task<int> ExecuteUpdateAsync<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
+        public async Task<int> ExecuteUpdateAsync<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = MySqlEngine.GenerateSqlUpdate(model, graph, modelDetail);
             if (sql is null)

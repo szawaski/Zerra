@@ -277,7 +277,7 @@ namespace Zerra.Repository.MsSql
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static string GenerateSqlInsert<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail, bool getIdentities) where TModel : class, new()
+        private static string GenerateSqlInsert<TModel>(TModel model, Graph? graph, ModelDetail modelDetail, bool getIdentities) where TModel : class, new()
         {
             var sbColumns = new CharWriter();
             var sbValues = new CharWriter();
@@ -335,7 +335,7 @@ namespace Zerra.Repository.MsSql
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static string? GenerateSqlUpdate<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
+        private static string? GenerateSqlUpdate<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             if (modelDetail.IdentityProperties.Count == 0)
                 return null;
@@ -873,7 +873,7 @@ namespace Zerra.Repository.MsSql
             }
         }
 
-        public IReadOnlyCollection<object> ExecuteInsertGetIdentities<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
+        public IReadOnlyCollection<object> ExecuteInsertGetIdentities<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = MsSqlEngine.GenerateSqlInsert(model, graph, modelDetail, true);
 
@@ -914,7 +914,7 @@ namespace Zerra.Repository.MsSql
 
             return allValues;
         }
-        public int ExecuteInsert<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
+        public int ExecuteInsert<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = MsSqlEngine.GenerateSqlInsert(model, graph, modelDetail, false);
 
@@ -929,7 +929,7 @@ namespace Zerra.Repository.MsSql
                 }
             }
         }
-        public int ExecuteUpdate<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
+        public int ExecuteUpdate<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = MsSqlEngine.GenerateSqlUpdate(model, graph, modelDetail);
 
@@ -960,7 +960,7 @@ namespace Zerra.Repository.MsSql
             }
         }
 
-        public async Task<IReadOnlyCollection<object>> ExecuteInsertGetIdentitiesAsync<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
+        public async Task<IReadOnlyCollection<object>> ExecuteInsertGetIdentitiesAsync<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = MsSqlEngine.GenerateSqlInsert(model, graph, modelDetail, true);
 
@@ -1001,7 +1001,7 @@ namespace Zerra.Repository.MsSql
 
             return allValues;
         }
-        public async Task<int> ExecuteInsertAsync<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
+        public async Task<int> ExecuteInsertAsync<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = MsSqlEngine.GenerateSqlInsert(model, graph, modelDetail, false);
 
@@ -1016,7 +1016,7 @@ namespace Zerra.Repository.MsSql
                 }
             }
         }
-        public async Task<int> ExecuteUpdateAsync<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
+        public async Task<int> ExecuteUpdateAsync<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = MsSqlEngine.GenerateSqlUpdate(model, graph, modelDetail);
             if (sql is null)

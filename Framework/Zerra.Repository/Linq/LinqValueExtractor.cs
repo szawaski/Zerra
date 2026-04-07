@@ -448,7 +448,7 @@ namespace Zerra.Repository
             var i = 0;
             foreach (var argument in newExp.Arguments)
             {
-                var argumentValue = Expression.Lambda(argument).Compile().DynamicInvoke();
+                var argumentValue = Evaluate(argument);
                 parameters[i++] = argumentValue;
             }
 
@@ -518,7 +518,7 @@ namespace Zerra.Repository
         }
         private static Return? ExtractEvaluate(Expression exp, Context context)
         {
-            var value = Expression.Lambda(exp).Compile().DynamicInvoke();
+            var value = Evaluate(exp);
             var ret = ExtractValue(exp.Type, value, context);
 
             return ret;

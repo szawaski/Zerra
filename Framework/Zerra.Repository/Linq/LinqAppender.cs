@@ -59,29 +59,16 @@ namespace Zerra.Linq
                     throw new ArgumentException("Expression must be a LambdaExpression", nameof(expressions));
 
                 var typeDetails = TypeAnalyzer.GetTypeDetail(type);
-                Type? elementType = null;
-                if (type.IsArray)
-                {
-                    elementType = typeDetails.InnerType;
-                }
-                else
-                {
-                    if (typeDetails.InnerTypes.Count == 1)
-                    {
-                        elementType = typeDetails.InnerType;
-                    }
-                }
-
-                if (elementType is not null && typeDetails.HasIEnumerable)
+                if (typeDetails.HasIEnumerable)
                 {
                     Expression memberExpression = member.MemberType == MemberTypes.Property ?
                         Expression.Property(parameter, propertyInfo!) :
                         Expression.Field(parameter, fieldInfo!);
 
-                    var anyMethod2Generic = GenericTypeCache.GetGenericMethodDetail(anyMethod2, elementType).MethodInfo;
+                    var anyMethod2Generic = anyMethod2.MakeGenericMethod(typeDetails.InnerType);
                     var callAny2 = Expression.Call(anyMethod2Generic, memberExpression, expressionLambda);
 
-                    var anyMethod1Generic = GenericTypeCache.GetGenericMethodDetail(anyMethod1, elementType).MethodInfo;
+                    var anyMethod1Generic = anyMethod1.MakeGenericMethod(typeDetails.InnerType);
                     var callAny1 = Expression.Call(anyMethod1Generic, memberExpression);
 
                     Expression emptyCheckExpression = Expression.OrElse(Expression.Not(callAny1), callAny2);

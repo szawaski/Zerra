@@ -19,10 +19,7 @@ namespace Zerra.Repository
             {
                 lock (typeCacheLock)
                 {
-                    if (typeCache is null)
-                    {
-                        typeCache = this.GetType();
-                    }
+                    typeCache ??= this.GetType();
                 }
             }
             return typeCache;
@@ -40,7 +37,7 @@ namespace Zerra.Repository
                     {
                         var aggregateType = GetAggregateType();
                         var iEventStoreContextProviderType = typeof(IAggregateRootContextProvider<>);
-                        var iEventStoreContextProviderGenericType = GenericTypeCache.GetGenericType(iEventStoreContextProviderType, aggregateType);
+                        var iEventStoreContextProviderGenericType = iEventStoreContextProviderType.MakeGenericType(aggregateType);
                         var providerType = Discovery.GetClassByInterface(iEventStoreContextProviderGenericType)!;
                         var provider = (IContextProvider)Instantiator.Create(providerType);
                         var context = provider.GetContext();
