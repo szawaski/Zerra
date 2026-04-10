@@ -1295,7 +1295,13 @@ namespace Zerra.CQRS
         //don't need to cache these here, the message services will hold the values
         private static string GetCommandTopic(Type commandType)
         {
-            var interfaceType = TypeAnalyzer.GetGenericType(iCommandHandlerType, commandType);
+            var withResultType = commandType.GetTypeDetail().Interfaces.FirstOrDefault(x => x.Name == iCommandWithResultType.Name);
+            Type interfaceType;
+            if (withResultType != null)
+                interfaceType = TypeAnalyzer.GetGenericType(iCommandHandlerWithResultType, commandType, withResultType.GetGenericArguments()[0]);
+            else
+                interfaceType = TypeAnalyzer.GetGenericType(iCommandHandlerType, commandType);
+
             for (; ; )
             {
                 var implementationTypes = Discovery.GetTypesByInterface(interfaceType).Where(x => x.IsInterface).ToArray();

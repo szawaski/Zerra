@@ -136,11 +136,10 @@ namespace Zerra.CQRS.Kafka
 
             lock (commandExchanges)
             {
-                if (commandTypes.Contains(type))
+                if (!commandTypes.Add(type))
                     return;
                 if (commandExchanges.ContainsKey(topic))
                     return;
-                commandTypes.Add(type);
                 commandExchanges.Add(topic, new CommandConsumer(maxConcurrent, commandCounter, topic, symmetricConfig, environment, commandHandlerAsync, commandHandlerAwaitAsync, commandHandlerWithResultAwaitAsync));
                 OpenExchanges();
             }
@@ -153,11 +152,10 @@ namespace Zerra.CQRS.Kafka
 
             lock (eventExchanges)
             {
-                if (eventTypes.Contains(type))
+                if (!eventTypes.Add(type))
                     return;
                 if (eventExchanges.ContainsKey(topic))
                     return;
-                eventTypes.Add(type);
                 eventExchanges.Add(topic, new EventConsumer(maxConcurrent, topic, symmetricConfig, environment, eventHandlerAsync));
                 OpenExchanges();
             }
