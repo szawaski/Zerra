@@ -23,7 +23,7 @@ namespace Zerra.Repository
 
         public Type ModelType => modelType;
 
-        public virtual Expression? GetWhereExpressionIncludingBase(Graph? graph)
+        public virtual LambdaExpression? GetWhereExpressionIncludingBase(Graph? graph)
         {
             var expression = ProviderRelation?.GetWhereExpressionIncludingBase(graph);
             return expression;

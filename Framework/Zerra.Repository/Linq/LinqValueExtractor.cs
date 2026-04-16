@@ -2,10 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using Zerra.Reflection;
@@ -440,9 +437,10 @@ namespace Zerra.Repository
         private static Return? ExtractNew(Expression exp, Context context)
         {
             var newExp = (NewExpression)exp;
+            if (newExp.Constructor == null)
+                throw new NotSupportedException($"Cannot extract from new expression with no constructor");
 
             var argumentTypes = newExp.Arguments.Select(x => x.Type).ToArray();
-            var constructor = newExp.Type.GetConstructor(argumentTypes)!;
 
             var parameters = new object?[newExp.Arguments.Count];
             var i = 0;
@@ -452,7 +450,7 @@ namespace Zerra.Repository
                 parameters[i++] = argumentValue;
             }
 
-            var value = constructor.Invoke(parameters.ToArray());
+            var value = newExp.Constructor.Invoke(parameters);
             var ret = ExtractValue(newExp.Type, value, context);
 
             return ret;
@@ -914,6 +912,15 @@ namespace Zerra.Repository
         }
         private static object? EvaluateInvoke(Expression exp)
         {
+            if (exp.NodeType == ExpressionType.Call && exp.Type.Name == "ReadOnlySpan`1" || exp.Type.Name == "Span`1")
+            {
+                var call = (MethodCallExpression)exp;
+                if (call.Method.Name == "op_Implicit")
+                {
+                    var valueInner = Evaluate(call.Arguments[0]);
+                    return valueInner;
+                }
+            }
             var value = Expression.Lambda(exp).Compile().DynamicInvoke();
             return value;
         }

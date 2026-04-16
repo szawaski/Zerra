@@ -16,7 +16,7 @@ namespace Zerra.Repository
         public BaseTransactStoreRuleProvider(TNextProviderInterface nextProvider)
             : base(nextProvider) { }
 
-        private Expression? AppendWhereExpression(Expression? whereExpression, Graph? graph)
+        private LambdaExpression? AppendWhereExpression(LambdaExpression? whereExpression, Graph? graph)
         {
             var appendWhereExpression = WhereExpression(graph);
             if (whereExpression is null && appendWhereExpression is null)
@@ -37,15 +37,15 @@ namespace Zerra.Repository
             }
         }
 
-        public virtual Expression? WhereExpression(Graph? graph)
+        public virtual LambdaExpression? WhereExpression(Graph? graph)
         {
             return null;
         }
-        public Expression? GetWhereExpression(Graph? graph)
+        public LambdaExpression? GetWhereExpression(Graph? graph)
         {
             return this.WhereExpression(graph);
         }
-        public override sealed Expression? GetWhereExpressionIncludingBase(Graph? graph)
+        public override sealed LambdaExpression? GetWhereExpressionIncludingBase(Graph? graph)
         {
             var expression1 = this.GetWhereExpression(graph);
             var expression2 = ProviderRelation?.GetWhereExpressionIncludingBase(graph);

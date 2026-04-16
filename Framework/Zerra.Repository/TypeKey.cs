@@ -29,6 +29,18 @@ namespace Zerra
         /// <summary>
         /// Creates a new TypeKey.
         /// </summary>
+        /// <param name="type">A type for the hash.</param>
+        public TypeKey(Type? type)
+        {
+            this.str = null;
+            this.number = null;
+            this.type1 = type;
+            this.type2 = null;
+            this.typeArray = null;
+        }
+        /// <summary>
+        /// Creates a new TypeKey.
+        /// </summary>
         /// <param name="type1">A type for the hash.</param>
         /// <param name="type2">A type for the hash.</param>
         public TypeKey(Type? type1, Type? type2)

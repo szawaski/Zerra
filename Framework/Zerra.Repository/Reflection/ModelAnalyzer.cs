@@ -34,54 +34,69 @@ namespace Zerra.Repository.Reflection
         }
 
         private static readonly ConcurrentFactoryDictionary<TypeKey, object?> getterFunctionsByAttribute = new();
-        private static Func<object, object?>? GetGetterFunctionByNameOrAttribute(Type type, string? propertyNames, Type? attributeType)
+        private static Func<object, object?>? GetGetterFunctionByName(Type type, string propertyNames)
         {
-            TypeKey key;
-            if (attributeType is not null)
-                key = new TypeKey(propertyNames, type, attributeType);
-            else
-                key = new TypeKey(propertyNames, type);
+            var key = new TypeKey(propertyNames, type);
 
-            var getter = getterFunctionsByAttribute.GetOrAdd(key, type, propertyNames, attributeType, static (type, propertyNames, attributeType) => GenerateGetterFunctionByNameOrAttribute(type, propertyNames, attributeType));
+            var getter = getterFunctionsByAttribute.GetOrAdd(key, type, propertyNames, static (type, propertyNames) => GenerateGetterFunctionByName(type, propertyNames));
 
             var expression = (Func<object, object>?)getter;
             return expression;
         }
-        private static Func<object, object>? GenerateGetterFunctionByNameOrAttribute(Type type, string? propertyNames, Type? attributeType)
+        private static Func<object, object?>? GetGetterFunctionByAttribute(Type type)
+        {
+            var key = new TypeKey(type);
+
+            var getter = getterFunctionsByAttribute.GetOrAdd(key, type, static (type) => GenerateGetterFunctionByAttribute(type));
+
+            var expression = (Func<object, object>?)getter;
+            return expression;
+        }
+        private static Func<object, object>? GenerateGetterFunctionByName(Type type, string propertyNames)
         {
             var propertyNamesArray = propertyNames is null ? null : propertyNames.Split(',');
 
             var sourceExpression = Expression.Parameter(typeof(object), "x");
 
-            var typeProperties = type.GetProperties();
-            var propertyExpressions = new List<Expression>();
-            foreach (var typeProperty in typeProperties)
-            {
-                if (propertyNamesArray is not null && propertyNamesArray.Contains(typeProperty.Name))
-                {
-                    Expression propertyExpression = Expression.Property(Expression.Convert(sourceExpression, type), typeProperty);
-                    propertyExpressions.Add(propertyExpression);
-                }
-                else if (attributeType is not null)
-                {
-                    var attribute = typeProperty.GetCustomAttribute(attributeType, true);
-                    if (attribute is not null)
-                    {
-                        Expression propertyExpression = Expression.Property(Expression.Convert(sourceExpression, type), typeProperty);
-                        propertyExpressions.Add(propertyExpression);
-                    }
-                }
-            }
+            var members = GetModel(type).TypeDetail.Members.Where(x => propertyNamesArray.Contains(x.Name)).ToArray();
 
             Expression? accessor = null;
-            if (propertyExpressions.Count == 1)
+            if (members.Length == 1)
             {
-                accessor = Expression.Convert(propertyExpressions.Single(), typeof(object));
+                var member = members[0];
+                accessor = Expression.Convert(Expression.MakeMemberAccess(Expression.Convert(sourceExpression, type), member.MemberInfo), typeof(object));
             }
-            else if (propertyExpressions.Count > 1)
+            else if (members.Length > 1)
             {
 #pragma warning disable IL3050 // Array type 'object[]' is guarenteed from DynamicallyAccessedMembersAttribute on the field 'objectArrayType'
-                accessor = Expression.NewArrayInit(typeof(object), propertyExpressions.Select(x => Expression.Convert(x, typeof(object))));
+                accessor = Expression.NewArrayInit(typeof(object), members.Select(x => Expression.Convert(Expression.MakeMemberAccess(Expression.Convert(sourceExpression, type), x.MemberInfo), typeof(object))));
+#pragma warning restore IL3050 // Array type 'object[]' is guarenteed from DynamicallyAccessedMembersAttribute on the field 'objectArrayType'
+            }
+            else
+            {
+                //return null;
+                throw new InvalidOperationException($"Getter function not found on {type.Name}");
+            }
+
+            var lambda = Expression.Lambda<Func<object, object>>(accessor, sourceExpression);
+            return lambda.Compile();
+        }
+        private static Func<object, object>? GenerateGetterFunctionByAttribute(Type type)
+        {
+            var sourceExpression = Expression.Parameter(typeof(object), "x");
+
+            var identityProperties = GetModel(type).IdentityProperties;
+
+            Expression? accessor = null;
+            if (identityProperties.Count == 1)
+            {
+                var identityProperty = identityProperties[0];
+                accessor = Expression.Convert(Expression.MakeMemberAccess(Expression.Convert(sourceExpression, type), identityProperty.MemberInfo), typeof(object));
+            }
+            else if (identityProperties.Count > 1)
+            {
+#pragma warning disable IL3050 // Array type 'object[]' is guarenteed from DynamicallyAccessedMembersAttribute on the field 'objectArrayType'
+                accessor = Expression.NewArrayInit(typeof(object), identityProperties.Select(x => Expression.Convert(Expression.MakeMemberAccess(Expression.Convert(sourceExpression, type), x.MemberInfo), typeof(object))));
 #pragma warning restore IL3050 // Array type 'object[]' is guarenteed from DynamicallyAccessedMembersAttribute on the field 'objectArrayType'
             }
             else
@@ -95,59 +110,81 @@ namespace Zerra.Repository.Reflection
         }
 
         private static readonly ConcurrentFactoryDictionary<TypeKey, object> setterFunctionsByAttribute = new();
-        private static Action<object, object?> GetSetterFunctionByNameOrAttribute(Type type,string? propertyNames, Type? attributeType)
+        private static Action<object, object?> GetSetterFunctionByName(Type type, string propertyNames)
         {
-            TypeKey key;
-            if (attributeType is not null)
-                key = new TypeKey(propertyNames, type, attributeType);
-            else
-                key = new TypeKey(propertyNames, type);
+            var key = new TypeKey(propertyNames, type);
 
-            var setter = setterFunctionsByAttribute.GetOrAdd(key, type, propertyNames, attributeType, static (type, propertyNames, attributeType) => GenerateSetterFunctionByNameOrAttribute(type, propertyNames, attributeType));
+            var setter = setterFunctionsByAttribute.GetOrAdd(key, type, propertyNames, static (type, propertyNames) => GenerateSetterFunctionByName(type, propertyNames));
 
             var expression = (Action<object, object?>)setter;
             return expression;
         }
-        private static Action<object, object?> GenerateSetterFunctionByNameOrAttribute(Type type, string? propertyNames, Type? attributeType)
+        private static Action<object, object?> GetSetterFunctionByAttribute(Type type)
         {
-            var propertyNamesArray = propertyNames is null ? null : propertyNames.Split(',');
+            var key = new TypeKey(type);
+
+            var setter = setterFunctionsByAttribute.GetOrAdd(key, type, static (type) => GenerateSetterFunctionByAttribute(type));
+
+            var expression = (Action<object, object?>)setter;
+            return expression;
+        }
+        private static Action<object, object?> GenerateSetterFunctionByName(Type type, string propertyNames)
+        {
+            var propertyNamesArray = propertyNames.Split(',').ToHashSet();
 
             var sourceExpression = Expression.Parameter(typeof(object), "x");
             var parameterValue = Expression.Parameter(typeof(object), "y");
 
-            var typeProperties = type.GetProperties();
-            var propertyExpressions = new List<Expression>();
-            foreach (var typeProperty in typeProperties)
-            {
-                if (propertyNamesArray is not null && propertyNamesArray.Contains(typeProperty.Name))
-                {
-                    Expression propertyExpression = Expression.Property(sourceExpression, typeProperty);
-                    propertyExpressions.Add(propertyExpression);
-                }
-                else if (attributeType is not null)
-                {
-                    var attribute = typeProperty.GetCustomAttribute(attributeType, true);
-                    if (attribute is not null)
-                    {
-                        Expression propertyExpression = Expression.Property(sourceExpression, typeProperty);
-                        propertyExpressions.Add(propertyExpression);
-                    }
-                }
-            }
+            var members = GetModel(type).TypeDetail.Members.Where(x => propertyNamesArray.Contains(x.Name)).ToArray();
 
             Expression setter;
-            if (propertyExpressions.Count == 1)
+            if (members.Length == 1)
             {
-                setter = Expression.Assign(propertyExpressions.Single(), Expression.Convert(parameterValue, propertyExpressions.Single().Type));
+                var member = members[0];
+                setter = Expression.Assign(Expression.MakeMemberAccess(sourceExpression, member.MemberInfo), Expression.Convert(parameterValue, member.Type));
             }
-            else if (propertyExpressions.Count > 1)
+            else if (members.Length > 1)
             {
                 var setters = new List<Expression>();
                 var index = 0;
-                foreach (var propertyExpression in propertyExpressions)
+                foreach (var member in members)
                 {
                     Expression parameterValueIndex = Expression.ArrayIndex(parameterValue, Expression.Constant(index));
-                    Expression subsetter = Expression.Assign(propertyExpression, Expression.Convert(parameterValueIndex, propertyExpression.Type));
+                    Expression subsetter = Expression.Assign(Expression.MakeMemberAccess(sourceExpression, member.MemberInfo), Expression.Convert(parameterValueIndex, member.Type));
+                    setters.Add(subsetter);
+                    index++;
+                }
+                setter = Expression.Block(setters.ToArray());
+            }
+            else
+            {
+                throw new InvalidOperationException($"Setter function not found on {type.Name}");
+            }
+
+            var lambda = Expression.Lambda<Action<object, object?>>(setter, sourceExpression, parameterValue);
+            return lambda.Compile();
+        }
+        private static Action<object, object?> GenerateSetterFunctionByAttribute(Type type)
+        {
+            var sourceExpression = Expression.Parameter(typeof(object), "x");
+            var parameterValue = Expression.Parameter(typeof(object), "y");
+
+            var identityProperties = GetModel(type).IdentityProperties;
+
+            Expression setter;
+            if (identityProperties.Count == 1)
+            {
+                var identityProperty = identityProperties[0];
+                setter = Expression.Assign(Expression.MakeMemberAccess(sourceExpression, identityProperty.MemberInfo), Expression.Convert(parameterValue, identityProperty.Type));
+            }
+            else if (identityProperties.Count > 1)
+            {
+                var setters = new List<Expression>();
+                var index = 0;
+                foreach (var identityProperty in identityProperties)
+                {
+                    Expression parameterValueIndex = Expression.ArrayIndex(parameterValue, Expression.Constant(index));
+                    Expression subsetter = Expression.Assign(Expression.MakeMemberAccess(sourceExpression, identityProperty.MemberInfo), Expression.Convert(parameterValueIndex, identityProperty.Type));
                     setters.Add(subsetter);
                     index++;
                 }
@@ -172,22 +209,19 @@ namespace Zerra.Repository.Reflection
         }
         private static string[] GenerateIdentityPropertyNames(Type type)
         {
-            var properties = new List<PropertyInfo>();
-            var typeProperties = type.GetProperties();
-            foreach (var typeProperty in typeProperties)
+            var properties = new List<string>();
+            var typeDetail = type.GetTypeDetail();
+            foreach (var member in typeDetail.Members)
             {
-                var attribute = typeProperty.GetCustomAttribute(typeof(IdentityAttribute), true);
-                if (attribute is not null)
-                {
-                    properties.Add(typeProperty);
-                }
+                if (member.Attributes.Any(x => x is IdentityAttribute))
+                    properties.Add(member.Name);
             }
-            return properties.Select(x => x.Name).ToArray();
+            return properties.ToArray();
         }
 
         public static object GetIdentity(Type type, object model)
         {
-            var modelIdentityAccessor = GetGetterFunctionByNameOrAttribute(type, null, typeof(IdentityAttribute));
+            var modelIdentityAccessor = GetGetterFunctionByAttribute(type);
             if (modelIdentityAccessor is null)
                 throw new Exception($"Model {type.Name} missing Identity");
             var id = modelIdentityAccessor.Invoke(model);
@@ -198,13 +232,13 @@ namespace Zerra.Repository.Reflection
 
         public static void SetIdentity(Type type, object model, object? identity)
         {
-            var setter = GetSetterFunctionByNameOrAttribute(type, null, typeof(IdentityAttribute));
+            var setter = GetSetterFunctionByAttribute(type);
             setter.Invoke(model, identity);
         }
 
         public static object? GetForeignIdentity(Type type, string foreignIdentityNames, object model)
         {
-            var modelIdentityAccessor = GetGetterFunctionByNameOrAttribute(type, foreignIdentityNames, null);
+            var modelIdentityAccessor = GetGetterFunctionByName(type, foreignIdentityNames);
             if (modelIdentityAccessor is null)
                 throw new Exception($"Model {type.Name} missing Foreign Identity");
             var id = modelIdentityAccessor.Invoke(model);
@@ -213,7 +247,7 @@ namespace Zerra.Repository.Reflection
 
         public static void SetForeignIdentity(Type type, string foreignIdentityNames, object model, object identity)
         {
-            var setter = GetSetterFunctionByNameOrAttribute(type, foreignIdentityNames, null);
+            var setter = GetSetterFunctionByName(type, foreignIdentityNames);
             setter.Invoke(model, identity);
         }
 

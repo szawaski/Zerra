@@ -64,7 +64,7 @@ namespace Zerra.Repository
                     {
                         var relatedGraph = graph.GetChildGraph(property.Name);
 
-                        Expression? returnWhereExpression = null;
+                        LambdaExpression? returnWhereExpression = null;
                         if (relatedProvider is IProviderRelation relatedProviderGeneric)
                         {
                             returnWhereExpression = relatedProviderGeneric.GetWhereExpressionIncludingBase(relatedGraph);
@@ -81,7 +81,7 @@ namespace Zerra.Repository
 
             return whereExpression;
         }
-        public Expression? GetWhereExpressionIncludingBase(Graph? graph)
+        public LambdaExpression? GetWhereExpressionIncludingBase(Graph? graph)
         {
             return GetWhereExpression(graph);
         }
@@ -190,7 +190,7 @@ namespace Zerra.Repository
 
                             var queryExpressionParameter = Expression.Parameter(relatedType, "x");
                             var condition = Expression.Call(Expression.Constant(foreignIdentities, listObjectType), containsMethod, Expression.Convert(Expression.MakeMemberAccess(queryExpressionParameter, relatedIdentityPropertyInfo.MemberInfo), objectType));
-                            var queryExpression = Expression.Lambda(condition, queryExpressionParameter);
+                            var queryExpression = Expression.Lambda(relatedModelInfo.LambdaDelegateType, condition, queryExpressionParameter);
 
                             if (relatedGraph is not null)
                             {
@@ -249,7 +249,7 @@ namespace Zerra.Repository
 
                             var queryExpressionParameter = Expression.Parameter(relatedType, "x");
                             var condition = Expression.Call(Expression.Constant(foreignIdentities, listObjectType), containsMethod, Expression.Convert(Expression.MakeMemberAccess(queryExpressionParameter, relatedForeignIdentityPropertyInfo.MemberInfo), objectType));
-                            var queryExpression = Expression.Lambda(condition, queryExpressionParameter);
+                            var queryExpression = Expression.Lambda(relatedModelInfo.LambdaDelegateType, condition, queryExpressionParameter);
 
                             if (relatedGraph is not null)
                             {
@@ -336,7 +336,7 @@ namespace Zerra.Repository
 
                             var queryExpressionParameter = Expression.Parameter(relatedType, "x");
                             var condition = Expression.Call(Expression.Constant(foreignIdentities, listObjectType), containsMethod, Expression.Convert(Expression.MakeMemberAccess(queryExpressionParameter, relatedIdentityPropertyInfo.MemberInfo), objectType));
-                            var queryExpression = Expression.Lambda(condition, queryExpressionParameter);
+                            var queryExpression = Expression.Lambda(relatedModelInfo.LambdaDelegateType, condition, queryExpressionParameter);
 
                             if (relatedGraph is not null)
                             {
@@ -395,7 +395,7 @@ namespace Zerra.Repository
 
                             var queryExpressionParameter = Expression.Parameter(relatedType, "x");
                             var condition = Expression.Call(Expression.Constant(foreignIdentities, listObjectType), containsMethod, Expression.Convert(Expression.MakeMemberAccess(queryExpressionParameter, relatedForeignIdentityPropertyInfo.MemberInfo), objectType));
-                            var queryExpression = Expression.Lambda(condition, queryExpressionParameter);
+                            var queryExpression = Expression.Lambda(relatedModelInfo.LambdaDelegateType, condition, queryExpressionParameter);
 
                             if (relatedGraph is not null)
                             {
@@ -1205,7 +1205,7 @@ namespace Zerra.Repository
                     if (!create)
                     {
                         var queryExpressionParameter = Expression.Parameter(relatedType, "x");
-                        var queryExpression = Expression.Lambda(Expression.Equal(Expression.MakeMemberAccess(queryExpressionParameter, relatedForeignIdentityPropertyInfo.MemberInfo), Expression.Constant(identity, relatedForeignIdentityPropertyInfo.Type)), queryExpressionParameter);
+                        var queryExpression = Expression.Lambda(relatedModelInfo.LambdaDelegateType, Expression.Equal(Expression.MakeMemberAccess(queryExpressionParameter, relatedForeignIdentityPropertyInfo.MemberInfo), Expression.Constant(identity, relatedForeignIdentityPropertyInfo.Type)), queryExpressionParameter);
                         var relatedIdentityPropertyNames = ModelAnalyzer.GetIdentityPropertyNames(relatedType);
 
                         var allNames = relatedIdentityPropertyNames.Append(modelPropertyInfo.ForeignIdentity);
@@ -1327,7 +1327,7 @@ namespace Zerra.Repository
                     var relatedGraph = graph.GetChildGraph(modelPropertyInfo.Name);
 
                     var queryExpressionParameter = Expression.Parameter(relatedType, "x");
-                    var queryExpression = Expression.Lambda(Expression.Equal(Expression.MakeMemberAccess(queryExpressionParameter, relatedForeignIdentityPropertyInfo.MemberInfo), Expression.Constant(id, relatedForeignIdentityPropertyInfo.Type)), queryExpressionParameter);
+                    var queryExpression = Expression.Lambda(relatedModelInfo.LambdaDelegateType, Expression.Equal(Expression.MakeMemberAccess(queryExpressionParameter, relatedForeignIdentityPropertyInfo.MemberInfo), Expression.Constant(id, relatedForeignIdentityPropertyInfo.Type)), queryExpressionParameter);
                     var relatedIdentityPropertyNames = ModelAnalyzer.GetIdentityPropertyNames(relatedType);
 
                     var allNames = relatedIdentityPropertyNames.Append(modelPropertyInfo.ForeignIdentity);
@@ -1434,7 +1434,7 @@ namespace Zerra.Repository
                     if (!create)
                     {
                         var queryExpressionParameter = Expression.Parameter(relatedType, "x");
-                        var queryExpression = Expression.Lambda(Expression.Equal(Expression.MakeMemberAccess(queryExpressionParameter, relatedForeignIdentityPropertyInfo.MemberInfo), Expression.Constant(identity, relatedForeignIdentityPropertyInfo.Type)), queryExpressionParameter);
+                        var queryExpression = Expression.Lambda(relatedModelInfo.LambdaDelegateType, Expression.Equal(Expression.MakeMemberAccess(queryExpressionParameter, relatedForeignIdentityPropertyInfo.MemberInfo), Expression.Constant(identity, relatedForeignIdentityPropertyInfo.Type)), queryExpressionParameter);
                         var relatedIdentityPropertyNames = ModelAnalyzer.GetIdentityPropertyNames(relatedType);
 
                         var allNames = relatedIdentityPropertyNames.Append(modelPropertyInfo.ForeignIdentity);
@@ -1556,7 +1556,7 @@ namespace Zerra.Repository
                     var relatedGraph = graph.GetChildGraph(modelPropertyInfo.Name);
 
                     var queryExpressionParameter = Expression.Parameter(relatedType, "x");
-                    var queryExpression = Expression.Lambda(Expression.Equal(Expression.MakeMemberAccess(queryExpressionParameter, relatedForeignIdentityPropertyInfo.MemberInfo), Expression.Constant(id, relatedForeignIdentityPropertyInfo.Type)), queryExpressionParameter);
+                    var queryExpression = Expression.Lambda(relatedModelInfo.LambdaDelegateType, Expression.Equal(Expression.MakeMemberAccess(queryExpressionParameter, relatedForeignIdentityPropertyInfo.MemberInfo), Expression.Constant(id, relatedForeignIdentityPropertyInfo.Type)), queryExpressionParameter);
                     var relatedIdentityPropertyNames = ModelAnalyzer.GetIdentityPropertyNames(relatedType);
 
                     var allNames = relatedIdentityPropertyNames.Append(modelPropertyInfo.ForeignIdentity);

@@ -26,12 +26,12 @@ namespace Zerra.Repository
         {
         }
 
-        public override sealed Expression? GetWhereExpressionIncludingBase(Graph? graph)
+        public override sealed LambdaExpression? GetWhereExpressionIncludingBase(Graph? graph)
         {
             return base.GetWhereExpressionIncludingBase(graph);
         }
 
-        private static Expression? CompressWhere(Expression? expression)
+        private static LambdaExpression? CompressWhere(LambdaExpression? expression)
         {
             return expression;
         }

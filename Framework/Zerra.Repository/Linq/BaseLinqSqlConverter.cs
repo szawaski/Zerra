@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using Zerra.Reflection;
 using Zerra.Repository.IO;
 using Zerra.Repository.Reflection;
 
@@ -415,7 +416,11 @@ namespace Zerra.Repository
             var newExp = (NewExpression)exp;
 
             var argumentTypes = newExp.Arguments.Select(x => x.Type).ToArray();
-            var constructor = newExp.Type.GetConstructor(argumentTypes)!;
+
+            //constructor should not be trimmed since the expression should be evaluatable
+            var typeDetail = newExp.Type.GetTypeDetail();
+            var constructor = typeDetail.GetConstructor(argumentTypes);
+            //var constructor = newExp.Type.GetConstructor(argumentTypes)!;
 
             var parameters = new object?[newExp.Arguments.Count];
             var i = 0;
@@ -425,7 +430,8 @@ namespace Zerra.Repository
                 parameters[i++] = argumentValue;
             }
 
-            var value = constructor.Invoke(parameters.ToArray());
+            //var value = constructor.Invoke(parameters);
+            var value = constructor.CreatorBoxed(parameters);
             ConvertToSqlValue(newExp.Type, value, ref sb, context);
 
             _ = context.MemberContext.OperatorStack.Pop();

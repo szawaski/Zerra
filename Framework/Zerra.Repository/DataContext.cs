@@ -78,6 +78,8 @@ namespace Zerra.Repository
                 {
                     initialized = true;
 
+                    Discovery.Initialize(true);
+
                     if (dataStoreGenerationType.HasFlag(DataStoreGenerationType.CodeFirst))
                     {
                         Log.Info($"{this.GetType().Name} Initializing {dataStoreGenerationType.EnumName()}");

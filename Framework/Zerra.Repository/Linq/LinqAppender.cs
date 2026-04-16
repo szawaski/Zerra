@@ -10,27 +10,20 @@ namespace Zerra.Linq
 {
     public static class LinqAppender
     {
-        public static Expression<Func<T, bool>> AppendAnd<T>(Expression it, params Expression[] expressions)
+        public static Expression<Func<T, bool>> AppendAnd<T>(LambdaExpression it, LambdaExpression expression)
         {
-            if (it is not LambdaExpression itLambda)
-                throw new ArgumentException("Expression must be a LambdaExpression", nameof(it));
+            var exp = it.Body;
+            var parameter = it.Parameters[0];
 
-            var exp = itLambda.Body;
-            var parameter = itLambda.Parameters[0];
-            foreach (Expression expression in expressions)
-            {
-                if (expression is not LambdaExpression expressionLambda)
-                    throw new ArgumentException("Expression must be a LambdaExpression", nameof(expressions));
+            var convertedExpression = LinqRebinder.RebindExpression(expression.Body, expression.Parameters[0], parameter);
+            exp = Expression.AndAlso(exp, convertedExpression);
 
-                var convertedExpression = LinqRebinder.RebindExpression(expressionLambda.Body, expressionLambda.Parameters[0], parameter);
-                exp = Expression.AndAlso(exp, convertedExpression);
-            }
-            return Expression.Lambda<Func<T, bool>>(exp, itLambda.Parameters);
+            return Expression.Lambda<Func<T, bool>>(exp, it.Parameters);
         }
 
         private static readonly MethodInfo anyMethod1 = typeof(Enumerable).GetMethods().First(m => m.Name == "Any" && m.GetParameters().Length == 1);
         private static readonly MethodInfo anyMethod2 = typeof(Enumerable).GetMethods().First(m => m.Name == "Any" && m.GetParameters().Length == 2);
-        public static Expression<Func<T, bool>> AppendExpressionOnMember<T>(Expression<Func<T, bool>> it, MemberInfo member, params Expression[] expressions)
+        public static Expression<Func<T, bool>> AppendExpressionOnMember<T>(Expression<Func<T, bool>> it, MemberInfo member, LambdaExpression expression)
         {
             PropertyInfo? propertyInfo = null;
             FieldInfo? fieldInfo = null;
@@ -53,46 +46,41 @@ namespace Zerra.Linq
             var itLambda = (LambdaExpression)it;
             var exp = itLambda.Body;
             var parameter = itLambda.Parameters[0];
-            foreach (var expression in expressions)
+
+            var typeDetails = TypeAnalyzer.GetTypeDetail(type);
+            if (typeDetails.HasIEnumerable)
             {
-                if (expression is not LambdaExpression expressionLambda)
-                    throw new ArgumentException("Expression must be a LambdaExpression", nameof(expressions));
+                Expression memberExpression = member.MemberType == MemberTypes.Property ?
+                    Expression.Property(parameter, propertyInfo!) :
+                    Expression.Field(parameter, fieldInfo!);
 
-                var typeDetails = TypeAnalyzer.GetTypeDetail(type);
-                if (typeDetails.HasIEnumerable)
-                {
-                    Expression memberExpression = member.MemberType == MemberTypes.Property ?
-                        Expression.Property(parameter, propertyInfo!) :
-                        Expression.Field(parameter, fieldInfo!);
+                var anyMethod2Generic = anyMethod2.MakeGenericMethod(typeDetails.InnerType);
+                var callAny2 = Expression.Call(anyMethod2Generic, memberExpression, expression);
 
-                    var anyMethod2Generic = anyMethod2.MakeGenericMethod(typeDetails.InnerType);
-                    var callAny2 = Expression.Call(anyMethod2Generic, memberExpression, expressionLambda);
+                var anyMethod1Generic = anyMethod1.MakeGenericMethod(typeDetails.InnerType);
+                var callAny1 = Expression.Call(anyMethod1Generic, memberExpression);
 
-                    var anyMethod1Generic = anyMethod1.MakeGenericMethod(typeDetails.InnerType);
-                    var callAny1 = Expression.Call(anyMethod1Generic, memberExpression);
+                Expression emptyCheckExpression = Expression.OrElse(Expression.Not(callAny1), callAny2);
 
-                    Expression emptyCheckExpression = Expression.OrElse(Expression.Not(callAny1), callAny2);
-
-                    if (exp.NodeType == ExpressionType.Constant && ((ConstantExpression)exp).Value?.ToString()?.ToBoolean() == true)
-                        exp = emptyCheckExpression;
-                    else
-                        exp = Expression.AndAlso(exp, emptyCheckExpression);
-                }
+                if (exp.NodeType == ExpressionType.Constant && ((ConstantExpression)exp).Value?.ToString()?.ToBoolean() == true)
+                    exp = emptyCheckExpression;
                 else
-                {
-                    Expression memberExpression = member.MemberType == MemberTypes.Property ?
-                        Expression.Property(parameter, propertyInfo!) :
-                        Expression.Field(parameter, fieldInfo!);
+                    exp = Expression.AndAlso(exp, emptyCheckExpression);
+            }
+            else
+            {
+                Expression memberExpression = member.MemberType == MemberTypes.Property ?
+                    Expression.Property(parameter, propertyInfo!) :
+                    Expression.Field(parameter, fieldInfo!);
 
-                    var convertedExpressionLambda = (LambdaExpression)LinqRebinder.RebindExpression(expressionLambda, expressionLambda.Parameters[0], memberExpression);
+                var convertedExpressionLambda = (LambdaExpression)LinqRebinder.RebindExpression(expression, expression.Parameters[0], memberExpression);
 
-                    Expression nullCheckExpression = Expression.OrElse(Expression.Equal(memberExpression, Expression.Constant(null)), convertedExpressionLambda.Body);
+                Expression nullCheckExpression = Expression.OrElse(Expression.Equal(memberExpression, Expression.Constant(null)), convertedExpressionLambda.Body);
 
-                    if (exp.NodeType == ExpressionType.Constant && ((ConstantExpression)exp).Value?.ToString()?.ToBoolean() == true)
-                        exp = nullCheckExpression;
-                    else
-                        exp = Expression.AndAlso(exp, nullCheckExpression);
-                }
+                if (exp.NodeType == ExpressionType.Constant && ((ConstantExpression)exp).Value?.ToString()?.ToBoolean() == true)
+                    exp = nullCheckExpression;
+                else
+                    exp = Expression.AndAlso(exp, nullCheckExpression);
             }
             return Expression.Lambda<Func<T, bool>>(exp, itLambda.Parameters);
         }

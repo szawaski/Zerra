@@ -12,6 +12,9 @@ namespace Zerra.Repository.Reflection
         public TypeDetail TypeDetail { get; }
         public Type Type { get; }
         public string Name { get; }
+
+        public Type LambdaDelegateType { get; }
+
         private readonly string? dataSourceEntityName;
         public bool IsDataSourceEntity => dataSourceEntityName is not null;
         public string DataSourceEntityName => dataSourceEntityName ?? throw new Exception($"{Type.Name} does not have an EntityAttribute");
@@ -66,6 +69,8 @@ namespace Zerra.Repository.Reflection
         {
             this.TypeDetail = typeDetail;
             this.Type = typeDetail.Type;
+
+            this.LambdaDelegateType = typeof(Func<,>).MakeGenericType(this.Type, typeof(bool));
 
             if (!typeDetail.HasCreatorBoxed)
                 throw new Exception($"{Type.Name} must have a parameterless constructor to be a model.");

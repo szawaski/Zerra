@@ -29,7 +29,7 @@ namespace Zerra.Repository
         {
         }
 
-        private static Expression? EncryptWhere(Expression? expression)
+        private static LambdaExpression? EncryptWhere(LambdaExpression? expression)
         {
             return expression;
         }

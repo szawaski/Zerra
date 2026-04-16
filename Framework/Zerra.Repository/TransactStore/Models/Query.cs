@@ -13,7 +13,7 @@ namespace Zerra.Repository
 
         public Type ModelType { get; }
 
-        public Expression? Where { get; set; }
+        public LambdaExpression? Where { get; set; }
         public QueryOrder? Order { get; set; }
         public int? Skip { get; init; }
         public int? Take { get; init; }
@@ -51,7 +51,7 @@ namespace Zerra.Repository
             this.Graph = query.Graph is null ? null : new Graph(query.Graph);
         }
 
-        public Query(QueryOperation operation, Type modelType, Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph)
+        public Query(QueryOperation operation, Type modelType, LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph)
         {
             this.Operation = operation;
             this.ModelType = modelType;
@@ -63,7 +63,7 @@ namespace Zerra.Repository
             this.Graph = graph;
         }
 
-        public Query(QueryOperation operation, Type modelType, TemporalOrder? temporalOrder, DateTime? temporalDateFrom, DateTime? temporalDateTo, ulong? temporalNumberFrom, ulong? temporalNumberTo, int? temporalSkip, int? temporalTake, Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph)
+        public Query(QueryOperation operation, Type modelType, TemporalOrder? temporalOrder, DateTime? temporalDateFrom, DateTime? temporalDateTo, ulong? temporalNumberFrom, ulong? temporalNumberTo, int? temporalSkip, int? temporalTake, LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph)
         {
             this.Operation = operation;
             this.ModelType = modelType;

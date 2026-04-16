@@ -14,6 +14,6 @@ namespace Zerra.Repository
         IEnumerable OnGetIncludingBase(IEnumerable models, Graph? graph);
         Task<IEnumerable> OnGetIncludingBaseAsync(IEnumerable models, Graph? graph);
 
-        Expression? GetWhereExpressionIncludingBase(Graph? graph);
+        LambdaExpression? GetWhereExpressionIncludingBase(Graph? graph);
     }
 }
