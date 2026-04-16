@@ -32,8 +32,9 @@ namespace Zerra.Repository.MsSql
 
             var modelDetail = ModelAnalyzer.GetModel(parameter.Type);
 
-            if (context.RootDependant.ModelDetail.Type != modelDetail.Type)
-                throw new Exception($"Lambda type {modelDetail.Type.Name} does not match the root type {context.RootDependant.ModelDetail.Type.Name}");
+            //root type is object now so we can't do this
+            //if (context.RootDependant.ModelDetail.Type != modelDetail.Type)
+            //    throw new Exception($"Lambda type {modelDetail.Type.Name} does not match the root type {context.RootDependant.ModelDetail.Type.Name}");
 
             if (context.MemberContext.ModelStack.Count > 0)
             {
@@ -240,7 +241,7 @@ namespace Zerra.Repository.MsSql
                 else
                 {
                     var typeDetails = TypeAnalyzer.GetTypeDetail(call.Method.DeclaringType);
-                    if (typeDetails.HasIEnumerableGeneric && typeDetails.IEnumerableGenericInnerTypeDetail!.CoreType.HasValue)
+                    if (typeDetails.HasIEnumerableGeneric)
                     {
                         switch (call.Method.Name)
                         {

@@ -4,6 +4,7 @@
 
 using System.Collections;
 using System.Linq.Expressions;
+using System.Reflection;
 using Zerra.Collections;
 using Zerra.Linq;
 using Zerra.Reflection;
@@ -15,7 +16,10 @@ namespace Zerra.Repository
         where TModel : class, new()
     {
         protected static readonly Type modelType = typeof(TModel);
-        protected static readonly Type listType = typeof(List<>);
+        private static readonly Type objectType = typeof(object);
+        private static readonly Type listType = typeof(List<>);
+        private static readonly Type listObjectType = typeof(List<object>);
+        private static readonly MethodInfo containsMethod = typeof(List<object>).GetMethods().First(m => m.Name == nameof(List<object>.Contains));
 
         protected virtual bool EventLinking { get { return false; } }
         protected virtual bool QueryLinking { get { return true; } }
@@ -176,16 +180,17 @@ namespace Zerra.Repository
                                 throw new Exception($"Missing ForeignIdentity {modelPropertyInfo.ForeignIdentity} for {relatedModelInfo.Name} defined in {ModelDetail.Name}");
                             var relatedIdentityPropertyInfo = relatedModelInfo.IdentityProperties[0];
 
-                            var queryExpressionParameter = Expression.Parameter(relatedType, "x");
                             var foreignIdentities = new List<object>();
                             foreach (var model in returnModels)
                             {
-                                var foreignIdentity = ModelAnalyzer.GetForeignIdentity(modelPropertyInfo.Type, modelPropertyInfo.ForeignIdentity, model);
+                                var foreignIdentity = ModelAnalyzer.GetForeignIdentity(modelType, modelPropertyInfo.ForeignIdentity, model);
                                 if (foreignIdentity is not null)
                                     foreignIdentities.Add(foreignIdentity);
                             }
 
-                            Expression queryExpression = (object x) => foreignIdentities.Contains(x);
+                            var queryExpressionParameter = Expression.Parameter(relatedType, "x");
+                            var condition = Expression.Call(Expression.Constant(foreignIdentities, listObjectType), containsMethod, Expression.Convert(Expression.MakeMemberAccess(queryExpressionParameter, relatedIdentityPropertyInfo.MemberInfo), objectType));
+                            var queryExpression = Expression.Lambda(condition, queryExpressionParameter);
 
                             if (relatedGraph is not null)
                             {
@@ -194,7 +199,7 @@ namespace Zerra.Repository
                                 relatedGraph.AddMembers(relatedIdentityPropertyNames);
                             }
 
-                            var query = new Query(QueryOperation.Many, modelType, queryExpression, null, null, null, relatedGraph);
+                            var query = new Query(QueryOperation.Many, relatedType, queryExpression, null, null, null, relatedGraph);
 
                             var relatedModels = (IEnumerable)Repo.Query(query)!;
 
@@ -208,7 +213,7 @@ namespace Zerra.Repository
 
                             foreach (var model in returnModels)
                             {
-                                var foreignIdentity = ModelAnalyzer.GetForeignIdentity(modelPropertyInfo.Type, modelPropertyInfo.ForeignIdentity, model);
+                                var foreignIdentity = ModelAnalyzer.GetForeignIdentity(modelType, modelPropertyInfo.ForeignIdentity, model);
                                 foreach (var relatedModel in relatedModelIdentities)
                                 {
                                     if (ModelAnalyzer.CompareIdentities(foreignIdentity, relatedModel.Value))
@@ -242,7 +247,9 @@ namespace Zerra.Repository
                                 foreignIdentities.Add(identity);
                             }
 
-                            Expression queryExpression = (object x) => foreignIdentities.Contains(x);
+                            var queryExpressionParameter = Expression.Parameter(relatedType, "x");
+                            var condition = Expression.Call(Expression.Constant(foreignIdentities, listObjectType), containsMethod, Expression.Convert(Expression.MakeMemberAccess(queryExpressionParameter, relatedForeignIdentityPropertyInfo.MemberInfo), objectType));
+                            var queryExpression = Expression.Lambda(condition, queryExpressionParameter);
 
                             if (relatedGraph is not null)
                             {
@@ -251,7 +258,7 @@ namespace Zerra.Repository
                                 relatedGraph.AddMembers(allNames);
                             }
 
-                            var query = new Query(QueryOperation.Many, modelType, queryExpression, null, null, null, relatedGraph);
+                            var query = new Query(QueryOperation.Many, relatedType, queryExpression, null, null, null, relatedGraph);
 
                             var relatedModels = (IEnumerable)Repo.Query(query)!;
 
@@ -267,7 +274,7 @@ namespace Zerra.Repository
                             {
                                 var identity = ModelAnalyzer.GetIdentity(modelPropertyInfo.Type, model);
                                 var modelTypeDetail = modelPropertyInfo.Type.GetTypeDetail();
-                                var relatedForModel = (IList)modelPropertyInfo.CreatorBoxed();
+                                var relatedForModel = (IList)relatedModels.GetType().GetTypeDetail().CreatorBoxed();
                                 foreach (var relatedModel in relatedModelIdentities)
                                 {
                                     if (ModelAnalyzer.CompareIdentities(identity, relatedModel.Value))
@@ -322,12 +329,14 @@ namespace Zerra.Repository
                             var foreignIdentities = new List<object>();
                             foreach (var model in returnModels)
                             {
-                                var foreignIdentity = ModelAnalyzer.GetForeignIdentity(modelPropertyInfo.Type, modelPropertyInfo.ForeignIdentity, model);
+                                var foreignIdentity = ModelAnalyzer.GetForeignIdentity(modelType, modelPropertyInfo.ForeignIdentity, model);
                                 if (foreignIdentity is not null)
                                     foreignIdentities.Add(foreignIdentity);
                             }
 
-                            Expression queryExpression = (object x) => foreignIdentities.Contains(x);
+                            var queryExpressionParameter = Expression.Parameter(relatedType, "x");
+                            var condition = Expression.Call(Expression.Constant(foreignIdentities, listObjectType), containsMethod, Expression.Convert(Expression.MakeMemberAccess(queryExpressionParameter, relatedIdentityPropertyInfo.MemberInfo), objectType));
+                            var queryExpression = Expression.Lambda(condition, queryExpressionParameter);
 
                             if (relatedGraph is not null)
                             {
@@ -336,7 +345,7 @@ namespace Zerra.Repository
                                 relatedGraph.AddMembers(relatedIdentityPropertyNames);
                             }
 
-                            var query = new Query(QueryOperation.Many, modelType, queryExpression, null, null, null, relatedGraph);
+                            var query = new Query(QueryOperation.Many, relatedType, queryExpression, null, null, null, relatedGraph);
 
                             var relatedModels = (IEnumerable)(await Repo.QueryAsync(query))!;
 
@@ -350,7 +359,7 @@ namespace Zerra.Repository
 
                             foreach (var model in returnModels)
                             {
-                                var foreignIdentity = ModelAnalyzer.GetForeignIdentity(modelPropertyInfo.Type, modelPropertyInfo.ForeignIdentity, model);
+                                var foreignIdentity = ModelAnalyzer.GetForeignIdentity(modelType, modelPropertyInfo.ForeignIdentity, model);
                                 foreach (var relatedModel in relatedModelIdentities)
                                 {
                                     if (ModelAnalyzer.CompareIdentities(foreignIdentity, relatedModel.Value))
@@ -380,11 +389,13 @@ namespace Zerra.Repository
                             var foreignIdentities = new List<object>();
                             foreach (var model in returnModels)
                             {
-                                var identity = ModelAnalyzer.GetIdentity(modelPropertyInfo.Type, model);
+                                var identity = ModelAnalyzer.GetIdentity(modelType, model);
                                 foreignIdentities.Add(identity);
                             }
 
-                            Expression queryExpression = (object x) => foreignIdentities.Contains(x);
+                            var queryExpressionParameter = Expression.Parameter(relatedType, "x");
+                            var condition = Expression.Call(Expression.Constant(foreignIdentities, listObjectType), containsMethod, Expression.Convert(Expression.MakeMemberAccess(queryExpressionParameter, relatedForeignIdentityPropertyInfo.MemberInfo), objectType));
+                            var queryExpression = Expression.Lambda(condition, queryExpressionParameter);
 
                             if (relatedGraph is not null)
                             {
@@ -393,7 +404,7 @@ namespace Zerra.Repository
                                 relatedGraph.AddMembers(allNames);
                             }
 
-                            var query = new Query(QueryOperation.Many, modelType, queryExpression, null, null, null, relatedGraph);
+                            var query = new Query(QueryOperation.Many, relatedType, queryExpression, null, null, null, relatedGraph);
 
                             var relatedModels = (IEnumerable)(await Repo.QueryAsync(query))!;
 
@@ -407,9 +418,9 @@ namespace Zerra.Repository
 
                             foreach (var model in returnModels)
                             {
-                                var identity = ModelAnalyzer.GetIdentity(modelPropertyInfo.Type, model);
+                                var identity = ModelAnalyzer.GetIdentity(modelType, model);
                                 var modelTypeDetail = modelPropertyInfo.Type.GetTypeDetail();
-                                var relatedForModel = (IList)modelPropertyInfo.CreatorBoxed();
+                                var relatedForModel = (IList)relatedModels.GetType().GetTypeDetail().CreatorBoxed();
                                 foreach (var relatedModel in relatedModelIdentities)
                                 {
                                     if (ModelAnalyzer.CompareIdentities(identity, relatedModel.Value))
@@ -1177,7 +1188,7 @@ namespace Zerra.Repository
 
                     var relatedModels = (IEnumerable)modelPropertyInfo.GetterBoxed(model)!;
 
-                    var identity = ModelAnalyzer.GetIdentity(modelPropertyInfo.Type, model);
+                    var identity = ModelAnalyzer.GetIdentity(relatedType, model);
 
                     var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
 
@@ -1325,7 +1336,7 @@ namespace Zerra.Repository
                     var query = new Query(QueryOperation.Many, modelType, queryExpression, null, null, null, queryGraph);
 
                     var relatedExistings = (IEnumerable)Repo.Query(query)!;
-    
+
                     if (relatedExistings.Cast<object>().Any())
                     {
                         var persist = new Delete(@event, relatedExistings, relatedGraph);

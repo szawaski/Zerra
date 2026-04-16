@@ -2,22 +2,17 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
-using System.Threading.Tasks;
 using Zerra.Collections;
 using Zerra.Encryption;
 using Zerra.Map;
-using Zerra.Providers;
 using Zerra.Reflection;
 using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository
 {
-    public abstract class BaseTransactStoreEncryptionProvider<TNextProviderInterface, TModel> : BaseTransactStoreLayerProvider<TNextProviderInterface, TModel>, IEncryptionProvider
+    public abstract class BaseTransactStoreEncryptionProvider<TNextProviderInterface, TModel> : BaseTransactStoreLayerProvider<TNextProviderInterface, TModel>
         where TNextProviderInterface : ITransactStoreProvider<TModel>
         where TModel : class, new()
     {
@@ -28,6 +23,11 @@ namespace Zerra.Repository
         public abstract SymmetricKey EncryptionKey { get; }
 
         private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AESwithShift;
+
+        public BaseTransactStoreEncryptionProvider(TNextProviderInterface nextProvider)
+            : base(nextProvider)
+        {
+        }
 
         private static Expression? EncryptWhere(Expression? expression)
         {
@@ -103,7 +103,7 @@ namespace Zerra.Repository
             graph = graph is null ? null : new Graph<TModel>(graph);
 
             if (newCopy)
-                models = Mapper.Map<IEnumerable, TModel[]>(models, graph);
+                models = Mapper.Map<IEnumerable<TModel>, TModel[]>((IEnumerable<TModel>)models, graph);
 
             foreach (var model in models)
             {

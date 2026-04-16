@@ -11,6 +11,7 @@ namespace Zerra.Repository
         public abstract Expression Expression { get; }
         public abstract bool Descending { get; }
 
+        public abstract IOrderedEnumerable<T> OrderBy<T>(IEnumerable<T> source) where T : class, new();
         public abstract IOrderedQueryable<T> OrderBy<T>(IQueryable<T> source) where T : class, new();
     }
 }

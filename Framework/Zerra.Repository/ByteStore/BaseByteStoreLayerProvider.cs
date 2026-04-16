@@ -4,13 +4,17 @@
 
 using System.IO;
 using System.Threading.Tasks;
-using Zerra.Providers;
 
 namespace Zerra.Repository
 {
     public abstract class BaseByteStoreLayerProvider<TNextProviderInterface> : LayerProvider<TNextProviderInterface>, IByteStoreProvider
         where TNextProviderInterface : IByteStoreProvider
     {
+        public BaseByteStoreLayerProvider(TNextProviderInterface nextProvider)
+            : base(nextProvider)
+        {
+        }
+
         public bool Exists(string name)
         {
             return NextProvider.Exists(name);

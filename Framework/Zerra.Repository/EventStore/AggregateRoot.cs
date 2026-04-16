@@ -25,29 +25,6 @@ namespace Zerra.Repository
             return typeCache;
         }
 
-        private static IEventStoreEngine? engineCache = null;
-        private static readonly object engineCacheLock = new();
-        private IEventStoreEngine GetEngine()
-        {
-            if (engineCache is null)
-            {
-                lock (engineCacheLock)
-                {
-                    if (engineCache is null)
-                    {
-                        var aggregateType = GetAggregateType();
-                        var iEventStoreContextProviderType = typeof(IAggregateRootContextProvider<>);
-                        var iEventStoreContextProviderGenericType = iEventStoreContextProviderType.MakeGenericType(aggregateType);
-                        var providerType = Discovery.GetClassByInterface(iEventStoreContextProviderGenericType)!;
-                        var provider = (IContextProvider)Instantiator.Create(providerType);
-                        var context = provider.GetContext();
-                        engineCache = context.InitializeEngine<IEventStoreEngine>();
-                    }
-                }
-            }
-            return engineCache;
-        }
-
         public Guid ID { get; set; }
         public ulong? LastEventNumber { get; private set; }
         public DateTime? LastEventDate { get; private set; }
@@ -58,9 +35,9 @@ namespace Zerra.Repository
         private readonly string streamName;
         private readonly IEventStoreEngine eventStore;
 
-        protected AggregateRoot(Guid id)
+        protected AggregateRoot(Guid id, IEventStoreEngine eventStore)
         {
-            this.eventStore = GetEngine();
+            this.eventStore = eventStore;
             this.ID = id;
             this.streamName = $"{GetAggregateType().FullName}-{id}";
         }
@@ -131,7 +108,7 @@ namespace Zerra.Repository
                 MethodDetail? methodDetail = null;
                 foreach (var method in aggregateTypeDetail.Methods)
                 {
-                    if (!method.MethodInfo.IsStatic && method.Parameters.Count == 1 && method.Parameters[0].Type == eventType)
+                    if (!method.IsStatic && method.Parameters.Count == 1 && method.Parameters[0].Type == eventType)
                     {
                         if (methodDetail is not null)
                             throw new Exception($"Multiple aggregate event methods found in {aggregateType.Name} to accept {eventType.Name}");

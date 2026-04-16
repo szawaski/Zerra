@@ -2,30 +2,24 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Threading.Tasks;
-using Zerra.Providers;
-using Zerra.Reflection;
-using Zerra.Reflection.Dynamic;
-
 namespace Zerra.Repository
 {
-    public abstract class BaseDualEventStoreProvider<TThisProviderInterface, TNextProviderInterface, TModel> : LayerProvider<TNextProviderInterface>, IDualBaseProvider, ITransactStoreProvider<TModel>
+    public abstract class BaseDualEventStoreProvider<TThisProviderInterface, TNextProviderInterface, TModel> : LayerProvider<TNextProviderInterface>, ITransactStoreProvider<TModel>
         where TThisProviderInterface : ITransactStoreProvider<TModel>
         where TNextProviderInterface : ITransactStoreProvider<TModel>
         where TModel : class, new()
     {
         protected static readonly Type modelType = typeof(TModel);
-
         public Type ModelType => modelType;
 
-        protected ITransactStoreProvider ThisProvider
+        private readonly ITransactStoreProvider thisProvider;
+
+        public BaseDualEventStoreProvider(TThisProviderInterface thisProvider, TNextProviderInterface nextProvider)
+            : base(nextProvider)
         {
-            get
-            {
-                var context = Instantiator.Create<TThisProviderInterface>();
-                return context;
-            }
         }
+
+        protected ITransactStoreProvider ThisProvider => thisProvider;
 
         public object? Query(Query query)
         {

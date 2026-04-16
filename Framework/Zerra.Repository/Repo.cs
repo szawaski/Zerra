@@ -131,6 +131,8 @@ namespace Zerra.Repository
             var modelType = typeof(TModel);
             if (!providers.TryAdd(modelType, provider))
                 throw new Exception($"Provider for {modelType.FullName} already exists");
+            if (provider is BaseStore baseStore)
+                baseStore.Initialize(context);
         }
 
         bool IRepoInternal.TryGetProvider(Type modelType, [MaybeNullWhen(false)] out ITransactStoreProvider provider)

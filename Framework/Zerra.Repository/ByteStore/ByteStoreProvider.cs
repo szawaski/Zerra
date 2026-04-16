@@ -10,13 +10,13 @@ using Zerra.Reflection.Dynamic;
 namespace Zerra.Repository
 {
     public sealed class ByteStoreProvider<TContext> : IByteStoreProvider
-        where TContext : DataContext
+        where TContext : DataContext, new()
     {
         private readonly IByteStoreEngine Engine;
 
         public ByteStoreProvider()
         {
-            var context = Instantiator.GetSingle<TContext>();
+            var context = new TContext();
             this.Engine = context.InitializeEngine<IByteStoreEngine>();
         }
 

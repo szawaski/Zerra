@@ -2,12 +2,8 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Linq.Expressions;
-using System.Threading.Tasks;
-using Zerra.Providers;
 
 namespace Zerra.Repository
 {
@@ -19,7 +15,8 @@ namespace Zerra.Repository
 
         protected IProviderRelation<TModel>? ProviderRelation = null;
 
-        public BaseTransactStoreLayerProvider()
+        public BaseTransactStoreLayerProvider(TNextProviderInterface nextProvider)
+            : base(nextProvider)
         {
             ProviderRelation = NextProvider as IProviderRelation<TModel>;
         }

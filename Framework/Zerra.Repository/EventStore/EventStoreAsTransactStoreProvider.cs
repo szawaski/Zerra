@@ -14,7 +14,7 @@ using Zerra.Repository.Reflection;
 namespace Zerra.Repository
 {
     public class EventStoreAsTransactStoreProvider<TContext, TModel> : RootTransactStoreProvider<TModel>
-        where TContext : DataContext
+        where TContext : DataContext, new()
         where TModel : class, new()
     {
         protected virtual ulong SaveStateEvery => 100;
@@ -23,7 +23,7 @@ namespace Zerra.Repository
 
         public EventStoreAsTransactStoreProvider()
         {
-            var context = Instantiator.GetSingle<TContext>();
+            var context = new TContext();
             this.Engine = context.InitializeEngine<IEventStoreEngine>();
         }
 
@@ -31,9 +31,7 @@ namespace Zerra.Repository
         {
             var models = ReadModels(query);
 
-            var set = models.AsQueryable();
-
-            var queriedSet = set.Query(query);
+            var queriedSet = models.Query(query);
 
             var selectedArray = queriedSet.ToArray();
 
@@ -43,9 +41,7 @@ namespace Zerra.Repository
         {
             var models = ReadModels(query);
 
-            var set = models.AsQueryable();
-
-            var queriedSet = set.Query(query);
+            var queriedSet = models.Query(query);
 
             var selected = queriedSet.FirstOrDefault();
 
@@ -55,9 +51,7 @@ namespace Zerra.Repository
         {
             var models = ReadModels(query);
 
-            var set = models.AsQueryable();
-
-            var queriedSet = set.Query(query);
+            var queriedSet = models.Query(query);
 
             var selected = queriedSet.SingleOrDefault();
 
@@ -67,9 +61,7 @@ namespace Zerra.Repository
         {
             var models = ReadModels(query);
 
-            var set = models.AsQueryable();
-
-            var queriedSet = set.Query(query);
+            var queriedSet = models.Query(query);
 
             long count = queriedSet.Count();
 
@@ -79,9 +71,7 @@ namespace Zerra.Repository
         {
             var models = ReadModels(query);
 
-            var set = models.AsQueryable();
-
-            var queriedSet = set.Query(query);
+            var queriedSet = models.Query(query);
 
             var any = queriedSet.Any();
 
@@ -93,9 +83,7 @@ namespace Zerra.Repository
 
             var models = eventModels.Select(x => x.Model);
 
-            var set = models.AsQueryable();
-
-            var queriedSet = set.Query(query);
+            var queriedSet = models.Query(query);
 
             var selectedArray = queriedSet.ToArray();
 
@@ -109,9 +97,7 @@ namespace Zerra.Repository
 
             var models = eventModels.Select(x => x.Model);
 
-            var set = models.AsQueryable();
-
-            var queriedSet = set.Query(query);
+            var queriedSet = models.Query(query);
 
             var selected = queriedSet.FirstOrDefault();
             if (selected is null)
@@ -127,9 +113,7 @@ namespace Zerra.Repository
 
             var models = eventModels.Select(x => x.Model);
 
-            var set = models.AsQueryable();
-
-            var queriedSet = set.Query(query);
+            var queriedSet = models.Query(query);
 
             var selected = queriedSet.FirstOrDefault();
             if (selected is null)
@@ -145,9 +129,7 @@ namespace Zerra.Repository
 
             var models = eventModels.Select(x => x.Model);
 
-            var set = models.AsQueryable();
-
-            var queriedSet = set.Query(query);
+            var queriedSet = models.Query(query);
 
             long count = queriedSet.Count();
 
@@ -159,9 +141,7 @@ namespace Zerra.Repository
 
             var models = eventModels.Select(x => x.Model);
 
-            var set = models.AsQueryable();
-
-            var queriedSet = set.Query(query);
+            var queriedSet = models.Query(query);
 
             var any = queriedSet.Any();
 
@@ -172,9 +152,7 @@ namespace Zerra.Repository
         {
             var models = await ReadModelsAsync(query);
 
-            var set = models.AsQueryable();
-
-            var queriedSet = set.Query(query);
+            var queriedSet = models.Query(query);
 
             var selectedArray = queriedSet.ToArray();
 
@@ -184,9 +162,7 @@ namespace Zerra.Repository
         {
             var models = await ReadModelsAsync(query);
 
-            var set = models.AsQueryable();
-
-            var queriedSet = set.Query(query);
+            var queriedSet = models.Query(query);
 
             var selected = queriedSet.FirstOrDefault();
 
@@ -196,9 +172,7 @@ namespace Zerra.Repository
         {
             var models = await ReadModelsAsync(query);
 
-            var set = models.AsQueryable();
-
-            var queriedSet = set.Query(query);
+            var queriedSet = models.Query(query);
 
             var selected = queriedSet.SingleOrDefault();
 
@@ -208,9 +182,7 @@ namespace Zerra.Repository
         {
             var models = await ReadModelsAsync(query);
 
-            var set = models.AsQueryable();
-
-            var queriedSet = set.Query(query);
+            var queriedSet = models.Query(query);
 
             long count = queriedSet.Count();
 
@@ -220,9 +192,7 @@ namespace Zerra.Repository
         {
             var models = await ReadModelsAsync(query);
 
-            var set = models.AsQueryable();
-
-            var queriedSet = set.Query(query);
+            var queriedSet = models.Query(query);
 
             var any = queriedSet.Any();
 
@@ -234,9 +204,7 @@ namespace Zerra.Repository
 
             var models = eventModels.Select(x => x.Model);
 
-            var set = models.AsQueryable();
-
-            var queriedSet = set.Query(query);
+            var queriedSet = models.Query(query);
 
             var selectedArray = queriedSet.ToArray();
 
@@ -250,9 +218,7 @@ namespace Zerra.Repository
 
             var models = eventModels.Select(x => x.Model);
 
-            var set = models.AsQueryable();
-
-            var queriedSet = set.Query(query);
+            var queriedSet = models.Query(query);
 
             var selected = queriedSet.FirstOrDefault();
             if (selected is null)
@@ -268,9 +234,7 @@ namespace Zerra.Repository
 
             var models = eventModels.Select(x => x.Model);
 
-            var set = models.AsQueryable();
-
-            var queriedSet = set.Query(query);
+            var queriedSet = models.Query(query);
 
             var selected = queriedSet.FirstOrDefault();
             if (selected is null)
@@ -286,9 +250,7 @@ namespace Zerra.Repository
 
             var models = eventModels.Select(x => x.Model);
 
-            var set = models.AsQueryable();
-
-            var queriedSet = set.Query(query);
+            var queriedSet = models.Query(query);
 
             long count = queriedSet.Count();
 
@@ -300,9 +262,7 @@ namespace Zerra.Repository
 
             var models = eventModels.Select(x => x.Model);
 
-            var set = models.AsQueryable();
-
-            var queriedSet = set.Query(query);
+            var queriedSet = models.Query(query);
 
             var any = queriedSet.Any();
 
@@ -391,12 +351,12 @@ namespace Zerra.Repository
             return models;
         }
 
-        private static ICollection<TModel> LoadModelsFromEventDatas(EventStoreEventData[] eventDatas, TModel? modelState, bool many, Query query)
+        private ICollection<TModel> LoadModelsFromEventDatas(EventStoreEventData[] eventDatas, TModel? modelState, bool many, Query query)
         {
             if (modelState is null && eventDatas.Length == 0)
                 return Array.Empty<TModel>();
 
-            modelState ??= Instantiator.Create<TModel>();
+            modelState ??= (TModel)base.ModelType.GetTypeDetail().CreatorBoxed();
 
             if (many)
             {
@@ -527,12 +487,12 @@ namespace Zerra.Repository
                 }
             }
         }
-        private static ICollection<EventModel<TModel>> LoadEventModelsFromEventDatas(EventStoreEventData[] eventDatas, TModel? modelState, bool many, Query query)
+        private ICollection<EventModel<TModel>> LoadEventModelsFromEventDatas(EventStoreEventData[] eventDatas, TModel? modelState, bool many, Query query)
         {
             if (modelState is null && eventDatas.Length == 0)
                 return Array.Empty<EventModel<TModel>>();
 
-            modelState ??= Instantiator.Create<TModel>();
+            modelState ??= (TModel)base.ModelType.GetTypeDetail().CreatorBoxed();
 
             if (many)
             {

@@ -2,10 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Text;
 using Zerra.Logging;
 using Zerra.Reflection;
@@ -91,22 +88,23 @@ namespace Zerra.Repository
                         foreach (var modelType in allModelTypes.Where(x => !x.IsAbstract))
                         {
                             var interfaceType = typeof(ITransactStoreProvider<>).MakeGenericType(modelType);
-                            var providerType = Discovery.GetClassByInterface(interfaceType);
-                            if (providerType is null)
-                                continue;
-                            var typeDetails = TypeAnalyzer.GetTypeDetail(providerType);
-                            if (typeDetails.InnerTypes.Contains(thisType))
+                            var providerTypes = Discovery.GetClassesByInterface(interfaceType);
+                            foreach (var providerType in providerTypes)
                             {
-                                _ = modelTypesWithThisDataContext.Add(modelType);
-                                continue;
-                            }
-                            foreach (var baseType in typeDetails.BaseTypes)
-                            {
-                                var baseTypeDetails = TypeAnalyzer.GetTypeDetail(baseType);
-                                if (baseTypeDetails.InnerTypes.Contains(thisType))
+                                var typeDetails = TypeAnalyzer.GetTypeDetail(providerType);
+                                if (typeDetails.InnerTypes.Contains(thisType))
                                 {
                                     _ = modelTypesWithThisDataContext.Add(modelType);
                                     continue;
+                                }
+                                foreach (var baseType in typeDetails.BaseTypes)
+                                {
+                                    var baseTypeDetails = TypeAnalyzer.GetTypeDetail(baseType);
+                                    if (baseTypeDetails.InnerTypes.Contains(thisType))
+                                    {
+                                        _ = modelTypesWithThisDataContext.Add(modelType);
+                                        continue;
+                                    }
                                 }
                             }
                         }

@@ -9,18 +9,22 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Zerra.Map;
-using Zerra.Providers;
 using Zerra.Reflection;
 using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository
 {
-    public abstract partial class BaseTransactStoreCompressionProvider<TNextProviderInterface, TModel> : BaseTransactStoreLayerProvider<TNextProviderInterface, TModel>, ICompressionProvider
+    public abstract partial class BaseTransactStoreCompressionProvider<TNextProviderInterface, TModel> : BaseTransactStoreLayerProvider<TNextProviderInterface, TModel>
         where TNextProviderInterface : ITransactStoreProvider<TModel>
         where TModel : class, new()
     {
         public virtual bool Enabled { get { return true; } }
         public virtual Graph<TModel>? Properties { get { return null; } }
+
+        public BaseTransactStoreCompressionProvider(TNextProviderInterface nextProvider)
+            : base(nextProvider)
+        {
+        }
 
         public override sealed Expression? GetWhereExpressionIncludingBase(Graph? graph)
         {
@@ -48,7 +52,7 @@ namespace Zerra.Repository
             graph = graph is null ? null : new Graph<TModel>(graph);
 
             if (newCopy)
-                model = Mapper.Map<object, object>(model, graph);
+                model = Mapper.Map<TModel, TModel>((TModel)model, graph);
 
             foreach (var property in properties)
             {
@@ -97,7 +101,7 @@ namespace Zerra.Repository
             graph = graph is null ? null : new Graph<TModel>(graph);
 
             if (newCopy)
-                models = Mapper.Map<IEnumerable, TModel[]>(models, graph);
+                models = Mapper.Map<IEnumerable<TModel>, TModel[]>((IEnumerable<TModel>)models, graph);
 
             foreach (var model in models)
             {

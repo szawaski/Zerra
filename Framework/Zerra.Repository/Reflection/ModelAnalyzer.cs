@@ -2,7 +2,9 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
+using System.Reflection;
 using Zerra.Collections;
 using Zerra.Reflection;
 
@@ -10,6 +12,10 @@ namespace Zerra.Repository.Reflection
 {
     public static class ModelAnalyzer
     {
+        //assure the compiler that this type is preserved for Expression.NewArrayInit in AOT
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.NonPublicFields)]
+        private static readonly Type objectArrayType = typeof(object[]);
+
         private static readonly ConcurrentFactoryDictionary<Type, ModelDetail> modelInfos = new();
         public static ModelDetail GetModel<TModel>()
         {
@@ -45,7 +51,7 @@ namespace Zerra.Repository.Reflection
         {
             var propertyNamesArray = propertyNames is null ? null : propertyNames.Split(',');
 
-            var sourceExpression = Expression.Parameter(type, "x");
+            var sourceExpression = Expression.Parameter(typeof(object), "x");
 
             var typeProperties = type.GetProperties();
             var propertyExpressions = new List<Expression>();
@@ -53,7 +59,7 @@ namespace Zerra.Repository.Reflection
             {
                 if (propertyNamesArray is not null && propertyNamesArray.Contains(typeProperty.Name))
                 {
-                    Expression propertyExpression = Expression.Property(sourceExpression, typeProperty);
+                    Expression propertyExpression = Expression.Property(Expression.Convert(sourceExpression, type), typeProperty);
                     propertyExpressions.Add(propertyExpression);
                 }
                 else if (attributeType is not null)
@@ -61,7 +67,7 @@ namespace Zerra.Repository.Reflection
                     var attribute = typeProperty.GetCustomAttribute(attributeType, true);
                     if (attribute is not null)
                     {
-                        Expression propertyExpression = Expression.Property(sourceExpression, typeProperty);
+                        Expression propertyExpression = Expression.Property(Expression.Convert(sourceExpression, type), typeProperty);
                         propertyExpressions.Add(propertyExpression);
                     }
                 }
@@ -74,7 +80,9 @@ namespace Zerra.Repository.Reflection
             }
             else if (propertyExpressions.Count > 1)
             {
+#pragma warning disable IL3050 // Array type 'object[]' is guarenteed from DynamicallyAccessedMembersAttribute on the field 'objectArrayType'
                 accessor = Expression.NewArrayInit(typeof(object), propertyExpressions.Select(x => Expression.Convert(x, typeof(object))));
+#pragma warning restore IL3050 // Array type 'object[]' is guarenteed from DynamicallyAccessedMembersAttribute on the field 'objectArrayType'
             }
             else
             {

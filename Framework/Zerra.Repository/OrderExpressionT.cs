@@ -21,6 +21,17 @@ namespace Zerra.Repository
             this.descending = descending;
         }
 
+        public override sealed IOrderedEnumerable<T> OrderBy<T>(IEnumerable<T> source)
+        {
+            var enumerable = source as IEnumerable<TSource>;
+            if (enumerable == null)
+                throw new ArgumentException($"Type mismatch between source and order expression. Source Generic Argument: {typeof(T).FullName}, Order Expression: {typeof(TSource).FullName}");
+
+            if (!descending)
+                return (IOrderedEnumerable<T>)enumerable.OrderBy(expression.Compile());
+            else
+                return (IOrderedEnumerable<T>)enumerable.OrderByDescending(expression.Compile());
+        }
         public override sealed IOrderedQueryable<T> OrderBy<T>(IQueryable<T> source)
         {
             var querable = source as IQueryable<TSource>;

@@ -12,13 +12,6 @@ namespace Zerra.Repository.Reflection
         public static void Initialize()
         {
             Discovery.Initialize(true);
-            var startupTypes = Discovery.GetTypesFromAttribute(typeof(BaseGenerateAttribute));
-            foreach (var startupType in startupTypes)
-            {
-                var attribute = (BaseGenerateAttribute)startupType.GetCustomAttribute(typeof(BaseGenerateAttribute), true)!;
-                var instance = (BaseGenerateAttribute)Activator.CreateInstance(startupType)!;
-                instance.Generate(startupType);
-            }
         }
     }
 }

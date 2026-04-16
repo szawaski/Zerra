@@ -439,7 +439,7 @@ namespace Zerra.Repository
 
             var modelDetail = context.MemberContext.ModelContexts[parameter.Name];
 
-            var parameterInContext = modelDetail == context.MemberContext.ModelStack.Peek();
+            var parameterInContext = modelDetail == context.MemberContext.ModelStack.Peek() || modelDetail.Type == typeof(object);
 
             ConvertToSqlParameterModel(modelDetail, ref sb, context, parameterInContext);
         }
