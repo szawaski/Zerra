@@ -10,18 +10,28 @@ namespace Zerra.Reflection
 {
     public partial class ConstructorDetail
     {
+        private ConstructorInfo? constructorInfo;
+        /// <summary>
+        /// Gets the reflection <see cref="ConstructorInfo"/> for this constructor.
+        /// Uses reflection to look up the constructor by its parameter types.
+        /// </summary>
+        /// <exception cref="NotSupportedException">Thrown when dynamic code generation is not supported in the current build configuration.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the <see cref="ConstructorInfo"/> cannot be found.</exception>
         public ConstructorInfo GetConstructorInfo
         {
             [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
             [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
             get
             {
-                if (!RuntimeFeature.IsDynamicCodeSupported)
-                    throw new NotSupportedException($"Cannot get member info.  Dynamic code generation is not supported in this build configuration.");
-                var constructor = ParentType.GetConstructor(Parameters.Select(x => x.Type).ToArray());
-                if (constructor == null)
-                    throw new InvalidOperationException($"ConstructorInfo was not found.");
-                return constructor;
+                if (constructorInfo == null)
+                {
+                    if (!RuntimeFeature.IsDynamicCodeSupported)
+                        throw new NotSupportedException($"Cannot get member info.  Dynamic code generation is not supported in this build configuration.");
+                    constructorInfo = ParentType.GetConstructor(Parameters.Select(x => x.Type).ToArray());
+                    if (constructorInfo == null)
+                        throw new InvalidOperationException($"ConstructorInfo was not found.");
+                }
+                return constructorInfo;
             }
         }
     }

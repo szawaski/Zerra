@@ -874,6 +874,7 @@ namespace Zerra.Repository
             {
                 ExpressionType.Constant => EvaluateConstant(exp),
                 ExpressionType.MemberAccess => EvaluateMemberAccess(exp),
+                ExpressionType.Lambda => EvaludateLambda(exp),
                 _ => EvaluateInvoke(exp),
             };
         }
@@ -909,6 +910,11 @@ namespace Zerra.Repository
             }
 
             return value;
+        }
+        private static object? EvaludateLambda(Expression exp)
+        {
+            var lambda = (LambdaExpression)exp;
+            return lambda.Compile().DynamicInvoke();
         }
         private static object? EvaluateInvoke(Expression exp)
         {

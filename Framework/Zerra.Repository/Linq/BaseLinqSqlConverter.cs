@@ -814,6 +814,7 @@ namespace Zerra.Repository
             {
                 ExpressionType.Constant => EvaluateConstant(exp),
                 ExpressionType.MemberAccess => EvaluateMemberAccess(exp),
+                ExpressionType.Lambda => EvaludateLambda(exp),
                 _ => EvaluateInvoke(exp),
             };
         }
@@ -850,6 +851,11 @@ namespace Zerra.Repository
 
             return value;
         }
+        private static object? EvaludateLambda(Expression exp)
+        {
+            var lambda = (LambdaExpression)exp;
+            return lambda.Compile().DynamicInvoke();
+        }
         private static object? EvaluateInvoke(Expression exp)
         {
             if (exp.NodeType == ExpressionType.Call && exp.Type.Name == "ReadOnlySpan`1" || exp.Type.Name == "Span`1")
@@ -861,6 +867,7 @@ namespace Zerra.Repository
                     return valueInner;
                 }
             }
+
             var value = Expression.Lambda(exp).Compile().DynamicInvoke();
             return value;
         }

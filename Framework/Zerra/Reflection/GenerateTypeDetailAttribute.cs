@@ -22,7 +22,7 @@ namespace Zerra.Reflection
     /// be skipped by optimization filters.
     /// </remarks>
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Struct | AttributeTargets.Enum)]
-    public sealed class GenerateTypeDetailAttribute : Attribute
+    public class GenerateTypeDetailAttribute : Attribute
     {
 
     }

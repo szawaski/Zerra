@@ -69,11 +69,14 @@ namespace Zerra.SourceGeneration
             while (i < splits.Length)
             {
                 var split = splits[i++];
+                
                 _ = sbCallers.Append("            ").Append("M").Append(methodNumber).Append("();").Append(Environment.NewLine);
-                _ = sbMethods.Append("        ").Append("private static void M").Append(methodNumber).Append("() => ");
+                _ = sbMethods.Append("        ").Append("private static void M").Append(methodNumber).Append("()");
+                if (!split.StartsWith(" { "))
+                    _ = sbMethods.Append(" => ");
                 _ = sbMethods.Append(split).Append(Environment.NewLine);
 
-                if (!split.EndsWith(";"))
+                if (!split.EndsWith(";") && !split.EndsWith(" }"))
                 {
                     while (i < splits.Length)
                     {
@@ -83,6 +86,7 @@ namespace Zerra.SourceGeneration
                             break;
                     }
                 }
+
                 methodNumber++;
             }
 

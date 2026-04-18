@@ -29,8 +29,19 @@ namespace Zerra.SourceGeneration
         {
             if (namedTypeSymbol.AllInterfaces.Any(x => x.ContainingNamespace.ToString() == "Zerra.CQRS" && (x.Name == "ICommand" || x.Name == "IEvent" || x.Name == "IQueryHandler" || x.Name == "ICommandHandler")))
                 return true;
-            if (namedTypeSymbol.GetAttributes().Any(x => x.AttributeClass?.Name == "GenerateTypeDetailAttribute") && !namedTypeSymbol.GetAttributes().Any(x => x.AttributeClass?.Name == "IgnoreGenerateTypeDetailAttribute"))
-                return true;
+            if (!namedTypeSymbol.GetAttributes().Any(x => x.AttributeClass?.Name == "IgnoreGenerateTypeDetailAttribute"))
+            {
+                foreach (var attribute in namedTypeSymbol.GetAttributes())
+                {
+                    var attributeClass = attribute.AttributeClass;
+                    while (attributeClass != null)
+                    {
+                        if (attributeClass.Name == "GenerateTypeDetailAttribute")
+                            return true;
+                        attributeClass = attributeClass.BaseType;
+                    }
+                }
+            }
             if (Helper.FindBase("Zerra.Map", "MapDefinition", namedTypeSymbol) != null)
                 return true;
             if (namedTypeSymbol.AllInterfaces.Any(x => x.Name == "IMapDefinition" && x.ContainingNamespace.ToString() == "Zerra.Map"))
