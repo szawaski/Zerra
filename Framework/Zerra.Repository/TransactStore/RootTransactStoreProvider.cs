@@ -274,13 +274,29 @@ namespace Zerra.Repository
                             {
                                 var identity = ModelAnalyzer.GetIdentity(modelPropertyInfo.Type, model);
                                 var modelTypeDetail = modelPropertyInfo.Type.GetTypeDetail();
-                                var relatedForModel = (IList)relatedModels.GetType().GetTypeDetail().CreatorBoxed();
-                                foreach (var relatedModel in relatedModelIdentities)
+                                var listTypeDetails = relatedModels.GetType().GetTypeDetail();
+                                if (listTypeDetails.Type.IsArray)
                                 {
-                                    if (ModelAnalyzer.CompareIdentities(identity, relatedModel.Value))
-                                        _ = relatedForModel.Add(relatedModel.Key);
+                                    var relatedForModel = new List<object>();
+                                    foreach (var relatedModel in relatedModelIdentities)
+                                    {
+                                        if (ModelAnalyzer.CompareIdentities(identity, relatedModel.Value))
+                                            relatedForModel.Add(relatedModel.Key);
+                                    }
+                                    var array = (Array)listTypeDetails.Constructors[0].CreatorBoxed([relatedForModel.Count]);
+                                    for (var i = 0; i < relatedForModel.Count; i++)
+                                        array.SetValue(relatedForModel[i], i);
                                 }
-                                modelPropertyInfo.SetterBoxed(model, relatedForModel);
+                                else
+                                {
+                                    var relatedForModel = (IList)listTypeDetails.CreatorBoxed();
+                                    foreach (var relatedModel in relatedModelIdentities)
+                                    {
+                                        if (ModelAnalyzer.CompareIdentities(identity, relatedModel.Value))
+                                            _ = relatedForModel.Add(relatedModel.Key);
+                                    }
+                                    modelPropertyInfo.SetterBoxed(model, relatedForModel);
+                                }
                             }
                         }
                         //});
@@ -420,13 +436,29 @@ namespace Zerra.Repository
                             {
                                 var identity = ModelAnalyzer.GetIdentity(modelType, model);
                                 var modelTypeDetail = modelPropertyInfo.Type.GetTypeDetail();
-                                var relatedForModel = (IList)relatedModels.GetType().GetTypeDetail().CreatorBoxed();
-                                foreach (var relatedModel in relatedModelIdentities)
+                                var listTypeDetails = relatedModels.GetType().GetTypeDetail();
+                                if (listTypeDetails.Type.IsArray)
                                 {
-                                    if (ModelAnalyzer.CompareIdentities(identity, relatedModel.Value))
-                                        _ = relatedForModel.Add(relatedModel.Key);
+                                    var relatedForModel = new List<object>();
+                                    foreach (var relatedModel in relatedModelIdentities)
+                                    {
+                                        if (ModelAnalyzer.CompareIdentities(identity, relatedModel.Value))
+                                            relatedForModel.Add(relatedModel.Key);
+                                    }
+                                    var array = (Array)listTypeDetails.Constructors[0].CreatorBoxed([relatedForModel.Count]);
+                                    for (var i = 0; i < relatedForModel.Count; i++)
+                                        array.SetValue(relatedForModel[i], i);
                                 }
-                                modelPropertyInfo.SetterBoxed(model, relatedForModel);
+                                else
+                                {
+                                    var relatedForModel = (IList)listTypeDetails.CreatorBoxed();
+                                    foreach (var relatedModel in relatedModelIdentities)
+                                    {
+                                        if (ModelAnalyzer.CompareIdentities(identity, relatedModel.Value))
+                                            _ = relatedForModel.Add(relatedModel.Key);
+                                    }
+                                    modelPropertyInfo.SetterBoxed(model, relatedForModel);
+                                }
                             }
                         }
                         //});
