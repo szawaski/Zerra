@@ -107,7 +107,7 @@ namespace Zerra.Repository.MsSql
                             case CoreType.DateTime:
                                 {
                                     var value = reader.GetDateTime(i);
-                                    ((Action<object, DateTime>)columnProperty.Setter)(model, value);
+                                    ((Action<object, DateTime>)columnProperty.Setter)(model, new DateTime(value.Ticks, DateTimeKind.Utc));
                                 }
                                 break;
                             case CoreType.DateTimeOffset:
@@ -131,7 +131,7 @@ namespace Zerra.Repository.MsSql
                             case CoreType.TimeOnly:
                                 {
                                     var value = reader.GetTimeSpan(i);
-                                    ((Action<object, TimeSpan>)columnProperty.Setter)(model, value);
+                                    ((Action<object, TimeOnly>)columnProperty.Setter)(model, TimeOnly.FromTimeSpan(value));
                                 }
                                 break;
                             case CoreType.Guid:
@@ -221,7 +221,7 @@ namespace Zerra.Repository.MsSql
                                 {
                                     var value = reader.GetValue(i); //GetSqlDateTime doesn't handle null
                                     if (value != DBNull.Value)
-                                        ((Action<object, DateTimeOffset?>)columnProperty.Setter)(model, (DateTimeOffset?)new DateTimeOffset(new DateTime(((DateTime)value).Ticks, DateTimeKind.Utc)));
+                                        ((Action<object, DateTimeOffset?>)columnProperty.Setter)(model, (DateTimeOffset?)value);
                                 }
                                 break;
                             case CoreType.TimeSpanNullable:

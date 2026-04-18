@@ -2,31 +2,21 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections.Generic;
-
 namespace Zerra.Repository
 {
     public abstract class DataContextSelector : DataContext
     {
-        protected sealed override DataStoreGenerationType DataStoreGenerationType => DataStoreGenerationType.None; //does nothing
-
-        protected override sealed (T?, DataStoreGenerationType) GetEngine<T>() where T : class
+        protected override sealed IDataStoreEngine GetEngine()
         {
             var contexts = GetDataContexts();
             foreach (var context in contexts)
             {
                 var contextName = context.GetType().Name;
-                if (!context.TryGetEngine<T>(out var engine, out var dataStoreGenerationType))
+                if (!context.TryGetEngine(out var engine))
                     continue;
-                return (engine, dataStoreGenerationType);
+                return engine;
             }
-            return (null, default);
-        }
-        
-        protected override sealed IDataStoreEngine GetEngine()
-        {
-            throw new NotSupportedException();
+            return null;
         }
 
         private readonly object locker = new();

@@ -13,12 +13,6 @@ namespace Zerra.Repository.Reflection
     public static class ModelAnalyzer
     {
         private static readonly ConcurrentFactoryDictionary<Type, ModelDetail> modelInfos = new();
-        public static ModelDetail GetModel<TModel>()
-        {
-            var type = typeof(TModel);
-
-            return GetModel(type);
-        }
         public static ModelDetail GetModel(Type type)
         {
             var modelInfo = modelInfos.GetOrAdd(type, static (type) =>

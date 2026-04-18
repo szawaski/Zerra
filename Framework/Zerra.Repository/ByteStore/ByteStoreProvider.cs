@@ -17,7 +17,11 @@ namespace Zerra.Repository
         public ByteStoreProvider()
         {
             var context = new TContext();
-            this.Engine = context.InitializeEngine<IByteStoreEngine>();
+            if (!context.TryGetEngine(out var engine))
+                throw new Exception($"{typeof(TContext).Name} could not produce an engine of {typeof(IByteStoreEngine).Name}");
+            if (engine is not IByteStoreEngine byteStoreEngine)
+                throw new Exception($"{typeof(TContext).Name} produced an engine of {engine.GetType().Name} which is not a {typeof(IByteStoreEngine).Name}");
+            this.Engine = byteStoreEngine;
         }
 
         public bool Exists(string name)

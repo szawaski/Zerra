@@ -4,7 +4,6 @@
         <TargetFramework>net10.0</TargetFramework>
         <!--<Nullable>enable</Nullable>-->
         <ImplicitUsings>enable</ImplicitUsings>
-        <InvariantGlobalization>true</InvariantGlobalization>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <LangVersion>14.0</LangVersion>
     </PropertyGroup>
@@ -30,7 +29,11 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\..\Framework\Zerra.Repository.MsSql\Zerra.Repository.MsSql.csproj" />
+        <ProjectReference Include="..\..\Framework\Zerra.Repository.MySql\Zerra.Repository.MySql.csproj" />
+        <ProjectReference Include="..\..\Framework\Zerra.Repository.PostgreSql\Zerra.Repository.PostgreSql.csproj" />
         <ProjectReference Include="..\..\Framework\Zerra\Zerra.csproj" />
+        <ProjectReference Include="..\..\Framework\Zerra.Repository\Zerra.Repository.csproj" />
     </ItemGroup>
     
 </Project>

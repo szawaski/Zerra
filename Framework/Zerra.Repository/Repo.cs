@@ -126,7 +126,7 @@ namespace Zerra.Repository
             return provider.PersistAsync(persist);
         }
 
-        void IRepoSetup.AddProvider<TModel>(ITransactStoreProvider provider)
+        void IRepoSetup.AddProvider<TModel>(ITransactStoreProvider<TModel> provider)
         {
             var modelType = typeof(TModel);
             if (!providers.TryAdd(modelType, provider))

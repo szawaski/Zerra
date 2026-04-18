@@ -1,0 +1,13 @@
+﻿// Copyright © KaKush LLC
+// Written By Steven Zawaski
+// Licensed to you under the MIT license
+
+using Zerra.Repository.MsSql;
+
+namespace Zerra.Repository.Test
+{
+    public class MsSqlTestSqlDataContext : MsSqlDataContext
+    {
+        public override string ConnectionString => "data source=.;initial catalog=ZerraSqlTest;integrated security=True;MultipleActiveResultSets=True;TrustServerCertificate=True;";
+    }
+}

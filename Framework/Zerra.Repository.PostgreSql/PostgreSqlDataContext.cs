@@ -11,7 +11,7 @@ namespace Zerra.Repository.PostgreSql
     {
         public abstract string ConnectionString { get; }
 
-        private readonly object locker = new();
+        private readonly Lock locker = new();
         private IDataStoreEngine? engine = null;
         protected override sealed IDataStoreEngine GetEngine()
         {
@@ -27,7 +27,7 @@ namespace Zerra.Repository.PostgreSql
                         }
                         catch
                         {
-                            _ = Log.InfoAsync($"{nameof(PostgreSqlDataContext)} failed to parse {nameof(ConnectionString)}");
+                            Log.Info($"{nameof(PostgreSqlDataContext)} failed to parse {nameof(ConnectionString)}");
                         }
                         engine = new PostgreSqlEngine(ConnectionString);
                     }

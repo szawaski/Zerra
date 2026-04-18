@@ -36,11 +36,11 @@ namespace Zerra.Repository.MySql
                 try
                 {
                     engine.CreateDatabase(createDatabaseName);
-                    _ = Log.InfoAsync($"{nameof(MySqlEngine)}: Create Database {createDatabaseName}");
+                    Log.Info($"{nameof(MySqlEngine)}: Create Database {createDatabaseName}");
                 }
                 catch (Exception ex)
                 {
-                    _ = Log.ErrorAsync($"{nameof(MySqlEngine)} error while creating datastore.", ex);
+                    Log.Error($"{nameof(MySqlEngine)} error while creating datastore.", ex);
                 }
             }
 
@@ -49,11 +49,11 @@ namespace Zerra.Repository.MySql
                 try
                 {
                     engine.ExecuteSql(line);
-                    _ = Log.InfoAsync($"{nameof(MySqlEngine)}: {line}");
+                    Log.Info($"{nameof(MySqlEngine)}: {line}");
                 }
                 catch (Exception ex)
                 {
-                    _ = Log.ErrorAsync($"{nameof(MySqlEngine)} error while assuring datastore: {line}.", ex);
+                    Log.Error($"{nameof(MySqlEngine)} error while assuring datastore: {line}.", ex);
                     throw;
                 }
             }

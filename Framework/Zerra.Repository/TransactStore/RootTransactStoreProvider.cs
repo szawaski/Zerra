@@ -25,7 +25,7 @@ namespace Zerra.Repository
         protected virtual bool QueryLinking { get { return true; } }
         protected virtual bool PersistLinking { get { return true; } }
 
-        protected static readonly ModelDetail ModelDetail = ModelAnalyzer.GetModel<TModel>();
+        protected static readonly ModelDetail ModelDetail = ModelAnalyzer.GetModel(typeof(TModel));
 
         public Type ModelType => modelType;
 

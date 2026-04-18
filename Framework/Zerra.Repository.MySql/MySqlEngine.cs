@@ -530,13 +530,13 @@ namespace Zerra.Repository.MySql
                     case CoreType.DateTime:
                     case CoreType.DateTimeNullable:
                         writer.Write('\'');
-                        writer.Write(((DateTime)value).ToUniversalTime(), CharWriter.DateTimeFormat.MySql);
+                        writer.Write((DateTime)value, CharWriter.DateTimeFormat.MySql);
                         writer.Write('\'');
                         return;
                     case CoreType.DateTimeOffset:
                     case CoreType.DateTimeOffsetNullable:
                         writer.Write('\'');
-                        writer.Write(((DateTimeOffset)value).ToUniversalTime(), CharWriter.DateTimeFormat.MySql);
+                        writer.Write((DateTimeOffset)value, CharWriter.DateTimeFormat.MySql);
                         writer.Write('\'');
                         return;
                     case CoreType.TimeSpan:

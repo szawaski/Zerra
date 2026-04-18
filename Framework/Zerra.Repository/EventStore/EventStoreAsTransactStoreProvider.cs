@@ -24,7 +24,11 @@ namespace Zerra.Repository
         public EventStoreAsTransactStoreProvider()
         {
             var context = new TContext();
-            this.Engine = context.InitializeEngine<IEventStoreEngine>();
+            if (!context.TryGetEngine(out var engine))
+                throw new Exception($"{typeof(TContext).Name} could not produce an engine of {typeof(IEventStoreEngine).Name}");
+            if (engine is not IEventStoreEngine eventStoreEngine)
+                throw new Exception($"{typeof(TContext).Name} produced an engine of {engine.GetType().Name} which is not a {typeof(IEventStoreEngine).Name}");
+            this.Engine = eventStoreEngine;
         }
 
         protected override sealed IReadOnlyCollection<TModel> QueryMany(Query query)

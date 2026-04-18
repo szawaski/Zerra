@@ -787,12 +787,15 @@ namespace Zerra.Repository.MsSql
 
                 var builderLength = sb.Length;
 
+                Type? trueInnerType = null;
+
                 var first = true;
                 foreach (var item in (IEnumerable)value)
                 {
                     if (!first)
                         sb.Write(',');
-                    ConvertToSqlValue(typeDetails.IEnumerableGenericInnerType, item, ref sb, context);
+                    trueInnerType ??= item.GetType();
+                    ConvertToSqlValue(trueInnerType, item, ref sb, context);
                     first = false;
                 }
 

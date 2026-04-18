@@ -550,7 +550,7 @@ namespace Zerra.Repository.PostgreSql
                     case CoreType.DateTime:
                     case CoreType.DateTimeNullable:
                         writer.Write('\'');
-                        writer.Write(((DateTime)value).ToUniversalTime(), CharWriter.DateTimeFormat.PostgreSql);
+                        writer.Write((DateTime)value, CharWriter.DateTimeFormat.PostgreSql);
                         writer.Write('\'');
                         return;
                     case CoreType.DateTimeOffset:

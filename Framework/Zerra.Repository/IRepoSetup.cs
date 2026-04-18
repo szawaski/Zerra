@@ -6,6 +6,6 @@ namespace Zerra.Repository
 {
     public interface IRepoSetup : IRepo
     {
-        void AddProvider<TModel>(ITransactStoreProvider provider) where TModel : class, new();
+        void AddProvider<TModel>(ITransactStoreProvider<TModel> provider) where TModel : class, new();
     }
 }

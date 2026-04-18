@@ -233,6 +233,8 @@ namespace Zerra.Repository.IO
                     }
                 case DateTimeFormat.MsSql:
                     {
+                        value = value.ToUniversalTime();
+
                         //yyyy-MM-dd HH:mm:ss.fff
                         EnsureBufferSize(23);
 
@@ -287,6 +289,8 @@ namespace Zerra.Repository.IO
                     }
                 case DateTimeFormat.MySql:
                     {
+                        value = value.ToUniversalTime();
+
                         //yyyy-MM-dd HH:mm:ss.ffffff
                         EnsureBufferSize(26);
 
@@ -347,6 +351,8 @@ namespace Zerra.Repository.IO
                     }
                 case DateTimeFormat.PostgreSql:
                     {
+                        value = value.ToUniversalTime();
+
                         //yyyy-MM-dd HH:mm:ss.ffffff
                         EnsureBufferSize(26);
 
@@ -559,6 +565,8 @@ namespace Zerra.Repository.IO
                     }
                 case DateTimeFormat.MySql:
                     {
+                        value = value.ToUniversalTime();
+
                         //yyyy-MM-dd HH:mm:ss.ffffff
                         EnsureBufferSize(26);
 

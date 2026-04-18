@@ -205,7 +205,7 @@ namespace Zerra.Repository.MySql
 
                                 ConvertToSql(lambda, ref sb, context);
 
-                                sb.Write(context.Inverted ? " NOT IN " : " IN ");
+                                sb.Write(context.Inverted ? "NOT IN" : "IN");
 
                                 ConvertToSql(callingObject, ref sb, context);
                                 break;
@@ -242,7 +242,7 @@ namespace Zerra.Repository.MySql
                 else
                 {
                     var typeDetails = TypeAnalyzer.GetTypeDetail(call.Method.DeclaringType);
-                    if (typeDetails.HasIEnumerableGeneric && typeDetails.IEnumerableGenericInnerTypeDetail!.CoreType.HasValue)
+                    if (typeDetails.HasIEnumerableGeneric)
                     {
                         switch (call.Method.Name)
                         {
@@ -256,7 +256,7 @@ namespace Zerra.Repository.MySql
 
                                     ConvertToSql(lambda, ref sb, context);
 
-                                    sb.Write(context.Inverted ? " NOT IN " : " IN ");
+                                    sb.Write(context.Inverted ? "NOT IN" : "IN");
 
                                     ConvertToSql(callingObject, ref sb, context);
                                     break;
@@ -789,12 +789,15 @@ namespace Zerra.Repository.MySql
 
                 var builderLength = sb.Length;
 
+                Type? trueInnerType = null;
+
                 var first = true;
                 foreach (var item in (IEnumerable)value)
                 {
                     if (!first)
                         sb.Write(',');
-                    ConvertToSqlValue(typeDetails.IEnumerableGenericInnerType, item, ref sb, context);
+                    trueInnerType ??= item.GetType();
+                    ConvertToSqlValue(trueInnerType, item, ref sb, context);
                     first = false;
                 }
 

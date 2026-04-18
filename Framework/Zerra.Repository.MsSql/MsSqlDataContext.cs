@@ -11,7 +11,7 @@ namespace Zerra.Repository.MsSql
     {
         public abstract string ConnectionString { get; }
 
-        private readonly object locker = new();
+        private readonly Lock locker = new();
         private IDataStoreEngine? engine = null;
         protected override sealed IDataStoreEngine GetEngine()
         {
@@ -27,7 +27,7 @@ namespace Zerra.Repository.MsSql
                         }
                         catch
                         {
-                            _ = Log.InfoAsync($"{nameof(MsSqlDataContext)} failed to parse {nameof(ConnectionString)}");
+                            Log.Info($"{nameof(MsSqlDataContext)} failed to parse {nameof(ConnectionString)}");
                         }
                         engine = new MsSqlEngine(ConnectionString);
                     }

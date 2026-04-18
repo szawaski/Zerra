@@ -22,7 +22,11 @@ namespace Zerra.Repository
         {
             this.deleteBatchSize = ModelDetail.IdentityProperties.Count == 1 ? deleteBatchSizeSingleIdentity : deleteBatchSizeManyIdentity;
             var context = new TContext();
-            this.Engine = context.InitializeEngine<ITransactStoreEngine>();
+            if (!context.TryGetEngine(out var engine))
+                throw new Exception($"{typeof(TContext).Name} could not produce an engine of {typeof(ITransactStoreEngine).Name}");
+            if (engine is not ITransactStoreEngine transactStoreEngine)
+                throw new Exception($"{typeof(TContext).Name} produced an engine of {engine.GetType().Name} which is not a {typeof(ITransactStoreEngine).Name}");
+            this.Engine = transactStoreEngine;
         }
 
         protected override sealed IReadOnlyCollection<TModel> QueryMany(Query query)
