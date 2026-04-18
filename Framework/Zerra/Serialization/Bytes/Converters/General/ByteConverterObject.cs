@@ -179,6 +179,8 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 }
             }
 
+            var selectedMembers = state.IgnoreIndexAttribute ? membersIngoreAttributes : members;
+
             for (; ; )
             {
                 ByteConverterObjectMember? member;
@@ -201,7 +203,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         }
 
                         MemberKey memberKey;
-                        var memberLength = members.Length;
+                        var memberLength = selectedMembers.Length;
                         var nextIndex = state.Current.EnumeratorIndex;
                         var prevIndex = state.Current.EnumeratorIndex - 1;
 
@@ -283,8 +285,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         }
 
                         MemberKey memberKey;
-                        var selectedMembers = state.IgnoreIndexAttribute ? membersIngoreAttributes : members;
-                        var memberLength = members.Length;
+                        var memberLength = selectedMembers.Length;
                         var nextIndex = state.Current.EnumeratorIndex;
                         var prevIndex = state.Current.EnumeratorIndex - 1;
 
@@ -431,11 +432,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
             if (indexSizeUInt16Only && !state.UseIndexSizeUInt16 && !state.UseMemberNames)
                 throw new NotSupportedException($"{TypeDetail.Type.Name} has too many members or {nameof(SerializerIndexAttribute)} index too high for index size");
 
-            MemberKey[] enumerator;
-            if (state.IgnoreIndexAttribute)
-                enumerator = membersIngoreAttributes;
-            else
-                enumerator = members;
+            var enumerator = state.IgnoreIndexAttribute ? membersIngoreAttributes : members;
 
             while (state.Current.EnumeratorIndex < enumerator.Length)
             {
