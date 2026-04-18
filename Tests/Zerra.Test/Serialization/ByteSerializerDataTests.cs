@@ -480,7 +480,10 @@ namespace Zerra.Test.Serialization
             var model1 = TestSerializerIndexModel1.Create();
             var bytes = ByteSerializer.Serialize(model1);
             var model2 = ByteSerializer.Deserialize<TestSerializerIndexModel2>(bytes);
-            AssertHelper.AreEqual(model1, model2);
+            AssertHelper.AreEqual(model1.Value1, model2.Value1);
+            AssertHelper.AreEqual(model1.Value2, model2.Value2);
+            AssertHelper.AreEqual(model1.Value3, model2.Value3);
+            AssertHelper.AreNotEqual(model1.Value4, model2.Value4);
         }
 
         [Fact]

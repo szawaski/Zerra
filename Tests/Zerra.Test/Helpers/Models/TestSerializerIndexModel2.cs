@@ -20,5 +20,6 @@ namespace Zerra.Test.Helpers.Models
         public int Value3 { get; set; }
         [SerializerIndex(1)]
         public int Value1 { get; set; }
+        public int Value4 { get; set; }
     }
 }

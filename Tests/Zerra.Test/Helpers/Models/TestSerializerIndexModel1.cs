@@ -16,6 +16,7 @@ namespace Zerra.Test.Helpers.Models
         public int Value2 { get; set; }
         [SerializerIndex(3)]
         public int Value3 { get; set; }
+        public int Value4 { get; set; }
 
         public static TestSerializerIndexModel1 Create()
         {
@@ -23,7 +24,8 @@ namespace Zerra.Test.Helpers.Models
             {
                 Value1 = 11,
                 Value2 = 22,
-                Value3 = 33
+                Value3 = 33,
+                Value4 = 44
             };
         }
 
@@ -36,6 +38,7 @@ namespace Zerra.Test.Helpers.Models
             Assert.NotEqual(model1.Value1, model2.Value1);
             Assert.NotEqual(model1.Value2, model2.Value2);
             Assert.NotEqual(model1.Value3, model2.Value3);
+            Assert.NotEqual(model1.Value4, model2.Value4);
         }
     }
 }
