@@ -2,9 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Collections.Generic;
-using System.Linq;
-
 namespace Zerra.Repository
 {
     public sealed class Delete<TModel> : Persist<TModel> where TModel : class, new()
@@ -15,35 +12,30 @@ namespace Zerra.Repository
         public Delete(TModel model, Graph<TModel>? graph) : this(null, null, model, graph) { }
         public Delete(string? eventName, TModel model, Graph<TModel>? graph) : this(eventName, null, model, graph) { }
         public Delete(string? eventName, object? source, TModel model, Graph<TModel>? graph)
-            : base(PersistOperation.Delete, eventName, source)
+            : base(PersistOperation.Delete, eventName, source, [model], null, graph)
         {
-            this.Models = [model];
-            this.Graph = graph;
         }
+
         public Delete(PersistEvent @event, TModel model) : this(@event, model, null) { }
         public Delete(PersistEvent @event, TModel model, Graph<TModel>? graph)
-            : base(PersistOperation.Delete, @event)
+            : base(PersistOperation.Delete, @event, [model], null, graph)
         {
-            this.Models = [model];
-            this.Graph = graph;
         }
+
         public Delete(IEnumerable<TModel> models) : this(null, null, models, null) { }
         public Delete(string? eventName, IEnumerable<TModel> models) : this(eventName, null, models, null) { }
         public Delete(string? eventName, object? source, IEnumerable<TModel> models) : this(eventName, source, models, null) { }
         public Delete(IEnumerable<TModel> models, Graph<TModel>? graph) : this(null, null, models, graph) { }
         public Delete(string? eventName, IEnumerable<TModel> models, Graph<TModel>? graph) : this(eventName, null, models, graph) { }
         public Delete(string? eventName, object? source, IEnumerable<TModel> models, Graph<TModel>? graph)
-            : base(PersistOperation.Delete, eventName, source)
+            : base(PersistOperation.Delete, eventName, source, models.ToArray(), null, graph)
         {
-            this.Models = models.ToArray();
-            this.Graph = graph;
         }
+
         public Delete(PersistEvent @event, IEnumerable<TModel> models) : this(@event, models, null) { }
         public Delete(PersistEvent @event, IEnumerable<TModel> models, Graph<TModel>? graph)
-            : base(PersistOperation.Delete, @event)
+            : base(PersistOperation.Delete, @event, models.ToArray(), null, graph)
         {
-            this.Models = models.ToArray();
-            this.Graph = graph;
         }
     }
 }

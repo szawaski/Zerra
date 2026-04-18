@@ -12,10 +12,6 @@ namespace Zerra.Repository.Reflection
 {
     public static class ModelAnalyzer
     {
-        //assure the compiler that this type is preserved for Expression.NewArrayInit in AOT
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.NonPublicFields)]
-        private static readonly Type objectArrayType = typeof(object[]);
-
         private static readonly ConcurrentFactoryDictionary<Type, ModelDetail> modelInfos = new();
         public static ModelDetail GetModel<TModel>()
         {
@@ -56,30 +52,30 @@ namespace Zerra.Repository.Reflection
         {
             var propertyNamesArray = propertyNames is null ? null : propertyNames.Split(',');
 
-            var sourceExpression = Expression.Parameter(typeof(object), "x");
-
             var members = GetModel(type).TypeDetail.Members.Where(x => propertyNamesArray.Contains(x.Name)).ToArray();
 
-            Expression? accessor = null;
             if (members.Length == 1)
             {
                 var member = members[0];
-                accessor = Expression.Convert(Expression.MakeMemberAccess(Expression.Convert(sourceExpression, type), member.MemberInfo), typeof(object));
+                return member.GetterBoxed!;
             }
             else if (members.Length > 1)
             {
-#pragma warning disable IL3050 // Array type 'object[]' is guarenteed from DynamicallyAccessedMembersAttribute on the field 'objectArrayType'
-                accessor = Expression.NewArrayInit(typeof(object), members.Select(x => Expression.Convert(Expression.MakeMemberAccess(Expression.Convert(sourceExpression, type), x.MemberInfo), typeof(object))));
-#pragma warning restore IL3050 // Array type 'object[]' is guarenteed from DynamicallyAccessedMembersAttribute on the field 'objectArrayType'
+                return (object obj) =>
+                {
+                    var values = new object?[members.Length];
+                    for (var x = 0; x < members.Length; x++)
+                    {
+                        var v = members[x].GetterBoxed!.Invoke(obj);
+                        values[x] = v;
+                    }
+                    return values;
+                };
             }
             else
             {
-                //return null;
                 throw new InvalidOperationException($"Getter function not found on {type.Name}");
             }
-
-            var lambda = Expression.Lambda<Func<object, object>>(accessor, sourceExpression);
-            return lambda.Compile();
         }
         private static Func<object, object>? GenerateGetterFunctionByAttribute(Type type)
         {
@@ -87,26 +83,28 @@ namespace Zerra.Repository.Reflection
 
             var identityProperties = GetModel(type).IdentityProperties;
 
-            Expression? accessor = null;
             if (identityProperties.Count == 1)
             {
                 var identityProperty = identityProperties[0];
-                accessor = Expression.Convert(Expression.MakeMemberAccess(Expression.Convert(sourceExpression, type), identityProperty.MemberInfo), typeof(object));
+                return identityProperty.MemberDetail.GetterBoxed!;
             }
             else if (identityProperties.Count > 1)
             {
-#pragma warning disable IL3050 // Array type 'object[]' is guarenteed from DynamicallyAccessedMembersAttribute on the field 'objectArrayType'
-                accessor = Expression.NewArrayInit(typeof(object), identityProperties.Select(x => Expression.Convert(Expression.MakeMemberAccess(Expression.Convert(sourceExpression, type), x.MemberInfo), typeof(object))));
-#pragma warning restore IL3050 // Array type 'object[]' is guarenteed from DynamicallyAccessedMembersAttribute on the field 'objectArrayType'
+                return (object obj) =>
+                {
+                    var values = new object?[identityProperties.Count];
+                    for (var x = 0; x < identityProperties.Count; x++)
+                    {
+                        var v = identityProperties[x].GetterBoxed!.Invoke(obj);
+                        values[x] = v;
+                    }
+                    return values;
+                };
             }
             else
             {
-                //return null;
                 throw new InvalidOperationException($"Getter function not found on {type.Name}");
             }
-
-            var lambda = Expression.Lambda<Func<object, object>>(accessor, sourceExpression);
-            return lambda.Compile();
         }
 
         private static readonly ConcurrentFactoryDictionary<TypeKey, object> setterFunctionsByAttribute = new();
@@ -132,71 +130,55 @@ namespace Zerra.Repository.Reflection
         {
             var propertyNamesArray = propertyNames.Split(',').ToHashSet();
 
-            var sourceExpression = Expression.Parameter(typeof(object), "x");
-            var parameterValue = Expression.Parameter(typeof(object), "y");
-
             var members = GetModel(type).TypeDetail.Members.Where(x => propertyNamesArray.Contains(x.Name)).ToArray();
 
-            Expression setter;
             if (members.Length == 1)
             {
                 var member = members[0];
-                setter = Expression.Assign(Expression.MakeMemberAccess(sourceExpression, member.MemberInfo), Expression.Convert(parameterValue, member.Type));
+                return member.SetterBoxed!;
             }
             else if (members.Length > 1)
             {
-                var setters = new List<Expression>();
-                var index = 0;
-                foreach (var member in members)
+                return (object obj, object? value) =>
                 {
-                    Expression parameterValueIndex = Expression.ArrayIndex(parameterValue, Expression.Constant(index));
-                    Expression subsetter = Expression.Assign(Expression.MakeMemberAccess(sourceExpression, member.MemberInfo), Expression.Convert(parameterValueIndex, member.Type));
-                    setters.Add(subsetter);
-                    index++;
-                }
-                setter = Expression.Block(setters.ToArray());
+                    var values = (object?[]?)value;
+                    for (var x = 0; x < members.Length; x++)
+                    {
+                        var v = values?[x];
+                        members[x].SetterBoxed!.Invoke(obj, v);
+                    }
+                };
             }
             else
             {
                 throw new InvalidOperationException($"Setter function not found on {type.Name}");
             }
-
-            var lambda = Expression.Lambda<Action<object, object?>>(setter, sourceExpression, parameterValue);
-            return lambda.Compile();
         }
         private static Action<object, object?> GenerateSetterFunctionByAttribute(Type type)
         {
-            var sourceExpression = Expression.Parameter(typeof(object), "x");
-            var parameterValue = Expression.Parameter(typeof(object), "y");
-
             var identityProperties = GetModel(type).IdentityProperties;
 
-            Expression setter;
             if (identityProperties.Count == 1)
             {
                 var identityProperty = identityProperties[0];
-                setter = Expression.Assign(Expression.MakeMemberAccess(sourceExpression, identityProperty.MemberInfo), Expression.Convert(parameterValue, identityProperty.Type));
+                return identityProperty.MemberDetail.SetterBoxed!;
             }
             else if (identityProperties.Count > 1)
             {
-                var setters = new List<Expression>();
-                var index = 0;
-                foreach (var identityProperty in identityProperties)
+                return (object obj, object? value) =>
                 {
-                    Expression parameterValueIndex = Expression.ArrayIndex(parameterValue, Expression.Constant(index));
-                    Expression subsetter = Expression.Assign(Expression.MakeMemberAccess(sourceExpression, identityProperty.MemberInfo), Expression.Convert(parameterValueIndex, identityProperty.Type));
-                    setters.Add(subsetter);
-                    index++;
-                }
-                setter = Expression.Block(setters.ToArray());
+                    var values = (object?[]?)value;
+                    for (var x = 0; x < identityProperties.Count; x++)
+                    {
+                        var v = values?[x];
+                        identityProperties[x].SetterBoxed!.Invoke(obj, v);
+                    }
+                };
             }
             else
             {
                 throw new InvalidOperationException($"Setter function not found on {type.Name}");
             }
-
-            var lambda = Expression.Lambda<Action<object, object?>>(setter, sourceExpression, parameterValue);
-            return lambda.Compile();
         }
 
         private static readonly ConcurrentFactoryDictionary<Type, string[]> identityPropertyNames = new();

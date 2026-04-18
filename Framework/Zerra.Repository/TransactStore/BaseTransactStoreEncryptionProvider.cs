@@ -377,7 +377,11 @@ namespace Zerra.Repository
             }
 
             if (newCopy)
-                models = Mapper.Map<object[], object[]>(models, graph);
+            {
+                var copy = new object[models.Length];
+                for (var i = 0; i < models.Length; i++)
+                    copy[i] = Mapper.Map<TModel, TModel>((TModel)models[i], graph);
+            }
 
             foreach (var model in models)
             {

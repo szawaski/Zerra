@@ -8,41 +8,36 @@ namespace Zerra.Repository
 {
     public sealed class DeleteByID : Persist
     {
-        public DeleteByID(object id) : this(null, null, id, null) { }
-        public DeleteByID(string? eventName, object id) : this(eventName, null, id, null) { }
-        public DeleteByID(string? eventName, object? source, object id) : this(eventName, source, id, null) { }
-        public DeleteByID(object id, Graph? graph) : this(null, null, id, graph) { }
-        public DeleteByID(string? eventName, object id, Graph? graph) : this(eventName, null, id, graph) { }
-        public DeleteByID(string? eventName, object? source, object id, Graph? graph)
-            : base(PersistOperation.Delete, eventName, source)
+        public DeleteByID(Type modelType, object id) : this(null, null, modelType, id, null) { }
+        public DeleteByID(string? eventName, Type modelType, object id) : this(eventName, null, modelType, id, null) { }
+        public DeleteByID(string? eventName, object? source, Type modelType, object id) : this(eventName, source, modelType, id, null) { }
+        public DeleteByID(Type modelType, object id, Graph? graph) : this(null, null, modelType, id, graph) { }
+        public DeleteByID(string? eventName, Type modelType, object id, Graph? graph) : this(eventName, null, modelType, id, graph) { }
+        public DeleteByID(string? eventName, object? source, Type modelType, object id, Graph? graph)
+            : base(PersistOperation.Delete, eventName, source, modelType, null, [id], graph)
         {
-            this.IDs = [id];
-            this.Graph = graph;
         }
-        public DeleteByID(PersistEvent @event, object id) : this(@event, id, null) { }
-        public DeleteByID(PersistEvent @event, object id, Graph? graph)
-            : base(PersistOperation.Delete, @event)
+
+        public DeleteByID(PersistEvent @event, Type modelType, object id) : this(@event, modelType, id, null) { }
+        public DeleteByID(PersistEvent @event, Type modelType, object id, Graph? graph)
+            : base(PersistOperation.Delete, @event, modelType, null, [id], graph)
         {
-            this.IDs = [id];
-            this.Graph = graph;
         }
-        public DeleteByID(ICollection ids) : this(null, null, ids, null) { }
-        public DeleteByID(string? eventName, ICollection ids) : this(eventName, null, ids, null) { }
-        public DeleteByID(string? eventName, object? source, ICollection ids) : this(eventName, source, ids, null) { }
-        public DeleteByID(ICollection ids, Graph? graph) : this((string?)null, ids, graph) { }
-        public DeleteByID(string? eventName, ICollection ids, Graph? graph) : this(eventName, null, ids, graph) { }
-        public DeleteByID(string? eventName, object? source, ICollection ids, Graph? graph)
-            : base(PersistOperation.Delete, eventName, source)
+
+        public DeleteByID(Type modelType, ICollection ids) : this(null, null, modelType, ids, null) { }
+        public DeleteByID(string? eventName, Type modelType, ICollection ids) : this(eventName, null, modelType, ids, null) { }
+        public DeleteByID(string? eventName, object? source, Type modelType, ICollection ids) : this(eventName, source, modelType, ids, null) { }
+        public DeleteByID(Type modelType, ICollection ids, Graph? graph) : this((string?)null, modelType, ids, graph) { }
+        public DeleteByID(string? eventName, Type modelType, ICollection ids, Graph? graph) : this(eventName, null, modelType, ids, graph) { }
+        public DeleteByID(string? eventName, object? source, Type modelType, ICollection ids, Graph? graph)
+            : base(PersistOperation.Delete, eventName, source, modelType, null, ids.Cast<object>().ToArray(), graph)
         {
-            this.IDs = ids.Cast<object>().ToArray();
-            this.Graph = graph;
         }
-        public DeleteByID(PersistEvent @event, ICollection ids) : this(@event, ids, null) { }
-        public DeleteByID(PersistEvent @event, ICollection ids, Graph? graph)
-            : base(PersistOperation.Delete, @event)
+
+        public DeleteByID(PersistEvent @event, Type modelType, ICollection ids) : this(@event, modelType, ids, null) { }
+        public DeleteByID(PersistEvent @event, Type modelType, ICollection ids, Graph? graph)
+            : base(PersistOperation.Delete, @event, modelType, null, ids.Cast<object>().ToArray(), graph)
         {
-            this.IDs = ids.Cast<object>().ToArray();
-            this.Graph = graph;
         }
     }
 }

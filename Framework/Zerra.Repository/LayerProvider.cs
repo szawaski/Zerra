@@ -4,7 +4,7 @@
 
 namespace Zerra.Repository
 {
-    public abstract class LayerProvider<TProvider>
+    public abstract class LayerProvider<TProvider> : BaseStore
     {
         private static readonly Type InterfaceType;
         static LayerProvider()
@@ -23,5 +23,11 @@ namespace Zerra.Repository
         }
 
         protected TProvider NextProvider => nextProvider;
+
+        public override void OnInitialize(RepoContext context)
+        {
+            if (nextProvider is BaseStore baseStore)
+                baseStore.Initialize(context);
+        }
     }
 }

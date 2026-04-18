@@ -14,39 +14,30 @@ namespace Zerra.Repository
         public DeleteByID(object id, Graph<TModel>? graph) : this(null, null, id, graph) { }
         public DeleteByID(string? eventName, object id, Graph<TModel>? graph) : this(eventName, null, id, graph) { }
         public DeleteByID(string? eventName, object? source, object id, Graph<TModel>? graph)
-            : base(PersistOperation.Delete, eventName, source)
+            : base(PersistOperation.Delete, eventName, source, null, [id], graph)
         {
-            this.modelType = typeof(TModel);
-            this.IDs = new object[] { id };
-            this.Graph = graph;
         }
+
         public DeleteByID(PersistEvent @event, object id) : this(@event, id, null) { }
         public DeleteByID(PersistEvent @event, object id, Graph<TModel>? graph)
-            : base(PersistOperation.Delete, @event)
+            : base(PersistOperation.Delete, @event, null, [id], graph)
         {
-            this.modelType = typeof(TModel);
-            this.IDs = new object[] { id };
-            this.Graph = graph;
         }
+
         public DeleteByID(ICollection ids) : this(null, null, ids, null) { }
         public DeleteByID(string? eventName, ICollection ids) : this(eventName, null, ids, null) { }
         public DeleteByID(string? eventName, object? source, ICollection ids) : this(eventName, source, ids, null) { }
         public DeleteByID(ICollection ids, Graph<TModel>? graph) : this((string?)null, ids, graph) { }
         public DeleteByID(string? eventName, ICollection ids, Graph<TModel>? graph) : this(eventName, null, ids, graph) { }
         public DeleteByID(string? eventName, object? source, ICollection ids, Graph<TModel>? graph)
-            : base(PersistOperation.Delete, eventName, source)
+            : base(PersistOperation.Delete, eventName, source, null, ids.Cast<object>().ToArray(), graph)
         {
-            this.modelType = typeof(TModel);
-            this.IDs = ids.Cast<object>().ToArray();
-            this.Graph = graph;
         }
+
         public DeleteByID(PersistEvent @event, ICollection ids) : this(@event, ids, null) { }
         public DeleteByID(PersistEvent @event, ICollection ids, Graph<TModel>? graph)
-            : base(PersistOperation.Delete, @event)
+            : base(PersistOperation.Delete, @event, null, ids.Cast<object>().ToArray(), graph)
         {
-            this.modelType = typeof(TModel);
-            this.IDs = ids.Cast<object>().ToArray();
-            this.Graph = graph;
         }
     }
 }

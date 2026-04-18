@@ -15,6 +15,9 @@ namespace Zerra.Repository
         public void Initialize(RepoContext context)
         {
             this.context = context;
-        }
+            OnInitialize(context);
+        }   
+
+        public virtual void OnInitialize(RepoContext context) { }
     }
 }
