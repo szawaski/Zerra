@@ -91,7 +91,7 @@ namespace Zerra
 
                 if (!ReadMemberExpressionInnerLambda(member, canCreateGraph, out memberInfo, ref graph))
                     return false;
-                var childGraph = InternalGetChildGraph(graph, memberInfo, canCreateGraph);
+                var childGraph = InternalGetChildGraph(graph, memberInfo, canCreateGraph, false);
                 if (childGraph is null)
                     return false;
                 graph = childGraph;
@@ -113,7 +113,7 @@ namespace Zerra
                 {
                     if (!ReadMemberExpressionInnerLambda(member.Expression, canCreateGraph, out memberInfo, ref graph))
                         return false;
-                    var childGraph = InternalGetChildGraph(graph, memberInfo, canCreateGraph);
+                    var childGraph = InternalGetChildGraph(graph, memberInfo, canCreateGraph, true);
                     if (childGraph is null)
                         return false;
                     graph = childGraph;
