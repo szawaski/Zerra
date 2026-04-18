@@ -113,8 +113,8 @@ namespace Zerra.Test
             var childGraph1 = graph.GetChildGraph<SimpleModel>(x => x.Class);
             Assert.NotNull(childGraph1);
             Assert.False(childGraph1.HasMember(x => x.Value1));
-            Assert.True(childGraph1.HasMember(x => x.Value2));
-            Assert.True(childGraph1.IncludeAllMembers);
+            Assert.False(childGraph1.HasMember(x => x.Value2));
+            Assert.False(childGraph1.IncludeAllMembers);
 
             graph = new Graph<GraphModel>();
 
@@ -125,6 +125,16 @@ namespace Zerra.Test
             Assert.False(childGraph1.HasMember(x => x.Value1));
             Assert.False(childGraph1.HasMember(x => x.Value2));
             Assert.False(childGraph1.IncludeAllMembers);
+
+            graph = new Graph<GraphModel>(x => x.Class);
+
+            graph.RemoveMember(x => x.Class.Value1);
+
+            childGraph1 = graph.GetChildGraph<SimpleModel>(x => x.Class);
+            Assert.NotNull(childGraph1);
+            Assert.False(childGraph1.HasMember(x => x.Value1));
+            Assert.True(childGraph1.HasMember(x => x.Value2));
+            Assert.True(childGraph1.IncludeAllMembers);
         }
 
         [Fact]

@@ -552,7 +552,7 @@ namespace Zerra
         /// <returns>The object type to which the graph members are directed, or null if not applicable.</returns>
         protected virtual Type? GetModelType() => null;
 
-        internal static Graph? InternalGetChildGraph(Graph graph, MemberInfo member, bool canCreate)
+        internal static Graph? InternalGetChildGraph(Graph graph, MemberInfo member, bool canCreate, bool canIncludeAllMembers)
         {
             graph.childGraphs ??= new();
 
@@ -565,7 +565,7 @@ namespace Zerra
 
                 childGraph = new();
 
-                if (graph.includeAllMembers || (graph.addedMembers is not null && graph.addedMembers.Contains(member.Name)))
+                if (canIncludeAllMembers && graph.addedMembers is not null && graph.addedMembers.Contains(member.Name))
                     childGraph.includeAllMembers = true;
 
                 graph.childGraphs.Add(member.Name, childGraph);
