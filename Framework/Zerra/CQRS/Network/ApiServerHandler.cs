@@ -70,7 +70,6 @@ namespace Zerra.CQRS.Network
             var providerType = TypeFinder.GetTypeFromName(data.ProviderType);
             if (!providerType.IsInterface)
                 throw new ArgumentException($"Provider {data.ProviderType} is not an interface type");
-            var typeDetail = TypeAnalyzer.GetTypeDetail(providerType);
 
             return bus.RemoteHandleQueryCallAsync(providerType, data.ProviderMethod, data.ProviderArguments, data.Source, true, serializer, cancellationToken);
         }

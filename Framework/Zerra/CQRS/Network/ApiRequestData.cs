@@ -2,8 +2,11 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using Zerra.Reflection;
+
 namespace Zerra.CQRS.Network
 {
+    [GenerateTypeDetail]
     public sealed class ApiRequestData
     {
         public string? ProviderType { get; set; }
