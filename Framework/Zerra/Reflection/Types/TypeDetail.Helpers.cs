@@ -109,6 +109,12 @@ namespace Zerra.Reflection
             return false;
         }
 
+        /// <summary>
+        /// Retrieves a member by its name.
+        /// </summary>
+        /// <param name="name">The member name to look up.</param>
+        /// <returns>The <see cref="MemberDetail"/> for the specified member name.</returns>
+        /// <exception cref="ArgumentException">Thrown when no member with the specified name is found.</exception>
         public MemberDetail GetMember(string name)
         {
             if (TryGetMember(name, out var member))

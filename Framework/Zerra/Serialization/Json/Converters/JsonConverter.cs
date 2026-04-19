@@ -19,7 +19,7 @@ namespace Zerra.Serialization.Json.Converters
     /// </remarks>
     public abstract partial class JsonConverter
     {
-        //The max converter stack before we unwind
+        /// <summary>The maximum converter stack depth before unwinding to avoid stack overflow during recursive serialization.</summary>
         protected const int MaxStackDepth = 31;
 
         /// <summary>
@@ -73,6 +73,7 @@ namespace Zerra.Serialization.Json.Converters
         /// <param name="state">The current read state.</param>
         /// <param name="parent">The parent object to populate.</param>
         /// <param name="propertyName">The optional property name being deserialized.</param>
+        /// <param name="readToken">Whether to read the next token before processing the value.</param>
         /// <returns><c>true</c> if the read operation completed successfully; <c>false</c> if more bytes are needed.</returns>
         public abstract bool TryReadFromParentMember(ref JsonReader reader, ref ReadState state, object? parent, string? propertyName, bool readToken);
 

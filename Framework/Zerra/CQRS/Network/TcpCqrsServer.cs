@@ -165,7 +165,9 @@ namespace Zerra.CQRS.Network
                             responseStarted = true;
 
                             //Response Header
+#pragma warning disable CS8629 // Nullable value type may be null. False Positive
                             var responseHeaderLength = TcpCommon.BufferHeader(buffer, data.ProviderType, requestHeader.ContentType.Value);
+#pragma warning restore CS8629 // Nullable value type may be null. False Positive
 #if NETSTANDARD2_0
                             await stream.WriteAsync(bufferOwner, 0, responseHeaderLength, cancellationToken);
 #else
@@ -327,7 +329,9 @@ namespace Zerra.CQRS.Network
                             responseStarted = true;
 
                             //Response Header
+#pragma warning disable CS8629 // Nullable value type may be null. False Positive
                             var responseHeaderLength = TcpCommon.BufferHeader(buffer, data.MessageType, requestHeader.ContentType.Value);
+#pragma warning restore CS8629 // Nullable value type may be null. False Positive
 #if NETSTANDARD2_0
                             await stream.WriteAsync(bufferOwner, 0, responseHeaderLength, cancellationToken);
 #else

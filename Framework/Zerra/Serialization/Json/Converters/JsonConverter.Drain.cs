@@ -10,6 +10,12 @@ namespace Zerra.Serialization.Json.Converters
 {
     public abstract partial class JsonConverter
     {
+        /// <summary>
+        /// Drains the current JSON value from a parent context, consuming the token already read.
+        /// </summary>
+        /// <param name="reader">The JSON reader.</param>
+        /// <param name="state">The current read state.</param>
+        /// <returns><c>true</c> if draining completed; otherwise <c>false</c> if more data is needed.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected static bool DrainFromParent(ref JsonReader reader, ref ReadState state)
         {
@@ -59,6 +65,12 @@ namespace Zerra.Serialization.Json.Converters
                     throw reader.CreateException();
             }
         }
+        /// <summary>
+        /// Drains the current JSON value from a parent member context, reading the next token first.
+        /// </summary>
+        /// <param name="reader">The JSON reader.</param>
+        /// <param name="state">The current read state.</param>
+        /// <returns><c>true</c> if draining completed; otherwise <c>false</c> if more data is needed.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected static bool DrainFromParentMember(ref JsonReader reader, ref ReadState state)
         {
@@ -110,6 +122,13 @@ namespace Zerra.Serialization.Json.Converters
                     throw reader.CreateException();
             }
         }
+        /// <summary>
+        /// Drains a JSON value for the given token.
+        /// </summary>
+        /// <param name="reader">The JSON reader.</param>
+        /// <param name="state">The current read state.</param>
+        /// <param name="token">The JSON token representing the value to drain.</param>
+        /// <returns><c>true</c> if draining completed; otherwise <c>false</c> if more data is needed.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected static bool Drain(ref JsonReader reader, ref ReadState state, JsonToken token)
         {
@@ -133,6 +152,12 @@ namespace Zerra.Serialization.Json.Converters
                     throw reader.CreateException();
             }
         }
+        /// <summary>
+        /// Drains an entire JSON object, consuming all its properties and values.
+        /// </summary>
+        /// <param name="reader">The JSON reader.</param>
+        /// <param name="state">The current read state.</param>
+        /// <returns><c>true</c> if draining completed; otherwise <c>false</c> if more data is needed.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected static bool DrainObject(ref JsonReader reader, ref ReadState state)
         {
@@ -207,6 +232,12 @@ namespace Zerra.Serialization.Json.Converters
 
             return true;
         }
+        /// <summary>
+        /// Drains an entire JSON array, consuming all its elements.
+        /// </summary>
+        /// <param name="reader">The JSON reader.</param>
+        /// <param name="state">The current read state.</param>
+        /// <returns><c>true</c> if draining completed; otherwise <c>false</c> if more data is needed.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected static bool DrainArray(ref JsonReader reader, ref ReadState state)
         {

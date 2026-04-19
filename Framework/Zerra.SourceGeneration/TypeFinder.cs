@@ -58,12 +58,10 @@ namespace Zerra.SourceGeneration
             var arrayTypeSymbol = typeSymbol as IArrayTypeSymbol;
             if (namedTypeSymbol == null && arrayTypeSymbol == null)
                 return;
-            if (namedTypeSymbol != null && namedTypeSymbol.EnumUnderlyingType is not null)
-                return;
             if (typeSymbol.DeclaredAccessibility != Accessibility.Public && typeSymbol.DeclaredAccessibility != Accessibility.NotApplicable)
                 return;
 
-            if (typeSymbol.TypeKind != TypeKind.Class && typeSymbol.TypeKind != TypeKind.Struct
+            if (typeSymbol.TypeKind != TypeKind.Class && typeSymbol.TypeKind != TypeKind.Struct && typeSymbol.TypeKind != TypeKind.Enum
                 && arrayTypeSymbol == null
                 && (namedTypeSymbol == null || !namedTypeSymbol.IsGenericType))
             {

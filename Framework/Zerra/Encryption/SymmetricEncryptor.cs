@@ -164,7 +164,7 @@ namespace Zerra.Encryption
         /// <summary>
         /// Performs a symmetric encryption
         /// </summary>
-        /// <param name="symmetricAlgorithmType">The symmetric algorith type.</param>
+        /// <param name="symmetricAlgorithmType">The symmetric algorithm type.</param>
         /// <param name="key">The key for encryption.</param>
         /// <param name="plainBytes">The data to encrypt.</param>
         /// <returns>The encrypted data.</returns>
@@ -191,7 +191,7 @@ namespace Zerra.Encryption
         /// <summary>
         /// Performs a symmetric encryption
         /// </summary>
-        /// <param name="symmetricAlgorithmType">The symmetric algorith type.</param>
+        /// <param name="symmetricAlgorithmType">The symmetric algorithm type.</param>
         /// <param name="key">The key for encryption.</param>
         /// <param name="plainBytes">The data to encrypt.</param>
         /// <returns>The encrypted data.</returns>
@@ -216,7 +216,7 @@ namespace Zerra.Encryption
         /// <summary>
         /// Performs a symmetric encryption
         /// </summary>
-        /// <param name="symmetricAlgorithmType">The symmetric encryption information which contains the algorithm and key.</param>
+        /// <param name="symmetricAlgorithmType">The symmetric algorithm type.</param>
         /// <param name="key">The key for encryption.</param>
         /// <param name="stream">The stream to encrypt.</param>
         /// <param name="write">Indicates the stream is for writing.</param>
@@ -363,8 +363,8 @@ namespace Zerra.Encryption
         /// <summary>
         /// Performs a symmetric decryption
         /// </summary>
-        /// <param name="symmetricAlgorithmType">The symmetric encryption information which contains the algorithm and key.</param>
-        /// <param name="key">The key for encryption.</param>
+        /// <param name="symmetricAlgorithmType">The symmetric algorithm type.</param>
+        /// <param name="key">The key for decryption.</param>
         /// <param name="encryptedData">The data to decrypt.</param>
         /// <returns>The decrypted data.</returns>
         public static string? Decrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, string? encryptedData)
@@ -381,6 +381,13 @@ namespace Zerra.Encryption
             var plainData = Encoding.UTF8.GetString(plainBytes);
             return plainData;
         }
+        /// <summary>
+        /// Performs a symmetric decryption
+        /// </summary>
+        /// <param name="symmetricAlgorithmType">The symmetric algorithm type.</param>
+        /// <param name="key">The key for decryption.</param>
+        /// <param name="encryptedBytes">The data to decrypt.</param>
+        /// <returns>The decrypted data.</returns>
         public static byte[] Decrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, byte[] encryptedBytes)
         {
             if (key is null)
@@ -404,8 +411,8 @@ namespace Zerra.Encryption
         /// <summary>
         /// Performs a symmetric decryption
         /// </summary>
-        /// <param name="symmetricAlgorithmType">The symmetric encryption information which contains the algorithm and key.</param>
-        /// <param name="key">The key for encryption.</param>
+        /// <param name="symmetricAlgorithmType">The symmetric algorithm type.</param>
+        /// <param name="key">The key for decryption.</param>
         /// <param name="encryptedBytes">The data to decrypt.</param>
         /// <returns>The decrypted data.</returns>
         public static Span<byte> Decrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, ReadOnlySpan<byte> encryptedBytes)
@@ -429,8 +436,8 @@ namespace Zerra.Encryption
         /// <summary>
         /// Performs a symmetric decryption
         /// </summary>
-        /// <param name="symmetricAlgorithmType">The symmetric encryption information which contains the algorithm and key.</param>
-        /// <param name="key">The key for encryption.</param>
+        /// <param name="symmetricAlgorithmType">The symmetric algorithm type.</param>
+        /// <param name="key">The key for decryption.</param>
         /// <param name="stream">The stream to decrypt.</param>
         /// <param name="write">Indicates the stream is for writing.</param>
         /// <param name="leaveOpen">Indicates if the original stream will stay open after the returning stream is closed or disposed.</param>

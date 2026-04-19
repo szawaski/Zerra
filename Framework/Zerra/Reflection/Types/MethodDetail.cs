@@ -42,7 +42,6 @@ namespace Zerra.Reflection
         /// <param name="parentType">The parent type that owns this method.</param>
         /// <param name="name">The name of the method.</param>
         /// <param name="returnType">The return type of the method.</param>
-        /// <param name="genericArgumentCount">The number of generic arguments for this method.</param>
         /// <param name="genericArguments">The collection of generic argument types for this method.</param>
         /// <param name="parameters">The parameters required by this method.</param>
         /// <param name="caller">The unboxed delegate for invoking this method.</param>

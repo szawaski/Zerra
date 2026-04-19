@@ -65,7 +65,7 @@ namespace Zerra.CQRS.Network
         private static readonly byte[] hostHeadersBytes = encoding.GetBytes($"{HostHeader}: ");
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe (string, Dictionary<string, List<string?>>) ParseHeaders(ReadOnlySpan<char> chars)
+        private static unsafe (string?, Dictionary<string, List<string?>>) ParseHeaders(ReadOnlySpan<char> chars)
         {
             string? declarations = null;
             var headers = new Dictionary<string, List<string?>>();

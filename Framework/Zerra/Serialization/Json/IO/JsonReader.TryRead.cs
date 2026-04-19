@@ -13,101 +13,6 @@ namespace Zerra.Serialization.Json.IO
 {
     public ref partial struct JsonReader
     {
-        //https://www.rfc-editor.org/rfc/rfc4627
-
-        //last byte 128 to 191
-        //1 bytes: 0 to 127
-        //2 bytes: 192 to ?
-        //3 bytes: 224 to ?
-        //4 bytes: 240 to ?
-
-        private const byte openBracketByte = (byte)'[';
-        private const byte closeBracketByte = (byte)']';
-        private const byte openBraceByte = (byte)'{';
-        private const byte closeBraceByte = (byte)'}';
-        private const byte commaByte = (byte)',';
-        private const byte colonByte = (byte)':';
-        private const byte quoteByte = (byte)'"';
-        private const byte escapeByte = (byte)'\\';
-
-        private static readonly byte[] ullBytes = [(byte)'u', (byte)'l', (byte)'l'];
-        private static readonly byte[] rueBytes = [(byte)'r', (byte)'u', (byte)'e'];
-        private static readonly byte[] alseBytes = [(byte)'a', (byte)'l', (byte)'s', (byte)'e'];
-
-        private static readonly char[] ullChars = ['u', 'l', 'l'];
-        private static readonly char[] rueChars = ['r', 'u', 'e'];
-        private static readonly char[] alseChars = ['a', 'l', 's', 'e'];
-
-        private static readonly SearchValues<byte> quoteEscapeBytes = SearchValues.Create((byte)'"', (byte)'\\');
-        private static readonly SearchValues<char> quoteEscapeChars = SearchValues.Create('"', '\\');
-
-        private const byte uByte = (byte)'u';
-        private const byte bByte = (byte)'b';
-        private const byte tByte = (byte)'t';
-        private const byte nByte = (byte)'n';
-        private const byte fByte = (byte)'f';
-        private const byte rByte = (byte)'r';
-
-        //Numbers
-        private static readonly char[] numberChars = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '-', '.', 'e', 'E'];
-        private static readonly byte[] numberBytes = [(byte)'0', (byte)'1', (byte)'2', (byte)'3', (byte)'4', (byte)'5', (byte)'6', (byte)'7', (byte)'8', (byte)'9', (byte)'+', (byte)'-', (byte)'.', (byte)'e', (byte)'E'];
-        private const byte eByte = (byte)'e';
-        private const byte eUpperByte = (byte)'E';
-
-        private const byte plusByte = (byte)'+'; //43
-        private const byte minusByte = (byte)'-'; //45
-        private const byte dotByte = (byte)'.'; //46
-        private const byte zeroByte = (byte)'0'; //48
-        private const byte nineByte = (byte)'9'; //57
-
-        //JSON whitespace
-        private const byte spaceByte = (byte)' '; //32
-        private const byte tabByte = (byte)'\t'; //9
-        private const byte returnByte = (byte)'\r'; //13
-        private const byte newlineByte = (byte)'\n'; //10
-        private static readonly byte[] whiteSpaceBytes = [(byte)' ', (byte)'\t', (byte)'\r', (byte)'\n'];
-        private static readonly char[] whiteSpaceChars = [' ', '\t', '\r', '\n'];
-
-#if DEBUG
-        public static bool Testing = false;
-
-        public bool Alternate = false;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool DebugShouldReturn()
-        {
-            if (!JsonReader.Testing)
-                return false;
-            if (Alternate)
-            {
-                Alternate = false;
-                return false;
-            }
-            else
-            {
-                Alternate = true;
-                return true;
-            }
-        }
-#endif
-
-        /// <summary>
-        /// Gets the last read token.
-        /// </summary>
-        public JsonToken Token;
-        /// <summary>
-        /// Gets the position of the first escape character.
-        /// </summary>
-        public int PositionOfFirstEscape = -1;
-        /// <summary>
-        /// Gets the bytes of the last read value.
-        /// </summary>
-        public ReadOnlySpan<byte> ValueBytes;
-        /// <summary>
-        /// Gets the characters of the last read value.
-        /// </summary>
-        public ReadOnlySpan<char> ValueChars;
-
         /// <summary>
         /// Attempts to read the next JSON token from the buffer.
         /// </summary>
@@ -614,6 +519,7 @@ namespace Zerra.Serialization.Json.IO
         /// <summary>
         /// Unescapes the current string token bytes.
         /// </summary>
+        /// <returns>The unescaped string decoded from <see cref="ValueBytes"/>.</returns>
         public unsafe string UnescapeStringBytes()
         {
             if (ValueBytes.Length == 0)
@@ -719,8 +625,9 @@ namespace Zerra.Serialization.Json.IO
         }
 
         /// <summary>
-        /// Unescapes the current string token bytes.
+        /// Unescapes the current string token characters.
         /// </summary>
+        /// <returns>The unescaped string decoded from <see cref="ValueChars"/>.</returns>
         public unsafe string UnescapeStringChars()
         {
             if (ValueChars.Length == 0)
@@ -834,8 +741,10 @@ namespace Zerra.Serialization.Json.IO
         }
 
         /// <summary>
-        /// Peaks the length of the next array.
+        /// Peeks ahead to determine the number of elements in the current JSON array without advancing the reader position.
         /// </summary>
+        /// <param name="length">When this method returns <c>true</c>, contains the number of elements in the array; otherwise, zero.</param>
+        /// <returns><c>true</c> if the array length was successfully determined; <c>false</c> if the buffer contains incomplete data.</returns>
         public unsafe bool TryPeakArrayLength(out int length)
         {
             var openBrackets = 1;

@@ -22,6 +22,31 @@ namespace Zerra.Serialization.Bytes.IO
         private int position;
         private readonly int length;
 
+#if DEBUG
+        /// <summary>Enables debug testing mode to simulate partial reads.</summary>
+        public static bool Testing = false;
+
+        /// <summary>Tracks alternating state used during debug testing.</summary>
+        public bool Alternate = false;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool DebugShouldReturn()
+        {
+            if (!ByteReader.Testing)
+                return false;
+            if (Alternate)
+            {
+                Alternate = false;
+                return false;
+            }
+            else
+            {
+                Alternate = true;
+                return true;
+            }
+        }
+#endif
+
         /// <summary>
         /// Gets the current position in the buffer.
         /// </summary>

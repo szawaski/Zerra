@@ -25,13 +25,86 @@ namespace Zerra.Serialization.Json.IO
 
         private readonly bool useBytes;
 
+        private int position;
+        private int length;
+
+        //https://www.rfc-editor.org/rfc/rfc4627
+
+        //last byte 128 to 191
+        //1 bytes: 0 to 127
+        //2 bytes: 192 to ?
+        //3 bytes: 224 to ?
+        //4 bytes: 240 to ?
+
+        private const byte openBracketByte = (byte)'[';
+        private const byte closeBracketByte = (byte)']';
+        private const byte openBraceByte = (byte)'{';
+        private const byte closeBraceByte = (byte)'}';
+        private const byte quoteByte = (byte)'"';
+        private const byte colonByte = (byte)':';
+        private const byte commaByte = (byte)',';
+        private const byte escapeByte = (byte)'\\';
+
+        private const byte zeroByte = (byte)'0';
+        private const byte oneByte = (byte)'1';
+        private const byte twoByte = (byte)'2';
+        private const byte threeByte = (byte)'3';
+        private const byte fourByte = (byte)'4';
+        private const byte fiveByte = (byte)'5';
+        private const byte sixByte = (byte)'6';
+        private const byte sevenByte = (byte)'7';
+        private const byte eightByte = (byte)'8';
+        private const byte nineByte = (byte)'9';
+        private const byte dotByte = (byte)'.';
+        private const byte minusByte = (byte)'-';
+        private const byte plusByte = (byte)'+';
+        private const byte zUpperByte = (byte)'Z';
+        private const byte tUpperByte = (byte)'T';
+
+        private const byte nByte = (byte)'n';
+        private const byte uByte = (byte)'u';
+        private const byte lByte = (byte)'l';
+        private const byte tByte = (byte)'t';
+        private const byte rByte = (byte)'r';
+        private const byte eByte = (byte)'e';
+        private const byte fByte = (byte)'f';
+        private const byte aByte = (byte)'a';
+        private const byte sByte = (byte)'s';
+        private const byte bByte = (byte)'b';
+
+        //invalid UTF8 surrogate characters
+        private const char lowerSurrogate = (char)55296; //D800
+        private const char upperSurrogate = (char)57343; //DFFF
+
+
+#if DEBUG
+        /// <summary>Enables debug testing mode to simulate partial writes.</summary>
+        public static bool Testing = false;
+
+        private bool Alternate = false;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool DebugShouldReturn()
+        {
+            if (!JsonWriter.Testing)
+                return false;
+            if (Alternate)
+            {
+                Alternate = false;
+                return false;
+            }
+            else
+            {
+                Alternate = true;
+                return true;
+            }
+        }
+#endif
+
         /// <summary>
         /// Gets a value indicating whether the writer uses a byte buffer.
         /// </summary>
         public readonly bool UseBytes => useBytes;
-
-        private int position;
-        private int length;
 
         /// <summary>
         /// Gets the current position in the buffer.

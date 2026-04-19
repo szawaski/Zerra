@@ -14,6 +14,7 @@ namespace Zerra.Reflection
     /// </summary>
     public partial class TypeDetail
     {
+        /// <summary>Synchronization lock used to ensure thread-safe lazy initialization of members, constructors, and methods.</summary>
         protected readonly Lock locker = new();
 
         /// <summary>The type being analyzed.</summary>

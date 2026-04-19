@@ -1,4 +1,4 @@
-﻿// Copyright © KaKush LLC
+// Copyright © KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -8,29 +8,10 @@ namespace Zerra.Serialization.Bytes.IO
 {
     public ref partial struct ByteWriter
     {
-#if DEBUG
-        public static bool Testing = false;
-
-        private bool Alternate = false;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool DebugShouldReturn()
-        {
-            if (!ByteWriter.Testing)
-                return false;
-            if (Alternate)
-            {
-                Alternate = false;
-                return false;
-            }
-            else
-            {
-                Alternate = true;
-                return true;
-            }
-        }
-#endif
-
+        /// <summary>Writes raw bytes directly to the buffer.</summary>
+        /// <param name="bytes">The raw bytes to write to the buffer.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryWriteRaw(byte[] bytes, out int sizeNeeded)
         {
@@ -53,6 +34,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Writes a length-prefixed property name to the buffer.</summary>
+        /// <param name="bytes">The UTF-8 encoded property name bytes to write.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryWritePropertyName(ReadOnlySpan<byte> bytes, out int sizeNeeded)
         {
@@ -85,6 +70,9 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Writes a null indicator byte to the buffer.</summary>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWriteNull(out int sizeNeeded)
         {
@@ -102,6 +90,9 @@ namespace Zerra.Serialization.Bytes.IO
             buffer[position++] = nullByte;
             return true;
         }
+        /// <summary>Writes a not-null indicator byte to the buffer.</summary>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWriteNotNull(out int sizeNeeded)
         {
@@ -120,6 +111,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Writes a <see cref="bool"/> value to the buffer.</summary>
+        /// <param name="value">The value to write to the buffer.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(bool value, out int sizeNeeded)
         {
@@ -137,6 +132,11 @@ namespace Zerra.Serialization.Bytes.IO
             buffer[position++] = (byte)(value ? 1 : 0);
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of <see cref="bool"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<bool> values, int collectionLength, out int sizeNeeded)
         {
@@ -162,6 +162,11 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of nullable <see cref="bool"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<bool?> values, int collectionLength, out int sizeNeeded)
         {
@@ -196,6 +201,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Writes a <see cref="byte"/> value to the buffer.</summary>
+        /// <param name="value">The value to write to the buffer.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(byte value, out int sizeNeeded)
         {
@@ -213,6 +222,11 @@ namespace Zerra.Serialization.Bytes.IO
             buffer[position++] = value;
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of <see cref="byte"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<byte> values, int collectionLength, out int sizeNeeded)
         {
@@ -238,6 +252,11 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of nullable <see cref="byte"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<byte?> values, int collectionLength, out int sizeNeeded)
         {
@@ -272,6 +291,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Writes a <see cref="sbyte"/> value to the buffer.</summary>
+        /// <param name="value">The value to write to the buffer.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(sbyte value, out int sizeNeeded)
         {
@@ -289,6 +312,11 @@ namespace Zerra.Serialization.Bytes.IO
             buffer[position++] = (byte)value;
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of <see cref="sbyte"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<sbyte> values, int collectionLength, out int sizeNeeded)
         {
@@ -314,6 +342,11 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of nullable <see cref="sbyte"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<sbyte?> values, int collectionLength, out int sizeNeeded)
         {
@@ -348,6 +381,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Writes a <see cref="short"/> value to the buffer.</summary>
+        /// <param name="value">The value to write to the buffer.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(short value, out int sizeNeeded)
         {
@@ -366,6 +403,11 @@ namespace Zerra.Serialization.Bytes.IO
             buffer[position++] = (byte)(value >> 8);
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of <see cref="short"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<short> values, int collectionLength, out int sizeNeeded)
         {
@@ -392,6 +434,11 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of nullable <see cref="short"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<short?> values, int collectionLength, out int sizeNeeded)
         {
@@ -427,6 +474,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Writes a <see cref="ushort"/> value to the buffer.</summary>
+        /// <param name="value">The value to write to the buffer.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(ushort value, out int sizeNeeded)
         {
@@ -445,6 +496,11 @@ namespace Zerra.Serialization.Bytes.IO
             buffer[position++] = (byte)(value >> 8);
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of <see cref="ushort"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<ushort> values, int collectionLength, out int sizeNeeded)
         {
@@ -471,6 +527,11 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of nullable <see cref="ushort"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<ushort?> values, int collectionLength, out int sizeNeeded)
         {
@@ -506,6 +567,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Writes a <see cref="int"/> value to the buffer.</summary>
+        /// <param name="value">The value to write to the buffer.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(int value, out int sizeNeeded)
         {
@@ -526,6 +591,11 @@ namespace Zerra.Serialization.Bytes.IO
             buffer[position++] = (byte)(value >> 24);
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of <see cref="int"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<int> values, int collectionLength, out int sizeNeeded)
         {
@@ -554,6 +624,11 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of nullable <see cref="int"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<int?> values, int collectionLength, out int sizeNeeded)
         {
@@ -591,6 +666,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Writes a <see cref="uint"/> value to the buffer.</summary>
+        /// <param name="value">The value to write to the buffer.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(uint value, out int sizeNeeded)
         {
@@ -611,6 +690,11 @@ namespace Zerra.Serialization.Bytes.IO
             buffer[position++] = (byte)(value >> 24);
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of <see cref="uint"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<uint> values, int collectionLength, out int sizeNeeded)
         {
@@ -639,6 +723,11 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of nullable <see cref="uint"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<uint?> values, int collectionLength, out int sizeNeeded)
         {
@@ -676,6 +765,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Writes a <see cref="long"/> value to the buffer.</summary>
+        /// <param name="value">The value to write to the buffer.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(long value, out int sizeNeeded)
         {
@@ -700,6 +793,11 @@ namespace Zerra.Serialization.Bytes.IO
             buffer[position++] = (byte)(value >> 56);
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of <see cref="long"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<long> values, int collectionLength, out int sizeNeeded)
         {
@@ -732,6 +830,11 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of nullable <see cref="long"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<long?> values, int collectionLength, out int sizeNeeded)
         {
@@ -773,6 +876,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Writes a <see cref="ulong"/> value to the buffer.</summary>
+        /// <param name="value">The value to write to the buffer.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(ulong value, out int sizeNeeded)
         {
@@ -797,6 +904,11 @@ namespace Zerra.Serialization.Bytes.IO
             buffer[position++] = (byte)(value >> 56);
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of <see cref="ulong"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<ulong> values, int collectionLength, out int sizeNeeded)
         {
@@ -829,6 +941,11 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of nullable <see cref="ulong"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<ulong?> values, int collectionLength, out int sizeNeeded)
         {
@@ -870,6 +987,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Writes a <see cref="float"/> value to the buffer.</summary>
+        /// <param name="value">The value to write to the buffer.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryWrite(float value, out int sizeNeeded)
         {
@@ -891,6 +1012,11 @@ namespace Zerra.Serialization.Bytes.IO
             buffer[position++] = (byte)(tmpValue >> 24);
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of <see cref="float"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryWrite(IEnumerable<float> values, int collectionLength, out int sizeNeeded)
         {
@@ -920,6 +1046,11 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of nullable <see cref="float"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryWrite(IEnumerable<float?> values, int collectionLength, out int sizeNeeded)
         {
@@ -959,6 +1090,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Writes a <see cref="double"/> value to the buffer.</summary>
+        /// <param name="value">The value to write to the buffer.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryWrite(double value, out int sizeNeeded)
         {
@@ -984,6 +1119,11 @@ namespace Zerra.Serialization.Bytes.IO
             buffer[position++] = (byte)(tmpValue >> 56);
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of <see cref="double"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryWrite(IEnumerable<double> values, int collectionLength, out int sizeNeeded)
         {
@@ -1017,6 +1157,11 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of nullable <see cref="double"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryWrite(IEnumerable<double?> values, int collectionLength, out int sizeNeeded)
         {
@@ -1060,6 +1205,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Writes a <see cref="decimal"/> value to the buffer.</summary>
+        /// <param name="value">The value to write to the buffer.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(decimal value, out int sizeNeeded)
         {
@@ -1097,6 +1246,11 @@ namespace Zerra.Serialization.Bytes.IO
             buffer[position++] = (byte)(flags >> 24);
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of <see cref="decimal"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<decimal> values, int collectionLength, out int sizeNeeded)
         {
@@ -1142,6 +1296,11 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of nullable <see cref="decimal"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<decimal?> values, int collectionLength, out int sizeNeeded)
         {
@@ -1196,6 +1355,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Writes a <see cref="DateTime"/> value to the buffer.</summary>
+        /// <param name="value">The value to write to the buffer.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(DateTime value, out int sizeNeeded)
         {
@@ -1223,6 +1386,11 @@ namespace Zerra.Serialization.Bytes.IO
             buffer[position++] = (byte)(value.Ticks >> 56);
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of <see cref="DateTime"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<DateTime> values, int collectionLength, out int sizeNeeded)
         {
@@ -1260,6 +1428,11 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of nullable <see cref="DateTime"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<DateTime?> values, int collectionLength, out int sizeNeeded)
         {
@@ -1306,6 +1479,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Writes a <see cref="DateTimeOffset"/> value to the buffer.</summary>
+        /// <param name="value">The value to write to the buffer.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(DateTimeOffset value, out int sizeNeeded)
         {
@@ -1333,6 +1510,11 @@ namespace Zerra.Serialization.Bytes.IO
             buffer[position++] = (byte)(castedOffset >> 8);
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of <see cref="DateTimeOffset"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<DateTimeOffset> values, int collectionLength, out int sizeNeeded)
         {
@@ -1368,6 +1550,11 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of nullable <see cref="DateTimeOffset"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<DateTimeOffset?> values, int collectionLength, out int sizeNeeded)
         {
@@ -1412,6 +1599,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Writes a <see cref="TimeSpan"/> value to the buffer.</summary>
+        /// <param name="value">The value to write to the buffer.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(TimeSpan value, out int sizeNeeded)
         {
@@ -1436,6 +1627,11 @@ namespace Zerra.Serialization.Bytes.IO
             buffer[position++] = (byte)(value.Ticks >> 56);
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of <see cref="TimeSpan"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<TimeSpan> values, int collectionLength, out int sizeNeeded)
         {
@@ -1468,6 +1664,11 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of nullable <see cref="TimeSpan"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<TimeSpan?> values, int collectionLength, out int sizeNeeded)
         {
@@ -1510,6 +1711,10 @@ namespace Zerra.Serialization.Bytes.IO
         }
 
 #if NET6_0_OR_GREATER
+        /// <summary>Writes a <see cref="DateOnly"/> value to the buffer.</summary>
+        /// <param name="value">The value to write to the buffer.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(DateOnly value, out int sizeNeeded)
         {
@@ -1530,6 +1735,11 @@ namespace Zerra.Serialization.Bytes.IO
             buffer[position++] = (byte)(value.DayNumber >> 24);
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of <see cref="DateOnly"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<DateOnly> values, int collectionLength, out int sizeNeeded)
         {
@@ -1558,6 +1768,11 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of nullable <see cref="DateOnly"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<DateOnly?> values, int collectionLength, out int sizeNeeded)
         {
@@ -1595,6 +1810,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Writes a <see cref="TimeOnly"/> value to the buffer.</summary>
+        /// <param name="value">The value to write to the buffer.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(TimeOnly value, out int sizeNeeded)
         {
@@ -1619,6 +1838,11 @@ namespace Zerra.Serialization.Bytes.IO
             buffer[position++] = (byte)(value.Ticks >> 56);
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of <see cref="TimeOnly"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<TimeOnly> values, int collectionLength, out int sizeNeeded)
         {
@@ -1651,6 +1875,11 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of nullable <see cref="TimeOnly"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<TimeOnly?> values, int collectionLength, out int sizeNeeded)
         {
@@ -1693,6 +1922,10 @@ namespace Zerra.Serialization.Bytes.IO
         }
 #endif
 
+        /// <summary>Writes a <see cref="Guid"/> value to the buffer.</summary>
+        /// <param name="value">The value to write to the buffer.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryWrite(Guid value, out int sizeNeeded)
         {
@@ -1718,6 +1951,11 @@ namespace Zerra.Serialization.Bytes.IO
             position += 16;
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of <see cref="Guid"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryWrite(IEnumerable<Guid> values, int collectionLength, out int sizeNeeded)
         {
@@ -1751,6 +1989,11 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of nullable <see cref="Guid"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryWrite(IEnumerable<Guid?> values, int collectionLength, out int sizeNeeded)
         {
@@ -1793,6 +2036,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Writes a <see cref="char"/> value to the buffer.</summary>
+        /// <param name="value">The value to write to the buffer.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(char value, out int sizeNeeded)
         {
@@ -1811,6 +2058,11 @@ namespace Zerra.Serialization.Bytes.IO
             position += 2;
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of <see cref="char"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<char> values, int collectionLength, out int sizeNeeded)
         {
@@ -1837,6 +2089,11 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of nullable <see cref="char"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<char?> values, int collectionLength, out int sizeNeeded)
         {
@@ -1872,6 +2129,10 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Writes a <see cref="string"/> value to the buffer.</summary>
+        /// <param name="value">The value to write to the buffer.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(string value, out int sizeNeeded)
         {
@@ -1904,6 +2165,11 @@ namespace Zerra.Serialization.Bytes.IO
 
             return true;
         }
+        /// <summary>Writes a length-prefixed collection of <see cref="string"/> values to the buffer.</summary>
+        /// <param name="values">The collection of values to write to the buffer.</param>
+        /// <param name="collectionLength">The number of elements in the collection.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the write.</param>
+        /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryWrite(IEnumerable<string> values, int collectionLength, out int sizeNeeded)
         {

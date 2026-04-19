@@ -25,6 +25,30 @@ namespace Zerra.Serialization.Bytes.IO
         private int position;
         private int length;
 
+#if DEBUG
+        /// <summary>Enables debug testing mode to simulate partial writes.</summary>
+        public static bool Testing = false;
+
+        private bool Alternate = false;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool DebugShouldReturn()
+        {
+            if (!ByteWriter.Testing)
+                return false;
+            if (Alternate)
+            {
+                Alternate = false;
+                return false;
+            }
+            else
+            {
+                Alternate = true;
+                return true;
+            }
+        }
+#endif
+
         /// <summary>
         /// Gets the current position in the buffer.
         /// </summary>

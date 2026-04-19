@@ -8,6 +8,9 @@ using Zerra.Collections;
 using Zerra.Reflection;
 using Zerra.Reflection.Dynamic;
 
+/// <summary>
+/// Provides methods for creating and caching <see cref="MethodDetail"/> instances for generic methods and types at runtime.
+/// </summary>
 [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
 [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
 public static class GenericTypeGenerator
