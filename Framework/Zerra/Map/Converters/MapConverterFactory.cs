@@ -60,8 +60,8 @@ namespace Zerra.Map.Converters
 
         internal static Func<MapConverter> GenerateMapConverterCreator(TypeDetail sourceTypeDetail, TypeDetail targetTypeDetail)
         {
-            if (!RuntimeFeature.IsDynamicCodeSupported)
-                throw new InvalidOperationException($"MapConverter type not found for {sourceTypeDetail.Type.Name} to {targetTypeDetail.Type.Name} and dynamic code generation is not supported in this build configuration");
+            //if (!RuntimeFeature.IsDynamicCodeSupported)
+            //    throw new InvalidOperationException($"MapConverter type not found for {sourceTypeDetail.Type.Name} to {targetTypeDetail.Type.Name} and dynamic code generation is not supported in this build configuration");
 
             var sourceType = sourceTypeDetail.Type;
             var targetType = targetTypeDetail.Type;
@@ -73,7 +73,12 @@ namespace Zerra.Map.Converters
             var targetDicionaryValueType = targetTypeDetail.DictionaryInnerTypeDetail?.InnerTypes.ElementAtOrDefault(1) ?? typeof(object);
 
             var findCreatorMethodDefinition = typeof(MapConverterFactory).GetMethod(nameof(FindCreator), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+
+            //We don't necessarily know that this will fail with AOT, so we will suppress the warning here and let it fail at runtime.
+#pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
             var findCreatorMethod = findCreatorMethodDefinition.MakeGenericMethod(sourceType, targetType, sourceEnumerableType, targetEnumerableType, sourceDicionaryKeyType, sourceDicionaryValueType, targetDicionaryKeyType, targetDicionaryValueType);
+#pragma warning restore IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
+
             var creator = (Func<MapConverter>)findCreatorMethod.Invoke(null, [sourceTypeDetail, targetTypeDetail])!;
             return creator;
         }

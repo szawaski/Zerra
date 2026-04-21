@@ -4,6 +4,9 @@
 
 namespace Zerra.SourceGeneration
 {
+    /// <summary>
+    /// Provides lookup utilities for mapping type name strings to their corresponding core, enum, and special type classifications used during source generation.
+    /// </summary>
     public static class TypeLookup
     {
         private static readonly IReadOnlyDictionary<string, CoreType> coreTypeLookup = new Dictionary<string, CoreType>()
@@ -85,11 +88,20 @@ namespace Zerra.SourceGeneration
 
             { "Guid?", CoreType.GuidNullable }
         };
+        /// <summary>
+        /// Attempts to look up the <see cref="CoreType"/> for the given type name.
+        /// </summary>
+        /// <param name="type">The type name to look up.</param>
+        /// <param name="coreType">When this method returns, contains the matched <see cref="CoreType"/>, if found.</param>
+        /// <returns><c>true</c> if a matching <see cref="CoreType"/> was found; otherwise, <c>false</c>.</returns>
         public static bool CoreTypeLookup(string type, out CoreType coreType)
         {
             type = type.Split('.').Last();
             return coreTypeLookup.TryGetValue(type, out coreType);
         }
+        /// <summary>
+        /// Gets all type name strings recognized as core types.
+        /// </summary>
         public static IEnumerable<string> GetCoreTypeNames => coreTypeLookup.Keys;
 
         private static readonly IReadOnlyDictionary<string, CoreEnumType> coreEnumTypeLookup = new Dictionary<string, CoreEnumType>()
@@ -130,11 +142,23 @@ namespace Zerra.SourceGeneration
             { "Int64?", CoreEnumType.Int64Nullable },
             { "UInt64?", CoreEnumType.UInt64Nullable },
         };
+        /// <summary>
+        /// Attempts to look up the <see cref="CoreEnumType"/> for the given type name.
+        /// </summary>
+        /// <param name="type">The type name to look up.</param>
+        /// <param name="coreType">When this method returns, contains the matched <see cref="CoreEnumType"/>, if found.</param>
+        /// <returns><c>true</c> if a matching <see cref="CoreEnumType"/> was found; otherwise, <c>false</c>.</returns>
         public static bool CoreEnumTypeLookup(string type, out CoreEnumType coreType)
         {
             type = type.Split('.').Last();
             return coreEnumTypeLookup.TryGetValue(type, out coreType);
         }
+        /// <summary>
+        /// Attempts to look up the <see cref="SpecialType"/> for the given type name.
+        /// </summary>
+        /// <param name="type">The type name to look up.</param>
+        /// <param name="specialType">When this method returns, contains the matched <see cref="SpecialType"/>, if found.</param>
+        /// <returns><c>true</c> if a matching <see cref="SpecialType"/> was found; otherwise, <c>false</c>.</returns>
         public static bool SpecialTypeLookup(string type, out SpecialType specialType)
         {
             type = type.Split('<').First().Split('.').Last();

@@ -1774,14 +1774,14 @@ AND KF.TABLE_NAME = '{model.DataSourceEntityName}'";
                         if (version.Contains("Microsoft SQL"))
                             return true;
 
-                        _ = Log.ErrorAsync($"{nameof(MsSqlEngine)} failed to validate: Invalid version {version}");
+                        Log.Error($"{nameof(MsSqlEngine)} failed to validate: Invalid version {version}");
                         return false;
                     }
                 }
             }
             catch (Exception ex)
             {
-                _ = Log.ErrorAsync($"{nameof(MsSqlEngine)} failed to validate", ex);
+                Log.Error($"{nameof(MsSqlEngine)} failed to validate", ex);
             }
             return false;
         }

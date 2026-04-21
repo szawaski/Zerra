@@ -42,7 +42,6 @@ namespace Zerra.Serialization
         public ContentType ContentType => ContentType.Json;
 
 #pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
-#pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
 
         /// <inheritdoc />
         public byte[] SerializeBytes(object? obj) => JsonSerializer.SerializeToUtf8Bytes(obj, options);
@@ -51,7 +50,9 @@ namespace Zerra.Serialization
         public byte[] SerializeBytes(object? obj, Type type) => JsonSerializer.SerializeToUtf8Bytes(obj, type, options);
 
         /// <inheritdoc />
+#pragma warning disable CS8604 // Possible null reference argument.
         public byte[] SerializeBytes<T>(T? obj) => JsonSerializer.SerializeToUtf8Bytes<T>(obj, options);
+#pragma warning restore CS8604 // Possible null reference argument.
 
         /// <inheritdoc />
         public object? Deserialize(ReadOnlySpan<byte> bytes, Type type) => JsonSerializer.Deserialize(bytes, type, options);
@@ -66,7 +67,9 @@ namespace Zerra.Serialization
         public void Serialize(Stream stream, object? obj, Type type) => JsonSerializer.Serialize(stream, obj, type, options);
 
         /// <inheritdoc />
+#pragma warning disable CS8604 // Possible null reference argument.
         public void Serialize<T>(Stream stream, T? obj) => JsonSerializer.Serialize<T>(stream, obj, options);
+#pragma warning restore CS8604 // Possible null reference argument.
 
         /// <inheritdoc />
         public object? Deserialize(Stream stream, Type type) => JsonSerializer.Deserialize(stream, type, options);
@@ -81,7 +84,9 @@ namespace Zerra.Serialization
         public Task SerializeAsync(Stream stream, object? obj, Type type, CancellationToken cancellationToken) => JsonSerializer.SerializeAsync(stream, obj, type, options, cancellationToken);
 
         /// <inheritdoc />
+#pragma warning disable CS8604 // Possible null reference argument.
         public Task SerializeAsync<T>(Stream stream, T? obj, CancellationToken cancellationToken) => JsonSerializer.SerializeAsync<T>(stream, obj, options, cancellationToken);
+#pragma warning restore CS8604 // Possible null reference argument.
 
         /// <inheritdoc />
         public Task<object?> DeserializeAsync(Stream stream, Type type, CancellationToken cancellationToken) => JsonSerializer.DeserializeAsync(stream, type, options, cancellationToken).AsTask();
@@ -89,6 +94,5 @@ namespace Zerra.Serialization
         /// <inheritdoc />
         public Task<T?> DeserializeAsync<T>(Stream stream, CancellationToken cancellationToken) => JsonSerializer.DeserializeAsync<T>(stream, options, cancellationToken).AsTask();
 #pragma warning restore IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
-#pragma warning restore IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
     }
 }

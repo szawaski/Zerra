@@ -5,6 +5,7 @@
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace Zerra.Reflection.Dynamic
 {
@@ -12,7 +13,7 @@ namespace Zerra.Reflection.Dynamic
     [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
     internal static class TypeDetailGenerator
     {
-        private static readonly string nullaleTypeName = typeof(Nullable<>).Name;
+        private static readonly string nullableTypeName = typeof(Nullable<>).Name;
 
         private static readonly string iEnumberableTypeName = nameof(IEnumerable);
         private static readonly string iEnumberableGenericTypeName = typeof(IEnumerable<>).Name;
@@ -61,9 +62,9 @@ namespace Zerra.Reflection.Dynamic
             var innerTypes = GenerateInnerTypes(type);
             var baseTypes = GenerateBaseTypes(type);
             var interfaces = GenerateInterfaces(type);
-            var attributes = GenerateAttributes(type);
-            var members = GenerateMembers(type, interfaces);
-            var methods = GenerateMethods(type, interfaces);
+            //var attributes = GenerateAttributes(type);
+            //var members = GenerateMembers(type, interfaces);
+            //var methods = GenerateMethods(type, interfaces);
 
             Delegate? creator = null;
             Func<object>? creatorBoxed = null;
@@ -72,7 +73,7 @@ namespace Zerra.Reflection.Dynamic
             if (innerTypes.Length == 1)
                 innerType = innerTypes[0];
 
-            var isNullable = type.Name == nullaleTypeName;
+            var isNullable = type.Name == nullableTypeName;
 
             CoreType? coreType = null;
             if (TypeLookup.GetCoreType(type, out var coreTypeLookup))
@@ -189,9 +190,9 @@ namespace Zerra.Reflection.Dynamic
 
             var typeDetail = new TypeDetail(
                 type: type,
-                members: members,
+                members: null,
                 constructors: constructors,
-                methods: methods,
+                methods: null,
                 creator: creator,
                 creatorBoxed: creatorBoxed,
                 isNullable: isNullable,
@@ -236,7 +237,7 @@ namespace Zerra.Reflection.Dynamic
                 innerTypes: innerTypes,
                 baseTypes: baseTypes,
                 interfaces: interfaces,
-                attributes: attributes
+                attributes: null
             );
             return typeDetail;
         }
@@ -258,8 +259,11 @@ namespace Zerra.Reflection.Dynamic
                 var emptyConstructor = type.GetConstructor(Type.EmptyTypes);
                 if (emptyConstructor != null)
                 {
-                    creator = AccessorGenerator.GenerateCreatorNoArgs<T>(emptyConstructor);
-                    creatorBoxed = AccessorGenerator.GenerateCreatorNoArgs(emptyConstructor);
+                    if (RuntimeFeature.IsDynamicCodeSupported)
+                    {
+                        creator = AccessorGenerator.GenerateCreatorNoArgs<T>(emptyConstructor);
+                        creatorBoxed = AccessorGenerator.GenerateCreatorNoArgs(emptyConstructor);
+                    }
                 }
                 else if (type.IsValueType && type.Name != "Void")
                 {
@@ -277,7 +281,7 @@ namespace Zerra.Reflection.Dynamic
             if (innerTypes.Length == 1)
                 innerType = innerTypes[0];
 
-            var isNullable = type.Name == nullaleTypeName;
+            var isNullable = type.Name == nullableTypeName;
 
             CoreType? coreType = null;
             if (TypeLookup.GetCoreType(type, out var coreTypeLookup))
@@ -468,17 +472,19 @@ namespace Zerra.Reflection.Dynamic
                 if (property.GetMethod?.IsPublic != true && property.SetMethod?.IsPublic != true)
                     continue;
 
-                //try backing field pattern <{property.Name}>k__BackingField or <{property.Name}>i__Field
-                var backingName = $"<{property.Name}>";
-                var backingField = fields.FirstOrDefault(x => x.Name.StartsWith(backingName) && x.FieldType == property.PropertyType);
-                //try same name without underscores case insensitive
-                backingField ??= fields.FirstOrDefault(x => MemberAndParameterNameComparer.Instance.Equals(x.Name, property.Name) && x.FieldType == property.PropertyType);
-
                 Delegate? getter = null;
                 Func<object, object?>? getterBoxed = null;
 
                 Delegate? setter = null;
                 Action<object, object?>? setterBoxed = null;
+
+                FieldInfo? backingField = null;
+
+                //try backing field pattern <{property.Name}>k__BackingField or <{property.Name}>i__Field
+                var backingName = $"<{property.Name}>";
+                backingField = fields.FirstOrDefault(x => x.Name.StartsWith(backingName) && x.FieldType == property.PropertyType);
+                //try same name without underscores case insensitive
+                backingField ??= fields.FirstOrDefault(x => MemberAndParameterNameComparer.Instance.Equals(x.Name, property.Name) && x.FieldType == property.PropertyType);
 
                 if (backingField != null && !backingField.IsLiteral)
                 {
@@ -538,6 +544,7 @@ namespace Zerra.Reflection.Dynamic
                 Delegate? setter = null;
                 Action<object, object?>? setterBoxed = null;
 
+
                 if (!@field.FieldType.IsByRef && !@field.FieldType.IsByRefLike)
                 {
                     getter = AccessorGenerator.GenerateGetter(@field, @field.FieldType);
@@ -546,6 +553,7 @@ namespace Zerra.Reflection.Dynamic
                     setter = AccessorGenerator.GenerateSetter(@field, @field.FieldType);
                     setterBoxed = AccessorGenerator.GenerateSetter(@field);
                 }
+
 
                 var attributes = @field.GetCustomAttributes(true).Cast<Attribute>().ToArray();
 
@@ -602,17 +610,20 @@ namespace Zerra.Reflection.Dynamic
                             Delegate? setter = null;
                             Action<object, object?>? setterBoxed = null;
 
-                            if (!property.PropertyType.IsByRef && !property.PropertyType.IsByRefLike)
+                            if (RuntimeFeature.IsDynamicCodeSupported)
                             {
-                                if (property.GetMethod != null && property.GetMethod.IsPublic)
+                                if (!property.PropertyType.IsByRef && !property.PropertyType.IsByRefLike)
                                 {
-                                    getter = AccessorGenerator.GenerateGetter(property, property.PropertyType);
-                                    getterBoxed = AccessorGenerator.GenerateGetter(property);
-                                }
-                                if (property.SetMethod != null && property.SetMethod.IsPublic)
-                                {
-                                    setter = AccessorGenerator.GenerateSetter(property, property.PropertyType);
-                                    setterBoxed = AccessorGenerator.GenerateSetter(property);
+                                    if (property.GetMethod != null && property.GetMethod.IsPublic)
+                                    {
+                                        getter = AccessorGenerator.GenerateGetter(property, property.PropertyType);
+                                        getterBoxed = AccessorGenerator.GenerateGetter(property);
+                                    }
+                                    if (property.SetMethod != null && property.SetMethod.IsPublic)
+                                    {
+                                        setter = AccessorGenerator.GenerateSetter(property, property.PropertyType);
+                                        setterBoxed = AccessorGenerator.GenerateSetter(property);
+                                    }
                                 }
                             }
 
@@ -626,9 +637,9 @@ namespace Zerra.Reflection.Dynamic
                             }
                             else
                             {
-                                var memberDetailGenericType = memberDetailType.MakeGenericType(property.PropertyType);
-                                var constructor = memberDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                                member = (MemberDetail)constructor.Invoke([type, name, false, getter, getterBoxed, setter, setterBoxed, attributes, false, isStatic, isExplicitFromInterface]);
+                                var memberDetailGenericType = TypeDetailGenerator.memberDetailType.MakeGenericType(property.PropertyType);
+                                var memberDetailType = memberDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
+                                member = (MemberDetail)memberDetailType.Invoke([type, name, false, getter, getterBoxed, setter, setterBoxed, attributes, false, isStatic, isExplicitFromInterface]);
                             }
                             items.Add(member);
                         }
@@ -655,11 +666,14 @@ namespace Zerra.Reflection.Dynamic
                 if (!constructor.IsPublic)
                     continue;
 
-                Func<object?[]?, T>? creator = AccessorGenerator.GenerateCreator<T>(constructor);
+                Func<object?[]?, T>? creator = null;
+                Func<object?[]?, object>? creatorBoxed = null;
+
+                creator = AccessorGenerator.GenerateCreator<T>(constructor);
                 if (creator == null)
                     continue;
 
-                Func<object?[]?, object>? creatorBoxed = AccessorGenerator.GenerateCreator(constructor);
+                creatorBoxed = AccessorGenerator.GenerateCreator(constructor);
                 if (creatorBoxed == null)
                     continue;
 
@@ -689,9 +703,13 @@ namespace Zerra.Reflection.Dynamic
 
                     var attributes = method.GetCustomAttributes(true).Cast<Attribute>().ToArray();
 
-                    Delegate? caller = AccessorGenerator.GenerateCaller(method, method.ReturnType);
-
-                    Func<object?, object?[]?, object?>? callerBoxed = AccessorGenerator.GenerateCaller(method);
+                    Delegate? caller = null;
+                    Func<object?, object?[]?, object?>? callerBoxed = null;
+                    if (RuntimeFeature.IsDynamicCodeSupported)
+                    {
+                        caller = AccessorGenerator.GenerateCaller(method, method.ReturnType);
+                        callerBoxed = AccessorGenerator.GenerateCaller(method);
+                    }
 
                     var genericArguments = method.GetGenericArguments();
 
@@ -702,9 +720,9 @@ namespace Zerra.Reflection.Dynamic
                     }
                     else
                     {
-                        var methodDetailGenericType = methodDetailType.MakeGenericType(method.ReturnType.Name == "Void" ? typeof(object) : method.ReturnType);
-                        var constructor = methodDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                        methodDetail = (MethodDetail)constructor.Invoke([type, method.Name, genericArguments, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false]);
+                        var methodDetailGenericType = TypeDetailGenerator.methodDetailType.MakeGenericType(method.ReturnType.Name == "Void" ? typeof(object) : method.ReturnType);
+                        var methodDetailType = methodDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
+                        methodDetail = (MethodDetail)methodDetailType.Invoke([type, method.Name, genericArguments, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false]);
                     }
 
                     items.Add(methodDetail);

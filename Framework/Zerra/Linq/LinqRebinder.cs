@@ -305,8 +305,6 @@ namespace Zerra.Linq
                     }
                 case ExpressionType.Lambda:
                     {
-                        if (!RuntimeFeature.IsDynamicCodeSupported)
-                            throw new NotSupportedException($"Cannot rebind Lambda expressions. Dynamic code generation is not supported in this build configuration.");
                         var cast = (LambdaExpression)exp;
 
                         var replacementParameters = new List<ParameterExpression>();
@@ -319,7 +317,7 @@ namespace Zerra.Linq
 
                         var body = Rebind(cast.Body, context);
 
-                        return Expression.Lambda(body, replacementParameters);
+                        return Expression.Lambda(cast.Type, body, replacementParameters);
                     }
                 case ExpressionType.LeftShift:
                     {

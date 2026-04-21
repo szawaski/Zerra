@@ -12,7 +12,7 @@ namespace Zerra.Map
     /// </summary>
     public static class Mapper
     {
-        private static readonly ConcurrentFactoryDictionary<TypePairKey, Delegate> mapCache = new();
+        private static readonly ConcurrentFactoryDictionary<TypePairKeyWithCategory, Delegate> mapCache = new();
 
         /// <summary>
         /// Maps the source object to an instance of <typeparamref name="TTarget"/>.
@@ -92,20 +92,45 @@ namespace Zerra.Map
             return result!;
         }
 
+        /// <summary>
+        /// Creates a deep copy of the source object using its runtime type.
+        /// </summary>
+        /// <param name="source">The source object to copy. Cannot be null.</param>
+        /// <param name="graph">Optional graph specifying which members to include or exclude in the copy.</param>
+        /// <returns>A new instance of the same type as <paramref name="source"/> that is a copy of the source.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="source"/> is null.</exception>
+        public static object CopyObject(this object source, Graph? graph = null)
+        {
+            if (source is null)
+                throw new ArgumentNullException(nameof(source));
+
+            var sourceType = source.GetType();
+            var map = GetMap(sourceType, sourceType);
+            var result = map(source, default, graph);
+            return result!;
+        }
+
         internal static Func<TSource, TTarget?, Graph?, TTarget?> GetMap<TSource, TTarget>()
         {
             var sourceType = typeof(TSource);
             var targetType = typeof(TTarget);
-            var key = new TypePairKey(sourceType, targetType);
-            var map = (Func<TSource, TTarget?, Graph?, TTarget>)mapCache.GetOrAdd(key, static () => MapGenerator.Generate<TSource, TTarget>());
+            var key = new TypePairKeyWithCategory(1, sourceType, targetType);
+            var map = (Func<TSource, TTarget?, Graph?, TTarget>)mapCache.GetOrAdd(key, static () => MapGenerator.Generate1<TSource, TTarget>);
             return map;
         }
 
         private static Func<object, TTarget?, Graph?, TTarget?> GetMap<TTarget>(Type sourceType)
         {
             var targetType = typeof(TTarget);
-            var key = new TypePairKey(sourceType, targetType);
-            var map = (Func<object, TTarget?, Graph?, TTarget>)mapCache.GetOrAdd(key, static () => MapGenerator.Generate<TTarget>());
+            var key = new TypePairKeyWithCategory(2, sourceType, targetType);
+            var map = (Func<object, TTarget?, Graph?, TTarget>)mapCache.GetOrAdd(key, static () => MapGenerator.Generate2<TTarget>);
+            return map;
+        }
+
+        private static Func<object, object?, Graph?, object?> GetMap(Type sourceType, Type targetType)
+        {
+            var key = new TypePairKeyWithCategory(3, sourceType, targetType);
+            var map = (Func<object, object?, Graph?, object>)mapCache.GetOrAdd(key, static () => MapGenerator.Generate3);
             return map;
         }
 

@@ -9,7 +9,7 @@ namespace Pets.Service
         public int Prop1 { get; set; }
         public int PropA { get; set; }
         public int PropC { get; set; }
-        public string PropZ { get; set; }
+        public string? PropZ { get; set; }
 
         public static ModelA GetModelA()
         {

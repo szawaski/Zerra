@@ -56,7 +56,7 @@ namespace Zerra.Repository
 
             foreach (var property in ModelDetail.RelatedProperties)
             {
-                if (graph is not null && graph.HasMember(property.Name))
+                if (graph is not null && graph.HasMemberExplicitly(property.Name))
                 {
                     var relatedProvider = GetRelatedProvider(property.Type);
 
@@ -93,7 +93,7 @@ namespace Zerra.Repository
 
             foreach (var property in ModelDetail.RelatedProperties)
             {
-                if (graph.HasMember(property.Name))
+                if (graph.HasMemberExplicitly(property.Name))
                 {
                     var relatedProvider = GetRelatedProvider(property.Type);
 
@@ -127,7 +127,7 @@ namespace Zerra.Repository
             {
                 foreach (var modelPropertyInfo in ModelDetail.RelatedProperties)
                 {
-                    if (graph is not null && graph.HasMember(modelPropertyInfo.Name))
+                    if (graph is not null && graph.HasMemberExplicitly(modelPropertyInfo.Name))
                     {
                         if (!modelPropertyInfo.IsEnumerable)
                         {
@@ -161,7 +161,7 @@ namespace Zerra.Repository
                 //var tasks = new HashSet<Task>();
                 foreach (var modelPropertyInfo in ModelDetail.RelatedProperties)
                 {
-                    if (graph is not null && graph.HasMember(modelPropertyInfo.Name))
+                    if (graph is not null && graph.HasMemberExplicitly(modelPropertyInfo.Name))
                     {
                         //var task = Task.Run(() =>
                         //{
@@ -323,7 +323,7 @@ namespace Zerra.Repository
                 //var tasks = new List<Task>();
                 foreach (var modelPropertyInfo in ModelDetail.RelatedProperties)
                 {
-                    if (graph.HasMember(modelPropertyInfo.Name))
+                    if (graph.HasMemberExplicitly(modelPropertyInfo.Name))
                     {
                         //var task = Task.Run(async () =>
                         //{
@@ -479,7 +479,7 @@ namespace Zerra.Repository
 
             foreach (var property in ModelDetail.RelatedProperties)
             {
-                if (graph.HasMember(property.Name))
+                if (graph.HasMemberExplicitly(property.Name))
                 {
                     var relatedProvider = GetRelatedProvider(property.Type);
 
@@ -548,7 +548,7 @@ namespace Zerra.Repository
 
             foreach (var property in ModelDetail.RelatedProperties)
             {
-                if (graph.HasMember(property.Name))
+                if (graph.HasMemberExplicitly(property.Name))
                 {
                     var relatedProvider = GetRelatedProvider(property.Type);
 
@@ -1162,7 +1162,7 @@ namespace Zerra.Repository
 
             foreach (var modelPropertyInfo in ModelDetail.RelatedNonEnumerableProperties)
             {
-                if (graph.HasMember(modelPropertyInfo.Name))
+                if (graph.HasMemberExplicitly(modelPropertyInfo.Name))
                 {
                     //var task = Task.Run(() =>
                     //{
@@ -1212,7 +1212,7 @@ namespace Zerra.Repository
 
             foreach (var modelPropertyInfo in ModelDetail.RelatedEnumerableProperties)
             {
-                if (graph.HasMember(modelPropertyInfo.Name))
+                if (graph.HasMemberExplicitly(modelPropertyInfo.Name))
                 {
                     //var task = Task.Run(() =>
                     //{
@@ -1345,7 +1345,7 @@ namespace Zerra.Repository
 
             foreach (var modelPropertyInfo in ModelDetail.RelatedEnumerableProperties)
             {
-                if (graph.HasMember(modelPropertyInfo.Name))
+                if (graph.HasMemberExplicitly(modelPropertyInfo.Name))
                 {
                     //var task = Task.Run(() =>
                     //{
@@ -1391,7 +1391,7 @@ namespace Zerra.Repository
 
             foreach (var modelPropertyInfo in ModelDetail.RelatedNonEnumerableProperties)
             {
-                if (graph.HasMember(modelPropertyInfo.Name))
+                if (graph.HasMemberExplicitly(modelPropertyInfo.Name))
                 {
                     //var task = Task.Run(async () =>
                     //{
@@ -1441,7 +1441,7 @@ namespace Zerra.Repository
 
             foreach (var modelPropertyInfo in ModelDetail.RelatedEnumerableProperties)
             {
-                if (graph.HasMember(modelPropertyInfo.Name))
+                if (graph.HasMemberExplicitly(modelPropertyInfo.Name))
                 {
                     //var task = Task.Run(async () =>
                     //{
@@ -1574,7 +1574,7 @@ namespace Zerra.Repository
 
             foreach (var modelPropertyInfo in ModelDetail.RelatedEnumerableProperties)
             {
-                if (graph.HasMember(modelPropertyInfo.Name))
+                if (graph.HasMemberExplicitly(modelPropertyInfo.Name))
                 {
                     //var task = Task.Run(async () =>
                     //{

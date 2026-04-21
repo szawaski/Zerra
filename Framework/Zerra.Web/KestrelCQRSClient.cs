@@ -58,6 +58,7 @@ namespace Zerra.Web
             this.client = new HttpClient(this.handler);
         }
 
+        /// <inheritdoc />
         protected override Task<TReturn> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, CancellationToken cancellationToken) where TReturn : default
         {
             var providerName = interfaceType.Name;
@@ -86,6 +87,7 @@ namespace Zerra.Web
             return model;
         }
 
+        /// <inheritdoc />
         protected override Task DispatchInternal(SemaphoreSlim throttle, Type commandType, ICommand command, bool messageAwait, string source, CancellationToken cancellationToken)
         {
             var messageType = commandType.AssemblyQualifiedName;
@@ -108,6 +110,7 @@ namespace Zerra.Web
 
             return RequestAsync<object>(throttle, false, routeUri, messageType, data, false, cancellationToken);
         }
+        /// <inheritdoc />
         protected override Task<TResult> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source, CancellationToken cancellationToken) where TResult : default
         {
             var messageType = commandType.AssemblyQualifiedName;
@@ -130,7 +133,7 @@ namespace Zerra.Web
 
             return RequestAsync<TResult>(throttle, isStream, routeUri, messageType, data, true, cancellationToken)!;
         }
-
+        /// <inheritdoc />
         protected override Task DispatchInternal(SemaphoreSlim throttle, Type eventType, IEvent @event, string source, CancellationToken cancellationToken)
         {
             var messageType = eventType.AssemblyQualifiedName;

@@ -14,11 +14,6 @@ using Zerra.Serialization.Json;
 Console.WriteLine();
 var timer = Stopwatch.StartNew();
 
-//var stuff = NormalJsonModel.Create();
-//var json = JsonSerializer.Serialize(stuff);
-//var stuff2 = System.Text.Json.JsonSerializer.Deserialize<NormalJsonModel>(json);
-//var stuff3 = JsonSerializer.Deserialize<NormalJsonModel>(json);
-
 //Setup Components
 ISerializer serializer = new ZerraByteSerializer();
 IEncryptor encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AESwithPrefix);

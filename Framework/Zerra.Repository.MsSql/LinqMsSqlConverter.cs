@@ -449,9 +449,14 @@ namespace Zerra.Repository.MsSql
 
             _ = context.MemberContext.OperatorStack.Pop();
         }
+
         protected override bool ConvertToSqlValueRender(MemberExpression? memberProperty, Type type, object? value, ref CharWriter sb, BuilderContext context)
         {
-            var typeDetails = TypeAnalyzer.GetTypeDetail(type);
+            //avoid TypeDetail for AOT support
+
+            CoreType? coreType = null;
+            if (TypeLookup.GetCoreType(type, out var coreTypeLookup))
+                coreType = coreTypeLookup;
 
             if (value is null)
             {
@@ -459,15 +464,17 @@ namespace Zerra.Repository.MsSql
                 return false;
             }
 
-            if (typeDetails.IsNullable)
+            if (type.Name == nullableTypeName)
             {
-                type = typeDetails.InnerType;
-                typeDetails = typeDetails.InnerTypeDetail;
+                type = type.GetGenericArguments()[0];
+                coreType = null;
+                if (TypeLookup.GetCoreType(type, out coreTypeLookup))
+                    coreType = coreTypeLookup;
             }
 
-            if (typeDetails.CoreType.HasValue)
+            if (coreType.HasValue)
             {
-                switch (typeDetails.CoreType.Value)
+                switch (coreType.Value)
                 {
                     case CoreType.Boolean:
                         var lastOperator = context.MemberContext.OperatorStack.Peek();
@@ -751,7 +758,7 @@ namespace Zerra.Repository.MsSql
 
             if (type.IsArray || type.Name == "ReadOnlySpan`1" || type.Name == "Span`1")
             {
-                var arrayType = typeDetails.InnerType;
+                var arrayType = type.IsArray ? type.GetElementType()! : type.GetGenericArguments()[0];
                 if (arrayType == typeof(byte))
                 {
                     sb.Write("0x");
@@ -781,7 +788,7 @@ namespace Zerra.Repository.MsSql
                 }
             }
 
-            if (typeDetails.HasIEnumerableGeneric)
+            if (value is IEnumerable enumerable)
             {
                 sb.Write('(');
 
@@ -790,7 +797,7 @@ namespace Zerra.Repository.MsSql
                 Type? trueInnerType = null;
 
                 var first = true;
-                foreach (var item in (IEnumerable)value)
+                foreach (var item in enumerable)
                 {
                     if (!first)
                         sb.Write(',');
@@ -894,7 +901,7 @@ namespace Zerra.Repository.MsSql
         protected override void GenerateSelectProperties(Graph? graph, ModelDetail modelDetail, ref CharWriter sb)
         {
             AppendLineBreak(ref sb);
-            if (graph is null || graph.IncludeAllMembers)
+            if (graph is null || (graph.IncludeAllMembers && !graph.HasRemovedMembers))
             {
                 sb.Write('[');
                 sb.Write(modelDetail.DataSourceEntityName);

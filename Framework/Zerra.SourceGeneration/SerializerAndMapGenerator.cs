@@ -9,6 +9,9 @@ using System.Text;
 
 namespace Zerra.SourceGeneration
 {
+    /// <summary>
+    /// Generates source code for registering serializer and map configurations for discovered model types.
+    /// </summary>
     public static class SerializerAndMapGenerator
     {
         private static readonly string enumberableGenericTypeName = typeof(IEnumerable<>).Name;
@@ -16,10 +19,18 @@ namespace Zerra.SourceGeneration
         private static readonly string dictionaryGenericTypeName = typeof(IDictionary<,>).Name;
         private static readonly string readOnlyDictionaryGenericTypeName = typeof(IReadOnlyDictionary<,>).Name;
 
+        /// <summary>
+        /// Appends source generation code for serializer and map registrations to the provided <see cref="StringBuilder"/>.
+        /// </summary>
+        /// <param name="sb">The <see cref="StringBuilder"/> to append the generated source code to.</param>
+        /// <param name="models">The dictionary of model types to generate registrations for, keyed by full type name.</param>
         public static void Generate(StringBuilder sb, Dictionary<string, TypeToGenerate> models)
         {
             foreach (var model in models.Values)
             {
+                if (model.TypeSymbol.IsStatic)
+                    continue;
+
                 var namedTypeSymbol = model.TypeSymbol as INamedTypeSymbol;
 
                 INamedTypeSymbol? mapBaseOrInterface = null;

@@ -7,8 +7,16 @@ using System.Text;
 
 namespace Zerra.SourceGeneration
 {
+    /// <summary>
+    /// Generates source code for registering enum type information and their fields with the Zerra reflection system.
+    /// </summary>
     public static class EnumGenerator
     {
+        /// <summary>
+        /// Appends source generation code for enum registration to the provided <see cref="StringBuilder"/>.
+        /// </summary>
+        /// <param name="sb">The <see cref="StringBuilder"/> to append the generated source code to.</param>
+        /// <param name="typeSymbol">The type symbol representing the enum to generate registration for.</param>
         public static void Generate(StringBuilder sb, ITypeSymbol typeSymbol)
         {
             if (typeSymbol.TypeKind != TypeKind.Enum)

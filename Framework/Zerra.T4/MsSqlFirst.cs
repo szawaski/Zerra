@@ -186,7 +186,7 @@ AND ((KF.TABLE_SCHEMA = '{0}' AND KF.TABLE_NAME = '{1}') OR (KP.TABLE_SCHEMA = '
                                     if (fkTable == tableName)
                                         _ = sb.Append(tab).Append(tab).Append("public ").Append(pkTable).Append(modelSuffix).Append(" ").Append(propertyName).Append(" { get; set; }").Append(Environment.NewLine);
                                     else
-                                        _ = sb.Append(tab).Append(tab).Append("public ICollection<").Append(fkTable).Append(modelSuffix).Append("> ").Append(propertyName).Append(" { get; set; }").Append(Environment.NewLine);
+                                        _ = sb.Append(tab).Append(tab).Append("public List<").Append(fkTable).Append(modelSuffix).Append("> ").Append(propertyName).Append(" { get; set; }").Append(Environment.NewLine);
                                 }
                             }
                         }

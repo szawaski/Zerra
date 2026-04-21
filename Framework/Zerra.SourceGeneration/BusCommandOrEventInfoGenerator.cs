@@ -7,8 +7,16 @@ using System.Text;
 
 namespace Zerra.SourceGeneration
 {
+    /// <summary>
+    /// Generates source code for registering command and event handler type information used by the bus infrastructure.
+    /// </summary>
     public static class BusCommandOrEventInfoGenerator
     {
+        /// <summary>
+        /// Appends source generation code for command and event handler registration to the provided <see cref="StringBuilder"/>.
+        /// </summary>
+        /// <param name="sb">The <see cref="StringBuilder"/> to append the generated source code to.</param>
+        /// <param name="symbol">The type symbol representing the command or event handler interface to generate registration for.</param>
         public static void Generate(StringBuilder sb, ITypeSymbol symbol)
         {
             if (symbol.TypeKind != TypeKind.Interface)

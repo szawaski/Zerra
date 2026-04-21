@@ -9,8 +9,18 @@ using System.Text.RegularExpressions;
 
 namespace Zerra.SourceGeneration.Discovery
 {
+    /// <summary>
+    /// Generates empty implementation classes for discovered interface types, used to satisfy dependency injection and proxy requirements.
+    /// </summary>
     public static class EmptyImplementationGenerator
     {
+        /// <summary>
+        /// Generates empty implementation source files for all interface model types and appends their registration code to the provided <see cref="StringBuilder"/>.
+        /// </summary>
+        /// <param name="context">The <see cref="SourceProductionContext"/> used to emit the generated source files.</param>
+        /// <param name="ns">The root namespace of the compilation, used to place generated types.</param>
+        /// <param name="sbInitializer">The <see cref="StringBuilder"/> to append registration code to.</param>
+        /// <param name="models">The dictionary of model types to generate empty implementations for, keyed by full type name.</param>
         public static void Generate(SourceProductionContext context, string ns, StringBuilder sbInitializer, Dictionary<string, TypeToGenerate> models)
         {
             foreach (var model in models.Values)

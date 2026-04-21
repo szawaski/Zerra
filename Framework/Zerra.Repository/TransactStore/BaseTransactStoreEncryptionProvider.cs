@@ -50,7 +50,7 @@ namespace Zerra.Repository
             graph = graph is null ? null : new Graph<TModel>(graph);
 
             if (newCopy)
-                model = Mapper.Map<TModel, TModel>(model, graph);
+                model = model.Copy();
 
             foreach (var property in properties)
             {
@@ -103,7 +103,12 @@ namespace Zerra.Repository
             graph = graph is null ? null : new Graph<TModel>(graph);
 
             if (newCopy)
-                models = Mapper.Map<IEnumerable<TModel>, TModel[]>((IEnumerable<TModel>)models, graph);
+            {
+                var copies = new List<TModel>();
+                foreach (TModel model in models)
+                    copies.Add(model.Copy());
+                models = copies;
+            }
 
             foreach (var model in models)
             {
@@ -380,7 +385,7 @@ namespace Zerra.Repository
             {
                 var copy = new object[models.Length];
                 for (var i = 0; i < models.Length; i++)
-                    copy[i] = Mapper.Map<TModel, TModel>((TModel)models[i], graph);
+                    copy[i] = models[i].CopyObject();
             }
 
             foreach (var model in models)

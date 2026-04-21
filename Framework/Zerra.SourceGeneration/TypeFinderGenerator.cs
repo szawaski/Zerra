@@ -7,8 +7,16 @@ using System.Text;
 
 namespace Zerra.SourceGeneration
 {
+    /// <summary>
+    /// Generates source code for registering discoverable types with the Zerra type finder.
+    /// </summary>
     public static class TypeFinderGenerator
     {
+        /// <summary>
+        /// Appends source generation code for type finder registration to the provided <see cref="StringBuilder"/>.
+        /// </summary>
+        /// <param name="sbInitializer">The <see cref="StringBuilder"/> to append the generated source code to.</param>
+        /// <param name="typeSymbol">The type symbol to register with the type finder.</param>
         public static void Generate(StringBuilder sbInitializer, ITypeSymbol typeSymbol)
         {
             if (typeSymbol.TypeKind != TypeKind.Class && typeSymbol.TypeKind != TypeKind.Interface)

@@ -8,8 +8,18 @@ using System.Text;
 
 namespace Zerra.SourceGeneration
 {
+    /// <summary>
+    /// Generates source code for bus router caller classes and router registrations for query and command handler interfaces.
+    /// </summary>
     public static class BusRouterGenerator
     {
+        /// <summary>
+        /// Generates a caller class and appends router registration code for the given handler interface type symbol.
+        /// </summary>
+        /// <param name="context">The <see cref="SourceProductionContext"/> used to emit additional source files.</param>
+        /// <param name="ns">The root namespace of the compilation, used to place generated types.</param>
+        /// <param name="sbInitializer">The <see cref="StringBuilder"/> to append router registration code to.</param>
+        /// <param name="typeSymbol">The type symbol representing the handler interface to generate routing for.</param>
         public static void Generate(SourceProductionContext context, string ns, StringBuilder sbInitializer, ITypeSymbol typeSymbol)
         {
             if (typeSymbol.TypeKind != TypeKind.Interface)

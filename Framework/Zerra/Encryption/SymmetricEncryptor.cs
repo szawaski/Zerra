@@ -13,9 +13,10 @@ namespace Zerra.Encryption
     public static class SymmetricEncryptor
     {
         private static readonly byte[] defaultSalt = Encoding.UTF8.GetBytes("ενγρυπτιον"); //20 bytes
-        private const int defaultDeriveBytesIterations = 1000;
         private const SymmetricKeySize defaultKeySize = SymmetricKeySize.Bits_256;
         private const SymmetricBlockSize defaultBlockSize = SymmetricBlockSize.Bits_128;
+        private static readonly HashAlgorithmName defaultHashAlgorithm = HashAlgorithmName.SHA1;
+        private const int defaultDeriveBytesIterations = 1000;
 
         private static byte[] SaltFromPassword(string password, string? salt = null)
         {
@@ -32,26 +33,29 @@ namespace Zerra.Encryption
         /// <param name="salt">An optional salt for the key.</param>
         /// <param name="keySize">The size of the key.</param>
         /// <param name="blockSize">The size of each encrypted block.</param>
-        /// <param name="iterations">The number of itterations</param>
+        /// <param name="hashAlgorithm">The hash algorithm to use for the key derivation, default is SHA1.</param>
+        /// <param name="deriveKeyIterations">The number of iterations to perform in the key derivation, default is 1000.</param>
         /// <returns>The new symmetric key</returns>
-        public static SymmetricKey GetKey(string password, string? salt = null, SymmetricKeySize keySize = defaultKeySize, SymmetricBlockSize blockSize = defaultBlockSize, int iterations = defaultDeriveBytesIterations)
+        public static SymmetricKey GetKey(string password, string? salt = null, SymmetricKeySize keySize = defaultKeySize, SymmetricBlockSize blockSize = defaultBlockSize, HashAlgorithmName? hashAlgorithm = null, int deriveKeyIterations = defaultDeriveBytesIterations)
         {
             var saltBytes = SaltFromPassword(password, salt);
+            var keySizeValue = (int)keySize;
+            var blockSizeValue = (int)blockSize;
 
 #if NETSTANDARD2_0
-            using (var deriveBytes = new Rfc2898DeriveBytes(password, saltBytes))
-#else
-            using (var deriveBytes = new Rfc2898DeriveBytes(password, saltBytes, iterations, HashAlgorithmName.SHA1))
-#endif
+            using (var deriveBytes = new Rfc2898DeriveBytes(password, saltBytes, iterations, hashAlgorithmName ?? defaultHashAlgorithm))
             {
-                var keySizeValue = (int)keySize;
-                var blockSizeValue = (int)blockSize;
                 var keyBytes = deriveBytes.GetBytes(keySizeValue / 8);
                 var ivBytes = deriveBytes.GetBytes(blockSizeValue / 8);
-
-                var symmetricKey = new SymmetricKey(keyBytes, ivBytes);
-                return symmetricKey;
+                return new SymmetricKey(keyBytes, ivBytes);
             }
+#else
+            var passwordBytes = Encoding.UTF8.GetBytes(password);
+            var totalBytes = Rfc2898DeriveBytes.Pbkdf2(passwordBytes, saltBytes, deriveKeyIterations, hashAlgorithm ?? defaultHashAlgorithm, (keySizeValue + blockSizeValue) / 8);
+            var keyBytes = totalBytes[..(keySizeValue / 8)];
+            var ivBytes = totalBytes[(keySizeValue / 8)..];
+            return new SymmetricKey(keyBytes, ivBytes);
+#endif
         }
 
         /// <summary>

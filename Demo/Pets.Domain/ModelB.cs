@@ -11,21 +11,21 @@ namespace Pets.Service
         public int Prop1 { get; set; }
         public int PropB { get; set; }
         public int PropD { get; set; }
-        public string PropZ { get; set; }
+        public string? PropZ { get; set; }
     }
     [GenerateTypeDetail]
     public class NormalJsonModel
     {
-        public string String1 { get; set; }
-        public string String2 { get; set; }
-        public string String3 { get; set; }
-        public string String4 { get; set; }
-        public string String5 { get; set; }
-        public string String6 { get; set; }
-        public string String7 { get; set; }
-        public string String8 { get; set; }
-        public string String9 { get; set; }
-        public string String0 { get; set; }
+        public string? String1 { get; set; }
+        public string? String2 { get; set; }
+        public string? String3 { get; set; }
+        public string? String4 { get; set; }
+        public string? String5 { get; set; }
+        public string? String6 { get; set; }
+        public string? String7 { get; set; }
+        public string? String8 { get; set; }
+        public string? String9 { get; set; }
+        public string? String0 { get; set; }
 
         public decimal Value1 { get; set; }
         public decimal Value2 { get; set; }
@@ -39,9 +39,9 @@ namespace Pets.Service
         public DateTime Date2 { get; set; }
         public DateTime Date3 { get; set; }
 
-        public SubNormalJsonModel[] SubModels1 { get; set; }
-        public SubNormalJsonModel[] SubModels2 { get; set; }
-        public SubNormalJsonModel[] SubModels3 { get; set; }
+        public SubNormalJsonModel[]? SubModels1 { get; set; }
+        public SubNormalJsonModel[]? SubModels2 { get; set; }
+        public SubNormalJsonModel[]? SubModels3 { get; set; }
 
         public static NormalJsonModel Create()
         {
@@ -79,16 +79,16 @@ namespace Pets.Service
         [GenerateTypeDetail]
         public class SubNormalJsonModel
         {
-            public string SubString1 { get; set; }
-            public string SubString2 { get; set; }
-            public string SubString3 { get; set; }
-            public string SubString4 { get; set; }
-            public string SubString5 { get; set; }
-            public string SubString6 { get; set; }
-            public string SubString7 { get; set; }
-            public string SubString8 { get; set; }
-            public string SubString9 { get; set; }
-            public string SubString0 { get; set; }
+            public string? SubString1 { get; set; }
+            public string? SubString2 { get; set; }
+            public string? SubString3 { get; set; }
+            public string? SubString4 { get; set; }
+            public string? SubString5 { get; set; }
+            public string? SubString6 { get; set; }
+            public string? SubString7 { get; set; }
+            public string? SubString8 { get; set; }
+            public string? SubString9 { get; set; }
+            public string? SubString0 { get; set; }
 
             public decimal SubValue1 { get; set; }
             public decimal SubValue2 { get; set; }

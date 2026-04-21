@@ -6,11 +6,18 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Zerra.Repository
 {
+    /// <summary>
+    /// Default implementation of <see cref="IRepoSetup"/> that dispatches queries and persist operations to registered <see cref="ITransactStoreProvider{TModel}"/> instances.
+    /// </summary>
     public sealed partial class Repo : IRepoSetup, IRepoInternal
     {
         private readonly RepoContext context;
         private readonly Dictionary<Type, ITransactStoreProvider> providers;
 
+        /// <summary>
+        /// Creates a new <see cref="Repo"/> instance and sets it as the static repository.
+        /// </summary>
+        /// <returns>The new <see cref="IRepoSetup"/> instance.</returns>
         public static IRepoSetup New()
         {
             var repo = new Repo();

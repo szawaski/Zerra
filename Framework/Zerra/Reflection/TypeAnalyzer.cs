@@ -29,6 +29,16 @@ namespace Zerra.Reflection
             return byType.GetOrAdd(type, GenerateTypeDetail);
         }
 
+        private static TypeDetail GenerateTypeDetail(Type type)
+        {
+            if (!RuntimeFeature.IsDynamicCodeSupported)
+                throw new NotSupportedException($"Cannot generate type detail for {type.Name}. Dynamic code generation is not supported in this build configuration.");
+
+#pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
+            return TypeDetailGenerator.GenerateTypeDetail(type);
+#pragma warning restore IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
+        }
+
         /// <summary>
         /// Registers pre-generated type information in the analyzer cache.
         /// </summary>
@@ -41,16 +51,6 @@ namespace Zerra.Reflection
         {
             //core types might repeat in different assemblies so don't duplicate check
             _ = byType.TryAdd(typeInfo.Type, typeInfo);
-        }
-
-        private static TypeDetail GenerateTypeDetail(Type type)
-        {
-            if (!RuntimeFeature.IsDynamicCodeSupported)
-                throw new NotSupportedException($"Cannot generate type detail for {type.Name}. Dynamic code generation is not supported in this build configuration.");
-
-#pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
-            return TypeDetailGenerator.GenerateTypeDetail(type);
-#pragma warning restore IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
         }
 
         /// <summary>

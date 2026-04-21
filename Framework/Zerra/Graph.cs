@@ -38,7 +38,14 @@ namespace Zerra
             }
         }
 
-        //private static readonly TypeDetail graphTType = typeof(Graph<>).GetTypeDetail();
+        /// <summary>
+        /// Gets a value indicating whether any members have been explicitly removed from the graph.
+        /// </summary>
+        public bool HasRemovedMembers => removedMembers is not null && removedMembers.Count > 0;
+        /// <summary>
+        /// Gets a value indicating whether any members have been explicitly added to the graph.
+        /// </summary>
+        public bool HasAddedMembers => addedMembers is not null && addedMembers.Count > 0;
 
         /// <summary>
         /// Stores the signature string associated with the current instance.
@@ -96,7 +103,7 @@ namespace Zerra
         /// <param name="includeAllMembers">Indicates if all members should be included.</param>
         public Graph(bool includeAllMembers)
         {
-            this.includeAllMembers = true;
+            this.includeAllMembers = includeAllMembers;
             this.signature = "A";
         }
         /// <summary>
@@ -210,7 +217,7 @@ namespace Zerra
                 }
             }
 
-            if (includeAllMembers && removedMembers is not null)
+            if (removedMembers is not null)
             {
                 foreach (var member in removedMembers.OrderBy(x => x))
                 {
@@ -287,7 +294,6 @@ namespace Zerra
             }
 
             signature = null;
-
         }
         /// <summary>
         /// Removes a member from the graph. This overrides <see cref="IncludeAllMembers"/>.
@@ -403,7 +409,21 @@ namespace Zerra
         /// <returns>True if the graph has the member; otherwise false.</returns>
         public bool HasMember(string member)
         {
-            return (includeAllMembers && (removedMembers is null || !removedMembers.Contains(member))) || (addedMembers is not null && addedMembers.Contains(member)) || (childGraphs is not null && childGraphs.ContainsKey(member));
+            return (includeAllMembers && (removedMembers is null || !removedMembers.Contains(member))) ||
+                (addedMembers is not null && addedMembers.Contains(member)) ||
+                (childGraphs is not null && childGraphs.ContainsKey(member));
+        }
+
+
+        /// <summary>
+        /// Determines whether the graph explicitly includes a member, regardless of the <see cref="IncludeAllMembers"/> setting.
+        /// </summary>
+        /// <param name="member">The member to check.</param>
+        /// <returns>True if the member was explicitly added or has a child graph; otherwise false.</returns>
+        public bool HasMemberExplicitly(string member)
+        {
+            return (addedMembers is not null && addedMembers.Contains(member)) ||
+                 (childGraphs is not null && childGraphs.ContainsKey(member));
         }
 
         /// <summary>
@@ -513,6 +533,7 @@ namespace Zerra
 
                 _ = sb.Append("[ALL]");
             }
+
             if (addedMembers is not null)
             {
                 foreach (var member in addedMembers)
@@ -565,13 +586,19 @@ namespace Zerra
 
                 childGraph = new();
 
-                if (canIncludeAllMembers && graph.addedMembers is not null && graph.addedMembers.Contains(member.Name))
+                if (canIncludeAllMembers && (graph.addedMembers is not null && graph.addedMembers.Contains(member.Name)))
                     childGraph.includeAllMembers = true;
 
                 graph.childGraphs.Add(member.Name, childGraph);
                 _ = graph.addedMembers?.Remove(member.Name);
             }
+            else
+            {
+                if (canIncludeAllMembers && (graph.addedMembers is not null && graph.addedMembers.Contains(member.Name)))
+                    childGraph.includeAllMembers = true;
+            }
 
             return childGraph;
         }
-    }}
+    }
+}

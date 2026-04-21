@@ -40,7 +40,7 @@ namespace Zerra.Repository
             return order;
         }
 
-        public object DecompressModel(object model, Graph? graph, bool newCopy)
+        public TModel DecompressModel(TModel model, Graph? graph, bool newCopy)
         {
             if (!this.Enabled)
                 return model;
@@ -52,7 +52,7 @@ namespace Zerra.Repository
             graph = graph is null ? null : new Graph<TModel>(graph);
 
             if (newCopy)
-                model = Mapper.Map<TModel, TModel>((TModel)model, graph);
+                model = model.Copy();
 
             foreach (var property in properties)
             {
@@ -91,7 +91,7 @@ namespace Zerra.Repository
         }
         public IEnumerable DecompressModels(IEnumerable models, Graph? graph, bool newCopy)
         {
-            if (!this.Enabled || graph is null)
+            if (!this.Enabled)
                 return models;
 
             var properties = CompressionCommon.GetModelCompressableProperties(typeof(TModel), this.Properties);
@@ -101,7 +101,12 @@ namespace Zerra.Repository
             graph = graph is null ? null : new Graph<TModel>(graph);
 
             if (newCopy)
-                models = Mapper.Map<IEnumerable<TModel>, TModel[]>((IEnumerable<TModel>)models, graph);
+            {
+                var copies = new List<TModel>();
+                foreach(TModel model in models)
+                    copies.Add(model.Copy());
+                models = copies;
+            }
 
             foreach (var model in models)
             {
@@ -377,8 +382,9 @@ namespace Zerra.Repository
             {
                 var copy = new object[models.Length];
                 for (var i = 0; i < models.Length; i++)
-                    copy[i] = Mapper.Map<TModel, TModel>((TModel)models[i], graph);
+                    copy[i] = models[i].CopyObject();
             }
+
             foreach (var model in models)
             {
                 foreach (var property in properties)

@@ -192,7 +192,7 @@ namespace Zerra.Test.CQRS.Network
             var stream = new TcpProtocolBodyStream(baseStream, Array.Empty<byte>(), writeMode: true, leaveOpen: false);
             var buffer = new byte[10];
 
-            _ = await Assert.ThrowsAsync<InvalidOperationException>(async () => await stream.ReadAsync(buffer, 0, buffer.Length));
+            _ = await Assert.ThrowsAsync<InvalidOperationException>(async () => await stream.ReadExactlyAsync(buffer, 0, buffer.Length));
         }
 
         [Fact]

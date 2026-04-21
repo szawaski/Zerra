@@ -128,8 +128,8 @@ namespace Zerra.SourceGeneration
         public static string GetFullName(ITypeSymbol typeSymbol)
         {
             var fullTypeName = typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-            if (!typeSymbol.IsValueType && fullTypeName.EndsWith("?"))
-                fullTypeName = fullTypeName.Substring(0, fullTypeName.Length - 1);
+            //if (!typeSymbol.IsValueType && fullTypeName.EndsWith("?"))
+            //    fullTypeName = fullTypeName.Substring(0, fullTypeName.Length - 1);
             return fullTypeName;
         }
 

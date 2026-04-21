@@ -9,6 +9,9 @@ using System.Text;
 
 namespace Zerra.SourceGeneration
 {
+    /// <summary>
+    /// Generates source code for type detail registrations based on discovered model types.
+    /// </summary>
     public static class TypesGenerator
     {
         private static readonly string iEnumberableTypeName = nameof(IEnumerable);
@@ -33,6 +36,11 @@ namespace Zerra.SourceGeneration
         private static readonly string iReadOnlyDictionaryGenericTypeName = typeof(IReadOnlyDictionary<,>).Name;
         private static readonly string dictionaryGenericTypeName = typeof(Dictionary<,>).Name;
 
+        /// <summary>
+        /// Appends source generation code for all discovered model types to the provided <see cref="StringBuilder"/>.
+        /// </summary>
+        /// <param name="sb">The <see cref="StringBuilder"/> to append the generated source code to.</param>
+        /// <param name="models">The dictionary of model types to generate, keyed by full type name.</param>
         public static void Generate(StringBuilder sb, Dictionary<string, TypeToGenerate> models)
         {
             foreach (var model in models.Values)
@@ -45,6 +53,8 @@ namespace Zerra.SourceGeneration
                 var typeOfName = $"typeof({model.TypeName})";
                 var symbolMembers = model.TypeSymbol.GetMembers();
 
+                var canBeTypeArgument = !model.TypeSymbol.IsStatic;
+
                 CoreType? coreType = null;
                 var isCoreType = TypeLookup.CoreTypeLookup(model.TypeName, out var coreTypeParsed);
                 if (isCoreType)
@@ -54,7 +64,11 @@ namespace Zerra.SourceGeneration
                 _ = sb.Append("//").Append(Helper.GetFullName(model.TypeSymbol) + " - " + model.Source);
 
                 _ = sb.Append(Environment.NewLine);
-                _ = sb.Append("global::Zerra.Reflection.Register.Type(new global::Zerra.Reflection.TypeDetail<").Append(model.TypeName).Append(">(");
+
+                if (canBeTypeArgument)
+                    _ = sb.Append("global::Zerra.Reflection.Register.Type(new global::Zerra.Reflection.TypeDetail<").Append(model.TypeName).Append(">(");
+                else
+                    _ = sb.Append("global::Zerra.Reflection.Register.Type(new global::Zerra.Reflection.TypeDetail(").Append(typeOfName).Append(", ");
 
                 GenerateMembers(sb, isCoreType, model.TypeName, namedTypeSymbol, symbolMembers);
 
@@ -499,7 +513,7 @@ namespace Zerra.SourceGeneration
         {
             if (namedTypeSymbol != null && !namedTypeSymbol.IsAbstract && !namedTypeSymbol.IsUnboundGenericType && namedTypeSymbol.TypeKind != TypeKind.Interface)
             {
-                if (namedTypeSymbol.Constructors.Any(x => x.Parameters.Length == 0))
+                if (namedTypeSymbol.Constructors.Any(x => x.Parameters.Length == 0) && !namedTypeSymbol.IsStatic)
                 {
                     (var properties, var fields) = TypeFinder.GetPropertiesAndFields(namedTypeSymbol, symbolMembers);
                     var requiredMembers = TypeFinder.GetRequiredMembers(properties, fields);

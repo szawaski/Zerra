@@ -7,8 +7,16 @@ using System.Collections.Immutable;
 
 namespace Zerra.SourceGeneration
 {
+    /// <summary>
+    /// Provides utilities for discovering and collecting types, properties, methods, constructors, and required members during source generation.
+    /// </summary>
     public static partial class TypeFinder
     {
+        /// <summary>
+        /// Discovers all model types reachable from the given type symbol and adds them to the provided dictionary.
+        /// </summary>
+        /// <param name="typeSymbol">The root type symbol to begin discovery from.</param>
+        /// <param name="models">The dictionary to populate with discovered <see cref="TypeToGenerate"/> entries, keyed by full type name.</param>
         public static void FindModels(ITypeSymbol typeSymbol, Dictionary<string, TypeToGenerate> models)
         {
             if (typeSymbol.TypeKind != TypeKind.Class && typeSymbol.TypeKind != TypeKind.Interface)
@@ -58,7 +66,7 @@ namespace Zerra.SourceGeneration
             var arrayTypeSymbol = typeSymbol as IArrayTypeSymbol;
             if (namedTypeSymbol == null && arrayTypeSymbol == null)
                 return;
-            if (typeSymbol.DeclaredAccessibility != Accessibility.Public && typeSymbol.DeclaredAccessibility != Accessibility.NotApplicable)
+            if (typeSymbol.DeclaredAccessibility != Accessibility.Public && typeSymbol.DeclaredAccessibility != Accessibility.Internal && typeSymbol.DeclaredAccessibility != Accessibility.NotApplicable)
                 return;
 
             if (typeSymbol.TypeKind != TypeKind.Class && typeSymbol.TypeKind != TypeKind.Struct && typeSymbol.TypeKind != TypeKind.Enum
@@ -196,6 +204,12 @@ namespace Zerra.SourceGeneration
             }
         }
 
+        /// <summary>
+        /// Retrieves all properties and fields for the given type, including those inherited from interfaces.
+        /// </summary>
+        /// <param name="typeSymbol">The type symbol to inspect.</param>
+        /// <param name="symbolMembers">The flattened member list for the type.</param>
+        /// <returns>A tuple containing the list of discovered <see cref="FoundProperty"/> instances and the list of <see cref="IFieldSymbol"/> instances.</returns>
         public static (List<FoundProperty>, List<IFieldSymbol>) GetPropertiesAndFields(ITypeSymbol typeSymbol, ImmutableArray<ISymbol> symbolMembers)
         {
             var properties = symbolMembers.Where(x => x.Kind == SymbolKind.Property).Cast<IPropertySymbol>().Where(x => x.ExplicitInterfaceImplementations.Length == 0 && !x.IsIndexer).Select(x => new FoundProperty(x, x.Name, false)).ToList();
@@ -241,6 +255,12 @@ namespace Zerra.SourceGeneration
 
             return (properties, fields);
         }
+        /// <summary>
+        /// Retrieves all public methods for the given type, including those inherited from interfaces.
+        /// </summary>
+        /// <param name="typeSymbol">The type symbol to inspect.</param>
+        /// <param name="symbolMembers">The flattened member list for the type.</param>
+        /// <returns>A list of <see cref="FoundMethod"/> instances representing the discovered methods.</returns>
         public static List<FoundMethod> GetMethods(ITypeSymbol typeSymbol, ImmutableArray<ISymbol> symbolMembers)
         {
             var methods = symbolMembers.Where(x => x.Kind == SymbolKind.Method && x.DeclaredAccessibility == Accessibility.Public).Cast<IMethodSymbol>().Where(x => x.MethodKind == MethodKind.Ordinary || x.MethodKind == MethodKind.Destructor || x.MethodKind == MethodKind.PropertyGet || x.MethodKind == MethodKind.PropertySet || x.MethodKind == MethodKind.ExplicitInterfaceImplementation).Select(x => new FoundMethod(x, x.Name, false)).ToList();
@@ -280,11 +300,23 @@ namespace Zerra.SourceGeneration
 
             return methods;
         }
+        /// <summary>
+        /// Retrieves all public constructors for the given type.
+        /// </summary>
+        /// <param name="typeSymbol">The type symbol to inspect.</param>
+        /// <param name="symbolMembers">The flattened member list for the type.</param>
+        /// <returns>An array of <see cref="IMethodSymbol"/> representing the public constructors.</returns>
         public static IMethodSymbol[] GetConstructors(ITypeSymbol typeSymbol, ImmutableArray<ISymbol> symbolMembers)
         {
             var constructors = symbolMembers.Where(x => x.Kind == SymbolKind.Method && x.DeclaredAccessibility == Accessibility.Public).Cast<IMethodSymbol>().Where(x => x.MethodKind == MethodKind.Constructor).ToArray();
             return constructors;
         }
+        /// <summary>
+        /// Retrieves all required members from the given properties and fields.
+        /// </summary>
+        /// <param name="properties">The list of discovered properties to inspect.</param>
+        /// <param name="fields">The list of discovered fields to inspect.</param>
+        /// <returns>An array of <see cref="RequiredMembers"/> representing all required members.</returns>
         public static RequiredMembers[] GetRequiredMembers(List<FoundProperty> properties, List<IFieldSymbol> fields)
         {
             return properties.Where(x => x.IsExplicitFromInterface == false && x.PropertySymbol.IsRequired).Select(x => new RequiredMembers(x.PropertySymbol.Type, x.PropertySymbol.Name)).Concat(fields.Where(x => x.IsRequired).Select(x => new RequiredMembers( x.Type, x.Name))).ToArray();

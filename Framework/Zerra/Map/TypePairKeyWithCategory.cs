@@ -9,8 +9,9 @@ namespace Zerra.Map
     /// <summary>
     /// A class to use two types as a hash key.
     /// </summary>
-    internal class TypePairKey
+    internal class TypePairKeyWithCategory
     {
+        private readonly byte category;
         private readonly Type type1;
         private readonly Type type2;
 
@@ -20,10 +21,12 @@ namespace Zerra.Map
         /// <summary>
         /// Creates a new TypeKey.
         /// </summary>
+        /// <param name="category">A byte to use as a category for the hash. This can be used to create different hashes for different purposes.</param>
         /// <param name="type1">A type for the hash.</param>
         /// <param name="type2">A type for the hash.</param>
-        public TypePairKey(Type type1, Type type2)
+        public TypePairKeyWithCategory(byte category, Type type1, Type type2)
         {
+            this.category = category;
             this.type1 = type1;
             this.type2 = type2;
         }
@@ -35,9 +38,9 @@ namespace Zerra.Map
         /// <returns>True if they are equal; otherwise, False.</returns>
         public override bool Equals(object? obj)
         {
-            if (obj is not TypePairKey objCasted)
+            if (obj is not TypePairKeyWithCategory objCasted)
                 return false;
-            if (this.type1 != objCasted.type1 || this.type2 != objCasted.type2)
+            if (this.category != objCasted.category || this.type1 != objCasted.type1 || this.type2 != objCasted.type2)
                 return false;
 
             return true;
@@ -51,11 +54,12 @@ namespace Zerra.Map
         {
 #if !NETSTANDARD2_0
 
-            return HashCode.Combine(type1, type2);
+            return HashCode.Combine(category, type1, type2);
 #else
             unchecked
             {
                 var hash = (int)2166136261;
+                hash = (hash * 16777619) ^ category.GetHashCode();
                 hash = (hash * 16777619) ^ type1.GetHashCode();
                 hash = (hash * 16777619) ^ type2.GetHashCode();
                 return hash;
@@ -70,6 +74,7 @@ namespace Zerra.Map
         public override string ToString()
         {
             var sb = new StringBuilder();
+            _ = sb.Append(category).Append('-');
             _ = sb.Append(type1.FullName).Append(", ");
             _ = sb.Append(type2.FullName);
             return sb.ToString();
