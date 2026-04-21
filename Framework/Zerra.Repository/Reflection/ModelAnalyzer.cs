@@ -2,17 +2,24 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
-using System.Reflection;
 using Zerra.Collections;
 using Zerra.Reflection;
 
 namespace Zerra.Repository.Reflection
 {
+    /// <summary>
+    /// Provides cached reflection-based analysis of repository model types, exposing identity,
+    /// foreign-identity, and LINQ expression helpers.
+    /// </summary>
     public static class ModelAnalyzer
     {
         private static readonly ConcurrentFactoryDictionary<Type, ModelDetail> modelInfos = new();
+        /// <summary>
+        /// Returns the cached <see cref="ModelDetail"/> for the specified type, creating it on first access.
+        /// </summary>
+        /// <param name="type">The model type to analyse.</param>
+        /// <returns>The <see cref="ModelDetail"/> for <paramref name="type"/>.</returns>
         public static ModelDetail GetModel(Type type)
         {
             var modelInfo = modelInfos.GetOrAdd(type, static (type) =>
@@ -176,6 +183,12 @@ namespace Zerra.Repository.Reflection
         }
 
         private static readonly ConcurrentFactoryDictionary<Type, string[]> identityPropertyNames = new();
+        /// <summary>
+        /// Returns the names of all properties on the specified type that are marked with <see cref="IdentityAttribute"/>.
+        /// </summary>
+        /// <param name="type">The model type to inspect.</param>
+        /// <returns>An array of identity property names.</returns>
+        /// <exception cref="Exception">Thrown when the type has no identity properties.</exception>
         public static string[] GetIdentityPropertyNames(Type type)
         {
             var names = identityPropertyNames.GetOrAdd(type, GenerateIdentityPropertyNames);
@@ -195,6 +208,14 @@ namespace Zerra.Repository.Reflection
             return properties.ToArray();
         }
 
+        /// <summary>
+        /// Retrieves the identity value(s) from a model instance.
+        /// For composite identities the result is an <see cref="object"/> array.
+        /// </summary>
+        /// <param name="type">The model type.</param>
+        /// <param name="model">The model instance to read from.</param>
+        /// <returns>The identity value, or an array of values for composite identities.</returns>
+        /// <exception cref="Exception">Thrown when the type has no identity or the identity value is <see langword="null"/>.</exception>
         public static object GetIdentity(Type type, object model)
         {
             var modelIdentityAccessor = GetGetterFunctionByAttribute(type);
@@ -206,12 +227,26 @@ namespace Zerra.Repository.Reflection
             return id;
         }
 
+        /// <summary>
+        /// Sets the identity value(s) on a model instance.
+        /// </summary>
+        /// <param name="type">The model type.</param>
+        /// <param name="model">The model instance to write to.</param>
+        /// <param name="identity">The identity value to assign, or an array of values for composite identities.</param>
         public static void SetIdentity(Type type, object model, object? identity)
         {
             var setter = GetSetterFunctionByAttribute(type);
             setter.Invoke(model, identity);
         }
 
+        /// <summary>
+        /// Retrieves the foreign-identity value(s) from a model instance using a comma-separated list of property names.
+        /// </summary>
+        /// <param name="type">The model type.</param>
+        /// <param name="foreignIdentityNames">A comma-separated list of foreign-identity property names.</param>
+        /// <param name="model">The model instance to read from.</param>
+        /// <returns>The foreign-identity value, or an array of values for composite keys.</returns>
+        /// <exception cref="Exception">Thrown when no matching property is found.</exception>
         public static object? GetForeignIdentity(Type type, string foreignIdentityNames, object model)
         {
             var modelIdentityAccessor = GetGetterFunctionByName(type, foreignIdentityNames);
@@ -221,12 +256,25 @@ namespace Zerra.Repository.Reflection
             return id;
         }
 
+        /// <summary>
+        /// Sets the foreign-identity value(s) on a model instance using a comma-separated list of property names.
+        /// </summary>
+        /// <param name="type">The model type.</param>
+        /// <param name="foreignIdentityNames">A comma-separated list of foreign-identity property names.</param>
+        /// <param name="model">The model instance to write to.</param>
+        /// <param name="identity">The foreign-identity value to assign, or an array of values for composite keys.</param>
         public static void SetForeignIdentity(Type type, string foreignIdentityNames, object model, object identity)
         {
             var setter = GetSetterFunctionByName(type, foreignIdentityNames);
             setter.Invoke(model, identity);
         }
 
+        /// <summary>
+        /// Compares two identity values for equality, supporting both scalar and composite (array) identities.
+        /// </summary>
+        /// <param name="identity1">The first identity value.</param>
+        /// <param name="identity2">The second identity value.</param>
+        /// <returns><see langword="true"/> if the identities are equal; otherwise <see langword="false"/>.</returns>
         public static bool CompareIdentities(object? identity1, object? identity2)
         {
             if (identity1 is null)
@@ -265,6 +313,15 @@ namespace Zerra.Repository.Reflection
             return false;
         }
 
+        /// <summary>
+        /// Builds a LINQ predicate expression that matches a model by its identity value(s).
+        /// </summary>
+        /// <typeparam name="TModel">The model type.</typeparam>
+        /// <param name="identity">The identity value, or an array of values for composite identities.</param>
+        /// <returns>
+        /// A <see cref="Expression{TDelegate}"/> of <c>Func&lt;TModel, bool&gt;</c> that filters by identity,
+        /// or <see langword="null"/> if the type has no identity properties.
+        /// </returns>
         public static Expression<Func<TModel, bool>>? GetIdentityExpression<TModel>(object identity)
         {
             var type = typeof(TModel);

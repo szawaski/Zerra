@@ -2,13 +2,14 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Runtime.CompilerServices;
 
 namespace Zerra.Repository.IO
 {
     public ref partial struct CharWriter
     {
+        /// <summary>Writes the decimal text representation of a <see cref="byte"/> value.</summary>
+        /// <param name="value">The value to write.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(byte value)
         {
@@ -16,6 +17,8 @@ namespace Zerra.Repository.IO
             WriteUInt64(value);
         }
 
+        /// <summary>Writes the decimal text representation of an <see cref="sbyte"/> value.</summary>
+        /// <param name="value">The value to write.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(sbyte value)
         {
@@ -23,6 +26,8 @@ namespace Zerra.Repository.IO
             WriteInt64(value);
         }
 
+        /// <summary>Writes the decimal text representation of a <see cref="short"/> value.</summary>
+        /// <param name="value">The value to write.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(short value)
         {
@@ -30,6 +35,8 @@ namespace Zerra.Repository.IO
             WriteInt64(value);
         }
 
+        /// <summary>Writes the decimal text representation of a <see cref="ushort"/> value.</summary>
+        /// <param name="value">The value to write.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(ushort value)
         {
@@ -37,6 +44,8 @@ namespace Zerra.Repository.IO
             WriteUInt64(value);
         }
 
+        /// <summary>Writes the decimal text representation of an <see cref="int"/> value.</summary>
+        /// <param name="value">The value to write.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(int value)
         {
@@ -44,6 +53,8 @@ namespace Zerra.Repository.IO
             WriteInt64(value);
         }
 
+        /// <summary>Writes the decimal text representation of a <see cref="uint"/> value.</summary>
+        /// <param name="value">The value to write.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(uint value)
         {
@@ -51,6 +62,8 @@ namespace Zerra.Repository.IO
             WriteUInt64(value);
         }
 
+        /// <summary>Writes the decimal text representation of a <see cref="long"/> value.</summary>
+        /// <param name="value">The value to write.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(long value)
         {
@@ -58,6 +71,8 @@ namespace Zerra.Repository.IO
             WriteInt64(value);
         }
 
+        /// <summary>Writes the decimal text representation of a <see cref="ulong"/> value.</summary>
+        /// <param name="value">The value to write.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(ulong value)
         {
@@ -65,6 +80,8 @@ namespace Zerra.Repository.IO
             WriteUInt64(value);
         }
 
+        /// <summary>Writes the text representation of a <see cref="float"/> value.</summary>
+        /// <param name="value">The value to write.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(float value)
         {
@@ -72,6 +89,8 @@ namespace Zerra.Repository.IO
             Write(value.ToString());
         }
 
+        /// <summary>Writes the text representation of a <see cref="double"/> value.</summary>
+        /// <param name="value">The value to write.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(double value)
         {
@@ -79,6 +98,8 @@ namespace Zerra.Repository.IO
             Write(value.ToString());
         }
 
+        /// <summary>Writes the text representation of a <see cref="decimal"/> value.</summary>
+        /// <param name="value">The value to write.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(decimal value)
         {
@@ -86,6 +107,8 @@ namespace Zerra.Repository.IO
             Write(value.ToString());
         }
 
+        /// <summary>Writes a single <see cref="char"/>.</summary>
+        /// <param name="value">The character to write.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(char value)
         {
@@ -93,6 +116,8 @@ namespace Zerra.Repository.IO
             buffer[position++] = value;
         }
 
+        /// <summary>Writes all characters of a <see cref="string"/>. No-op for <see langword="null"/> or empty strings.</summary>
+        /// <param name="value">The string to write.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void Write(string? value)
         {
@@ -116,6 +141,10 @@ namespace Zerra.Repository.IO
             position += pCount;
         }
 
+        /// <summary>Writes a range of characters from a <see cref="char"/> array.</summary>
+        /// <param name="value">The source array.</param>
+        /// <param name="index">The zero-based index at which to begin reading.</param>
+        /// <param name="count">The number of characters to write.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void Write(char[] value, int index, int count)
         {
@@ -133,6 +162,9 @@ namespace Zerra.Repository.IO
             position += pCount;
         }
 
+        /// <summary>Writes a <see cref="DateTime"/> value in the specified <see cref="DateTimeFormat"/>.</summary>
+        /// <param name="value">The value to write.</param>
+        /// <param name="format">The target SQL or ISO format.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(DateTime value, DateTimeFormat format)
         {
@@ -416,6 +448,9 @@ namespace Zerra.Repository.IO
             }
         }
 
+        /// <summary>Writes a <see cref="DateTimeOffset"/> value in the specified <see cref="DateTimeFormat"/>.</summary>
+        /// <param name="value">The value to write.</param>
+        /// <param name="format">The target SQL or ISO format.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(DateTimeOffset value, DateTimeFormat format)
         {
@@ -704,6 +739,9 @@ namespace Zerra.Repository.IO
             }
         }
 
+        /// <summary>Writes a <see cref="TimeSpan"/> value in the specified <see cref="TimeFormat"/>.</summary>
+        /// <param name="value">The value to write.</param>
+        /// <param name="format">The target SQL or ISO format.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(TimeSpan value, TimeFormat format)
         {
@@ -889,6 +927,9 @@ namespace Zerra.Repository.IO
         }
 
 #if NET6_0_OR_GREATER
+        /// <summary>Writes a <see cref="DateOnly"/> value in the specified <see cref="DateTimeFormat"/>.</summary>
+        /// <param name="value">The value to write.</param>
+        /// <param name="format">The target SQL or ISO format.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(DateOnly value, DateTimeFormat format)
         {
@@ -1001,6 +1042,9 @@ namespace Zerra.Repository.IO
             }
         }
 
+        /// <summary>Writes a <see cref="TimeOnly"/> value in the specified <see cref="TimeFormat"/>.</summary>
+        /// <param name="value">The value to write.</param>
+        /// <param name="format">The target SQL or ISO format.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(TimeOnly value, TimeFormat format)
         {
@@ -1135,12 +1179,17 @@ namespace Zerra.Repository.IO
         }
 #endif
 
+        /// <summary>Writes the string representation of a <see cref="Guid"/>.</summary>
+        /// <param name="value">The value to write.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(Guid value)
         {
             Write(value.ToString());
         }
 
+        /// <summary>Writes a byte array in the specified <see cref="ByteFormat"/>.</summary>
+        /// <param name="value">The byte array to write.</param>
+        /// <param name="format">The target encoding format.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void Write(byte[] value, ByteFormat format)
         {
@@ -1203,6 +1252,8 @@ namespace Zerra.Repository.IO
             }
         }
 
+        /// <summary>Appends the written content of another <see cref="CharWriter"/> into this instance.</summary>
+        /// <param name="value">The source writer whose content will be appended.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void Write(in CharWriter value)
         {
@@ -1219,6 +1270,8 @@ namespace Zerra.Repository.IO
             position += pCount;
         }
 
+        /// <summary>Writes all characters from a <see cref="ReadOnlySpan{T}"/>. No-op for an empty span.</summary>
+        /// <param name="value">The span of characters to write.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void Write(ReadOnlySpan<char> value)
         {

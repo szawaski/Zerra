@@ -8,8 +8,18 @@ using Zerra.Reflection;
 
 namespace Zerra.Linq
 {
+    /// <summary>
+    /// Provides methods for composing and appending LINQ predicate expressions.
+    /// </summary>
     public static class LinqAppender
     {
+        /// <summary>
+        /// Combines an existing predicate with an additional predicate using a logical AND.
+        /// </summary>
+        /// <typeparam name="T">The type being filtered.</typeparam>
+        /// <param name="it">The existing predicate expression.</param>
+        /// <param name="expression">The predicate expression to AND with <paramref name="it"/>.</param>
+        /// <returns>A new expression that is the logical AND of both predicates.</returns>
         public static Expression<Func<T, bool>> AppendAnd<T>(LambdaExpression it, LambdaExpression expression)
         {
             var exp = it.Body;
@@ -23,6 +33,15 @@ namespace Zerra.Linq
 
         private static readonly MethodInfo anyMethod1 = typeof(Enumerable).GetMethods().First(m => m.Name == "Any" && m.GetParameters().Length == 1);
         private static readonly MethodInfo anyMethod2 = typeof(Enumerable).GetMethods().First(m => m.Name == "Any" && m.GetParameters().Length == 2);
+        /// <summary>
+        /// Appends a predicate onto a specific member of the root model, handling collections with an <c>Any</c> check
+        /// and nullable members with a null-guard.
+        /// </summary>
+        /// <typeparam name="T">The type being filtered.</typeparam>
+        /// <param name="it">The existing predicate expression.</param>
+        /// <param name="member">The property or field on <typeparamref name="T"/> to target.</param>
+        /// <param name="expression">The predicate expression to apply to the member.</param>
+        /// <returns>A new expression combining <paramref name="it"/> with the member predicate.</returns>
         public static Expression<Func<T, bool>> AppendExpressionOnMember<T>(Expression<Func<T, bool>> it, MemberInfo member, LambdaExpression expression)
         {
             PropertyInfo? propertyInfo = null;

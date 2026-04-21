@@ -4,9 +4,13 @@
 
 namespace Zerra.Repository
 {
+    /// <summary>
+    /// A <see cref="DataContext"/> that selects the first available engine from a collection of candidate <see cref="DataContext"/> instances.
+    /// </summary>
     public abstract class DataContextSelector : DataContext
     {
-        protected override sealed IDataStoreEngine GetEngine()
+        /// <inheritdoc/>
+        protected override sealed IDataStoreEngine? GetEngine()
         {
             var contexts = GetDataContexts();
             foreach (var context in contexts)
@@ -21,6 +25,10 @@ namespace Zerra.Repository
 
         private readonly object locker = new();
         private ICollection<DataContext>? contexts = null;
+        /// <summary>
+        /// Returns the cached collection of candidate <see cref="DataContext"/> instances, initializing it on first access.
+        /// </summary>
+        /// <returns>The collection of <see cref="DataContext"/> instances to select from.</returns>
         protected ICollection<DataContext> GetDataContexts()
         {
             if (contexts is null)
@@ -32,6 +40,10 @@ namespace Zerra.Repository
             }
             return contexts;
         }
+        /// <summary>
+        /// Loads the collection of candidate <see cref="DataContext"/> instances used for engine selection.
+        /// </summary>
+        /// <returns>The collection of <see cref="DataContext"/> instances to select from.</returns>
         protected abstract ICollection<DataContext> LoadDataContexts();
     }
 }

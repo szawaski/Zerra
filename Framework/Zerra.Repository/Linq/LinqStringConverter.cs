@@ -2,7 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Collections;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -11,8 +10,16 @@ using Zerra.Reflection;
 
 namespace Zerra.Linq
 {
+    /// <summary>
+    /// Converts a LINQ <see cref="System.Linq.Expressions.Expression"/> tree into a human-readable string representation.
+    /// </summary>
     public static partial class LinqStringConverter
     {
+        /// <summary>
+        /// Converts the specified expression tree into its string representation.
+        /// </summary>
+        /// <param name="exp">The expression to convert.</param>
+        /// <returns>A string representation of the expression.</returns>
         public static string Convert(Expression exp)
         {
             var sb = new StringBuilder();

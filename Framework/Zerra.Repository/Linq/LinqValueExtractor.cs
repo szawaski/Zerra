@@ -10,8 +10,20 @@ using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository
 {
+    /// <summary>
+    /// Extracts values for specified model properties from a LINQ filter expression.
+    /// </summary>
     internal static partial class LinqValueExtractor
     {
+        /// <summary>
+        /// Extracts constant values compared against the named properties within the given filter expression.
+        /// </summary>
+        /// <param name="where">The filter expression to analyse.</param>
+        /// <param name="propertyModelType">The model type whose properties are being targeted.</param>
+        /// <param name="propertyNames">The names of the properties whose compared values should be extracted.</param>
+        /// <returns>
+        /// A dictionary mapping each property name to the list of values compared against it in the expression.
+        /// </returns>
         public static IDictionary<string, List<object?>> Extract(Expression where, Type propertyModelType, params string[] propertyNames)
         {
             var context = new Context(propertyModelType, propertyNames);

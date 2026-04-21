@@ -8,8 +8,18 @@ using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository
 {
+    /// <summary>
+    /// Provides functionality for generating and updating data store schemas based on code-first model definitions.
+    /// </summary>
     public static class CodeFirstGeneration
     {
+        /// <summary>
+        /// Generates or updates the data store schema based on the provided model types and generation options.
+        /// </summary>
+        /// <param name="engine">The data store engine used to build and execute the generation plan.</param>
+        /// <param name="dataStoreGenerationType">Flags that control how schema generation is performed, including options to preview, restrict creates, updates, or deletes.</param>
+        /// <param name="modelTypes">The model types to analyze and use for schema generation.</param>
+        /// <param name="log">An optional logger for reporting generation progress and plan previews.</param>
         public static void Generate(IDataStoreEngine engine, DataStoreGenerationType dataStoreGenerationType, Type[] modelTypes, ILogger? log = null)
         {
             if (dataStoreGenerationType.HasFlag(DataStoreGenerationType.CodeFirst))

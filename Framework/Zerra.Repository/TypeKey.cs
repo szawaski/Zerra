@@ -2,7 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Text;
 
 namespace Zerra
@@ -10,7 +9,7 @@ namespace Zerra
     //This appeard to slow things down as a struct
 
     /// <summary>
-    /// A class to use a combination of a string, number and/or multiple types as a hash key.
+    /// A key that combines a string, number, and/or one or more types for use as a dictionary or hash key.
     /// </summary>
     public class TypeKey
     {
@@ -20,10 +19,15 @@ namespace Zerra
         private readonly Type? type2;
         private readonly Type[]? typeArray;
 
+        /// <summary>Gets the string component of this key.</summary>
         public string? Str => str;
+        /// <summary>Gets the number component of this key.</summary>
         public int? Number => number;
+        /// <summary>Gets the first type component of this key.</summary>
         public Type? Type1 => type1;
+        /// <summary>Gets the second type component of this key.</summary>
         public Type? Type2 => type2;
+        /// <summary>Gets the type array component of this key.</summary>
         public Type[]? TypeArray => typeArray;
 
         /// <summary>
@@ -178,7 +182,7 @@ namespace Zerra
         /// </summary>
         /// <param name="str">A string for the hash.</param>
         /// <param name="number">A number for the hash.</param>
-        ///  <param name="typeArray">Types for the hash.</param>
+        /// <param name="typeArray">Types for the hash.</param>
         public TypeKey(string str, int? number, Type[]? typeArray)
         {
             this.str = str;
@@ -189,10 +193,10 @@ namespace Zerra
         }
 
         /// <summary>
-        /// Determines if the TypeKeys are equal
+        /// Determines whether the specified object is equal to the current <see cref="TypeKey"/>.
         /// </summary>
-        /// <param name="obj">The object to compare.</param>
-        /// <returns>True if they are equal; otherwise, False.</returns>
+        /// <param name="obj">The object to compare with the current instance.</param>
+        /// <returns><see langword="true"/> if the specified object is equal to the current instance; otherwise, <see langword="false"/>.</returns>
         public override bool Equals(object? obj)
         {
             if (obj is not TypeKey objCasted)
@@ -213,9 +217,9 @@ namespace Zerra
         }
 
         /// <summary>
-        /// Gets a hash code unquie for the string and types of the TypeKey
+        /// Returns a hash code for the current <see cref="TypeKey"/>.
         /// </summary>
-        /// <returns>The hash code.</returns>
+        /// <returns>A hash code derived from the string, number, and types of this instance.</returns>
         public override int GetHashCode()
         {
 #if !NETSTANDARD2_0
@@ -282,9 +286,9 @@ namespace Zerra
         }
 
         /// <summary>
-        /// Generates a string represenation of the TypeKey
+        /// Returns a string representation of the current <see cref="TypeKey"/>.
         /// </summary>
-        /// <returns>The string representation of the TypeKey.</returns>
+        /// <returns>A comma-separated string of the non-null components of this instance.</returns>
         public override string ToString()
         {
             var sb = new StringBuilder();

@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using Zerra.Repository.Reflection;
+﻿using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository
 {

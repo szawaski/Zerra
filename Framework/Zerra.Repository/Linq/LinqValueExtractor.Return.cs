@@ -2,8 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-
 namespace Zerra.Repository
 {
     internal static partial class LinqValueExtractor
