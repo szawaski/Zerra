@@ -12,18 +12,28 @@ using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository
 {
+    /// <summary>
+    /// Abstract layer provider that transparently encrypts and decrypts model properties using symmetric encryption.
+    /// </summary>
+    /// <typeparam name="TNextProviderInterface">The type of the next provider in the chain.</typeparam>
+    /// <typeparam name="TModel">The model type managed by this provider.</typeparam>
     public abstract class BaseTransactStoreEncryptionProvider<TNextProviderInterface, TModel> : BaseTransactStoreLayerProvider<TNextProviderInterface, TModel>
         where TNextProviderInterface : ITransactStoreProvider<TModel>
         where TModel : class, new()
     {
         private const string encryptionPrefix = "<encrypted>";
 
+        /// <summary>Gets a value indicating whether encryption is enabled. Defaults to <see langword="true"/>.</summary>
         public virtual bool Enabled { get { return true; } }
+        /// <summary>Gets an optional graph that restricts which model properties are encrypted. When <see langword="null"/>, all eligible properties are encrypted.</summary>
         public virtual Graph<TModel>? Properties { get { return null; } }
+        /// <summary>Gets the symmetric key used for encryption and decryption.</summary>
         public abstract SymmetricKey EncryptionKey { get; }
 
         private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AESwithShift;
 
+        /// <summary>Initializes a new instance of <see cref="BaseTransactStoreEncryptionProvider{TNextProviderInterface, TModel}"/> with the next provider in the chain.</summary>
+        /// <param name="nextProvider">The next provider to delegate operations to after encryption/decryption.</param>
         public BaseTransactStoreEncryptionProvider(TNextProviderInterface nextProvider)
             : base(nextProvider)
         {
@@ -38,6 +48,11 @@ namespace Zerra.Repository
             return order;
         }
 
+        /// <summary>Decrypts the encrypted properties of a single model.</summary>
+        /// <param name="model">The model whose properties should be decrypted.</param>
+        /// <param name="graph">The graph specifying which members to decrypt, or <see langword="null"/> to decrypt all eligible members.</param>
+        /// <param name="newCopy"><see langword="true"/> to decrypt a copy of the model; <see langword="false"/> to decrypt in place.</param>
+        /// <returns>The model with decrypted properties.</returns>
         public TModel DecryptModel(TModel model, Graph? graph, bool newCopy)
         {
             if (!this.Enabled)
@@ -91,6 +106,11 @@ namespace Zerra.Repository
 
             return model;
         }
+        /// <summary>Decrypts the encrypted properties of a collection of models.</summary>
+        /// <param name="models">The models whose properties should be decrypted.</param>
+        /// <param name="graph">The graph specifying which members to decrypt, or <see langword="null"/> to decrypt all eligible members.</param>
+        /// <param name="newCopy"><see langword="true"/> to decrypt copies of the models; <see langword="false"/> to decrypt in place.</param>
+        /// <returns>The models with decrypted properties.</returns>
         public IEnumerable DecryptModels(IEnumerable models, Graph? graph, bool newCopy)
         {
             if (!this.Enabled)
@@ -153,10 +173,12 @@ namespace Zerra.Repository
             return models;
         }
 
+        /// <inheritdoc/>
         public override sealed void OnQueryIncludingBase(Graph? graph)
         {
             ProviderRelation?.OnQueryIncludingBase(graph);
         }
+        /// <inheritdoc/>
         public override sealed IEnumerable OnGetIncludingBase(IEnumerable models, Graph? graph)
         {
             var returnModels1 = DecryptModels(models, graph, false);
@@ -165,6 +187,7 @@ namespace Zerra.Repository
             var returnModels2 = ProviderRelation.OnGetIncludingBase(returnModels1, graph);
             return returnModels2;
         }
+        /// <inheritdoc/>
         public override sealed async Task<IEnumerable> OnGetIncludingBaseAsync(IEnumerable models, Graph? graph)
         {
             var returnModels1 = DecryptModels(models, graph, false);
@@ -174,6 +197,7 @@ namespace Zerra.Repository
             return returnModels2;
         }
 
+        /// <inheritdoc/>
         public override sealed object Many(Query query)
         {
             var whereCompressed = EncryptWhere(query.Where);
@@ -191,6 +215,7 @@ namespace Zerra.Repository
             var models = DecryptModels(encryptedModels, query.Graph, true);
             return models;
         }
+        /// <inheritdoc/>
         public override sealed object? First(Query query)
         {
             var whereCompressed = EncryptWhere(query.Where);
@@ -208,6 +233,7 @@ namespace Zerra.Repository
             var model = DecryptModel(encryptedModels, query.Graph, true);
             return model;
         }
+        /// <inheritdoc/>
         public override sealed object? Single(Query query)
         {
             var whereCompressed = EncryptWhere(query.Where);
@@ -223,6 +249,7 @@ namespace Zerra.Repository
             var model = DecryptModel(encryptedModels, query.Graph, true);
             return model;
         }
+        /// <inheritdoc/>
         public override sealed object Count(Query query)
         {
             var whereCompressed = EncryptWhere(query.Where);
@@ -233,6 +260,7 @@ namespace Zerra.Repository
             var count = NextProvider.Query(appenedQuery)!;
             return count;
         }
+        /// <inheritdoc/>
         public override sealed object Any(Query query)
         {
             var whereCompressed = EncryptWhere(query.Where);
@@ -243,6 +271,7 @@ namespace Zerra.Repository
             var any = NextProvider.Query(appenedQuery)!;
             return any;
         }
+        /// <inheritdoc/>
         public override sealed object EventMany(Query query)
         {
             var whereCompressed = EncryptWhere(query.Where);
@@ -269,6 +298,7 @@ namespace Zerra.Repository
             return eventModels;
         }
 
+        /// <inheritdoc/>
         public override sealed async Task<object?> ManyAsync(Query query)
         {
             var whereCompressed = EncryptWhere(query.Where);
@@ -286,6 +316,7 @@ namespace Zerra.Repository
             var models = DecryptModels(encryptedModels, query.Graph, true);
             return models;
         }
+        /// <inheritdoc/>
         public override sealed async Task<object?> FirstAsync(Query query)
         {
             var whereCompressed = EncryptWhere(query.Where);
@@ -303,6 +334,7 @@ namespace Zerra.Repository
             var model = DecryptModels(new object[] { encryptedModels }, query.Graph, true).Cast<TModel>().FirstOrDefault();
             return model;
         }
+        /// <inheritdoc/>
         public override sealed async Task<object?> SingleAsync(Query query)
         {
             var whereCompressed = EncryptWhere(query.Where);
@@ -318,6 +350,7 @@ namespace Zerra.Repository
             var model = DecryptModels(new TModel[] { encryptedModels }, query.Graph, true).Cast<TModel>().FirstOrDefault();
             return model;
         }
+        /// <inheritdoc/>
         public override sealed Task<object?> CountAsync(Query query)
         {
             var whereCompressed = EncryptWhere(query.Where);
@@ -328,6 +361,7 @@ namespace Zerra.Repository
             var count = NextProvider.QueryAsync(appenedQuery);
             return count;
         }
+        /// <inheritdoc/>
         public override sealed Task<object?> AnyAsync(Query query)
         {
             var whereCompressed = EncryptWhere(query.Where);
@@ -338,6 +372,7 @@ namespace Zerra.Repository
             var any = NextProvider.QueryAsync(appenedQuery);
             return any;
         }
+        /// <inheritdoc/>
         public override sealed async Task<object?> EventManyAsync(Query query)
         {
             var whereCompressed = EncryptWhere(query.Where);
@@ -364,6 +399,11 @@ namespace Zerra.Repository
             return eventModels;
         }
 
+        /// <summary>Encrypts the eligible properties of an array of models.</summary>
+        /// <param name="models">The models whose properties should be encrypted.</param>
+        /// <param name="graph">The graph specifying which members to encrypt, or <see langword="null"/> to encrypt all eligible members.</param>
+        /// <param name="newCopy"><see langword="true"/> to encrypt copies of the models; <see langword="false"/> to encrypt in place.</param>
+        /// <returns>The models with encrypted properties.</returns>
         public object[] EncryptModels(object[] models, Graph? graph, bool newCopy)
         {
             if (!this.Enabled)
@@ -422,6 +462,7 @@ namespace Zerra.Repository
             return models;
         }
 
+        /// <inheritdoc/>
         public override sealed void Create(Persist persist)
         {
             if (persist.Models is null || persist.Models.Length == 0)
@@ -436,6 +477,7 @@ namespace Zerra.Repository
                 ModelAnalyzer.SetIdentity(modelType, persist.Models[i], identity);
             }
         }
+        /// <inheritdoc/>
         public override sealed void Update(Persist persist)
         {
             if (persist.Models is null || persist.Models.Length == 0)
@@ -444,11 +486,13 @@ namespace Zerra.Repository
             var encryptedModels = EncryptModels(persist.Models, persist.Graph, true);
             NextProvider.Persist(new Update(persist.Event, encryptedModels, persist.Graph));
         }
+        /// <inheritdoc/>
         public override sealed void Delete(Persist persist)
         {
             NextProvider.Persist(persist);
         }
 
+        /// <inheritdoc/>
         public override sealed async Task CreateAsync(Persist persist)
         {
             if (persist.Models is null || persist.Models.Length == 0)
@@ -463,6 +507,7 @@ namespace Zerra.Repository
                 ModelAnalyzer.SetIdentity(modelType, persist.Models[i], identity);
             }
         }
+        /// <inheritdoc/>
         public override sealed Task UpdateAsync(Persist persist)
         {
             if (persist.Models is null || persist.Models.Length == 0)
@@ -471,12 +516,17 @@ namespace Zerra.Repository
             var encryptedModels = EncryptModels(persist.Models, persist.Graph, true);
             return NextProvider.PersistAsync(new Update(persist.Event, encryptedModels, persist.Graph));
         }
+        /// <inheritdoc/>
         public override sealed Task DeleteAsync(Persist persist)
         {
             return NextProvider.PersistAsync(persist);
         }
 
         private static readonly ConcurrentFactoryDictionary<TypeKey, MemberDetail[]> encryptableProperties = new();
+        /// <summary>Returns the model members eligible for encryption (string and byte[] properties), optionally filtered by a graph.</summary>
+        /// <param name="type">The model type to inspect.</param>
+        /// <param name="graph">An optional graph to restrict which members are returned.</param>
+        /// <returns>An array of <see cref="MemberDetail"/> representing the encryptable properties.</returns>
         public static MemberDetail[] GetEncryptableProperties(Type type, Graph? graph)
         {
             var key = new TypeKey(graph?.Signature, type);

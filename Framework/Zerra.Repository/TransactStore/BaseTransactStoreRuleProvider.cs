@@ -9,10 +9,17 @@ using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository
 {
+    /// <summary>
+    /// Abstract layer provider that applies filtering rules and lifecycle hooks (OnQuery, OnGet, OnCreate, OnUpdate, OnDelete) around the next provider in the chain.
+    /// </summary>
+    /// <typeparam name="TNextProviderInterface">The type of the next provider in the chain.</typeparam>
+    /// <typeparam name="TModel">The model type managed by this provider.</typeparam>
     public abstract class BaseTransactStoreRuleProvider<TNextProviderInterface, TModel> : BaseTransactStoreLayerProvider<TNextProviderInterface, TModel>
         where TNextProviderInterface : ITransactStoreProvider<TModel>
         where TModel : class, new()
     {
+        /// <summary>Initializes a new instance of <see cref="BaseTransactStoreRuleProvider{TNextProviderInterface, TModel}"/> with the next provider in the chain.</summary>
+        /// <param name="nextProvider">The next provider to delegate operations to.</param>
         public BaseTransactStoreRuleProvider(TNextProviderInterface nextProvider)
             : base(nextProvider) { }
 
@@ -37,14 +44,24 @@ namespace Zerra.Repository
             }
         }
 
+        /// <summary>Returns an additional where expression to append to all queries. Override to apply custom filtering rules.</summary>
+        /// <param name="graph">The graph for the current query.</param>
+        /// <returns>A lambda expression to AND with the query where clause, or <see langword="null"/> for no additional filter.</returns>
         public virtual LambdaExpression? WhereExpression(Graph? graph)
         {
             return null;
         }
+        /// <summary>Returns the where expression for this provider layer.</summary>
+        /// <param name="graph">The graph for the current query.</param>
+        /// <returns>A lambda where expression, or <see langword="null"/> if none applies.</returns>
         public LambdaExpression? GetWhereExpression(Graph? graph)
         {
             return this.WhereExpression(graph);
         }
+        /// <summary>Returns the combined where expression for this provider and all base providers in the chain.</summary>
+        /// <param name="graph">The graph for the current query.</param>
+        /// <returns>A combined lambda where expression, or <see langword="null"/> if none applies.</returns>
+        /// <inheritdoc/>
         public override sealed LambdaExpression? GetWhereExpressionIncludingBase(Graph? graph)
         {
             var expression1 = this.GetWhereExpression(graph);
@@ -67,14 +84,24 @@ namespace Zerra.Repository
             }
         }
 
+        /// <summary>Called before a query is executed. Override to modify the graph or apply side effects.</summary>
+        /// <param name="graph">The graph for the current query.</param>
         public virtual void OnQuery(Graph? graph) { }
+        /// <summary>Invokes <see cref="OnQuery"/> on this provider then propagates to the next provider in the chain.</summary>
+        /// <param name="graph">The graph for the current query.</param>
+        /// <inheritdoc/>
         public override sealed void OnQueryIncludingBase(Graph? graph)
         {
             this.OnQuery(graph);
             ProviderRelation?.OnQueryIncludingBase(graph);
         }
 
+        /// <summary>Called after models are retrieved. Override to filter or transform the result set.</summary>
+        /// <param name="models">The retrieved models.</param>
+        /// <param name="graph">The graph used during the query.</param>
+        /// <returns>The filtered or transformed models.</returns>
         public virtual IEnumerable OnGet(IEnumerable models, Graph? graph) { return models; }
+        /// <inheritdoc/>
         public override sealed async Task<IEnumerable> OnGetIncludingBaseAsync(IEnumerable models, Graph? graph)
         {
             if (ProviderRelation is not null)
@@ -90,6 +117,7 @@ namespace Zerra.Repository
             }
         }
 
+        /// <inheritdoc/>
         public override sealed async Task<object?> ManyAsync(Query query)
         {
             var appenedQuery = new Query(query);
@@ -114,6 +142,7 @@ namespace Zerra.Repository
             return returnModels;
         }
 
+        /// <inheritdoc/>
         public override sealed async Task<object?> FirstAsync(Query query)
         {
             var appenedQuery = new Query(query);
@@ -135,6 +164,7 @@ namespace Zerra.Repository
             return returnModel;
         }
 
+        /// <inheritdoc/>
         public override sealed async Task<object?> SingleAsync(Query query)
         {
             var appenedQuery = new Query(query);
@@ -156,6 +186,7 @@ namespace Zerra.Repository
             return returnModel;
         }
 
+        /// <inheritdoc/>
         public override sealed Task<object?> CountAsync(Query query)
         {
             var appenedQuery = new Query(query);
@@ -170,6 +201,7 @@ namespace Zerra.Repository
             return count;
         }
 
+        /// <inheritdoc/>
         public override sealed Task<object?> AnyAsync(Query query)
         {
             var appenedQuery = new Query(query);
@@ -184,6 +216,7 @@ namespace Zerra.Repository
             return any;
         }
 
+        /// <inheritdoc/>
         public override sealed async Task<object?> EventManyAsync(Query query)
         {
             var appenedQuery = new Query(query);
@@ -211,14 +244,34 @@ namespace Zerra.Repository
             return returnEventModels;
         }
 
+        /// <summary>Called before models are created. Override to validate or transform the models prior to persistence.</summary>
+        /// <param name="models">The models to be created.</param>
+        /// <param name="graph">The graph specifying which members are being persisted.</param>
+        /// <returns>The models to pass to the next provider.</returns>
         protected virtual IEnumerable OnCreate(IEnumerable models, Graph? graph) { return models; }
+        /// <summary>Called before models are updated. Override to validate or transform the models prior to persistence.</summary>
+        /// <param name="models">The models to be updated.</param>
+        /// <param name="graph">The graph specifying which members are being persisted.</param>
+        /// <returns>The models to pass to the next provider.</returns>
         protected virtual IEnumerable OnUpdate(IEnumerable models, Graph? graph) { return models; }
+        /// <summary>Called before models are deleted. Override to validate or filter the identities prior to deletion.</summary>
+        /// <param name="identities">The identities of the models to be deleted.</param>
+        /// <returns>The identities to pass to the next provider.</returns>
         protected virtual ICollection OnDelete(ICollection identities) { return identities; }
 
+        /// <summary>Called after models have been successfully created. Override to perform post-create side effects.</summary>
+        /// <param name="models">The models that were created.</param>
+        /// <param name="graph">The graph used during persistence.</param>
         protected virtual void OnCreateComplete(IEnumerable models, Graph? graph) { }
+        /// <summary>Called after models have been successfully updated. Override to perform post-update side effects.</summary>
+        /// <param name="models">The models that were updated.</param>
+        /// <param name="graph">The graph used during persistence.</param>
         protected virtual void OnUpdateComplete(IEnumerable models, Graph? graph) { }
+        /// <summary>Called after models have been successfully deleted. Override to perform post-delete side effects.</summary>
+        /// <param name="identities">The identities of the models that were deleted.</param>
         protected virtual void OnDeleteComplete(ICollection identities) { }
 
+        /// <inheritdoc/>
         public override sealed async Task CreateAsync(Persist persist)
         {
             if (persist.Models is null)
@@ -230,6 +283,7 @@ namespace Zerra.Repository
             OnCreateComplete(returnModels, appenedPersist.Graph);
         }
 
+        /// <inheritdoc/>
         public override sealed async Task UpdateAsync(Persist persist)
         {
             if (persist.Models is null)
@@ -241,6 +295,7 @@ namespace Zerra.Repository
             OnUpdateComplete(returnModels, appenedPersist.Graph);
         }
 
+        /// <inheritdoc/>
         public override sealed async Task DeleteAsync(Persist persist)
         {
             ICollection returnIds;

@@ -12,21 +12,31 @@ using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository
 {
+    /// <summary>
+    /// Abstract base provider for transactional store operations, supporting query, persist, and relation linking for <typeparamref name="TModel"/>.
+    /// </summary>
+    /// <typeparam name="TModel">The model type managed by this provider.</typeparam>
     public abstract partial class RootTransactStoreProvider<TModel> : BaseStore, ITransactStoreProvider<TModel>, IProviderRelation<TModel>
         where TModel : class, new()
     {
+        /// <summary>The <see cref="Type"/> of <typeparamref name="TModel"/>.</summary>
         protected static readonly Type modelType = typeof(TModel);
         private static readonly Type objectType = typeof(object);
         private static readonly Type listType = typeof(List<>);
         private static readonly Type listObjectType = typeof(List<object>);
         private static readonly MethodInfo containsMethod = typeof(List<object>).GetMethods().First(m => m.Name == nameof(List<object>.Contains));
 
+        /// <summary>Gets a value indicating whether event-based relation linking is enabled. Defaults to <see langword="false"/>.</summary>
         protected virtual bool EventLinking { get { return false; } }
+        /// <summary>Gets a value indicating whether query-based relation linking is enabled. Defaults to <see langword="true"/>.</summary>
         protected virtual bool QueryLinking { get { return true; } }
+        /// <summary>Gets a value indicating whether persist-based relation linking is enabled. Defaults to <see langword="true"/>.</summary>
         protected virtual bool PersistLinking { get { return true; } }
 
+        /// <summary>The analyzed model metadata for <typeparamref name="TModel"/>.</summary>
         protected static readonly ModelDetail ModelDetail = ModelAnalyzer.GetModel(typeof(TModel));
 
+        /// <summary>Gets the <see cref="Type"/> of the model managed by this provider.</summary>
         public Type ModelType => modelType;
 
         private readonly ConcurrentFactoryDictionary<Type, ITransactStoreProvider?> relatedProviders = new();
@@ -50,6 +60,9 @@ namespace Zerra.Repository
             return relatedProvider;
         }
 
+        /// <summary>Builds a combined where expression from related providers based on the given graph.</summary>
+        /// <param name="graph">The graph specifying which members to include.</param>
+        /// <returns>A combined where expression, or <see langword="null"/> if none applies.</returns>
         public Expression<Func<TModel, bool>>? GetWhereExpression(Graph? graph)
         {
             Expression<Func<TModel, bool>>? whereExpression = null;
@@ -81,11 +94,16 @@ namespace Zerra.Repository
 
             return whereExpression;
         }
+        /// <summary>Returns the where expression for this provider including base type considerations.</summary>
+        /// <param name="graph">The graph specifying which members to include.</param>
+        /// <returns>A lambda where expression, or <see langword="null"/> if none applies.</returns>
         public LambdaExpression? GetWhereExpressionIncludingBase(Graph? graph)
         {
             return GetWhereExpression(graph);
         }
 
+        /// <summary>Invoked during a query to propagate query events to related providers via event linking.</summary>
+        /// <param name="graph">The graph specifying which members are being queried.</param>
         public void OnQuery(Graph? graph)
         {
             if (!EventLinking || graph is null)
@@ -111,11 +129,15 @@ namespace Zerra.Repository
                 }
             }
         }
+        /// <summary>Invoked during a query including base type handling, delegating to <see cref="OnQueryWithRelations"/>.</summary>
+        /// <param name="graph">The graph specifying which members are being queried.</param>
         public void OnQueryIncludingBase(Graph? graph)
         {
             OnQueryWithRelations(graph);
         }
 
+        /// <summary>Prepares the query graph by adding required identity and foreign-key members for all related properties.</summary>
+        /// <param name="graph">The graph to augment with relation members.</param>
         public void OnQueryWithRelations(Graph? graph)
         {
             if (EventLinking)
@@ -147,6 +169,10 @@ namespace Zerra.Repository
             }
         }
 
+        /// <summary>Populates related model properties on the retrieved models using query linking and/or event linking.</summary>
+        /// <param name="models">The models whose relations should be populated.</param>
+        /// <param name="graph">The graph specifying which members to populate.</param>
+        /// <returns>The models with related properties populated.</returns>
         public IReadOnlyCollection<TModel> OnGetWithRelations(IReadOnlyCollection<TModel> models, Graph? graph)
         {
             var returnModels = models;
@@ -309,6 +335,10 @@ namespace Zerra.Repository
 
             return returnModels;
         }
+        /// <summary>Asynchronously populates related model properties on the retrieved models using query linking and/or event linking.</summary>
+        /// <param name="models">The models whose relations should be populated.</param>
+        /// <param name="graph">The graph specifying which members to populate.</param>
+        /// <returns>A task representing the asynchronous operation, containing the models with related properties populated.</returns>
         public async Task<IReadOnlyCollection<TModel>> OnGetWithRelationsAsync(IReadOnlyCollection<TModel> models, Graph? graph)
         {
             var returnModels = models;
@@ -472,6 +502,10 @@ namespace Zerra.Repository
             return returnModels;
         }
 
+        /// <summary>Invokes event-linked related providers to post-process retrieved models.</summary>
+        /// <param name="models">The models to post-process.</param>
+        /// <param name="graph">The graph specifying which members to process.</param>
+        /// <returns>The post-processed models.</returns>
         public IReadOnlyCollection<TModel> OnGet(IReadOnlyCollection<TModel> models, Graph? graph)
         {
             if (!EventLinking || graph is null)
@@ -541,6 +575,10 @@ namespace Zerra.Repository
 
             return models;
         }
+        /// <summary>Asynchronously invokes event-linked related providers to post-process retrieved models.</summary>
+        /// <param name="models">The models to post-process.</param>
+        /// <param name="graph">The graph specifying which members to process.</param>
+        /// <returns>A task representing the asynchronous operation, containing the post-processed models.</returns>
         public async Task<IReadOnlyCollection<TModel>> OnGetAsync(IReadOnlyCollection<TModel> models, Graph? graph)
         {
             if (!EventLinking || graph is null)
@@ -611,24 +649,43 @@ namespace Zerra.Repository
             return models;
         }
 
+        /// <summary>Populates related properties on models, including base type handling.</summary>
+        /// <param name="models">The models to process.</param>
+        /// <param name="graph">The graph specifying which members to populate.</param>
+        /// <returns>The models with related properties populated.</returns>
         public IEnumerable OnGetIncludingBase(IEnumerable models, Graph? graph)
         {
             return OnGetIncludingBase((IReadOnlyCollection<TModel>)models, (Graph<TModel>?)graph);
         }
+        /// <summary>Populates related properties on models, including base type handling.</summary>
+        /// <param name="models">The models to process.</param>
+        /// <param name="graph">The graph specifying which members to populate.</param>
+        /// <returns>The models with related properties populated.</returns>
         public IReadOnlyCollection<TModel> OnGetIncludingBase(IReadOnlyCollection<TModel> models, Graph? graph)
         {
             return OnGetWithRelations(models, graph);
         }
 
+        /// <summary>Asynchronously populates related properties on models, including base type handling.</summary>
+        /// <param name="models">The models to process.</param>
+        /// <param name="graph">The graph specifying which members to populate.</param>
+        /// <returns>A task representing the asynchronous operation, containing the models with related properties populated.</returns>
         public async Task<IEnumerable> OnGetIncludingBaseAsync(IEnumerable models, Graph? graph)
         {
             return await OnGetIncludingBaseAsync((IReadOnlyCollection<TModel>)(object)models, (Graph<TModel>?)graph);
         }
+        /// <summary>Asynchronously populates related properties on models, including base type handling.</summary>
+        /// <param name="models">The models to process.</param>
+        /// <param name="graph">The graph specifying which members to populate.</param>
+        /// <returns>A task representing the asynchronous operation, containing the models with related properties populated.</returns>
         public Task<IReadOnlyCollection<TModel>> OnGetIncludingBaseAsync(IReadOnlyCollection<TModel> models, Graph? graph)
         {
             return OnGetWithRelationsAsync(models, graph);
         }
 
+        /// <summary>Executes a synchronous query operation and returns the result.</summary>
+        /// <param name="query">The query to execute.</param>
+        /// <returns>The query result, or <see langword="null"/> if no result is found.</returns>
         public object? Query(Query query)
         {
             return query.Operation switch
@@ -646,6 +703,9 @@ namespace Zerra.Repository
                 _ => throw new NotImplementedException(),
             };
         }
+        /// <summary>Executes an asynchronous query operation and returns the result.</summary>
+        /// <param name="query">The query to execute.</param>
+        /// <returns>A task representing the asynchronous operation, containing the query result or <see langword="null"/>.</returns>
         public Task<object?> QueryAsync(Query query)
         {
             return query.Operation switch
@@ -937,30 +997,93 @@ namespace Zerra.Repository
             return await QueryEventAnyAsync(query);
         }
 
+        /// <summary>Queries and returns multiple models matching the given query.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>A collection of matching models.</returns>
         protected abstract IReadOnlyCollection<TModel> QueryMany(Query query);
+        /// <summary>Queries and returns the first model matching the given query, or <see langword="null"/>.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>The first matching model, or <see langword="null"/>.</returns>
         protected abstract TModel? QueryFirst(Query query);
+        /// <summary>Queries and returns the single model matching the given query, or <see langword="null"/>.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>The single matching model, or <see langword="null"/>.</returns>
         protected abstract TModel? QuerySingle(Query query);
+        /// <summary>Returns the count of models matching the given query.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>The count of matching models.</returns>
         protected abstract long QueryCount(Query query);
+        /// <summary>Returns whether any model exists matching the given query.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns><see langword="true"/> if any matching model exists; otherwise <see langword="false"/>.</returns>
         protected abstract bool QueryAny(Query query);
+        /// <summary>Queries and returns multiple event models matching the given query.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>A collection of matching event models.</returns>
         protected abstract IReadOnlyCollection<EventModel<TModel>> QueryEventMany(Query query);
+        /// <summary>Queries and returns the first event model matching the given query, or <see langword="null"/>.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>The first matching event model, or <see langword="null"/>.</returns>
         protected abstract EventModel<TModel>? QueryEventFirst(Query query);
+        /// <summary>Queries and returns the single event model matching the given query, or <see langword="null"/>.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>The single matching event model, or <see langword="null"/>.</returns>
         protected abstract EventModel<TModel>? QueryEventSingle(Query query);
+        /// <summary>Returns the count of event models matching the given query.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>The count of matching event models.</returns>
         protected abstract long QueryEventCount(Query query);
+        /// <summary>Returns whether any event model exists matching the given query.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns><see langword="true"/> if any matching event model exists; otherwise <see langword="false"/>.</returns>
         protected abstract bool QueryEventAny(Query query);
 
+        /// <summary>Asynchronously queries and returns multiple models matching the given query.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>A task containing a collection of matching models.</returns>
         protected abstract Task<IReadOnlyCollection<TModel>> QueryManyAsync(Query query);
+        /// <summary>Asynchronously queries and returns the first model matching the given query, or <see langword="null"/>.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>A task containing the first matching model, or <see langword="null"/>.</returns>
         protected abstract Task<TModel?> QueryFirstAsync(Query query);
+        /// <summary>Asynchronously queries and returns the single model matching the given query, or <see langword="null"/>.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>A task containing the single matching model, or <see langword="null"/>.</returns>
         protected abstract Task<TModel?> QuerySingleAsync(Query query);
+        /// <summary>Asynchronously returns the count of models matching the given query.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>A task containing the count of matching models.</returns>
         protected abstract Task<long> QueryCountAsync(Query query);
+        /// <summary>Asynchronously returns whether any model exists matching the given query.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>A task containing <see langword="true"/> if any matching model exists; otherwise <see langword="false"/>.</returns>
         protected abstract Task<bool> QueryAnyAsync(Query query);
+        /// <summary>Asynchronously queries and returns multiple event models matching the given query.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>A task containing a collection of matching event models.</returns>
         protected abstract Task<IReadOnlyCollection<EventModel<TModel>>> QueryEventManyAsync(Query query);
+        /// <summary>Asynchronously queries and returns the first event model matching the given query, or <see langword="null"/>.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>A task containing the first matching event model, or <see langword="null"/>.</returns>
         protected abstract Task<EventModel<TModel>?> QueryEventFirstAsync(Query query);
+        /// <summary>Asynchronously queries and returns the single event model matching the given query, or <see langword="null"/>.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>A task containing the single matching event model, or <see langword="null"/>.</returns>
         protected abstract Task<EventModel<TModel>?> QueryEventSingleAsync(Query query);
+        /// <summary>Asynchronously returns the count of event models matching the given query.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>A task containing the count of matching event models.</returns>
         protected abstract Task<long> QueryEventCountAsync(Query query);
+        /// <summary>Asynchronously returns whether any event model exists matching the given query.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>A task containing <see langword="true"/> if any matching event model exists; otherwise <see langword="false"/>.</returns>
         protected abstract Task<bool> QueryEventAnyAsync(Query query);
 
+        /// <summary>The <see cref="Type"/> of <see cref="PersistEvent"/>, used for persist event metadata.</summary>
         protected static readonly Type EventInfoType = typeof(PersistEvent);
 
+        /// <summary>Executes a synchronous persist operation (create, update, or delete).</summary>
+        /// <param name="persist">The persist operation to execute.</param>
         public void Persist(Persist persist)
         {
             switch (persist.Operation)
@@ -978,6 +1101,9 @@ namespace Zerra.Repository
                     throw new NotImplementedException();
             }
         }
+        /// <summary>Executes an asynchronous persist operation (create, update, or delete).</summary>
+        /// <param name="persist">The persist operation to execute.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
         public Task PersistAsync(Persist persist)
         {
             return persist.Operation switch
@@ -1156,6 +1282,11 @@ namespace Zerra.Repository
             await DeleteModelAsync(persist.Event, ids);
         }
 
+        /// <summary>Persists non-enumerable (single) related models and sets their foreign identity on the parent model.</summary>
+        /// <param name="event">The persist event context.</param>
+        /// <param name="model">The parent model whose single relations should be persisted.</param>
+        /// <param name="graph">The graph specifying which relations to persist.</param>
+        /// <param name="create"><see langword="true"/> to create related models; <see langword="false"/> to update.</param>
         protected void PersistSingleRelations(PersistEvent @event, object model, Graph graph, bool create)
         {
             //var tasks = new List<Task>();
@@ -1206,6 +1337,11 @@ namespace Zerra.Repository
 
             //Task.WaitAll(tasks.ToArray());
         }
+        /// <summary>Persists enumerable (many) related models, determining which should be created, updated, or deleted.</summary>
+        /// <param name="event">The persist event context.</param>
+        /// <param name="model">The parent model whose many relations should be persisted.</param>
+        /// <param name="graph">The graph specifying which relations to persist.</param>
+        /// <param name="create"><see langword="true"/> if the parent model is being created; <see langword="false"/> if updated.</param>
         protected void PersistManyRelations(PersistEvent @event, object model, Graph graph, bool create)
         {
             //var tasks = new List<Task>();
@@ -1339,6 +1475,10 @@ namespace Zerra.Repository
 
             //Task.WaitAll(tasks.ToArray());
         }
+        /// <summary>Deletes all enumerable related models associated with the given parent identity.</summary>
+        /// <param name="event">The persist event context.</param>
+        /// <param name="id">The identity of the parent model whose many relations should be deleted.</param>
+        /// <param name="graph">The graph specifying which relations to delete.</param>
         protected void DeleteManyRelations(PersistEvent @event, object id, Graph graph)
         {
             //var tasks = new List<Task>();
@@ -1385,6 +1525,12 @@ namespace Zerra.Repository
             //Task.WaitAll(tasks.ToArray());
         }
 
+        /// <summary>Asynchronously persists non-enumerable (single) related models and sets their foreign identity on the parent model.</summary>
+        /// <param name="event">The persist event context.</param>
+        /// <param name="model">The parent model whose single relations should be persisted.</param>
+        /// <param name="graph">The graph specifying which relations to persist.</param>
+        /// <param name="create"><see langword="true"/> to create related models; <see langword="false"/> to update.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
         protected async Task PersistSingleRelationsAsync(PersistEvent @event, object model, Graph graph, bool create)
         {
             var tasks = new List<Task>();
@@ -1435,6 +1581,12 @@ namespace Zerra.Repository
 
             //return Task.WhenAll(tasks.ToArray());
         }
+        /// <summary>Asynchronously persists enumerable (many) related models, determining which should be created, updated, or deleted.</summary>
+        /// <param name="event">The persist event context.</param>
+        /// <param name="model">The parent model whose many relations should be persisted.</param>
+        /// <param name="graph">The graph specifying which relations to persist.</param>
+        /// <param name="create"><see langword="true"/> if the parent model is being created; <see langword="false"/> if updated.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
         protected async Task PersistManyRelationsAsync(PersistEvent @event, object model, Graph graph, bool create)
         {
             //var tasks = new List<Task>();
@@ -1568,6 +1720,11 @@ namespace Zerra.Repository
 
             //return Task.WhenAll(tasks.ToArray());
         }
+        /// <summary>Asynchronously deletes all enumerable related models associated with the given parent identity.</summary>
+        /// <param name="event">The persist event context.</param>
+        /// <param name="id">The identity of the parent model whose many relations should be deleted.</param>
+        /// <param name="graph">The graph specifying which relations to delete.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
         protected async Task DeleteManyRelationsAsync(PersistEvent @event, object id, Graph graph)
         {
             //var tasks = new List<Task>();
@@ -1614,10 +1771,28 @@ namespace Zerra.Repository
             //return Task.WhenAll(tasks.ToArray());
         }
 
+        /// <summary>Persists a single model to the underlying store.</summary>
+        /// <param name="event">The persist event context.</param>
+        /// <param name="model">The model to persist.</param>
+        /// <param name="graph">The graph specifying which members to persist.</param>
+        /// <param name="create"><see langword="true"/> to create the model; <see langword="false"/> to update.</param>
         protected abstract void PersistModel(PersistEvent @event, object model, Graph? graph, bool create);
+        /// <summary>Deletes models with the specified identities from the underlying store.</summary>
+        /// <param name="event">The persist event context.</param>
+        /// <param name="ids">The identities of the models to delete.</param>
         protected abstract void DeleteModel(PersistEvent @event, object[] ids);
 
+        /// <summary>Asynchronously persists a single model to the underlying store.</summary>
+        /// <param name="event">The persist event context.</param>
+        /// <param name="model">The model to persist.</param>
+        /// <param name="graph">The graph specifying which members to persist.</param>
+        /// <param name="create"><see langword="true"/> to create the model; <see langword="false"/> to update.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
         protected abstract Task PersistModelAsync(PersistEvent @event, object model, Graph? graph, bool create);
+        /// <summary>Asynchronously deletes models with the specified identities from the underlying store.</summary>
+        /// <param name="event">The persist event context.</param>
+        /// <param name="ids">The identities of the models to delete.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
         protected abstract Task DeleteModelAsync(PersistEvent @event, object[] ids);
     }
 }

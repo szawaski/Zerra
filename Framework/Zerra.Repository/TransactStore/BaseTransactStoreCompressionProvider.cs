@@ -2,30 +2,36 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
-using System.Threading.Tasks;
 using Zerra.Map;
 using Zerra.Reflection;
 using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository
 {
+    /// <summary>
+    /// Abstract layer provider that transparently compresses and decompresses model properties using GZip.
+    /// </summary>
+    /// <typeparam name="TNextProviderInterface">The type of the next provider in the chain.</typeparam>
+    /// <typeparam name="TModel">The model type managed by this provider.</typeparam>
     public abstract partial class BaseTransactStoreCompressionProvider<TNextProviderInterface, TModel> : BaseTransactStoreLayerProvider<TNextProviderInterface, TModel>
         where TNextProviderInterface : ITransactStoreProvider<TModel>
         where TModel : class, new()
     {
+        /// <summary>Gets a value indicating whether compression is enabled. Defaults to <see langword="true"/>.</summary>
         public virtual bool Enabled { get { return true; } }
+        /// <summary>Gets an optional graph that restricts which model properties are compressed. When <see langword="null"/>, all eligible properties are compressed.</summary>
         public virtual Graph<TModel>? Properties { get { return null; } }
 
+        /// <summary>Initializes a new instance of <see cref="BaseTransactStoreCompressionProvider{TNextProviderInterface, TModel}"/> with the next provider in the chain.</summary>
+        /// <param name="nextProvider">The next provider to delegate operations to after compression/decompression.</param>
         public BaseTransactStoreCompressionProvider(TNextProviderInterface nextProvider)
             : base(nextProvider)
         {
         }
 
+        /// <inheritdoc/>
         public override sealed LambdaExpression? GetWhereExpressionIncludingBase(Graph? graph)
         {
             return base.GetWhereExpressionIncludingBase(graph);
@@ -40,6 +46,11 @@ namespace Zerra.Repository
             return order;
         }
 
+        /// <summary>Decompresses the compressed properties of a single model.</summary>
+        /// <param name="model">The model whose properties should be decompressed.</param>
+        /// <param name="graph">The graph specifying which members to decompress, or <see langword="null"/> to decompress all eligible members.</param>
+        /// <param name="newCopy"><see langword="true"/> to decompress a copy of the model; <see langword="false"/> to decompress in place.</param>
+        /// <returns>The model with decompressed properties.</returns>
         public TModel DecompressModel(TModel model, Graph? graph, bool newCopy)
         {
             if (!this.Enabled)
@@ -89,6 +100,11 @@ namespace Zerra.Repository
 
             return model;
         }
+        /// <summary>Decompresses the compressed properties of a collection of models.</summary>
+        /// <param name="models">The models whose properties should be decompressed.</param>
+        /// <param name="graph">The graph specifying which members to decompress, or <see langword="null"/> to decompress all eligible members.</param>
+        /// <param name="newCopy"><see langword="true"/> to decompress copies of the models; <see langword="false"/> to decompress in place.</param>
+        /// <returns>The models with decompressed properties.</returns>
         public IEnumerable DecompressModels(IEnumerable models, Graph? graph, bool newCopy)
         {
             if (!this.Enabled)
@@ -147,11 +163,13 @@ namespace Zerra.Repository
             return models;
         }
 
+        /// <inheritdoc/>
         public override sealed void OnQueryIncludingBase(Graph? graph)
         {
             ProviderRelation?.OnQueryIncludingBase(graph);
         }
 
+        /// <inheritdoc/>
         public override sealed IEnumerable OnGetIncludingBase(IEnumerable models, Graph? graph)
         {
             var returnModels1 = DecompressModels(models, graph, false);
@@ -161,6 +179,7 @@ namespace Zerra.Repository
             var returnModels2 = ProviderRelation.OnGetIncludingBase(returnModels1, graph);
             return returnModels2;
         }
+        /// <inheritdoc/>
         public override sealed async Task<IEnumerable> OnGetIncludingBaseAsync(IEnumerable models, Graph? graph)
         {
             var returnModels1 = DecompressModels(models, graph, false);
@@ -171,6 +190,7 @@ namespace Zerra.Repository
             return returnModels2;
         }
 
+        /// <inheritdoc/>
         public override sealed object Many(Query query)
         {
             var whereCompressed = CompressWhere(query.Where);
@@ -188,6 +208,7 @@ namespace Zerra.Repository
             var models = DecompressModels(compressedModels, query.Graph, true);
             return models;
         }
+        /// <inheritdoc/>
         public override sealed object? First(Query query)
         {
             var whereCompressed = CompressWhere(query.Where);
@@ -205,6 +226,7 @@ namespace Zerra.Repository
             var model = DecompressModel(compressedModels, query.Graph, true);
             return model;
         }
+        /// <inheritdoc/>
         public override sealed object? Single(Query query)
         {
             var whereCompressed = CompressWhere(query.Where);
@@ -220,6 +242,7 @@ namespace Zerra.Repository
             var model = DecompressModel(compressedModels, query.Graph, true);
             return model;
         }
+        /// <inheritdoc/>
         public override sealed object Count(Query query)
         {
             var whereCompressed = CompressWhere(query.Where);
@@ -230,6 +253,7 @@ namespace Zerra.Repository
             var count = NextProvider.Query(appenedQuery)!;
             return count;
         }
+        /// <inheritdoc/>
         public override sealed object Any(Query query)
         {
             var whereCompressed = CompressWhere(query.Where);
@@ -240,6 +264,7 @@ namespace Zerra.Repository
             var any = NextProvider.Query(appenedQuery)!;
             return any;
         }
+        /// <inheritdoc/>
         public override sealed object EventMany(Query query)
         {
             var whereCompressed = CompressWhere(query.Where);
@@ -266,6 +291,7 @@ namespace Zerra.Repository
             return eventModels;
         }
 
+        /// <inheritdoc/>
         public override sealed async Task<object?> ManyAsync(Query query)
         {
             var whereCompressed = CompressWhere(query.Where);
@@ -283,6 +309,7 @@ namespace Zerra.Repository
             var models = DecompressModels(compressedModels, query.Graph, true);
             return models;
         }
+        /// <inheritdoc/>
         public override sealed async Task<object?> FirstAsync(Query query)
         {
             var whereCompressed = CompressWhere(query.Where);
@@ -300,6 +327,7 @@ namespace Zerra.Repository
             var model = DecompressModel(compressedModels, query.Graph, true);
             return model;
         }
+        /// <inheritdoc/>
         public override sealed async Task<object?> SingleAsync(Query query)
         {
             var whereCompressed = CompressWhere(query.Where);
@@ -315,6 +343,7 @@ namespace Zerra.Repository
             var model = DecompressModel(compressedModels, query.Graph, true);
             return model;
         }
+        /// <inheritdoc/>
         public override sealed Task<object?> CountAsync(Query query)
         {
             var whereCompressed = CompressWhere(query.Where);
@@ -325,6 +354,7 @@ namespace Zerra.Repository
             var count = NextProvider.QueryAsync(appenedQuery);
             return count;
         }
+        /// <inheritdoc/>
         public override sealed Task<object?> AnyAsync(Query query)
         {
             var whereCompressed = CompressWhere(query.Where);
@@ -335,6 +365,7 @@ namespace Zerra.Repository
             var any = NextProvider.QueryAsync(appenedQuery);
             return any;
         }
+        /// <inheritdoc/>
         public override sealed async Task<object?> EventManyAsync(Query query)
         {
             var whereCompressed = CompressWhere(query.Where);
@@ -415,6 +446,7 @@ namespace Zerra.Repository
             return models;
         }
 
+        /// <inheritdoc/>
         public override sealed void Create(Persist persist)
         {
             if (persist.Models is null || persist.Models.Length == 0)
@@ -429,6 +461,7 @@ namespace Zerra.Repository
                 ModelAnalyzer.SetIdentity(modelType, persist.Models[i], identity);
             }
         }
+        /// <inheritdoc/>
         public override sealed void Update(Persist persist)
         {
             if (persist.Models is null || persist.Models.Length == 0)
@@ -437,11 +470,13 @@ namespace Zerra.Repository
             var compressedModels = CompressModels(persist.Models, persist.Graph, true);
             NextProvider.Persist(new Update(persist.Event, compressedModels, persist.Graph));
         }
+        /// <inheritdoc/>
         public override sealed void Delete(Persist persist)
         {
             NextProvider.Persist(persist);
         }
 
+        /// <inheritdoc/>
         public override sealed async Task CreateAsync(Persist persist)
         {
             if (persist.Models is null || persist.Models.Length == 0)
@@ -456,6 +491,7 @@ namespace Zerra.Repository
                 ModelAnalyzer.SetIdentity(modelType, persist.Models[i], identity);
             }
         }
+        /// <inheritdoc/>
         public override sealed Task UpdateAsync(Persist persist)
         {
             if (persist.Models is null || persist.Models.Length == 0)
@@ -464,6 +500,7 @@ namespace Zerra.Repository
             var compressedModels = CompressModels(persist.Models, persist.Graph, true);
             return NextProvider.PersistAsync(new Update(persist.Event, compressedModels, persist.Graph));
         }
+        /// <inheritdoc/>
         public override sealed Task DeleteAsync(Persist persist)
         {
             return NextProvider.PersistAsync(persist);

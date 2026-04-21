@@ -2,10 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.IO;
 using System.IO.Compression;
-using System.Linq;
 using System.Text;
 using Zerra.Collections;
 using Zerra.Reflection;
@@ -18,6 +15,9 @@ namespace Zerra.Repository
         {
             private const string compressionPrefix = "<c>";
 
+            /// <summary>Compresses a plain text string using GZip and returns a Base64-encoded compressed string with a compression prefix.</summary>
+            /// <param name="plain">The plain text string to compress.</param>
+            /// <returns>The compressed string, or the original value if it is already compressed.</returns>
             public static string CompressGZip(string plain)
             {
                 if (plain.Length > compressionPrefix.Length && plain.Substring(0, compressionPrefix.Length) == compressionPrefix)
@@ -29,6 +29,9 @@ namespace Zerra.Repository
                 var compressed = compressionPrefix + Convert.ToBase64String(compressedBytes);
                 return compressed;
             }
+            /// <summary>Compresses a byte array using GZip.</summary>
+            /// <param name="plain">The byte array to compress.</param>
+            /// <returns>The GZip-compressed byte array.</returns>
             public static byte[] CompressGZip(byte[] plain)
             {
                 using (var msIn = new MemoryStream(plain))
@@ -42,12 +45,18 @@ namespace Zerra.Repository
                     return compressed;
                 }
             }
+            /// <summary>Creates a <see cref="GZipStream"/> for compressing data written to the given stream.</summary>
+            /// <param name="stream">The destination stream to write compressed data to.</param>
+            /// <returns>A <see cref="GZipStream"/> wrapping the destination stream.</returns>
             public static GZipStream CompressGZip(Stream stream)
             {
                 var gzipStream = new GZipStream(stream, CompressionLevel.Fastest);
                 return gzipStream;
             }
 
+            /// <summary>Decompresses a GZip-compressed, Base64-encoded string back to plain text.</summary>
+            /// <param name="compressed">The compressed string to decompress.</param>
+            /// <returns>The decompressed plain text string, or the original value if it is not compressed.</returns>
             public static string DecompressGZip(string compressed)
             {
                 string compressedWithoutPrefix;
@@ -61,6 +70,9 @@ namespace Zerra.Repository
                 var plain = Encoding.Unicode.GetString(plainBytes);
                 return plain;
             }
+            /// <summary>Decompresses a GZip-compressed byte array.</summary>
+            /// <param name="compressed">The compressed byte array to decompress.</param>
+            /// <returns>The decompressed byte array.</returns>
             public static byte[] DecompressGZip(byte[] compressed)
             {
                 using (var msIn = new MemoryStream(compressed))
@@ -74,6 +86,9 @@ namespace Zerra.Repository
                     return plain;
                 }
             }
+            /// <summary>Creates a <see cref="GZipStream"/> for decompressing data read from the given stream.</summary>
+            /// <param name="stream">The source stream containing compressed data.</param>
+            /// <returns>A <see cref="GZipStream"/> wrapping the source stream.</returns>
             public static GZipStream DecompressGZip(Stream stream)
             {
                 var gzipStream = new GZipStream(stream, CompressionMode.Decompress);
@@ -81,6 +96,10 @@ namespace Zerra.Repository
             }
 
             private static readonly ConcurrentFactoryDictionary<TypeKey, MemberDetail[]> compressableProperties = new();
+            /// <summary>Returns the model members eligible for compression (string and byte[] properties), optionally filtered by a graph.</summary>
+            /// <param name="type">The model type to inspect.</param>
+            /// <param name="graph">An optional graph to restrict which members are returned.</param>
+            /// <returns>An array of <see cref="MemberDetail"/> representing the compressable properties.</returns>
             public static MemberDetail[] GetModelCompressableProperties(Type type, Graph? graph)
             {
                 var key = new TypeKey(graph?.Signature, type);
