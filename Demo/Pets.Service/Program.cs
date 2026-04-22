@@ -29,7 +29,7 @@ IBusLogger busLog = new BusLogger();
 
 var busServices = new BusServices();
 busServices.AddService<IThing>(new Thing("Hello"));
-busServices.AddService<IRepo>(repo);
+busServices.AddRepo(repo);
 
 //Create Server-Side Bus
 IBusSetup busServer = Bus.New("pets-service-server", log, busLog, busServices);
