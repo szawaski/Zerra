@@ -4,7 +4,7 @@
 
 using Zerra.Map;
 
-namespace Pets.Service
+namespace Pets.Domain.Maps
 {
     public sealed class DefineModelAToModelB : MapDefinition<ModelA, ModelB>
     {

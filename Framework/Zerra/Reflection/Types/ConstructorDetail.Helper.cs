@@ -4,7 +4,6 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 
 namespace Zerra.Reflection
 {
@@ -20,13 +19,10 @@ namespace Zerra.Reflection
         public ConstructorInfo GetConstructorInfo
         {
             [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
-            [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
             get
             {
                 if (constructorInfo == null)
                 {
-                    if (!RuntimeFeature.IsDynamicCodeSupported)
-                        throw new NotSupportedException($"Cannot get member info.  Dynamic code generation is not supported in this build configuration.");
                     constructorInfo = ParentType.GetConstructor(Parameters.Select(x => x.Type).ToArray());
                     if (constructorInfo == null)
                         throw new InvalidOperationException($"ConstructorInfo was not found.");

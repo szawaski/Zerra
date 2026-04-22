@@ -12,13 +12,9 @@ namespace Zerra.Reflection
     /// <typeparam name="T">The type of the member value.</typeparam>
     public sealed partial class MemberDetail<T> : MemberDetail
     {
-        /// <summary>Indicates whether a strongly-typed getter delegate exists for type <typeparamref name="T"/>.</summary>
-        public readonly new bool HasGetter;
         /// <summary>Strongly-typed delegate for getting the member value of type <typeparamref name="T"/> without boxing.</summary>
         public readonly new Func<object, T?>? Getter;
 
-        /// <summary>Indicates whether a strongly-typed setter delegate exists for type <typeparamref name="T"/>.</summary>
-        public readonly new bool HasSetter;
         /// <summary>Strongly-typed delegate for setting the member value of type <typeparamref name="T"/> without boxing.</summary>
         public readonly new Action<object, T?>? Setter;
 
@@ -40,9 +36,7 @@ namespace Zerra.Reflection
         public MemberDetail(Type parentType, string name, bool isField, Func<object, T?>? getter, Func<object, object?>? getterBoxed, Action<object, T?>? setter, Action<object, object?>? setterBoxed, IReadOnlyList<Attribute> attributes, bool isBacked, bool isStatic, bool isExplicitFromInterface)
             : base(parentType, typeof(T), name, isField, getter, getterBoxed, setter, setterBoxed, attributes, isBacked, isStatic, isExplicitFromInterface)
         {
-            this.HasGetter = getter != null;
             this.Getter = getter;
-            this.HasSetter = setter != null;
             this.Setter = setter;
         }
     }

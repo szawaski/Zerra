@@ -941,24 +941,18 @@ namespace Zerra.Repository
                 }
             }
 
-            if (!RuntimeFeature.IsDynamicCodeSupported)
+            try
             {
-                try
-                {
 #pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
-                    var value = Expression.Lambda(exp).Compile().DynamicInvoke();
-#pragma warning restore IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
-                    return value;
-                }
-                catch (Exception ex)
-                {
-                    throw new InvalidOperationException($"Dynamic code execution is not supported in this runtime environment.", ex);
-                }
-            }
-            else
-            {
                 var value = Expression.Lambda(exp).Compile().DynamicInvoke();
+#pragma warning restore IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
                 return value;
+            }
+            catch (Exception ex)
+            {
+                if (!RuntimeFeature.IsDynamicCodeSupported)
+                    throw new InvalidOperationException($"Dynamic code execution is not supported in this runtime environment.", ex);
+                throw;
             }
         }
     }

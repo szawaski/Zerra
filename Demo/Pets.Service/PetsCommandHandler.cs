@@ -3,6 +3,7 @@ using Pets.Domain;
 using Pets.Domain.Commands;
 using Pets.Domain.Models;
 using Pets.Service.Data;
+using Pets.Service.Services;
 using Zerra.CQRS;
 using Zerra.Repository;
 
@@ -20,13 +21,13 @@ namespace Pets.Service
             if (!breeds.Any(x =>  x.ID == command.BreedID))
                 throw new InvalidOperationException("BreedID not found");
 
-            DataSource.Pets.Add(new PetModel()
+            StaticDataSource.Pets.Add(new PetModel()
             {
                 ID = command.PetID,
                 BreedID = command.BreedID,
                 Name = command.Name
             });
-            return DataSource.Pets.Count;
+            return StaticDataSource.Pets.Count;
         }
 
         public async Task<int> Handle(AddPetTypeCommand command, CancellationToken cancellationToken)
@@ -38,6 +39,8 @@ namespace Pets.Service
             await Repo.PersistAsync(new Create(model));
 
             var model2 = await Repo.QueryAsync(new QuerySingle<PetTypeDataModel>(x => x.Name == command.Name));
+            if (model2 == null)
+                throw new InvalidOperationException("Failed to retrieve the pet type after creation.");
             return model2.Id;
         }
 
@@ -51,6 +54,8 @@ namespace Pets.Service
             await Repo.PersistAsync(new Create(model));
 
             var model2 = await Repo.QueryAsync(new QuerySingle<PetDataModel>(x => x.Name == command.Name));
+            if (model2 == null)
+                throw new InvalidOperationException("Failed to retrieve the pet after creation.");
             return model2.Id;
         }
 

@@ -1,6 +1,6 @@
 ﻿using Zerra.Logging;
 
-namespace Pets.Service
+namespace Pets.Service.Logging
 {
     public sealed class Logger : ILogger
     {

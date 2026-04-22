@@ -178,12 +178,8 @@ namespace Zerra.Reflection
             {
                 if (attributes == null)
                 {
-                    if (!RuntimeFeature.IsDynamicCodeSupported)
-                        throw new NotSupportedException($"Cannot generate methods for {Type.Name}.  Dynamic code generation is not supported in this build configuration.");
                     lock (locker)
-#pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
                         attributes ??= TypeDetailGenerator.GenerateAttributes(this.Type);
-#pragma warning restore IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
                 }
                 return attributes;
             }

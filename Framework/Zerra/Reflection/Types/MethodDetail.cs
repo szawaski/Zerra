@@ -26,8 +26,6 @@ namespace Zerra.Reflection
         /// <summary>The unboxed delegate for invoking this method.</summary>
         public readonly Delegate? Caller;
         /// <summary>Indicates whether this method has a boxed callable delegate.</summary>
-        public readonly bool HasCallerBoxed;
-        /// <summary>Boxed delegate for invoking this method; accepts instance and parameter values as object array.</summary>
         public readonly Func<object?, object?[]?, object?>? CallerBoxed;
         /// <summary>Collection of all custom attributes applied to this method.</summary>
         public readonly IReadOnlyList<Attribute> Attributes;
@@ -58,7 +56,6 @@ namespace Zerra.Reflection
             this.Parameters = parameters;
             this.HasCaller = caller != null;
             this.Caller = caller;
-            this.HasCallerBoxed = callerBoxed != null;
             this.CallerBoxed = callerBoxed;
             this.Attributes = attributes;
             this.IsStatic = isStatic;

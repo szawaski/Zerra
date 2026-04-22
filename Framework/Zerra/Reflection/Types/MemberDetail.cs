@@ -20,9 +20,9 @@ namespace Zerra.Reflection
         /// <summary>Indicates whether this member is a field.</summary>
         public readonly bool IsField;
 
-        /// <summary>Indicates whether a strongly-typed getter delegate exists.</summary>
+        /// <summary>Indicates whether getter delegates exists. Quick way to skip null check.</summary>
         public readonly bool HasGetter;
-        /// <summary>Indicates whether a strongly-typed setter delegate exists.</summary>
+        /// <summary>Indicates whether setter delegates exists. Quick way to skip null check.</summary>
         public readonly bool HasSetter;
 
         /// <summary>Boxed delegate for getting the member value; returns object.</summary>

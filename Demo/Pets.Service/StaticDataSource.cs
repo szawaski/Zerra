@@ -2,7 +2,7 @@
 
 namespace Pets.Service
 {
-    public static class DataSource
+    public static class StaticDataSource
     {
         public static readonly SpeciesModel[] Species =
         [

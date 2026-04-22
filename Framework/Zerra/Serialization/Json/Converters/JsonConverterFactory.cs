@@ -70,8 +70,8 @@ namespace Zerra.Serialization.Json.Converters
 
         internal static Func<JsonConverter> GenerateJsonConverterCreator(TypeDetail typeDetail)
         {
-            if (!RuntimeFeature.IsDynamicCodeSupported)
-                throw new InvalidOperationException($"JsonConverter type not found for {typeDetail.Type.Name} and dynamic code generation is not supported in this build configuration");
+            //if (!RuntimeFeature.IsDynamicCodeSupported)
+            //    throw new InvalidOperationException($"JsonConverter type not found for {typeDetail.Type.Name} and dynamic code generation is not supported in this build configuration");
 
             var type = typeDetail.Type;
             var enumerableType = typeDetail.IEnumerableGenericInnerType ?? typeof(object);
@@ -79,7 +79,12 @@ namespace Zerra.Serialization.Json.Converters
             var dictionaryValueType = typeDetail.DictionaryInnerTypeDetail?.InnerTypes.ElementAtOrDefault(1) ?? typeof(object);
 
             var findCreatorMethodDefinition = typeof(JsonConverterFactory).GetMethod(nameof(FindCreator), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+
+            //We don't necessarily know that this will fail with AOT, so we will suppress the warning here and let it fail at runtime.
+#pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
             var findCreatorMethod = findCreatorMethodDefinition.MakeGenericMethod(type, enumerableType, dictionaryKeyType, dictionaryValueType);
+#pragma warning restore IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
+
             var creator = (Func<JsonConverter>)findCreatorMethod.Invoke(null, [typeDetail])!;
             return creator;
         }

@@ -1,6 +1,7 @@
 ﻿using Pets.Domain;
 using Pets.Domain.Models;
 using Pets.Service.Data;
+using Pets.Service.Services;
 using Zerra.CQRS;
 using Zerra.Repository;
 
@@ -26,27 +27,27 @@ namespace Pets.Service
         public Task<SpeciesModel[]> GetSpecies()
         {
             var things = Context.GetService<IThing>();
-            return Task.FromResult(DataSource.Species.ToArray());
+            return Task.FromResult(StaticDataSource.Species.ToArray());
         }
 
         public Task<BreedModel[]> GetBreeds()
         {
-            return Task.FromResult(DataSource.Breeds);
+            return Task.FromResult(StaticDataSource.Breeds);
         }
 
         public Task<BreedModel[]> GetBreedsBySpecies(Guid SpeciesId)
         {
-            return Task.FromResult(DataSource.Breeds.Where(b => b.SpeciesID == SpeciesId).ToArray());
+            return Task.FromResult(StaticDataSource.Breeds.Where(b => b.SpeciesID == SpeciesId).ToArray());
         }
 
         public Task<PetModel> GetPet(Guid id)
         {
-            return Task.FromResult(DataSource.Pets.First(p => p.ID == id));
+            return Task.FromResult(StaticDataSource.Pets.First(p => p.ID == id));
         }
 
         public Task<List<PetModel>> GetPets()
         {
-            return Task.FromResult<List<PetModel>>(DataSource.Pets.ToList());
+            return Task.FromResult<List<PetModel>>(StaticDataSource.Pets.ToList());
         }
 
         public Task<bool> IsHungry(Guid id)

@@ -4,7 +4,7 @@
 
 using Zerra.Reflection;
 
-namespace Pets.Service
+namespace Pets.Domain.Maps
 {
     public class ModelB
     {

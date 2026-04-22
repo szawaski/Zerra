@@ -27,12 +27,8 @@ namespace Zerra.Reflection
             {
                 if (constructors == null)
                 {
-                    if (!RuntimeFeature.IsDynamicCodeSupported)
-                        throw new NotSupportedException($"Cannot generate constructors for {Type.Name}.  Dynamic code generation is not supported in this build configuration.");
                     lock (locker)
-#pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
                         constructors ??= base.Constructors.Cast<ConstructorDetail<T>>().ToArray();
-#pragma warning restore IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
                 }
                 return constructors;
             }

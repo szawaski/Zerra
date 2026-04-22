@@ -4,7 +4,6 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 
 namespace Zerra.Reflection
 {
@@ -38,9 +37,6 @@ namespace Zerra.Reflection
             {
                 if (methodInfo == null)
                 {
-                    if (!RuntimeFeature.IsDynamicCodeSupported)
-                        throw new NotSupportedException($"Cannot get member info.  Dynamic code generation is not supported in this build configuration.");
-
                     if (GenericArguments.Count == 0)
                     {
                         methodInfo = ParentType.GetMethod(Name, Parameters.Select(x => x.Type).ToArray());

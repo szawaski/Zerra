@@ -2,7 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-namespace Pets.Service
+namespace Pets.Domain.Maps
 {
     public class ModelA
     {

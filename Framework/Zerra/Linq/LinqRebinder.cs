@@ -427,9 +427,6 @@ namespace Zerra.Linq
 
                         if (cast.Constructor is not null)
                         {
-                            if (!RuntimeFeature.IsDynamicCodeSupported)
-                                throw new NotSupportedException($"Cannot rebind New expressions. Dynamic code generation is not supported in this build configuration.");
-
                             var replacementExpressions = new Expression[cast.Arguments.Count];
                             for (var i = 0; i < cast.Arguments.Count; i++)
                             {

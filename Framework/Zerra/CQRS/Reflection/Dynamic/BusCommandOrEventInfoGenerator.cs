@@ -8,7 +8,6 @@ using static Zerra.CQRS.Reflection.BusCommandOrEventInfo;
 namespace Zerra.CQRS.Reflection.Dynamic
 {
     [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
-    [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
     internal static class BusCommandOrEventInfoGenerator
     {
         public static CommandOrEventInfo GenerateMessageInfo(Type interfaceOrCommandOrEventType, IEnumerable<Type>? typesToSearch)

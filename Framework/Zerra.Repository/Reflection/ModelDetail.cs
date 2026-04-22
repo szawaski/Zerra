@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using Zerra.Reflection;
 
 namespace Zerra.Repository.Reflection
@@ -142,7 +143,18 @@ namespace Zerra.Repository.Reflection
             this.TypeDetail = typeDetail;
             this.Type = typeDetail.Type;
 
-            this.LambdaDelegateType = typeof(Func<,>).MakeGenericType(this.Type, typeof(bool));
+            try
+            {
+#pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
+                this.LambdaDelegateType = typeof(Func<,>).MakeGenericType(this.Type, typeof(bool));
+#pragma warning restore IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
+            }
+            catch (Exception ex)
+            {
+                if (!RuntimeFeature.IsDynamicCodeSupported)
+                    throw new InvalidOperationException($"Failed to create lambda delegate type for {this.Type.FullName}. Dynamic code execution is not supported in this runtime environment.", ex);
+                throw;
+            }
 
             if (!typeDetail.HasCreator)
                 throw new Exception($"{Type.Name} must have a parameterless constructor to be a model.");

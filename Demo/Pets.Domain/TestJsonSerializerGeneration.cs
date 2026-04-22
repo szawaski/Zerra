@@ -14,5 +14,5 @@
 //    [JsonSerializable(typeof(RemoteQueryCallResponse))]
 //    [JsonSerializable(typeof(AdoptPetCommand))]
 //    [JsonSourceGenerationOptions]
-//    public partial class TempJsonSerializerGeneration : JsonSerializerContext { }
+//    public partial class TestJsonSerializerGeneration : JsonSerializerContext { }
 //}

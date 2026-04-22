@@ -1,8 +1,10 @@
 ﻿using Pets.Domain;
 using Pets.Domain.Commands;
-using Pets.Domain.Models;
+using Pets.Domain.Maps;
 using Pets.Service;
 using Pets.Service.Data;
+using Pets.Service.Logging;
+using Pets.Service.Services;
 using System.Diagnostics;
 using Zerra.CQRS;
 using Zerra.CQRS.Network;
@@ -97,7 +99,7 @@ if (128 != modelB.PropD) throw new Exception("Mapping Failed");
 modelA = modelB.Map<ModelB, ModelA>();
 if (64 != modelA.PropA) throw new Exception("Mapping Failed");
 if (128 != modelA.PropC) throw new Exception("Mapping Failed");
-Console.WriteLine($"Map Two Ways: {timer.ElapsedMilliseconds} ms");
+Console.WriteLine($"Mapper: {timer.ElapsedMilliseconds} ms");
 timer.Restart();
 
 //Repository

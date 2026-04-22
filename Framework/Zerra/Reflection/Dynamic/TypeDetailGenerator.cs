@@ -5,12 +5,9 @@
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 
 namespace Zerra.Reflection.Dynamic
 {
-    [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
-    [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
     internal static class TypeDetailGenerator
     {
         private static readonly string nullableTypeName = typeof(Nullable<>).Name;
@@ -42,7 +39,14 @@ namespace Zerra.Reflection.Dynamic
         private static readonly Type memberDetailType = typeof(MemberDetail<>);
         private static readonly Type methodDetailType = typeof(MethodDetail<>);
 
+        //These should be fine since we are being explicit with the type
+#pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
         private static readonly MethodInfo generateTypeDetailGeneric = typeof(TypeDetailGenerator).GetMethod(nameof(Generate), BindingFlags.NonPublic | BindingFlags.Static)!;
+        private static readonly MethodInfo generateConstructorMethod = typeof(TypeDetailGenerator).GetMethod(nameof(GenerateConstructorsGeneric), BindingFlags.Public | BindingFlags.Static)!;
+#pragma warning restore IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
+
+        [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
+        [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
         public static TypeDetail GenerateTypeDetail(Type type)
         {
             if (type.ContainsGenericParameters || type.IsByRefLike)
@@ -56,6 +60,8 @@ namespace Zerra.Reflection.Dynamic
             }
         }
 
+        [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
+        [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
         private static TypeDetail GenerateIncomplete(Type type)
         {
             var constructors = new List<ConstructorDetail>(0);
@@ -241,6 +247,9 @@ namespace Zerra.Reflection.Dynamic
             );
             return typeDetail;
         }
+
+        [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
+        [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
         private static TypeDetail<T> Generate<T>(Type type)
         {
             //var constructors = GenerateConstructors<T>(type);
@@ -259,11 +268,8 @@ namespace Zerra.Reflection.Dynamic
                 var emptyConstructor = type.GetConstructor(Type.EmptyTypes);
                 if (emptyConstructor != null)
                 {
-                    if (RuntimeFeature.IsDynamicCodeSupported)
-                    {
-                        creator = AccessorGenerator.GenerateCreatorNoArgs<T>(emptyConstructor);
-                        creatorBoxed = AccessorGenerator.GenerateCreatorNoArgs(emptyConstructor);
-                    }
+                    creator = AccessorGenerator.GenerateCreatorNoArgs<T>(emptyConstructor);
+                    creatorBoxed = AccessorGenerator.GenerateCreatorNoArgs(emptyConstructor);
                 }
                 else if (type.IsValueType && type.Name != "Void")
                 {
@@ -449,6 +455,8 @@ namespace Zerra.Reflection.Dynamic
             return typeDetail;
         }
 
+        [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
+        [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
         public static List<MemberDetail> GenerateMembers(Type type, IReadOnlyCollection<Type> interfaces)
         {
             var items = new List<MemberDetail>();
@@ -610,20 +618,17 @@ namespace Zerra.Reflection.Dynamic
                             Delegate? setter = null;
                             Action<object, object?>? setterBoxed = null;
 
-                            if (RuntimeFeature.IsDynamicCodeSupported)
+                            if (!property.PropertyType.IsByRef && !property.PropertyType.IsByRefLike)
                             {
-                                if (!property.PropertyType.IsByRef && !property.PropertyType.IsByRefLike)
+                                if (property.GetMethod != null && property.GetMethod.IsPublic)
                                 {
-                                    if (property.GetMethod != null && property.GetMethod.IsPublic)
-                                    {
-                                        getter = AccessorGenerator.GenerateGetter(property, property.PropertyType);
-                                        getterBoxed = AccessorGenerator.GenerateGetter(property);
-                                    }
-                                    if (property.SetMethod != null && property.SetMethod.IsPublic)
-                                    {
-                                        setter = AccessorGenerator.GenerateSetter(property, property.PropertyType);
-                                        setterBoxed = AccessorGenerator.GenerateSetter(property);
-                                    }
+                                    getter = AccessorGenerator.GenerateGetter(property, property.PropertyType);
+                                    getterBoxed = AccessorGenerator.GenerateGetter(property);
+                                }
+                                if (property.SetMethod != null && property.SetMethod.IsPublic)
+                                {
+                                    setter = AccessorGenerator.GenerateSetter(property, property.PropertyType);
+                                    setterBoxed = AccessorGenerator.GenerateSetter(property);
                                 }
                             }
 
@@ -649,11 +654,16 @@ namespace Zerra.Reflection.Dynamic
 
             return items;
         }
+
+        [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
+        [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
         public static List<ConstructorDetail> GenerateConstructors(Type type)
         {
             return (List<ConstructorDetail>)generateConstructorMethod.MakeGenericMethod(type).Invoke(null, [type])!;
         }
-        private static MethodInfo generateConstructorMethod = typeof(TypeDetailGenerator).GetMethod(nameof(GenerateConstructorsGeneric), BindingFlags.Public | BindingFlags.Static)!;
+
+        [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
+        [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
         public static List<ConstructorDetail> GenerateConstructorsGeneric<T>(Type type)
         {
             var items = new List<ConstructorDetail>();
@@ -685,6 +695,9 @@ namespace Zerra.Reflection.Dynamic
             }
             return items;
         }
+
+        [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
+        [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
         public static List<MethodDetail> GenerateMethods(Type type, IReadOnlyCollection<Type> interfaces)
         {
             var items = new List<MethodDetail>();
@@ -705,11 +718,9 @@ namespace Zerra.Reflection.Dynamic
 
                     Delegate? caller = null;
                     Func<object?, object?[]?, object?>? callerBoxed = null;
-                    if (RuntimeFeature.IsDynamicCodeSupported)
-                    {
-                        caller = AccessorGenerator.GenerateCaller(method, method.ReturnType);
-                        callerBoxed = AccessorGenerator.GenerateCaller(method);
-                    }
+
+                    caller = AccessorGenerator.GenerateCaller(method, method.ReturnType);
+                    callerBoxed = AccessorGenerator.GenerateCaller(method);
 
                     var genericArguments = method.GetGenericArguments();
 
@@ -788,6 +799,7 @@ namespace Zerra.Reflection.Dynamic
             }
             return items;
         }
+
         public static Type[] GenerateInnerTypes(Type type)
         {
             if (type.IsGenericType)
@@ -797,6 +809,7 @@ namespace Zerra.Reflection.Dynamic
             else
                 return Array.Empty<Type>();
         }
+
         public static List<Type> GenerateBaseTypes(Type type)
         {
             var items = new List<Type>();
@@ -808,10 +821,13 @@ namespace Zerra.Reflection.Dynamic
             }
             return items;
         }
+
+        [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
         public static Type[] GenerateInterfaces(Type type)
         {
             return type.GetInterfaces();
         }
+
         public static Attribute[] GenerateAttributes(Type type)
         {
             return type.GetCustomAttributes(true).Cast<Attribute>().ToArray();

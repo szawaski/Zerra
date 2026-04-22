@@ -32,7 +32,7 @@ namespace Zerra.Map
                     {
                         lock (this)
                         {
-                            converter ??= MapConverterFactory.Get(SourceMember.TypeDetail, TargetMember.TypeDetail, memberKey, SourceMember.HasGetter ? SourceMember.Getter : null, TargetMember.HasGetter ? TargetMember.Getter : null, TargetMember.HasSetter ? TargetMember.Setter : null);
+                            converter ??= MapConverterFactory.Get(SourceMember.TypeDetail, TargetMember.TypeDetail, memberKey, SourceMember.HasGetter ? SourceMember.Getter : null, TargetMember.Getter, TargetMember.Setter);
                         }
                     }
                     return converter;

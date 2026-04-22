@@ -1,6 +1,6 @@
 ﻿using Zerra.CQRS;
 
-namespace Pets.Service
+namespace Pets.Service.Logging
 {
     public sealed class BusLogger : IBusLogger
     {
