@@ -32,6 +32,13 @@ namespace Zerra.CQRS
         void IHandler.Initialize(BusContext context)
         {
             this.context = context;
+            InitializeBaseHandler();
         }
+
+        /// <summary>
+        /// Called after the handler is initialized with the bus context.
+        /// Override this method to perform custom initialization logic.
+        /// </summary>
+        protected virtual void InitializeBaseHandler() { }
     }
 }

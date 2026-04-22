@@ -8,17 +8,26 @@ namespace Zerra.Repository
     /// </summary>
     public abstract class BaseHandlerWithRepo : BaseHandler
     {
-        private IRepo? repo;
+        private IRepo repo = null!;
         /// <summary>
         /// Gets the repository instance resolved from the current bus context.
         /// </summary>
-        public IRepo Repo
+        public IRepo Repo => repo;
+
+        /// <inheritdoc />
+        protected override sealed void InitializeBaseHandler()
         {
-            get
-            {
-                repo ??= Context.GetService<IRepo>();
-                return repo;
-            }
+            var getRepo = Context.GetService<IRepo>();
+            if (getRepo == null)
+                throw new InvalidOperationException("Failed to resolve IRepo from the current bus context.");
+            repo = getRepo;
+            InitializeBaseHandlerWithRepo();
         }
+
+        /// <summary>
+        /// Called after the handler is initialized with the repository and the bus context.
+        /// Override this method to perform custom initialization logic.
+        /// </summary>
+        protected virtual void InitializeBaseHandlerWithRepo() { }
     }
 }

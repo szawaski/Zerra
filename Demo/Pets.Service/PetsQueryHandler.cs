@@ -2,7 +2,6 @@
 using Pets.Domain.Models;
 using Pets.Service.Data;
 using Pets.Service.Services;
-using Zerra.CQRS;
 using Zerra.Repository;
 
 namespace Pets.Service

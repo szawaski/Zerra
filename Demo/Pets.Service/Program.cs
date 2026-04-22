@@ -114,7 +114,7 @@ CodeFirstGeneration.Generate<ZerraPetsDbContext>(DataStoreGenerationType.CodeFir
 Console.WriteLine($"CodeFirstGeneration.Generate: {timer.ElapsedMilliseconds} ms");
 timer.Restart();
 
-var petTypeId = await Bus.DispatchAwaitAsync(new AddPetTypeCommand() { Name = "Dog" });
+var petTypeId = await busClient.DispatchAwaitAsync(new AddPetTypeCommand() { Name = "Dog" });
 await Bus.DispatchAwaitAsync(new AddPetCommand() { Name = "Lucy", PetTypeId = petTypeId });
 Console.WriteLine($"Dispatch Await Async AddPetTypeCommand and AddPetCommand: {timer.ElapsedMilliseconds} ms");
 timer.Restart();
