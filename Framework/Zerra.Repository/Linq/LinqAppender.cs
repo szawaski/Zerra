@@ -4,9 +4,10 @@
 
 using System.Linq.Expressions;
 using System.Reflection;
+using Zerra.Linq;
 using Zerra.Reflection;
 
-namespace Zerra.Linq
+namespace Zerra.Repository.Linq
 {
     /// <summary>
     /// Provides methods for composing and appending LINQ predicate expressions.

@@ -16,14 +16,19 @@ namespace Zerra.Repository
         /// <summary>
         /// Generates or updates the data store schema based on the provided model types and generation options.
         /// </summary>
-        /// <param name="engine">The data store engine used to build and execute the generation plan.</param>
+        /// <typeparam name="TContext">The data context type that provides the data store engine.</typeparam>
         /// <param name="dataStoreGenerationType">Flags that control how schema generation is performed, including options to preview, restrict creates, updates, or deletes.</param>
         /// <param name="modelTypes">The model types to analyze and use for schema generation.</param>
         /// <param name="log">An optional logger for reporting generation progress and plan previews.</param>
-        public static void Generate(IDataStoreEngine engine, DataStoreGenerationType dataStoreGenerationType, Type[] modelTypes, ILogger? log = null)
+        public static void Generate<TContext>(DataStoreGenerationType dataStoreGenerationType, Type[] modelTypes, ILogger? log = null)
+            where TContext : DataContext, new()
         {
             if (dataStoreGenerationType.HasFlag(DataStoreGenerationType.CodeFirst))
             {
+                var context = new TContext();
+                if (!context.TryGetEngine(out var engine))
+                    throw new Exception($"DataContext {typeof(TContext).FullName} did not return an engine");
+
                 log?.Info($"{engine.GetType().Name} Initializing {dataStoreGenerationType.EnumName()}");
 
                 var modelDetails = modelTypes.Select(x => ModelAnalyzer.GetModel(x)).ToArray();

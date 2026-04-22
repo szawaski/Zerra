@@ -14,7 +14,7 @@ namespace Zerra.Repository
     public abstract class AggregateRoot
     {
         private static Type? typeCache = null;
-        private static readonly object typeCacheLock = new();
+        private static readonly Lock typeCacheLock = new();
         private Type GetAggregateType()
         {
             if (typeCache is null)
@@ -167,7 +167,7 @@ namespace Zerra.Repository
                 return methodDetail;
             });
 
-            return (Task)methodDetail.CallerBoxed(this, [@event])!;
+            return (Task)methodDetail.CallerBoxed!(this, [@event])!;
         }
     }
 }

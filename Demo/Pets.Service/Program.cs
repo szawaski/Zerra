@@ -2,19 +2,24 @@
 using Pets.Domain.Commands;
 using Pets.Domain.Models;
 using Pets.Service;
+using Pets.Service.Data;
 using System.Diagnostics;
 using Zerra.CQRS;
 using Zerra.CQRS.Network;
 using Zerra.Encryption;
 using Zerra.Logging;
 using Zerra.Map;
+using Zerra.Repository;
 using Zerra.Serialization;
-using Zerra.Serialization.Json;
 
 Console.WriteLine();
 var timer = Stopwatch.StartNew();
 
 //Setup Components
+var repo = Repo.New();
+repo.AddProvider(new ZerraPetsSqlProvider<PetDataModel>());
+repo.AddProvider(new ZerraPetsSqlProvider<PetTypeDataModel>());
+
 ISerializer serializer = new ZerraByteSerializer();
 IEncryptor encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AESwithPrefix);
 ILogger log = new Logger();
@@ -22,6 +27,7 @@ IBusLogger busLog = new BusLogger();
 
 var busServices = new BusServices();
 busServices.AddService<IThing>(new Thing("Hello"));
+busServices.AddService<IRepo>(repo);
 
 //Create Server-Side Bus
 IBusSetup busServer = Bus.New("pets-service-server", log, busLog, busServices);
@@ -78,6 +84,10 @@ await busClient.Call<IPetsQueryHandler>().GetTaskOnly();
 Console.WriteLine($"Call Task Without Value: {timer.ElapsedMilliseconds} ms");
 timer.Restart();
 
+//Mapper
+//------------------------------------------------------------------------------------
+Console.WriteLine();
+
 var modelA = ModelA.GetModelA();
 var modelB = modelA.Map<ModelA, ModelB>();
 if (modelA.Prop1 != modelB.Prop1) throw new Exception("Mapping Failed");
@@ -88,6 +98,31 @@ modelA = modelB.Map<ModelB, ModelA>();
 if (64 != modelA.PropA) throw new Exception("Mapping Failed");
 if (128 != modelA.PropC) throw new Exception("Mapping Failed");
 Console.WriteLine($"Map Two Ways: {timer.ElapsedMilliseconds} ms");
+timer.Restart();
+
+//Repository
+//------------------------------------------------------------------------------------
+Console.WriteLine();
+
+await Bus.DispatchAwaitAsync(new DeleteTestDatabaseCommand());
+Console.WriteLine($"Delete Test Database: {timer.ElapsedMilliseconds} ms");
+timer.Restart();
+
+CodeFirstGeneration.Generate<ZerraPetsDbContext>(DataStoreGenerationType.CodeFirst, [typeof(PetDataModel), typeof(PetTypeDataModel)], log);
+Console.WriteLine($"CodeFirstGeneration.Generate: {timer.ElapsedMilliseconds} ms");
+timer.Restart();
+
+var petTypeId = await Bus.DispatchAwaitAsync(new AddPetTypeCommand() { Name = "Dog" });
+await Bus.DispatchAwaitAsync(new AddPetCommand() { Name = "Lucy", PetTypeId = petTypeId });
+Console.WriteLine($"Dispatch Await Async AddPetTypeCommand and AddPetCommand: {timer.ElapsedMilliseconds} ms");
+timer.Restart();
+
+var petsFromRepo = await busClient.Call<IPetsQueryHandler>().GetPetsFromRepo();
+Console.WriteLine($"Call GetPetsFromRepo: {timer.ElapsedMilliseconds} ms");
+timer.Restart();
+
+await Bus.DispatchAwaitAsync(new DeleteTestDatabaseCommand());
+Console.WriteLine($"Delete Test Database: {timer.ElapsedMilliseconds} ms");
 timer.Restart();
 
 Console.WriteLine();

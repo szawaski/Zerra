@@ -16,5 +16,7 @@ namespace Pets.Domain
         Task<PetModel> GetPet(Guid id);
         Task<bool> IsHungry(Guid id);
         Task<bool> NeedsToPoop(Guid id);
+
+        Task<PetSimpleModel[]> GetPetsFromRepo();
     }
 }

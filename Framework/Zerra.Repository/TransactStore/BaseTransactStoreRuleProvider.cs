@@ -4,7 +4,7 @@
 
 using System.Collections;
 using System.Linq.Expressions;
-using Zerra.Linq;
+using Zerra.Repository.Linq;
 using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository

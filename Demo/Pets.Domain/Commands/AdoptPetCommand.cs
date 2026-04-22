@@ -2,10 +2,10 @@
 
 namespace Pets.Domain.Commands
 {
-    public class AdoptPetCommand : ICommand<int>
+    public sealed class AdoptPetCommand : ICommand<int>
     {
-        public Guid PetID { get; set; }
-        public Guid BreedID { get; set; }
-        public string? Name { get; set; }
+        public required Guid PetID { get; set; }
+        public required Guid BreedID { get; set; }
+        public required string Name { get; set; }
     }
 }

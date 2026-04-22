@@ -2,13 +2,14 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Text;
 
 namespace Zerra.T4
 {
+    /// <summary>
+    /// Provides utilities for generating C# model and provider classes from SQL Server database schema.
+    /// </summary>
     public static class MsSqlFirst
     {
         const string tab = "    ";
@@ -42,6 +43,13 @@ WHERE
 (TCKP.CONSTRAINT_TYPE = 'PRIMARY KEY' OR TCKP.CONSTRAINT_TYPE = 'FOREIGN KEY')
 AND ((KF.TABLE_SCHEMA = '{0}' AND KF.TABLE_NAME = '{1}') OR (KP.TABLE_SCHEMA = '{0}' AND KP.TABLE_NAME = '{1}'))";
 
+        /// <summary>
+        /// Generates C# model classes from SQL Server database schema.
+        /// </summary>
+        /// <param name="connectionString">The SQL Server connection string.</param>
+        /// <param name="namespaceString">The namespace for the generated model classes.</param>
+        /// <param name="modelSuffix">The suffix to append to each generated model class name.</param>
+        /// <returns>A string containing the generated C# model classes.</returns>
         public static string GenerateModels(string connectionString, string namespaceString, string modelSuffix)
         {
             var sb = new StringBuilder();
@@ -164,7 +172,7 @@ AND ((KF.TABLE_SCHEMA = '{0}' AND KF.TABLE_NAME = '{1}') OR (KP.TABLE_SCHEMA = '
                                     var pkTable = reader.GetString(pkTableIndex);
                                     var pkColumn = reader.GetString(pkColumnIndex);
 
-                                    string propertyName = null;
+                                    string? propertyName = null;
                                     if (fkTable == tableName)
                                         propertyName = pkTable;
                                     else
@@ -200,7 +208,7 @@ AND ((KF.TABLE_SCHEMA = '{0}' AND KF.TABLE_NAME = '{1}') OR (KP.TABLE_SCHEMA = '
             return sb.ToString();
         }
 
-        private static string CSharpAttributeFromSqlType(string sqlType, bool isNullable, int? characterMaximumLength, byte? numericPrecision, int? numericScale, short? datetimePrecision)
+        private static string? CSharpAttributeFromSqlType(string sqlType, bool isNullable, int? characterMaximumLength, byte? numericPrecision, int? numericScale, short? datetimePrecision)
         {
             switch (sqlType)
             {
@@ -442,6 +450,15 @@ AND ((KF.TABLE_SCHEMA = '{0}' AND KF.TABLE_NAME = '{1}') OR (KP.TABLE_SCHEMA = '
             }
         }
 
+        /// <summary>
+        /// Generates C# provider classes from SQL Server database schema.
+        /// </summary>
+        /// <param name="connectionString">The SQL Server connection string.</param>
+        /// <param name="namespaceString">The namespace for the generated provider classes.</param>
+        /// <param name="modelSuffix">The suffix appended to model class names that the providers reference.</param>
+        /// <param name="baseProvider">The base provider class that the generated providers inherit from.</param>
+        /// <param name="usingNamespace">Optional namespace to include in using directives.</param>
+        /// <returns>A string containing the generated C# provider classes.</returns>
         public static string GenerateProviders(string connectionString, string namespaceString, string modelSuffix, string baseProvider, string usingNamespace)
         {
             var sb = new StringBuilder();
@@ -490,6 +507,12 @@ AND ((KF.TABLE_SCHEMA = '{0}' AND KF.TABLE_NAME = '{1}') OR (KP.TABLE_SCHEMA = '
             return sb.ToString();
         }
 
+        /// <summary>
+        /// Determines if a name is a safe C# identifier and converts it to a safe name if necessary.
+        /// </summary>
+        /// <param name="name">The name to check.</param>
+        /// <param name="safeName">The safe C# identifier name.</param>
+        /// <returns>True if the original name was already safe; otherwise, false.</returns>
         public static bool IsSafeName(string name, out string safeName)
         {
             var safe = true;

@@ -75,7 +75,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     {
                         lock (this)
                         {
-                            converter ??= JsonConverterFactory.Get(Member.TypeDetail, memberKey, Member.HasGetterBoxed ? Member.Getter : null, Member.HasSetterBoxed ? Member.Setter : null);
+                            converter ??= JsonConverterFactory.Get(Member.TypeDetail, memberKey, Member.HasGetter ? Member.Getter : null, Member.HasSetter ? Member.Setter : null);
                         }
                     }
                     return converter;

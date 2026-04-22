@@ -77,13 +77,12 @@ namespace Zerra.Reflection
             }
         }
 
-        /// <summary>Indicates whether a boxed creator delegate exists for instantiation.</summary>
-        public readonly bool HasCreatorBoxed;
+        /// <summary>Indicates whether a typed creator delegate exists for instantiation.</summary>
+        public readonly bool HasCreator;
+
         /// <summary>Boxed delegate for creating instances of this type; returns object.</summary>
         public readonly Func<object>? CreatorBoxed;
 
-        /// <summary>Indicates whether a typed creator delegate exists for instantiation.</summary>
-        public readonly bool HasCreator;
         /// <summary>Typed delegate for creating instances of this type.</summary>
         public readonly Delegate? Creator;
 
@@ -265,7 +264,6 @@ namespace Zerra.Reflection
             this.methods = methods;
             this.HasCreator = creator != null;
             this.Creator = creator;
-            this.HasCreatorBoxed = creatorBoxed != null;
             this.CreatorBoxed = creatorBoxed;
 
             this.IsNullable = isNullable;

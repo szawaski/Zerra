@@ -15,9 +15,16 @@ using System.Collections;
 
 namespace Zerra.Repository.PostgreSql
 {
+    /// <summary>
+    /// The core data store engine for PostgreSQL, implementing query, insert, update, delete, and schema generation operations.
+    /// </summary>
     public sealed partial class PostgreSqlEngine : ITransactStoreEngine
     {
         private readonly string connectionString;
+        /// <summary>
+        /// Initializes a new instance of <see cref="PostgreSqlEngine"/>.
+        /// </summary>
+        /// <param name="connectionString">The PostgreSQL connection string.</param>
         public PostgreSqlEngine(string connectionString)
         {
             this.connectionString = connectionString;
@@ -602,6 +609,11 @@ namespace Zerra.Repository.PostgreSql
             throw new Exception($"Cannot convert type to SQL value {modelPropertyDetail.Type.Name}");
         }
 
+        /// <summary>
+        /// Executes a query and returns all matching models.
+        /// </summary>
+        /// <typeparam name="TModel">The model type to query.</typeparam>
+        /// <returns>A read-only collection of matching models.</returns>
         public IReadOnlyCollection<TModel> ExecuteQueryToModelMany<TModel>(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = LinqPostgreSqlConverter.Convert(QueryOperation.Many, where, order, skip, take, graph, modelDetail);
@@ -637,6 +649,11 @@ namespace Zerra.Repository.PostgreSql
                 }
             }
         }
+        /// <summary>
+        /// Executes a query and returns the first matching model, or <see langword="null"/> if none is found.
+        /// </summary>
+        /// <typeparam name="TModel">The model type to query.</typeparam>
+        /// <returns>The first matching model, or <see langword="null"/>.</returns>
         public TModel? ExecuteQueryToModelFirst<TModel>(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = LinqPostgreSqlConverter.Convert(QueryOperation.First, where, order, skip, take, graph, modelDetail);
@@ -667,6 +684,11 @@ namespace Zerra.Repository.PostgreSql
                 }
             }
         }
+        /// <summary>
+        /// Executes a query and returns a single matching model, or <see langword="null"/> if none is found. Throws if more than one result is found.
+        /// </summary>
+        /// <typeparam name="TModel">The model type to query.</typeparam>
+        /// <returns>The single matching model, or <see langword="null"/>.</returns>
         public TModel? ExecuteQueryToModelSingle<TModel>(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = LinqPostgreSqlConverter.Convert(QueryOperation.Single, where, order, skip, take, graph, modelDetail);
@@ -701,6 +723,10 @@ namespace Zerra.Repository.PostgreSql
                 }
             }
         }
+        /// <summary>
+        /// Executes a query and returns the count of matching rows.
+        /// </summary>
+        /// <returns>The number of matching rows.</returns>
         public long ExecuteQueryCount(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail)
         {
             var sql = LinqPostgreSqlConverter.Convert(QueryOperation.Count, where, order, skip, take, graph, modelDetail);
@@ -728,6 +754,10 @@ namespace Zerra.Repository.PostgreSql
                 }
             }
         }
+        /// <summary>
+        /// Executes a query and returns a value indicating whether any matching rows exist.
+        /// </summary>
+        /// <returns><see langword="true"/> if at least one matching row exists; otherwise, <see langword="false"/>.</returns>
         public bool ExecuteQueryAny(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail)
         {
             var sql = LinqPostgreSqlConverter.Convert(QueryOperation.Any, where, order, skip, take, graph, modelDetail);
@@ -748,6 +778,11 @@ namespace Zerra.Repository.PostgreSql
             }
         }
 
+        /// <summary>
+        /// Asynchronously executes a query and returns all matching models.
+        /// </summary>
+        /// <typeparam name="TModel">The model type to query.</typeparam>
+        /// <returns>A read-only collection of matching models.</returns>
         public async Task<IReadOnlyCollection<TModel>> ExecuteQueryToModelManyAsync<TModel>(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = LinqPostgreSqlConverter.Convert(QueryOperation.Many, where, order, skip, take, graph, modelDetail);
@@ -783,6 +818,11 @@ namespace Zerra.Repository.PostgreSql
                 }
             }
         }
+        /// <summary>
+        /// Asynchronously executes a query and returns the first matching model, or <see langword="null"/> if none is found.
+        /// </summary>
+        /// <typeparam name="TModel">The model type to query.</typeparam>
+        /// <returns>The first matching model, or <see langword="null"/>.</returns>
         public async Task<TModel?> ExecuteQueryToModelFirstAsync<TModel>(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = LinqPostgreSqlConverter.Convert(QueryOperation.First, where, order, skip, take, graph, modelDetail);
@@ -813,6 +853,11 @@ namespace Zerra.Repository.PostgreSql
                 }
             }
         }
+        /// <summary>
+        /// Asynchronously executes a query and returns a single matching model, or <see langword="null"/> if none is found. Throws if more than one result is found.
+        /// </summary>
+        /// <typeparam name="TModel">The model type to query.</typeparam>
+        /// <returns>The single matching model, or <see langword="null"/>.</returns>
         public async Task<TModel?> ExecuteQueryToModelSingleAsync<TModel>(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = LinqPostgreSqlConverter.Convert(QueryOperation.Single, where, order, skip, take, graph, modelDetail);
@@ -847,6 +892,10 @@ namespace Zerra.Repository.PostgreSql
                 }
             }
         }
+        /// <summary>
+        /// Asynchronously executes a query and returns the count of matching rows.
+        /// </summary>
+        /// <returns>The number of matching rows.</returns>
         public async Task<long> ExecuteQueryCountAsync(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail)
         {
             var sql = LinqPostgreSqlConverter.Convert(QueryOperation.Count, where, order, skip, take, graph, modelDetail);
@@ -874,6 +923,10 @@ namespace Zerra.Repository.PostgreSql
                 }
             }
         }
+        /// <summary>
+        /// Asynchronously executes a query and returns a value indicating whether any matching rows exist.
+        /// </summary>
+        /// <returns><see langword="true"/> if at least one matching row exists; otherwise, <see langword="false"/>.</returns>
         public async Task<bool> ExecuteQueryAnyAsync(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail)
         {
             var sql = LinqPostgreSqlConverter.Convert(QueryOperation.Any, where, order, skip, take, graph, modelDetail);
@@ -894,6 +947,11 @@ namespace Zerra.Repository.PostgreSql
             }
         }
 
+        /// <summary>
+        /// Executes an insert and returns the generated identity values.
+        /// </summary>
+        /// <typeparam name="TModel">The model type to insert.</typeparam>
+        /// <returns>A read-only collection of the generated identity values.</returns>
         public IReadOnlyCollection<object> ExecuteInsertGetIdentities<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = PostgreSqlEngine.GenerateSqlInsert(model, graph, modelDetail, true);
@@ -935,6 +993,11 @@ namespace Zerra.Repository.PostgreSql
 
             return allValues;
         }
+        /// <summary>
+        /// Executes an insert and returns the number of rows affected.
+        /// </summary>
+        /// <typeparam name="TModel">The model type to insert.</typeparam>
+        /// <returns>The number of rows affected.</returns>
         public int ExecuteInsert<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = PostgreSqlEngine.GenerateSqlInsert(model, graph, modelDetail, false);
@@ -950,6 +1013,11 @@ namespace Zerra.Repository.PostgreSql
                 }
             }
         }
+        /// <summary>
+        /// Executes an update and returns the number of rows affected.
+        /// </summary>
+        /// <typeparam name="TModel">The model type to update.</typeparam>
+        /// <returns>The number of rows affected.</returns>
         public int ExecuteUpdate<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = PostgreSqlEngine.GenerateSqlUpdate(model, graph, modelDetail);
@@ -967,6 +1035,10 @@ namespace Zerra.Repository.PostgreSql
                 }
             }
         }
+        /// <summary>
+        /// Executes a delete for the given identities and returns the number of rows affected.
+        /// </summary>
+        /// <returns>The number of rows affected.</returns>
         public int ExecuteDelete(ICollection ids, ModelDetail modelDetail)
         {
             var sql = PostgreSqlEngine.GenerateSqlDelete(ids, modelDetail);
@@ -983,6 +1055,11 @@ namespace Zerra.Repository.PostgreSql
             }
         }
 
+        /// <summary>
+        /// Asynchronously executes an insert and returns the generated identity values.
+        /// </summary>
+        /// <typeparam name="TModel">The model type to insert.</typeparam>
+        /// <returns>A read-only collection of the generated identity values.</returns>
         public async Task<IReadOnlyCollection<object>> ExecuteInsertGetIdentitiesAsync<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = PostgreSqlEngine.GenerateSqlInsert(model, graph, modelDetail, true);
@@ -1024,6 +1101,11 @@ namespace Zerra.Repository.PostgreSql
 
             return allValues;
         }
+        /// <summary>
+        /// Asynchronously executes an insert and returns the number of rows affected.
+        /// </summary>
+        /// <typeparam name="TModel">The model type to insert.</typeparam>
+        /// <returns>The number of rows affected.</returns>
         public async Task<int> ExecuteInsertAsync<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = PostgreSqlEngine.GenerateSqlInsert(model, graph, modelDetail, false);
@@ -1039,6 +1121,11 @@ namespace Zerra.Repository.PostgreSql
                 }
             }
         }
+        /// <summary>
+        /// Asynchronously executes an update and returns the number of rows affected.
+        /// </summary>
+        /// <typeparam name="TModel">The model type to update.</typeparam>
+        /// <returns>The number of rows affected.</returns>
         public async Task<int> ExecuteUpdateAsync<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = PostgreSqlEngine.GenerateSqlUpdate(model, graph, modelDetail);
@@ -1056,6 +1143,10 @@ namespace Zerra.Repository.PostgreSql
                 }
             }
         }
+        /// <summary>
+        /// Asynchronously executes a delete for the given identities and returns the number of rows affected.
+        /// </summary>
+        /// <returns>The number of rows affected.</returns>
         public async Task<int> ExecuteDeleteAsync(ICollection ids, ModelDetail modelDetail)
         {
             var sql = PostgreSqlEngine.GenerateSqlDelete(ids, modelDetail);
@@ -1141,6 +1232,14 @@ namespace Zerra.Repository.PostgreSql
             return allValues;
         }
 
+        /// <summary>
+        /// Builds a <see cref="IDataStoreGenerationPlan"/> for creating, updating, or deleting schema objects in the PostgreSQL database.
+        /// </summary>
+        /// <param name="create">Whether to include creation of missing tables and columns.</param>
+        /// <param name="update">Whether to include updates for changed columns.</param>
+        /// <param name="delete">Whether to include deletion of removed tables and columns.</param>
+        /// <param name="modelDetails">The model details describing the expected schema.</param>
+        /// <returns>A plan that can be inspected and executed.</returns>
         public IDataStoreGenerationPlan BuildStoreGenerationPlan(bool create, bool update, bool delete, ICollection<ModelDetail> modelDetails)
         {
             var connectionForParsing = new NpgsqlConnection(connectionString);
@@ -1178,7 +1277,7 @@ namespace Zerra.Repository.PostgreSql
             }
             catch (Exception ex)
             {
-                _ = Log.ErrorAsync($"{nameof(PostgreSqlEngine)} error while reading datastore.", ex);
+                Log.Error($"{nameof(PostgreSqlEngine)} error while reading datastore.", ex);
                 throw;
             }
 
@@ -1478,6 +1577,11 @@ namespace Zerra.Repository.PostgreSql
             }
         }
 
+        /// <summary>
+        /// Writes the PostgreSQL column type definition for a model property into the provided <see cref="StringBuilder"/>.
+        /// </summary>
+        /// <param name="sb">The <see cref="StringBuilder"/> to write the type definition into.</param>
+        /// <param name="property">The model property to derive the SQL type from.</param>
         public static void WriteSqlTypeFromModel(StringBuilder sb, ModelPropertyDetail property)
         {
             var canBeIdentity = false;
@@ -1572,6 +1676,11 @@ namespace Zerra.Repository.PostgreSql
                 throw new Exception($"Cannot match type {property.Type.Name} to an {nameof(PostgreSqlEngine)} type.");
             }
         }
+        /// <summary>
+        /// Writes the PostgreSQL column type ending (e.g. identity or default constraints) for a model property into the provided <see cref="StringBuilder"/>.
+        /// </summary>
+        /// <param name="sb">The <see cref="StringBuilder"/> to write the type ending into.</param>
+        /// <param name="property">The model property to derive the type ending from.</param>
         public static void WriteTypeEndingFromModel(StringBuilder sb, ModelPropertyDetail property)
         {
             var canBeIdentity = false;
@@ -1781,6 +1890,10 @@ AND KF.TABLE_NAME = '{model.DataSourceEntityName.ToLower()}'";
             return sqlConstrains;
         }
 
+        /// <summary>
+        /// Validates that the configured data source is reachable and operational.
+        /// </summary>
+        /// <returns><see langword="true"/> if the data source is valid and accessible; otherwise, <see langword="false"/>.</returns>
         public bool ValidateDataSource()
         {
             if (String.IsNullOrWhiteSpace(connectionString))
@@ -1805,14 +1918,14 @@ AND KF.TABLE_NAME = '{model.DataSourceEntityName.ToLower()}'";
                         if (version.Contains("PostgreSQL"))
                             return true;
 
-                        _ = Log.ErrorAsync($"{nameof(PostgreSqlEngine)} failed to validate: Invalid version {version}");
+                        Log.Error($"{nameof(PostgreSqlEngine)} failed to validate: Invalid version {version}");
                         return false;
                     }
                 }
             }
             catch (Exception ex)
             {
-                _ = Log.ErrorAsync($"{nameof(PostgreSqlEngine)} failed to validate", ex);
+                Log.Error($"{nameof(PostgreSqlEngine)} failed to validate", ex);
             }
             return false;
         }

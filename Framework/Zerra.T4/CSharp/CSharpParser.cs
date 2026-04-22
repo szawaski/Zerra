@@ -2,15 +2,18 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-
 namespace Zerra.T4.CSharp
 {
+    /// <summary>
+    /// Provides functionality to parse C# source code files into a structured representation.
+    /// </summary>
     public static class CSharpParser
     {
+        /// <summary>
+        /// Parses all C# source files in a directory tree into a solution structure.
+        /// </summary>
+        /// <param name="rootDirectory">The root directory to search for C# files.</param>
+        /// <returns>A <see cref="CSharpSolution"/> containing the parsed types and namespaces.</returns>
         public static CSharpSolution ParseAllFiles(string rootDirectory)
         {
             var files = new List<string>();
@@ -43,7 +46,7 @@ namespace Zerra.T4.CSharp
             files.AddRange(directoryFiles);
         }
 
-        private static readonly string[] modifierKeywords = new string[] {
+        private static readonly string[] modifierKeywords = [
             "public",
             "private",
             "internal",
@@ -63,7 +66,7 @@ namespace Zerra.T4.CSharp
             "async",
             "volatile",
             "record"
-        };
+        ];
 
         private static void ParseText(CSharpSolution solution, CSharpFileContext context, string text)
         {
@@ -163,7 +166,7 @@ namespace Zerra.T4.CSharp
 
         private static CSharpObject ParseObject(CSharpSolution solution, CSharpFileContext context, char[] chars, ref int index, CSharpObjectType objectType, IList<string> modifiers)
         {
-            string name = null;
+            string? name = null;
             var isPublic = modifiers.Contains("public");
             var isStatic = modifiers.Contains("static");
             var isAbstract = modifiers.Contains("abstract");
@@ -216,8 +219,8 @@ namespace Zerra.T4.CSharp
             if (HasToken(context, chars, ref index, '{'))
             {
                 var currentKeywords = new List<string>();
-                var statementType = (string)null;
-                var statementName = (string)null;
+                var statementType = (string?)null;
+                var statementName = (string?)null;
                 while (index < chars.Length)
                 {
                     var keyword = ReadKeywordOrToken(context, chars, ref index);
@@ -264,16 +267,24 @@ namespace Zerra.T4.CSharp
                             break;
                         case ";":
                         case "=":
+                            if (statementType == null || statementName == null)
+                                throw new Exception("Invalid field declaration");
+
                             var csField = ParseField(solution, context, chars, ref index, statementType, statementName, currentKeywords);
                             fields.Add(csField);
+
                             currentKeywords.Clear();
                             statementType = null;
                             statementName = null;
                             break;
                         case "{":
                             //property;
+                            if (statementType == null || statementName == null)
+                                throw new Exception("Invalid property declaration");
+
                             var csProperty = ParseProperty(solution, context, chars, ref index, statementType, statementName, currentKeywords);
                             properties.Add(csProperty);
+
                             currentKeywords.Clear();
                             statementType = null;
                             statementName = null;
@@ -325,6 +336,9 @@ namespace Zerra.T4.CSharp
                     }
                 }
             }
+
+            if (name == null)
+                throw new Exception("Invalid object declaration");
 
             var csObject = new CSharpObject(context.CurrentNamespace, context.Usings, name, objectType, implements, isPublic, isStatic, isAbstract, isPartial, classes, structs, interfaces, enums, delegates, properties, methods, attributes);
             return csObject;
@@ -378,7 +392,7 @@ namespace Zerra.T4.CSharp
                 }
 
                 var valueAttributes = new List<CSharpAttribute>();
-                string valueName = null;
+                string? valueName = null;
                 while (index < chars.Length)
                 {
                     var keyword = ReadKeywordOrToken(context, chars, ref index);
@@ -411,6 +425,9 @@ namespace Zerra.T4.CSharp
                     largestValue++;
                     value = largestValue;
                 }
+
+                if (valueName == null)
+                    throw new Exception("Enum value name cannot be null");
 
                 var enumValue = new CSharpEnumValue(valueName, value.Value, valueAttributes);
                 enumValues.Add(enumValue);
@@ -473,7 +490,7 @@ namespace Zerra.T4.CSharp
             var attributes = AttributesFromKeywords(context, modifiers);
 
             index++;
-            string firstKeyword = null;
+            string? firstKeyword = null;
             while (index < chars.Length)
             {
                 var keyword = ReadKeywordOrToken(context, chars, ref index);
@@ -534,7 +551,7 @@ namespace Zerra.T4.CSharp
         {
             ExpectToken(context, chars, ref index, '[');
 
-            var arguments = ParseParameters(solution, context, chars, ref index);
+            _ = ParseParameters(solution, context, chars, ref index);
 
             ExpectToken(context, chars, ref index, '{');
 
@@ -560,7 +577,7 @@ namespace Zerra.T4.CSharp
                         var pIsIn = parameterKeywords.Contains("in");
                         var pIsOut = parameterKeywords.Contains("out");
                         var pIsRef = parameterKeywords.Contains("ref");
-                        var pDefaultValue = (string)null;
+                        var pDefaultValue = (string?)null;
                         if (parameterKeyword == "=")
                         {
                             var methodLevel = 0;
@@ -819,7 +836,7 @@ namespace Zerra.T4.CSharp
                     else
                     {
                         index++;
-                        return new string(new char[] { c });
+                        return new string([c]);
                     }
                 }
                 else if (c == '<' && attribute == 0)

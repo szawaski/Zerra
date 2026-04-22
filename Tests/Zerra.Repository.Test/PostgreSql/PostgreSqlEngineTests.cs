@@ -48,13 +48,12 @@ namespace Zerra.Repository.Test
         public void TestSequence()
         {
             var context = new PostgreSqlTestSqlDataContext();
-            _ = context.TryGetEngine(out var engine);
 
             DropDatabase(context);
 
             var modelTypes = new[] { typeof(TestTypesModel), typeof(TestRelationsModel) };
 
-            CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, modelTypes);
+            CodeFirstGeneration.Generate<PostgreSqlTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
 
             var provider = new PostgreSqlBaseSqlProvider<TestTypesModel>();
             var relationProvider = new PostgreSqlBaseSqlProvider<TestRelationsModel>();
@@ -72,7 +71,7 @@ namespace Zerra.Repository.Test
             _ = ExecuteSql(context, addColumn);
             _ = ExecuteSql(context, dropColmn);
 
-            CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, modelTypes);
+            CodeFirstGeneration.Generate<PostgreSqlTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
 
             var sb = new StringBuilder();
             var modelDetails = ModelAnalyzer.GetModel(typeof(TestTypesModel));
@@ -88,7 +87,7 @@ namespace Zerra.Repository.Test
 
             _ = ExecuteSql(context, dropAllColumns);
 
-            CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, modelTypes);
+            CodeFirstGeneration.Generate<PostgreSqlTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
 
             _ = sb.Clear();
             foreach (var property in modelDetails.Properties)
@@ -110,7 +109,7 @@ namespace Zerra.Repository.Test
 
             _ = ExecuteSql(context, addJunkColumns);
 
-            CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, modelTypes);
+            CodeFirstGeneration.Generate<PostgreSqlTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
 
             DropDatabase(context);
         }

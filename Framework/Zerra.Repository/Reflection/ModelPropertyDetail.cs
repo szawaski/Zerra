@@ -189,20 +189,20 @@ namespace Zerra.Repository.Reflection
             this.IsDataSourceEntity = entityAttribute is not null;
 
             this.IsDataSourceNotNull = storePropertyAttribute is not null ? storePropertyAttribute.NotNull : ((InnerType.IsValueType && !memberDetail.TypeDetail.IsNullable) && memberDetail.TypeDetail.CoreType != Zerra.Reflection.CoreType.String);
-            this.DataSourcePrecisionLength = storePropertyAttribute is not null ? storePropertyAttribute.PrecisionLength : null;
-            this.DataSourceScale = storePropertyAttribute is not null ? storePropertyAttribute.Scale : null;
+            this.DataSourcePrecisionLength = storePropertyAttribute?.PrecisionLength;
+            this.DataSourceScale = storePropertyAttribute?.Scale;
             this.TextEncoding = storePropertyAttribute is not null ? storePropertyAttribute.TextEncoding : StoreTextEncoding.Unicode;
             this.DatePart = storePropertyAttribute is not null ? storePropertyAttribute.DatePart : StoreDatePart.DateTime;
 
             if (!this.IsDataSourceNotNull && this.IsIdentity)
                 throw new Exception($"{this.Type.Name} {this.Name} cannot be both an identity and nullable");
 
-            this.GetterBoxed = memberDetail.GetterBoxed;
-            this.SetterBoxed = memberDetail.SetterBoxed;
+            this.GetterBoxed = memberDetail.GetterBoxed!;
+            this.SetterBoxed = memberDetail.SetterBoxed!;
 
-            this.Setter = memberDetail.Setter;
+            this.Setter = memberDetail.Setter!;
 
-            this.CreatorBoxed = this.MemberDetail.TypeDetail.CreatorBoxed;
+            this.CreatorBoxed = this.MemberDetail.TypeDetail.CreatorBoxed!;
         }
     }
 }

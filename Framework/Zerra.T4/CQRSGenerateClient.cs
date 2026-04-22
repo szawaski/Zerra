@@ -2,17 +2,22 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using Zerra.T4.CSharp;
 
 namespace Zerra.T4
 {
+    /// <summary>
+    /// Provides code generation functionality for CQRS (Command Query Responsibility Segregation) client-side code.
+    /// </summary>
     public static class CQRSClientDomain
     {
         private static readonly string spacing = "    ";
+        /// <summary>
+        /// Generates TypeScript client code for CQRS queries and commands from C# source files.
+        /// </summary>
+        /// <param name="directory">The directory path containing the C# source files to parse.</param>
+        /// <returns>A string containing the generated TypeScript code.</returns>
         public static string GenerateTypeScript(string directory)
         {
             var (queryInterfaces, commands, models) = GetQueriesCommandsModels(directory);
@@ -112,6 +117,11 @@ namespace Zerra.T4
 
             return sb.ToString();
         }
+        /// <summary>
+        /// Generates JavaScript client code for CQRS queries and commands from C# source files.
+        /// </summary>
+        /// <param name="directory">The directory path containing the C# source files to parse.</param>
+        /// <returns>A string containing the generated JavaScript code.</returns>
         public static string GenerateJavaScript(string directory)
         {
             var (queryInterfaces, commands, models) = GetQueriesCommandsModels(directory);
@@ -347,8 +357,7 @@ namespace Zerra.T4
             }
 
             string type;
-            var coreType = csharpType.NativeType is not null && IsCoreType(csharpType.NativeType);
-            if (coreType)
+            if (csharpType.NativeType != null && IsCoreType(csharpType.NativeType))
             {
                 type = ConvertCoreTypeToJavaScriptType(csharpType.NativeType);
                 isJavaScriptType = true;

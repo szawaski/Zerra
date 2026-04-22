@@ -5,6 +5,7 @@
 using System.Collections;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Zerra.Reflection;
 using Zerra.Repository.Reflection;
 
@@ -407,7 +408,7 @@ namespace Zerra.Repository
                 else if (call.Object is not null)
                 {
                     var typeDetails = TypeAnalyzer.GetTypeDetail(call.Method.DeclaringType);
-                    if (typeDetails.HasIEnumerableGeneric && typeDetails.IEnumerableGenericInnerType.GetTypeDetail().CoreType.HasValue)
+                    if (typeDetails.HasIEnumerableGeneric && typeDetails.IEnumerableGenericInnerTypeDetail!.CoreType.HasValue)
                     {
                         switch (call.Method.Name)
                         {
@@ -939,8 +940,26 @@ namespace Zerra.Repository
                     return valueInner;
                 }
             }
-            var value = Expression.Lambda(exp).Compile().DynamicInvoke();
-            return value;
+
+            if (!RuntimeFeature.IsDynamicCodeSupported)
+            {
+                try
+                {
+#pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
+                    var value = Expression.Lambda(exp).Compile().DynamicInvoke();
+#pragma warning restore IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
+                    return value;
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException($"Dynamic code execution is not supported in this runtime environment.", ex);
+                }
+            }
+            else
+            {
+                var value = Expression.Lambda(exp).Compile().DynamicInvoke();
+                return value;
+            }
         }
     }
 }

@@ -1,10 +1,12 @@
 ﻿using Pets.Domain;
 using Pets.Domain.Models;
+using Pets.Service.Data;
 using Zerra.CQRS;
+using Zerra.Repository;
 
 namespace Pets.Service
 {
-    public sealed class PetsQueryHandler : BaseHandler, IPetsQueryHandler
+    public sealed class PetsQueryHandler : BaseHandlerWithRepo, IPetsQueryHandler
     {
         public void GetVoid()
         {
@@ -55,6 +57,16 @@ namespace Pets.Service
         public Task<bool> NeedsToPoop(Guid id)
         {
             throw new NotImplementedException();
+        }
+
+        public async Task<PetSimpleModel[]> GetPetsFromRepo()
+        {
+            var items = await Repo.QueryAsync(new QueryMany<PetDataModel>());
+            var models = new PetSimpleModel[items.Count];
+            var i = 0;
+            foreach (var item in items)
+                models[i++] = new PetSimpleModel() { ID = item.Id, Name = item.Name, Type = item.PetType?.Name };
+            return models;
         }
     }
 }

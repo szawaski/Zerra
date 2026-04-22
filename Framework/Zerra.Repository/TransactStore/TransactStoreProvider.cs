@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using Zerra.Reflection;
-using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository
 {
@@ -27,7 +26,7 @@ namespace Zerra.Repository
         /// <summary>Initializes a new instance of <see cref="TransactStoreProvider{TContext, TModel}"/>, resolving the <see cref="ITransactStoreEngine"/> from a new <typeparamref name="TContext"/> instance.</summary>
         public TransactStoreProvider()
         {
-            this.deleteBatchSize = ModelDetail.IdentityProperties.Count == 1 ? deleteBatchSizeSingleIdentity : deleteBatchSizeManyIdentity;
+            this.deleteBatchSize = ModelTypeDetail.IdentityProperties.Count == 1 ? deleteBatchSizeSingleIdentity : deleteBatchSizeManyIdentity;
             var context = new TContext();
             if (!context.TryGetEngine(out var engine))
                 throw new Exception($"{typeof(TContext).Name} could not produce an engine of {typeof(ITransactStoreEngine).Name}");
@@ -42,7 +41,7 @@ namespace Zerra.Repository
             if (query.IsTemporal)
                 throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TContext, TModel>)}");
 
-            var models = Engine.ExecuteQueryToModelMany<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelDetail);
+            var models = Engine.ExecuteQueryToModelMany<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
             return models;
         }
         /// <inheritdoc/>
@@ -51,7 +50,7 @@ namespace Zerra.Repository
             if (query.IsTemporal)
                 throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TContext, TModel>)}");
 
-            var model = Engine.ExecuteQueryToModelFirst<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelDetail);
+            var model = Engine.ExecuteQueryToModelFirst<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
             return model;
         }
         /// <inheritdoc/>
@@ -60,7 +59,7 @@ namespace Zerra.Repository
             if (query.IsTemporal)
                 throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TContext, TModel>)}");
 
-            var model = Engine.ExecuteQueryToModelSingle<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelDetail);
+            var model = Engine.ExecuteQueryToModelSingle<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
             return model;
         }
         /// <inheritdoc/>
@@ -69,7 +68,7 @@ namespace Zerra.Repository
             if (query.IsTemporal)
                 throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TContext, TModel>)}");
 
-            var count = Engine.ExecuteQueryCount(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelDetail);
+            var count = Engine.ExecuteQueryCount(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
             return count;
         }
         /// <inheritdoc/>
@@ -78,7 +77,7 @@ namespace Zerra.Repository
             if (query.IsTemporal)
                 throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TContext, TModel>)}");
 
-            var any = Engine.ExecuteQueryAny(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelDetail);
+            var any = Engine.ExecuteQueryAny(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
             return any;
         }
         /// <inheritdoc/>
@@ -98,7 +97,7 @@ namespace Zerra.Repository
             if (query.IsTemporal)
                 throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TContext, TModel>)}");
 
-            var models = Engine.ExecuteQueryToModelManyAsync<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelDetail);
+            var models = Engine.ExecuteQueryToModelManyAsync<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
             return models;
         }
         /// <inheritdoc/>
@@ -107,7 +106,7 @@ namespace Zerra.Repository
             if (query.IsTemporal)
                 throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TContext, TModel>)}");
 
-            var model = Engine.ExecuteQueryToModelFirstAsync<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelDetail);
+            var model = Engine.ExecuteQueryToModelFirstAsync<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
             return model;
         }
         /// <inheritdoc/>
@@ -116,7 +115,7 @@ namespace Zerra.Repository
             if (query.IsTemporal)
                 throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TContext, TModel>)}");
 
-            var model = Engine.ExecuteQueryToModelSingleAsync<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelDetail);
+            var model = Engine.ExecuteQueryToModelSingleAsync<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
             return model;
         }
         /// <inheritdoc/>
@@ -125,7 +124,7 @@ namespace Zerra.Repository
             if (query.IsTemporal)
                 throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TContext, TModel>)}");
 
-            var count = Engine.ExecuteQueryCountAsync(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelDetail);
+            var count = Engine.ExecuteQueryCountAsync(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
             return count;
         }
         /// <inheritdoc/>
@@ -134,7 +133,7 @@ namespace Zerra.Repository
             if (query.IsTemporal)
                 throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TContext, TModel>)}");
 
-            var any = Engine.ExecuteQueryAnyAsync(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelDetail);
+            var any = Engine.ExecuteQueryAnyAsync(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
             return any;
         }
         /// <inheritdoc/>
@@ -153,27 +152,27 @@ namespace Zerra.Repository
         {
             if (create)
             {
-                var autoGeneratedCount = ModelDetail.IdentityAutoGeneratedProperties.Count;
+                var autoGeneratedCount = ModelTypeDetail.IdentityAutoGeneratedProperties.Count;
 
                 if (autoGeneratedCount == 1)
                 {
-                    var rows = Engine.ExecuteInsertGetIdentities(model, graph, ModelDetail);
+                    var rows = Engine.ExecuteInsertGetIdentities(model, graph, ModelTypeDetail);
                     if (rows.Count != 1)
                         throw new Exception($"Insert failed: {(String.IsNullOrWhiteSpace(@event.Name) ? defaultEventName : @event.Name)}");
                     var identity = rows.First();
-                    var modelPropertyInfo = ModelDetail.IdentityAutoGeneratedProperties[0];
+                    var modelPropertyInfo = ModelTypeDetail.IdentityAutoGeneratedProperties[0];
                     identity = TypeAnalyzer.Convert(identity, modelPropertyInfo.Type);
                     modelPropertyInfo.SetterBoxed(model, identity);
 
                 }
                 else if (autoGeneratedCount > 1)
                 {
-                    var rows = Engine.ExecuteInsertGetIdentities(model, graph, ModelDetail);
+                    var rows = Engine.ExecuteInsertGetIdentities(model, graph, ModelTypeDetail);
                     if (rows.Count != 1)
                         throw new Exception($"Insert failed: {(String.IsNullOrWhiteSpace(@event.Name) ? defaultEventName : @event.Name)}");
                     var identities = (IList<object>)rows.First();
                     var i = 0;
-                    foreach (var modelPropertyInfo in ModelDetail.IdentityAutoGeneratedProperties)
+                    foreach (var modelPropertyInfo in ModelTypeDetail.IdentityAutoGeneratedProperties)
                     {
                         var identity = modelPropertyInfo.GetterBoxed(identities[i])!;
                         identity = TypeAnalyzer.Convert(identity, modelPropertyInfo.Type);
@@ -183,14 +182,14 @@ namespace Zerra.Repository
                 }
                 else
                 {
-                    var rows = Engine.ExecuteInsert(model, graph, ModelDetail);
+                    var rows = Engine.ExecuteInsert(model, graph, ModelTypeDetail);
                     if (rows == 0)
                         throw new Exception($"No rows affected: {(String.IsNullOrWhiteSpace(@event.Name) ? defaultEventName : @event.Name)}");
                 }
             }
             else
             {
-                var rowsAffected = Engine.ExecuteUpdate(model, graph, ModelDetail);
+                var rowsAffected = Engine.ExecuteUpdate(model, graph, ModelTypeDetail);
                 if (rowsAffected == 0)
                     throw new Exception($"No rows affected: {(String.IsNullOrWhiteSpace(@event.Name) ? defaultEventName : @event.Name)}");
             }
@@ -202,7 +201,7 @@ namespace Zerra.Repository
             for (var i = 0; i <= ids.Length; i += deleteBatchSize)
             {
                 var deleteIds = ids.Skip(i).Take(deleteBatchSize).ToArray();
-                var rowsAffected = Engine.ExecuteDelete(deleteIds, ModelDetail);
+                var rowsAffected = Engine.ExecuteDelete(deleteIds, ModelTypeDetail);
                 if (rowsAffected == 0)
                     throw new Exception($"No rows affected: {(String.IsNullOrWhiteSpace(@event.Name) ? defaultEventName : @event.Name)}");
             }
@@ -213,27 +212,27 @@ namespace Zerra.Repository
         {
             if (create)
             {
-                var autoGeneratedCount = ModelDetail.IdentityAutoGeneratedProperties.Count;
+                var autoGeneratedCount = ModelTypeDetail.IdentityAutoGeneratedProperties.Count;
 
                 if (autoGeneratedCount == 1)
                 {
-                    var rows = await Engine.ExecuteInsertGetIdentitiesAsync(model, graph, ModelDetail);
+                    var rows = await Engine.ExecuteInsertGetIdentitiesAsync(model, graph, ModelTypeDetail);
                     if (rows.Count != 1)
                         throw new Exception($"Insert failed: {(String.IsNullOrWhiteSpace(@event.Name) ? defaultEventName : @event.Name)}");
                     var identity = rows.First();
-                    var modelPropertyInfo = ModelDetail.IdentityAutoGeneratedProperties[0];
+                    var modelPropertyInfo = ModelTypeDetail.IdentityAutoGeneratedProperties[0];
                     identity = TypeAnalyzer.Convert(identity, modelPropertyInfo.Type);
                     modelPropertyInfo.SetterBoxed(model, identity);
 
                 }
                 else if (autoGeneratedCount > 1)
                 {
-                    var rows = await Engine.ExecuteInsertGetIdentitiesAsync(model, graph, ModelDetail);
+                    var rows = await Engine.ExecuteInsertGetIdentitiesAsync(model, graph, ModelTypeDetail);
                     if (rows.Count != 1)
                         throw new Exception($"Insert failed: {(String.IsNullOrWhiteSpace(@event.Name) ? defaultEventName : @event.Name)}");
                     var identities = (IList<object>)rows.First();
                     var i = 0;
-                    foreach (var modelPropertyInfo in ModelDetail.IdentityAutoGeneratedProperties)
+                    foreach (var modelPropertyInfo in ModelTypeDetail.IdentityAutoGeneratedProperties)
                     {
                         var identity = modelPropertyInfo.GetterBoxed(identities[i])!;
                         identity = TypeAnalyzer.Convert(identity, modelPropertyInfo.Type);
@@ -243,14 +242,14 @@ namespace Zerra.Repository
                 }
                 else
                 {
-                    var rows = await Engine.ExecuteInsertAsync(model, graph, ModelDetail);
+                    var rows = await Engine.ExecuteInsertAsync(model, graph, ModelTypeDetail);
                     if (rows == 0)
                         throw new Exception($"No rows affected: {(String.IsNullOrWhiteSpace(@event.Name) ? defaultEventName : @event.Name)}");
                 }
             }
             else
             {
-                var rowsAffected = await Engine.ExecuteUpdateAsync(model, graph, ModelDetail);
+                var rowsAffected = await Engine.ExecuteUpdateAsync(model, graph, ModelTypeDetail);
                 if (rowsAffected == 0)
                     throw new Exception($"No rows affected: {(String.IsNullOrWhiteSpace(@event.Name) ? defaultEventName : @event.Name)}");
             }
@@ -262,7 +261,7 @@ namespace Zerra.Repository
             for (var i = 0; i <= ids.Length; i += deleteBatchSize)
             {
                 var deleteIds = ids.Skip(i).Take(deleteBatchSize).ToArray();
-                var rowsAffected = await Engine.ExecuteDeleteAsync(deleteIds, ModelDetail);
+                var rowsAffected = await Engine.ExecuteDeleteAsync(deleteIds, ModelTypeDetail);
                 if (rowsAffected == 0)
                     throw new Exception($"No rows affected: {(String.IsNullOrWhiteSpace(@event.Name) ? defaultEventName : @event.Name)}");
             }

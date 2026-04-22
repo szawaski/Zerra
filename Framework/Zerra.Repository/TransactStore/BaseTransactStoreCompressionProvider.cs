@@ -71,26 +71,26 @@ namespace Zerra.Repository
                 {
                     if (property.TypeDetail.CoreType == CoreType.String)
                     {
-                        var compressed = (string?)property.GetterBoxed(model);
+                        var compressed = (string?)property.GetterBoxed!(model);
                         if (compressed is not null)
                         {
                             try
                             {
                                 var plain = CompressionCommon.DecompressGZip(compressed);
-                                property.SetterBoxed(model, plain);
+                                property.SetterBoxed!(model, plain);
                             }
                             catch { }
                         }
                     }
                     else if (property.Type == typeof(byte[]))
                     {
-                        var compressed = (byte[]?)property.GetterBoxed(model);
+                        var compressed = (byte[]?)property.GetterBoxed!(model);
                         if (compressed is not null)
                         {
                             try
                             {
                                 var plain = CompressionCommon.DecompressGZip(compressed);
-                                property.SetterBoxed(model, plain);
+                                property.SetterBoxed!(model, plain);
                             }
                             catch { }
                         }
@@ -132,26 +132,26 @@ namespace Zerra.Repository
                     {
                         if (property.TypeDetail.CoreType == CoreType.String)
                         {
-                            var compressed = (string?)property.GetterBoxed(model);
+                            var compressed = (string?)property.GetterBoxed!(model);
                             if (compressed is not null)
                             {
                                 try
                                 {
                                     var plain = CompressionCommon.DecompressGZip(compressed);
-                                    property.SetterBoxed(model, plain);
+                                    property.SetterBoxed!(model, plain);
                                 }
                                 catch { }
                             }
                         }
                         else if (property.Type == typeof(byte[]))
                         {
-                            var compressed = (byte[]?)property.GetterBoxed(model);
+                            var compressed = (byte[]?)property.GetterBoxed!(model);
                             if (compressed is not null)
                             {
                                 try
                                 {
                                     var plain = CompressionCommon.DecompressGZip(compressed);
-                                    property.SetterBoxed(model, plain);
+                                    property.SetterBoxed!(model, plain);
                                 }
                                 catch { }
                             }
@@ -424,20 +424,20 @@ namespace Zerra.Repository
                     {
                         if (property.TypeDetail.CoreType == CoreType.String)
                         {
-                            var plain = (string?)property.GetterBoxed(model);
+                            var plain = (string?)property.GetterBoxed!(model);
                             if (plain is not null)
                             {
                                 var compressed = CompressionCommon.CompressGZip(plain);
-                                property.SetterBoxed(model, compressed);
+                                property.SetterBoxed!(model, compressed);
                             }
                         }
                         else if (property.Type == typeof(byte[]))
                         {
-                            var plain = (byte[]?)property.GetterBoxed(model);
+                            var plain = (byte[]?)property.GetterBoxed!(model);
                             if (plain is not null)
                             {
                                 var compressed = CompressionCommon.CompressGZip(plain);
-                                property.SetterBoxed(model, compressed);
+                                property.SetterBoxed!(model, compressed);
                             }
                         }
                     }

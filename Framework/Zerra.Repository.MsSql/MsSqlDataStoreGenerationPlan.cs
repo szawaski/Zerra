@@ -1,16 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using Zerra.Logging;
+﻿using Zerra.Logging;
 
 namespace Zerra.Repository.MsSql
 {
+    /// <summary>
+    /// Represents a generation plan for building or updating a Microsoft SQL Server data store schema.
+    /// </summary>
     public sealed class MsSqlDataStoreGenerationPlan : IDataStoreGenerationPlan
     {
         private readonly MsSqlEngine engine;
         private readonly string? createDatabaseName;
         private readonly ICollection<string> sql;
 
+        /// <summary>
+        /// Gets the ordered collection of SQL statements that make up the generation plan.
+        /// </summary>
         public ICollection<string> Plan
         {
             get
@@ -22,6 +25,12 @@ namespace Zerra.Repository.MsSql
             }
         }
 
+        /// <summary>
+        /// Initializes a new instance of <see cref="MsSqlDataStoreGenerationPlan"/>.
+        /// </summary>
+        /// <param name="engine">The <see cref="MsSqlEngine"/> used to execute the plan.</param>
+        /// <param name="createDatabaseName">The name of the database to create, or <see langword="null"/> if no database creation is required.</param>
+        /// <param name="sql">The SQL statements to execute as part of the plan.</param>
         public MsSqlDataStoreGenerationPlan(MsSqlEngine engine, string? createDatabaseName, ICollection<string> sql)
         {
             this.engine = engine;
@@ -29,6 +38,9 @@ namespace Zerra.Repository.MsSql
             this.sql = sql;
         }
 
+        /// <summary>
+        /// Executes the generation plan against the SQL Server database, creating the database and running all SQL statements.
+        /// </summary>
         public void Execute()
         {
             if (!String.IsNullOrWhiteSpace(createDatabaseName))

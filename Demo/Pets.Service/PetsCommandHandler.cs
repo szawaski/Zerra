@@ -1,11 +1,14 @@
-﻿using Pets.Domain;
+﻿using Microsoft.Data.SqlClient;
+using Pets.Domain;
 using Pets.Domain.Commands;
 using Pets.Domain.Models;
+using Pets.Service.Data;
 using Zerra.CQRS;
+using Zerra.Repository;
 
 namespace Pets.Service
 {
-    public sealed class PetsCommandHandler : BaseHandler, IPetsCommandHandler
+    public sealed class PetsCommandHandler : BaseHandlerWithRepo, IPetsCommandHandler
     {
         public async Task<int> Handle(AdoptPetCommand command, CancellationToken cancellationToken)
         {
@@ -24,6 +27,49 @@ namespace Pets.Service
                 Name = command.Name
             });
             return DataSource.Pets.Count;
+        }
+
+        public async Task<int> Handle(AddPetTypeCommand command, CancellationToken cancellationToken)
+        {
+            var model = new PetTypeDataModel()
+            {
+                Name = command.Name,
+            };
+            await Repo.PersistAsync(new Create(model));
+
+            var model2 = await Repo.QueryAsync(new QuerySingle<PetTypeDataModel>(x => x.Name == command.Name));
+            return model2.Id;
+        }
+
+        public async Task<int> Handle(AddPetCommand command, CancellationToken cancellationToken)
+        {
+            var model = new PetDataModel()
+            {
+                Name = command.Name,
+                PetTypeId = command.PetTypeId,
+            };
+            await Repo.PersistAsync(new Create(model));
+
+            var model2 = await Repo.QueryAsync(new QuerySingle<PetDataModel>(x => x.Name == command.Name));
+            return model2.Id;
+        }
+
+        public async Task Handle(DeleteTestDatabaseCommand command, CancellationToken cancellationToken)
+        {
+            var context = new ZerraPetsDbContext();
+            var builder = new SqlConnectionStringBuilder(context.ConnectionString);
+            var testDatabase = builder.InitialCatalog;
+            builder.InitialCatalog = "master";
+            var connectionStringForMaster = builder.ToString();
+            using (var sqlConnection = new SqlConnection(connectionStringForMaster))
+            {
+                sqlConnection.Open();
+                using (var sqlCommand = sqlConnection.CreateCommand())
+                {
+                    sqlCommand.CommandText = $"IF EXISTS(SELECT[dbid] FROM master.dbo.sysdatabases where[name] = '{testDatabase}')\r\nBEGIN\r\nALTER DATABASE [{testDatabase}] SET single_user WITH ROLLBACK IMMEDIATE\r\nDROP DATABASE {testDatabase}\r\nEND";
+                    _ = await sqlCommand.ExecuteNonQueryAsync();
+                }
+            }
         }
     }
 }

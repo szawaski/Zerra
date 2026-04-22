@@ -7,12 +7,19 @@ using Zerra.Logging;
 
 namespace Zerra.Repository.MySql
 {
+    /// <summary>
+    /// Abstract base class for a MySQL data context.
+    /// </summary>
     public abstract class MySqlDataContext : DataContext
     {
+        /// <summary>
+        /// Gets the MySQL connection string used to connect to the database.
+        /// </summary>
         public abstract string ConnectionString { get; }
 
         private readonly Lock locker = new();
         private IDataStoreEngine? engine = null;
+        /// <inheritdoc/>
         protected override sealed IDataStoreEngine GetEngine()
         {
             if (engine is null)

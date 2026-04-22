@@ -30,13 +30,15 @@ namespace Zerra.Repository
         /// <summary>Gets the symmetric key used for encryption and decryption.</summary>
         public abstract SymmetricKey EncryptionKey { get; }
 
-        private const SymmetricAlgorithmType encryptionAlgorithm = SymmetricAlgorithmType.AESwithShift;
+        /// <summary>Gets the symmetric encryption algorithm to use for encryption and decryption.</summary>
+        public abstract SymmetricAlgorithmType EncryptionAlgorithm { get; }
 
         /// <summary>Initializes a new instance of <see cref="BaseTransactStoreEncryptionProvider{TNextProviderInterface, TModel}"/> with the next provider in the chain.</summary>
         /// <param name="nextProvider">The next provider to delegate operations to after encryption/decryption.</param>
         public BaseTransactStoreEncryptionProvider(TNextProviderInterface nextProvider)
             : base(nextProvider)
         {
+            
         }
 
         private static LambdaExpression? EncryptWhere(LambdaExpression? expression)
@@ -73,7 +75,7 @@ namespace Zerra.Repository
                 {
                     if (property.TypeDetail.CoreType == CoreType.String)
                     {
-                        var encrypted = (string?)property.GetterBoxed(model);
+                        var encrypted = (string?)property.GetterBoxed!(model);
                         if (encrypted is not null)
                         {
                             try
@@ -81,8 +83,8 @@ namespace Zerra.Repository
                                 if (encrypted.Length > encryptionPrefix.Length && encrypted.Substring(0, encryptionPrefix.Length) == encryptionPrefix)
                                 {
                                     encrypted = encrypted.Substring(encryptionPrefix.Length, encrypted.Length - encryptionPrefix.Length);
-                                    var plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted);
-                                    property.SetterBoxed(model, plain);
+                                    var plain = SymmetricEncryptor.Decrypt(EncryptionAlgorithm, EncryptionKey, encrypted);
+                                    property.SetterBoxed!(model, plain);
                                 }
                             }
                             catch { }
@@ -90,13 +92,13 @@ namespace Zerra.Repository
                     }
                     else if (property.Type == typeof(byte[]))
                     {
-                        var encrypted = (byte[]?)property.GetterBoxed(model);
+                        var encrypted = (byte[]?)property.GetterBoxed!(model);
                         if (encrypted is not null)
                         {
                             try
                             {
-                                var plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted);
-                                property.SetterBoxed(model, plain);
+                                var plain = SymmetricEncryptor.Decrypt(EncryptionAlgorithm, EncryptionKey, encrypted);
+                                property.SetterBoxed!(model, plain);
                             }
                             catch { }
                         }
@@ -138,7 +140,7 @@ namespace Zerra.Repository
                     {
                         if (property.TypeDetail.CoreType == CoreType.String)
                         {
-                            var encrypted = (string?)property.GetterBoxed(model);
+                            var encrypted = (string?)property.GetterBoxed!(model);
                             if (encrypted is not null)
                             {
                                 try
@@ -146,8 +148,8 @@ namespace Zerra.Repository
                                     if (encrypted.Length > encryptionPrefix.Length && encrypted.Substring(0, encryptionPrefix.Length) == encryptionPrefix)
                                     {
                                         encrypted = encrypted.Substring(encryptionPrefix.Length, encrypted.Length - encryptionPrefix.Length);
-                                        var plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted);
-                                        property.SetterBoxed(model, plain);
+                                        var plain = SymmetricEncryptor.Decrypt(EncryptionAlgorithm, EncryptionKey, encrypted);
+                                        property.SetterBoxed!(model, plain);
                                     }
                                 }
                                 catch { }
@@ -155,13 +157,13 @@ namespace Zerra.Repository
                         }
                         else if (property.Type == typeof(byte[]))
                         {
-                            var encrypted = (byte[]?)property.GetterBoxed(model);
+                            var encrypted = (byte[]?)property.GetterBoxed!(model);
                             if (encrypted is not null)
                             {
                                 try
                                 {
-                                    var plain = SymmetricEncryptor.Decrypt(encryptionAlgorithm, EncryptionKey, encrypted);
-                                    property.SetterBoxed(model, plain);
+                                    var plain = SymmetricEncryptor.Decrypt(EncryptionAlgorithm, EncryptionKey, encrypted);
+                                    property.SetterBoxed!(model, plain);
                                 }
                                 catch { }
                             }
@@ -436,24 +438,24 @@ namespace Zerra.Repository
                     {
                         if (property.TypeDetail.CoreType == CoreType.String)
                         {
-                            var plain = (string?)property.GetterBoxed(model);
+                            var plain = (string?)property.GetterBoxed!(model);
                             if (plain is not null)
                             {
                                 if (plain.Length <= encryptionPrefix.Length || plain.Substring(0, encryptionPrefix.Length) != encryptionPrefix)
                                 {
                                     plain = encryptionPrefix + plain;
-                                    var encrypted = SymmetricEncryptor.Encrypt(encryptionAlgorithm, EncryptionKey, plain);
-                                    property.SetterBoxed(model, encrypted);
+                                    var encrypted = SymmetricEncryptor.Encrypt(EncryptionAlgorithm, EncryptionKey, plain);
+                                    property.SetterBoxed!(model, encrypted);
                                 }
                             }
                         }
                         else if (property.Type == typeof(byte[]))
                         {
-                            var plain = (byte[]?)property.GetterBoxed(model);
+                            var plain = (byte[]?)property.GetterBoxed!(model);
                             if (plain is not null)
                             {
-                                var encrypted = SymmetricEncryptor.Encrypt(encryptionAlgorithm, EncryptionKey, plain);
-                                property.SetterBoxed(model, encrypted);
+                                var encrypted = SymmetricEncryptor.Encrypt(EncryptionAlgorithm, EncryptionKey, plain);
+                                property.SetterBoxed!(model, encrypted);
                             }
                         }
                     }

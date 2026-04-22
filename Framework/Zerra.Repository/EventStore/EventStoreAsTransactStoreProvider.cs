@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using Zerra.Map;
-using Zerra.Reflection;
 using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository
@@ -393,7 +392,7 @@ namespace Zerra.Repository
             if (modelState is null && eventDatas.Length == 0)
                 return Array.Empty<TModel>();
 
-            modelState ??= (TModel)base.ModelType.GetTypeDetail().CreatorBoxed();
+            modelState ??= (TModel)base.ModelTypeDetail.Creator();
 
             if (many)
             {
@@ -500,7 +499,7 @@ namespace Zerra.Repository
                                 if (query.TemporalNumberTo.HasValue && eventData.Number < query.TemporalNumberTo.Value)
                                     break;
                             }
-                            return new TModel[] { modelState };
+                            return [modelState];
                         }
                     case TemporalOrder.Oldest:
                         {
@@ -517,7 +516,7 @@ namespace Zerra.Repository
                                 if (query.TemporalNumberFrom.HasValue && eventData.Number >= query.TemporalNumberFrom.Value)
                                     break;
                             }
-                            return new TModel[] { modelState };
+                            return [modelState];
                         }
                     default:
                         throw new NotImplementedException();
@@ -529,7 +528,7 @@ namespace Zerra.Repository
             if (modelState is null && eventDatas.Length == 0)
                 return Array.Empty<EventModel<TModel>>();
 
-            modelState ??= (TModel)base.ModelType.GetTypeDetail().CreatorBoxed();
+            modelState ??= (TModel)base.ModelTypeDetail.Creator();
 
             if (many)
             {
@@ -682,7 +681,7 @@ namespace Zerra.Repository
                                 Source = eventModelData.Source,
                                 SourceType = eventModelData.SourceType
                             };
-                            return new EventModel<TModel>[] { eventModel };
+                            return [eventModel];
                         }
                     case TemporalOrder.Oldest:
                         {
@@ -721,7 +720,7 @@ namespace Zerra.Repository
                                 Source = eventModelData.Source,
                                 SourceType = eventModelData.SourceType
                             };
-                            return new EventModel<TModel>[] { eventModel };
+                            return [eventModel];
                         }
                     default:
                         throw new NotImplementedException();

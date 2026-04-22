@@ -20,23 +20,20 @@ namespace Zerra.Reflection
         /// <summary>Indicates whether this member is a field.</summary>
         public readonly bool IsField;
 
-        /// <summary>Indicates whether a boxed getter delegate exists.</summary>
-        public readonly bool HasGetterBoxed;
+        /// <summary>Indicates whether a strongly-typed getter delegate exists.</summary>
+        public readonly bool HasGetter;
+        /// <summary>Indicates whether a strongly-typed setter delegate exists.</summary>
+        public readonly bool HasSetter;
+
         /// <summary>Boxed delegate for getting the member value; returns object.</summary>
         public readonly Func<object, object?>? GetterBoxed;
 
-        /// <summary>Indicates whether a boxed setter delegate exists.</summary>
-        public readonly bool HasSetterBoxed;
         /// <summary>Boxed delegate for setting the member value; accepts object.</summary>
         public readonly Action<object, object?>? SetterBoxed;
 
-        /// <summary>Indicates whether a strongly-typed getter delegate exists.</summary>
-        public readonly bool HasGetter;
         /// <summary>Strongly-typed delegate for getting the member value without boxing.</summary>
         public readonly Delegate? Getter;
 
-        /// <summary>Indicates whether a strongly-typed setter delegate exists.</summary>
-        public readonly bool HasSetter;
         /// <summary>Strongly-typed delegate for setting the member value without boxing.</summary>
         public readonly Delegate? Setter;
 
@@ -71,13 +68,11 @@ namespace Zerra.Reflection
             this.Type = type;
             this.Name = name;
             this.IsField = isField;
-            this.HasGetterBoxed = getterBoxed != null;
-            this.GetterBoxed = getterBoxed;
-            this.HasSetterBoxed = setterBoxed != null;
-            this.SetterBoxed = setterBoxed;
             this.HasGetter = getter != null;
-            this.Getter = getter;
             this.HasSetter = setter != null;
+            this.GetterBoxed = getterBoxed;
+            this.SetterBoxed = setterBoxed;
+            this.Getter = getter;
             this.Setter = setter;
             this.Attributes = attributes;
             this.IsBacked = isBacked;

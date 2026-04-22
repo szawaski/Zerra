@@ -51,7 +51,7 @@ namespace Zerra.Repository.Reflection
         }
         private static Func<object, object>? GenerateGetterFunctionByName(Type type, string propertyNames)
         {
-            var propertyNamesArray = propertyNames is null ? null : propertyNames.Split(',');
+            var propertyNamesArray = propertyNames?.Split(',');
 
             var members = GetModel(type).TypeDetail.Members.Where(x => propertyNamesArray.Contains(x.Name)).ToArray();
 
@@ -263,7 +263,7 @@ namespace Zerra.Repository.Reflection
         /// <param name="foreignIdentityNames">A comma-separated list of foreign-identity property names.</param>
         /// <param name="model">The model instance to write to.</param>
         /// <param name="identity">The foreign-identity value to assign, or an array of values for composite keys.</param>
-        public static void SetForeignIdentity(Type type, string foreignIdentityNames, object model, object identity)
+        public static void SetForeignIdentity(Type type, string foreignIdentityNames, object model, object? identity)
         {
             var setter = GetSetterFunctionByName(type, foreignIdentityNames);
             setter.Invoke(model, identity);

@@ -288,7 +288,7 @@ namespace Zerra.SourceGeneration
                     _ = sb.Append("new global::Zerra.Reflection.ConstructorDetail<").Append(typeName).Append(">(");
 
                     GenerateParameters(sb, constructor.Parameters, requiredMembers);
-                    sb.Append(", ");
+                    _ = sb.Append(", ");
 
 
                     _ = sb.Append("static (object?[]? args) => new ").Append(typeName).Append("(");
@@ -415,7 +415,7 @@ namespace Zerra.SourceGeneration
                     _ = sb.Append(" }, ");
 
                     GenerateParameters(sb, method.Parameters, null);
-                    sb.Append(", ");
+                    _ = sb.Append(", ");
 
                     if (method.IsStatic)
                     {
@@ -557,7 +557,7 @@ namespace Zerra.SourceGeneration
             var baseTypeSymbol = typeSymbol.BaseType;
             while (baseTypeSymbol != null)
             {
-                baseTypeNames.Add(baseTypeSymbol.MetadataName);
+                _ = baseTypeNames.Add(baseTypeSymbol.MetadataName);
                 baseTypeSymbol = baseTypeSymbol.BaseType;
             }
 

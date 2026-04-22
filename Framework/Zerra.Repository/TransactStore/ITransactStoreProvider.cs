@@ -9,9 +9,6 @@ namespace Zerra.Repository
     /// </summary>
     public interface ITransactStoreProvider
     {
-        /// <summary>Gets the <see cref="Type"/> of the model managed by this provider.</summary>
-        Type ModelType { get; }
-
         /// <summary>Executes a synchronous query operation and returns the result.</summary>
         /// <param name="query">The query to execute.</param>
         /// <returns>The query result, or <see langword="null"/> if no result is found.</returns>

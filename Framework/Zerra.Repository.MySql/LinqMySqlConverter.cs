@@ -2,9 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Collections;
-using System.Linq;
 using System.Linq.Expressions;
 using Zerra.Repository.IO;
 using Zerra.Reflection;
@@ -12,14 +10,22 @@ using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository.MySql
 {
+    /// <summary>
+    /// Converts LINQ expressions into MySQL query strings.
+    /// </summary>
     public sealed class LinqMySqlConverter : BaseLinqSqlConverter
     {
         private static readonly LinqMySqlConverter instance = new();
+        /// <summary>
+        /// Converts a LINQ query into a MySQL query string.
+        /// </summary>
+        /// <returns>The SQL query string.</returns>
         public static string Convert(QueryOperation select, Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail)
         {
             return instance.ConvertInternal(select, where, order, skip, take, graph, modelDetail);
         }
 
+        /// <inheritdoc/>
         protected override void ConvertToSqlLambda(Expression exp, ref CharWriter sb, BuilderContext context)
         {
             context.MemberContext.OperatorStack.Push(Operator.Lambda);
@@ -74,6 +80,7 @@ namespace Zerra.Repository.MySql
 
             _ = context.MemberContext.OperatorStack.Pop();
         }
+        /// <inheritdoc/>
         protected override void ConvertToSqlCall(Expression exp, ref CharWriter sb, BuilderContext context)
         {
             context.MemberContext.OperatorStack.Push(Operator.Call);
@@ -278,6 +285,7 @@ namespace Zerra.Repository.MySql
 
             _ = context.MemberContext.OperatorStack.Pop();
         }
+        /// <inheritdoc/>
         protected override void ConvertToSqlParameterModel(ModelDetail modelDetail, ref CharWriter sb, BuilderContext context, bool parameterInContext)
         {
             var member = context.MemberContext.MemberAccessStack.Pop();
@@ -428,6 +436,7 @@ namespace Zerra.Repository.MySql
 
             context.MemberContext.MemberAccessStack.Push(member);
         }
+        /// <inheritdoc/>
         protected override void ConvertToSqlConditional(Expression exp, ref CharWriter sb, BuilderContext context)
         {
             context.MemberContext.OperatorStack.Push(Operator.Conditional);
@@ -451,6 +460,7 @@ namespace Zerra.Repository.MySql
             _ = context.MemberContext.OperatorStack.Pop();
         }
 
+        /// <inheritdoc/>
         protected override bool ConvertToSqlValueRender(MemberExpression? memberProperty, Type type, object? value, ref CharWriter sb, BuilderContext context)
         {
             //avoid TypeDetail for AOT support
@@ -825,6 +835,7 @@ namespace Zerra.Repository.MySql
             throw new NotImplementedException($"{type.Name} value {value?.ToString()} not converted");
         }
 
+        /// <inheritdoc/>
         protected override void GenerateWhere(Expression? where, ref CharWriter sb, ParameterDependant rootDependant, MemberContext operationContext)
         {
             if (where is null)
@@ -835,6 +846,7 @@ namespace Zerra.Repository.MySql
             ConvertToSql(where, ref sb, context);
             AppendLineBreak(ref sb);
         }
+        /// <inheritdoc/>
         protected override void GenerateOrderSkipTake(QueryOrder? order, int? skip, int? take, ref CharWriter sb, ParameterDependant rootDependant, MemberContext operationContext)
         {
             if (order?.OrderExpressions.Length > 0)
@@ -875,6 +887,7 @@ namespace Zerra.Repository.MySql
                 }
             }
         }
+        /// <inheritdoc/>
         protected override void GenerateSelect(QueryOperation select, Graph? graph, ModelDetail modelDetail, ref CharWriter sb)
         {
             switch (select)
@@ -901,6 +914,7 @@ namespace Zerra.Repository.MySql
                     break;
             }
         }
+        /// <inheritdoc/>
         protected override void GenerateSelectProperties(Graph? graph, ModelDetail modelDetail, ref CharWriter sb)
         {
             //AppendLineBreak(ref sb);
@@ -939,6 +953,7 @@ namespace Zerra.Repository.MySql
                 }
             }
         }
+        /// <inheritdoc/>
         protected override void GenerateFrom(ModelDetail modelDetail, ref CharWriter sb)
         {
             sb.Write(" FROM`");
@@ -946,6 +961,7 @@ namespace Zerra.Repository.MySql
             sb.Write('`');
             AppendLineBreak(ref sb);
         }
+        /// <inheritdoc/>
         protected override void GenerateJoin(ParameterDependant dependant, ref CharWriter sb)
         {
             foreach (var child in dependant.Dependants.Values)
@@ -971,6 +987,7 @@ namespace Zerra.Repository.MySql
                 GenerateJoin(child, ref sb);
             }
         }
+        /// <inheritdoc/>
         protected override void GenerateEnding(QueryOperation select, Graph? graph, ModelDetail modelDetail, ref CharWriter sb)
         {
             switch (select)
@@ -991,11 +1008,13 @@ namespace Zerra.Repository.MySql
             }
         }
 
+        /// <inheritdoc/>
         protected override void AppendLineBreak(ref CharWriter sb)
         {
             sb.Write(Environment.NewLine);
         }
 
+        /// <inheritdoc/>
         protected override string? OperatorToString(Operator operation)
         {
             return operation switch
