@@ -41,18 +41,18 @@ namespace Zerra.Repository.MySql
         /// <summary>
         /// Executes the generation plan against the MySQL database, creating the database and running all SQL statements.
         /// </summary>
-        public void Execute()
+        public void Execute(ILogger? log)
         {
             if (!String.IsNullOrWhiteSpace(createDatabaseName))
             {
                 try
                 {
                     engine.CreateDatabase(createDatabaseName);
-                    Log.Info($"{nameof(MySqlEngine)}: Create Database {createDatabaseName}");
+                    log?.Info($"{nameof(MySqlEngine)}: Create Database {createDatabaseName}");
                 }
                 catch (Exception ex)
                 {
-                    Log.Error($"{nameof(MySqlEngine)} error while creating datastore.", ex);
+                    log?.Error($"{nameof(MySqlEngine)} error while creating datastore.", ex);
                 }
             }
 
@@ -61,11 +61,11 @@ namespace Zerra.Repository.MySql
                 try
                 {
                     engine.ExecuteSql(line);
-                    Log.Info($"{nameof(MySqlEngine)}: {line}");
+                    log?.Info($"{nameof(MySqlEngine)}: {line}");
                 }
                 catch (Exception ex)
                 {
-                    Log.Error($"{nameof(MySqlEngine)} error while assuring datastore: {line}.", ex);
+                    log?.Error($"{nameof(MySqlEngine)} error while assuring datastore: {line}.", ex);
                     throw;
                 }
             }

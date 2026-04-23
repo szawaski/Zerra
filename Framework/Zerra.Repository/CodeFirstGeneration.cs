@@ -49,7 +49,7 @@ namespace Zerra.Repository
                 }
                 else
                 {
-                    plan.Execute();
+                    plan.Execute(log);
                 }
             }
         }

@@ -41,18 +41,18 @@ namespace Zerra.Repository.MsSql
         /// <summary>
         /// Executes the generation plan against the SQL Server database, creating the database and running all SQL statements.
         /// </summary>
-        public void Execute()
+        public void Execute(ILogger? log)
         {
             if (!String.IsNullOrWhiteSpace(createDatabaseName))
             {
                 try
                 {
                     engine.CreateDatabase(createDatabaseName);
-                    Log.Info($"{nameof(MsSqlEngine)}: Create Database {createDatabaseName}");
+                    log?.Info($"{nameof(MsSqlEngine)}: Create Database {createDatabaseName}");
                 }
                 catch (Exception ex)
                 {
-                    Log.Error($"{nameof(MsSqlEngine)} error while creating database.", ex);
+                    log?.Error($"{nameof(MsSqlEngine)} error while creating database.", ex);
                 }
             }
 
@@ -61,11 +61,11 @@ namespace Zerra.Repository.MsSql
                 try
                 {
                     engine.ExecuteSql(line);
-                    Log.Info($"{nameof(MsSqlEngine)}: {line}");
+                    log?.Info($"{nameof(MsSqlEngine)}: {line}");
                 }
                 catch (Exception ex)
                 {
-                    Log.Error($"{nameof(MsSqlEngine)} error while assuring datastore: {line}.", ex);
+                    log?.Error($"{nameof(MsSqlEngine)} error while assuring datastore: {line}.", ex);
                     throw;
                 }
             }

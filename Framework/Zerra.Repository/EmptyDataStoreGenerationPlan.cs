@@ -1,4 +1,6 @@
-﻿namespace Zerra.Repository
+﻿using Zerra.Logging;
+
+namespace Zerra.Repository
 {
     /// <summary>
     /// Represents a no-op data store generation plan that contains no changes and performs no actions.
@@ -13,6 +15,6 @@
         /// <summary>
         /// Performs no action as there are no schema changes to execute.
         /// </summary>
-        public void Execute() { }
+        public void Execute(ILogger? log) { }
     }
 }

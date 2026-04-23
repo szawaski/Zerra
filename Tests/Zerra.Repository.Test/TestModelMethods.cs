@@ -16,25 +16,25 @@ namespace Zerra.Repository.Test
             model.KeyA = Guid.NewGuid();
             repo.Persist(new Create<TestTypesModel>(model));
 
-            var modelCheck = repo.Query(new QuerySingle<TestTypesModel>(x => x.KeyA == model.KeyA));
+            var modelCheck = repo.QuerySingle<TestTypesModel>(x => x.KeyA == model.KeyA);
             AssertAreEqual(model, modelCheck);
 
             UpdateModel(model);
             repo.Persist(new Update<TestTypesModel>(model));
-            modelCheck = repo.Query(new QuerySingle<TestTypesModel>(x => x.KeyA == model.KeyA));
+            modelCheck = repo.QuerySingle<TestTypesModel>(x => x.KeyA == model.KeyA);
             AssertAreEqual(model, modelCheck);
 
             var relationModel = new TestRelationsModel();
             relationModel.RelationAKey = Guid.NewGuid();
             repo.Persist(new Create<TestRelationsModel>(relationModel));
-            var relationModelCheck = repo.Query(new QuerySingle<TestRelationsModel>(x => x.RelationAKey == relationModel.RelationAKey));
+            var relationModelCheck = repo.QuerySingle<TestRelationsModel>(x => x.RelationAKey == relationModel.RelationAKey);
             Assert.NotNull(relationModelCheck);
 
             model.RelationAKey = relationModel.RelationAKey;
             repo.Persist(new Update<TestTypesModel>(model, new Graph<TestTypesModel>(x => x.RelationAKey)));
-            modelCheck = repo.Query(new QuerySingle<TestTypesModel>(x => x.KeyA == model.KeyA));
+            modelCheck = repo.QuerySingle<TestTypesModel>(x => x.KeyA == model.KeyA);
             Assert.Equal(model.RelationAKey, modelCheck.RelationAKey);
-            modelCheck = repo.Query(new QuerySingle<TestTypesModel>(x => x.KeyA == model.KeyA, new Graph<TestTypesModel>(x => x.RelationA)));
+            modelCheck = repo.QuerySingle<TestTypesModel>(x => x.KeyA == model.KeyA, new Graph<TestTypesModel>(x => x.RelationA));
             Assert.NotNull(modelCheck.RelationA);
             Assert.Equal(model.RelationAKey, modelCheck.RelationA.RelationAKey);
 
@@ -42,17 +42,17 @@ namespace Zerra.Repository.Test
 
             model.RelationAKey = null;
             repo.Persist(new Update<TestTypesModel>(model, new Graph<TestTypesModel>(x => x.RelationAKey)));
-            modelCheck = repo.Query(new QuerySingle<TestTypesModel>(x => x.KeyA == model.KeyA));
+            modelCheck = repo.QuerySingle<TestTypesModel>(x => x.KeyA == model.KeyA);
             Assert.Equal(model.RelationAKey, modelCheck.RelationAKey);
-            modelCheck = repo.Query(new QuerySingle<TestTypesModel>(x => x.KeyA == model.KeyA, new Graph<TestTypesModel>(x => x.RelationA)));
+            modelCheck = repo.QuerySingle<TestTypesModel>(x => x.KeyA == model.KeyA, new Graph<TestTypesModel>(x => x.RelationA));
             Assert.Null(model.RelationA);
 
             repo.Persist(new Delete<TestTypesModel>(model));
-            modelCheck = repo.Query(new QuerySingle<TestTypesModel>(x => x.KeyA == model.KeyA));
+            modelCheck = repo.QuerySingle<TestTypesModel>(x => x.KeyA == model.KeyA);
             Assert.Null(modelCheck);
 
             repo.Persist(new Delete<TestRelationsModel>(relationModel));
-            relationModelCheck = repo.Query(new QuerySingle<TestRelationsModel>(x => x.RelationAKey == relationModel.RelationAKey));
+            relationModelCheck = repo.QuerySingle<TestRelationsModel>(x => x.RelationAKey == relationModel.RelationAKey);
             Assert.Null(relationModelCheck);
         }
 
@@ -219,42 +219,42 @@ namespace Zerra.Repository.Test
         public static void TestQuery(IRepo repo, TestTypesModel model, TestRelationsModel relationModel)
         {
             //many
-            _ = repo.Query(new QueryMany<TestTypesModel>(x => x.KeyA == model.KeyA));
+            _ = repo.QueryMany<TestTypesModel>(x => x.KeyA == model.KeyA);
 
             //first
-            _ = repo.Query(new QueryFirst<TestTypesModel>(x => x.KeyA == model.KeyA));
+            _ = repo.QueryFirst<TestTypesModel>(x => x.KeyA == model.KeyA);
 
             //single
-            _ = repo.Query(new QuerySingle<TestTypesModel>(x => x.KeyA == model.KeyA));
+            _ = repo.QuerySingle<TestTypesModel>(x => x.KeyA == model.KeyA);
 
             //count
-            _ = repo.Query(new QueryCount<TestTypesModel>(x => x.KeyA == model.KeyA));
+            _ = repo.QueryCount<TestTypesModel>(x => x.KeyA == model.KeyA);
 
             //any
-            _ = repo.Query(new QueryAny<TestTypesModel>(x => x.KeyA == model.KeyA));
+            _ = repo.QueryAny<TestTypesModel>(x => x.KeyA == model.KeyA);
 
             var keyArray = new Guid[] { model.KeyA };
 
             //array index
-            _ = repo.Query(new QuerySingle<TestTypesModel>(x => x.KeyA == keyArray[0]));
+            _ = repo.QuerySingle<TestTypesModel>(x => x.KeyA == keyArray[0]);
 
             //date
-            _ = repo.Query(new QuerySingle<TestTypesModel>(x => x.DateTimeThing > DateTime.Now.AddYears(-1)));
+            _ = repo.QuerySingle<TestTypesModel>(x => x.DateTimeThing > DateTime.Now.AddYears(-1));
 
             //date
-            _ = repo.Query(new QuerySingle<TestTypesModel>(x => x.DateTimeThing.Year > DateTime.Now.AddYears(-1).Year));
+            _ = repo.QuerySingle<TestTypesModel>(x => x.DateTimeThing.Year > DateTime.Now.AddYears(-1).Year);
 
             //time
-            _ = repo.Query(new QuerySingle<TestTypesModel>(x => x.TimeSpanThing > TimeSpan.FromMilliseconds(123, 0)));
+            _ = repo.QuerySingle<TestTypesModel>(x => x.TimeSpanThing > TimeSpan.FromMilliseconds(123, 0));
 
             //string like
-            _ = repo.Query(new QuerySingle<TestTypesModel>(x => x.StringThing.Contains("World")));
+            _ = repo.QuerySingle<TestTypesModel>(x => x.StringThing.Contains("World"));
 
             //LINQ contains
-            _ = repo.Query(new QuerySingle<TestTypesModel>(x => keyArray.Contains(x.KeyA)));
+            _ = repo.QuerySingle<TestTypesModel>(x => keyArray.Contains(x.KeyA));
 
             //LINQ any
-            _ = repo.Query(new QuerySingle<TestTypesModel>(x => x.RelationB.Any(y => y.RelationAKey == relationModel.RelationAKey)));
+            _ = repo.QuerySingle<TestTypesModel>(x => x.RelationB.Any(y => y.RelationAKey == relationModel.RelationAKey));
         }
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace Zerra.Repository
+﻿using Zerra.Logging;
+
+namespace Zerra.Repository
 {
     /// <summary>
     /// Represents a plan for generating or modifying a data store schema.
@@ -13,6 +15,6 @@
         /// <summary>
         /// Executes the generation plan against the data store.
         /// </summary>
-        void Execute();
+        void Execute(ILogger? log);
     }
 }

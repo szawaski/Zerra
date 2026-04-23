@@ -41,18 +41,18 @@ namespace Zerra.Repository.PostgreSql
         /// <summary>
         /// Executes the generation plan against the PostgreSQL database, creating the database and running all SQL statements.
         /// </summary>
-        public void Execute()
+        public void Execute(ILogger? log)
         {
             if (!String.IsNullOrWhiteSpace(createDatabaseName))
             {
                 try
                 {
                     engine.CreateDatabase(createDatabaseName);
-                    Log.Info($"{nameof(PostgreSqlEngine)}: Create Database {createDatabaseName}");
+                    log?.Info($"{nameof(PostgreSqlEngine)}: Create Database {createDatabaseName}");
                 }
                 catch (Exception ex)
                 {
-                    Log.Error($"{nameof(PostgreSqlEngine)} error while creating datastore.", ex);
+                    log?.Error($"{nameof(PostgreSqlEngine)} error while creating datastore.", ex);
                 }
             }
 
@@ -61,11 +61,11 @@ namespace Zerra.Repository.PostgreSql
                 try
                 {
                     engine.ExecuteSql(line);
-                    Log.Info($"{nameof(PostgreSqlEngine)}: {line}");
+                    log?.Info($"{nameof(PostgreSqlEngine)}: {line}");
                 }
                 catch (Exception ex)
                 {
-                    Log.Error($"{nameof(PostgreSqlEngine)} error while assuring datastore: {line}.", ex);
+                    log?.Error($"{nameof(PostgreSqlEngine)} error while assuring datastore: {line}.", ex);
                     throw;
                 }
             }
