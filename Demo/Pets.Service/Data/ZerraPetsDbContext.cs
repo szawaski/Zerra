@@ -1,15 +1,14 @@
-﻿using Zerra.Repository.MsSql;
+﻿using Zerra.Repository;
 
 namespace Pets.Service.Data
 {
-    public class ZerraPetsDbContext : MsSqlDataContext
+    public class ZerraPetsDbContext : DataContextSelector
     {
-        public override string ConnectionString => connectionString;
-
-        private readonly string connectionString;
-        public ZerraPetsDbContext()
-        {
-            this.connectionString = "Data Source=.;Initial Catalog=ZerraPets;Integrated Security=True;MultipleActiveResultSets=True;TrustServerCertificate=True";
-        }
+        protected override ICollection<DataContext> LoadDataContexts() =>
+        [
+            new ZerraPetsMsSqlContext(),
+            new ZerraPetsMySqlContext(),
+            new ZerraPetsPostgreSqlContext()
+        ];
     }
 }
