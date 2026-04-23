@@ -1305,16 +1305,8 @@ namespace Zerra.Repository
                     {
                         var relatedGraph = graph.GetChildGraph(modelPropertyInfo.Name);
 
-                        if (create)
-                        {
-                            var persist = new Create(@event, relatedModel, relatedGraph);
-                            Repo.Persist(persist);
-                        }
-                        else
-                        {
-                            var persist = new Update(@event, relatedModel, relatedGraph);
-                            Repo.Persist(persist);
-                        }
+                        var persist = new Persist(create ? PersistOperation.Create : PersistOperation.Update, @event, relatedType, [relatedModel], null, relatedGraph);
+                        Repo.Persist(persist);
 
                         var relatedIdentity = ModelAnalyzer.GetIdentity(relatedType, relatedModel);
                         ModelAnalyzer.SetForeignIdentity(modelPropertyInfo.Type, modelPropertyInfo.ForeignIdentity, model, relatedIdentity);
@@ -1448,17 +1440,17 @@ namespace Zerra.Repository
 
                     if (relatedModelsDelete.Count > 0)
                     {
-                        var persist = new Delete(@event, relatedModelsDelete, relatedGraph);
+                        var persist = new Persist(PersistOperation.Delete, @event, relatedType, relatedModelsDelete.ToArray(), null, relatedGraph);
                         Repo.Persist(persist);
                     }
                     if (relatedModelsUpdate.Count > 0)
                     {
-                        var persist = new Update(@event, relatedModelsUpdate, relatedGraph);
+                        var persist = new Persist(PersistOperation.Update, @event, relatedType, relatedModelsUpdate.ToArray(), null, relatedGraph);
                         Repo.Persist(persist);
                     }
                     if (relatedModelsCreate.Count > 0)
                     {
-                        var persist = new Create(@event, relatedModelsCreate, relatedGraph);
+                        var persist = new Persist(PersistOperation.Create, @event, relatedType, relatedModelsCreate.ToArray(), null, relatedGraph);
                         Repo.Persist(persist);
                     }
                     //});
@@ -1507,7 +1499,7 @@ namespace Zerra.Repository
 
                     if (relatedExistings.Cast<object>().Any())
                     {
-                        var persist = new Delete(@event, relatedExistings, relatedGraph);
+                        var persist = new Persist(PersistOperation.Delete, @event, relatedType, relatedExistings.Cast<object>().ToArray(), null, relatedGraph);
                         Repo.Persist(persist);
                     }
                     //});
@@ -1549,16 +1541,8 @@ namespace Zerra.Repository
                     {
                         var relatedGraph = graph.GetChildGraph(modelPropertyInfo.Name);
 
-                        if (create)
-                        {
-                            var persist = new Create(@event, relatedModel, relatedGraph);
-                            await Repo.PersistAsync(persist);
-                        }
-                        else
-                        {
-                            var persist = new Update(@event, relatedModel, relatedGraph);
-                            await Repo.PersistAsync(persist);
-                        }
+                        var persist = new Persist(create ? PersistOperation.Create : PersistOperation.Update, @event, relatedType, [relatedModel], null, relatedGraph);
+                        await Repo.PersistAsync(persist);
 
                         var relatedIdentity = ModelAnalyzer.GetIdentity(relatedType, relatedModel);
                         ModelAnalyzer.SetForeignIdentity(modelPropertyInfo.Type, modelPropertyInfo.ForeignIdentity, model, relatedIdentity);
@@ -1693,17 +1677,17 @@ namespace Zerra.Repository
 
                     if (relatedModelsDelete.Count > 0)
                     {
-                        var persist = new Delete(@event, relatedModelsDelete, relatedGraph);
+                        var persist = new Persist(PersistOperation.Delete, @event, relatedType, relatedModelsDelete.ToArray(), null, relatedGraph);
                         await Repo.PersistAsync(persist);
                     }
                     if (relatedModelsUpdate.Count > 0)
                     {
-                        var persist = new Update(@event, relatedModelsUpdate, relatedGraph);
+                        var persist = new Persist(PersistOperation.Update, @event, relatedType, relatedModelsUpdate.ToArray(), null, relatedGraph);
                         await Repo.PersistAsync(persist);
                     }
                     if (relatedModelsCreate.Count > 0)
                     {
-                        var persist = new Create(@event, relatedModelsCreate, relatedGraph);
+                        var persist = new Persist(PersistOperation.Create, @event, relatedType, relatedModelsCreate.ToArray(), null, relatedGraph);
                         await Repo.PersistAsync(persist);
                     }
                     //});
@@ -1753,7 +1737,7 @@ namespace Zerra.Repository
 
                     if (relatedExistings.Cast<object>().Any())
                     {
-                        var persist = new Delete(@event, relatedExistings, relatedGraph);
+                        var persist = new Persist(PersistOperation.Delete, @event, relatedType, relatedExistings.Cast<object>().ToArray(), null, relatedGraph);
                         await Repo.PersistAsync(persist);
                     }
                     //});

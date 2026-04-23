@@ -35,7 +35,7 @@ namespace Pets.Service
             {
                 Name = command.Name,
             };
-            await Repo.PersistAsync(new Create(model));
+            await Repo.CreateAsync(model);
 
             var model2 = await Repo.QuerySingleAsync<PetTypeDataModel>(x => x.Name == command.Name);
             if (model2 == null)
@@ -50,7 +50,7 @@ namespace Pets.Service
                 Name = command.Name,
                 PetTypeId = command.PetTypeId,
             };
-            await Repo.PersistAsync(new Create(model));
+            await Repo.CreateAsync(model);
 
             var model2 = await Repo.QuerySingleAsync<PetDataModel>(x => x.Name == command.Name);
             if (model2 == null)

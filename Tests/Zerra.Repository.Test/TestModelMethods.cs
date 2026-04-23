@@ -3,8 +3,6 @@
 // Licensed to you under the MIT license
 
 using Xunit;
-using System;
-using System.Linq;
 
 namespace Zerra.Repository.Test
 {
@@ -14,24 +12,24 @@ namespace Zerra.Repository.Test
         {
             var model = GetTestTypesModel();
             model.KeyA = Guid.NewGuid();
-            repo.Persist(new Create<TestTypesModel>(model));
+            repo.Create<TestTypesModel>(model);
 
             var modelCheck = repo.QuerySingle<TestTypesModel>(x => x.KeyA == model.KeyA);
             AssertAreEqual(model, modelCheck);
 
             UpdateModel(model);
-            repo.Persist(new Update<TestTypesModel>(model));
+            repo.Update<TestTypesModel>(model);
             modelCheck = repo.QuerySingle<TestTypesModel>(x => x.KeyA == model.KeyA);
             AssertAreEqual(model, modelCheck);
 
             var relationModel = new TestRelationsModel();
             relationModel.RelationAKey = Guid.NewGuid();
-            repo.Persist(new Create<TestRelationsModel>(relationModel));
+            repo.Create<TestRelationsModel>(relationModel);
             var relationModelCheck = repo.QuerySingle<TestRelationsModel>(x => x.RelationAKey == relationModel.RelationAKey);
             Assert.NotNull(relationModelCheck);
 
             model.RelationAKey = relationModel.RelationAKey;
-            repo.Persist(new Update<TestTypesModel>(model, new Graph<TestTypesModel>(x => x.RelationAKey)));
+            repo.Update<TestTypesModel>(model, new Graph<TestTypesModel>(x => x.RelationAKey));
             modelCheck = repo.QuerySingle<TestTypesModel>(x => x.KeyA == model.KeyA);
             Assert.Equal(model.RelationAKey, modelCheck.RelationAKey);
             modelCheck = repo.QuerySingle<TestTypesModel>(x => x.KeyA == model.KeyA, new Graph<TestTypesModel>(x => x.RelationA));
@@ -41,17 +39,17 @@ namespace Zerra.Repository.Test
             TestQuery(repo, model, relationModel);
 
             model.RelationAKey = null;
-            repo.Persist(new Update<TestTypesModel>(model, new Graph<TestTypesModel>(x => x.RelationAKey)));
+            repo.Update<TestTypesModel>(model, new Graph<TestTypesModel>(x => x.RelationAKey));
             modelCheck = repo.QuerySingle<TestTypesModel>(x => x.KeyA == model.KeyA);
             Assert.Equal(model.RelationAKey, modelCheck.RelationAKey);
             modelCheck = repo.QuerySingle<TestTypesModel>(x => x.KeyA == model.KeyA, new Graph<TestTypesModel>(x => x.RelationA));
             Assert.Null(model.RelationA);
 
-            repo.Persist(new Delete<TestTypesModel>(model));
+            repo.Delete<TestTypesModel>(model);
             modelCheck = repo.QuerySingle<TestTypesModel>(x => x.KeyA == model.KeyA);
             Assert.Null(modelCheck);
 
-            repo.Persist(new Delete<TestRelationsModel>(relationModel));
+            repo.Delete<TestRelationsModel>(relationModel);
             relationModelCheck = repo.QuerySingle<TestRelationsModel>(x => x.RelationAKey == relationModel.RelationAKey);
             Assert.Null(relationModelCheck);
         }

@@ -453,7 +453,7 @@ namespace Zerra.Repository
                 return;
 
             var compressedModels = CompressModels(persist.Models, persist.Graph, true);
-            NextProvider.Persist(new Create(persist.Event, compressedModels, persist.Graph));
+            NextProvider.Persist(new Persist(persist.Operation, persist.Event, persist.ModelType, compressedModels, null, persist.Graph));
 
             for (var i = 0; i < persist.Models.Length; i++)
             {
@@ -468,7 +468,7 @@ namespace Zerra.Repository
                 return;
 
             var compressedModels = CompressModels(persist.Models, persist.Graph, true);
-            NextProvider.Persist(new Update(persist.Event, compressedModels, persist.Graph));
+            NextProvider.Persist(new Persist(persist.Operation, persist.Event, persist.ModelType, compressedModels, null, persist.Graph));
         }
         /// <inheritdoc/>
         public override sealed void Delete(Persist persist)
@@ -483,7 +483,7 @@ namespace Zerra.Repository
                 return;
 
             var compressedModels = CompressModels(persist.Models, persist.Graph, true);
-            await NextProvider.PersistAsync(new Create(persist.Event, compressedModels, persist.Graph));
+            NextProvider.Persist(new Persist(persist.Operation, persist.Event, persist.ModelType, compressedModels, null, persist.Graph));
 
             for (var i = 0; i < persist.Models.Length; i++)
             {
@@ -498,7 +498,7 @@ namespace Zerra.Repository
                 return Task.CompletedTask;
 
             var compressedModels = CompressModels(persist.Models, persist.Graph, true);
-            return NextProvider.PersistAsync(new Update(persist.Event, compressedModels, persist.Graph));
+            return NextProvider.PersistAsync(new Persist(persist.Operation, persist.Event, persist.ModelType, compressedModels, null, persist.Graph));
         }
         /// <inheritdoc/>
         public override sealed Task DeleteAsync(Persist persist)

@@ -279,7 +279,7 @@ namespace Zerra.Repository
 
             var appenedPersist = new Persist(persist);
             var returnModels = OnCreate(appenedPersist.Models!, appenedPersist.Graph);
-            await NextProvider.PersistAsync(new Create(appenedPersist.Event, returnModels, appenedPersist.Graph));
+            await NextProvider.PersistAsync(new Persist(appenedPersist.Operation, appenedPersist.Event, appenedPersist.ModelType, returnModels.Cast<object>().ToArray(), null, appenedPersist.Graph));
             OnCreateComplete(returnModels, appenedPersist.Graph);
         }
 
@@ -291,7 +291,7 @@ namespace Zerra.Repository
 
             var appenedPersist = new Persist(persist);
             var returnModels = OnUpdate(appenedPersist.Models!, appenedPersist.Graph);
-            await NextProvider.PersistAsync(new Update(appenedPersist.Event, returnModels, appenedPersist.Graph));
+            await NextProvider.PersistAsync(new Persist(appenedPersist.Operation, appenedPersist.Event, appenedPersist.ModelType, returnModels.Cast<object>().ToArray(), null, appenedPersist.Graph));
             OnUpdateComplete(returnModels, appenedPersist.Graph);
         }
 
@@ -321,7 +321,7 @@ namespace Zerra.Repository
                 throw new Exception($"Invalid {nameof(Persist)} for {nameof(DeleteAsync)}");
             }
 
-            await NextProvider.PersistAsync(new DeleteByID<TModel>(persist.Event, returnIds));
+            await NextProvider.PersistAsync(new Persist<TModel>(PersistOperation.Delete, persist.Event, null, returnIds.Cast<object>().ToArray(), null));
             OnDeleteComplete(returnIds);
         }
     }

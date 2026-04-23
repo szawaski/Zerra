@@ -471,7 +471,7 @@ namespace Zerra.Repository
                 return;
 
             var encryptedModels = EncryptModels(persist.Models, persist.Graph, true);
-            NextProvider.Persist(new Create(encryptedModels, persist.Graph));
+            NextProvider.Persist(new Persist(persist.Operation, persist.Event, persist.ModelType, encryptedModels, null, persist.Graph));
 
             for (var i = 0; i < persist.Models.Length; i++)
             {
@@ -486,7 +486,7 @@ namespace Zerra.Repository
                 return;
 
             var encryptedModels = EncryptModels(persist.Models, persist.Graph, true);
-            NextProvider.Persist(new Update(persist.Event, encryptedModels, persist.Graph));
+            NextProvider.Persist(new Persist(persist.Operation, persist.Event, persist.ModelType, encryptedModels, null, persist.Graph));
         }
         /// <inheritdoc/>
         public override sealed void Delete(Persist persist)
@@ -501,7 +501,7 @@ namespace Zerra.Repository
                 return;
 
             var encryptedModels = EncryptModels(persist.Models, persist.Graph, true);
-            await NextProvider.PersistAsync(new Create(encryptedModels, persist.Graph));
+            await NextProvider.PersistAsync(new Persist(persist.Operation, persist.Event, persist.ModelType, encryptedModels, null, persist.Graph));
 
             for (var i = 0; i < persist.Models.Length; i++)
             {
@@ -516,7 +516,7 @@ namespace Zerra.Repository
                 return Task.CompletedTask;
 
             var encryptedModels = EncryptModels(persist.Models, persist.Graph, true);
-            return NextProvider.PersistAsync(new Update(persist.Event, encryptedModels, persist.Graph));
+            return NextProvider.PersistAsync(new Persist(persist.Operation, persist.Event, persist.ModelType, encryptedModels, null, persist.Graph));
         }
         /// <inheritdoc/>
         public override sealed Task DeleteAsync(Persist persist)
