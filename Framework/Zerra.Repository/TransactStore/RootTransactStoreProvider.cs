@@ -686,16 +686,16 @@ namespace Zerra.Repository
         {
             return query.Operation switch
             {
-                QueryOperation.Many => Many(query),
-                QueryOperation.First => First(query),
-                QueryOperation.Single => Single(query),
-                QueryOperation.Count => Count(query),
-                QueryOperation.Any => Any(query),
-                QueryOperation.EventMany => EventMany(query),
-                QueryOperation.EventFirst => EventFirst(query),
-                QueryOperation.EventSingle => EventSingle(query),
-                QueryOperation.EventCount => EventCount(query),
-                QueryOperation.EventAny => EventAny(query),
+                QueryOperation.Many => QueryMany(query),
+                QueryOperation.First => QueryFirst(query),
+                QueryOperation.Single => QuerySingle(query),
+                QueryOperation.Count => QueryCount(query),
+                QueryOperation.Any => QueryAny(query),
+                QueryOperation.EventMany => QueryEventMany(query),
+                QueryOperation.EventFirst => QueryEventFirst(query),
+                QueryOperation.EventSingle => QueryEventSingle(query),
+                QueryOperation.EventCount => QueryEventCount(query),
+                QueryOperation.EventAny => QueryEventAny(query),
                 _ => throw new NotImplementedException(),
             };
         }
@@ -706,21 +706,21 @@ namespace Zerra.Repository
         {
             return query.Operation switch
             {
-                QueryOperation.Many => ManyAsync(query),
-                QueryOperation.First => FirstAsync(query),
-                QueryOperation.Single => SingleAsync(query),
-                QueryOperation.Count => CountAsync(query),
-                QueryOperation.Any => AnyAsync(query),
-                QueryOperation.EventMany => EventManyAsync(query),
-                QueryOperation.EventFirst => EventFirstAsync(query),
-                QueryOperation.EventSingle => EventSingleAsync(query),
-                QueryOperation.EventCount => EventCountAsync(query),
-                QueryOperation.EventAny => EventAnyAsync(query),
+                QueryOperation.Many => QueryManyAsync(query),
+                QueryOperation.First => QueryFirstAsync(query),
+                QueryOperation.Single => QuerySingleAsync(query),
+                QueryOperation.Count => QueryCountAsync(query),
+                QueryOperation.Any => QueryAnyAsync(query),
+                QueryOperation.EventMany => QueryEventManyAsync(query),
+                QueryOperation.EventFirst => QueryEventFirstAsync(query),
+                QueryOperation.EventSingle => QueryEventSingleAsync(query),
+                QueryOperation.EventCount => QueryEventCountAsync(query),
+                QueryOperation.EventAny => QueryEventAnyAsync(query),
                 _ => throw new NotImplementedException(),
             };
         }
 
-        private object Many(Query query)
+        private object QueryMany(Query query)
         {
             if (query.Graph is not null)
             {
@@ -728,7 +728,7 @@ namespace Zerra.Repository
                 OnQueryWithRelations(query.Graph!);
             }
 
-            var models = QueryMany(query);
+            var models = Many(query);
 
             IReadOnlyCollection<TModel> returnModels;
             if (models.Count > 0)
@@ -742,7 +742,7 @@ namespace Zerra.Repository
 
             return returnModels;
         }
-        private object? First(Query query)
+        private object? QueryFirst(Query query)
         {
             if (query.Graph is not null)
             {
@@ -750,7 +750,7 @@ namespace Zerra.Repository
                 OnQueryWithRelations(query.Graph!);
             }
 
-            var model = QueryFirst(query);
+            var model = First(query);
 
             var returnModel = model;
             if (model is not null)
@@ -760,7 +760,7 @@ namespace Zerra.Repository
 
             return returnModel;
         }
-        private object? Single(Query query)
+        private object? QuerySingle(Query query)
         {
             if (query.Graph is not null)
             {
@@ -768,7 +768,7 @@ namespace Zerra.Repository
                 OnQueryWithRelations(query.Graph!);
             }
 
-            var model = QuerySingle(query);
+            var model = Single(query);
 
             var returnModel = model;
             if (model is not null)
@@ -778,15 +778,15 @@ namespace Zerra.Repository
 
             return returnModel;
         }
-        private object Count(Query query)
+        private object QueryCount(Query query)
         {
-            return QueryCount(query);
+            return Count(query);
         }
-        private object Any(Query query)
+        private object QueryAny(Query query)
         {
-            return QueryAny(query);
+            return Any(query);
         }
-        private object EventMany(Query query)
+        private object QueryEventMany(Query query)
         {
             if (query.Graph is not null)
             {
@@ -794,7 +794,7 @@ namespace Zerra.Repository
                 OnQueryWithRelations(query.Graph!);
             }
 
-            var models = QueryEventMany(query);
+            var models = EventMany(query);
 
             IReadOnlyCollection<TModel> returnModels;
             if (models.Count > 0)
@@ -808,7 +808,7 @@ namespace Zerra.Repository
 
             return models.Where(x => returnModels.Contains(x.Model)).ToArray();
         }
-        private object? EventFirst(Query query)
+        private object? QueryEventFirst(Query query)
         {
             if (query.Graph is not null)
             {
@@ -816,7 +816,7 @@ namespace Zerra.Repository
                 OnQueryWithRelations(query.Graph!);
             }
 
-            var model = QueryEventFirst(query);
+            var model = EventFirst(query);
 
             if (model is not null)
             {
@@ -827,7 +827,7 @@ namespace Zerra.Repository
 
             return model;
         }
-        private object? EventSingle(Query query)
+        private object? QueryEventSingle(Query query)
         {
             if (query.Graph is not null)
             {
@@ -835,7 +835,7 @@ namespace Zerra.Repository
                 OnQueryWithRelations(query.Graph!);
             }
 
-            var model = QueryEventSingle(query);
+            var model = EventSingle(query);
 
             if (model is not null)
             {
@@ -846,16 +846,16 @@ namespace Zerra.Repository
 
             return model;
         }
-        private object EventCount(Query query)
+        private object QueryEventCount(Query query)
         {
-            return QueryEventCount(query);
+            return EventCount(query);
         }
-        private object EventAny(Query query)
+        private object QueryEventAny(Query query)
         {
-            return QueryEventAny(query);
+            return EventAny(query);
         }
 
-        private async Task<object?> ManyAsync(Query query)
+        private async Task<object?> QueryManyAsync(Query query)
         {
             if (query.Graph is not null)
             {
@@ -863,7 +863,7 @@ namespace Zerra.Repository
                 OnQueryWithRelations(query.Graph!);
             }
 
-            var models = await QueryManyAsync(query);
+            var models = await ManyAsync(query);
 
             IReadOnlyCollection<TModel> returnModels;
             if (models.Count > 0)
@@ -877,7 +877,7 @@ namespace Zerra.Repository
 
             return returnModels;
         }
-        private async Task<object?> FirstAsync(Query query)
+        private async Task<object?> QueryFirstAsync(Query query)
         {
             Graph? graph = null;
             if (query.Graph is not null)
@@ -888,7 +888,7 @@ namespace Zerra.Repository
                 query = new Query(query);
             }
 
-            var model = await QueryFirstAsync(query);
+            var model = await FirstAsync(query);
 
             var returnModel = model;
             if (model is not null)
@@ -898,7 +898,7 @@ namespace Zerra.Repository
 
             return returnModel;
         }
-        private async Task<object?> SingleAsync(Query query)
+        private async Task<object?> QuerySingleAsync(Query query)
         {
             if (query.Graph is not null)
             {
@@ -906,7 +906,7 @@ namespace Zerra.Repository
                 OnQueryWithRelations(query.Graph!);
             }
 
-            var model = await QuerySingleAsync(query);
+            var model = await SingleAsync(query);
 
             var returnModel = model;
             if (model is not null)
@@ -916,15 +916,15 @@ namespace Zerra.Repository
 
             return returnModel;
         }
-        private async Task<object?> CountAsync(Query query)
+        private async Task<object?> QueryCountAsync(Query query)
         {
-            return await QueryCountAsync(query);
+            return await CountAsync(query);
         }
-        private async Task<object?> AnyAsync(Query query)
+        private async Task<object?> QueryAnyAsync(Query query)
         {
-            return await QueryAnyAsync(query);
+            return await AnyAsync(query);
         }
-        private async Task<object?> EventManyAsync(Query query)
+        private async Task<object?> QueryEventManyAsync(Query query)
         {
             if (query.Graph is not null)
             {
@@ -932,7 +932,7 @@ namespace Zerra.Repository
                 OnQueryWithRelations(query.Graph!);
             }
 
-            var models = await QueryEventManyAsync(query);
+            var models = await EventManyAsync(query);
 
             IReadOnlyCollection<TModel> returnModels;
             if (models.Count > 0)
@@ -946,7 +946,7 @@ namespace Zerra.Repository
 
             return models.Where(x => returnModels.Contains(x.Model)).ToArray();
         }
-        private async Task<object?> EventFirstAsync(Query query)
+        private async Task<object?> QueryEventFirstAsync(Query query)
         {
             if (query.Graph is not null)
             {
@@ -954,7 +954,7 @@ namespace Zerra.Repository
                 OnQueryWithRelations(query.Graph!);
             }
 
-            var model = await QueryEventFirstAsync(query);
+            var model = await EventFirstAsync(query);
 
             if (model is not null)
             {
@@ -965,7 +965,7 @@ namespace Zerra.Repository
 
             return model;
         }
-        private async Task<object?> EventSingleAsync(Query query)
+        private async Task<object?> QueryEventSingleAsync(Query query)
         {
             if (query.Graph is not null)
             {
@@ -973,7 +973,7 @@ namespace Zerra.Repository
                 OnQueryWithRelations(query.Graph!);
             }
 
-            var model = await QueryEventSingleAsync(query);
+            var model = await EventSingleAsync(query);
 
             if (model is not null)
             {
@@ -984,96 +984,96 @@ namespace Zerra.Repository
 
             return model;
         }
-        private async Task<object?> EventCountAsync(Query query)
+        private async Task<object?> QueryEventCountAsync(Query query)
         {
-            return await QueryEventCountAsync(query);
+            return await EventCountAsync(query);
         }
-        private async Task<object?> EventAnyAsync(Query query)
+        private async Task<object?> QueryEventAnyAsync(Query query)
         {
-            return await QueryEventAnyAsync(query);
+            return await EventAnyAsync(query);
         }
 
         /// <summary>Queries and returns multiple models matching the given query.</summary>
         /// <param name="query">The query parameters.</param>
         /// <returns>A collection of matching models.</returns>
-        protected abstract IReadOnlyCollection<TModel> QueryMany(Query query);
+        protected abstract IReadOnlyCollection<TModel> Many(Query query);
         /// <summary>Queries and returns the first model matching the given query, or <see langword="null"/>.</summary>
         /// <param name="query">The query parameters.</param>
         /// <returns>The first matching model, or <see langword="null"/>.</returns>
-        protected abstract TModel? QueryFirst(Query query);
+        protected abstract TModel? First(Query query);
         /// <summary>Queries and returns the single model matching the given query, or <see langword="null"/>.</summary>
         /// <param name="query">The query parameters.</param>
         /// <returns>The single matching model, or <see langword="null"/>.</returns>
-        protected abstract TModel? QuerySingle(Query query);
+        protected abstract TModel? Single(Query query);
         /// <summary>Returns the count of models matching the given query.</summary>
         /// <param name="query">The query parameters.</param>
         /// <returns>The count of matching models.</returns>
-        protected abstract long QueryCount(Query query);
+        protected abstract long Count(Query query);
         /// <summary>Returns whether any model exists matching the given query.</summary>
         /// <param name="query">The query parameters.</param>
         /// <returns><see langword="true"/> if any matching model exists; otherwise <see langword="false"/>.</returns>
-        protected abstract bool QueryAny(Query query);
+        protected abstract bool Any(Query query);
         /// <summary>Queries and returns multiple event models matching the given query.</summary>
         /// <param name="query">The query parameters.</param>
         /// <returns>A collection of matching event models.</returns>
-        protected abstract IReadOnlyCollection<EventModel<TModel>> QueryEventMany(Query query);
+        protected abstract IReadOnlyCollection<EventModel<TModel>> EventMany(Query query);
         /// <summary>Queries and returns the first event model matching the given query, or <see langword="null"/>.</summary>
         /// <param name="query">The query parameters.</param>
         /// <returns>The first matching event model, or <see langword="null"/>.</returns>
-        protected abstract EventModel<TModel>? QueryEventFirst(Query query);
+        protected abstract EventModel<TModel>? EventFirst(Query query);
         /// <summary>Queries and returns the single event model matching the given query, or <see langword="null"/>.</summary>
         /// <param name="query">The query parameters.</param>
         /// <returns>The single matching event model, or <see langword="null"/>.</returns>
-        protected abstract EventModel<TModel>? QueryEventSingle(Query query);
+        protected abstract EventModel<TModel>? EventSingle(Query query);
         /// <summary>Returns the count of event models matching the given query.</summary>
         /// <param name="query">The query parameters.</param>
         /// <returns>The count of matching event models.</returns>
-        protected abstract long QueryEventCount(Query query);
+        protected abstract long EventCount(Query query);
         /// <summary>Returns whether any event model exists matching the given query.</summary>
         /// <param name="query">The query parameters.</param>
         /// <returns><see langword="true"/> if any matching event model exists; otherwise <see langword="false"/>.</returns>
-        protected abstract bool QueryEventAny(Query query);
+        protected abstract bool EventAny(Query query);
 
         /// <summary>Asynchronously queries and returns multiple models matching the given query.</summary>
         /// <param name="query">The query parameters.</param>
         /// <returns>A task containing a collection of matching models.</returns>
-        protected abstract Task<IReadOnlyCollection<TModel>> QueryManyAsync(Query query);
+        protected abstract Task<IReadOnlyCollection<TModel>> ManyAsync(Query query);
         /// <summary>Asynchronously queries and returns the first model matching the given query, or <see langword="null"/>.</summary>
         /// <param name="query">The query parameters.</param>
         /// <returns>A task containing the first matching model, or <see langword="null"/>.</returns>
-        protected abstract Task<TModel?> QueryFirstAsync(Query query);
+        protected abstract Task<TModel?> FirstAsync(Query query);
         /// <summary>Asynchronously queries and returns the single model matching the given query, or <see langword="null"/>.</summary>
         /// <param name="query">The query parameters.</param>
         /// <returns>A task containing the single matching model, or <see langword="null"/>.</returns>
-        protected abstract Task<TModel?> QuerySingleAsync(Query query);
+        protected abstract Task<TModel?> SingleAsync(Query query);
         /// <summary>Asynchronously returns the count of models matching the given query.</summary>
         /// <param name="query">The query parameters.</param>
         /// <returns>A task containing the count of matching models.</returns>
-        protected abstract Task<long> QueryCountAsync(Query query);
+        protected abstract Task<long> CountAsync(Query query);
         /// <summary>Asynchronously returns whether any model exists matching the given query.</summary>
         /// <param name="query">The query parameters.</param>
         /// <returns>A task containing <see langword="true"/> if any matching model exists; otherwise <see langword="false"/>.</returns>
-        protected abstract Task<bool> QueryAnyAsync(Query query);
+        protected abstract Task<bool> AnyAsync(Query query);
         /// <summary>Asynchronously queries and returns multiple event models matching the given query.</summary>
         /// <param name="query">The query parameters.</param>
         /// <returns>A task containing a collection of matching event models.</returns>
-        protected abstract Task<IReadOnlyCollection<EventModel<TModel>>> QueryEventManyAsync(Query query);
+        protected abstract Task<IReadOnlyCollection<EventModel<TModel>>> EventManyAsync(Query query);
         /// <summary>Asynchronously queries and returns the first event model matching the given query, or <see langword="null"/>.</summary>
         /// <param name="query">The query parameters.</param>
         /// <returns>A task containing the first matching event model, or <see langword="null"/>.</returns>
-        protected abstract Task<EventModel<TModel>?> QueryEventFirstAsync(Query query);
+        protected abstract Task<EventModel<TModel>?> EventFirstAsync(Query query);
         /// <summary>Asynchronously queries and returns the single event model matching the given query, or <see langword="null"/>.</summary>
         /// <param name="query">The query parameters.</param>
         /// <returns>A task containing the single matching event model, or <see langword="null"/>.</returns>
-        protected abstract Task<EventModel<TModel>?> QueryEventSingleAsync(Query query);
+        protected abstract Task<EventModel<TModel>?> EventSingleAsync(Query query);
         /// <summary>Asynchronously returns the count of event models matching the given query.</summary>
         /// <param name="query">The query parameters.</param>
         /// <returns>A task containing the count of matching event models.</returns>
-        protected abstract Task<long> QueryEventCountAsync(Query query);
+        protected abstract Task<long> EventCountAsync(Query query);
         /// <summary>Asynchronously returns whether any event model exists matching the given query.</summary>
         /// <param name="query">The query parameters.</param>
         /// <returns>A task containing <see langword="true"/> if any matching event model exists; otherwise <see langword="false"/>.</returns>
-        protected abstract Task<bool> QueryEventAnyAsync(Query query);
+        protected abstract Task<bool> EventAnyAsync(Query query);
 
         /// <summary>The <see cref="Type"/> of <see cref="PersistEvent"/>, used for persist event metadata.</summary>
         protected static readonly Type EventInfoType = typeof(PersistEvent);

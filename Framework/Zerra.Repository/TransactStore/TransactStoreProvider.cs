@@ -36,116 +36,116 @@ namespace Zerra.Repository
         }
 
         /// <inheritdoc/>
-        protected override sealed IReadOnlyCollection<TModel> QueryMany(Query query)
+        protected override sealed IReadOnlyCollection<TModel> Many(Query query)
         {
             if (query.IsTemporal)
                 throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TContext, TModel>)}");
 
-            var models = Engine.ExecuteQueryToModelMany<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
+            var models = Engine.ExecuteMany<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
             return models;
         }
         /// <inheritdoc/>
-        protected override sealed TModel? QueryFirst(Query query)
+        protected override sealed TModel? First(Query query)
         {
             if (query.IsTemporal)
                 throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TContext, TModel>)}");
 
-            var model = Engine.ExecuteQueryToModelFirst<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
+            var model = Engine.ExecuteFirst<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
             return model;
         }
         /// <inheritdoc/>
-        protected override sealed TModel? QuerySingle(Query query)
+        protected override sealed TModel? Single(Query query)
         {
             if (query.IsTemporal)
                 throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TContext, TModel>)}");
 
-            var model = Engine.ExecuteQueryToModelSingle<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
+            var model = Engine.ExecuteSingle<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
             return model;
         }
         /// <inheritdoc/>
-        protected override sealed long QueryCount(Query query)
+        protected override sealed long Count(Query query)
         {
             if (query.IsTemporal)
                 throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TContext, TModel>)}");
 
-            var count = Engine.ExecuteQueryCount(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
+            var count = Engine.ExecuteCount(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
             return count;
         }
         /// <inheritdoc/>
-        protected override sealed bool QueryAny(Query query)
+        protected override sealed bool Any(Query query)
         {
             if (query.IsTemporal)
                 throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TContext, TModel>)}");
 
-            var any = Engine.ExecuteQueryAny(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
+            var any = Engine.ExecuteAny(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
             return any;
         }
         /// <inheritdoc/>
-        protected override sealed IReadOnlyCollection<EventModel<TModel>> QueryEventMany(Query query) => throw new NotSupportedException("Event queries not supported with this provider");
+        protected override sealed IReadOnlyCollection<EventModel<TModel>> EventMany(Query query) => throw new NotSupportedException("Event queries not supported with this provider");
         /// <inheritdoc/>
-        protected override sealed EventModel<TModel>? QueryEventFirst(Query query) => throw new NotSupportedException("Event queries not supported with this provider");
+        protected override sealed EventModel<TModel>? EventFirst(Query query) => throw new NotSupportedException("Event queries not supported with this provider");
         /// <inheritdoc/>
-        protected override sealed EventModel<TModel>? QueryEventSingle(Query query) => throw new NotSupportedException("Event queries not supported with this provider");
+        protected override sealed EventModel<TModel>? EventSingle(Query query) => throw new NotSupportedException("Event queries not supported with this provider");
         /// <inheritdoc/>
-        protected override sealed long QueryEventCount(Query query) => throw new NotSupportedException("Event queries not supported with this provider");
+        protected override sealed long EventCount(Query query) => throw new NotSupportedException("Event queries not supported with this provider");
         /// <inheritdoc/>
-        protected override sealed bool QueryEventAny(Query query) => throw new NotSupportedException("Event queries not supported with this provider");
+        protected override sealed bool EventAny(Query query) => throw new NotSupportedException("Event queries not supported with this provider");
 
         /// <inheritdoc/>
-        protected override sealed Task<IReadOnlyCollection<TModel>> QueryManyAsync(Query query)
+        protected override sealed Task<IReadOnlyCollection<TModel>> ManyAsync(Query query)
         {
             if (query.IsTemporal)
                 throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TContext, TModel>)}");
 
-            var models = Engine.ExecuteQueryToModelManyAsync<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
+            var models = Engine.ExecuteManyAsync<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
             return models;
         }
         /// <inheritdoc/>
-        protected override sealed Task<TModel?> QueryFirstAsync(Query query)
+        protected override sealed Task<TModel?> FirstAsync(Query query)
         {
             if (query.IsTemporal)
                 throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TContext, TModel>)}");
 
-            var model = Engine.ExecuteQueryToModelFirstAsync<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
+            var model = Engine.ExecuteFirstAsync<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
             return model;
         }
         /// <inheritdoc/>
-        protected override sealed Task<TModel?> QuerySingleAsync(Query query)
+        protected override sealed Task<TModel?> SingleAsync(Query query)
         {
             if (query.IsTemporal)
                 throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TContext, TModel>)}");
 
-            var model = Engine.ExecuteQueryToModelSingleAsync<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
+            var model = Engine.ExecuteSingleAsync<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
             return model;
         }
         /// <inheritdoc/>
-        protected override sealed Task<long> QueryCountAsync(Query query)
+        protected override sealed Task<long> CountAsync(Query query)
         {
             if (query.IsTemporal)
                 throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TContext, TModel>)}");
 
-            var count = Engine.ExecuteQueryCountAsync(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
+            var count = Engine.ExecuteCountAsync(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
             return count;
         }
         /// <inheritdoc/>
-        protected override sealed Task<bool> QueryAnyAsync(Query query)
+        protected override sealed Task<bool> AnyAsync(Query query)
         {
             if (query.IsTemporal)
                 throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TContext, TModel>)}");
 
-            var any = Engine.ExecuteQueryAnyAsync(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
+            var any = Engine.ExecuteAnyAsync(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
             return any;
         }
         /// <inheritdoc/>
-        protected override sealed Task<IReadOnlyCollection<EventModel<TModel>>> QueryEventManyAsync(Query query) => throw new NotSupportedException("Event queries not supported with this provider");
+        protected override sealed Task<IReadOnlyCollection<EventModel<TModel>>> EventManyAsync(Query query) => throw new NotSupportedException("Event queries not supported with this provider");
         /// <inheritdoc/>
-        protected override sealed Task<EventModel<TModel>?> QueryEventFirstAsync(Query query) => throw new NotSupportedException("Event queries not supported with this provider");
+        protected override sealed Task<EventModel<TModel>?> EventFirstAsync(Query query) => throw new NotSupportedException("Event queries not supported with this provider");
         /// <inheritdoc/>
-        protected override sealed Task<EventModel<TModel>?> QueryEventSingleAsync(Query query) => throw new NotSupportedException("Event queries not supported with this provider");
+        protected override sealed Task<EventModel<TModel>?> EventSingleAsync(Query query) => throw new NotSupportedException("Event queries not supported with this provider");
         /// <inheritdoc/>
-        protected override sealed Task<long> QueryEventCountAsync(Query query) => throw new NotSupportedException("Event queries not supported with this provider");
+        protected override sealed Task<long> EventCountAsync(Query query) => throw new NotSupportedException("Event queries not supported with this provider");
         /// <inheritdoc/>
-        protected override sealed Task<bool> QueryEventAnyAsync(Query query) => throw new NotSupportedException("Event queries not supported with this provider");
+        protected override sealed Task<bool> EventAnyAsync(Query query) => throw new NotSupportedException("Event queries not supported with this provider");
 
         /// <inheritdoc/>
         protected override sealed void PersistModel(PersistEvent @event, object model, Graph? graph, bool create)

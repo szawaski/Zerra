@@ -42,7 +42,7 @@ namespace Pets.Service
             };
             await Repo.CreateAsync(model);
 
-            var model2 = await Repo.QuerySingleAsync<PetTypeDataModel>(x => x.Name == command.Name);
+            var model2 = await Repo.SingleAsync<PetTypeDataModel>(x => x.Name == command.Name);
             if (model2 == null)
                 throw new InvalidOperationException("Failed to retrieve the pet type after creation.");
             return model2.Id;
@@ -57,7 +57,7 @@ namespace Pets.Service
             };
             await Repo.CreateAsync(model);
 
-            var model2 = await Repo.QuerySingleAsync<PetDataModel>(x => x.Name == command.Name);
+            var model2 = await Repo.SingleAsync<PetDataModel>(x => x.Name == command.Name);
             if (model2 == null)
                 throw new InvalidOperationException("Failed to retrieve the pet after creation.");
             return model2.Id;

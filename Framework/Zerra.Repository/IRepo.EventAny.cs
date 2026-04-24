@@ -9,7 +9,7 @@ namespace Zerra.Repository
     public partial interface IRepo
     {
         /// <summary>
-        /// Gets the count of events matching the specified date-based temporal query criteria.
+        /// Determines whether any events match the specified date-based temporal query criteria.
         /// </summary>
         /// <typeparam name="TModel">The type of the model to query.</typeparam>
         /// <param name="temporalOrder">The order in which to process temporal data.</param>
@@ -18,12 +18,12 @@ namespace Zerra.Repository
         /// <param name="temporalSkip">The number of temporal entries to skip.</param>
         /// <param name="temporalTake">The number of temporal entries to take.</param>
         /// <param name="where">An optional filter expression to apply to the query.</param>
-        /// <returns>The count of events matching the criteria.</returns>
-        long EventQueryCount<TModel>(TemporalOrder temporalOrder, DateTime? temporalDateFrom, DateTime? temporalDateTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where) where TModel : class, new()
-            => (long)Query(new Query<TModel>(QueryOperation.EventCount, temporalOrder, temporalDateFrom, temporalDateTo, null, null, temporalSkip, temporalTake, where, null, null, null, null))!;
+        /// <returns>True if any events match the criteria; otherwise, false.</returns>
+        bool EventAny<TModel>(TemporalOrder temporalOrder, DateTime? temporalDateFrom, DateTime? temporalDateTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where) where TModel : class, new()
+           => (bool)Query(new Query<TModel>(QueryOperation.EventAny, temporalOrder, temporalDateFrom, temporalDateTo, null, null, temporalSkip, temporalTake, where, null, null, null, null))!;
 
         /// <summary>
-        /// Gets the count of events matching the specified number-based temporal query criteria.
+        /// Determines whether any events match the specified number-based temporal query criteria.
         /// </summary>
         /// <typeparam name="TModel">The type of the model to query.</typeparam>
         /// <param name="temporalOrder">The order in which to process temporal data.</param>
@@ -32,13 +32,13 @@ namespace Zerra.Repository
         /// <param name="temporalSkip">The number of temporal entries to skip.</param>
         /// <param name="temporalTake">The number of temporal entries to take.</param>
         /// <param name="where">An optional filter expression to apply to the query.</param>
-        /// <returns>The count of events matching the criteria.</returns>
-        long EventQueryCount<TModel>(TemporalOrder temporalOrder, ulong? temporalNumberFrom, ulong? temporalNumberTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where) where TModel : class, new()
-            => (long)Query(new Query<TModel>(QueryOperation.EventCount, temporalOrder, null, null, temporalNumberFrom, temporalNumberTo, temporalSkip, temporalTake, where, null, null, null, null))!;
+        /// <returns>True if any events match the criteria; otherwise, false.</returns>
+        bool EventAny<TModel>(TemporalOrder temporalOrder, ulong? temporalNumberFrom, ulong? temporalNumberTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where) where TModel : class, new()
+            => (bool)Query(new Query<TModel>(QueryOperation.EventAny, temporalOrder, null, null, temporalNumberFrom, temporalNumberTo, temporalSkip, temporalTake, where, null, null, null, null))!;
 
 
         /// <summary>
-        /// Asynchronously gets the count of events matching the specified date-based temporal query criteria.
+        /// Asynchronously determines whether any events match the specified date-based temporal query criteria.
         /// </summary>
         /// <typeparam name="TModel">The type of the model to query.</typeparam>
         /// <param name="temporalOrder">The order in which to process temporal data.</param>
@@ -47,12 +47,12 @@ namespace Zerra.Repository
         /// <param name="temporalSkip">The number of temporal entries to skip.</param>
         /// <param name="temporalTake">The number of temporal entries to take.</param>
         /// <param name="where">An optional filter expression to apply to the query.</param>
-        /// <returns>A task that represents the asynchronous operation. The task result contains the count of events matching the criteria.</returns>
-        async Task<long> EventQueryCountAsync<TModel>(TemporalOrder temporalOrder, DateTime? temporalDateFrom, DateTime? temporalDateTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where) where TModel : class, new()
-            => (long)(await QueryAsync(new Query<TModel>(QueryOperation.EventCount, temporalOrder, temporalDateFrom, temporalDateTo, null, null, temporalSkip, temporalTake, where, null, null, null, null)))!;
+        /// <returns>A task that represents the asynchronous operation. The task result contains true if any events match the criteria; otherwise, false.</returns>
+        async Task<bool> EventAnyAsync<TModel>(TemporalOrder temporalOrder, DateTime? temporalDateFrom, DateTime? temporalDateTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where) where TModel : class, new()
+            => (bool)(await QueryAsync(new Query<TModel>(QueryOperation.EventAny, temporalOrder, temporalDateFrom, temporalDateTo, null, null, temporalSkip, temporalTake, where, null, null, null, null)))!;
 
         /// <summary>
-        /// Asynchronously gets the count of events matching the specified number-based temporal query criteria.
+        /// Asynchronously determines whether any events match the specified number-based temporal query criteria.
         /// </summary>
         /// <typeparam name="TModel">The type of the model to query.</typeparam>
         /// <param name="temporalOrder">The order in which to process temporal data.</param>
@@ -61,8 +61,8 @@ namespace Zerra.Repository
         /// <param name="temporalSkip">The number of temporal entries to skip.</param>
         /// <param name="temporalTake">The number of temporal entries to take.</param>
         /// <param name="where">An optional filter expression to apply to the query.</param>
-        /// <returns>A task that represents the asynchronous operation. The task result contains the count of events matching the criteria.</returns>
-        async Task<long> EventQueryCountAsync<TModel>(TemporalOrder temporalOrder, ulong? temporalNumberFrom, ulong? temporalNumberTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where) where TModel : class, new()
-            => (long)(await QueryAsync(new Query<TModel>(QueryOperation.EventCount, temporalOrder, null, null, temporalNumberFrom, temporalNumberTo, temporalSkip, temporalTake, where, null, null, null, null)))!;
+        /// <returns>A task that represents the asynchronous operation. The task result contains true if any events match the criteria; otherwise, false.</returns>
+        async Task<bool> EventAnyAsync<TModel>(TemporalOrder temporalOrder, ulong? temporalNumberFrom, ulong? temporalNumberTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where) where TModel : class, new()
+            => (bool)(await QueryAsync(new Query<TModel>(QueryOperation.EventAny, temporalOrder, null, null, temporalNumberFrom, temporalNumberTo, temporalSkip, temporalTake, where, null, null, null, null)))!;
     }
 }

@@ -22,7 +22,7 @@ namespace Zerra.Repository
         /// <param name="graph">An optional graph specifying which members to populate.</param>
         /// <param name="modelDetail">The model metadata.</param>
         /// <returns>A collection of matching models.</returns>
-        IReadOnlyCollection<TModel> ExecuteQueryToModelMany<TModel>(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new();
+        IReadOnlyCollection<TModel> ExecuteMany<TModel>(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new();
         /// <summary>Executes a query and returns the first matching model, or <see langword="null"/>.</summary>
         /// <typeparam name="TModel">The model type to query.</typeparam>
         /// <param name="where">An optional filter expression.</param>
@@ -32,7 +32,7 @@ namespace Zerra.Repository
         /// <param name="graph">An optional graph specifying which members to populate.</param>
         /// <param name="modelDetail">The model metadata.</param>
         /// <returns>The first matching model, or <see langword="null"/>.</returns>
-        TModel? ExecuteQueryToModelFirst<TModel>(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new();
+        TModel? ExecuteFirst<TModel>(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new();
         /// <summary>Executes a query and returns the single matching model, or <see langword="null"/>.</summary>
         /// <typeparam name="TModel">The model type to query.</typeparam>
         /// <param name="where">An optional filter expression.</param>
@@ -42,7 +42,7 @@ namespace Zerra.Repository
         /// <param name="graph">An optional graph specifying which members to populate.</param>
         /// <param name="modelDetail">The model metadata.</param>
         /// <returns>The single matching model, or <see langword="null"/>.</returns>
-        TModel? ExecuteQueryToModelSingle<TModel>(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new();
+        TModel? ExecuteSingle<TModel>(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new();
         /// <summary>Executes a query and returns the count of matching models.</summary>
         /// <param name="where">An optional filter expression.</param>
         /// <param name="order">An optional ordering specification.</param>
@@ -51,7 +51,7 @@ namespace Zerra.Repository
         /// <param name="graph">An optional graph.</param>
         /// <param name="modelDetail">The model metadata.</param>
         /// <returns>The count of matching models.</returns>
-        long ExecuteQueryCount(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail);
+        long ExecuteCount(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail);
         /// <summary>Executes a query and returns whether any matching models exist.</summary>
         /// <param name="where">An optional filter expression.</param>
         /// <param name="order">An optional ordering specification.</param>
@@ -60,7 +60,7 @@ namespace Zerra.Repository
         /// <param name="graph">An optional graph.</param>
         /// <param name="modelDetail">The model metadata.</param>
         /// <returns><see langword="true"/> if any matching model exists; otherwise <see langword="false"/>.</returns>
-        bool ExecuteQueryAny(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail);
+        bool ExecuteAny(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail);
 
         /// <summary>Asynchronously executes a query and returns all matching models.</summary>
         /// <typeparam name="TModel">The model type to query.</typeparam>
@@ -71,7 +71,7 @@ namespace Zerra.Repository
         /// <param name="graph">An optional graph specifying which members to populate.</param>
         /// <param name="modelDetail">The model metadata.</param>
         /// <returns>A task containing a collection of matching models.</returns>
-        Task<IReadOnlyCollection<TModel>> ExecuteQueryToModelManyAsync<TModel>(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new();
+        Task<IReadOnlyCollection<TModel>> ExecuteManyAsync<TModel>(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new();
         /// <summary>Asynchronously executes a query and returns the first matching model, or <see langword="null"/>.</summary>
         /// <typeparam name="TModel">The model type to query.</typeparam>
         /// <param name="where">An optional filter expression.</param>
@@ -81,7 +81,7 @@ namespace Zerra.Repository
         /// <param name="graph">An optional graph specifying which members to populate.</param>
         /// <param name="modelDetail">The model metadata.</param>
         /// <returns>A task containing the first matching model, or <see langword="null"/>.</returns>
-        Task<TModel?> ExecuteQueryToModelFirstAsync<TModel>(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new();
+        Task<TModel?> ExecuteFirstAsync<TModel>(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new();
         /// <summary>Asynchronously executes a query and returns the single matching model, or <see langword="null"/>.</summary>
         /// <typeparam name="TModel">The model type to query.</typeparam>
         /// <param name="where">An optional filter expression.</param>
@@ -91,7 +91,7 @@ namespace Zerra.Repository
         /// <param name="graph">An optional graph specifying which members to populate.</param>
         /// <param name="modelDetail">The model metadata.</param>
         /// <returns>A task containing the single matching model, or <see langword="null"/>.</returns>
-        Task<TModel?> ExecuteQueryToModelSingleAsync<TModel>(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new();
+        Task<TModel?> ExecuteSingleAsync<TModel>(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new();
         /// <summary>Asynchronously executes a query and returns the count of matching models.</summary>
         /// <param name="where">An optional filter expression.</param>
         /// <param name="order">An optional ordering specification.</param>
@@ -100,7 +100,7 @@ namespace Zerra.Repository
         /// <param name="graph">An optional graph.</param>
         /// <param name="modelDetail">The model metadata.</param>
         /// <returns>A task containing the count of matching models.</returns>
-        Task<long> ExecuteQueryCountAsync(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail);
+        Task<long> ExecuteCountAsync(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail);
         /// <summary>Asynchronously executes a query and returns whether any matching models exist.</summary>
         /// <param name="where">An optional filter expression.</param>
         /// <param name="order">An optional ordering specification.</param>
@@ -109,7 +109,7 @@ namespace Zerra.Repository
         /// <param name="graph">An optional graph.</param>
         /// <param name="modelDetail">The model metadata.</param>
         /// <returns>A task containing <see langword="true"/> if any matching model exists; otherwise <see langword="false"/>.</returns>
-        Task<bool> ExecuteQueryAnyAsync(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail);
+        Task<bool> ExecuteAnyAsync(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail);
 
         /// <summary>Executes an insert and returns the auto-generated identities.</summary>
         /// <typeparam name="TModel">The model type to insert.</typeparam>

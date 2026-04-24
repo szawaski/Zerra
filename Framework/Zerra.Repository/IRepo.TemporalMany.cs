@@ -23,7 +23,7 @@ namespace Zerra.Repository
         /// <param name="take">The number of results to take.</param>
         /// <param name="graph">An optional graph specification for eager loading related data.</param>
         /// <returns>A read-only collection of models matching the criteria.</returns>
-        IReadOnlyCollection<TModel> TemporalQueryMany<TModel>(TemporalOrder temporalOrder, DateTime? temporalDateFrom, DateTime? temporalDateTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where = null, QueryOrder<TModel>? order = null, int? skip = null, int? take = null, Graph<TModel>? graph = null) where TModel : class, new()
+        IReadOnlyCollection<TModel> TemporalMany<TModel>(TemporalOrder temporalOrder, DateTime? temporalDateFrom, DateTime? temporalDateTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where = null, QueryOrder<TModel>? order = null, int? skip = null, int? take = null, Graph<TModel>? graph = null) where TModel : class, new()
             => (IReadOnlyCollection<TModel>)Query(new Query<TModel>(QueryOperation.Many, temporalOrder, temporalDateFrom, temporalDateTo, null, null, temporalSkip, temporalTake, where, order, skip, take, graph))!;
 
         /// <summary>
@@ -41,7 +41,7 @@ namespace Zerra.Repository
         /// <param name="take">The number of results to take.</param>
         /// <param name="graph">An optional graph specification for eager loading related data.</param>
         /// <returns>A read-only collection of models matching the criteria.</returns>
-        IReadOnlyCollection<TModel> TemporalQueryMany<TModel>(TemporalOrder temporalOrder, ulong? temporalNumberFrom, ulong? temporalNumberTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where = null, QueryOrder<TModel>? order = null, int? skip = null, int? take = null, Graph<TModel>? graph = null) where TModel : class, new()
+        IReadOnlyCollection<TModel> TemporalMany<TModel>(TemporalOrder temporalOrder, ulong? temporalNumberFrom, ulong? temporalNumberTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where = null, QueryOrder<TModel>? order = null, int? skip = null, int? take = null, Graph<TModel>? graph = null) where TModel : class, new()
             => (IReadOnlyCollection<TModel>)Query(new Query<TModel>(QueryOperation.Many, temporalOrder, null, null, temporalNumberFrom, temporalNumberTo, temporalSkip, temporalTake, where, order, skip, take, graph))!;
 
 
@@ -60,7 +60,7 @@ namespace Zerra.Repository
         /// <param name="take">The number of results to take.</param>
         /// <param name="graph">An optional graph specification for eager loading related data.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains a read-only collection of models matching the criteria.</returns>
-        async Task<IReadOnlyCollection<TModel>> TemporalQueryManyAsync<TModel>(TemporalOrder temporalOrder, DateTime? temporalDateFrom, DateTime? temporalDateTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where = null, QueryOrder<TModel>? order = null, int? skip = null, int? take = null, Graph<TModel>? graph = null) where TModel : class, new()
+        async Task<IReadOnlyCollection<TModel>> TemporalManyAsync<TModel>(TemporalOrder temporalOrder, DateTime? temporalDateFrom, DateTime? temporalDateTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where = null, QueryOrder<TModel>? order = null, int? skip = null, int? take = null, Graph<TModel>? graph = null) where TModel : class, new()
             => (IReadOnlyCollection<TModel>)(await QueryAsync(new Query<TModel>(QueryOperation.Many, temporalOrder, temporalDateFrom, temporalDateTo, null, null, temporalSkip, temporalTake, where, order, skip, take, graph)))!;
 
         /// <summary>
@@ -78,7 +78,7 @@ namespace Zerra.Repository
         /// <param name="take">The number of results to take.</param>
         /// <param name="graph">An optional graph specification for eager loading related data.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains a read-only collection of models matching the criteria.</returns>
-        async Task<IReadOnlyCollection<TModel>> TemporalQueryManyAsync<TModel>(TemporalOrder temporalOrder, ulong? temporalNumberFrom, ulong? temporalNumberTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where = null, QueryOrder<TModel>? order = null, int? skip = null, int? take = null, Graph<TModel>? graph = null) where TModel : class, new()
+        async Task<IReadOnlyCollection<TModel>> TemporalManyAsync<TModel>(TemporalOrder temporalOrder, ulong? temporalNumberFrom, ulong? temporalNumberTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where = null, QueryOrder<TModel>? order = null, int? skip = null, int? take = null, Graph<TModel>? graph = null) where TModel : class, new()
             => (IReadOnlyCollection<TModel>)(await QueryAsync(new Query<TModel>(QueryOperation.Many, temporalOrder, null, null, temporalNumberFrom, temporalNumberTo, temporalSkip, temporalTake, where, order, skip, take, graph)))!;
     }
 }
