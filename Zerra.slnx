@@ -48,20 +48,32 @@
   <Folder Name="/docs/">
     <File Path="docs/Agents.md" />
     <File Path="docs/AOT.md" />
+    <File Path="docs/AzureServiceBusSetup.md" />
     <File Path="docs/ByteSerializer.md" />
     <File Path="docs/ClientSetup.md" />
+    <File Path="docs/Collections.md" />
+    <File Path="docs/Collections_new.md" />
     <File Path="docs/Commands.md" />
     <File Path="docs/Encryptors.md" />
     <File Path="docs/Events.md" />
+    <File Path="docs/Graph.md" />
     <File Path="docs/Index.md" />
     <File Path="docs/JsonSerializer.md" />
+    <File Path="docs/KafkaSetup.md" />
     <File Path="docs/Logging.md" />
+    <File Path="docs/Mapper.md" />
     <File Path="docs/Queries.md" />
+    <File Path="docs/RabbitMQSetup.md" />
+    <File Path="docs/README.md" />
+    <File Path="docs/Reflection.md" />
     <File Path="docs/Serializers.md" />
     <File Path="docs/ServerSetup.md" />
     <File Path="docs/ServiceInjection.md" />
+    <File Path="docs/StreamWrappers.md" />
+    <File Path="docs/StringExtensions.md" />
     <File Path="docs/ZerraByteSerializer.md" />
     <File Path="docs/ZerraJsonSerializer.md" />
     <File Path="docs/ZerraWeb.md" />
+    <File Path="README.md" />
   </Folder>
 </Solution>

@@ -29,21 +29,17 @@ The `Zerra.SourceGeneration` source generator analyzes your CQRS types (commands
 
 ## Setup
 
-### 1. Add Source Generator Reference
+### 1. Add Zerra Package
 
-Add the `Zerra.SourceGeneration` project reference to any project that contains CQRS files (commands, queries, events, handlers, or models):
+The source generator is **automatically included** when you reference the Zerra NuGet package:
 
 ```xml
 <ItemGroup>
-    <ProjectReference Include="path\to\Zerra.SourceGeneration\Zerra.SourceGeneration.csproj" 
-                      OutputItemType="Analyzer" 
-                      ReferenceOutputAssembly="false" />
+    <PackageReference Include="Zerra" Version="*" />
 </ItemGroup>
 ```
 
-**Important:** 
-- Set `OutputItemType="Analyzer"` to treat it as a source generator
-- Set `ReferenceOutputAssembly="false"` to prevent runtime assembly reference
+**That's it!** No additional configuration needed. The source generator will automatically discover and generate code for all CQRS types in your project.
 
 ### 2. Enable AOT Publishing (Optional)
 
@@ -71,9 +67,7 @@ If you want to publish as a Native AOT application, add this to your project fil
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\Framework\Zerra.SourceGeneration\Zerra.SourceGeneration.csproj" 
-                          OutputItemType="Analyzer" 
-                          ReferenceOutputAssembly="false" />
+        <PackageReference Include="Zerra" Version="*" />
     </ItemGroup>
 
 </Project>
@@ -181,20 +175,20 @@ This produces:
 
 ## Multi-Project Setup
 
-For solutions with multiple CQRS projects, add the source generator reference to each project containing CQRS types:
+For solutions with multiple CQRS projects, simply reference the Zerra package in each project containing CQRS types:
 
 ```
 Solution/
-├── Pets.Domain/               ← Add source generator here
+├── Pets.Domain/               ← Add Zerra package reference
 │   ├── Commands/
 │   ├── Events/
 │   └── Queries/
-├── Pets.Service/              ← Add source generator here
+├── Pets.Service/              ← Add Zerra package reference
 │   └── Handlers/
-└── Pets.Client/               ← Add source generator here (if creating commands/queries locally)
+└── Pets.Client/               ← Add Zerra package reference (if creating commands/queries locally)
 ```
 
-Each project generates its own metadata for the types it contains.
+The source generator automatically runs in each project and generates metadata for the types it contains.
 
 ## Viewing Generated Code
 
@@ -226,8 +220,8 @@ dotnet build
 **Problem**: Expected generated code is missing
 
 **Checklist**:
-- ✅ `OutputItemType="Analyzer"` is set correctly
-- ✅ `ReferenceOutputAssembly="false"` is set correctly
+- ✅ Zerra package is referenced in the project
+- ✅ Project contains CQRS types (commands, queries, events, or handlers)
 - ✅ Project targets .NET Standard 2.0 or higher
 - ✅ Clean and rebuild the project
 
@@ -235,21 +229,20 @@ dotnet build
 
 **Problem**: AOT publish shows trim warnings
 
-**Solution**: Ensure all CQRS projects reference the source generator. The generated code is trim-safe.
+**Solution**: Ensure all CQRS projects reference the Zerra package. The generated code is trim-safe.
 
 ## Best Practices
 
 ### ✅ Do
 
-- **Add source generator to all CQRS projects** - Ensures complete type coverage
-- **Use source generator in Domain projects** - Where commands, queries, and events are defined
-- **Use source generator in Service projects** - Where handlers are implemented
+- **Reference Zerra package in all CQRS projects** - Ensures complete type coverage
+- **Reference Zerra in Domain projects** - Where commands, queries, and events are defined
+- **Reference Zerra in Service projects** - Where handlers are implemented
 - **Clean rebuild after adding** - Ensures fresh generation
 
 ### ❌ Don't
 
 - **Don't use runtime reflection** - Let source generator handle type operations
-- **Don't set ReferenceOutputAssembly="true"** - Generator should only run at compile time
 - **Don't mix reflection and generated code** - Use one approach consistently
 
 ## Integration with Other Features
@@ -287,10 +280,7 @@ Here's a complete example showing source generator setup in a real project:
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\Framework\Zerra\Zerra.csproj" />
-        <ProjectReference Include="..\..\Framework\Zerra.SourceGeneration\Zerra.SourceGeneration.csproj" 
-                          OutputItemType="Analyzer" 
-                          ReferenceOutputAssembly="false" />
+        <PackageReference Include="Zerra" Version="*" />
     </ItemGroup>
 </Project>
 ```
@@ -307,9 +297,6 @@ Here's a complete example showing source generator setup in a real project:
 
     <ItemGroup>
         <ProjectReference Include="..\Pets.Domain\Pets.Domain.csproj" />
-        <ProjectReference Include="..\..\Framework\Zerra.SourceGeneration\Zerra.SourceGeneration.csproj" 
-                          OutputItemType="Analyzer" 
-                          ReferenceOutputAssembly="false" />
     </ItemGroup>
 </Project>
 ```
@@ -325,9 +312,6 @@ Here's a complete example showing source generator setup in a real project:
 
     <ItemGroup>
         <ProjectReference Include="..\Pets.Domain\Pets.Domain.csproj" />
-        <ProjectReference Include="..\..\Framework\Zerra.SourceGeneration\Zerra.SourceGeneration.csproj" 
-                          OutputItemType="Analyzer" 
-                          ReferenceOutputAssembly="false" />
     </ItemGroup>
 </Project>
 ```
@@ -340,7 +324,7 @@ Zerra's source generator is essential for:
 - ⚡ **Fast startup and execution**
 - 📦 **Small deployment sizes**
 
-Simply add the source generator reference to your CQRS projects, and let it handle all reflection operations automatically at compile time.
+Simply reference the Zerra package in your CQRS projects, and the source generator will automatically handle all reflection operations at compile time.
 
 ---
 
