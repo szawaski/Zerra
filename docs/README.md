@@ -12,6 +12,7 @@ Welcome to the Zerra CQRS Framework documentation. This guide provides comprehen
 - [Serializers](Serializers.md) - Configure serialization with ZerraByteSerializer and ZerraJsonSerializer
   - [ByteSerializer](ByteSerializer.md) - High-performance binary serialization
   - [JsonSerializer](JsonSerializer.md) - JSON serialization with Graph-based property control
+- [Mapper](Mapper.md) - Object mapping and type conversion with AOT support
 - [Encryptors](Encryptors.md) - Secure message encryption with ZerraEncryptor
 - [Logging](Logging.md) - Implement ILogger and IBusLogger for comprehensive logging
 - [Service Injection](ServiceInjection.md) - Manage dependencies with BusServices
@@ -45,6 +46,7 @@ Welcome to the Zerra CQRS Framework documentation. This guide provides comprehen
 - **Add encryption** → See [Encryptors](Encryptors.md) for ZerraEncryptor setup
 - **Add logging** → See [Logging](Logging.md) for ILogger and IBusLogger
 - **Inject services** → See [Service Injection](ServiceInjection.md) for BusServices usage
+- **Map between types** → See [Mapper](Mapper.md) for object mapping and conversions
 - **Enable AOT** → See [AOT Support](AOT.md) for Native AOT compilation
 - **Expose HTTP API** → See [Zerra.Web](ZerraWeb.md) for API Gateway setup
 - **Deploy to Azure** → See [Zerra.Web](ZerraWeb.md) for IIS/Azure App Services hosting
