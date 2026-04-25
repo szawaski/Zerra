@@ -13,7 +13,7 @@ namespace Zerra.Repository.Test
     {
         private static int ExecuteSql(MsSqlTestSqlDataContext context, string sql)
         {
-            using (var connection = new SqlConnection(context.ConnectionString))
+            using (var connection = new SqlConnection(context.GetConnectionString()))
             {
                 connection.Open();
                 using (var command = connection.CreateCommand())
@@ -26,7 +26,7 @@ namespace Zerra.Repository.Test
 
         private static void DropDatabase(MsSqlTestSqlDataContext context)
         {
-            var builder = new SqlConnectionStringBuilder(context.ConnectionString);
+            var builder = new SqlConnectionStringBuilder(context.GetConnectionString());
             var testDatabase = builder.InitialCatalog;
             builder.InitialCatalog = "master";
             var connectionStringForMaster = builder.ToString();

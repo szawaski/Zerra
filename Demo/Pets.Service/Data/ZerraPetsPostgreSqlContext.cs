@@ -5,7 +5,7 @@ namespace Pets.Service.Data
 {
     public sealed class ZerraPetsPostgreSqlContext : PostgreSqlDataContext
     {
-        public override string ConnectionString => connectionString;
+        public override string GetConnectionString() => connectionString;
 
         private readonly string connectionString;
         public ZerraPetsPostgreSqlContext()

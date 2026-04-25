@@ -15,7 +15,7 @@ namespace Zerra.Repository.MySql
         /// <summary>
         /// Gets the MySQL connection string used to connect to the database.
         /// </summary>
-        public abstract string ConnectionString { get; }
+        public abstract string GetConnectionString();
 
         private readonly Lock locker = new();
         private IDataStoreEngine? engine = null;
@@ -28,15 +28,16 @@ namespace Zerra.Repository.MySql
                 {
                     if (engine is null)
                     {
+                        var connectionString = GetConnectionString();
                         try
                         {
-                            var connectionForParsing = new MySqlConnectionStringBuilder(ConnectionString);
+                            var connectionForParsing = new MySqlConnectionStringBuilder(connectionString);
                         }
                         catch
                         {
-                            Log.Info($"{nameof(MySqlDataContext)} failed to parse {nameof(ConnectionString)}");
+                            Log.Info($"{nameof(MySqlDataContext)} failed to parse connection string");
                         }
-                        engine = new MySqlEngine(ConnectionString);
+                        engine = new MySqlEngine(connectionString);
                     }
                 }
             }

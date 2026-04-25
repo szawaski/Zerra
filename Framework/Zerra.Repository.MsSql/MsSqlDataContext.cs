@@ -15,7 +15,7 @@ namespace Zerra.Repository.MsSql
         /// <summary>
         /// Gets the SQL Server connection string used to connect to the database.
         /// </summary>
-        public abstract string ConnectionString { get; }
+        public abstract string GetConnectionString();
 
         private readonly Lock locker = new();
         private IDataStoreEngine? engine = null;
@@ -28,15 +28,16 @@ namespace Zerra.Repository.MsSql
                 {
                     if (engine is null)
                     {
+                        var connectionString = GetConnectionString();
                         try
                         {
-                            var connectionForParsing = new SqlConnectionStringBuilder(ConnectionString);
+                            var connectionForParsing = new SqlConnectionStringBuilder(connectionString);
                         }
                         catch
                         {
-                            Log.Info($"{nameof(MsSqlDataContext)} failed to parse {nameof(ConnectionString)}");
+                            Log.Info($"{nameof(MsSqlDataContext)} failed to parse connection string");
                         }
-                        engine = new MsSqlEngine(ConnectionString);
+                        engine = new MsSqlEngine(connectionString);
                     }
                 }
             }

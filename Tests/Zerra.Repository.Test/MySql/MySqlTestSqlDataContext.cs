@@ -8,6 +8,6 @@ namespace Zerra.Repository.Test
 {
     public class MySqlTestSqlDataContext : MySqlDataContext
     {
-        public override string ConnectionString => "Server=localhost;Port=3306;Uid=root;Pwd=password123;Database=ZerraSqlTest";
+        public override string GetConnectionString() => "Server=localhost;Port=3306;Uid=root;Pwd=password123;Database=ZerraSqlTest";
     }
 }

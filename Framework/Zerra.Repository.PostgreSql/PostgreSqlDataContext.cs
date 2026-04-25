@@ -15,7 +15,7 @@ namespace Zerra.Repository.PostgreSql
         /// <summary>
         /// Gets the PostgreSQL connection string used to connect to the database.
         /// </summary>
-        public abstract string ConnectionString { get; }
+        public abstract string GetConnectionString();
 
         private readonly Lock locker = new();
         private IDataStoreEngine? engine = null;
@@ -28,15 +28,16 @@ namespace Zerra.Repository.PostgreSql
                 {
                     if (engine is null)
                     {
+                        var connectionString = GetConnectionString();
                         try
                         {
-                            var connectionForParsing = new NpgsqlConnectionStringBuilder(ConnectionString);
+                            var connectionForParsing = new NpgsqlConnectionStringBuilder(connectionString);
                         }
                         catch
                         {
-                            Log.Info($"{nameof(PostgreSqlDataContext)} failed to parse {nameof(ConnectionString)}");
+                            Log.Info($"{nameof(PostgreSqlDataContext)} failed to parse connection string");
                         }
-                        engine = new PostgreSqlEngine(ConnectionString);
+                        engine = new PostgreSqlEngine(connectionString);
                     }
                 }
             }

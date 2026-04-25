@@ -13,7 +13,7 @@ namespace Zerra.Repository.Test
     {
         private static int ExecuteSql(PostgreSqlTestSqlDataContext context, string sql)
         {
-            using (var connection = new NpgsqlConnection(context.ConnectionString))
+            using (var connection = new NpgsqlConnection(context.GetConnectionString()))
             {
                 connection.Open();
                 using (var command = connection.CreateCommand())
@@ -26,7 +26,7 @@ namespace Zerra.Repository.Test
 
         private static void DropDatabase(PostgreSqlTestSqlDataContext context)
         {
-            var builder = new NpgsqlConnectionStringBuilder(context.ConnectionString);
+            var builder = new NpgsqlConnectionStringBuilder(context.GetConnectionString());
             var testDatabase = builder.Database;
             builder.Database = "postgres";
             var connectionStringForMaster = builder.ToString();
