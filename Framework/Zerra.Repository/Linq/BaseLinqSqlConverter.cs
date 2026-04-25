@@ -492,7 +492,7 @@ namespace Zerra.Repository
             if (parameter.Name is null)
                 throw new Exception($"Parameter has no name {parameter.Type.Name}");
 
-            var modelDetail = context.MemberContext.ModelContexts[parameter.Name];
+            var modelDetail = context.MemberContext.ModelContexts[parameter];
 
             var parameterInContext = modelDetail == context.MemberContext.ModelStack.Peek() || modelDetail.Type == typeof(object);
 

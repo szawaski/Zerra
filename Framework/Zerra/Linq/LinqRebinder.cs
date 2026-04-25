@@ -317,7 +317,7 @@ namespace Zerra.Linq
 
                         var body = Rebind(cast.Body, context);
 
-                        return Expression.Lambda(cast.Type, body, replacementParameters);
+                        return Expression.Lambda(body, replacementParameters);
                     }
                 case ExpressionType.LeftShift:
                     {

@@ -44,7 +44,7 @@ namespace Zerra.Repository.Test
             TestQuery(repo, model, relationModel);
 
             var repoWithRules = Repo.New();
-            repoWithRules.AddProvider(new TransactStoreProvider<T, TestTypesModel>());
+            repoWithRules.AddProvider(new TestTypesModelRuleProvider<T>());
             repoWithRules.AddProvider(new TestRelationsRule2Provider<T>());
 
             TestQuery(repoWithRules, model, relationModel);

@@ -12,7 +12,7 @@ namespace Zerra.Repository
         protected sealed class MemberContext
         {
             /// <summary>Gets the mapping from parameter names to their corresponding <see cref="ModelDetail"/>.</summary>
-            public Dictionary<string, ModelDetail> ModelContexts { get; }
+            public Dictionary<ParameterExpression, ModelDetail> ModelContexts { get; }
 
             /// <summary>Gets the stack of active <see cref="ModelDetail"/> instances as nested model scopes are entered.</summary>
             public Stack<ModelDetail> ModelStack { get; }
@@ -40,12 +40,12 @@ namespace Zerra.Repository
             /// </summary>
             public MemberContext()
             {
-                this.ModelContexts = new Dictionary<string, ModelDetail>();
-                this.ModelStack = new Stack<ModelDetail>();
-                this.OperatorStack = new Stack<Operator>();
-                this.MemberAccessStack = new Stack<MemberExpression>();
-                this.MemberLambdaStack = new Stack<MemberExpression>();
-                this.DependantStack = new Stack<ParameterDependant>();
+                this.ModelContexts = new();
+                this.ModelStack = new();
+                this.OperatorStack = new();
+                this.MemberAccessStack = new();
+                this.MemberLambdaStack = new();
+                this.DependantStack = new();
                 this.InCallRenderIdentity = 0;
                 this.InCallNoRender = 0;
             }

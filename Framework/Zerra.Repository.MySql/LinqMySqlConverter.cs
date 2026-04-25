@@ -68,7 +68,7 @@ namespace Zerra.Repository.MySql
 
             context.MemberContext.DependantStack.Push(context.RootDependant);
             context.MemberContext.ModelStack.Push(modelDetail);
-            context.MemberContext.ModelContexts.Add(parameter.Name, modelDetail);
+            context.MemberContext.ModelContexts.Add(parameter, modelDetail);
 
             sb.Write('(');
             ConvertToSql(lambda.Body, ref sb, context);
@@ -76,7 +76,7 @@ namespace Zerra.Repository.MySql
 
             _ = context.MemberContext.DependantStack.Pop();
             _ = context.MemberContext.ModelStack.Pop();
-            _ = context.MemberContext.ModelContexts.Remove(parameter.Name);
+            _ = context.MemberContext.ModelContexts.Remove(parameter);
 
             _ = context.MemberContext.OperatorStack.Pop();
         }
@@ -291,10 +291,10 @@ namespace Zerra.Repository.MySql
             var member = context.MemberContext.MemberAccessStack.Pop();
 
             var modelProperty = modelDetail.GetProperty(member.Member.Name);
-            if (modelProperty.IsDataSourceEntity && context.MemberContext.MemberAccessStack.Count > 0)
+            if (modelProperty.IsDataSourceEntity)
             {
                 var subModelInfo = ModelAnalyzer.GetModel(modelProperty.InnerType);
-                context.MemberContext.ModelStack.Push(subModelInfo);
+
                 if (parameterInContext)
                 {
                     var parentDependant = context.MemberContext.DependantStack.Peek();
@@ -305,12 +305,22 @@ namespace Zerra.Repository.MySql
                     }
                     context.MemberContext.DependantStack.Push(dependant);
                 }
-                ConvertToSqlParameterModel(subModelInfo, ref sb, context, parameterInContext);
+                if (context.MemberContext.MemberAccessStack.Count > 0)
+                {
+                    context.MemberContext.ModelStack.Push(subModelInfo);
+                    ConvertToSqlParameterModel(subModelInfo, ref sb, context, parameterInContext);
+                    _ = context.MemberContext.ModelStack.Pop();
+                }
+                else
+                {
+                    //Can't reference a table but it's probably a null checking expression we want to skip
+                    //so trying NULL here which produces NULL in NULL
+                    sb.Write("NULL");
+                }
                 if (parameterInContext)
                 {
                     _ = context.MemberContext.DependantStack.Pop();
                 }
-                _ = context.MemberContext.ModelStack.Pop();
             }
             else if (context.MemberContext.InCallNoRender > 0)
             {
@@ -970,7 +980,7 @@ namespace Zerra.Repository.MySql
                     throw new NotSupportedException($"Relational queries support only one identity on {child.ModelDetail.Type.Name}");
                 var dependantIdentity = child.ModelDetail.IdentityProperties[0];
 
-                sb.Write("JOIN`");
+                sb.Write("LEFT JOIN`");
                 sb.Write(child.ModelDetail.DataSourceEntityName);
                 sb.Write("`ON`");
                 sb.Write(dependant.ModelDetail.DataSourceEntityName);

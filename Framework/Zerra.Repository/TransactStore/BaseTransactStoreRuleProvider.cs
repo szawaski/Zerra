@@ -25,7 +25,7 @@ namespace Zerra.Repository
 
         private LambdaExpression? AppendWhereExpression(LambdaExpression? whereExpression, Graph? graph)
         {
-            var appendWhereExpression = WhereExpression(graph);
+            var appendWhereExpression = GetWhereExpressionIncludingBase(graph);
             if (whereExpression is null && appendWhereExpression is null)
             {
                 return null;
@@ -51,20 +51,13 @@ namespace Zerra.Repository
         {
             return null;
         }
-        /// <summary>Returns the where expression for this provider layer.</summary>
-        /// <param name="graph">The graph for the current query.</param>
-        /// <returns>A lambda where expression, or <see langword="null"/> if none applies.</returns>
-        public LambdaExpression? GetWhereExpression(Graph? graph)
-        {
-            return this.WhereExpression(graph);
-        }
         /// <summary>Returns the combined where expression for this provider and all base providers in the chain.</summary>
         /// <param name="graph">The graph for the current query.</param>
         /// <returns>A combined lambda where expression, or <see langword="null"/> if none applies.</returns>
         /// <inheritdoc/>
         public override sealed LambdaExpression? GetWhereExpressionIncludingBase(Graph? graph)
         {
-            var expression1 = this.GetWhereExpression(graph);
+            var expression1 = this.WhereExpression(graph);
             var expression2 = ProviderRelation?.GetWhereExpressionIncludingBase(graph);
             if (expression1 is null && expression2 is null)
             {

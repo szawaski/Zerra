@@ -119,10 +119,9 @@ namespace Zerra.Repository
 
                     if (relatedProvider is not null)
                     {
-                        var relatedGraph = graph.GetChildGraph(property.Name);
-
                         if (relatedProvider is IProviderRelation relatedProviderGeneric)
                         {
+                            var relatedGraph = graph.GetChildGraph(property.Name);
                             relatedProviderGeneric.OnQueryIncludingBase(relatedGraph);
                             if (relatedGraph is not null)
                                 graph.AddOrReplaceChildGraph(property.Name, relatedGraph);
