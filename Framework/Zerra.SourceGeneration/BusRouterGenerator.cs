@@ -67,7 +67,7 @@ namespace Zerra.SourceGeneration
 
                 var typeNameForSymbol = Helper.GetTypeOfName(namedTypeSymbol);
                 var fullClassName = $"global::{ns}.SourceGeneration.{className}";
-                _ = sbInitializer.Append(Environment.NewLine);
+                _ = sbInitializer.Append(EnvironmentHelper.NewLine);
                 _ = sbInitializer.Append("global::Zerra.Reflection.Register.Router(").Append(typeNameForSymbol).Append(", static (global::Zerra.CQRS.IBusInternal bus, string source) => new ").Append(fullClassName).Append("(bus, source)").Append(");");
             }
             if (namedTypeSymbol.AllInterfaces.Any(x => x.MetadataName == "ICommandHandler`2"))
@@ -102,7 +102,7 @@ namespace Zerra.SourceGeneration
                 }
 
                 if (sb.Length > 0)
-                    _ = sb.Append(Environment.NewLine).Append("        ");
+                    _ = sb.Append(EnvironmentHelper.NewLine).Append("        ");
 
                 _ = sb.Append("public ").Append(method.ReturnsVoid ? "void" : Helper.GetFullName(method.ReturnType)).Append(' ').Append(method.Name);
                 if (method.IsGenericMethod)
@@ -192,7 +192,7 @@ namespace Zerra.SourceGeneration
             foreach (IPropertySymbol property in members.Where(x => x.Kind == SymbolKind.Property))
             {
                 if (sb.Length > 0)
-                    _ = sb.Append(Environment.NewLine).Append("        ");
+                    _ = sb.Append(EnvironmentHelper.NewLine).Append("        ");
 
                 _ = sb.Append("public ").Append(property.Type.ToString()).Append(" @").Append(property.Name).Append(" {");
                 if (property.GetMethod is not null && property.GetMethod.DeclaredAccessibility == Accessibility.Public)
@@ -218,7 +218,7 @@ namespace Zerra.SourceGeneration
                 var commandType = method.Parameters[0].Type;
                 var commandTypeName = Helper.GetFullName(commandType);
                 var returnType = namedTypeSymbol.TypeArguments[1];
-                _ = sb.Append(Environment.NewLine);
+                _ = sb.Append(EnvironmentHelper.NewLine);
                 _ = sb.Append("global::Zerra.Reflection.Register.Router(typeof(").Append(commandTypeName).Append("), ");
 
                 _ = sb.Append("static (global::Zerra.CQRS.IBusInternal bus, global::Zerra.CQRS.ICommand command, global::System.Type type, string source, global::System.Threading.CancellationToken cancellationToken) => ");

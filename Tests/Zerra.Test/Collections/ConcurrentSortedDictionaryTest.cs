@@ -279,7 +279,7 @@ namespace Zerra.Test.Collections
                 {
                     _ = dict.TryAdd($"key{value}", value);
                     _ = dict.TryAdd($"key{value + 100}", value + 100);
-                });
+                }, TestContext.Current.CancellationToken);
             }
 
             await Task.WhenAll(tasks);

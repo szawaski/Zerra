@@ -288,7 +288,7 @@ namespace Zerra.Test.Collections
                 {
                     var count = set.Count;
                     _ = System.Threading.Interlocked.Increment(ref readerCount);
-                });
+                }, TestContext.Current.CancellationToken);
             }
 
             for (int i = 10; i < 20; i++)
@@ -297,7 +297,7 @@ namespace Zerra.Test.Collections
                 tasks[i] = Task.Run(() =>
                 {
                     _ = set.Add(1000 + index);
-                });
+                }, TestContext.Current.CancellationToken);
             }
 
             await Task.WhenAll(tasks);

@@ -44,7 +44,7 @@ namespace Zerra.SourceGeneration
                 }
             }
 
-            _ = sb.Append(Environment.NewLine);
+            _ = sb.Append(EnvironmentHelper.NewLine);
             _ = sb.Append("global::Zerra.Reflection.Register.CommandOrEventInfo(").Append(typeOfName).Append(", \"").Append(niceName).Append("\", [");
 
             var hasFirst = false;

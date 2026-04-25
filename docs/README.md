@@ -1,0 +1,54 @@
+# Zerra CQRS Framework Documentation
+
+Welcome to the Zerra CQRS Framework documentation. This guide provides comprehensive information about building distributed, message-driven applications using Zerra.
+
+## Table of Contents
+
+### Getting Started
+- [Agents](Agents.md) - Architectural context for AI agents working with Zerra
+
+### Configuration & Setup
+- [AOT (Ahead-of-Time Compilation)](AOT.md) - Source generator for precompiled reflection and Native AOT support
+- [Serializers](Serializers.md) - Configure serialization with ZerraByteSerializer and ZerraJsonSerializer
+  - [ByteSerializer](ByteSerializer.md) - High-performance binary serialization
+  - [JsonSerializer](JsonSerializer.md) - JSON serialization with Graph-based property control
+- [Encryptors](Encryptors.md) - Secure message encryption with ZerraEncryptor
+- [Logging](Logging.md) - Implement ILogger and IBusLogger for comprehensive logging
+- [Service Injection](ServiceInjection.md) - Manage dependencies with BusServices
+- [Zerra.Web](ZerraWeb.md) - ASP.NET integration and CQRS API Gateway
+- [Client Setup](ClientSetup.md) - Configure client-side applications in Program.cs
+- [Server Setup](ServerSetup.md) - Configure server-side applications in Program.cs
+
+### Core Concepts
+- [Queries](Queries.md) - Execute read operations with type-safe query interfaces
+- [Commands](Commands.md) - Dispatch state-changing operations with commands
+- [Events](Events.md) - Publish and handle state change notifications
+
+### Additional Resources
+- [Main README](../README.md) - Quick start and overview
+
+## Quick Reference
+
+### Essential First Steps
+1. **[Add AOT Support](AOT.md)** - Reference `Zerra.SourceGeneration` in projects with CQRS files
+2. **[Configure Serializer](Serializers.md)** - Choose ZerraByteSerializer (binary) or ZerraJsonSerializer (JSON)
+3. **[Set Up Server](ServerSetup.md)** - Register handlers and start consumers
+4. **[Set Up Client](ClientSetup.md)** - Configure remote connections
+
+### Key Interfaces
+- **`IQueryHandler`** - Handles read operations ([Queries](Queries.md))
+- **`ICommandHandler`** - Handles write operations ([Commands](Commands.md))
+- **`IEventHandler`** - Handles event notifications ([Events](Events.md))
+- **`BaseHandler`** - Base class providing `Bus`, `Log`, and `Context` access
+
+### Common Tasks
+- **Add encryption** → See [Encryptors](Encryptors.md) for ZerraEncryptor setup
+- **Add logging** → See [Logging](Logging.md) for ILogger and IBusLogger
+- **Inject services** → See [Service Injection](ServiceInjection.md) for BusServices usage
+- **Enable AOT** → See [AOT Support](AOT.md) for Native AOT compilation
+- **Expose HTTP API** → See [Zerra.Web](ZerraWeb.md) for API Gateway setup
+- **Deploy to Azure** → See [Zerra.Web](ZerraWeb.md) for IIS/Azure App Services hosting
+
+## Support
+
+For issues, questions, or contributions, please visit the [GitHub repository](https://github.com/szawaski/Zerra).

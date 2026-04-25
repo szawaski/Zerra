@@ -54,7 +54,7 @@ namespace Zerra.Test.CQRS.Network
         {
             var socket = CreateTestSocket();
 
-            async Task handler(Socket s, CancellationToken ct)
+            static async Task handler(Socket s, CancellationToken ct)
             {
                 s.Dispose();
             }
@@ -158,19 +158,19 @@ namespace Zerra.Test.CQRS.Network
             listener.Open();
 
             // Give the listener time to start
-            await Task.Delay(100);
+            await Task.Delay(100, TestContext.Current.CancellationToken);
 
             // Try to connect
             try
             {
                 var client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                await client.ConnectAsync(IPAddress.Loopback, port);
-                await Task.Delay(100);
+                await client.ConnectAsync(IPAddress.Loopback, port, TestContext.Current.CancellationToken);
+                await Task.Delay(100, TestContext.Current.CancellationToken);
                 client.Dispose();
             }
             catch { }
 
-            await Task.Delay(100);
+            await Task.Delay(100, TestContext.Current.CancellationToken);
             listener.Dispose();
 
             // Handler should have been called

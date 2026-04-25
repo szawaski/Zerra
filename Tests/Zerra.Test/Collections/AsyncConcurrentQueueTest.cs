@@ -32,7 +32,7 @@ namespace Zerra.Test.Collections
         {
             var queue = new AsyncConcurrentQueue<int>();
             queue.Enqueue(1);
-            var result = await queue.DequeueAsync();
+            var result = await queue.DequeueAsync(TestContext.Current.CancellationToken);
             Assert.Equal(1, result);
             Assert.Equal(0, queue.Count);
         }
@@ -44,10 +44,10 @@ namespace Zerra.Test.Collections
             var dequeuedValue = -1;
             var dequeueLowPriority = Task.Run(async () =>
             {
-                dequeuedValue = await queue.DequeueAsync();
-            });
+                dequeuedValue = await queue.DequeueAsync(TestContext.Current.CancellationToken);
+            }, TestContext.Current.CancellationToken);
 
-            await Task.Delay(100);
+            await Task.Delay(100, TestContext.Current.CancellationToken);
             Assert.Equal(-1, dequeuedValue);
 
             queue.Enqueue(42);
@@ -85,10 +85,10 @@ namespace Zerra.Test.Collections
         public async Task Enqueue_ServesMultipleWaiters()
         {
             var queue = new AsyncConcurrentQueue<int>();
-            var task1 = queue.DequeueAsync();
-            var task2 = queue.DequeueAsync();
+            var task1 = queue.DequeueAsync(TestContext.Current.CancellationToken);
+            var task2 = queue.DequeueAsync(TestContext.Current.CancellationToken);
 
-            await Task.Delay(50);
+            await Task.Delay(50, TestContext.Current.CancellationToken);
             queue.Enqueue(1);
             queue.Enqueue(2);
 
@@ -103,7 +103,7 @@ namespace Zerra.Test.Collections
         public async Task Enqueue_ToWaiter_DoesNotQueueItem()
         {
             var queue = new AsyncConcurrentQueue<int>();
-            var dequeueLowPriority = queue.DequeueAsync();
+            var dequeueLowPriority = queue.DequeueAsync(TestContext.Current.CancellationToken);
 
             queue.Enqueue(42);
             var result = await dequeueLowPriority;
@@ -126,9 +126,9 @@ namespace Zerra.Test.Collections
                     if (item == 3)
                         break;
                 }
-            });
+            }, TestContext.Current.CancellationToken);
 
-            await Task.Delay(50);
+            await Task.Delay(50, TestContext.Current.CancellationToken);
             queue.Enqueue(1);
             queue.Enqueue(2);
             queue.Enqueue(3);
@@ -166,12 +166,11 @@ namespace Zerra.Test.Collections
                 return count;
             });
 
-            await Task.Delay(50);
+            await Task.Delay(50, TestContext.Current.CancellationToken);
             queue.Enqueue(1);
             queue.Enqueue(2);
             queue.Enqueue(3);
-            await Task.Delay(50);
-
+            await Task.Delay(50, TestContext.Current.CancellationToken);
             cts.Cancel();
 
             var count = await enumerateTask;
@@ -188,15 +187,15 @@ namespace Zerra.Test.Collections
 
             Assert.Equal(3, queue.Count);
 
-            var result1 = await queue.DequeueAsync();
+            var result1 = await queue.DequeueAsync(TestContext.Current.CancellationToken);
             Assert.Equal(1, result1);
             Assert.Equal(2, queue.Count);
 
-            var result2 = await queue.DequeueAsync();
+            var result2 = await queue.DequeueAsync(TestContext.Current.CancellationToken);
             Assert.Equal(2, result2);
             Assert.Equal(1, queue.Count);
 
-            var result3 = await queue.DequeueAsync();
+            var result3 = await queue.DequeueAsync(TestContext.Current.CancellationToken);
             Assert.Equal(3, result3);
             Assert.Equal(0, queue.Count);
         }

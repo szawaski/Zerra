@@ -381,7 +381,7 @@ namespace Zerra.Test.Collections
                         System.Threading.Thread.Sleep(10);
                         return 1;
                     });
-                });
+                }, TestContext.Current.CancellationToken);
             }
 
             await Task.WhenAll(tasks);

@@ -246,7 +246,7 @@ namespace Zerra.Test.Collections
                 {
                     _ = set.Add(value);
                     _ = set.Add(value + 100);
-                });
+                }, TestContext.Current.CancellationToken);
             }
 
             await Task.WhenAll(tasks);

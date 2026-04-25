@@ -68,7 +68,7 @@ namespace Zerra.SourceGeneration
         private static void GenerateInitializer(SourceProductionContext context, string ns, StringBuilder sbInitializer)
         {
             var lines = sbInitializer.ToString();
-            var splits = lines.Split([Environment.NewLine], StringSplitOptions.RemoveEmptyEntries);
+            var splits = lines.Split([EnvironmentHelper.NewLine], StringSplitOptions.RemoveEmptyEntries);
 
             var sbCallers = new StringBuilder();
             var sbMethods = new StringBuilder();
@@ -78,18 +78,18 @@ namespace Zerra.SourceGeneration
             {
                 var split = splits[i++];
                 
-                _ = sbCallers.Append("            ").Append("M").Append(methodNumber).Append("();").Append(Environment.NewLine);
+                _ = sbCallers.Append("            ").Append("M").Append(methodNumber).Append("();").Append(EnvironmentHelper.NewLine);
                 _ = sbMethods.Append("        ").Append("private static void M").Append(methodNumber).Append("()");
                 if (!split.StartsWith(" { "))
                     _ = sbMethods.Append(" => ");
-                _ = sbMethods.Append(split).Append(Environment.NewLine);
+                _ = sbMethods.Append(split).Append(EnvironmentHelper.NewLine);
 
                 if (!split.EndsWith(";") && !split.EndsWith(" }"))
                 {
                     while (i < splits.Length)
                     {
                         split = splits[i++];
-                        _ = sbMethods.Append(split).Append(Environment.NewLine);
+                        _ = sbMethods.Append(split).Append(EnvironmentHelper.NewLine);
                         if (split.EndsWith(";"))
                             break;
                     }

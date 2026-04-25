@@ -15,7 +15,10 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\Framework\Zerra\Zerra.csproj" />
-        <ProjectReference Include="..\Zerra.Test\Zerra.Test.csproj" />
+        <ProjectReference Include="..\Zerra.Test\Zerra.Test.csproj">
+            <!--Prevents XUnit start from generating and creating a warning-->
+            <ExcludeAssets>buildTransitive</ExcludeAssets>
+        </ProjectReference>
     </ItemGroup>
 
 </Project>

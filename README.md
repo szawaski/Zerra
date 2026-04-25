@@ -1,6 +1,32 @@
 ﻿# Zerra CQRS Framework
 
+> **⚠️ Breaking Changes Notice:** Version 6 introduces many breaking changes from version 5. Please review the documentation and examples carefully before upgrading.
+
 A high-performance, distributed CQRS (Command Query Responsibility Segregation) framework. Zerra enables message-driven architecture with unified, caller-agnostic routing that abstracts local and remote service boundaries for commands, queries, and events, supporting multiple transport services including Kafka, RabbitMQ, and Azure Service Bus.
+
+## 📚 Documentation
+
+For comprehensive guides, see the [documentation folder](docs/README.md):
+
+**Getting Started**
+- [Agents](docs/Agents.md) - Architectural context for AI agents
+
+**Configuration & Setup**
+- [AOT Support](docs/AOT.md) - Source generator for precompiled reflection and Native AOT
+- [Serializers](docs/Serializers.md) - ZerraByteSerializer and ZerraJsonSerializer configuration
+  - [ByteSerializer](docs/ByteSerializer.md) - High-performance binary serialization
+  - [JsonSerializer](docs/JsonSerializer.md) - JSON serialization with Graph-based property control
+- [Encryptors](docs/Encryptors.md) - Message encryption with ZerraEncryptor
+- [Logging](docs/Logging.md) - ILogger and IBusLogger implementation
+- [Service Injection](docs/ServiceInjection.md) - Dependency management with BusServices
+- [Zerra.Web](docs/ZerraWeb.md) - ASP.NET integration and CQRS API Gateway
+- [Client Setup](docs/ClientSetup.md) - Configure client applications
+- [Server Setup](docs/ServerSetup.md) - Configure server applications
+
+**Core Concepts**
+- [Queries](docs/Queries.md) - Execute read operations
+- [Commands](docs/Commands.md) - Dispatch state-changing operations
+- [Events](docs/Events.md) - Publish and handle state changes
 
 ## Features
 

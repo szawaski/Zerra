@@ -58,7 +58,7 @@ namespace Zerra.Test.Reflection
             Assert.Equal(default, resultR);
             Assert.Equal(default, resultS);
 
-            await Task.Run(thingy.Method3);
+            await Task.Run(thingy.Method3, TestContext.Current.CancellationToken);
             var result3 = await Task.Run(thingy.Method4);
             Assert.Equal(0, result3);
 

@@ -18,6 +18,26 @@
     <Project Path="Framework/Zerra.Web/Zerra.Web.csproj" />
     <Project Path="Framework/Zerra/Zerra.csproj" />
   </Folder>
+  <Folder Name="/Front End Scripts/" />
+  <Folder Name="/Front End Scripts/Binaries/">
+    <File Path="Front End Scripts/Binaries/Zerra.T4.dll" />
+    <File Path="Front End Scripts/Binaries/Zerra.T4.pdb" />
+    <File Path="Front End Scripts/Binaries/Zerra.T4.xml" />
+  </Folder>
+  <Folder Name="/Front End Scripts/JavaScripts/">
+    <File Path="Front End Scripts/JavaScript/Bus.js" />
+    <File Path="Front End Scripts/JavaScript/BusRoutes.js" />
+    <File Path="Front End Scripts/JavaScript/Help-ProjectBuildT4.txt" />
+    <File Path="Front End Scripts/JavaScript/JavaScriptModels.js" />
+    <File Path="Front End Scripts/JavaScript/JavaScriptModels.tt" />
+  </Folder>
+  <Folder Name="/Front End Scripts/TypeScripts/">
+    <File Path="Front End Scripts/TypeScript/Bus.ts" />
+    <File Path="Front End Scripts/TypeScript/BusConfig.ts" />
+    <File Path="Front End Scripts/TypeScript/Help-ProjectBuildT4.txt" />
+    <File Path="Front End Scripts/TypeScript/TypeScriptModels.ts" />
+    <File Path="Front End Scripts/TypeScript/TypeScriptModels.tt" />
+  </Folder>
   <Folder Name="/Test/">
     <Project Path="Tests/Zerra.Benchmark/Zerra.Benchmark.csproj" />
     <Project Path="Tests/Zerra.Repository.Test/Zerra.Repository.Test.csproj" />
@@ -27,6 +47,21 @@
   </Folder>
   <Folder Name="/docs/">
     <File Path="docs/Agents.md" />
-    <File Path="README.md" />
+    <File Path="docs/AOT.md" />
+    <File Path="docs/ByteSerializer.md" />
+    <File Path="docs/ClientSetup.md" />
+    <File Path="docs/Commands.md" />
+    <File Path="docs/Encryptors.md" />
+    <File Path="docs/Events.md" />
+    <File Path="docs/JsonSerializer.md" />
+    <File Path="docs/Logging.md" />
+    <File Path="docs/Queries.md" />
+    <File Path="docs/README.md" />
+    <File Path="docs/Serializers.md" />
+    <File Path="docs/ServerSetup.md" />
+    <File Path="docs/ServiceInjection.md" />
+    <File Path="docs/ZerraByteSerializer.md" />
+    <File Path="docs/ZerraJsonSerializer.md" />
+    <File Path="docs/ZerraWeb.md" />
   </Folder>
 </Solution>

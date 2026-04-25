@@ -291,7 +291,7 @@ namespace Zerra.Test.Collections
                 {
                     var count = dict.Count;
                     _ = System.Threading.Interlocked.Increment(ref readCount);
-                });
+                }, TestContext.Current.CancellationToken);
             }
 
             for (int i = 10; i < 20; i++)
@@ -300,7 +300,7 @@ namespace Zerra.Test.Collections
                 tasks[i] = Task.Run(() =>
                 {
                     _ = dict.TryAdd($"new{index}", 1000 + index);
-                });
+                }, TestContext.Current.CancellationToken);
             }
 
             await Task.WhenAll(tasks);

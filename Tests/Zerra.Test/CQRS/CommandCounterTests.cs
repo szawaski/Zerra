@@ -52,7 +52,7 @@ namespace Zerra.Test.CQRS
             var counter = new CommandCounter();
             var throttle = new SemaphoreSlim(1);
 
-            throttle.Wait();
+            throttle.Wait(TestContext.Current.CancellationToken);
             Assert.Equal(0, throttle.CurrentCount);
 
             counter.CancelReceive(throttle);
@@ -72,7 +72,7 @@ namespace Zerra.Test.CQRS
             // Now at limit, next should fail
             Assert.False(counter.BeginReceive());
 
-            throttle.Wait();
+            throttle.Wait(TestContext.Current.CancellationToken);
             counter.CancelReceive(throttle);
 
             // Should now be able to receive one more
@@ -152,7 +152,7 @@ namespace Zerra.Test.CQRS
                 {
                     if (counter.BeginReceive())
                         _ = System.Threading.Interlocked.Increment(ref successCount);
-                });
+                }, TestContext.Current.CancellationToken);
             }
 
             await Task.WhenAll(tasks);
@@ -178,7 +178,7 @@ namespace Zerra.Test.CQRS
                 tasks[i] = Task.Run(() =>
                 {
                     counter.CompleteReceive(throttle);
-                });
+                }, TestContext.Current.CancellationToken);
             }
 
             await Task.WhenAll(tasks);

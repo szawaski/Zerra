@@ -14,9 +14,9 @@ namespace Zerra.Test.CQRS.Network
         {
             var baseStream = new MemoryStream();
             var readBuffer = Array.Empty<byte>();
-            
+
             var stream = new TcpProtocolBodyStream(baseStream, readBuffer, writeMode: true, leaveOpen: false);
-            
+
             Assert.NotNull(stream);
             Assert.True(stream.CanWrite);
         }
@@ -26,9 +26,9 @@ namespace Zerra.Test.CQRS.Network
         {
             var baseStream = new MemoryStream();
             var readBuffer = Array.Empty<byte>();
-            
+
             var stream = new TcpProtocolBodyStream(baseStream, readBuffer, writeMode: false, leaveOpen: false);
-            
+
             Assert.NotNull(stream);
             Assert.True(stream.CanRead);
         }
@@ -38,7 +38,7 @@ namespace Zerra.Test.CQRS.Network
         {
             var baseStream = new MemoryStream();
             var stream = new TcpProtocolBodyStream(baseStream, Array.Empty<byte>(), writeMode: false, leaveOpen: false);
-            
+
             Assert.True(stream.CanRead);
         }
 
@@ -47,7 +47,7 @@ namespace Zerra.Test.CQRS.Network
         {
             var baseStream = new MemoryStream();
             var stream = new TcpProtocolBodyStream(baseStream, Array.Empty<byte>(), writeMode: true, leaveOpen: false);
-            
+
             Assert.True(stream.CanWrite);
         }
 
@@ -56,7 +56,7 @@ namespace Zerra.Test.CQRS.Network
         {
             var baseStream = new MemoryStream();
             var stream = new TcpProtocolBodyStream(baseStream, Array.Empty<byte>(), writeMode: false, leaveOpen: false);
-            
+
             Assert.False(stream.CanSeek);
         }
 
@@ -74,7 +74,7 @@ namespace Zerra.Test.CQRS.Network
         {
             var baseStream = new MemoryStream();
             var stream = new TcpProtocolBodyStream(baseStream, Array.Empty<byte>(), writeMode: false, leaveOpen: false);
-            
+
             Assert.Equal(0, stream.Position);
         }
 
@@ -131,9 +131,9 @@ namespace Zerra.Test.CQRS.Network
             var baseStream = new MemoryStream();
             var stream = new TcpProtocolBodyStream(baseStream, Array.Empty<byte>(), writeMode: true, leaveOpen: false);
             var data = new byte[] { 1, 2, 3, 4, 5 };
-            
+
             stream.Write(data, 0, data.Length);
-            
+
             // Should have written: 4 bytes for length + 5 bytes for data = 9 bytes
             Assert.Equal(9, baseStream.Length);
         }
@@ -143,10 +143,10 @@ namespace Zerra.Test.CQRS.Network
         {
             var baseStream = new MemoryStream();
             var stream = new TcpProtocolBodyStream(baseStream, Array.Empty<byte>(), writeMode: true, leaveOpen: false);
-            
+
             stream.Write([1, 2, 3], 0, 3);
             stream.Write([4, 5], 0, 2);
-            
+
             Assert.True(baseStream.Length > 0);
         }
 
@@ -156,10 +156,10 @@ namespace Zerra.Test.CQRS.Network
             var baseStream = new MemoryStream();
             var stream = new TcpProtocolBodyStream(baseStream, Array.Empty<byte>(), writeMode: true, leaveOpen: false);
             stream.Write([1, 2, 3], 0, 3);
-            
+
             var lengthBeforeFlush = baseStream.Length;
             stream.Flush();
-            
+
             // Should have written 4 more bytes for ending marker
             Assert.Equal(lengthBeforeFlush + 4, baseStream.Length);
         }
@@ -182,7 +182,7 @@ namespace Zerra.Test.CQRS.Network
             var stream = new TcpProtocolBodyStream(baseStream, Array.Empty<byte>(), writeMode: false, leaveOpen: false);
             var buffer = new byte[] { 1, 2, 3 };
 
-            _ = await Assert.ThrowsAsync<InvalidOperationException>(async () => await stream.WriteAsync(buffer, 0, buffer.Length));
+            _ = await Assert.ThrowsAsync<InvalidOperationException>(async () => await stream.WriteAsync(buffer, 0, buffer.Length, TestContext.Current.CancellationToken));
         }
 
         [Fact]
@@ -192,7 +192,7 @@ namespace Zerra.Test.CQRS.Network
             var stream = new TcpProtocolBodyStream(baseStream, Array.Empty<byte>(), writeMode: true, leaveOpen: false);
             var buffer = new byte[10];
 
-            _ = await Assert.ThrowsAsync<InvalidOperationException>(async () => await stream.ReadExactlyAsync(buffer, 0, buffer.Length));
+            _ = await Assert.ThrowsAsync<InvalidOperationException>(async () => await stream.ReadExactlyAsync(buffer, 0, buffer.Length, TestContext.Current.CancellationToken));
         }
 
         [Fact]
@@ -201,9 +201,9 @@ namespace Zerra.Test.CQRS.Network
             var baseStream = new MemoryStream();
             var stream = new TcpProtocolBodyStream(baseStream, Array.Empty<byte>(), writeMode: true, leaveOpen: false);
             var data = new byte[] { 1, 2, 3, 4, 5 };
-            
-            await stream.WriteAsync(data, 0, data.Length);
-            
+
+            await stream.WriteAsync(data, 0, data.Length, TestContext.Current.CancellationToken);
+
             // Should have written: 4 bytes for length + 5 bytes for data = 9 bytes
             Assert.Equal(9, baseStream.Length);
         }
@@ -213,11 +213,11 @@ namespace Zerra.Test.CQRS.Network
         {
             var baseStream = new MemoryStream();
             var stream = new TcpProtocolBodyStream(baseStream, Array.Empty<byte>(), writeMode: true, leaveOpen: false);
-            await stream.WriteAsync([1, 2, 3], 0, 3);
-            
+            await stream.WriteAsync([1, 2, 3], 0, 3, TestContext.Current.CancellationToken);
+
             var lengthBeforeFlush = baseStream.Length;
-            await stream.FlushAsync();
-            
+            await stream.FlushAsync(TestContext.Current.CancellationToken);
+
             // Should have written 4 more bytes for ending marker
             Assert.Equal(lengthBeforeFlush + 4, baseStream.Length);
         }
@@ -227,10 +227,10 @@ namespace Zerra.Test.CQRS.Network
         {
             var baseStream = new MemoryStream();
             var stream = new TcpProtocolBodyStream(baseStream, Array.Empty<byte>(), writeMode: true, leaveOpen: false);
-            await stream.WriteAsync([1, 2, 3], 0, 3);
-            await stream.FlushAsync();
+            await stream.WriteAsync([1, 2, 3], 0, 3, TestContext.Current.CancellationToken);
+            await stream.FlushAsync(TestContext.Current.CancellationToken);
 
-            _ = await Assert.ThrowsAsync<CqrsNetworkException>(async () => await stream.FlushAsync());
+            _ = await Assert.ThrowsAsync<CqrsNetworkException>(async () => await stream.FlushAsync(TestContext.Current.CancellationToken));
         }
 
         [Fact]
@@ -238,9 +238,9 @@ namespace Zerra.Test.CQRS.Network
         {
             var baseStream = new MemoryStream();
             var stream = new TcpProtocolBodyStream(baseStream, Array.Empty<byte>(), writeMode: false, leaveOpen: true);
-            
+
             stream.Dispose();
-            
+
             // Stream should be disposed but leaveOpen=true means base stream should still be open
             Assert.True(baseStream.CanRead);
         }
@@ -250,7 +250,7 @@ namespace Zerra.Test.CQRS.Network
         {
             var baseStream = new MemoryStream();
             var stream = new TcpProtocolBodyStream(baseStream, Array.Empty<byte>(), writeMode: false, leaveOpen: false);
-            
+
             stream.Dispose();
 
             // Stream should be disposed and base stream should be closed
@@ -262,9 +262,9 @@ namespace Zerra.Test.CQRS.Network
         {
             var baseStream = new MemoryStream();
             var stream = new TcpProtocolBodyStream(baseStream, Array.Empty<byte>(), writeMode: false, leaveOpen: true);
-            
+
             await stream.DisposeAsync();
-            
+
             // Stream should be disposed but leaveOpen=true means base stream should still be open
             Assert.True(baseStream.CanRead);
         }
@@ -274,7 +274,7 @@ namespace Zerra.Test.CQRS.Network
         {
             var baseStream = new MemoryStream();
             var stream = new TcpProtocolBodyStream(baseStream, Array.Empty<byte>(), writeMode: true, leaveOpen: false);
-            
+
             Assert.Equal(0, stream.Position);
             stream.Write([1, 2, 3], 0, 3);
             // Position includes both segment length (4 bytes) + data (3 bytes) = 7 bytes

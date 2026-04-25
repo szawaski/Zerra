@@ -96,7 +96,7 @@ namespace Zerra.SourceGeneration.Discovery
 
                 var interfacefullTypeOf = Helper.GetTypeOfName(model.TypeSymbol);
                 var classFullTypeOf = $"typeof({className})";
-                _ = sbInitializer.Append(Environment.NewLine);
+                _ = sbInitializer.Append(EnvironmentHelper.NewLine);
                 _ = sbInitializer.Append("global::Zerra.Reflection.Register.EmptyImplementation(").Append(interfacefullTypeOf).Append(", ").Append(classFullTypeOf).Append(");");
             }
         }
@@ -111,7 +111,7 @@ namespace Zerra.SourceGeneration.Discovery
                     continue;
 
                 if (sb.Length > 0)
-                    _ = sb.Append(Environment.NewLine).Append("        ");
+                    _ = sb.Append(EnvironmentHelper.NewLine).Append("        ");
 
                 _ = sb.Append(method.ReturnsVoid ? "void" : Helper.GetFullName(method.ReturnType)).Append(' ');
                 _ = sb.Append(Helper.GetFullName(method.ContainingType)).Append('.').Append(method.Name);
@@ -170,7 +170,7 @@ namespace Zerra.SourceGeneration.Discovery
             foreach (IPropertySymbol property in members.Where(x => x.Kind == SymbolKind.Property))
             {
                 if (sb.Length > 0)
-                    _ = sb.Append(Environment.NewLine).Append("        ");
+                    _ = sb.Append(EnvironmentHelper.NewLine).Append("        ");
 
                 _ = sb.Append(Helper.GetFullName(property.Type)).Append(" ");
                 _ = sb.Append(Helper.GetFullName(property.ContainingType)).Append('.');

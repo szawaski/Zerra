@@ -33,4 +33,19 @@
         <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
     </ItemGroup>
 
+    <!-- Copy build output to Front End Scripts Binaries folder -->
+    <Target Name="CopyToFrontEndScripts" AfterTargets="Build">
+        <PropertyGroup>
+            <FrontEndBinariesPath>$(SolutionDir)Front End Scripts\Binaries\</FrontEndBinariesPath>
+        </PropertyGroup>
+        <ItemGroup>
+            <BinariesToCopy Include="$(OutputPath)Zerra.T4.dll" />
+            <BinariesToCopy Include="$(OutputPath)Zerra.T4.pdb" />
+            <BinariesToCopy Include="$(OutputPath)Zerra.T4.xml" />
+        </ItemGroup>
+        <Message Text="Copying Zerra.T4 binaries to Front End Scripts folder..." Importance="high" />
+        <Copy SourceFiles="@(BinariesToCopy)" DestinationFolder="$(FrontEndBinariesPath)" SkipUnchangedFiles="true" />
+        <Message Text="Successfully copied binaries to $(FrontEndBinariesPath)" Importance="high" />
+    </Target>
+
 </Project>

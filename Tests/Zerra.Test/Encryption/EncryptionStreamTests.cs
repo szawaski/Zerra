@@ -82,7 +82,7 @@ namespace Zerra.Test.Encryption
             using (var shiftmsout = new MemoryStream())
             using (var shiftstream = new CryptoPrefixStream(shiftmsin, 256, CryptoStreamMode.Read, false, false))
             {
-                await shiftstream.CopyToAsync(shiftmsout);
+                await shiftstream.CopyToAsync(shiftmsout, TestContext.Current.CancellationToken);
                 result = shiftmsout.ToArray();
             }
 
@@ -93,7 +93,7 @@ namespace Zerra.Test.Encryption
             using (var unshiftmsout = new MemoryStream())
             using (var unshift = new CryptoPrefixStream(unshiftmsin, 256, CryptoStreamMode.Read, true, false))
             {
-                await unshift.CopyToAsync(unshiftmsout);
+                await unshift.CopyToAsync(unshiftmsout, TestContext.Current.CancellationToken);
                 unshiftresult = unshiftmsout.ToArray();
             }
 
@@ -111,7 +111,7 @@ namespace Zerra.Test.Encryption
             using (var shiftmsout = new MemoryStream())
             using (var shift = new CryptoPrefixStream(shiftmsout, 256, CryptoStreamMode.Write, false, false))
             {
-                await shift.WriteAsync(test, 0, test.Length);
+                await shift.WriteAsync(test, 0, test.Length, TestContext.Current.CancellationToken);
                 shiftmsout.Position = 0;
                 result = shiftmsout.ToArray();
             }
@@ -122,7 +122,7 @@ namespace Zerra.Test.Encryption
             using (var unshiftmsout = new MemoryStream())
             using (var unshift = new CryptoPrefixStream(unshiftmsout, 256, CryptoStreamMode.Write, true, false))
             {
-                await unshift.WriteAsync(result, 0, result.Length);
+                await unshift.WriteAsync(result, 0, result.Length, TestContext.Current.CancellationToken);
                 unshiftmsout.Position = 0;
                 unshiftresult = unshiftmsout.ToArray();
             }

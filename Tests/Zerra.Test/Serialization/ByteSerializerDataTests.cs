@@ -628,10 +628,10 @@ namespace Zerra.Test.Serialization
             var model1 = TypesAllModel.Create();
             using (var ms = new MemoryStream())
             {
-                await ByteSerializer.SerializeAsync(ms, model1, options);
+                await ByteSerializer.SerializeAsync(ms, model1, options, TestContext.Current.CancellationToken);
                 Assert.Equal(8393, ms.Length);
                 ms.Position = 0;
-                var model2 = await ByteSerializer.DeserializeAsync<TypesAllModel>(ms, options);
+                var model2 = await ByteSerializer.DeserializeAsync<TypesAllModel>(ms, options, TestContext.Current.CancellationToken);
                 AssertHelper.AreEqual(model1, model2);
             }
         }

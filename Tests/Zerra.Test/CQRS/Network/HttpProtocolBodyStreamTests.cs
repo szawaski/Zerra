@@ -241,7 +241,7 @@ namespace Zerra.Test.CQRS.Network
             var stream = new HttpProtocolBodyStream(null, baseStream, new byte[] { }, writeMode: false, leaveOpen: false);
             var buffer = new byte[] { 1, 2, 3 };
 
-            _ = await Assert.ThrowsAsync<InvalidOperationException>(async () => await stream.WriteAsync(buffer, 0, buffer.Length));
+            _ = await Assert.ThrowsAsync<InvalidOperationException>(async () => await stream.WriteAsync(buffer, 0, buffer.Length, TestContext.Current.CancellationToken));
         }
 
         [Fact]
@@ -251,7 +251,7 @@ namespace Zerra.Test.CQRS.Network
             var stream = new HttpProtocolBodyStream(null, baseStream, new byte[] { }, writeMode: true, leaveOpen: false);
             var buffer = new byte[10];
 
-            _ = await Assert.ThrowsAsync<InvalidOperationException>(async () => await stream.ReadExactlyAsync(buffer, 0, buffer.Length));
+            _ = await Assert.ThrowsAsync<InvalidOperationException>(async () => await stream.ReadExactlyAsync(buffer, 0, buffer.Length, TestContext.Current.CancellationToken));
         }
 
         [Fact]
@@ -261,7 +261,7 @@ namespace Zerra.Test.CQRS.Network
             var stream = new HttpProtocolBodyStream(contentLength: 100, baseStream, new byte[] { }, writeMode: true, leaveOpen: false);
             var data = new byte[] { 1, 2, 3, 4, 5 };
 
-            await stream.WriteAsync(data, 0, data.Length);
+            await stream.WriteAsync(data, 0, data.Length, TestContext.Current.CancellationToken);
 
             Assert.Equal(5, baseStream.Length);
         }
@@ -273,7 +273,7 @@ namespace Zerra.Test.CQRS.Network
             var stream = new HttpProtocolBodyStream(contentLength: null, baseStream, new byte[] { }, writeMode: true, leaveOpen: false);
             var data = new byte[] { 1, 2, 3, 4, 5 };
 
-            await stream.WriteAsync(data, 0, data.Length);
+            await stream.WriteAsync(data, 0, data.Length, TestContext.Current.CancellationToken);
 
             Assert.True(baseStream.Length > 5);
         }
@@ -283,10 +283,10 @@ namespace Zerra.Test.CQRS.Network
         {
             var baseStream = new MemoryStream();
             var stream = new HttpProtocolBodyStream(contentLength: null, baseStream, new byte[] { }, writeMode: true, leaveOpen: false);
-            await stream.WriteAsync([1, 2, 3], 0, 3);
+            await stream.WriteAsync([1, 2, 3], 0, 3, TestContext.Current.CancellationToken);
 
             var lengthBeforeFlush = baseStream.Length;
-            await stream.FlushAsync();
+            await stream.FlushAsync(TestContext.Current.CancellationToken);
 
             Assert.True(baseStream.Length > lengthBeforeFlush);
         }
@@ -296,10 +296,10 @@ namespace Zerra.Test.CQRS.Network
         {
             var baseStream = new MemoryStream();
             var stream = new HttpProtocolBodyStream(contentLength: null, baseStream, new byte[] { }, writeMode: true, leaveOpen: false);
-            await stream.WriteAsync([1, 2, 3], 0, 3);
-            await stream.FlushAsync();
+            await stream.WriteAsync([1, 2, 3], 0, 3, TestContext.Current.CancellationToken);
+            await stream.FlushAsync(TestContext.Current.CancellationToken);
 
-            _ = await Assert.ThrowsAsync<CqrsNetworkException>(async () => await stream.FlushAsync());
+            _ = await Assert.ThrowsAsync<CqrsNetworkException>(async () => await stream.FlushAsync(TestContext.Current.CancellationToken));
         }
 
         [Fact]
