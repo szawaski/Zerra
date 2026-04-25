@@ -2,12 +2,9 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
-using System.Threading;
-using System.Threading.Tasks;
 using Zerra.Collections;
 
 namespace Zerra.CQRS.Network
@@ -74,7 +71,11 @@ namespace Zerra.CQRS.Network
                             stream = new SocketPoolStream(holder.Socket, hostAndPort, ReturnSocket, false);
                             try
                             {
+#if !NETSTANDARD2_0
+                            await stream.WriteAsync(buffer, cancellationToken);
+#else
                                 await stream.WriteAsync(buffer, offset, count, cancellationToken);
+#endif
                                 noRelease = true;
                                 return stream;
                             }
@@ -88,7 +89,7 @@ namespace Zerra.CQRS.Network
                         }
                         holder.Socket.Dispose();
                     }
-                }                
+                }
                 else
                 {
                     if (pool.Count == maxConnectionsPerHost)
@@ -103,7 +104,11 @@ namespace Zerra.CQRS.Network
                     }
                 }
 
+#if NET6_0_OR_GREATER
+                var ips = await Dns.GetHostAddressesAsync(host, cancellationToken);
+#else
                 var ips = await Dns.GetHostAddressesAsync(host);
+#endif
 
                 Exception? lastex = null;
                 foreach (var ip in ips)
@@ -118,11 +123,19 @@ namespace Zerra.CQRS.Network
 
                         socket = new Socket(endPoint.AddressFamily, SocketType.Stream, protocol);
                         socket.NoDelay = true;
+#if NET5_0_OR_GREATER
+                        await socket.ConnectAsync(endPoint, cancellationToken);
+#else
                         await socket.ConnectAsync(endPoint);
+#endif
 
                         stream = new SocketPoolStream(socket, hostAndPort, ReturnSocket, true);
 
+#if !NETSTANDARD2_0
+                        await stream.WriteAsync(buffer, cancellationToken);
+#else
                         await stream.WriteAsync(buffer, offset, count, cancellationToken);
+#endif
 
                         noRelease = true;
                         return stream;
@@ -161,6 +174,7 @@ namespace Zerra.CQRS.Network
             try
             {
                 SocketPoolStream? stream = null;
+
                 if (!requireNewConnection)
                 {
                     while (pool.TryDequeue(out var holder))

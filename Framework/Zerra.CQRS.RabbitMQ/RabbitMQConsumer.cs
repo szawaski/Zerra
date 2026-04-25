@@ -2,19 +2,27 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using RabbitMQ.Client;
 using Zerra.Encryption;
 using Zerra.Logging;
+using Zerra.Serialization;
 
 namespace Zerra.CQRS.RabbitMQ
 {
+    /// <summary>
+    /// RabbitMQ implementation of command and event consumer for distributed CQRS messaging.
+    /// </summary>
+    /// <remarks>
+    /// Manages multiple RabbitMQ exchanges for consuming commands and events with configurable concurrency.
+    /// Provides automatic connection management, exchange creation, and optional message decryption.
+    /// Thread-safe for concurrent operations.
+    /// </remarks>
     public sealed partial class RabbitMQConsumer : ICommandConsumer, IEventConsumer, IDisposable
     {
         private readonly string host;
-        private readonly SymmetricConfig? symmetricConfig;
+        private readonly ISerializer serializer;
+        private readonly IEncryptor? encryptor;
+        private readonly ILogger? log;
         private readonly string? environment;
 
         private readonly Dictionary<string, CommandConsumer> commandExchanges;
@@ -30,12 +38,23 @@ namespace Zerra.CQRS.RabbitMQ
 
         private CommandCounter? commandCounter = null;
 
-        public RabbitMQConsumer(string host, SymmetricConfig? symmetricConfig, string? environment)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RabbitMQConsumer"/> class.
+        /// </summary>
+        /// <param name="host">The RabbitMQ server hostname or IP address.</param>
+        /// <param name="serializer">The serializer for message deserialization and serialization.</param>
+        /// <param name="encryptor">Optional decryptor for message decryption. If null, messages are assumed to be unencrypted.</param>
+        /// <param name="log">Optional logger for diagnostic information and errors.</param>
+        /// <param name="environment">Optional environment name to match exchange name prefixes for isolation.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="host"/> is null or empty.</exception>
+        public RabbitMQConsumer(string host, ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 
             this.host = host;
-            this.symmetricConfig = symmetricConfig;
+            this.serializer = serializer;
+            this.encryptor = encryptor;
+            this.log = log;
             this.environment = environment;
             this.commandExchanges = new();
             this.eventExchanges = new();
@@ -65,12 +84,12 @@ namespace Zerra.CQRS.RabbitMQ
         void ICommandConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(RabbitMQConsumer)} Command Consumer Listening");
+            log?.Info($"{nameof(RabbitMQConsumer)} Command Consumer Listening");
         }
         void IEventConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(RabbitMQConsumer)} Event Consumer Listening");
+            log?.Info($"{nameof(RabbitMQConsumer)} Event Consumer Listening");
         }
         private void Open()
         {
@@ -84,7 +103,7 @@ namespace Zerra.CQRS.RabbitMQ
             }
             catch (Exception ex)
             {
-                _ = Log.ErrorAsync($"{nameof(RabbitMQConsumer)} failed to open", ex);
+                log?.Error($"{nameof(RabbitMQConsumer)} failed to open", ex);
                 throw;
             }
 
@@ -112,12 +131,12 @@ namespace Zerra.CQRS.RabbitMQ
         void ICommandConsumer.Close()
         {
             Close();
-            _ = Log.InfoAsync($"{nameof(RabbitMQConsumer)} Command Consumer Closed");
+            log?.Info($"{nameof(RabbitMQConsumer)} Command Consumer Closed");
         }
         void IEventConsumer.Close()
         {
             Close();
-            _ = Log.InfoAsync($"{nameof(RabbitMQConsumer)} Event Consumer Closed");
+            log?.Info($"{nameof(RabbitMQConsumer)} Event Consumer Closed");
         }
         private void Close()
         {
@@ -136,6 +155,13 @@ namespace Zerra.CQRS.RabbitMQ
             }
         }
 
+        /// <summary>
+        /// Releases all resources used by the <see cref="RabbitMQConsumer"/>.
+        /// </summary>
+        /// <remarks>
+        /// Closes all open message exchanges and the RabbitMQ connection.
+        /// After disposal, the consumer cannot be used.
+        /// </remarks>
         public void Dispose()
         {
             this.Close();
@@ -153,7 +179,7 @@ namespace Zerra.CQRS.RabbitMQ
                     return;
                 if (commandExchanges.ContainsKey(topic))
                     return;
-                commandExchanges.Add(topic, new CommandConsumer(maxConcurrent, commandCounter, topic, symmetricConfig, environment, commandHandlerAsync, commandHandlerAwaitAsync, commandHandlerWithResultAwaitAsync));
+                commandExchanges.Add(topic, new CommandConsumer(maxConcurrent, commandCounter, topic, serializer, encryptor, log, environment, commandHandlerAsync, commandHandlerAwaitAsync, commandHandlerWithResultAwaitAsync));
                 OpenExchanges();
             }
         }
@@ -169,7 +195,7 @@ namespace Zerra.CQRS.RabbitMQ
                     return;
                 if (eventExchanges.ContainsKey(topic))
                     return;
-                eventExchanges.Add(topic, new EventConsumer(maxConcurrent, topic, symmetricConfig, environment, eventHandlerAsync));
+                eventExchanges.Add(topic, new EventConsumer(maxConcurrent, topic, serializer, encryptor, log, environment, eventHandlerAsync));
                 OpenExchanges();
             }
         }

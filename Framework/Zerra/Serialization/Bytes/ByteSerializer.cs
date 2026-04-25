@@ -2,7 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using Zerra.Serialization.Bytes.Converters;
 
 namespace Zerra.Serialization.Bytes
@@ -38,6 +37,11 @@ namespace Zerra.Serialization.Bytes
 
         private static readonly ByteSerializerOptions defaultOptions = new();
 
-        public static void AddConverter(Type converterType, Type valueType) => ByteConverterDiscovery.AddConverter(converterType, valueType);
+        /// <summary>
+        /// Registers a custom converter for a specified type. This must be called before the first serialization or deserialization takes place.
+        /// </summary>
+        /// <param name="type">The type to register the converter for.</param>
+        /// <param name="converter">A factory function that creates instances of the converter.</param>
+        public static void AddConverter(Type type, Func<ByteConverter> converter) => ByteConverterFactory.AddConverter(type, converter);
     }
 }

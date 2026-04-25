@@ -4,11 +4,6 @@
 
 using Confluent.Kafka;
 using Confluent.Kafka.Admin;
-using System;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Zerra.Serialization.Bytes;
 
 namespace Zerra.CQRS.Kafka
 {
@@ -24,21 +19,6 @@ namespace Zerra.CQRS.Kafka
         public const string MessageWithAckKey = "BodyAck";
         public const string AckTopicHeader = "AckTopic";
         public const string AckKeyHeader = "AckKey";
-
-        public static byte[] Serialize(object obj)
-        {
-            return ByteSerializer.Serialize(obj);
-        }
-
-        public static object? Deserialize(byte[] data, Type type)
-        {
-            return ByteSerializer.Deserialize(data, type);
-        }
-
-        public static T? Deserialize<T>(byte[] bytes)
-        {
-            return ByteSerializer.Deserialize<T>(bytes);
-        }
 
         public static async Task EnsureTopic(string host, string? userName, string? password, string topic)
         {

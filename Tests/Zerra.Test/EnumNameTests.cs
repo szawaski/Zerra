@@ -3,13 +3,12 @@
 // Licensed to you under the MIT license
 
 using Xunit;
-using System;
 
 namespace Zerra.Test
 {
     public class EnumNameTests
     {
-        private enum TestEnum
+        public enum TestEnum
         {
             None = 0,
             Thing1 = 1,
@@ -47,7 +46,7 @@ namespace Zerra.Test
         }
 
         [Flags]
-        private enum TestFlagsEnum : int
+        public enum TestFlagsEnum : int
         {
             None = 0,
             Thing1 = 65536,

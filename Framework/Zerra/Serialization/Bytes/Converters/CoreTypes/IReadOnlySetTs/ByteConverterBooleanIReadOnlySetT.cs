@@ -4,14 +4,12 @@
 
 #if NET5_0_OR_GREATER
 
-using System;
-using System.Collections.Generic;
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;
 
 namespace Zerra.Serialization.Bytes.Converters.CoreTypes.IReadOnlySetTs
 {
-    internal sealed class ByteConverterBooleanIReadOnlySet<TParent> : ByteConverter<TParent, IReadOnlySet<bool>>
+    internal sealed class ByteConverterBooleanIReadOnlySet : ByteConverter<IReadOnlySet<bool>>
     {
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out IReadOnlySet<bool>? value)
         {
@@ -26,7 +24,7 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.IReadOnlySetTs
         }
 
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in IReadOnlySet<bool> value)
-            => writer.TryWrite(value, value.Count, out state.BytesNeeded);
+            => writer.TryWrite(value, value.Count, out state.SizeNeeded);
     }
 }
 

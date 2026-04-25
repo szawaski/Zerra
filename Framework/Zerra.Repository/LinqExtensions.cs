@@ -2,92 +2,100 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
-using Zerra.Reflection;
 
 namespace Zerra.Repository
 {
+    /// <summary>
+    /// Extension methods for applying <see cref="QueryOrder"/> and <see cref="Zerra.Repository.Query"/> to LINQ sequences and queryables.
+    /// </summary>
     public static class LinqExtensions
     {
-        private static readonly MethodInfo queryableOrderBy = typeof(Queryable).GetMethods().First(m => m.Name == "OrderBy" && m.GetParameters().Length == 2);
-        private static readonly MethodInfo queryableOrderByDescending = typeof(Queryable).GetMethods().First(m => m.Name == "OrderByDescending" && m.GetParameters().Length == 2);
-        //public static IOrderedQueryable<TSource> OrderBy<TSource, TModel>(this IQueryable<TSource> source, QueryOrder<TModel> linqOrder)
-        //    where TModel : class, new()
-        //{
-        //    IQueryable<TSource> result = source;
-        //    foreach (var order in linqOrder.OrderExpressions.AsEnumerable().Reverse())
-        //    {
-        //        var sourceOrder = LinqRebinder.RebindType(order.Expression, typeof(TModel), typeof(TSource));
-        //        var propertyType = ((LambdaExpression)sourceOrder).ReturnType;
-        //        if (order.Descending)
-        //        {
-        //            var method = TypeAnalyzer.GetGenericMethod(queryableOrderByDescending, typeof(TSource), propertyType);
-        //            result = (IOrderedQueryable<TSource>)method.Caller(null, new object[] { result, sourceOrder });
-        //        }
-        //        else
-        //        {
-        //            var method = TypeAnalyzer.GetGenericMethod(queryableOrderBy, typeof(TSource), propertyType);
-        //            result = (IOrderedQueryable<TSource>)method.Caller(null, new object[] { result, sourceOrder });
-        //        }
-        //    }
-        //    return (IOrderedQueryable<TSource>)result;
-        //}
-        public static IOrderedQueryable<TModel> OrderBy<TModel>(this IQueryable<TModel> source, QueryOrder<TModel> linqOrder)
-            where TModel : class, new()
+        /// <summary>
+        /// Sorts the elements of a sequence according to the specified <see cref="QueryOrder"/>.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements of <paramref name="source"/>.</typeparam>
+        /// <param name="source">The sequence to order.</param>
+        /// <param name="order">The <see cref="QueryOrder"/> that defines the ordering expressions.</param>
+        /// <returns>An <see cref="IOrderedEnumerable{TSource}"/> whose elements are sorted according to <paramref name="order"/>.</returns>
+        public static IOrderedEnumerable<TSource> OrderBy<TSource>(this IEnumerable<TSource> source, QueryOrder order)
+            where TSource : class, new()
         {
-            var result = source;
-            foreach (var order in linqOrder.OrderExpressions.AsEnumerable().Reverse())
-            {
-                var propertyType = ((LambdaExpression)order.Expression).ReturnType;
-                if (order.Descending)
-                {
-                    var method = TypeAnalyzer.GetGenericMethodDetail(queryableOrderByDescending, typeof(TModel), propertyType);
-                    result = (IOrderedQueryable<TModel>)method.CallerBoxed(null, [result, order.Expression])!;
-                }
-                else
-                {
-                    var method = TypeAnalyzer.GetGenericMethodDetail(queryableOrderBy, typeof(TModel), propertyType);
-                    result = (IOrderedQueryable<TModel>)method.CallerBoxed(null, [result, order.Expression])!;
-                }
-            }
-            return (IOrderedQueryable<TModel>)result;
+            IOrderedEnumerable<TSource>? result = null;
+            foreach (var item in order.OrderExpressions.Reverse())
+                result = item.OrderBy(result ?? source);
+            return result!;
         }
 
-        //public static IQueryable<TSource> QueryChangeTypes<TSource, TModel>(this IQueryable<TSource> source, Query<TModel> query)
-        //     where TModel : class, new()
-        //{
-        //    IQueryable<TSource> whereQuery = source;
-        //    if (query.Where is not null)
-        //    {
-        //        var sourceWhere = (Expression<Func<TSource, bool>>)LinqRebinder.RebindType(query.Where, typeof(TModel), typeof(TSource));
-        //        whereQuery = whereQuery.Where(sourceWhere);
-        //    }
+        /// <summary>
+        /// Sorts the elements of a queryable according to the specified <see cref="QueryOrder"/>.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements of <paramref name="source"/>.</typeparam>
+        /// <param name="source">The queryable to order.</param>
+        /// <param name="order">The <see cref="QueryOrder"/> that defines the ordering expressions.</param>
+        /// <returns>An <see cref="IOrderedQueryable{TSource}"/> whose elements are sorted according to <paramref name="order"/>.</returns>
+        public static IOrderedQueryable<TSource> OrderBy<TSource>(this IQueryable<TSource> source, QueryOrder order)
+            where TSource : class, new()
+        {
+            IOrderedQueryable<TSource>? result = null;
+            foreach (var item in order.OrderExpressions.Reverse())
+                result = item.OrderBy(result ?? source);
+            return result!;
+        }
 
-        //    IQueryable<TSource> orderQuery = whereQuery;
-        //    if (query.Order is not null)
-        //    {
-        //        orderQuery = orderQuery.OrderBy(query.Order);
-        //    }
-
-        //    IQueryable<TSource> skiptake = orderQuery;
-        //    if (query.Skip.HasValue)
-        //        skiptake = skiptake.Skip(query.Skip.Value);
-        //    if (query.Take.HasValue)
-        //        skiptake = skiptake.Take(query.Take.Value);
-
-        //    return skiptake;
-        //}
-
-        public static IQueryable<TModel> Query<TModel>(this IQueryable<TModel> source, Query<TModel> query)
-            where TModel : class, new()
+        /// <summary>
+        /// Applies the filtering, ordering, skip, and take from a <see cref="Zerra.Repository.Query"/> to a sequence.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements of <paramref name="source"/>.</typeparam>
+        /// <param name="source">The sequence to query.</param>
+        /// <param name="query">The <see cref="Zerra.Repository.Query"/> containing the where, order, skip, and take clauses.</param>
+        /// <returns>An <see cref="IEnumerable{TSource}"/> that contains elements from the input sequence that satisfy the query.</returns>
+        /// <exception cref="ArgumentException">Thrown when <see cref="Query.Where"/> is not of type <c>Expression&lt;Func&lt;TSource, bool&gt;&gt;</c>.</exception>
+        public static IEnumerable<TSource> Query<TSource>(this IEnumerable<TSource> source, Query query)
+           where TSource : class, new()
         {
             var whereQuery = source;
             if (query.Where is not null)
             {
-                whereQuery = whereQuery.Where(query.Where);
+                var whereExpression = query.Where as Expression<Func<TSource, bool>>;
+                if (whereExpression == null)
+                    throw new ArgumentException($"Where must be of type Expression<Func<TSource, bool>>");
+                whereQuery = whereQuery.Where(whereExpression.Compile());
+            }
+
+            var orderQuery = whereQuery;
+            if (query.Order is not null)
+            {
+                orderQuery = orderQuery.OrderBy(query.Order);
+            }
+
+            var skiptake = orderQuery;
+            if (query.Skip.HasValue)
+                skiptake = skiptake.Skip(query.Skip.Value);
+            if (query.Take.HasValue)
+                skiptake = skiptake.Take(query.Take.Value);
+
+            return skiptake;
+        }
+
+        /// <summary>
+        /// Applies the filtering, ordering, skip, and take from a <see cref="Zerra.Repository.Query"/> to a queryable.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements of <paramref name="source"/>.</typeparam>
+        /// <param name="source">The queryable to query.</param>
+        /// <param name="query">The <see cref="Zerra.Repository.Query"/> containing the where, order, skip, and take clauses.</param>
+        /// <returns>An <see cref="IQueryable{TSource}"/> that contains elements from the input queryable that satisfy the query.</returns>
+        /// <exception cref="ArgumentException">Thrown when <see cref="Query.Where"/> is not of type <c>Expression&lt;Func&lt;TSource, bool&gt;&gt;</c>.</exception>
+        public static IQueryable<TSource> Query<TSource>(this IQueryable<TSource> source, Query query)
+            where TSource : class, new()
+        {
+            var whereQuery = source;
+            if (query.Where is not null)
+            {
+                var whereExpression = query.Where as Expression<Func<TSource, bool>>;
+                if (whereExpression == null)
+                    throw new ArgumentException($"Where must be of type Expression<Func<TSource, bool>>");
+                whereQuery = whereQuery.Where(whereExpression);
             }
 
             var orderQuery = whereQuery;

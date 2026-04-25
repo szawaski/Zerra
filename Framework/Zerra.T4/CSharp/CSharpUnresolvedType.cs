@@ -2,19 +2,30 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace Zerra.T4.CSharp
 {
+    /// <summary>
+    /// Represents a C# type reference that has not yet been resolved to its actual type definition.
+    /// </summary>
     public class CSharpUnresolvedType
     {
         private readonly CSharpSolution solution;
-        private readonly CSharpNamespace ns;
+        private readonly CSharpNamespace? ns;
         private readonly IReadOnlyList<CSharpNamespace> usings;
+
+        /// <summary>
+        /// Gets the name of the unresolved type.
+        /// </summary>
         public string Name { get; }
-        public CSharpUnresolvedType(CSharpSolution solution, CSharpNamespace ns, IReadOnlyList<CSharpNamespace> usings, string name)
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CSharpUnresolvedType"/> class.
+        /// </summary>
+        /// <param name="solution">The solution context for type resolution.</param>
+        /// <param name="ns">The namespace where the type reference appears.</param>
+        /// <param name="usings">The using directives available for type resolution.</param>
+        /// <param name="name">The name of the unresolved type.</param>
+        public CSharpUnresolvedType(CSharpSolution solution, CSharpNamespace? ns, IReadOnlyList<CSharpNamespace> usings, string name)
         {
             this.solution = solution;
             this.ns = ns;
@@ -22,6 +33,9 @@ namespace Zerra.T4.CSharp
             this.Name = name;
         }
 
+        /// <summary>
+        /// Gets the resolved type information for this unresolved type reference.
+        /// </summary>
         public CSharpType Resolved
         {
             get
@@ -117,10 +131,7 @@ namespace Zerra.T4.CSharp
 
             var nativeType = Type.GetType(genericName);
 
-            if (nativeType is null)
-            {
-                nativeType = GetSystemType(genericName);
-            }
+            nativeType ??= GetSystemType(genericName);
 
             if (nativeType is null)
             {
@@ -132,21 +143,15 @@ namespace Zerra.T4.CSharp
                 }
             }
 
-            if (nativeType is null)
-            {
-                nativeType = Type.GetType($"System.Collections.{genericName}");
-            }
-            if (nativeType is null)
-            {
-                nativeType = Type.GetType($"System.Collections.Generic.{genericName}");
-            }
+            nativeType ??= Type.GetType($"System.Collections.{genericName}");
+            nativeType ??= Type.GetType($"System.Collections.Generic.{genericName}");
 
-            CSharpObject solutionType = null;
+            CSharpObject? solutionType = null;
             if (nativeType is null)
             {
                 foreach (var item in solution.Classes.Concat(solution.Structs).Concat(solution.Interfaces).Concat(solution.Enums).Concat(solution.Delegates))
                 {
-                    if (ns.ToString() == item.Namespace?.ToString() || usings.Any(x => x.ToString() == item.Namespace?.ToString()))
+                    if (ns?.ToString() == item.Namespace?.ToString() || usings.Any(x => x.ToString() == item.Namespace?.ToString()))
                     {
                         if (item.Name == genericName)
                         {
@@ -160,7 +165,7 @@ namespace Zerra.T4.CSharp
             var csType = new CSharpType(genericName, nativeType, solutionType, genericArguments);
             return csType;
         }
-        private static Type GetSystemType(string typeName)
+        private static Type? GetSystemType(string typeName)
         {
             return typeName switch
             {
@@ -195,6 +200,7 @@ namespace Zerra.T4.CSharp
                 _ => null,
             };
         }
+        /// <inheritdoc/>
         public override string ToString()
         {
             var nsText = ns is null ? "" : $"{ns}.";

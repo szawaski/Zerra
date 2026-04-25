@@ -2,48 +2,67 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
+using System.Runtime.CompilerServices;
 
 namespace Zerra.Linq
 {
+    /// <summary>
+    /// Provides functionality to rebind expression trees by replacing specified expressions with replacement expressions.
+    /// </summary>
     public sealed partial class LinqRebinder
     {
+        /// <summary>
+        /// Rebinds an expression by replacing a single specified expression with a replacement expression.
+        /// </summary>
+        /// <param name="exp">The expression to rebind.</param>
+        /// <param name="current">The expression to find and replace.</param>
+        /// <param name="replacement">The expression to use as the replacement.</param>
+        /// <returns>A new expression with the specified replacement applied.</returns>
         public static Expression RebindExpression(Expression exp, Expression current, Expression replacement)
         {
-            var expressionReplacements = new Dictionary<Expression, Expression>
-            {
-                { current, replacement }
-            };
-
-            var context = new RebinderContext(expressionReplacements, null);
+            var context = new RebinderContext(current, replacement, null, null);
             var result = Rebind(exp, context);
             return result;
         }
 
-        public static Expression Rebind(Expression exp, IDictionary<Expression, Expression> expressionReplacements)
+        /// <summary>
+        /// Rebinds an expression using a dictionary of expression replacements.
+        /// </summary>
+        /// <param name="exp">The expression to rebind.</param>
+        /// <param name="expressionReplacements">A dictionary mapping expressions to their replacements.</param>
+        /// <returns>A new expression with all specified replacements applied.</returns>
+        public static Expression Rebind(Expression exp, Dictionary<Expression, Expression> expressionReplacements)
         {
-            var context = new RebinderContext(expressionReplacements, null);
+            var context = new RebinderContext(null, null, expressionReplacements, null);
             var result = Rebind(exp, context);
             return result;
         }
 
-        public static Expression Rebind(Expression exp, IDictionary<string, Expression> expressionStringReplacements)
+        /// <summary>
+        /// Rebinds an expression using a dictionary of string-based expression replacements.
+        /// </summary>
+        /// <param name="exp">The expression to rebind.</param>
+        /// <param name="expressionStringReplacements">A dictionary mapping expression string representations to their replacements.</param>
+        /// <returns>A new expression with all specified replacements applied.</returns>
+        public static Expression Rebind(Expression exp, Dictionary<string, Expression> expressionStringReplacements)
         {
-            var context = new RebinderContext(null, expressionStringReplacements);
+            var context = new RebinderContext(null, null, null, expressionStringReplacements);
             var result = Rebind(exp, context);
             return result;
         }
 
         private static Expression Rebind(Expression exp, RebinderContext context)
         {
-            if (context.ExpressionReplacements is not null && context.ExpressionReplacements.TryGetValue(exp, out var newExpression))
+            if (context.Current is not null && context.Replacement is not null && exp == context.Current)
+            {
+                return context.Replacement;
+            }
+            if (context.Replacements is not null && context.Replacements.TryGetValue(exp, out var newExpression))
             {
                 return newExpression;
             }
-            if (context.ExpressionStringReplacements is not null && context.ExpressionStringReplacements.TryGetValue(exp.ToString(), out newExpression))
+            if (context.StringReplacements is not null && context.StringReplacements.TryGetValue(exp.ToString(), out newExpression))
             {
                 return newExpression;
             }
@@ -58,7 +77,7 @@ namespace Zerra.Linq
                 case ExpressionType.AddAssign:
                     {
                         var cast = (BinaryExpression)exp;
-                        return Expression.Add(Rebind(cast.Left, context), Rebind(cast.Right, context), cast.Method);
+                        return Expression.AddAssign(Rebind(cast.Left, context), Rebind(cast.Right, context), cast.Method);
                     }
                 case ExpressionType.AddAssignChecked:
                     {
@@ -183,6 +202,9 @@ namespace Zerra.Linq
                     }
                 case ExpressionType.Dynamic:
                     {
+                        if (!RuntimeFeature.IsDynamicCodeSupported)
+                            throw new NotSupportedException($"Cannot rebind Dynamic expressions. Dynamic code generation is not supported in this build configuration.");
+
                         var cast = (DynamicExpression)exp;
 
                         var replacementExpressions = new Expression[cast.Arguments.Count];
@@ -295,7 +317,7 @@ namespace Zerra.Linq
 
                         var body = Rebind(cast.Body, context);
 
-                        return Expression.Lambda(body, replacementParameters);
+                        return Expression.Lambda(cast.Type, body, replacementParameters);
                     }
                 case ExpressionType.LeftShift:
                     {
@@ -362,7 +384,7 @@ namespace Zerra.Linq
                 case ExpressionType.Modulo:
                     {
                         var cast = (BinaryExpression)exp;
-                        return Expression.ModuloAssign(Rebind(cast.Left, context), Rebind(cast.Right, context));
+                        return Expression.Modulo(Rebind(cast.Left, context), Rebind(cast.Right, context));
                     }
                 case ExpressionType.ModuloAssign:
                     {
@@ -412,7 +434,9 @@ namespace Zerra.Linq
                                 replacementExpressions[i] = replacementExpression;
                             }
 
+#pragma warning disable IL2026 // Should not break trimming since the expression already existed of this type
                             return Expression.New(cast.Constructor, replacementExpressions, cast.Members);
+#pragma warning restore IL2026 
                         }
                         else
                         {
@@ -421,6 +445,9 @@ namespace Zerra.Linq
                     }
                 case ExpressionType.NewArrayBounds:
                     {
+                        if (!RuntimeFeature.IsDynamicCodeSupported)
+                            throw new NotSupportedException($"Cannot rebind NewArrayBounds expressions. Dynamic code generation is not supported in this build configuration.");
+
                         var cast = (NewArrayExpression)exp;
 
                         var replacementExpressions = new Expression[cast.Expressions.Count];
@@ -434,6 +461,9 @@ namespace Zerra.Linq
                     }
                 case ExpressionType.NewArrayInit:
                     {
+                        if (!RuntimeFeature.IsDynamicCodeSupported)
+                            throw new NotSupportedException($"Cannot rebind NewArrayInit expressions. Dynamic code generation is not supported in this build configuration.");
+
                         var cast = (NewArrayExpression)exp;
 
                         var replacementExpressions = new Expression[cast.Expressions.Count];
@@ -630,8 +660,8 @@ namespace Zerra.Linq
                     }
                 case ExpressionType.TypeIs:
                     {
-                        var cast = (UnaryExpression)exp;
-                        return Expression.TypeIs(Rebind(cast.Operand, context), cast.Type);
+                        var cast = (TypeBinaryExpression)exp;
+                        return Expression.TypeIs(Rebind(cast.Expression, context), cast.Type);
                     }
                 case ExpressionType.UnaryPlus:
                     {

@@ -7,12 +7,12 @@ using Zerra.Serialization.Bytes.State;
 
 namespace Zerra.Serialization.Bytes.Converters.CoreTypes.Arrays
 {
-    internal sealed class ByteConverterInt16Array<TParent> : ByteConverter<TParent, short[]>
+    internal sealed class ByteConverterInt16Array : ByteConverter<short[]>
     {
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out short[]? value)
             => reader.TryRead(out value, out state.SizeNeeded);
 
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in short[] value)
-            => writer.TryWrite(value, value.Length, out state.BytesNeeded);
+            => writer.TryWrite(value, value.Length, out state.SizeNeeded);
     }
 }

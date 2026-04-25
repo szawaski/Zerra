@@ -3,8 +3,8 @@
 // Licensed to you under the MIT license
 
 using Xunit;
-using System.Linq;
-using Zerra.Reflection;
+using System.Reflection;
+using Zerra.Test.Helpers.Models;
 
 namespace Zerra.Test
 {
@@ -25,15 +25,23 @@ namespace Zerra.Test
         [Fact]
         public void ConstructorAllMembers()
         {
-            var graph = new Graph<GraphModel>(true);
+            var graph = new Graph<GraphModel>(false);
 
-            foreach (var member in TypeAnalyzer<GraphModel>.GetTypeDetail().MemberDetails)
+            foreach (var member in typeof(GraphModel).GetMembers(BindingFlags.Public | BindingFlags.Instance))
+            {
+                Assert.False(graph.HasMember(member.Name));
+                Assert.False(graph.HasMemberExplicitly(member.Name));
+            }
+            Assert.Null(graph.GetChildGraph(x => x.Class));
+
+            graph = new Graph<GraphModel>(true);
+
+            foreach (var member in typeof(GraphModel).GetMembers(BindingFlags.Public | BindingFlags.Instance))
             {
                 Assert.True(graph.HasMember(member.Name));
+                Assert.False(graph.HasMemberExplicitly(member.Name));
             }
-
-            graph.AddChildGraph(x => x.Array, new Graph<SimpleModel>(x => x.Value1));
-            Assert.True(graph.HasMember(x => x.Array));
+            Assert.Null(graph.GetChildGraph(x => x.Class));
         }
 
         [Fact]
@@ -52,14 +60,20 @@ namespace Zerra.Test
             var childGraph1 = graph.GetChildGraph<SimpleModel>(x => x.Array);
             Assert.NotNull(childGraph1);
             Assert.True(childGraph1.HasMember(x => x.Value1));
+            Assert.True(childGraph1.HasMemberExplicitly(x => x.Value1));
             Assert.False(childGraph1.HasMember(x => x.Value2));
+            Assert.False(childGraph1.HasMemberExplicitly(x => x.Value2));
+            Assert.False(childGraph1.IncludeAllMembers);
 
             graph.AddMember(x => x.Array);
 
             childGraph1 = graph.GetChildGraph<SimpleModel>(x => x.Array);
             Assert.NotNull(childGraph1);
             Assert.True(childGraph1.HasMember(x => x.Value1));
+            Assert.True(childGraph1.HasMemberExplicitly(x => x.Value1));
             Assert.True(childGraph1.HasMember(x => x.Value2));
+            Assert.False(childGraph1.HasMemberExplicitly(x => x.Value2));
+            Assert.True(childGraph1.IncludeAllMembers);
         }
 
         [Fact]
@@ -90,7 +104,9 @@ namespace Zerra.Test
             var childGraph1 = graph.GetChildGraph<SimpleModel>(x => x.Class);
             Assert.NotNull(childGraph1);
             Assert.True(childGraph1.HasMember(x => x.Value1));
+            Assert.False(childGraph1.HasMemberExplicitly(x => x.Value1));
             Assert.True(childGraph1.HasMember(x => x.Value2));
+            Assert.True(childGraph1.HasMemberExplicitly(x => x.Value2));
             Assert.True(childGraph1.IncludeAllMembers);
 
             graph = new Graph<GraphModel>();
@@ -99,7 +115,9 @@ namespace Zerra.Test
             childGraph1 = graph.GetChildGraph<SimpleModel>(x => x.Class);
             Assert.NotNull(childGraph1);
             Assert.False(childGraph1.HasMember(x => x.Value1));
+            Assert.False(childGraph1.HasMemberExplicitly(x => x.Value1));
             Assert.True(childGraph1.HasMember(x => x.Value2));
+            Assert.True(childGraph1.HasMemberExplicitly(x => x.Value2));
             Assert.False(childGraph1.IncludeAllMembers);
         }
 
@@ -113,27 +131,87 @@ namespace Zerra.Test
             var childGraph1 = graph.GetChildGraph<SimpleModel>(x => x.Class);
             Assert.NotNull(childGraph1);
             Assert.False(childGraph1.HasMember(x => x.Value1));
+            Assert.False(childGraph1.HasMemberExplicitly(x => x.Value1));
             Assert.False(childGraph1.HasMember(x => x.Value2));
+            Assert.False(childGraph1.HasMemberExplicitly(x => x.Value2));
             Assert.False(childGraph1.IncludeAllMembers);
+            Assert.True(graph.HasMember(x => x.Prop1));
+            Assert.False(graph.HasMemberExplicitly(x => x.Prop1));
 
-            graph = new Graph<GraphModel>();
-
-            graph.RemoveMember(x => x.Class.Value1);
-
+            graph.AddMember(x => x.Class.Value2);
             childGraph1 = graph.GetChildGraph<SimpleModel>(x => x.Class);
-            Assert.NotNull(childGraph1);
             Assert.False(childGraph1.HasMember(x => x.Value1));
-            Assert.False(childGraph1.HasMember(x => x.Value2));
-            Assert.False(childGraph1.IncludeAllMembers);
-
-            graph = new Graph<GraphModel>(x => x.Class);
-
-            graph.RemoveMember(x => x.Class.Value1);
-
-            childGraph1 = graph.GetChildGraph<SimpleModel>(x => x.Class);
-            Assert.NotNull(childGraph1);
-            Assert.False(childGraph1.HasMember(x => x.Value1));
+            Assert.False(childGraph1.HasMemberExplicitly(x => x.Value1));
             Assert.True(childGraph1.HasMember(x => x.Value2));
+            Assert.True(childGraph1.HasMemberExplicitly(x => x.Value2));
+            Assert.False(childGraph1.IncludeAllMembers);
+
+            graph.AddMember(x => x.Class);
+            childGraph1 = graph.GetChildGraph<SimpleModel>(x => x.Class);
+            Assert.False(childGraph1.HasMember(x => x.Value1));
+            Assert.False(childGraph1.HasMemberExplicitly(x => x.Value1));
+            Assert.True(childGraph1.HasMember(x => x.Value2));
+            Assert.True(childGraph1.HasMemberExplicitly(x => x.Value2));
+            Assert.True(childGraph1.IncludeAllMembers);
+
+            graph = new Graph<GraphModel>(false);
+
+            graph.RemoveMember(x => x.Class.Value1);
+
+            childGraph1 = graph.GetChildGraph<SimpleModel>(x => x.Class);
+            Assert.NotNull(childGraph1);
+            Assert.False(childGraph1.HasMember(x => x.Value1));
+            Assert.False(childGraph1.HasMemberExplicitly(x => x.Value1));
+            Assert.False(childGraph1.HasMember(x => x.Value2));
+            Assert.False(childGraph1.HasMemberExplicitly(x => x.Value2));
+            Assert.False(childGraph1.IncludeAllMembers);
+            Assert.False(graph.HasMember(x => x.Prop1));
+            Assert.False(graph.HasMemberExplicitly(x => x.Prop1));
+
+            graph.AddMember(x => x.Class.Value2);
+            childGraph1 = graph.GetChildGraph<SimpleModel>(x => x.Class);
+            Assert.False(childGraph1.HasMember(x => x.Value1));
+            Assert.False(childGraph1.HasMemberExplicitly(x => x.Value1));
+            Assert.True(childGraph1.HasMember(x => x.Value2));
+            Assert.True(childGraph1.HasMemberExplicitly(x => x.Value2));
+            Assert.False(childGraph1.IncludeAllMembers);
+
+            graph.AddMember(x => x.Class);
+            childGraph1 = graph.GetChildGraph<SimpleModel>(x => x.Class);
+            Assert.False(childGraph1.HasMember(x => x.Value1));
+            Assert.False(childGraph1.HasMemberExplicitly(x => x.Value1));
+            Assert.True(childGraph1.HasMember(x => x.Value2));
+            Assert.True(childGraph1.HasMemberExplicitly(x => x.Value2));
+            Assert.True(childGraph1.IncludeAllMembers);
+
+            graph = new Graph<GraphModel>(false, x => x.Class);
+
+            graph.RemoveMember(x => x.Class.Value1);
+
+            childGraph1 = graph.GetChildGraph<SimpleModel>(x => x.Class);
+            Assert.NotNull(childGraph1);
+            Assert.False(childGraph1.HasMember(x => x.Value1));
+            Assert.False(childGraph1.HasMemberExplicitly(x => x.Value1));
+            Assert.True(childGraph1.HasMember(x => x.Value2));
+            Assert.False(childGraph1.HasMemberExplicitly(x => x.Value2));
+            Assert.True(childGraph1.IncludeAllMembers);
+            Assert.False(graph.HasMember(x => x.Prop1));
+            Assert.False(graph.HasMemberExplicitly(x => x.Prop1));
+
+            graph.AddMember(x => x.Class.Value2);
+            childGraph1 = graph.GetChildGraph<SimpleModel>(x => x.Class);
+            Assert.False(childGraph1.HasMember(x => x.Value1));
+            Assert.False(childGraph1.HasMemberExplicitly(x => x.Value1));
+            Assert.True(childGraph1.HasMember(x => x.Value2));
+            Assert.True(childGraph1.HasMemberExplicitly(x => x.Value2));
+            Assert.True(childGraph1.IncludeAllMembers);
+
+            graph.AddMember(x => x.Class);
+            childGraph1 = graph.GetChildGraph<SimpleModel>(x => x.Class);
+            Assert.False(childGraph1.HasMember(x => x.Value1));
+            Assert.False(childGraph1.HasMemberExplicitly(x => x.Value1));
+            Assert.True(childGraph1.HasMember(x => x.Value2));
+            Assert.True(childGraph1.HasMemberExplicitly(x => x.Value2));
             Assert.True(childGraph1.IncludeAllMembers);
         }
 
@@ -156,13 +234,13 @@ namespace Zerra.Test
         public void MultipleStackExpression()
         {
             var graph = new Graph<GraphModel>(
-                x => x.Nested.NestedArray.Select(y => y.Class.Value1)    
+                x => x.Nested.NestedArray.Select(y => y.Class.Value1)
             );
 
             var childGraph1 = graph.GetChildGraph<GraphModel>(x => x.Nested);
             var childGraph2 = childGraph1.GetChildGraph<GraphModel>(x => x.NestedArray);
             var childGraph3 = childGraph2.GetChildGraph<SimpleModel>(x => x.Class);
-            childGraph2.HasMember(nameof(SimpleModel.Value1));
+            _ = childGraph2.HasMember(nameof(SimpleModel.Value1));
         }
 
         [Fact]

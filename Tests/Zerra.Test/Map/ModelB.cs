@@ -2,15 +2,12 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Collections.Generic;
-using Zerra.Encryption;
+using Zerra.Test.Helpers.Models;
 
 namespace Zerra.Test.Map
 {
     public class ModelB
     {
-        public Secret<int> Secret { get; set; }
-
         public int PropB { get; set; }
         public int PropD { get; set; }
 

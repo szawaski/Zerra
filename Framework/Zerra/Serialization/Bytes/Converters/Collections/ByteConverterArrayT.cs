@@ -8,17 +8,17 @@ using Zerra.Serialization.Bytes.State;
 
 namespace Zerra.Serialization.Bytes.Converters.Collections
 {
-    internal sealed class ByteConverterArrayT<TParent, TValue> : ByteConverter<TParent, TValue[]>
+    internal sealed class ByteConverterArrayT<TValue> : ByteConverter<TValue[]>
     {
-        private ByteConverter<ArrayAccessor<TValue>> converter = null!;
+        private ByteConverter converter = null!;
 
-        private static TValue Getter(ArrayAccessor<TValue> parent) => parent.Get();
-        private static void Setter(ArrayAccessor<TValue> parent, TValue value) => parent.Set(value);
+        private static TValue Getter(object parent) => ((ArrayAccessor<TValue>)parent).Get();
+        private static void Setter(object parent, TValue value) => ((ArrayAccessor<TValue>)parent).Set(value);
 
         protected override sealed void Setup()
         {
             var valueTypeDetail = TypeAnalyzer<TValue>.GetTypeDetail();
-            converter = ByteConverterFactory<ArrayAccessor<TValue>>.Get(valueTypeDetail, nameof(ByteConverterArrayT<TParent, TValue>), Getter, Setter);
+            converter = ByteConverterFactory.Get(valueTypeDetail, nameof(ByteConverterArrayT<TValue>), Getter, Setter);
         }
 
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TValue[]? value)
@@ -59,7 +59,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections
 
             for (; ; )
             {
-                if (!converter.TryReadFromParent(ref reader, ref state, accessor, true))
+                if (!converter.TryReadFromParent(ref reader, ref state, accessor))
                 {
                     state.Current.Object = accessor;
                     return false;
@@ -76,7 +76,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections
 
             if (state.Current.Object is null)
             {
-                if (!writer.TryWrite(value.Length, out state.BytesNeeded))
+                if (!writer.TryWrite(value.Length, out state.SizeNeeded))
                 {
                     return false;
                 }
@@ -95,7 +95,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections
 
             while (accessor.Index < accessor.Array!.Length)
             {
-                if (!converter.TryWriteFromParent(ref writer, ref state, accessor, true))
+                if (!converter.TryWriteFromParent(ref writer, ref state, accessor))
                 {
                     state.Current.Object = accessor;
                     return false;

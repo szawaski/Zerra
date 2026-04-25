@@ -1,9 +1,7 @@
-﻿// Copyright © KaKush LLC
+// Copyright © KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 #pragma warning disable IDE0028 // Simplify collection initialization
@@ -12,36 +10,17 @@ namespace Zerra.Serialization.Bytes.IO
 {
     public partial struct ByteReader
     {
-#if DEBUG
-        public static bool Testing = false;
-
-        private static bool Alternate = false;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool Skip()
-        {
-            if (!ByteReader.Testing)
-                return false;
-            if (ByteReader.Alternate)
-            {
-                ByteReader.Alternate = false;
-                return false;
-            }
-            else
-            {
-                ByteReader.Alternate = true;
-                return true;
-            }
-        }
-#endif
-
+        /// <summary>Reads a null indicator byte from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryReadIsNull(out bool value, out int sizeNeeded)
         {
             sizeNeeded = 1;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -54,13 +33,17 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Reads a <see cref="bool"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out bool value, out int sizeNeeded)
         {
             sizeNeeded = 1;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -72,13 +55,17 @@ namespace Zerra.Serialization.Bytes.IO
 
             return true;
         }
+        /// <summary>Reads a nullable <see cref="bool"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out bool? value, out int sizeNeeded)
         {
             sizeNeeded = 1;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -89,13 +76,17 @@ namespace Zerra.Serialization.Bytes.IO
             value = buffer[position++] != 0;
             return true;
         }
+        /// <summary>Reads an array of <see cref="bool"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out bool[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -127,13 +118,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of <see cref="bool"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out List<bool>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -165,13 +160,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of <see cref="bool"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out HashSet<bool>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -211,13 +210,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads an array of nullable <see cref="bool"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out bool?[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -250,13 +253,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of nullable <see cref="bool"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out List<bool?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -293,13 +300,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of nullable <see cref="bool"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out HashSet<bool?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -345,13 +356,17 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Reads a <see cref="byte"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out byte value, out int sizeNeeded)
         {
             sizeNeeded = 1;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -362,13 +377,17 @@ namespace Zerra.Serialization.Bytes.IO
             value = buffer[position++];
             return true;
         }
+        /// <summary>Reads a nullable <see cref="byte"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out byte? value, out int sizeNeeded)
         {
             sizeNeeded = 1;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -379,13 +398,17 @@ namespace Zerra.Serialization.Bytes.IO
             value = buffer[position++];
             return true;
         }
+        /// <summary>Reads an array of <see cref="byte"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryRead(out byte[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -419,13 +442,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of <see cref="byte"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out List<byte>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -457,13 +484,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of <see cref="byte"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out HashSet<byte>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -503,13 +534,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads an array of nullable <see cref="byte"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out byte?[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -542,13 +577,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of nullable <see cref="byte"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out List<byte?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -585,13 +624,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of nullable <see cref="byte"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out HashSet<byte?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -637,13 +680,17 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Reads a <see cref="sbyte"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out sbyte value, out int sizeNeeded)
         {
             sizeNeeded = 1;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -654,13 +701,17 @@ namespace Zerra.Serialization.Bytes.IO
             value = (sbyte)buffer[position++];
             return true;
         }
+        /// <summary>Reads a nullable <see cref="sbyte"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out sbyte? value, out int sizeNeeded)
         {
             sizeNeeded = 1;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -671,13 +722,17 @@ namespace Zerra.Serialization.Bytes.IO
             value = (sbyte)buffer[position++];
             return true;
         }
+        /// <summary>Reads an array of <see cref="sbyte"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out sbyte[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -709,13 +764,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of <see cref="sbyte"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out List<sbyte>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -747,13 +806,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of <see cref="sbyte"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out HashSet<sbyte>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -793,13 +856,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads an array of nullable <see cref="sbyte"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out sbyte?[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -832,13 +899,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of nullable <see cref="sbyte"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out List<sbyte?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -875,13 +946,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of nullable <see cref="sbyte"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out HashSet<sbyte?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -927,13 +1002,17 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Reads a <see cref="short"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out short value, out int sizeNeeded)
         {
             sizeNeeded = 2;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -944,13 +1023,17 @@ namespace Zerra.Serialization.Bytes.IO
             value = (short)(buffer[position++] | buffer[position++] << 8);
             return true;
         }
+        /// <summary>Reads a nullable <see cref="short"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out short? value, out int sizeNeeded)
         {
             sizeNeeded = 2;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -961,13 +1044,17 @@ namespace Zerra.Serialization.Bytes.IO
             value = (short)(buffer[position++] | buffer[position++] << 8);
             return true;
         }
+        /// <summary>Reads an array of <see cref="short"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out short[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -999,13 +1086,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of <see cref="short"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out List<short>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1037,13 +1128,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of <see cref="short"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out HashSet<short>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1084,13 +1179,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads an array of nullable <see cref="short"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out short?[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1123,13 +1222,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of nullable <see cref="short"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out List<short?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1166,13 +1269,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of nullable <see cref="short"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out HashSet<short?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1218,13 +1325,17 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Reads a <see cref="ushort"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out ushort value, out int sizeNeeded)
         {
             sizeNeeded = 2;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1235,13 +1346,17 @@ namespace Zerra.Serialization.Bytes.IO
             value = (ushort)(buffer[position++] | buffer[position++] << 8);
             return true;
         }
+        /// <summary>Reads a nullable <see cref="ushort"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out ushort? value, out int sizeNeeded)
         {
             sizeNeeded = 2;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1252,13 +1367,17 @@ namespace Zerra.Serialization.Bytes.IO
             value = (ushort)(buffer[position++] | buffer[position++] << 8);
             return true;
         }
+        /// <summary>Reads an array of <see cref="ushort"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out ushort[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1290,13 +1409,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of <see cref="ushort"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out List<ushort>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1328,13 +1451,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of <see cref="ushort"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out HashSet<ushort>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1374,13 +1501,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads an array of nullable <see cref="ushort"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out ushort?[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1413,13 +1544,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of nullable <see cref="ushort"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out List<ushort?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1456,13 +1591,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of nullable <see cref="ushort"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out HashSet<ushort?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1508,13 +1647,17 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Reads a <see cref="int"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out int value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1525,13 +1668,17 @@ namespace Zerra.Serialization.Bytes.IO
             value = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             return true;
         }
+        /// <summary>Reads a nullable <see cref="int"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out int? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1542,13 +1689,17 @@ namespace Zerra.Serialization.Bytes.IO
             value = (int)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             return true;
         }
+        /// <summary>Reads an array of <see cref="int"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out int[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1580,13 +1731,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of <see cref="int"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out List<int>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1618,13 +1773,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of <see cref="int"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out HashSet<int>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1664,13 +1823,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads an array of nullable <see cref="int"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out int?[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1703,13 +1866,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of nullable <see cref="int"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out List<int?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1746,13 +1913,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of nullable <see cref="int"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out HashSet<int?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1798,13 +1969,17 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Reads a <see cref="uint"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out uint value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1815,13 +1990,17 @@ namespace Zerra.Serialization.Bytes.IO
             value = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             return true;
         }
+        /// <summary>Reads a nullable <see cref="uint"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out uint? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1832,13 +2011,17 @@ namespace Zerra.Serialization.Bytes.IO
             value = (uint)(buffer[position++] | buffer[position++] << 8 | buffer[position++] << 16 | buffer[position++] << 24);
             return true;
         }
+        /// <summary>Reads an array of <see cref="uint"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out uint[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1870,13 +2053,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of <see cref="uint"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out List<uint>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1908,13 +2095,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of <see cref="uint"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out HashSet<uint>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1955,13 +2146,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads an array of nullable <see cref="uint"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out uint?[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -1994,13 +2189,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of nullable <see cref="uint"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out List<uint?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2037,13 +2236,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of nullable <see cref="uint"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out HashSet<uint?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2089,13 +2292,17 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Reads a <see cref="long"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out long value, out int sizeNeeded)
         {
             sizeNeeded = 8;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2108,13 +2315,17 @@ namespace Zerra.Serialization.Bytes.IO
             value = (long)((ulong)hi) << 32 | lo;
             return true;
         }
+        /// <summary>Reads a nullable <see cref="long"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out long? value, out int sizeNeeded)
         {
             sizeNeeded = 8;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2127,13 +2338,17 @@ namespace Zerra.Serialization.Bytes.IO
             value = (long)((ulong)hi) << 32 | lo;
             return true;
         }
+        /// <summary>Reads an array of <see cref="long"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out long[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2167,13 +2382,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of <see cref="long"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out List<long>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2207,13 +2426,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of <see cref="long"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out HashSet<long>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2255,13 +2478,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads an array of nullable <see cref="long"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out long?[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2296,13 +2523,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of nullable <see cref="long"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out List<long?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2341,13 +2572,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of nullable <see cref="long"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out HashSet<long?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2395,13 +2630,17 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Reads a <see cref="ulong"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out ulong value, out int sizeNeeded)
         {
             sizeNeeded = 8;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2414,13 +2653,17 @@ namespace Zerra.Serialization.Bytes.IO
             value = ((ulong)hi) << 32 | lo;
             return true;
         }
+        /// <summary>Reads a nullable <see cref="ulong"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out ulong? value, out int sizeNeeded)
         {
             sizeNeeded = 8;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2433,13 +2676,17 @@ namespace Zerra.Serialization.Bytes.IO
             value = ((ulong)hi) << 32 | lo;
             return true;
         }
+        /// <summary>Reads an array of <see cref="ulong"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out ulong[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2473,13 +2720,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of <see cref="ulong"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out List<ulong>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2513,13 +2764,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of <see cref="ulong"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out HashSet<ulong>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2561,13 +2816,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads an array of nullable <see cref="ulong"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out ulong?[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2602,13 +2861,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of nullable <see cref="ulong"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out List<ulong?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2647,13 +2910,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of nullable <see cref="ulong"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out HashSet<ulong?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2701,13 +2968,17 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Reads a <see cref="float"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryRead(out float value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2719,13 +2990,17 @@ namespace Zerra.Serialization.Bytes.IO
             value = *((float*)&tmpBuffer);
             return true;
         }
+        /// <summary>Reads a nullable <see cref="float"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryRead(out float? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2737,13 +3012,17 @@ namespace Zerra.Serialization.Bytes.IO
             value = *((float*)&tmpBuffer);
             return true;
         }
+        /// <summary>Reads an array of <see cref="float"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryRead(out float[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2776,13 +3055,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of <see cref="float"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryRead(out List<float>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2815,13 +3098,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of <see cref="float"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryRead(out HashSet<float>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2862,13 +3149,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads an array of nullable <see cref="float"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryRead(out float?[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2902,13 +3193,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of nullable <see cref="float"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryRead(out List<float?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2946,13 +3241,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of nullable <see cref="float"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryRead(out HashSet<float?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -2999,13 +3298,17 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Reads a <see cref="double"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryRead(out double value, out int sizeNeeded)
         {
             sizeNeeded = 8;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3019,13 +3322,17 @@ namespace Zerra.Serialization.Bytes.IO
             value = *((double*)&tmpBuffer);
             return true;
         }
+        /// <summary>Reads a nullable <see cref="double"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryRead(out double? value, out int sizeNeeded)
         {
             sizeNeeded = 8;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3039,13 +3346,17 @@ namespace Zerra.Serialization.Bytes.IO
             value = *((double*)&tmpBuffer);
             return true;
         }
+        /// <summary>Reads an array of <see cref="double"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryRead(out double[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3080,13 +3391,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of <see cref="double"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryRead(out List<double>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3121,13 +3436,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of <see cref="double"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryRead(out HashSet<double>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3170,13 +3489,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads an array of nullable <see cref="double"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryRead(out double?[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3212,13 +3535,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of nullable <see cref="double"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryRead(out List<double?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3258,13 +3585,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of nullable <see cref="double"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryRead(out HashSet<double?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3313,13 +3644,17 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Reads a <see cref="decimal"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out decimal value, out int sizeNeeded)
         {
             sizeNeeded = 16;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3334,13 +3669,17 @@ namespace Zerra.Serialization.Bytes.IO
             value = new decimal([lo, mid, hi, flags]);
             return true;
         }
+        /// <summary>Reads a nullable <see cref="decimal"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out decimal? value, out int sizeNeeded)
         {
             sizeNeeded = 16;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3355,13 +3694,17 @@ namespace Zerra.Serialization.Bytes.IO
             value = new decimal([lo, mid, hi, flags]);
             return true;
         }
+        /// <summary>Reads an array of <see cref="decimal"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out decimal[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3397,13 +3740,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of <see cref="decimal"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out List<decimal>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3439,13 +3786,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of <see cref="decimal"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out HashSet<decimal>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3489,13 +3840,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads an array of nullable <see cref="decimal"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out decimal?[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3532,13 +3887,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of nullable <see cref="decimal"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out List<decimal?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3579,13 +3938,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of nullable <see cref="decimal"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out HashSet<decimal?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3635,13 +3998,17 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Reads a <see cref="DateTime"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out DateTime value, out int sizeNeeded)
         {
             sizeNeeded = 8;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3655,13 +4022,17 @@ namespace Zerra.Serialization.Bytes.IO
             value = new DateTime(ticks, DateTimeKind.Utc);
             return true;
         }
+        /// <summary>Reads a nullable <see cref="DateTime"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out DateTime? value, out int sizeNeeded)
         {
             sizeNeeded = 8;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3675,13 +4046,17 @@ namespace Zerra.Serialization.Bytes.IO
             value = new DateTime(ticks, DateTimeKind.Utc);
             return true;
         }
+        /// <summary>Reads an array of <see cref="DateTime"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out DateTime[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3716,13 +4091,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of <see cref="DateTime"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out List<DateTime>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3757,13 +4136,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of <see cref="DateTime"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out HashSet<DateTime>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3806,13 +4189,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads an array of nullable <see cref="DateTime"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out DateTime?[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3848,13 +4235,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of nullable <see cref="DateTime"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out List<DateTime?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3894,13 +4285,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of nullable <see cref="DateTime"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out HashSet<DateTime?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3949,13 +4344,17 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Reads a <see cref="DateTimeOffset"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out DateTimeOffset value, out int sizeNeeded)
         {
             sizeNeeded = 10;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3970,13 +4369,17 @@ namespace Zerra.Serialization.Bytes.IO
             value = new DateTimeOffset(ticks, TimeSpan.FromMinutes(offset));
             return true;
         }
+        /// <summary>Reads a nullable <see cref="DateTimeOffset"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out DateTimeOffset? value, out int sizeNeeded)
         {
             sizeNeeded = 10;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -3991,13 +4394,17 @@ namespace Zerra.Serialization.Bytes.IO
             value = new DateTimeOffset(ticks, TimeSpan.FromMinutes(offset));
             return true;
         }
+        /// <summary>Reads an array of <see cref="DateTimeOffset"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out DateTimeOffset[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4033,13 +4440,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of <see cref="DateTimeOffset"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out List<DateTimeOffset>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4075,13 +4486,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of <see cref="DateTimeOffset"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out HashSet<DateTimeOffset>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4125,13 +4540,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads an array of nullable <see cref="DateTimeOffset"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out DateTimeOffset?[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4168,13 +4587,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of nullable <see cref="DateTimeOffset"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out List<DateTimeOffset?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4215,13 +4638,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of nullable <see cref="DateTimeOffset"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out HashSet<DateTimeOffset?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4271,13 +4698,17 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Reads a <see cref="TimeSpan"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out TimeSpan value, out int sizeNeeded)
         {
             sizeNeeded = 8;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4291,13 +4722,17 @@ namespace Zerra.Serialization.Bytes.IO
             value = new TimeSpan(ticks);
             return true;
         }
+        /// <summary>Reads a nullable <see cref="TimeSpan"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out TimeSpan? value, out int sizeNeeded)
         {
             sizeNeeded = 8;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4311,13 +4746,17 @@ namespace Zerra.Serialization.Bytes.IO
             value = new TimeSpan(ticks);
             return true;
         }
+        /// <summary>Reads an array of <see cref="TimeSpan"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out TimeSpan[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4352,13 +4791,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of <see cref="TimeSpan"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out List<TimeSpan>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4393,13 +4836,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of <see cref="TimeSpan"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out HashSet<TimeSpan>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4442,13 +4889,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads an array of nullable <see cref="TimeSpan"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out TimeSpan?[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4484,13 +4935,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of nullable <see cref="TimeSpan"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out List<TimeSpan?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4530,13 +4985,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of nullable <see cref="TimeSpan"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out HashSet<TimeSpan?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4586,13 +5045,17 @@ namespace Zerra.Serialization.Bytes.IO
         }
 
 #if NET6_0_OR_GREATER
+        /// <summary>Reads a <see cref="DateOnly"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out DateOnly value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4604,13 +5067,17 @@ namespace Zerra.Serialization.Bytes.IO
             value = DateOnly.FromDayNumber(dayNumber);
             return true;
         }
+        /// <summary>Reads a nullable <see cref="DateOnly"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out DateOnly? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4622,13 +5089,17 @@ namespace Zerra.Serialization.Bytes.IO
             value = DateOnly.FromDayNumber(dayNumber);
             return true;
         }
+        /// <summary>Reads an array of <see cref="DateOnly"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out DateOnly[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4661,13 +5132,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of <see cref="DateOnly"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out List<DateOnly>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4700,13 +5175,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of <see cref="DateOnly"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out HashSet<DateOnly>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4747,13 +5226,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads an array of nullable <see cref="DateOnly"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out DateOnly?[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4787,13 +5270,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of nullable <see cref="DateOnly"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out List<DateOnly?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4831,13 +5318,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of nullable <see cref="DateOnly"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out HashSet<DateOnly?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4884,13 +5375,17 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Reads a <see cref="TimeOnly"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out TimeOnly value, out int sizeNeeded)
         {
             sizeNeeded = 8;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4904,13 +5399,17 @@ namespace Zerra.Serialization.Bytes.IO
             value = new TimeOnly(ticks);
             return true;
         }
+        /// <summary>Reads a nullable <see cref="TimeOnly"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out TimeOnly? value, out int sizeNeeded)
         {
             sizeNeeded = 8;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4924,13 +5423,17 @@ namespace Zerra.Serialization.Bytes.IO
             value = new TimeOnly(ticks);
             return true;
         }
+        /// <summary>Reads an array of <see cref="TimeOnly"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out TimeOnly[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -4965,13 +5468,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of <see cref="TimeOnly"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out List<TimeOnly>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5006,13 +5513,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of <see cref="TimeOnly"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out HashSet<TimeOnly>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5055,13 +5566,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads an array of nullable <see cref="TimeOnly"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out TimeOnly?[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5097,13 +5612,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of nullable <see cref="TimeOnly"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out List<TimeOnly?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5143,13 +5662,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of nullable <see cref="TimeOnly"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out HashSet<TimeOnly?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5199,13 +5722,17 @@ namespace Zerra.Serialization.Bytes.IO
         }
 #endif
 
+        /// <summary>Reads a <see cref="Guid"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out Guid value, out int sizeNeeded)
         {
             sizeNeeded = 16;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5221,13 +5748,17 @@ namespace Zerra.Serialization.Bytes.IO
             position += 16;
             return true;
         }
+        /// <summary>Reads a nullable <see cref="Guid"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out Guid? value, out int sizeNeeded)
         {
             sizeNeeded = 16;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5244,13 +5775,17 @@ namespace Zerra.Serialization.Bytes.IO
             position += 16;
             return true;
         }
+        /// <summary>Reads an array of <see cref="Guid"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out Guid[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5287,13 +5822,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of <see cref="Guid"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out List<Guid>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5330,13 +5869,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of <see cref="Guid"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out HashSet<Guid>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5381,13 +5924,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads an array of nullable <see cref="Guid"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out Guid?[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5425,13 +5972,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of nullable <see cref="Guid"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out List<Guid?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5473,13 +6024,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of nullable <see cref="Guid"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out HashSet<Guid?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5530,13 +6085,17 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Reads a <see cref="char"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryRead(out char value, out int sizeNeeded)
         {
             sizeNeeded = 2;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5551,13 +6110,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a nullable <see cref="char"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryRead(out char? value, out int sizeNeeded)
         {
             sizeNeeded = 2;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5572,13 +6135,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads an array of <see cref="char"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryRead(out char[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5616,13 +6183,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of <see cref="char"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryRead(out List<char>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5659,13 +6230,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of <see cref="char"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryRead(out HashSet<char>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5711,13 +6286,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads an array of nullable <see cref="char"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryRead(out char?[]? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5756,13 +6335,17 @@ namespace Zerra.Serialization.Bytes.IO
 
             return true;
         }
+        /// <summary>Reads a <see cref="List{T}"/> of nullable <see cref="char"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryRead(out List<char?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5804,13 +6387,17 @@ namespace Zerra.Serialization.Bytes.IO
             }
             return true;
         }
+        /// <summary>Reads a <see cref="HashSet{T}"/> of nullable <see cref="char"/> values from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryRead(out HashSet<char?>? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5861,13 +6448,17 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
+        /// <summary>Reads a <see cref="string"/> value from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryRead(out string? value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {
@@ -5898,13 +6489,17 @@ namespace Zerra.Serialization.Bytes.IO
             position += sizeNeeded;
             return true;
         }
+        /// <summary>Reads a <see cref="ReadOnlySpan{T}"/> of bytes from the buffer.</summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
+        /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the number of additional bytes needed to complete the read.</param>
+        /// <returns><see langword="true"/> if there were enough bytes in the buffer to read the value; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryRead(out ReadOnlySpan<byte> value, out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded
 #if DEBUG
-            || Skip()
+            || DebugShouldReturn()
 #endif
             )
             {

@@ -1,10 +1,4 @@
-﻿// Copyright © KaKush LLC
-// Written By Steven Zawaski
-// Licensed to you under the MIT license
-
-using System;
-using System.Threading;
-
+﻿
 namespace Zerra.CQRS
 {
     /// <summary>
@@ -13,7 +7,7 @@ namespace Zerra.CQRS
     /// </summary>
     public sealed class CommandCounter
     {
-        private readonly object locker = new();
+        private readonly Lock locker = new();
 
         private int started = 0;
         private int completed = 0;
@@ -65,7 +59,7 @@ namespace Zerra.CQRS
         {
             if (!receiveCountBeforeExit.HasValue)
             {
-                throttle.Release();
+                _ = throttle.Release();
                 return;
             }
 
@@ -84,7 +78,7 @@ namespace Zerra.CQRS
         {
             if (!receiveCountBeforeExit.HasValue)
             {
-                throttle.Release();
+                _ = throttle.Release();
                 return;
             }
 

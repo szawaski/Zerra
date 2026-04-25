@@ -3,27 +3,34 @@
 // Licensed to you under the MIT license
 
 using Confluent.Kafka;
-using System;
 using System.Collections.Concurrent;
 using System.Data;
-using System.Linq;
 using System.Security.Claims;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Zerra.Encryption;
 using Zerra.Logging;
 using Zerra.CQRS.Network;
 
 namespace Zerra.CQRS.Kafka
 {
+    /// <summary>
+    /// Kafka implementation of command and event producer for distributed CQRS messaging.
+    /// </summary>
+    /// <remarks>
+    /// Provides high-performance, reliable message delivery to Kafka topics.
+    /// Supports command acknowledgements with automatic retry logic and optional message encryption.
+    /// Supports SASL authentication when username and password are provided.
+    /// Thread-safe for concurrent operations.
+    /// </remarks>
     public sealed class KafkaProducer : ICommandProducer, IEventProducer, IDisposable
     {
         private bool listenerStarted = false;
         private readonly SemaphoreSlim listenerStartedLock = new(1, 1);
 
         private readonly string host;
-        private readonly SymmetricConfig? symmetricConfig;
+        private readonly Zerra.Serialization.ISerializer serializer;
+        private readonly IEncryptor? encryptor;
+        private readonly ILogger? log;
         private readonly string? environment;
         private readonly string? userName;
         private readonly string? password;
@@ -35,17 +42,32 @@ namespace Zerra.CQRS.Kafka
         private readonly IProducer<string, byte[]> producer;
         private readonly CancellationTokenSource canceller;
         private readonly ConcurrentDictionary<string, Action<Acknowledgement>> ackCallbacks;
-        public KafkaProducer(string host, SymmetricConfig? symmetricConfig, string? environment, string? userName, string? password)
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="KafkaProducer"/> class.
+        /// </summary>
+        /// <param name="host">The Kafka bootstrap server address (e.g., "localhost:9092").</param>
+        /// <param name="serializer">The serializer for message serialization and deserialization.</param>
+        /// <param name="encryptor">Optional encryptor for message encryption. If null, messages are not encrypted.</param>
+        /// <param name="log">Optional logger for diagnostic information and errors.</param>
+        /// <param name="environment">Optional environment name to prefix topic names for isolation.</param>
+        /// <param name="userName">Optional username for SASL authentication. Must be paired with password.</param>
+        /// <param name="password">Optional password for SASL authentication. Must be paired with userName.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="host"/> is null or empty.</exception>
+        public KafkaProducer(string host, Zerra.Serialization.ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment, string? userName, string? password)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 
             this.host = host;
-            this.symmetricConfig = symmetricConfig;
+            this.serializer = serializer;
+            this.encryptor = encryptor;
+            this.log = log;
             this.environment = environment;
             this.userName = userName;
             this.password = password;
 
-            var clientID = StringExtensions.Join(KafkaCommon.TopicMaxLength - 4, "_", environment ?? "Unknown_Environment", Environment.MachineName, Config.EntryAssemblyName ?? "Unknown_Assembly");
+            var entryAssemblyName = System.Reflection.Assembly.GetEntryAssembly()?.GetName().Name;
+            var clientID = StringExtensions.Join(KafkaCommon.TopicMaxLength - 4, "_", environment ?? "Unknown_Environment", Environment.MachineName, entryAssemblyName ?? "Unknown_Assembly");
             this.ackTopic = $"ACK-{clientID}";
             this.topicsByCommandType = new();
             this.topicsByEventType = new();
@@ -80,9 +102,9 @@ namespace Zerra.CQRS.Kafka
         {
             var commandType = command.GetType();
             if (!topicsByCommandType.TryGetValue(commandType, out var topic))
-                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(KafkaProducer)}");
+                throw new Exception($"{commandType.Name} is not registered with {nameof(KafkaProducer)}");
             if (!throttleByTopic.TryGetValue(topic, out var throttle))
-                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(KafkaProducer)}");
+                throw new Exception($"{commandType.Name} is not registered with {nameof(KafkaProducer)}");
 
             await throttle.WaitAsync(cancellationToken);
 
@@ -121,16 +143,16 @@ namespace Zerra.CQRS.Kafka
 
                 var message = new KafkaMessage()
                 {
-                    MessageData = KafkaCommon.Serialize(command),
+                    MessageData = serializer.SerializeBytes(command),
                     MessageType = command.GetType(),
                     HasResult = false,
                     Claims = claims,
                     Source = source
                 };
 
-                var body = KafkaCommon.Serialize(message);
-                if (symmetricConfig is not null)
-                    body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
+                var body = serializer.SerializeBytes(message);
+                if (encryptor is not null)
+                    body = encryptor.Encrypt(body);
 
                 if (requireAcknowledgement)
                 {
@@ -177,7 +199,7 @@ namespace Zerra.CQRS.Kafka
             }
             finally
             {
-                throttle.Release();
+                _ = throttle.Release();
             }
         }
 
@@ -185,9 +207,9 @@ namespace Zerra.CQRS.Kafka
         {
             var commandType = command.GetType();
             if (!topicsByCommandType.TryGetValue(commandType, out var topic))
-                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(KafkaProducer)}");
+                throw new Exception($"{commandType.Name} is not registered with {nameof(KafkaProducer)}");
             if (!throttleByTopic.TryGetValue(topic, out var throttle))
-                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(KafkaProducer)}");
+                throw new Exception($"{commandType.Name} is not registered with {nameof(KafkaProducer)}");
 
             await throttle.WaitAsync(cancellationToken);
 
@@ -223,16 +245,16 @@ namespace Zerra.CQRS.Kafka
 
                 var message = new KafkaMessage()
                 {
-                    MessageData = KafkaCommon.Serialize(command),
+                    MessageData = serializer.SerializeBytes(command),
                     MessageType = command.GetType(),
                     HasResult = true,
                     Claims = claims,
                     Source = source
                 };
 
-                var body = KafkaCommon.Serialize(message);
-                if (symmetricConfig is not null)
-                    body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
+                var body = serializer.SerializeBytes(message);
+                if (encryptor is not null)
+                    body = encryptor.Encrypt(body);
 
                 var ackKey = Guid.NewGuid().ToString("N");
 
@@ -270,7 +292,7 @@ namespace Zerra.CQRS.Kafka
             }
             finally
             {
-                throttle.Release();
+                _ = throttle.Release();
             }
         }
 
@@ -278,9 +300,9 @@ namespace Zerra.CQRS.Kafka
         {
             var eventType = @event.GetType();
             if (!topicsByEventType.TryGetValue(eventType, out var topic))
-                throw new Exception($"{eventType.GetNiceName()} is not registered with {nameof(KafkaProducer)}");
+                throw new Exception($"{eventType.Name} is not registered with {nameof(KafkaProducer)}");
             if (!throttleByTopic.TryGetValue(topic, out var throttle))
-                throw new Exception($"{eventType.GetNiceName()} is not registered with {nameof(KafkaProducer)}");
+                throw new Exception($"{eventType.Name} is not registered with {nameof(KafkaProducer)}");
 
             try
             {
@@ -297,16 +319,16 @@ namespace Zerra.CQRS.Kafka
 
                 var message = new KafkaMessage()
                 {
-                    MessageData = KafkaCommon.Serialize(@event),
+                    MessageData = serializer.SerializeBytes(@event),
                     MessageType = @event.GetType(),
                     HasResult = false,
                     Claims = claims,
                     Source = source
                 };
 
-                var body = KafkaCommon.Serialize(message);
-                if (symmetricConfig is not null)
-                    body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
+                var body = serializer.SerializeBytes(message);
+                if (encryptor is not null)
+                    body = encryptor.Encrypt(body);
 
                 var producerResult = await producer.ProduceAsync(topic, new Message<string, byte[]> { Key = KafkaCommon.MessageKey, Value = body }, cancellationToken);
                 if (producerResult.Status != PersistenceStatus.Persisted)
@@ -314,7 +336,7 @@ namespace Zerra.CQRS.Kafka
             }
             finally
             {
-                throttle.Release();
+                _ = throttle.Release();
             }
         }
 
@@ -346,9 +368,9 @@ namespace Zerra.CQRS.Kafka
                             try
                             {
                                 var response = consumerResult.Message.Value;
-                                if (symmetricConfig is not null)
-                                    response = SymmetricEncryptor.Decrypt(symmetricConfig, response);
-                                acknowledgement = KafkaCommon.Deserialize<Acknowledgement>(response);
+                                if (encryptor is not null)
+                                    response = encryptor.Decrypt(response);
+                                acknowledgement = serializer.Deserialize<Acknowledgement>(response);
                                 acknowledgement ??= new Acknowledgement("Invalid Acknowledgement");
                             }
                             catch (Exception ex)
@@ -372,7 +394,7 @@ namespace Zerra.CQRS.Kafka
             {
                 if (!canceller.IsCancellationRequested)
                 {
-                    _ = Log.ErrorAsync(ex);
+                    log?.Error(ex);
                     await Task.Delay(KafkaCommon.RetryDelay);
                     goto retry;
                 }
@@ -387,12 +409,18 @@ namespace Zerra.CQRS.Kafka
                 }
                 catch (Exception ex)
                 {
-                    _ = Log.ErrorAsync(ex);
+                    log?.Error(ex);
                 }
                 canceller.Dispose();
             }
         }
 
+        /// <summary>
+        /// Releases all resources used by the <see cref="KafkaProducer"/>.
+        /// </summary>
+        /// <remarks>
+        /// Cancels the acknowledgement listener, disposes the Kafka producer, and releases semaphore resources.
+        /// </remarks>
         public void Dispose()
         {
             canceller.Cancel();
@@ -404,7 +432,7 @@ namespace Zerra.CQRS.Kafka
         {
             if (topicsByCommandType.ContainsKey(type))
                 return;
-            topicsByCommandType.TryAdd(type, topic);
+            _ = topicsByCommandType.TryAdd(type, topic);
             if (throttleByTopic.ContainsKey(topic))
                 return;
             var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
@@ -416,7 +444,7 @@ namespace Zerra.CQRS.Kafka
         {
             if (topicsByEventType.ContainsKey(type))
                 return;
-            topicsByEventType.TryAdd(type, topic);
+            _ = topicsByEventType.TryAdd(type, topic);
             if (throttleByTopic.ContainsKey(topic))
                 return;
             var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);

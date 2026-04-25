@@ -6,23 +6,31 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
-using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
 using System.Text;
+using Zerra.SourceGeneration.Discovery;
 
-namespace Zerra.SourceGeneration.Discovery
+namespace Zerra.SourceGeneration
 {
+    /// <summary>
+    /// An incremental Roslyn source generator that discovers types in the compilation and emits
+    /// registration and initialization code for the Zerra framework at compile time.
+    /// </summary>
     [Generator]
     public class ZerraIncrementalGenerator : IIncrementalGenerator
     {
+        /// <summary>
+        /// Initializes the incremental generator by registering syntax and source output providers.
+        /// </summary>
+        /// <param name="context">The <see cref="IncrementalGeneratorInitializationContext"/> used to register providers and output actions.</param>
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
             var syntaxProvider = context.SyntaxProvider.CreateSyntaxProvider(
                 (node, cancellationToken) => node is BaseTypeDeclarationSyntax || node is InterfaceDeclarationSyntax,
                 (context, cancellationToken) => (ITypeSymbol)context.SemanticModel.GetDeclaredSymbol(context.Node)!
-            ).Collect();
+            )
+            .Where(x => x != null)
+            .Collect();
 
             context.RegisterSourceOutput(syntaxProvider, (a, b) => SourceOutput(a, b));
         }
@@ -33,90 +41,90 @@ namespace Zerra.SourceGeneration.Discovery
 
             foreach (var symbol in symbols)
             {
-                if (symbol.GetAttributes().Any(IsDiscoveryAttribute))
-                {
-                    discoverySymbols.Add(symbol);
-                }
-                else if (symbol.TypeKind == TypeKind.Interface || symbol.Interfaces.Length > 0)
-                {
-                    discoverySymbols.Add(symbol);
-                }
+                //filter
+                discoverySymbols.Add(symbol);
             }
 
             var ns = symbols.Where(x => x.ContainingNamespace is not null).Select(x => x.ContainingNamespace.ToString()).OrderBy(x => x.Length).FirstOrDefault() ?? "Unknown";
 
             var sbInitializer = new StringBuilder();
-            var firstPass = false;
+            var typesToGenerate = new Dictionary<string, TypeToGenerate>();
             foreach (var symbol in discoverySymbols)
             {
-                if (!firstPass)
-                {
-                    var fullTypeOf = Helpers.GetTypeOfName(symbol);
-                    _ = sbInitializer.Append(Environment.NewLine).Append("            ");
-                    _ = sbInitializer.Append("Zerra.Reflection.SourceGenerationRegistration.MarkAssemblyAsDiscovered(").Append(fullTypeOf).Append(".Assembly);");
-                    firstPass = true;
-                }
-
-                DiscoveryGenerator.Generate(context, ns, sbInitializer, symbol);
-                EmptyImplementationGenerator.Generate(context, ns, sbInitializer, symbol);
-                BusRouterCallerGenerator.Generate(context, ns, sbInitializer, symbol);
-                BusRouterDispatcherGenerator.Generate(context, ns, sbInitializer, symbol);
-                TransactStoreGenerator.Generate(context, ns, sbInitializer, symbol);
-                EventStoreAsTransactStoreGenerator.Generate(context, ns, sbInitializer, symbol);
-                EventStoreGenerator.Generate(context, ns, sbInitializer, symbol);
+                TypeFinder.FindModels(symbol, typesToGenerate);
+                BusRouterGenerator.Generate(context, ns, sbInitializer, symbol);
+                BusHandlerGenerator.Generate(sbInitializer, symbol);
+                BusCommandOrEventInfoGenerator.Generate(sbInitializer, symbol);
+                TypeFinderGenerator.Generate(sbInitializer, symbol);
+                EnumGenerator.Generate(sbInitializer, symbol);
             }
-
-            _ = sbInitializer.Append(Environment.NewLine).Append("            ");
-            _ = sbInitializer.Append("Zerra.Reflection.SourceGenerationRegistration.RunGenerationsFromAttributes();");
+            TypesGenerator.Generate(sbInitializer, typesToGenerate);
+            EmptyImplementationGenerator.Generate(context, ns, sbInitializer, typesToGenerate);
+            SerializerAndMapGenerator.Generate(sbInitializer, typesToGenerate);
 
             GenerateInitializer(context, ns, sbInitializer);
-        }
-
-        private static bool IsDiscoveryAttribute(AttributeData attribute)
-        {
-            if (attribute.AttributeClass is null)
-                return false;
-            if (attribute.AttributeClass.Name == "DiscoverAttribute" && attribute.AttributeClass.ContainingNamespace.ToString() == "Zerra.Reflection")
-                return true;
-            if (attribute.AttributeClass.Name == "ServiceExposedAttribute" && attribute.AttributeClass.ContainingNamespace.ToString() == "Zerra.CQRS")
-                return true;
-            if (attribute.AttributeClass.Name == "EntityAttribute" && attribute.AttributeClass.ContainingNamespace.ToString() == "Zerra.Repository")
-                return true;
-            if (attribute.AttributeClass.Name == "EventStoreAggregateAttribute" && attribute.AttributeClass.ContainingNamespace.ToString() == "Zerra.Repository")
-                return true;
-            if (attribute.AttributeClass.Name == "EventStoreEntityAttribute" && attribute.AttributeClass.ContainingNamespace.ToString() == "Zerra.Repository")
-                return true;
-            if (attribute.AttributeClass.Name == "TransactStoreEntityAttribute" && attribute.AttributeClass.ContainingNamespace.ToString() == "Zerra.Repository")
-                return true;
-            return false;
         }
 
         private static void GenerateInitializer(SourceProductionContext context, string ns, StringBuilder sbInitializer)
         {
             var lines = sbInitializer.ToString();
+            var splits = lines.Split([EnvironmentHelper.NewLine], StringSplitOptions.RemoveEmptyEntries);
+
+            var sbCallers = new StringBuilder();
+            var sbMethods = new StringBuilder();
+            var methodNumber = 1;
+            var i = 0;
+            while (i < splits.Length)
+            {
+                var split = splits[i++];
+                
+                _ = sbCallers.Append("            ").Append("M").Append(methodNumber).Append("();").Append(EnvironmentHelper.NewLine);
+                _ = sbMethods.Append("        ").Append("private static void M").Append(methodNumber).Append("()");
+                if (!split.StartsWith(" { "))
+                    _ = sbMethods.Append(" => ");
+                _ = sbMethods.Append(split).Append(EnvironmentHelper.NewLine);
+
+                if (!split.EndsWith(";") && !split.EndsWith(" }"))
+                {
+                    while (i < splits.Length)
+                    {
+                        split = splits[i++];
+                        _ = sbMethods.Append(split).Append(EnvironmentHelper.NewLine);
+                        if (split.EndsWith(";"))
+                            break;
+                    }
+                }
+
+                methodNumber++;
+            }
 
             var code = $$"""
-                //Zerra Generated File
-                #if NET5_0_OR_GREATER
+                // <auto-generated/>
+                #nullable enable
+                #nullable disable warnings
+
+                #pragma warning disable CS0612, CS0618
 
                 namespace {{ns}}.SourceGeneration
                 {
-                    internal static class DiscoveryInitializer
+                    internal static class SourceGenerationInitializer
                     {
                 #pragma warning disable CA2255
                         [System.Runtime.CompilerServices.ModuleInitializer]
                 #pragma warning restore CA2255
                         public static void Initialize()
-                        {{{lines}}
+                        {
+                            var timer = global::System.Diagnostics.Stopwatch.StartNew();
+                {{sbCallers.ToString()}}
+                            global::System.Console.WriteLine($"Source Generation Startup - {System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}: {timer.ElapsedMilliseconds} ms");
                         }
+
+                {{sbMethods.ToString()}}
                     }
                 }
-
-                #endif
-            
                 """;
 
-            context.AddSource("DiscoveryInitializer.cs", SourceText.From(code, Encoding.UTF8));
+            context.AddSource("ZerraSourceGenerationInitializer.cs", SourceText.From(code, Encoding.UTF8));
         }
     }
 }

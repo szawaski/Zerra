@@ -2,13 +2,12 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Collections.Generic;
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;
 
 namespace Zerra.Serialization.Bytes.Converters.CoreTypes.ICollectionTs
 {
-    internal sealed class ByteConverterUInt32NullableICollection<TParent> : ByteConverter<TParent, ICollection<uint?>>
+    internal sealed class ByteConverterUInt32NullableICollection : ByteConverter<ICollection<uint?>>
     {
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out ICollection<uint?>? value)
         {
@@ -23,6 +22,6 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.ICollectionTs
         }
 
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in ICollection<uint?> value)
-            => writer.TryWrite(value, value.Count, out state.BytesNeeded);
+            => writer.TryWrite(value, value.Count, out state.SizeNeeded);
     }
 }

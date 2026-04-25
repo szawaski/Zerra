@@ -2,55 +2,52 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 
 namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
 {
-    internal sealed class JsonConverterString<TParent> : JsonConverter<TParent, string?>
+    internal sealed class JsonConverterString : JsonConverter<string?>
     {
         protected override bool StackRequired => false;
 
-        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out string? value)
+        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonToken token, out string? value)
         {
-            switch (valueType)
+            switch (token)
             {
-                case JsonValueType.String:
-                    if (!reader.TryReadStringEscapedQuoted(true, out value, out state.SizeNeeded))
-                    {
-                        value = default;
-                        return false;
-                    }
+                case JsonToken.String:
+                    if (reader.UseBytes)
+                        value = reader.UnescapeStringBytes();
+                    else
+                        value = reader.PositionOfFirstEscape == -1 ? reader.ValueChars.ToString() : reader.UnescapeStringChars();
                     return true;
-                case JsonValueType.Null_Completed:
+                case JsonToken.Null:
                     value = null;
                     return true;
-                case JsonValueType.Number:
-                    if (!reader.TryReadNumberString(out value, out state.SizeNeeded))
-                    {
-                        value = default;
-                        return false;
-                    }
+                case JsonToken.Number:
+                    if (reader.UseBytes)
+                        value = System.Text.Encoding.UTF8.GetString(reader.ValueBytes);
+                    else
+                        value = reader.ValueChars.ToString();
                     return true;
-                case JsonValueType.False_Completed:
+                case JsonToken.False:
                     value = "false";
                     return true;
-                case JsonValueType.True_Completed:
+                case JsonToken.True:
                     value = "true";
                     return true;
-                case JsonValueType.Object:
+                case JsonToken.ObjectStart:
                     if (state.ErrorOnTypeMismatch)
                         ThrowCannotConvert(ref reader);
                     value = String.Empty;
                     return DrainObject(ref reader, ref state);
-                case JsonValueType.Array:
+                case JsonToken.ArrayStart:
                     if (state.ErrorOnTypeMismatch)
                         ThrowCannotConvert(ref reader);
                     value = default;
                     return DrainArray(ref reader, ref state);
                 default:
-                    throw new NotImplementedException();
+                    throw reader.CreateException();
             }
         }
 

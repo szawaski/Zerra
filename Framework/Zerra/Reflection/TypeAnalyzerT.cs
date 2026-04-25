@@ -2,57 +2,38 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using Zerra.Collections;
+
+// Copyright © KaKush LLC
+// Written By Steven Zawaski
+// Licensed to you under the MIT license
 
 namespace Zerra.Reflection
 {
+    /// <summary>
+    /// Provides generic type analysis for a specific type <typeparamref name="T"/>.
+    /// Caches detailed type information in a thread-safe manner for performance.
+    /// This is a generic wrapper around the non-generic <see cref="TypeAnalyzer"/> that specializes access for a single type.
+    /// </summary>
+    /// <typeparam name="T">The type to provide analysis for.</typeparam>
     public static class TypeAnalyzer<T>
     {
-        private static readonly object typeDetailLock = new object();
+        private static readonly Lock typeDetailLock = new Lock();
         private static TypeDetail<T>? typeDetail = null;
+        
+        /// <summary>
+        /// Gets the cached detailed type information for <typeparamref name="T"/>.
+        /// Thread-safe lazy initialization ensures the type detail is generated only once.
+        /// </summary>
+        /// <returns>The type detail information for <typeparamref name="T"/>.</returns>
+        /// <exception cref="NotSupportedException">Thrown if dynamic code generation is required but not supported.</exception>
         public static TypeDetail<T> GetTypeDetail()
         {
             if (typeDetail is null)
             {
                 lock (typeDetailLock)
-                {
                     typeDetail ??= (TypeDetail<T>)TypeAnalyzer.GetTypeDetail(typeof(T));
-                }
             }
             return typeDetail;
-        }
-
-        private static readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail<T>?> methodDetailsByType = new();
-        public static MethodDetail<T> GetMethodDetail(string name, Type[]? parameterTypes = null)
-        {
-            var key = new TypeKey(name, parameterTypes);
-            var method = methodDetailsByType.GetOrAdd(key, name, parameterTypes, static (name, parameterTypes) => (MethodDetail<T>)TypeAnalyzer.GetMethodDetail(typeof(T), name, parameterTypes));
-            return method ?? throw new ArgumentException($"{typeof(T).GetNiceName()}.{name} method not found");
-        }
-
-        private static readonly ConcurrentFactoryDictionary<TypeKey, ConstructorDetail<T>?> constructorDetailsByType = new();
-        public static ConstructorDetail<T> GetConstructorDetail(Type[]? parameterTypes = null)
-        {
-            var key = new TypeKey(parameterTypes);
-            var constructor = constructorDetailsByType.GetOrAdd(key, parameterTypes, static (parameterTypes) => (ConstructorDetail<T>)TypeAnalyzer.GetConstructorDetail(typeof(T), parameterTypes));
-            return constructor ?? throw new ArgumentException($"{typeof(T).GetNiceName()} constructor not found");
-        }
-
-        private static readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail<T>> genericMethodDetails = new();
-        public static MethodDetail<T> GetGenericMethodDetail(MethodDetail<T> methodDetail, params Type[] types)
-        {
-            var key = new TypeKey(methodDetail.MethodInfo.ToString(), types);
-            var genericMethod = genericMethodDetails.GetOrAdd(key, methodDetail, types, static (methodDetail, types) => (MethodDetail<T>)TypeAnalyzer.GetGenericMethodDetail(methodDetail, types));
-            return genericMethod;
-        }
-
-        private static readonly ConcurrentFactoryDictionary<TypeKey, TypeDetail<T>> genericTypeDetailsByType = new();
-        public static TypeDetail<T> GetGenericTypeDetail(params Type[] types)
-        {
-            var key = new TypeKey(types);
-            var genericTypeDetail = genericTypeDetailsByType.GetOrAdd(key, types, static (types) => (TypeDetail<T>)TypeAnalyzer.GetGenericTypeDetail(typeof(T), types));
-            return genericTypeDetail;
         }
     }
 }

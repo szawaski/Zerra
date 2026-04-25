@@ -3,25 +3,32 @@
 // Licensed to you under the MIT license
 
 using Azure.Messaging.ServiceBus;
-using System;
 using System.Collections.Concurrent;
-using System.Linq;
 using System.Security.Claims;
-using System.Threading;
-using System.Threading.Tasks;
 using Zerra.CQRS.Network;
 using Zerra.Encryption;
 using Zerra.Logging;
+using Zerra.Serialization;
 
 namespace Zerra.CQRS.AzureServiceBus
 {
+    /// <summary>
+    /// Azure Service Bus implementation of command and event producer for distributed CQRS messaging.
+    /// </summary>
+    /// <remarks>
+    /// Provides high-performance, reliable message delivery to Azure Service Bus queues and topics.
+    /// Supports command acknowledgements with automatic retry logic and optional message encryption.
+    /// Thread-safe for concurrent operations.
+    /// </remarks>
     public sealed class AzureServiceBusProducer : ICommandProducer, IEventProducer, IAsyncDisposable
     {
         private bool listenerStarted = false;
         private readonly SemaphoreSlim listenerStartedLock = new(1, 1);
 
         private readonly string host;
-        private readonly SymmetricConfig? symmetricConfig;
+        private readonly ISerializer serializer;
+        private readonly IEncryptor? encryptor;
+        private readonly ILogger? log;
         private readonly string? environment;
         private readonly string ackQueue;
         private readonly ConcurrentDictionary<Type, string> queueByCommandType;
@@ -30,12 +37,24 @@ namespace Zerra.CQRS.AzureServiceBus
         private readonly ServiceBusClient client;
         private readonly CancellationTokenSource canceller;
         private readonly ConcurrentDictionary<string, Action<Acknowledgement>> ackCallbacks;
-        public AzureServiceBusProducer(string host, SymmetricConfig? symmetricConfig, string? environment)
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AzureServiceBusProducer"/> class.
+        /// </summary>
+        /// <param name="host">The Azure Service Bus connection string.</param>
+        /// <param name="serializer">The serializer for message serialization and deserialization.</param>
+        /// <param name="encryptor">Optional encryptor for message encryption. If null, messages are not encrypted.</param>
+        /// <param name="log">Optional logger for diagnostic information.</param>
+        /// <param name="environment">Optional environment name to prefix queue and topic names for isolation.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="host"/> is null or empty.</exception>
+        public AzureServiceBusProducer(string host, ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 
             this.host = host;
-            this.symmetricConfig = symmetricConfig;
+            this.serializer = serializer;
+            this.encryptor = encryptor;
+            this.log = log;
             this.environment = environment;
 
             this.ackQueue = $"ACK-{Guid.NewGuid():N}";
@@ -61,9 +80,9 @@ namespace Zerra.CQRS.AzureServiceBus
         {
             var commandType = command.GetType();
             if (!queueByCommandType.TryGetValue(commandType, out var queue))
-                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(AzureServiceBusProducer)}");
+                throw new Exception($"{commandType.Name} is not registered with {nameof(AzureServiceBusProducer)}");
             if (!throttleByQueueOrTopic.TryGetValue(queue, out var throttle))
-                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(AzureServiceBusProducer)}");
+                throw new Exception($"{commandType.Name} is not registered with {nameof(AzureServiceBusProducer)}");
 
             await throttle.WaitAsync(cancellationToken);
 
@@ -102,16 +121,16 @@ namespace Zerra.CQRS.AzureServiceBus
 
                 var message = new AzureServiceBusMessage()
                 {
-                    MessageData = AzureServiceBusCommon.Serialize(command),
+                    MessageData = serializer.SerializeBytes(command),
                     MessageType = command.GetType(),
                     HasResult = false,
                     Claims = claims,
                     Source = source
                 };
 
-                var body = AzureServiceBusCommon.Serialize(message);
-                if (symmetricConfig is not null)
-                    body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
+                var body = serializer.SerializeBytes(message);
+                if (encryptor is not null)
+                    body = encryptor.Encrypt(body);
 
                 if (requireAcknowledgement)
                 {
@@ -157,7 +176,7 @@ namespace Zerra.CQRS.AzureServiceBus
             }
             finally
             {
-                throttle.Release();
+                _ = throttle.Release();
             }
         }
 
@@ -165,9 +184,9 @@ namespace Zerra.CQRS.AzureServiceBus
         {
             var commandType = command.GetType();
             if (!queueByCommandType.TryGetValue(commandType, out var queue))
-                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(AzureServiceBusProducer)}");
+                throw new Exception($"{commandType.Name} is not registered with {nameof(AzureServiceBusProducer)}");
             if (!throttleByQueueOrTopic.TryGetValue(queue, out var throttle))
-                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(AzureServiceBusProducer)}");
+                throw new Exception($"{commandType.Name} is not registered with {nameof(AzureServiceBusProducer)}");
 
             await throttle.WaitAsync(cancellationToken);
 
@@ -203,16 +222,16 @@ namespace Zerra.CQRS.AzureServiceBus
 
                 var message = new AzureServiceBusMessage()
                 {
-                    MessageData = AzureServiceBusCommon.Serialize(command),
+                    MessageData = serializer.SerializeBytes(command),
                     MessageType = command.GetType(),
                     HasResult = true,
                     Claims = claims,
                     Source = source
                 };
 
-                var body = AzureServiceBusCommon.Serialize(message);
-                if (symmetricConfig is not null)
-                    body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
+                var body = serializer.SerializeBytes(message);
+                if (encryptor is not null)
+                    body = encryptor.Encrypt(body);
 
                 var ackKey = Guid.NewGuid().ToString("N");
 
@@ -249,7 +268,7 @@ namespace Zerra.CQRS.AzureServiceBus
             }
             finally
             {
-                throttle.Release();
+                _ = throttle.Release();
             }
         }
 
@@ -257,9 +276,9 @@ namespace Zerra.CQRS.AzureServiceBus
         {
             var eventType = @event.GetType();
             if (!topicByEventType.TryGetValue(eventType, out var topic))
-                throw new Exception($"{eventType.GetNiceName()} is not registered with {nameof(AzureServiceBusProducer)}");
+                throw new Exception($"{eventType.Name} is not registered with {nameof(AzureServiceBusProducer)}");
             if (!throttleByQueueOrTopic.TryGetValue(topic, out var throttle))
-                throw new Exception($"{eventType.GetNiceName()} is not registered with {nameof(AzureServiceBusProducer)}");
+                throw new Exception($"{eventType.Name} is not registered with {nameof(AzureServiceBusProducer)}");
 
             await throttle.WaitAsync(cancellationToken);
 
@@ -276,16 +295,16 @@ namespace Zerra.CQRS.AzureServiceBus
 
                 var message = new AzureServiceBusMessage()
                 {
-                    MessageData = AzureServiceBusCommon.Serialize(@event),
+                    MessageData = serializer.SerializeBytes(@event),
                     MessageType = @event.GetType(),
                     HasResult = false,
                     Claims = claims,
                     Source = source
                 };
 
-                var body = AzureServiceBusCommon.Serialize(message);
-                if (symmetricConfig is not null)
-                    body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
+                var body = serializer.SerializeBytes(message);
+                if (encryptor is not null)
+                    body = encryptor.Encrypt(body);
 
                 var serviceBusMessage = new ServiceBusMessage(body);
                 await using (var sender = client.CreateSender(topic))
@@ -295,7 +314,7 @@ namespace Zerra.CQRS.AzureServiceBus
             }
             finally
             {
-                throttle.Release();
+                _ = throttle.Release();
             }
         }
 
@@ -321,9 +340,9 @@ namespace Zerra.CQRS.AzureServiceBus
                         try
                         {
                             var response = serviceBusMessage.Body.ToStream();
-                            if (symmetricConfig is not null)
-                                response = SymmetricEncryptor.Decrypt(symmetricConfig, response, false);
-                            acknowledgement = await AzureServiceBusCommon.DeserializeAsync<Acknowledgement>(response);
+                            if (encryptor is not null)
+                                response = encryptor.Decrypt(response, false);
+                            acknowledgement = await serializer.DeserializeAsync<Acknowledgement>(response, canceller.Token);
                             acknowledgement ??= new Acknowledgement("Invalid Acknowledgement");
                         }
                         catch (Exception ex)
@@ -340,7 +359,7 @@ namespace Zerra.CQRS.AzureServiceBus
             }
             catch (Exception ex)
             {
-                _ = Log.ErrorAsync(ex);
+                log?.Error(ex);
                 if (!canceller.IsCancellationRequested)
                 {
                     await Task.Delay(AzureServiceBusCommon.RetryDelay);
@@ -357,12 +376,19 @@ namespace Zerra.CQRS.AzureServiceBus
                 }
                 catch (Exception ex)
                 {
-                    _ = Log.ErrorAsync(ex);
+                    log?.Error(ex);
                 }
                 canceller.Dispose();
             }
         }
 
+        /// <summary>
+        /// Releases all resources used by the <see cref="AzureServiceBusProducer"/>.
+        /// </summary>
+        /// <remarks>
+        /// Cancels acknowledgement listening, closes the Service Bus client connection,
+        /// and releases semaphore resources.
+        /// </remarks>
         public async ValueTask DisposeAsync()
         {
             canceller.Cancel();
@@ -374,7 +400,7 @@ namespace Zerra.CQRS.AzureServiceBus
         {
             if (queueByCommandType.ContainsKey(type))
                 return;
-            queueByCommandType.TryAdd(type, topic);
+            _ = queueByCommandType.TryAdd(type, topic);
             if (throttleByQueueOrTopic.ContainsKey(topic))
                 return;
             var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
@@ -386,7 +412,7 @@ namespace Zerra.CQRS.AzureServiceBus
         {
             if (topicByEventType.ContainsKey(type))
                 return;
-            topicByEventType.TryAdd(type, topic);
+            _ = topicByEventType.TryAdd(type, topic);
             if (throttleByQueueOrTopic.ContainsKey(topic))
                 return;
             var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);

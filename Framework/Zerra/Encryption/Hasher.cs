@@ -2,8 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -15,6 +13,10 @@ namespace Zerra.Encryption
     public static class Hasher
     {
         private const int saltByteLength = 16;
+        private const int pbkdf2HashByteSize = 64;
+        private const int rfc2898HashItterations = 1000; //default per source code
+        private static readonly HashAlgorithmName defaultPBKDF2HashAlgorithm = HashAlgorithmName.SHA1;
+
         /// <summary>
         /// Generates a random salt.
         /// </summary>
@@ -140,19 +142,18 @@ namespace Zerra.Encryption
             }
         }
 
-        private const int pbkdf2HashByteSize = 64;
-        private const int rfc2898HashItterations = 1000; //default per source code
         /// <summary>
         /// Generates a hash from the plain input using Password-Based Key Derivation Function 2 (PBKDF-2).
         /// </summary>
         /// <param name="plain">The input to hash.</param>
         /// <param name="salt">The optional salt.</param>
+        /// <param name="hashAlgorithm">The hash algorithm to use. The default is SHA1.</param>
         /// <returns>The resulting hash from the plain input.</returns>
-        public static string PBKDF2GenerateHash(string plain, string? salt = null)
+        public static string PBKDF2GenerateHash(string plain, string? salt = null, HashAlgorithmName? hashAlgorithm = null)
         {
             var plainBytes = Encoding.UTF8.GetBytes(plain);
             var saltBytes = salt is not null ? Encoding.UTF8.GetBytes(salt) : null;
-            var hashedBytes = PBKDF2GenerateHash(plainBytes, saltBytes);
+            var hashedBytes = PBKDF2GenerateHash(plainBytes, saltBytes, hashAlgorithm);
             var hash = Convert.ToBase64String(hashedBytes);
             return hash;
         }
@@ -161,34 +162,37 @@ namespace Zerra.Encryption
         /// </summary>
         /// <param name="plainBytes">The input to hash.</param>
         /// <param name="saltBytes">The optional salt.</param>
+        /// <param name="hashAlgorithm">The hash algorithm to use. The default is SHA1.</param>
         /// <returns>The resulting hash from the plain input.</returns>
-        public static byte[] PBKDF2GenerateHash(byte[] plainBytes, byte[]? saltBytes = null)
+        public static byte[] PBKDF2GenerateHash(byte[] plainBytes, byte[]? saltBytes = null, HashAlgorithmName? hashAlgorithm = null)
         {
             saltBytes ??= GenerateSaltBytes();
 
+            byte[] hashBytes;
 #if NETSTANDARD2_0
-            using (var deriveBytes = new Rfc2898DeriveBytes(plainBytes, saltBytes, rfc2898HashItterations))
-#else
             using (var deriveBytes = new Rfc2898DeriveBytes(plainBytes, saltBytes, rfc2898HashItterations, HashAlgorithmName.SHA1))
-#endif
             {
-                var hashBytes = deriveBytes.GetBytes(pbkdf2HashByteSize);
-
-                //hash+salt
-                var hashWithSaltBytes = new byte[hashBytes.Length + saltBytes.Length];
-                Array.Copy(hashBytes, 0, hashWithSaltBytes, 0, hashBytes.Length);
-                Array.Copy(saltBytes, 0, hashWithSaltBytes, hashBytes.Length, saltBytes.Length);
-
-                return hashWithSaltBytes;
+                hashBytes = deriveBytes.GetBytes(pbkdf2HashByteSize);
             }
+#else
+            hashBytes = Rfc2898DeriveBytes.Pbkdf2(plainBytes, saltBytes, rfc2898HashItterations, hashAlgorithm ?? defaultPBKDF2HashAlgorithm, pbkdf2HashByteSize);
+#endif
+
+            //hash+salt
+            var hashWithSaltBytes = new byte[hashBytes.Length + saltBytes.Length];
+            Array.Copy(hashBytes, 0, hashWithSaltBytes, 0, hashBytes.Length);
+            Array.Copy(saltBytes, 0, hashWithSaltBytes, hashBytes.Length, saltBytes.Length);
+
+            return hashWithSaltBytes;
         }
         /// <summary>
         /// Verifies a hash is valid from the original plain input using Password-Based Key Derivation Function 2 (PBKDF-2).
         /// </summary>
         /// <param name="plain">The original input.</param>
         /// <param name="hash">The hash value.</param>
+        /// <param name="hashAlgorithm">The hash algorithm to use. The default is SHA1.</param>
         /// <returns>True if the hash matches the original plain input; otherwise False.</returns>
-        public static bool PBKDF2VerifyHash(string plain, string hash)
+        public static bool PBKDF2VerifyHash(string plain, string hash, HashAlgorithmName? hashAlgorithm = null)
         {
             try
             {
@@ -206,8 +210,9 @@ namespace Zerra.Encryption
         /// </summary>
         /// <param name="plainBytes">The original input.</param>
         /// <param name="hashWithSaltBytes">The hash value.</param>
+        /// <param name="hashAlgorithm">The hash algorithm to use. The default is SHA1.</param>
         /// <returns>True if the hash matches the original plain input; otherwise False.</returns>
-        public static bool PBKDF2VerifyHash(byte[] plainBytes, byte[] hashWithSaltBytes)
+        public static bool PBKDF2VerifyHash(byte[] plainBytes, byte[] hashWithSaltBytes, HashAlgorithmName? hashAlgorithm = null)
         {
             if (hashWithSaltBytes.Length < pbkdf2HashByteSize)
                 return false;
@@ -218,14 +223,14 @@ namespace Zerra.Encryption
             Array.Copy(hashWithSaltBytes, 0, hashBytes, 0, hashBytes.Length);
             Array.Copy(hashWithSaltBytes, pbkdf2HashByteSize, saltBytes, 0, saltBytes.Length);
 
-#if NETSTANDARD2_0
-            using (var deriveBytes = new Rfc2898DeriveBytes(plainBytes, saltBytes, rfc2898HashItterations))
-#else
-            using (var deriveBytes = new Rfc2898DeriveBytes(plainBytes, saltBytes, rfc2898HashItterations, HashAlgorithmName.SHA1))
-#endif
+#if NETSTANDARD2_0 || NET48
+            using (var deriveBytes = new Rfc2898DeriveBytes(plainBytes, saltBytes, rfc2898HashItterations, hashAlgorithm ?? HashAlgorithmName.SHA1))
             {
                 var expectedHashBytes = deriveBytes.GetBytes(pbkdf2HashByteSize);
-
+#else
+            var expectedHashBytes = Rfc2898DeriveBytes.Pbkdf2(plainBytes, saltBytes, rfc2898HashItterations, hashAlgorithm ?? defaultPBKDF2HashAlgorithm, pbkdf2HashByteSize);
+            {
+#endif
                 return expectedHashBytes.SequenceEqual(hashBytes);
             }
         }

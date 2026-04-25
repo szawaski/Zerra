@@ -2,25 +2,24 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
 using Zerra.Collections;
 using Zerra.Reflection;
 
 namespace Zerra.Repository.Reflection
 {
+    /// <summary>
+    /// Provides cached reflection-based analysis of repository model types, exposing identity,
+    /// foreign-identity, and LINQ expression helpers.
+    /// </summary>
     public static class ModelAnalyzer
     {
         private static readonly ConcurrentFactoryDictionary<Type, ModelDetail> modelInfos = new();
-        public static ModelDetail GetModel<TModel>()
-        {
-            var type = typeof(TModel);
-
-            return GetModel(type);
-        }
+        /// <summary>
+        /// Returns the cached <see cref="ModelDetail"/> for the specified type, creating it on first access.
+        /// </summary>
+        /// <param name="type">The model type to analyse.</param>
+        /// <returns>The <see cref="ModelDetail"/> for <paramref name="type"/>.</returns>
         public static ModelDetail GetModel(Type type)
         {
             var modelInfo = modelInfos.GetOrAdd(type, static (type) =>
@@ -32,137 +31,164 @@ namespace Zerra.Repository.Reflection
         }
 
         private static readonly ConcurrentFactoryDictionary<TypeKey, object?> getterFunctionsByAttribute = new();
-        private static Func<T, object?>? GetGetterFunctionByNameOrAttribute<T>(string? propertyNames, Type? attributeType)
+        private static Func<object, object?>? GetGetterFunctionByName(Type type, string propertyNames)
         {
-            TypeKey key;
-            if (attributeType is not null)
-                key = new TypeKey(propertyNames, typeof(T), attributeType);
-            else
-                key = new TypeKey(propertyNames, typeof(T));
+            var key = new TypeKey(propertyNames, type);
 
-            var getter = getterFunctionsByAttribute.GetOrAdd(key, propertyNames, attributeType, static (propertyNames, attributeType) => GenerateGetterFunctionByNameOrAttribute<T>(propertyNames, attributeType));
+            var getter = getterFunctionsByAttribute.GetOrAdd(key, type, propertyNames, static (type, propertyNames) => GenerateGetterFunctionByName(type, propertyNames));
 
-            var expression = (Func<T, object>?)getter;
+            var expression = (Func<object, object>?)getter;
             return expression;
         }
-        private static Func<T, object>? GenerateGetterFunctionByNameOrAttribute<T>(string? propertyNames, Type? attributeType)
+        private static Func<object, object?>? GetGetterFunctionByAttribute(Type type)
         {
-            var type = typeof(T);
+            var key = new TypeKey(type);
 
-            var propertyNamesArray = propertyNames is null ? null : propertyNames.Split(',');
+            var getter = getterFunctionsByAttribute.GetOrAdd(key, type, static (type) => GenerateGetterFunctionByAttribute(type));
 
-            var sourceExpression = Expression.Parameter(type, "x");
+            var expression = (Func<object, object>?)getter;
+            return expression;
+        }
+        private static Func<object, object>? GenerateGetterFunctionByName(Type type, string propertyNames)
+        {
+            var propertyNamesArray = propertyNames?.Split(',');
 
-            var typeProperties = type.GetProperties();
-            var propertyExpressions = new List<Expression>();
-            foreach (var typeProperty in typeProperties)
+            var members = GetModel(type).TypeDetail.Members.Where(x => propertyNamesArray.Contains(x.Name)).ToArray();
+
+            if (members.Length == 1)
             {
-                if (propertyNamesArray is not null && propertyNamesArray.Contains(typeProperty.Name))
+                var member = members[0];
+                return member.GetterBoxed!;
+            }
+            else if (members.Length > 1)
+            {
+                return (object obj) =>
                 {
-                    Expression propertyExpression = Expression.Property(sourceExpression, typeProperty);
-                    propertyExpressions.Add(propertyExpression);
-                }
-                else if (attributeType is not null)
-                {
-                    var attribute = typeProperty.GetCustomAttribute(attributeType, true);
-                    if (attribute is not null)
+                    var values = new object?[members.Length];
+                    for (var x = 0; x < members.Length; x++)
                     {
-                        Expression propertyExpression = Expression.Property(sourceExpression, typeProperty);
-                        propertyExpressions.Add(propertyExpression);
+                        var v = members[x].GetterBoxed!.Invoke(obj);
+                        values[x] = v;
                     }
-                }
-            }
-
-            Expression? accessor = null;
-            if (propertyExpressions.Count == 1)
-            {
-                accessor = Expression.Convert(propertyExpressions.Single(), typeof(object));
-            }
-            else if (propertyExpressions.Count > 1)
-            {
-                accessor = Expression.NewArrayInit(typeof(object), propertyExpressions.Select(x => Expression.Convert(x, typeof(object))));
+                    return values;
+                };
             }
             else
             {
-                //return null;
-                throw new InvalidOperationException($"Getter function not found on {type.GetNiceName()}");
+                throw new InvalidOperationException($"Getter function not found on {type.Name}");
             }
+        }
+        private static Func<object, object>? GenerateGetterFunctionByAttribute(Type type)
+        {
+            var sourceExpression = Expression.Parameter(typeof(object), "x");
 
-            var lambda = Expression.Lambda<Func<T, object>>(accessor, sourceExpression);
-            return lambda.Compile();
+            var identityProperties = GetModel(type).IdentityProperties;
+
+            if (identityProperties.Count == 1)
+            {
+                var identityProperty = identityProperties[0];
+                return identityProperty.MemberDetail.GetterBoxed!;
+            }
+            else if (identityProperties.Count > 1)
+            {
+                return (object obj) =>
+                {
+                    var values = new object?[identityProperties.Count];
+                    for (var x = 0; x < identityProperties.Count; x++)
+                    {
+                        var v = identityProperties[x].GetterBoxed!.Invoke(obj);
+                        values[x] = v;
+                    }
+                    return values;
+                };
+            }
+            else
+            {
+                throw new InvalidOperationException($"Getter function not found on {type.Name}");
+            }
         }
 
         private static readonly ConcurrentFactoryDictionary<TypeKey, object> setterFunctionsByAttribute = new();
-        private static Action<T, object?> GetSetterFunctionByNameOrAttribute<T>(string? propertyNames, Type? attributeType)
+        private static Action<object, object?> GetSetterFunctionByName(Type type, string propertyNames)
         {
-            TypeKey key;
-            if (attributeType is not null)
-                key = new TypeKey(propertyNames, typeof(T), attributeType);
-            else
-                key = new TypeKey(propertyNames, typeof(T));
+            var key = new TypeKey(propertyNames, type);
 
-            var setter = setterFunctionsByAttribute.GetOrAdd(key, propertyNames, attributeType, static (propertyNames, attributeType) => GenerateSetterFunctionByNameOrAttribute<T>(propertyNames, attributeType));
+            var setter = setterFunctionsByAttribute.GetOrAdd(key, type, propertyNames, static (type, propertyNames) => GenerateSetterFunctionByName(type, propertyNames));
 
-            var expression = (Action<T, object?>)setter;
+            var expression = (Action<object, object?>)setter;
             return expression;
         }
-        private static Action<T, object?> GenerateSetterFunctionByNameOrAttribute<T>(string? propertyNames, Type? attributeType)
+        private static Action<object, object?> GetSetterFunctionByAttribute(Type type)
         {
-            var type = typeof(T);
+            var key = new TypeKey(type);
 
-            var propertyNamesArray = propertyNames is null ? null : propertyNames.Split(',');
+            var setter = setterFunctionsByAttribute.GetOrAdd(key, type, static (type) => GenerateSetterFunctionByAttribute(type));
 
-            var sourceExpression = Expression.Parameter(type, "x");
-            var parameterValue = Expression.Parameter(typeof(object), "y");
+            var expression = (Action<object, object?>)setter;
+            return expression;
+        }
+        private static Action<object, object?> GenerateSetterFunctionByName(Type type, string propertyNames)
+        {
+            var propertyNamesArray = propertyNames.Split(',').ToHashSet();
 
-            var typeProperties = type.GetProperties();
-            var propertyExpressions = new List<Expression>();
-            foreach (var typeProperty in typeProperties)
+            var members = GetModel(type).TypeDetail.Members.Where(x => propertyNamesArray.Contains(x.Name)).ToArray();
+
+            if (members.Length == 1)
             {
-                if (propertyNamesArray is not null && propertyNamesArray.Contains(typeProperty.Name))
+                var member = members[0];
+                return member.SetterBoxed!;
+            }
+            else if (members.Length > 1)
+            {
+                return (object obj, object? value) =>
                 {
-                    Expression propertyExpression = Expression.Property(sourceExpression, typeProperty);
-                    propertyExpressions.Add(propertyExpression);
-                }
-                else if (attributeType is not null)
-                {
-                    var attribute = typeProperty.GetCustomAttribute(attributeType, true);
-                    if (attribute is not null)
+                    var values = (object?[]?)value;
+                    for (var x = 0; x < members.Length; x++)
                     {
-                        Expression propertyExpression = Expression.Property(sourceExpression, typeProperty);
-                        propertyExpressions.Add(propertyExpression);
+                        var v = values?[x];
+                        members[x].SetterBoxed!.Invoke(obj, v);
                     }
-                }
-            }
-
-            Expression setter;
-            if (propertyExpressions.Count == 1)
-            {
-                setter = Expression.Assign(propertyExpressions.Single(), Expression.Convert(parameterValue, propertyExpressions.Single().Type));
-            }
-            else if (propertyExpressions.Count > 1)
-            {
-                var setters = new List<Expression>();
-                var index = 0;
-                foreach (var propertyExpression in propertyExpressions)
-                {
-                    Expression parameterValueIndex = Expression.ArrayIndex(parameterValue, Expression.Constant(index));
-                    Expression subsetter = Expression.Assign(propertyExpression, Expression.Convert(parameterValueIndex, propertyExpression.Type));
-                    setters.Add(subsetter);
-                    index++;
-                }
-                setter = Expression.Block(setters.ToArray());
+                };
             }
             else
             {
-                throw new InvalidOperationException($"Setter function not found on {type.GetNiceName()}");
+                throw new InvalidOperationException($"Setter function not found on {type.Name}");
             }
+        }
+        private static Action<object, object?> GenerateSetterFunctionByAttribute(Type type)
+        {
+            var identityProperties = GetModel(type).IdentityProperties;
 
-            var lambda = Expression.Lambda<Action<T, object?>>(setter, sourceExpression, parameterValue);
-            return lambda.Compile();
+            if (identityProperties.Count == 1)
+            {
+                var identityProperty = identityProperties[0];
+                return identityProperty.MemberDetail.SetterBoxed!;
+            }
+            else if (identityProperties.Count > 1)
+            {
+                return (object obj, object? value) =>
+                {
+                    var values = (object?[]?)value;
+                    for (var x = 0; x < identityProperties.Count; x++)
+                    {
+                        var v = values?[x];
+                        identityProperties[x].SetterBoxed!.Invoke(obj, v);
+                    }
+                };
+            }
+            else
+            {
+                throw new InvalidOperationException($"Setter function not found on {type.Name}");
+            }
         }
 
         private static readonly ConcurrentFactoryDictionary<Type, string[]> identityPropertyNames = new();
+        /// <summary>
+        /// Returns the names of all properties on the specified type that are marked with <see cref="IdentityAttribute"/>.
+        /// </summary>
+        /// <param name="type">The model type to inspect.</param>
+        /// <returns>An array of identity property names.</returns>
+        /// <exception cref="Exception">Thrown when the type has no identity properties.</exception>
         public static string[] GetIdentityPropertyNames(Type type)
         {
             var names = identityPropertyNames.GetOrAdd(type, GenerateIdentityPropertyNames);
@@ -172,75 +198,83 @@ namespace Zerra.Repository.Reflection
         }
         private static string[] GenerateIdentityPropertyNames(Type type)
         {
-            var properties = new List<PropertyInfo>();
-            var typeProperties = type.GetProperties();
-            foreach (var typeProperty in typeProperties)
+            var properties = new List<string>();
+            var typeDetail = type.GetTypeDetail();
+            foreach (var member in typeDetail.Members)
             {
-                var attribute = typeProperty.GetCustomAttribute(typeof(IdentityAttribute), true);
-                if (attribute is not null)
-                {
-                    properties.Add(typeProperty);
-                }
+                if (member.Attributes.Any(x => x is IdentityAttribute))
+                    properties.Add(member.Name);
             }
-            return properties.Select(x => x.Name).ToArray();
+            return properties.ToArray();
         }
 
-        private static readonly MethodInfo getIdentityMethod = typeof(ModelAnalyzer).GetMethods(BindingFlags.Public | BindingFlags.Static).First(x => x.Name == nameof(ModelAnalyzer.GetIdentity) && x.IsGenericMethod);
-        public static object GetIdentity<TModel>(TModel model) where TModel : class, new()
-        {
-            var modelIdentityAccessor = GetGetterFunctionByNameOrAttribute<TModel>(null, typeof(IdentityAttribute));
-            if (modelIdentityAccessor is null)
-                throw new Exception($"Model {typeof(TModel).GetNiceName()} missing Identity");
-            var id = modelIdentityAccessor.Invoke(model);
-            if (id is null)
-                throw new Exception($"Model {typeof(TModel).GetNiceName()} missing Identity");
-            return id;
-        }
+        /// <summary>
+        /// Retrieves the identity value(s) from a model instance.
+        /// For composite identities the result is an <see cref="object"/> array.
+        /// </summary>
+        /// <param name="type">The model type.</param>
+        /// <param name="model">The model instance to read from.</param>
+        /// <returns>The identity value, or an array of values for composite identities.</returns>
+        /// <exception cref="Exception">Thrown when the type has no identity or the identity value is <see langword="null"/>.</exception>
         public static object GetIdentity(Type type, object model)
         {
-            var genericGetIdentityMethod = TypeAnalyzer.GetGenericMethodDetail(getIdentityMethod, type);
-            return genericGetIdentityMethod.CallerBoxed(null, [model])!;
+            var modelIdentityAccessor = GetGetterFunctionByAttribute(type);
+            if (modelIdentityAccessor is null)
+                throw new Exception($"Model {type.Name} missing Identity");
+            var id = modelIdentityAccessor.Invoke(model);
+            if (id is null)
+                throw new Exception($"Model {type.Name} missing Identity");
+            return id;
         }
 
-        private static readonly MethodInfo setIdentityMethod = typeof(ModelAnalyzer).GetMethods(BindingFlags.Public | BindingFlags.Static).First(x => x.Name == nameof(ModelAnalyzer.SetIdentity) && x.IsGenericMethod);
-        public static void SetIdentity<TModel>(TModel model, object? identity) where TModel : class, new()
-        {
-            var setter = GetSetterFunctionByNameOrAttribute<TModel>(null, typeof(IdentityAttribute));
-            setter.Invoke(model, identity);
-        }
+        /// <summary>
+        /// Sets the identity value(s) on a model instance.
+        /// </summary>
+        /// <param name="type">The model type.</param>
+        /// <param name="model">The model instance to write to.</param>
+        /// <param name="identity">The identity value to assign, or an array of values for composite identities.</param>
         public static void SetIdentity(Type type, object model, object? identity)
         {
-            var genericSetIdentityMethod = TypeAnalyzer.GetGenericMethodDetail(setIdentityMethod, type);
-            _ = genericSetIdentityMethod.CallerBoxed(null, [model, identity]);
+            var setter = GetSetterFunctionByAttribute(type);
+            setter.Invoke(model, identity);
         }
 
-        private static readonly MethodInfo getForeignIdentityMethod = typeof(ModelAnalyzer).GetMethods(BindingFlags.Public | BindingFlags.Static).First(x => x.Name == nameof(ModelAnalyzer.GetForeignIdentity) && x.IsGenericMethod);
-        public static object? GetForeignIdentity<TModel>(string foreignIdentityNames, TModel model) where TModel : class, new()
+        /// <summary>
+        /// Retrieves the foreign-identity value(s) from a model instance using a comma-separated list of property names.
+        /// </summary>
+        /// <param name="type">The model type.</param>
+        /// <param name="foreignIdentityNames">A comma-separated list of foreign-identity property names.</param>
+        /// <param name="model">The model instance to read from.</param>
+        /// <returns>The foreign-identity value, or an array of values for composite keys.</returns>
+        /// <exception cref="Exception">Thrown when no matching property is found.</exception>
+        public static object? GetForeignIdentity(Type type, string foreignIdentityNames, object model)
         {
-            var modelIdentityAccessor = GetGetterFunctionByNameOrAttribute<TModel>(foreignIdentityNames, null);
+            var modelIdentityAccessor = GetGetterFunctionByName(type, foreignIdentityNames);
             if (modelIdentityAccessor is null)
-                throw new Exception($"Model {typeof(TModel).GetNiceName()} missing Foreign Identity");
+                throw new Exception($"Model {type.Name} missing Foreign Identity");
             var id = modelIdentityAccessor.Invoke(model);
             return id;
         }
-        public static object? GetForeignIdentity(Type type, string foreignIdentityNames, object model)
-        {
-            var genericGetForeignIdentityMethod = TypeAnalyzer.GetGenericMethodDetail(getForeignIdentityMethod, type);
-            return genericGetForeignIdentityMethod.CallerBoxed(null, [foreignIdentityNames, model])!;
-        }
 
-        private static readonly MethodInfo setForeignIdentityMethod = typeof(ModelAnalyzer).GetMethods(BindingFlags.Public | BindingFlags.Static).First(x => x.Name == nameof(ModelAnalyzer.SetForeignIdentity) && x.IsGenericMethod);
-        public static void SetForeignIdentity<TModel>(string foreignIdentityNames, TModel model, object? identity) where TModel : class, new()
+        /// <summary>
+        /// Sets the foreign-identity value(s) on a model instance using a comma-separated list of property names.
+        /// </summary>
+        /// <param name="type">The model type.</param>
+        /// <param name="foreignIdentityNames">A comma-separated list of foreign-identity property names.</param>
+        /// <param name="model">The model instance to write to.</param>
+        /// <param name="identity">The foreign-identity value to assign, or an array of values for composite keys.</param>
+        public static void SetForeignIdentity(Type type, string foreignIdentityNames, object model, object? identity)
         {
-            var setter = GetSetterFunctionByNameOrAttribute<TModel>(foreignIdentityNames, null);
+            var setter = GetSetterFunctionByName(type, foreignIdentityNames);
             setter.Invoke(model, identity);
         }
-        public static void SetForeignIdentity(Type type, string foreignIdentityNames, object model, object identity)
-        {
-            var genericSetForeignIdentityMethod = TypeAnalyzer.GetGenericMethodDetail(setForeignIdentityMethod, type);
-            _ = genericSetForeignIdentityMethod.CallerBoxed(null, [foreignIdentityNames, model, identity]);
-        }
 
+        /// <summary>
+        /// Compares two identity values for equality, supporting both scalar and composite (array) identities.
+        /// </summary>
+        /// <param name="identity1">The first identity value.</param>
+        /// <param name="identity2">The second identity value.</param>
+        /// <returns><see langword="true"/> if the identities are equal; otherwise <see langword="false"/>.</returns>
         public static bool CompareIdentities(object? identity1, object? identity2)
         {
             if (identity1 is null)
@@ -279,6 +313,15 @@ namespace Zerra.Repository.Reflection
             return false;
         }
 
+        /// <summary>
+        /// Builds a LINQ predicate expression that matches a model by its identity value(s).
+        /// </summary>
+        /// <typeparam name="TModel">The model type.</typeparam>
+        /// <param name="identity">The identity value, or an array of values for composite identities.</param>
+        /// <returns>
+        /// A <see cref="Expression{TDelegate}"/> of <c>Func&lt;TModel, bool&gt;</c> that filters by identity,
+        /// or <see langword="null"/> if the type has no identity properties.
+        /// </returns>
         public static Expression<Func<TModel, bool>>? GetIdentityExpression<TModel>(object identity)
         {
             var type = typeof(TModel);
@@ -292,7 +335,7 @@ namespace Zerra.Repository.Reflection
                 ids = [identity];
 
             if (identityProperties.Count != ids.Length)
-                throw new InvalidOperationException($"{identity} values do not match {type.GetNiceName()} identity properties");
+                throw new InvalidOperationException($"{identity} values do not match {type.Name} identity properties");
 
             Expression? where = null;
             var i = 0;

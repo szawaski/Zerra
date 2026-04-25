@@ -4,7 +4,7 @@
 
 namespace Zerra.Repository.Test
 {
-    public abstract class MySqlBaseSqlProvider<TModel> : TransactStoreProvider<MySqlTestSqlDataContext, TModel> where TModel : class, new()
+    public class MySqlBaseSqlProvider<TModel> : TransactStoreProvider<MySqlTestSqlDataContext, TModel> where TModel : class, new()
     {
 
     }

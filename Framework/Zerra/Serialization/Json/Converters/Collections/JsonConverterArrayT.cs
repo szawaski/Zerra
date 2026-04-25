@@ -2,56 +2,51 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using Zerra.Reflection;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 
 namespace Zerra.Serialization.Json.Converters.Collections
 {
-    internal sealed class JsonConverterArrayT<TParent, TValue> : JsonConverter<TParent, TValue[]>
+    internal sealed class JsonConverterArrayT<TValue> : JsonConverter<TValue[]>
     {
-        private JsonConverter<ArrayOrListAccessor<TValue>> converter = null!;
+        private JsonConverter converter = null!;
 
-        private static TValue Getter(ArrayOrListAccessor<TValue> parent) => parent.Get();
-        private static void Setter(ArrayOrListAccessor<TValue> parent, TValue value) => parent.Add(value);
+        private static TValue Getter(object parent) => ((ArrayOrListAccessor<TValue>)parent).Get();
+        private static void Setter(object parent, TValue value) => ((ArrayOrListAccessor<TValue>)parent).Add(value);
 
         protected override sealed void Setup()
         {
             var valueTypeDetail = TypeAnalyzer<TValue>.GetTypeDetail();
-            converter = JsonConverterFactory<ArrayOrListAccessor<TValue>>.Get(valueTypeDetail, nameof(JsonConverterArrayT<TParent, TValue>), Getter, Setter);
+            converter = JsonConverterFactory.Get(valueTypeDetail, nameof(JsonConverterArrayT<TValue>), Getter, Setter);
         }
 
-        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out TValue[]? value)
+        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonToken token, out TValue[]? value)
         {
-            if (valueType != JsonValueType.Array)
+            if (token != JsonToken.ArrayStart)
             {
                 if (state.ErrorOnTypeMismatch)
                     ThrowCannotConvert(ref reader);
 
                 value = default;
-                return Drain(ref reader, ref state, valueType);
+                return Drain(ref reader, ref state, token);
             }
-
-            char c;
             ArrayOrListAccessor<TValue> accessor;
 
             if (!state.Current.HasCreated)
             {
-                if (!reader.TryReadNextSkipWhiteSpace(out c))
+                if (!reader.TryReadToken(out state.SizeNeeded))
                 {
-                    state.SizeNeeded = 1;
                     value = default;
                     return false;
                 }
+                state.Current.HasReadFirstToken = true;
 
-                if (c == ']')
+                if (reader.Token == JsonToken.ArrayEnd)
                 {
                     value = Array.Empty<TValue>();
                     return true;
                 }
-
-                reader.BackOne();
 
                 if (reader.TryPeakArrayLength(out var length))
                     accessor = new ArrayOrListAccessor<TValue>(new TValue[length]);
@@ -65,9 +60,9 @@ namespace Zerra.Serialization.Json.Converters.Collections
 
             for (; ; )
             {
-                if (!state.Current.HasReadValue)
+                if (!state.Current.HasReadFirstToken)
                 {
-                    if (!converter.TryReadFromParent(ref reader, ref state, accessor))
+                    if (!reader.TryReadToken(out state.SizeNeeded))
                     {
                         state.Current.HasCreated = true;
                         state.Current.Object = accessor;
@@ -76,22 +71,35 @@ namespace Zerra.Serialization.Json.Converters.Collections
                     }
                 }
 
-                if (!reader.TryReadNextSkipWhiteSpace(out c))
+                if (!state.Current.HasReadValue)
                 {
-                    state.SizeNeeded = 1;
+                    if (!converter.TryReadFromParent(ref reader, ref state, accessor))
+                    {
+                        state.Current.HasCreated = true;
+                        state.Current.HasReadFirstToken = true;
+                        state.Current.Object = accessor;
+                        value = default;
+                        return false;
+                    }
+                }
+
+                if (!reader.TryReadToken(out state.SizeNeeded))
+                {
                     state.Current.HasCreated = true;
+                    state.Current.HasReadFirstToken = true;
                     state.Current.HasReadValue = true;
                     state.Current.Object = accessor;
                     value = default;
                     return false;
                 }
 
-                if (c == ']')
+                if (reader.Token == JsonToken.ArrayEnd)
                     break;
 
-                if (c != ',')
-                    throw reader.CreateException("Unexpected character");
+                if (reader.Token != JsonToken.NextItem)
+                    throw reader.CreateException();
 
+                state.Current.HasReadFirstToken = false;
                 state.Current.HasReadValue = false;
             }
 

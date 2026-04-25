@@ -7,7 +7,7 @@ namespace Zerra.CQRS
     /// <summary>
     /// Indicates that this class is an event.
     /// </summary>
-    public interface IEvent : IMessage
+    public interface IEvent
     {
 
     }

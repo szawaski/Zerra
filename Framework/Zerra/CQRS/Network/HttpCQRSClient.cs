@@ -2,17 +2,12 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.IO;
 using System.Net.Sockets;
-using System.Threading.Tasks;
 using Zerra.Encryption;
 using Zerra.Logging;
-using System.Collections.Generic;
 using System.Security.Claims;
-using System.Threading;
-using System.Linq;
 using Zerra.Buffers;
+using Zerra.Serialization;
 
 namespace Zerra.CQRS.Network
 {
@@ -21,29 +16,30 @@ namespace Zerra.CQRS.Network
     /// </summary>
     public sealed class HttpCqrsClient : CqrsClientBase
     {
-        private readonly ContentType contentType;
-        private readonly SymmetricConfig? symmetricConfig;
+        private readonly ISerializer serializer;
+        private readonly IEncryptor? encryptor;
         private readonly ICqrsAuthorizer? authorizer;
         private readonly SocketClientPool socketPool;
 
         /// <summary>
-        /// Creates a new HTTP Client.
+        /// Creates a new HTTP CQRS Client.
         /// </summary>
-        /// <param name="contentType">The format of the body of the request and response.</param>
-        /// <param name="serviceUrl">The url of the server.</param>
-        /// <param name="symmetricConfig">If provided, information to encrypt the data.</param>
+        /// <param name="serviceUrl">The URL of the server.</param>
+        /// <param name="serializer">The serializer for converting request/response data.</param>
+        /// <param name="encryptor">If provided, encryption/decryption of the request and response data.</param>
         /// <param name="authorizer">An authorizer for adding headers needed for the server to validate requests.</param>
-        public HttpCqrsClient(ContentType contentType, string serviceUrl, SymmetricConfig? symmetricConfig, ICqrsAuthorizer? authorizer)
-            : base(serviceUrl)
+        /// <param name="log">Optional logger for recording diagnostic information.</param>
+        public HttpCqrsClient(string serviceUrl, ISerializer serializer, IEncryptor? encryptor, ICqrsAuthorizer? authorizer, ILogger? log)
+            : base(serviceUrl, log)
         {
-            this.contentType = contentType;
-            this.symmetricConfig = symmetricConfig;
+            this.serializer = serializer;
+            this.encryptor = encryptor;
             this.authorizer = authorizer;
             this.socketPool = SocketClientPool.Shared;
         }
 
         /// <inheritdoc />
-        protected override async Task<TReturn?> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source, CancellationToken cancellationToken) where TReturn : default
+        protected override async Task<TReturn> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, CancellationToken cancellationToken) where TReturn : default
         {
             await throttle.WaitAsync();
 
@@ -61,13 +57,16 @@ namespace Zerra.CQRS.Network
 
                 var data = new CqrsRequestData()
                 {
-                    ProviderType = interfaceType.Name,
+                    ProviderType = interfaceType.AssemblyQualifiedName ?? throw new ArgumentException("Handler interface must have AssemblyQualifiedName"),
                     ProviderMethod = methodName,
 
                     Claims = claims,
                     Source = source
                 };
-                data.AddProviderArguments(arguments);
+
+                data.ProviderArguments = new byte[argumentTypes.Count][];
+                for (var i = 0; i < argumentTypes.Count; i++)
+                    data.ProviderArguments[i] = serializer.SerializeBytes(arguments[i], argumentTypes[i]);
 
                 Dictionary<string, List<string?>>? authHeaders = null;
                 if (authorizer is not null)
@@ -80,7 +79,7 @@ namespace Zerra.CQRS.Network
                 try
                 {
                     //Request Header
-                    var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, null, data.ProviderType, contentType, authHeaders);
+                    var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, null, data.ProviderType, serializer.ContentType, authHeaders);
 
 #if NETSTANDARD2_0
                     stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength, requireNewConnection, cancellationToken);
@@ -88,12 +87,12 @@ namespace Zerra.CQRS.Network
                     stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength), requireNewConnection, cancellationToken);
 #endif
 
-                    requestBodyStream = new HttpProtocolBodyStream(null, stream, null, true);
+                    requestBodyStream = new HttpProtocolBodyStream(null, stream, null, true, true);
 
-                    if (symmetricConfig is not null)
+                    if (encryptor is not null)
                     {
-                        requestBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, requestBodyStream, true);
-                        await ContentTypeSerializer.SerializeAsync(contentType, requestBodyCryptoStream, data, cancellationToken);
+                        requestBodyCryptoStream = encryptor.Encrypt(requestBodyStream, true);
+                        await serializer.SerializeAsync(requestBodyCryptoStream, data, cancellationToken);
 #if NET5_0_OR_GREATER
                         await requestBodyCryptoStream.FlushFinalBlockAsync(cancellationToken);
 #else
@@ -108,7 +107,7 @@ namespace Zerra.CQRS.Network
                     }
                     else
                     {
-                        await ContentTypeSerializer.SerializeAsync(contentType, requestBodyStream, data, cancellationToken);
+                        await serializer.SerializeAsync(requestBodyStream, data, cancellationToken);
                         await requestBodyStream.FlushAsync(cancellationToken);
 #if NETSTANDARD2_0
                         requestBodyStream.Dispose();
@@ -151,22 +150,22 @@ namespace Zerra.CQRS.Network
                         }
                         headerLength += bytesRead;
 
-                        headerEnd = HttpCommon.ReadToHeaderEnd(buffer, ref headerPosition, headerLength);
+                        headerEnd = HttpCommon.TryReadToHeaderEnd(buffer[..headerLength], ref headerPosition);
                     }
-                    var responseHeader = HttpCommon.ReadHeader(buffer, headerPosition, headerLength);
+                    var responseHeader = HttpCommon.ReadHeader(buffer[..headerLength], headerPosition);
 
                     //Response Body
                     if (isStream)
-                        responseBodyStream = new HttpProtocolBodyStream(null, stream, responseHeader.BodyStartBuffer.ToArray(), false);
+                        responseBodyStream = new HttpProtocolBodyStream(null, stream, responseHeader.BodyStartBuffer.ToArray(), false, false);
                     else
-                        responseBodyStream = new HttpProtocolBodyStream(null, stream, responseHeader.BodyStartBuffer, false);
+                        responseBodyStream = new HttpProtocolBodyStream(null, stream, responseHeader.BodyStartBuffer, false, false);
 
-                    if (symmetricConfig is not null)
-                        responseBodyStream = SymmetricEncryptor.Decrypt(symmetricConfig, responseBodyStream, false);
+                    if (encryptor is not null)
+                        responseBodyStream = encryptor.Decrypt(responseBodyStream, false);
 
                     if (responseHeader.IsError)
                     {
-                        var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseBodyStream, cancellationToken);
+                        var responseException = await ExceptionSerializer.DeserializeAsync(serializer, responseBodyStream, cancellationToken);
                         isThrowingRemote = true;
                         throw responseException;
                     }
@@ -177,426 +176,7 @@ namespace Zerra.CQRS.Network
                     }
                     else
                     {
-                        var model = await ContentTypeSerializer.DeserializeAsync<TReturn>(contentType, responseBodyStream, cancellationToken);
-#if NETSTANDARD2_0
-                        responseBodyStream.Dispose();
-#else
-                        await responseBodyStream.DisposeAsync();
-#endif
-                        return model;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    if (responseBodyStream is not null)
-                    {
-#if NETSTANDARD2_0
-                        responseBodyStream.Dispose();
-#else
-                        await responseBodyStream.DisposeAsync();
-#endif
-                    }
-                    if (requestBodyStream is not null)
-                    {
-#if NETSTANDARD2_0
-                        requestBodyStream.Dispose();
-#else
-                        await requestBodyStream.DisposeAsync();
-#endif
-                    }
-                    if (requestBodyCryptoStream is not null)
-                    {
-#if NETSTANDARD2_0
-                        requestBodyCryptoStream.Dispose();
-#else
-                        await requestBodyCryptoStream.DisposeAsync();
-#endif
-                    }
-                    if (isThrowingRemote)
-                    {
-                        if (stream is not null)
-                            stream.Dispose();
-                    }
-                    else if (cancellationToken.IsCancellationRequested)
-                    {
-                        _ = Log.ErrorAsync(ex);
-                        if (stream is not null)
-                        {
-                            var abortAcknowledged = await SocketAbortMonitor.SendAndAcknowledgeAbort(stream);
-                            if (abortAcknowledged)
-                                stream?.Dispose();
-                            else
-                                stream?.DisposeSocket();
-                        }
-                        throw;
-                    }
-                    else
-                    {
-                        if (stream is not null)
-                        {
-                            stream.DisposeSocket();
-                            if (!stream.IsNewConnection)
-                            {
-                                _ = Log.ErrorAsync(ex);
-                                stream = null;
-                                requireNewConnection = true;
-                                goto newconnection;
-                            }
-                        }
-                    }
-                    throw;
-                }
-            }
-            finally
-            {
-                ArrayPoolHelper<byte>.Return(bufferOwner);
-                throttle.Release();
-            }
-        }
-
-        /// <inheritdoc />
-        protected override async Task DispatchInternal(SemaphoreSlim throttle, Type commandType, ICommand command, bool messageAwait, string source, CancellationToken cancellationToken)
-        {
-            await throttle.WaitAsync();
-
-            SocketPoolStream? stream = null;
-            Stream? requestBodyStream = null;
-            CryptoFlushStream? requestBodyCryptoStream = null;
-            Stream? responseBodyStream = null;
-            var bufferOwner = ArrayPoolHelper<byte>.Rent(HttpCommon.BufferLength);
-            var isThrowingRemote = false;
-            try
-            {
-                var messageTypeName = commandType.GetNiceName();
-
-                var messageData = ContentTypeSerializer.Serialize(contentType, command);
-
-                string[][]? claims = null;
-                if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
-                    claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
-
-                var data = new CqrsRequestData()
-                {
-                    MessageType = messageTypeName,
-                    MessageData = messageData,
-                    MessageAwait = messageAwait,
-                    MessageResult = false,
-
-                    Claims = claims,
-                    Source = source
-                };
-
-                Dictionary<string, List<string?>>? authHeaders = null;
-                if (authorizer is not null)
-                    authHeaders = await authorizer.GetAuthorizationHeadersAsync();
-
-                var buffer = bufferOwner.AsMemory();
-
-                var requireNewConnection = false;
-            newconnection:
-                try
-                {
-                    //Request Header
-                    var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, null, data.ProviderType, contentType, authHeaders);
-
-#if NETSTANDARD2_0
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength, requireNewConnection, cancellationToken);
-#else
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength), requireNewConnection, cancellationToken);
-#endif
-
-                    requestBodyStream = new HttpProtocolBodyStream(null, stream, null, true);
-
-                    if (symmetricConfig is not null)
-                    {
-                        requestBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, requestBodyStream, true);
-                        await ContentTypeSerializer.SerializeAsync(contentType, requestBodyCryptoStream, data, cancellationToken);
-#if NET5_0_OR_GREATER
-                        await requestBodyCryptoStream.FlushFinalBlockAsync(cancellationToken);
-#else
-                        requestBodyCryptoStream.FlushFinalBlock();
-#endif
-#if NETSTANDARD2_0
-                        requestBodyCryptoStream.Dispose();
-#else
-                        await requestBodyCryptoStream.DisposeAsync();
-#endif
-                        requestBodyCryptoStream = null;
-                    }
-                    else
-                    {
-                        await ContentTypeSerializer.SerializeAsync(contentType, requestBodyStream, data, cancellationToken);
-                        await requestBodyStream.FlushAsync(cancellationToken);
-
-#if NETSTANDARD2_0
-                        requestBodyStream.Dispose();
-#else
-                        await requestBodyStream.DisposeAsync();
-#endif
-                    }
-
-                    requestBodyStream = null;
-
-                    //Response Header
-                    var headerPosition = 0;
-                    var headerLength = 0;
-                    var headerEnd = false;
-                    while (!headerEnd)
-                    {
-                        if (headerLength == buffer.Length)
-                            throw new CqrsNetworkException($"{nameof(HttpCqrsClient)} Header Too Long");
-
-#if NETSTANDARD2_0
-                        var bytesRead = await stream.ReadAsync(bufferOwner, headerPosition, buffer.Length - headerPosition, cancellationToken);
-#else
-                        var bytesRead = await stream.ReadAsync(buffer.Slice(headerPosition, buffer.Length - headerPosition), cancellationToken);
-#endif
-
-                        if (bytesRead == 0)
-                        {
-                            stream.DisposeSocket();
-                            if (stream.IsNewConnection)
-                            {
-                                stream = null;
-                                throw new ConnectionAbortedException();
-                            }
-                            else
-                            {
-                                stream = null;
-                                goto newconnection;
-                            }
-                        }
-                        headerLength += bytesRead;
-
-                        headerEnd = HttpCommon.ReadToHeaderEnd(buffer, ref headerPosition, headerLength);
-                    }
-                    var responseHeader = HttpCommon.ReadHeader(buffer, headerPosition, headerLength);
-
-                    //Response Body
-                    responseBodyStream = new HttpProtocolBodyStream(null, stream, responseHeader.BodyStartBuffer, false);
-
-                    if (symmetricConfig is not null)
-                        responseBodyStream = SymmetricEncryptor.Decrypt(symmetricConfig, responseBodyStream, false);
-
-                    if (responseHeader.IsError)
-                    {
-                        var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseBodyStream, cancellationToken);
-                        isThrowingRemote = true;
-                        throw responseException;
-                    }
-
-#if NETSTANDARD2_0
-                    responseBodyStream.Dispose();
-#else
-                    await responseBodyStream.DisposeAsync();
-#endif
-                }
-                catch (Exception ex)
-                {
-                    if (responseBodyStream is not null)
-                    {
-#if NETSTANDARD2_0
-                        responseBodyStream.Dispose();
-#else
-                        await responseBodyStream.DisposeAsync();
-#endif
-                    }
-                    if (requestBodyStream is not null)
-                    {
-#if NETSTANDARD2_0
-                        requestBodyStream.Dispose();
-#else
-                        await requestBodyStream.DisposeAsync();
-#endif
-                    }
-                    if (requestBodyCryptoStream is not null)
-                    {
-#if NETSTANDARD2_0
-                        requestBodyCryptoStream.Dispose();
-#else
-                        await requestBodyCryptoStream.DisposeAsync();
-#endif
-                    }
-                    if (isThrowingRemote)
-                    {
-                        if (stream is not null)
-                            stream.Dispose();
-                    }
-                    else if (cancellationToken.IsCancellationRequested)
-                    {
-                        _ = Log.ErrorAsync(ex);
-                        if (stream is not null)
-                        {
-                            var abortAcknowledged = await SocketAbortMonitor.SendAndAcknowledgeAbort(stream);
-                            if (abortAcknowledged)
-                                stream?.Dispose();
-                            else
-                                stream?.DisposeSocket();
-                        }
-                        throw;
-                    }
-                    else
-                    {
-                        if (stream is not null)
-                        {
-                            stream.DisposeSocket();
-                            if (!stream.IsNewConnection)
-                            {
-                                _ = Log.ErrorAsync(ex);
-                                stream = null;
-                                requireNewConnection = true;
-                                goto newconnection;
-                            }
-                        }
-                    }
-                    throw;
-                }
-            }
-            finally
-            {
-                ArrayPoolHelper<byte>.Return(bufferOwner);
-                throttle.Release();
-            }
-        }
-        /// <inheritdoc />
-        protected override async Task<TResult> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source, CancellationToken cancellationToken) where TResult : default
-        {
-            await throttle.WaitAsync();
-
-            SocketPoolStream? stream = null;
-            Stream? requestBodyStream = null;
-            CryptoFlushStream? requestBodyCryptoStream = null;
-            Stream? responseBodyStream = null;
-            var bufferOwner = ArrayPoolHelper<byte>.Rent(HttpCommon.BufferLength);
-            var isThrowingRemote = false;
-            try
-            {
-                var messageTypeName = commandType.GetNiceName();
-
-                var messageData = ContentTypeSerializer.Serialize(contentType, command);
-
-                string[][]? claims = null;
-                if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
-                    claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
-
-                var data = new CqrsRequestData()
-                {
-                    MessageType = messageTypeName,
-                    MessageData = messageData,
-                    MessageAwait = true,
-                    MessageResult = true,
-
-                    Claims = claims,
-                    Source = source
-                };
-
-                Dictionary<string, List<string?>>? authHeaders = null;
-                if (authorizer is not null)
-                    authHeaders = await authorizer.GetAuthorizationHeadersAsync();
-
-                var buffer = bufferOwner.AsMemory();
-
-                var requireNewConnection = false;
-            newconnection:
-                try
-                {
-                    //Request Header
-                    var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, null, data.ProviderType, contentType, authHeaders);
-
-#if NETSTANDARD2_0
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength, requireNewConnection, cancellationToken);
-#else
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength), requireNewConnection, cancellationToken);
-#endif
-
-                    requestBodyStream = new HttpProtocolBodyStream(null, stream, null, true);
-
-                    if (symmetricConfig is not null)
-                    {
-                        requestBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, requestBodyStream, true);
-                        await ContentTypeSerializer.SerializeAsync(contentType, requestBodyCryptoStream, data, cancellationToken);
-#if NET5_0_OR_GREATER
-                        await requestBodyCryptoStream.FlushFinalBlockAsync();
-#else
-                        requestBodyCryptoStream.FlushFinalBlock();
-#endif
-#if NETSTANDARD2_0
-                        requestBodyCryptoStream.Dispose();
-#else
-                        await requestBodyCryptoStream.DisposeAsync();
-#endif
-                        requestBodyCryptoStream = null;
-                    }
-                    else
-                    {
-                        await ContentTypeSerializer.SerializeAsync(contentType, requestBodyStream, data, cancellationToken);
-                        await requestBodyStream.FlushAsync();
-
-#if NETSTANDARD2_0
-                        requestBodyStream.Dispose();
-#else
-                        await requestBodyStream.DisposeAsync();
-#endif
-                    }
-
-                    requestBodyStream = null;
-
-                    //Response Header
-                    var headerPosition = 0;
-                    var headerLength = 0;
-                    var headerEnd = false;
-                    while (!headerEnd)
-                    {
-                        if (headerLength == buffer.Length)
-                            throw new CqrsNetworkException($"{nameof(HttpCqrsClient)} Header Too Long");
-
-#if NETSTANDARD2_0
-                        var bytesRead = await stream.ReadAsync(bufferOwner, headerPosition, buffer.Length - headerPosition, cancellationToken);
-#else
-                        var bytesRead = await stream.ReadAsync(buffer.Slice(headerPosition, buffer.Length - headerPosition), cancellationToken);
-#endif
-
-                        if (bytesRead == 0)
-                        {
-                            stream.DisposeSocket();
-                            if (stream.IsNewConnection)
-                            {
-                                stream = null;
-                                throw new ConnectionAbortedException();
-                            }
-                            else
-                            {
-                                stream = null;
-                                requireNewConnection = true;
-                                goto newconnection;
-                            }
-                        }
-                        headerLength += bytesRead;
-
-                        headerEnd = HttpCommon.ReadToHeaderEnd(buffer, ref headerPosition, headerLength);
-                    }
-                    var responseHeader = HttpCommon.ReadHeader(buffer, headerPosition, headerLength);
-
-                    //Response Body
-                    responseBodyStream = new HttpProtocolBodyStream(null, stream, responseHeader.BodyStartBuffer, false);
-
-                    if (symmetricConfig is not null)
-                        responseBodyStream = SymmetricEncryptor.Decrypt(symmetricConfig, responseBodyStream, false);
-
-                    if (responseHeader.IsError)
-                    {
-                        var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseBodyStream, cancellationToken);
-                        isThrowingRemote = true;
-                        throw responseException;
-                    }
-
-                    if (isStream)
-                    {
-                        return (TResult)(object)responseBodyStream; //TODO better way to convert type???
-                    }
-                    else
-                    {
-                        var model = await ContentTypeSerializer.DeserializeAsync<TResult>(contentType, responseBodyStream, cancellationToken);
+                        var model = await serializer.DeserializeAsync<TReturn>(responseBodyStream, cancellationToken);
 #if NETSTANDARD2_0
                         responseBodyStream.Dispose();
 #else
@@ -638,7 +218,7 @@ namespace Zerra.CQRS.Network
                     }
                     else if (cancellationToken.IsCancellationRequested)
                     {
-                        _ = Log.ErrorAsync(ex);
+                        log?.Error(ex);
                         if (stream is not null)
                         {
                             var abortAcknowledged = await SocketAbortMonitor.SendAndAcknowledgeAbort(stream);
@@ -656,7 +236,7 @@ namespace Zerra.CQRS.Network
                             stream.DisposeSocket();
                             if (!stream.IsNewConnection)
                             {
-                                _ = Log.ErrorAsync(ex);
+                                log?.Error(ex);
                                 stream = null;
                                 requireNewConnection = true;
                                 goto newconnection;
@@ -674,7 +254,7 @@ namespace Zerra.CQRS.Network
         }
 
         /// <inheritdoc />
-        protected override async Task DispatchInternal(SemaphoreSlim throttle, Type eventType, IEvent @event, string source, CancellationToken cancellationToken)
+        protected override async Task DispatchInternal(SemaphoreSlim throttle, Type commandType, ICommand command, bool messageAwait, string source, CancellationToken cancellationToken)
         {
             await throttle.WaitAsync();
 
@@ -686,9 +266,9 @@ namespace Zerra.CQRS.Network
             var isThrowingRemote = false;
             try
             {
-                var messageTypeName = eventType.GetNiceName();
+                var messageTypeName = commandType.AssemblyQualifiedName ?? throw new InvalidOperationException("Type must have AssemblyQualifiedName");
 
-                var messageData = ContentTypeSerializer.Serialize(contentType, @event);
+                var messageData = serializer.SerializeBytes(command, commandType);
 
                 string[][]? claims = null;
                 if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
@@ -698,7 +278,7 @@ namespace Zerra.CQRS.Network
                 {
                     MessageType = messageTypeName,
                     MessageData = messageData,
-                    MessageAwait = false,
+                    MessageAwait = messageAwait,
                     MessageResult = false,
 
                     Claims = claims,
@@ -716,7 +296,7 @@ namespace Zerra.CQRS.Network
                 try
                 {
                     //Request Header
-                    var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, null, data.ProviderType, contentType, authHeaders);
+                    var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, null, data.MessageType, serializer.ContentType, authHeaders);
 
 #if NETSTANDARD2_0
                     stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength, requireNewConnection, cancellationToken);
@@ -724,14 +304,14 @@ namespace Zerra.CQRS.Network
                     stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength), requireNewConnection, cancellationToken);
 #endif
 
-                    requestBodyStream = new HttpProtocolBodyStream(null, stream, null, true);
+                    requestBodyStream = new HttpProtocolBodyStream(null, stream, null, true, true);
 
-                    if (symmetricConfig is not null)
+                    if (encryptor is not null)
                     {
-                        requestBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, requestBodyStream, true);
-                        await ContentTypeSerializer.SerializeAsync(contentType, requestBodyCryptoStream, data, cancellationToken);
+                        requestBodyCryptoStream = encryptor.Encrypt(requestBodyStream, true);
+                        await serializer.SerializeAsync(requestBodyCryptoStream, data, cancellationToken);
 #if NET5_0_OR_GREATER
-                        await requestBodyCryptoStream.FlushFinalBlockAsync();
+                        await requestBodyCryptoStream.FlushFinalBlockAsync(cancellationToken);
 #else
                         requestBodyCryptoStream.FlushFinalBlock();
 #endif
@@ -744,8 +324,8 @@ namespace Zerra.CQRS.Network
                     }
                     else
                     {
-                        await ContentTypeSerializer.SerializeAsync(contentType, requestBodyStream, data, cancellationToken);
-                        await requestBodyStream.FlushAsync();
+                        await serializer.SerializeAsync(requestBodyStream, data, cancellationToken);
+                        await requestBodyStream.FlushAsync(cancellationToken);
 
 #if NETSTANDARD2_0
                         requestBodyStream.Dispose();
@@ -788,19 +368,19 @@ namespace Zerra.CQRS.Network
                         }
                         headerLength += bytesRead;
 
-                        headerEnd = HttpCommon.ReadToHeaderEnd(buffer, ref headerPosition, headerLength);
+                        headerEnd = HttpCommon.TryReadToHeaderEnd(buffer[..headerLength], ref headerPosition);
                     }
-                    var responseHeader = HttpCommon.ReadHeader(buffer, headerPosition, headerLength);
+                    var responseHeader = HttpCommon.ReadHeader(buffer[..headerLength], headerPosition);
 
                     //Response Body
-                    responseBodyStream = new HttpProtocolBodyStream(null, stream, responseHeader.BodyStartBuffer, false);
+                    responseBodyStream = new HttpProtocolBodyStream(null, stream, responseHeader.BodyStartBuffer, false, false);
 
-                    if (symmetricConfig is not null)
-                        responseBodyStream = SymmetricEncryptor.Decrypt(symmetricConfig, responseBodyStream, false);
+                    if (encryptor is not null)
+                        responseBodyStream = encryptor.Decrypt(responseBodyStream, false);
 
                     if (responseHeader.IsError)
                     {
-                        var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseBodyStream, cancellationToken);
+                        var responseException = await ExceptionSerializer.DeserializeAsync(serializer, responseBodyStream, cancellationToken);
                         isThrowingRemote = true;
                         throw responseException;
                     }
@@ -844,7 +424,7 @@ namespace Zerra.CQRS.Network
                     }
                     else if (cancellationToken.IsCancellationRequested)
                     {
-                        _ = Log.ErrorAsync(ex);
+                        log?.Error(ex);
                         if (stream is not null)
                         {
                             var abortAcknowledged = await SocketAbortMonitor.SendAndAcknowledgeAbort(stream);
@@ -862,7 +442,427 @@ namespace Zerra.CQRS.Network
                             stream.DisposeSocket();
                             if (!stream.IsNewConnection)
                             {
-                                _ = Log.ErrorAsync(ex);
+                                log?.Error(ex);
+                                stream = null;
+                                requireNewConnection = true;
+                                goto newconnection;
+                            }
+                        }
+                    }
+                    throw;
+                }
+            }
+            finally
+            {
+                ArrayPoolHelper<byte>.Return(bufferOwner);
+                throttle.Release();
+            }
+        }
+        /// <inheritdoc />
+        protected override async Task<TResult> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source, CancellationToken cancellationToken) where TResult : default
+        {
+            await throttle.WaitAsync();
+
+            SocketPoolStream? stream = null;
+            Stream? requestBodyStream = null;
+            CryptoFlushStream? requestBodyCryptoStream = null;
+            Stream? responseBodyStream = null;
+            var bufferOwner = ArrayPoolHelper<byte>.Rent(HttpCommon.BufferLength);
+            var isThrowingRemote = false;
+            try
+            {
+                var messageTypeName = commandType.AssemblyQualifiedName ?? throw new ArgumentException("Command type must have AssemblyQualifiedName");
+
+                var messageData = serializer.SerializeBytes(command, commandType);
+
+                string[][]? claims = null;
+                if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
+                    claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
+
+                var data = new CqrsRequestData()
+                {
+                    MessageType = messageTypeName,
+                    MessageData = messageData,
+                    MessageAwait = true,
+                    MessageResult = true,
+
+                    Claims = claims,
+                    Source = source
+                };
+
+                Dictionary<string, List<string?>>? authHeaders = null;
+                if (authorizer is not null)
+                    authHeaders = await authorizer.GetAuthorizationHeadersAsync();
+
+                var buffer = bufferOwner.AsMemory();
+
+                var requireNewConnection = false;
+            newconnection:
+                try
+                {
+                    //Request Header
+                    var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, null, data.MessageType, serializer.ContentType, authHeaders);
+
+#if NETSTANDARD2_0
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength, requireNewConnection, cancellationToken);
+#else
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength), requireNewConnection, cancellationToken);
+#endif
+
+                    requestBodyStream = new HttpProtocolBodyStream(null, stream, null, true, true);
+
+                    if (encryptor is not null)
+                    {
+                        requestBodyCryptoStream = encryptor.Encrypt(requestBodyStream, true);
+                        await serializer.SerializeAsync(requestBodyCryptoStream, data, cancellationToken);
+#if NET5_0_OR_GREATER
+                        await requestBodyCryptoStream.FlushFinalBlockAsync();
+#else
+                        requestBodyCryptoStream.FlushFinalBlock();
+#endif
+#if NETSTANDARD2_0
+                        requestBodyCryptoStream.Dispose();
+#else
+                        await requestBodyCryptoStream.DisposeAsync();
+#endif
+                        requestBodyCryptoStream = null;
+                    }
+                    else
+                    {
+                        await serializer.SerializeAsync(requestBodyStream, data, cancellationToken);
+                        await requestBodyStream.FlushAsync();
+
+#if NETSTANDARD2_0
+                        requestBodyStream.Dispose();
+#else
+                        await requestBodyStream.DisposeAsync();
+#endif
+                    }
+
+                    requestBodyStream = null;
+
+                    //Response Header
+                    var headerPosition = 0;
+                    var headerLength = 0;
+                    var headerEnd = false;
+                    while (!headerEnd)
+                    {
+                        if (headerLength == buffer.Length)
+                            throw new CqrsNetworkException($"{nameof(HttpCqrsClient)} Header Too Long");
+
+#if NETSTANDARD2_0
+                        var bytesRead = await stream.ReadAsync(bufferOwner, headerPosition, buffer.Length - headerPosition, cancellationToken);
+#else
+                        var bytesRead = await stream.ReadAsync(buffer.Slice(headerPosition, buffer.Length - headerPosition), cancellationToken);
+#endif
+
+                        if (bytesRead == 0)
+                        {
+                            stream.DisposeSocket();
+                            if (stream.IsNewConnection)
+                            {
+                                stream = null;
+                                throw new ConnectionAbortedException();
+                            }
+                            else
+                            {
+                                stream = null;
+                                requireNewConnection = true;
+                                goto newconnection;
+                            }
+                        }
+                        headerLength += bytesRead;
+
+                        headerEnd = HttpCommon.TryReadToHeaderEnd(buffer[..headerLength], ref headerPosition);
+                    }
+                    var responseHeader = HttpCommon.ReadHeader(buffer[..headerLength], headerPosition);
+
+                    //Response Body
+                    responseBodyStream = new HttpProtocolBodyStream(null, stream, responseHeader.BodyStartBuffer, false, false);
+
+                    if (encryptor is not null)
+                        responseBodyStream = encryptor.Decrypt(responseBodyStream, false);
+
+                    if (responseHeader.IsError)
+                    {
+                        var responseException = await ExceptionSerializer.DeserializeAsync(serializer, responseBodyStream, cancellationToken);
+                        isThrowingRemote = true;
+                        throw responseException;
+                    }
+
+                    if (isStream)
+                    {
+                        return (TResult)(object)responseBodyStream; //TODO better way to convert type???
+                    }
+                    else
+                    {
+                        var model = await serializer.DeserializeAsync<TResult>(responseBodyStream, cancellationToken);
+#if NETSTANDARD2_0
+                        responseBodyStream.Dispose();
+#else
+                        await responseBodyStream.DisposeAsync();
+#endif
+                        return model!;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    if (responseBodyStream is not null)
+                    {
+#if NETSTANDARD2_0
+                        responseBodyStream.Dispose();
+#else
+                        await responseBodyStream.DisposeAsync();
+#endif
+                    }
+                    if (requestBodyStream is not null)
+                    {
+#if NETSTANDARD2_0
+                        requestBodyStream.Dispose();
+#else
+                        await requestBodyStream.DisposeAsync();
+#endif
+                    }
+                    if (requestBodyCryptoStream is not null)
+                    {
+#if NETSTANDARD2_0
+                        requestBodyCryptoStream.Dispose();
+#else
+                        await requestBodyCryptoStream.DisposeAsync();
+#endif
+                    }
+                    if (isThrowingRemote)
+                    {
+                        if (stream is not null)
+                            stream.Dispose();
+                    }
+                    else if (cancellationToken.IsCancellationRequested)
+                    {
+                        log?.Error(ex);
+                        if (stream is not null)
+                        {
+                            var abortAcknowledged = await SocketAbortMonitor.SendAndAcknowledgeAbort(stream);
+                            if (abortAcknowledged)
+                                stream?.Dispose();
+                            else
+                                stream?.DisposeSocket();
+                        }
+                        throw;
+                    }
+                    else
+                    {
+                        if (stream is not null)
+                        {
+                            stream.DisposeSocket();
+                            if (!stream.IsNewConnection)
+                            {
+                                log?.Error(ex);
+                                stream = null;
+                                requireNewConnection = true;
+                                goto newconnection;
+                            }
+                        }
+                    }
+                    throw;
+                }
+            }
+            finally
+            {
+                ArrayPoolHelper<byte>.Return(bufferOwner);
+                throttle.Release();
+            }
+        }
+
+        /// <inheritdoc />
+        protected override async Task DispatchInternal(SemaphoreSlim throttle, Type eventType, IEvent @event, string source, CancellationToken cancellationToken)
+        {
+            await throttle.WaitAsync();
+
+            SocketPoolStream? stream = null;
+            Stream? requestBodyStream = null;
+            CryptoFlushStream? requestBodyCryptoStream = null;
+            Stream? responseBodyStream = null;
+            var bufferOwner = ArrayPoolHelper<byte>.Rent(HttpCommon.BufferLength);
+            var isThrowingRemote = false;
+            try
+            {
+                var messageTypeName = eventType.AssemblyQualifiedName ?? throw new ArgumentException("Event type must have AssemblyQualifiedName");
+
+                var messageData = serializer.SerializeBytes(@event, eventType);
+
+                string[][]? claims = null;
+                if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
+                    claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
+
+                var data = new CqrsRequestData()
+                {
+                    MessageType = messageTypeName,
+                    MessageData = messageData,
+                    MessageAwait = false,
+                    MessageResult = false,
+
+                    Claims = claims,
+                    Source = source
+                };
+
+                Dictionary<string, List<string?>>? authHeaders = null;
+                if (authorizer is not null)
+                    authHeaders = await authorizer.GetAuthorizationHeadersAsync();
+
+                var buffer = bufferOwner.AsMemory();
+
+                var requireNewConnection = false;
+            newconnection:
+                try
+                {
+                    //Request Header
+                    var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, null, data.MessageType, serializer.ContentType, authHeaders);
+
+#if NETSTANDARD2_0
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength, requireNewConnection, cancellationToken);
+#else
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength), requireNewConnection, cancellationToken);
+#endif
+
+                    requestBodyStream = new HttpProtocolBodyStream(null, stream, null, true, true);
+
+                    if (encryptor is not null)
+                    {
+                        requestBodyCryptoStream = encryptor.Encrypt(requestBodyStream, true);
+                        await serializer.SerializeAsync(requestBodyCryptoStream, data, cancellationToken);
+#if NET5_0_OR_GREATER
+                        await requestBodyCryptoStream.FlushFinalBlockAsync();
+#else
+                        requestBodyCryptoStream.FlushFinalBlock();
+#endif
+#if NETSTANDARD2_0
+                        requestBodyCryptoStream.Dispose();
+#else
+                        await requestBodyCryptoStream.DisposeAsync();
+#endif
+                        requestBodyCryptoStream = null;
+                    }
+                    else
+                    {
+                        await serializer.SerializeAsync(requestBodyStream, data, cancellationToken);
+                        await requestBodyStream.FlushAsync();
+
+#if NETSTANDARD2_0
+                        requestBodyStream.Dispose();
+#else
+                        await requestBodyStream.DisposeAsync();
+#endif
+                    }
+
+                    requestBodyStream = null;
+
+                    //Response Header
+                    var headerPosition = 0;
+                    var headerLength = 0;
+                    var headerEnd = false;
+                    while (!headerEnd)
+                    {
+                        if (headerLength == buffer.Length)
+                            throw new CqrsNetworkException($"{nameof(HttpCqrsClient)} Header Too Long");
+
+#if NETSTANDARD2_0
+                        var bytesRead = await stream.ReadAsync(bufferOwner, headerPosition, buffer.Length - headerPosition, cancellationToken);
+#else
+                        var bytesRead = await stream.ReadAsync(buffer.Slice(headerPosition, buffer.Length - headerPosition), cancellationToken);
+#endif
+
+                        if (bytesRead == 0)
+                        {
+                            stream.DisposeSocket();
+                            if (stream.IsNewConnection)
+                            {
+                                stream = null;
+                                throw new ConnectionAbortedException();
+                            }
+                            else
+                            {
+                                stream = null;
+                                requireNewConnection = true;
+                                goto newconnection;
+                            }
+                        }
+                        headerLength += bytesRead;
+
+                        headerEnd = HttpCommon.TryReadToHeaderEnd(buffer[..headerLength], ref headerPosition);
+                    }
+                    var responseHeader = HttpCommon.ReadHeader(buffer[..headerLength], headerPosition);
+
+                    //Response Body
+                    responseBodyStream = new HttpProtocolBodyStream(null, stream, responseHeader.BodyStartBuffer, false, false);
+
+                    if (encryptor is not null)
+                        responseBodyStream = encryptor.Decrypt(responseBodyStream, false);
+
+                    if (responseHeader.IsError)
+                    {
+                        var responseException = await ExceptionSerializer.DeserializeAsync(serializer, responseBodyStream, cancellationToken);
+                        isThrowingRemote = true;
+                        throw responseException;
+                    }
+
+#if NETSTANDARD2_0
+                    responseBodyStream.Dispose();
+#else
+                    await responseBodyStream.DisposeAsync();
+#endif
+                }
+                catch (Exception ex)
+                {
+                    if (responseBodyStream is not null)
+                    {
+#if NETSTANDARD2_0
+                        responseBodyStream.Dispose();
+#else
+                        await responseBodyStream.DisposeAsync();
+#endif
+                    }
+                    if (requestBodyStream is not null)
+                    {
+#if NETSTANDARD2_0
+                        requestBodyStream.Dispose();
+#else
+                        await requestBodyStream.DisposeAsync();
+#endif
+                    }
+                    if (requestBodyCryptoStream is not null)
+                    {
+#if NETSTANDARD2_0
+                        requestBodyCryptoStream.Dispose();
+#else
+                        await requestBodyCryptoStream.DisposeAsync();
+#endif
+                    }
+                    if (isThrowingRemote)
+                    {
+                        if (stream is not null)
+                            stream.Dispose();
+                    }
+                    else if (cancellationToken.IsCancellationRequested)
+                    {
+                        log?.Error(ex);
+                        if (stream is not null)
+                        {
+                            var abortAcknowledged = await SocketAbortMonitor.SendAndAcknowledgeAbort(stream);
+                            if (abortAcknowledged)
+                                stream?.Dispose();
+                            else
+                                stream?.DisposeSocket();
+                        }
+                        throw;
+                    }
+                    else
+                    {
+                        if (stream is not null)
+                        {
+                            stream.DisposeSocket();
+                            if (!stream.IsNewConnection)
+                            {
+                                log?.Error(ex);
                                 stream = null;
                                 requireNewConnection = true;
                                 goto newconnection;

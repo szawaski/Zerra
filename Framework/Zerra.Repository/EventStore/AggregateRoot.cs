@@ -2,73 +2,77 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Threading.Tasks;
 using Zerra.Collections;
 using Zerra.CQRS;
 using Zerra.Reflection;
 
 namespace Zerra.Repository
 {
+    /// <summary>
+    /// Base class for event-sourced aggregate roots. Manages event appending, deletion, and state rebuilding from an event store.
+    /// </summary>
     public abstract class AggregateRoot
     {
         private static Type? typeCache = null;
-        private static readonly object typeCacheLock = new();
+        private static readonly Lock typeCacheLock = new();
         private Type GetAggregateType()
         {
             if (typeCache is null)
             {
                 lock (typeCacheLock)
                 {
-                    if (typeCache is null)
-                    {
-                        typeCache = this.GetType();
-                    }
+                    typeCache ??= this.GetType();
                 }
             }
             return typeCache;
         }
 
-        private static IEventStoreEngine? engineCache = null;
-        private static readonly object engineCacheLock = new();
-        private IEventStoreEngine GetEngine()
-        {
-            if (engineCache is null)
-            {
-                lock (engineCacheLock)
-                {
-                    if (engineCache is null)
-                    {
-                        var aggregateType = GetAggregateType();
-                        var iEventStoreContextProviderType = typeof(IAggregateRootContextProvider<>);
-                        var iEventStoreContextProviderGenericType = TypeAnalyzer.GetGenericType(iEventStoreContextProviderType, aggregateType);
-                        var providerType = Discovery.GetClassByInterface(iEventStoreContextProviderGenericType)!;
-                        var provider = (IContextProvider)Instantiator.Create(providerType);
-                        var context = provider.GetContext();
-                        engineCache = context.InitializeEngine<IEventStoreEngine>();
-                    }
-                }
-            }
-            return engineCache;
-        }
-
+        /// <summary>
+        /// Gets or sets the unique identifier of the aggregate.
+        /// </summary>
         public Guid ID { get; set; }
+        /// <summary>
+        /// Gets the event number of the last applied event, or <see langword="null"/> if no events have been applied.
+        /// </summary>
         public ulong? LastEventNumber { get; private set; }
+        /// <summary>
+        /// Gets the date of the last applied event, or <see langword="null"/> if no events have been applied.
+        /// </summary>
         public DateTime? LastEventDate { get; private set; }
+        /// <summary>
+        /// Gets the name of the last applied event, or <see langword="null"/> if no events have been applied.
+        /// </summary>
         public string? LastEventName { get; private set; }
+        /// <summary>
+        /// Gets a value indicating whether the aggregate has been created by replaying at least one event.
+        /// </summary>
         public bool IsCreated { get; private set; }
+        /// <summary>
+        /// Gets a value indicating whether the aggregate has been deleted via a terminating event.
+        /// </summary>
         public bool IsDeleted { get; private set; }
 
         private readonly string streamName;
         private readonly IEventStoreEngine eventStore;
 
-        protected AggregateRoot(Guid id)
+        /// <summary>
+        /// Initializes a new instance of <see cref="AggregateRoot"/> with the specified identifier and event store engine.
+        /// </summary>
+        /// <param name="id">The unique identifier of the aggregate.</param>
+        /// <param name="eventStore">The event store engine used to persist and read events.</param>
+        protected AggregateRoot(Guid id, IEventStoreEngine eventStore)
         {
-            this.eventStore = GetEngine();
+            this.eventStore = eventStore;
             this.ID = id;
             this.streamName = $"{GetAggregateType().FullName}-{id}";
         }
 
+        /// <summary>
+        /// Applies and persists an event to the aggregate, then dispatches it on the bus.
+        /// </summary>
+        /// <typeparam name="TEvent">The type of the event.</typeparam>
+        /// <param name="event">The event to append.</param>
+        /// <param name="validateEventNumber">When <see langword="true"/>, enforces optimistic concurrency by validating the expected event number.</param>
         public async Task Append<TEvent>(TEvent @event, bool validateEventNumber = false) where TEvent : IEvent
         {
             var eventType = typeof(TEvent);
@@ -82,6 +86,12 @@ namespace Zerra.Repository
             await Bus.DispatchAsync(@event);
         }
 
+        /// <summary>
+        /// Applies and persists a terminating event that marks the aggregate as deleted, then dispatches it on the bus.
+        /// </summary>
+        /// <typeparam name="TEvent">The type of the event.</typeparam>
+        /// <param name="event">The event to use as the deletion marker.</param>
+        /// <param name="validateEventNumber">When <see langword="true"/>, enforces optimistic concurrency by validating the expected event number.</param>
         public async Task Delete<TEvent>(TEvent @event, bool validateEventNumber = false) where TEvent : IEvent
         {
             var eventType = typeof(TEvent);
@@ -94,10 +104,20 @@ namespace Zerra.Repository
             await Bus.DispatchAsync(@event);
         }
 
+        /// <summary>
+        /// Rebuilds the aggregate state by replaying the next single event after the last applied event.
+        /// </summary>
+        /// <returns><see langword="true"/> if an event was found and applied; otherwise, <see langword="false"/>.</returns>
         public Task<bool> RebuildOneEvent()
         {
             return Rebuild(LastEventNumber.HasValue ? LastEventNumber.Value + 1 : 0, null);
         }
+        /// <summary>
+        /// Rebuilds the aggregate state by replaying events from the event store up to an optional maximum event number or date.
+        /// </summary>
+        /// <param name="maxEventNumber">The maximum event number to replay up to, or <see langword="null"/> for no limit.</param>
+        /// <param name="maxEventDate">The maximum event date to replay up to, or <see langword="null"/> for no limit.</param>
+        /// <returns><see langword="true"/> if one or more events were found and applied; otherwise, <see langword="false"/>.</returns>
         public async Task<bool> Rebuild(ulong? maxEventNumber = null, DateTime? maxEventDate = null)
         {
             var startEventNumber = LastEventNumber.HasValue ? LastEventNumber + 1 : null;
@@ -133,9 +153,9 @@ namespace Zerra.Repository
                 var aggregateType = GetAggregateType();
                 var aggregateTypeDetail = TypeAnalyzer.GetTypeDetail(aggregateType);
                 MethodDetail? methodDetail = null;
-                foreach (var method in aggregateTypeDetail.MethodDetailsBoxed)
+                foreach (var method in aggregateTypeDetail.Methods)
                 {
-                    if (!method.MethodInfo.IsStatic && method.ParameterDetails.Count == 1 && method.ParameterDetails[0].Type == eventType)
+                    if (!method.IsStatic && method.Parameters.Count == 1 && method.Parameters[0].Type == eventType)
                     {
                         if (methodDetail is not null)
                             throw new Exception($"Multiple aggregate event methods found in {aggregateType.Name} to accept {eventType.Name}");
@@ -147,7 +167,7 @@ namespace Zerra.Repository
                 return methodDetail;
             });
 
-            return (Task)methodDetail.CallerBoxed(this, [@event])!;
+            return (Task)methodDetail.CallerBoxed!(this, [@event])!;
         }
     }
 }

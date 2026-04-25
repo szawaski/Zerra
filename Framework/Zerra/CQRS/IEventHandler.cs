@@ -2,9 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace Zerra.CQRS
 {
     /// <summary>
@@ -12,7 +9,7 @@ namespace Zerra.CQRS
     /// One practice is a collective interface for a set of these so an implementation can handle multiples and configuration is easy.
     /// </summary>
     /// <typeparam name="T">The event type</typeparam>
-    public interface IEventHandler<T> where T : IEvent
+    public interface IEventHandler<T> : IHandler where T : IEvent
     {
         /// <summary>
         /// Handles processing the event.

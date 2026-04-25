@@ -2,68 +2,79 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Linq.Expressions;
-using System.Threading.Tasks;
-using Zerra.Providers;
 
 namespace Zerra.Repository
 {
-    public abstract class BaseTransactStoreLayerProvider<TNextProviderInterface, TModel> : LayerProvider<TNextProviderInterface>, ITransactStoreProvider<TModel>, IProviderRelation<TModel>
+    /// <summary>
+    /// Abstract base for layer providers that sit between callers and a next <typeparamref name="TNextProviderInterface"/> in the transact store chain.
+    /// </summary>
+    /// <typeparam name="TNextProviderInterface">The type of the next provider in the chain.</typeparam>
+    /// <typeparam name="TModel">The model type managed by this provider.</typeparam>
+    public abstract class BaseTransactStoreLayerProvider<TNextProviderInterface, TModel> : LayerProvider<TNextProviderInterface>, ITransactStoreProvider<TModel>, IProviderRelation
         where TNextProviderInterface : ITransactStoreProvider<TModel>
         where TModel : class, new()
     {
+        /// <summary>The <see cref="Type"/> of <typeparamref name="TModel"/>.</summary>
+        protected static readonly Type modelType = typeof(TModel);
+
+        /// <summary>The relation provider for <typeparamref name="TModel"/>, resolved from the next provider in the chain.</summary>
         protected IProviderRelation<TModel>? ProviderRelation = null;
 
-        public BaseTransactStoreLayerProvider()
+        /// <summary>Initializes a new instance of <see cref="BaseTransactStoreLayerProvider{TNextProviderInterface, TModel}"/> with the next provider in the chain.</summary>
+        /// <param name="nextProvider">The next provider to delegate operations to.</param>
+        public BaseTransactStoreLayerProvider(TNextProviderInterface nextProvider)
+            : base(nextProvider)
         {
             ProviderRelation = NextProvider as IProviderRelation<TModel>;
         }
 
-        public Expression? GetWhereExpressionIncludingBase(Graph? graph)
-        {
-            return GetWhereExpressionIncludingBase((Graph<TModel>?)graph);
-        }
-        public virtual Expression<Func<TModel, bool>>? GetWhereExpressionIncludingBase(Graph<TModel>? graph)
+        /// <summary>Gets the <see cref="Type"/> of the model managed by this provider.</summary>
+        public Type ModelType => modelType;
+
+        /// <summary>Returns the combined where expression from the next provider in the chain, including base type considerations.</summary>
+        /// <param name="graph">The graph for the current query.</param>
+        /// <returns>A lambda where expression, or <see langword="null"/> if none applies.</returns>
+        public virtual LambdaExpression? GetWhereExpressionIncludingBase(Graph? graph)
         {
             var expression = ProviderRelation?.GetWhereExpressionIncludingBase(graph);
             return expression;
         }
 
-        public void OnQueryIncludingBase(Graph? graph)
-        {
-            OnQueryIncludingBase((Graph<TModel>?)graph);
-        }
-        public virtual void OnQueryIncludingBase(Graph<TModel>? graph)
+        /// <summary>Propagates the query event to the next provider in the chain.</summary>
+        /// <param name="graph">The graph for the current query.</param>
+        public virtual void OnQueryIncludingBase(Graph? graph)
         {
             ProviderRelation?.OnQueryIncludingBase(graph);
         }
 
-        public ICollection OnGetIncludingBase(ICollection models, Graph? graph)
-        {
-            return (ICollection)OnGetIncludingBase((ICollection<TModel>)(object)models, (Graph<TModel>?)graph);
-        }
-        public virtual ICollection<TModel> OnGetIncludingBase(ICollection<TModel> models, Graph<TModel>? graph)
+        /// <summary>Propagates the post-retrieve event to the next provider in the chain.</summary>
+        /// <param name="models">The retrieved models.</param>
+        /// <param name="graph">The graph used during the query.</param>
+        /// <returns>The processed models.</returns>
+        public virtual IEnumerable OnGetIncludingBase(IEnumerable models, Graph? graph)
         {
             if (ProviderRelation is null)
                 return models;
             return ProviderRelation.OnGetIncludingBase(models, graph);
         }
 
-        public async Task<ICollection> OnGetIncludingBaseAsync(ICollection models, Graph? graph)
-        {
-            return (ICollection)await OnGetIncludingBaseAsync((ICollection<TModel>)models, (Graph<TModel>?)graph);
-        }
-        public virtual Task<ICollection<TModel>> OnGetIncludingBaseAsync(ICollection<TModel> models, Graph<TModel>? graph)
+        /// <summary>Asynchronously propagates the post-retrieve event to the next provider in the chain.</summary>
+        /// <param name="models">The retrieved models.</param>
+        /// <param name="graph">The graph used during the query.</param>
+        /// <returns>A task containing the processed models.</returns>
+        public virtual Task<IEnumerable> OnGetIncludingBaseAsync(IEnumerable models, Graph? graph)
         {
             if (ProviderRelation is null)
                 return Task.FromResult(models);
             return ProviderRelation.OnGetIncludingBaseAsync(models, graph);
         }
 
-        public object? Query(Query<TModel> query)
+        /// <summary>Executes a synchronous query operation and returns the result.</summary>
+        /// <param name="query">The query to execute.</param>
+        /// <returns>The query result, or <see langword="null"/> if no result is found.</returns>
+        public object? Query(Query query)
         {
             return query.Operation switch
             {
@@ -77,7 +88,10 @@ namespace Zerra.Repository
             };
             ;
         }
-        public Task<object?> QueryAsync(Query<TModel> query)
+        /// <summary>Executes an asynchronous query operation and returns the result.</summary>
+        /// <param name="query">The query to execute.</param>
+        /// <returns>A task containing the query result, or <see langword="null"/>.</returns>
+        public Task<object?> QueryAsync(Query query)
         {
             return query.Operation switch
             {
@@ -92,21 +106,59 @@ namespace Zerra.Repository
             ;
         }
 
-        public abstract object Many(Query<TModel> query);
-        public abstract object? First(Query<TModel> query);
-        public abstract object? Single(Query<TModel> query);
-        public abstract object Count(Query<TModel> query);
-        public abstract object Any(Query<TModel> query);
-        public abstract object EventMany(Query<TModel> query);
+        /// <summary>Executes a many query and returns the matching models.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>The matching models as an object.</returns>
+        public abstract object Many(Query query);
+        /// <summary>Executes a first query and returns the first matching model, or <see langword="null"/>.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>The first matching model, or <see langword="null"/>.</returns>
+        public abstract object? First(Query query);
+        /// <summary>Executes a single query and returns the single matching model, or <see langword="null"/>.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>The single matching model, or <see langword="null"/>.</returns>
+        public abstract object? Single(Query query);
+        /// <summary>Executes a count query and returns the count of matching models.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>The count as an object.</returns>
+        public abstract object Count(Query query);
+        /// <summary>Executes an any query and returns whether any matching models exist.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>A boolean result as an object.</returns>
+        public abstract object Any(Query query);
+        /// <summary>Executes an event-many query and returns the matching event models.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>The matching event models as an object.</returns>
+        public abstract object EventMany(Query query);
 
-        public abstract Task<object?> ManyAsync(Query<TModel> query);
-        public abstract Task<object?> FirstAsync(Query<TModel> query);
-        public abstract Task<object?> SingleAsync(Query<TModel> query);
-        public abstract Task<object?> CountAsync(Query<TModel> query);
-        public abstract Task<object?> AnyAsync(Query<TModel> query);
-        public abstract Task<object?> EventManyAsync(Query<TModel> query);
+        /// <summary>Asynchronously executes a many query and returns the matching models.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>A task containing the matching models.</returns>
+        public abstract Task<object?> ManyAsync(Query query);
+        /// <summary>Asynchronously executes a first query and returns the first matching model, or <see langword="null"/>.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>A task containing the first matching model, or <see langword="null"/>.</returns>
+        public abstract Task<object?> FirstAsync(Query query);
+        /// <summary>Asynchronously executes a single query and returns the single matching model, or <see langword="null"/>.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>A task containing the single matching model, or <see langword="null"/>.</returns>
+        public abstract Task<object?> SingleAsync(Query query);
+        /// <summary>Asynchronously executes a count query and returns the count of matching models.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>A task containing the count.</returns>
+        public abstract Task<object?> CountAsync(Query query);
+        /// <summary>Asynchronously executes an any query and returns whether any matching models exist.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>A task containing a boolean result.</returns>
+        public abstract Task<object?> AnyAsync(Query query);
+        /// <summary>Asynchronously executes an event-many query and returns the matching event models.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>A task containing the matching event models.</returns>
+        public abstract Task<object?> EventManyAsync(Query query);
 
-        public void Persist(Persist<TModel> persist)
+        /// <summary>Executes a synchronous persist operation (create, update, or delete).</summary>
+        /// <param name="persist">The persist operation to execute.</param>
+        public void Persist(Persist persist)
         {
             switch (persist.Operation)
             {
@@ -123,7 +175,10 @@ namespace Zerra.Repository
                     throw new NotImplementedException();
             }
         }
-        public Task PersistAsync(Persist<TModel> persist)
+        /// <summary>Executes an asynchronous persist operation (create, update, or delete).</summary>
+        /// <param name="persist">The persist operation to execute.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        public Task PersistAsync(Persist persist)
         {
             return persist.Operation switch
             {
@@ -134,12 +189,27 @@ namespace Zerra.Repository
             };
         }
 
-        public abstract void Create(Persist<TModel> persist);
-        public abstract void Update(Persist<TModel> persist);
-        public abstract void Delete(Persist<TModel> persist);
+        /// <summary>Executes a create persist operation.</summary>
+        /// <param name="persist">The persist operation containing the models to create.</param>
+        public abstract void Create(Persist persist);
+        /// <summary>Executes an update persist operation.</summary>
+        /// <param name="persist">The persist operation containing the models to update.</param>
+        public abstract void Update(Persist persist);
+        /// <summary>Executes a delete persist operation.</summary>
+        /// <param name="persist">The persist operation containing the models or IDs to delete.</param>
+        public abstract void Delete(Persist persist);
 
-        public abstract Task CreateAsync(Persist<TModel> persist);
-        public abstract Task UpdateAsync(Persist<TModel> persist);
-        public abstract Task DeleteAsync(Persist<TModel> persist);
+        /// <summary>Asynchronously executes a create persist operation.</summary>
+        /// <param name="persist">The persist operation containing the models to create.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        public abstract Task CreateAsync(Persist persist);
+        /// <summary>Asynchronously executes an update persist operation.</summary>
+        /// <param name="persist">The persist operation containing the models to update.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        public abstract Task UpdateAsync(Persist persist);
+        /// <summary>Asynchronously executes a delete persist operation.</summary>
+        /// <param name="persist">The persist operation containing the models or IDs to delete.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        public abstract Task DeleteAsync(Persist persist);
     }
 }

@@ -2,60 +2,58 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Collections.Generic;
 using Zerra.Reflection;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 
 namespace Zerra.Serialization.Json.Converters.Collections.Collections
 {
-    internal sealed class JsonConverterICollectionTOfT<TParent, TCollection, TValue> : JsonConverter<TParent, TCollection>
+    internal sealed class JsonConverterICollectionTOfT<TCollection, TValue> : JsonConverter<TCollection>
     {
-        private JsonConverter<ICollection<TValue>> readConverter = null!;
-        private JsonConverter<IEnumerator<TValue>> writeConverter = null!;
+        private JsonConverter converter = null!;
 
-        private static TValue Getter(IEnumerator<TValue> parent) => parent.Current;
-        private static void Setter(ICollection<TValue> parent, TValue value) => parent.Add(value);
+        private static TValue Getter(object parent) => ((IEnumerator<TValue>)parent).Current;
+        private static void Setter(object parent, TValue value) => ((ICollection<TValue>)parent).Add(value);
 
         protected override sealed void Setup()
         {
             var valueTypeDetail = TypeAnalyzer<TValue>.GetTypeDetail();
-            readConverter = JsonConverterFactory<ICollection<TValue>>.Get(valueTypeDetail, nameof(JsonConverterICollectionTOfT<TParent, TCollection, TValue>), null, Setter);
-            writeConverter = JsonConverterFactory<IEnumerator<TValue>>.Get(valueTypeDetail, nameof(JsonConverterICollectionTOfT<TParent, TCollection, TValue>), Getter, null);
+            converter = JsonConverterFactory.Get(valueTypeDetail, nameof(JsonConverterICollectionTOfT<TCollection, TValue>), Getter, Setter);
         }
 
-        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out TCollection? value)
+        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonToken token, out TCollection? value)
         {
-            if (valueType != JsonValueType.Array)
+            if (token != JsonToken.ArrayStart)
             {
                 if (state.ErrorOnTypeMismatch)
                     ThrowCannotConvert(ref reader);
 
                 value = default;
-                return Drain(ref reader, ref state, valueType);
+                return Drain(ref reader, ref state, token);
             }
 
             ICollection<TValue> collection;
-            char c;
 
             if (!state.Current.HasCreated)
             {
-                if (!reader.TryReadNextSkipWhiteSpace(out c))
+                if (!reader.TryReadToken(out state.SizeNeeded))
                 {
-                    state.SizeNeeded = 1;
                     value = default;
                     return false;
                 }
+                state.Current.HasReadFirstToken = true;
 
-                if (c == ']')
+                if (reader.Token == JsonToken.ArrayEnd)
                 {
-                    value = typeDetail.Creator();
+                    if (!TypeDetail.HasCreator)
+                        throw new InvalidOperationException($"{TypeDetail.Type} does not have a parameterless constructor.");
+                    value = TypeDetail.Creator!();
                     return true;
                 }
 
-                reader.BackOne();
-
-                value = typeDetail.Creator();
+                if (!TypeDetail.HasCreator)
+                    throw new InvalidOperationException($"{TypeDetail.Type} does not have a parameterless constructor.");
+                value = TypeDetail.Creator!();
                 collection = (ICollection<TValue>)value!;
             }
             else
@@ -66,31 +64,43 @@ namespace Zerra.Serialization.Json.Converters.Collections.Collections
 
             for (; ; )
             {
-                if (!state.Current.HasReadValue)
+                if (!state.Current.HasReadFirstToken)
                 {
-                    if (!readConverter.TryReadFromParent(ref reader, ref state, collection))
+                    if (!reader.TryReadToken(out state.SizeNeeded))
                     {
                         state.Current.HasCreated = true;
+                        state.Current.Object = value;
+                        return false;
+                    }
+                }
+
+                if (!state.Current.HasReadValue)
+                {
+                    if (!converter.TryReadFromParent(ref reader, ref state, collection))
+                    {
+                        state.Current.HasCreated = true;
+                        state.Current.HasReadFirstToken = true;
                         state.Current.Object = collection;
                         return false;
                     }
                 }
 
-                if (!reader.TryReadNextSkipWhiteSpace(out c))
+                if (!reader.TryReadToken(out state.SizeNeeded))
                 {
-                    state.SizeNeeded = 1;
                     state.Current.HasCreated = true;
+                    state.Current.HasReadFirstToken = true;
                     state.Current.HasReadValue = true;
                     state.Current.Object = collection;
                     return false;
                 }
 
-                if (c == ']')
+                if (reader.Token == JsonToken.ArrayEnd)
                     break;
 
-                if (c != ',')
-                    throw reader.CreateException("Unexpected character");
+                if (reader.Token != JsonToken.NextItem)
+                    throw reader.CreateException();
 
+                state.Current.HasReadFirstToken = false;
                 state.Current.HasReadValue = false;
             }
 
@@ -137,7 +147,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Collections
                     }
                 }
 
-                if (!writeConverter.TryWriteFromParent(ref writer, ref state, enumerator))
+                if (!converter.TryWriteFromParent(ref writer, ref state, enumerator))
                 {
                     state.Current.HasWrittenStart = true;
                     state.Current.HasWrittenSeperator = true;

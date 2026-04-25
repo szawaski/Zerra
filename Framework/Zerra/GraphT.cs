@@ -2,8 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -256,6 +254,21 @@ namespace Zerra
         }
 
         /// <summary>
+        /// Indicates if the graph explicitly includes a member, regardless of the <see cref="Graph.IncludeAllMembers"/> setting.
+        /// </summary>
+        /// <param name="member">The member to see if it is explicitly included.</param>
+        /// <returns>True if the member was explicitly added or has a child graph; otherwise, False.</returns>
+        public bool HasMemberExplicitly(Expression<Func<T, object?>> member)
+        {
+            if (member is null)
+                throw new ArgumentNullException(nameof(member));
+            Graph referenceGraph = this;
+            if (!TryReadMemberExpression(member, false, out var memberName, ref referenceGraph))
+                return false;
+            return referenceGraph.HasMemberExplicitly(memberName);
+        }
+
+        /// <summary>
         /// Returns the child graph of a member if the child graph exists.
         /// </summary>
         /// <param name="member">The member for the child graph.</param>
@@ -266,19 +279,6 @@ namespace Zerra
             if (!TryReadMemberExpression(member, false, out var memberName, ref referenceGraph))
                 return null;
             return referenceGraph.GetChildGraph(memberName);
-        }
-        /// <summary>
-        /// Returns the generic child graph of a member if the child graph exists.
-        /// </summary>
-        /// <param name="member">The member for the child graph.</param>
-        /// <param name="type">The generic type of the child graph.</param>
-        /// <returns>The child graph of the member if it exists; otherwise, null.</returns>
-        public Graph? GetChildGraph(Expression<Func<T, object?>> member, Type type)
-        {
-            Graph referenceGraph = this;
-            if (!TryReadMemberExpression(member, false, out var memberName, ref referenceGraph))
-                return null;
-            return referenceGraph.GetChildGraph(memberName, type);
         }
         /// <summary>
         /// Returns the generic child graph of a member if the child graph exists.
@@ -299,12 +299,5 @@ namespace Zerra
         {
             return typeof(T);
         }
-
-        ///// <summary>
-        ///// Generates a lambda expression that will create a new object of a different type based on the graph.
-        ///// </summary>
-        ///// <typeparam name="TSource">The new type of the object.</typeparam>
-        ///// <returns>The lamba expression to create a new object.</returns>
-        //public Expression<Func<TSource, T>> GenerateSelect<TSource>() { return GenerateSelect<TSource, T>(); }
     }
 }

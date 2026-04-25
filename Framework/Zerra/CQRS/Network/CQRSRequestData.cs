@@ -2,14 +2,14 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Linq;
-using Zerra.Serialization.Json;
+using Zerra.Reflection;
 
 namespace Zerra.CQRS.Network
 {
     /// <summary>
     /// The information needed sending a request to a remote CQRS service for a query, command, or event.
     /// </summary>
+    [GenerateTypeDetail]
     public sealed class CqrsRequestData
     {
         /// <summary>
@@ -22,9 +22,8 @@ namespace Zerra.CQRS.Network
         public string? ProviderMethod { get; set; }
         /// <summary>
         /// The query arguments for the method called.
-        /// Serialized each using JSON.
         /// </summary>
-        public string?[]? ProviderArguments { get; set; }
+        public byte[]?[]? ProviderArguments { get; set; }
 
         /// <summary>
         /// The command or event type.
@@ -52,14 +51,5 @@ namespace Zerra.CQRS.Network
         /// The description of the request source used for logging.
         /// </summary>
         public string? Source { get; set; }
-
-        /// <summary>
-        /// Helper to serialize query arguments for the method called.
-        /// </summary>
-        /// <param name="arguments">The raw argument values.</param>
-        public void AddProviderArguments(object[] arguments)
-        {
-            this.ProviderArguments = arguments.Select(x => JsonSerializer.Serialize(x)).ToArray();
-        }
     }
 }

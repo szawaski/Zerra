@@ -2,10 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace Zerra.Serialization.Json.Converters.Collections
 {
     internal sealed class ArrayOrListAccessor<T>

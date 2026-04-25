@@ -2,38 +2,42 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 
 namespace Zerra.Serialization.Json.Converters.Special
 {
-    internal sealed class JsonConverterByteArray<TParent> : JsonConverter<TParent, byte[]>
+    internal sealed class JsonConverterByteArray : JsonConverter<byte[]>
     {
-        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out byte[]? value)
+        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonToken token, out byte[]? value)
         {
-            if (valueType != JsonValueType.String)
+            if (token != JsonToken.String)
             {
                 if (state.ErrorOnTypeMismatch)
                     ThrowCannotConvert(ref reader);
 
                 value = default;
-                return Drain(ref reader, ref state, valueType);
+                return Drain(ref reader, ref state, token);
             }
 
-            if (!reader.TryReadStringEscapedQuoted(true, out var str, out state.SizeNeeded))
+            if (reader.UseBytes)
             {
-                value = default;
-                return false;
+                if (reader.ValueBytes.Length == 0)
+                {
+                    value = Array.Empty<byte>();
+                    return true;
+                }
+                value = Convert.FromBase64String(reader.UnescapeStringBytes());
             }
-
-            if (str.Length == 0)
+            else
             {
-                value = Array.Empty<byte>();
-                return true;
+                if (reader.ValueChars.Length == 0)
+                {
+                    value = Array.Empty<byte>();
+                    return true;
+                }
+                value = Convert.FromBase64String(reader.ValueChars.ToString());
             }
-
-            value = Convert.FromBase64String(str);
             return true;
         }
 

@@ -2,9 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Collections;
-using System.Linq;
 using System.Linq.Expressions;
 using Zerra.Repository.IO;
 using Zerra.Reflection;
@@ -12,14 +10,22 @@ using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository.MySql
 {
+    /// <summary>
+    /// Converts LINQ expressions into MySQL query strings.
+    /// </summary>
     public sealed class LinqMySqlConverter : BaseLinqSqlConverter
     {
         private static readonly LinqMySqlConverter instance = new();
+        /// <summary>
+        /// Converts a LINQ query into a MySQL query string.
+        /// </summary>
+        /// <returns>The SQL query string.</returns>
         public static string Convert(QueryOperation select, Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail)
         {
             return instance.ConvertInternal(select, where, order, skip, take, graph, modelDetail);
         }
 
+        /// <inheritdoc/>
         protected override void ConvertToSqlLambda(Expression exp, ref CharWriter sb, BuilderContext context)
         {
             context.MemberContext.OperatorStack.Push(Operator.Lambda);
@@ -30,12 +36,12 @@ namespace Zerra.Repository.MySql
                 throw new NotSupportedException("Can only parse a lambda with one parameter.");
             var parameter = lambda.Parameters[0];
             if (parameter.Name is null)
-                throw new Exception($"Parameter has no name {parameter.Type.GetNiceName()}");
+                throw new Exception($"Parameter has no name {parameter.Type.Name}");
 
             var modelDetail = ModelAnalyzer.GetModel(parameter.Type);
 
             if (context.RootDependant.ModelDetail.Type != modelDetail.Type)
-                throw new Exception($"Lambda type {modelDetail.Type.GetNiceName()} does not match the root type {context.RootDependant.ModelDetail.Type.GetNiceName()}");
+                throw new Exception($"Lambda type {modelDetail.Type.Name} does not match the root type {context.RootDependant.ModelDetail.Type.Name}");
 
             if (context.MemberContext.ModelStack.Count > 0)
             {
@@ -43,7 +49,7 @@ namespace Zerra.Repository.MySql
                 var property = context.MemberContext.MemberLambdaStack.Peek();
 
                 if (callingModel.IdentityProperties.Count != 1)
-                    throw new NotSupportedException($"Relational queries support only one identity on {callingModel.Type.GetNiceName()}");
+                    throw new NotSupportedException($"Relational queries support only one identity on {callingModel.Type.Name}");
                 var callingModelIdentity = callingModel.IdentityProperties[0];
 
                 var modelProperty = callingModel.GetProperty(property.Member.Name);
@@ -74,6 +80,7 @@ namespace Zerra.Repository.MySql
 
             _ = context.MemberContext.OperatorStack.Pop();
         }
+        /// <inheritdoc/>
         protected override void ConvertToSqlCall(Expression exp, ref CharWriter sb, BuilderContext context)
         {
             context.MemberContext.OperatorStack.Push(Operator.Call);
@@ -107,7 +114,7 @@ namespace Zerra.Repository.MySql
                                 var subMemberModel = ModelAnalyzer.GetModel(subMember.Expression.Type);
                                 var propertyInfo = subMemberModel.GetProperty(subMember.Member.Name);
                                 if (propertyInfo.ForeignIdentity is null)
-                                    throw new Exception($"{propertyInfo.Type.GetNiceName()} missing Foreign Identity");
+                                    throw new Exception($"{propertyInfo.Type.Name} missing Foreign Identity");
 
                                 var subModelInfo = ModelAnalyzer.GetModel(propertyInfo.InnerType);
 
@@ -143,7 +150,7 @@ namespace Zerra.Repository.MySql
                                 var subMemberModel = ModelAnalyzer.GetModel(subMember.Expression.Type);
                                 var propertyInfo = subMemberModel.GetProperty(subMember.Member.Name);
                                 if (propertyInfo.ForeignIdentity is null)
-                                    throw new Exception($"{propertyInfo.Type.GetNiceName()} missing Foreign Identity");
+                                    throw new Exception($"{propertyInfo.Type.Name} missing Foreign Identity");
 
                                 var subModelInfo = ModelAnalyzer.GetModel(propertyInfo.InnerType);
 
@@ -180,7 +187,7 @@ namespace Zerra.Repository.MySql
                                 var subMemberModel = ModelAnalyzer.GetModel(subMember.Expression.Type);
                                 var propertyInfo = subMemberModel.GetProperty(subMember.Member.Name);
                                 if (propertyInfo.ForeignIdentity is null)
-                                    throw new Exception($"{propertyInfo.Type.GetNiceName()} missing Foreign Identity");
+                                    throw new Exception($"{propertyInfo.Type.Name} missing Foreign Identity");
 
                                 var subModelInfo = ModelAnalyzer.GetModel(propertyInfo.InnerType);
 
@@ -205,7 +212,7 @@ namespace Zerra.Repository.MySql
 
                                 ConvertToSql(lambda, ref sb, context);
 
-                                sb.Write(context.Inverted ? " NOT IN " : " IN ");
+                                sb.Write(context.Inverted ? "NOT IN" : "IN");
 
                                 ConvertToSql(callingObject, ref sb, context);
                                 break;
@@ -242,7 +249,7 @@ namespace Zerra.Repository.MySql
                 else
                 {
                     var typeDetails = TypeAnalyzer.GetTypeDetail(call.Method.DeclaringType);
-                    if (typeDetails.HasIEnumerableGeneric && TypeLookup.CoreTypesWithNullables.Contains(typeDetails.IEnumerableGenericInnerType))
+                    if (typeDetails.HasIEnumerableGeneric)
                     {
                         switch (call.Method.Name)
                         {
@@ -256,7 +263,7 @@ namespace Zerra.Repository.MySql
 
                                     ConvertToSql(lambda, ref sb, context);
 
-                                    sb.Write(context.Inverted ? " NOT IN " : " IN ");
+                                    sb.Write(context.Inverted ? "NOT IN" : "IN");
 
                                     ConvertToSql(callingObject, ref sb, context);
                                     break;
@@ -278,6 +285,7 @@ namespace Zerra.Repository.MySql
 
             _ = context.MemberContext.OperatorStack.Pop();
         }
+        /// <inheritdoc/>
         protected override void ConvertToSqlParameterModel(ModelDetail modelDetail, ref CharWriter sb, BuilderContext context, bool parameterInContext)
         {
             var member = context.MemberContext.MemberAccessStack.Pop();
@@ -311,7 +319,7 @@ namespace Zerra.Repository.MySql
             else if (context.MemberContext.InCallRenderIdentity > 0)
             {
                 if (modelDetail.IdentityProperties.Count != 1)
-                    throw new NotSupportedException($"Relational queries support only one identity on {modelDetail.Type.GetNiceName()}");
+                    throw new NotSupportedException($"Relational queries support only one identity on {modelDetail.Type.Name}");
                 var modelIdentity = modelDetail.IdentityProperties[0];
 
                 sb.Write('`');
@@ -428,6 +436,7 @@ namespace Zerra.Repository.MySql
 
             context.MemberContext.MemberAccessStack.Push(member);
         }
+        /// <inheritdoc/>
         protected override void ConvertToSqlConditional(Expression exp, ref CharWriter sb, BuilderContext context)
         {
             context.MemberContext.OperatorStack.Push(Operator.Conditional);
@@ -451,9 +460,14 @@ namespace Zerra.Repository.MySql
             _ = context.MemberContext.OperatorStack.Pop();
         }
 
+        /// <inheritdoc/>
         protected override bool ConvertToSqlValueRender(MemberExpression? memberProperty, Type type, object? value, ref CharWriter sb, BuilderContext context)
         {
-            var typeDetails = TypeAnalyzer.GetTypeDetail(type);
+            //avoid TypeDetail for AOT support
+
+            CoreType? coreType = null;
+            if (TypeLookup.GetCoreType(type, out var coreTypeLookup))
+                coreType = coreTypeLookup;
 
             if (value is null)
             {
@@ -461,15 +475,17 @@ namespace Zerra.Repository.MySql
                 return false;
             }
 
-            if (typeDetails.IsNullable)
+            if (type.Name == nullableTypeName)
             {
-                type = typeDetails.InnerType;
-                typeDetails = typeDetails.InnerTypeDetail;
+                type = type.GetGenericArguments()[0];
+                coreType = null;
+                if (TypeLookup.GetCoreType(type, out coreTypeLookup))
+                    coreType = coreTypeLookup;
             }
 
-            if (typeDetails.CoreType.HasValue)
+            if (coreType.HasValue)
             {
-                switch (typeDetails.CoreType.Value)
+                switch (coreType.Value)
                 {
                     case CoreType.Boolean:
                         var lastOperator = context.MemberContext.OperatorStack.Peek();
@@ -753,7 +769,7 @@ namespace Zerra.Repository.MySql
 
             if (type.IsArray || type.Name == "ReadOnlySpan`1" || type.Name == "Span`1")
             {
-                var arrayType = typeDetails.InnerType;
+                var arrayType = type.IsArray ? type.GetElementType()! : type.GetGenericArguments()[0];
                 if (arrayType == typeof(byte))
                 {
                     sb.Write("0x");
@@ -783,18 +799,21 @@ namespace Zerra.Repository.MySql
                 }
             }
 
-            if (typeDetails.HasIEnumerableGeneric)
+            if (value is IEnumerable enumerable)
             {
                 sb.Write('(');
 
                 var builderLength = sb.Length;
 
+                Type? trueInnerType = null;
+
                 var first = true;
-                foreach (var item in (IEnumerable)value)
+                foreach (var item in enumerable)
                 {
                     if (!first)
                         sb.Write(',');
-                    ConvertToSqlValue(typeDetails.IEnumerableGenericInnerType, item, ref sb, context);
+                    trueInnerType ??= item.GetType();
+                    ConvertToSqlValue(trueInnerType, item, ref sb, context);
                     first = false;
                 }
 
@@ -813,9 +832,10 @@ namespace Zerra.Repository.MySql
                 return false;
             }
 
-            throw new NotImplementedException($"{type.GetNiceName()} value {value?.ToString()} not converted");
+            throw new NotImplementedException($"{type.Name} value {value?.ToString()} not converted");
         }
 
+        /// <inheritdoc/>
         protected override void GenerateWhere(Expression? where, ref CharWriter sb, ParameterDependant rootDependant, MemberContext operationContext)
         {
             if (where is null)
@@ -826,6 +846,7 @@ namespace Zerra.Repository.MySql
             ConvertToSql(where, ref sb, context);
             AppendLineBreak(ref sb);
         }
+        /// <inheritdoc/>
         protected override void GenerateOrderSkipTake(QueryOrder? order, int? skip, int? take, ref CharWriter sb, ParameterDependant rootDependant, MemberContext operationContext)
         {
             if (order?.OrderExpressions.Length > 0)
@@ -866,6 +887,7 @@ namespace Zerra.Repository.MySql
                 }
             }
         }
+        /// <inheritdoc/>
         protected override void GenerateSelect(QueryOperation select, Graph? graph, ModelDetail modelDetail, ref CharWriter sb)
         {
             switch (select)
@@ -892,10 +914,11 @@ namespace Zerra.Repository.MySql
                     break;
             }
         }
+        /// <inheritdoc/>
         protected override void GenerateSelectProperties(Graph? graph, ModelDetail modelDetail, ref CharWriter sb)
         {
             //AppendLineBreak(ref sb);
-            if (graph is null || graph.IncludeAllMembers)
+            if (graph is null || (graph.IncludeAllMembers && !graph.HasRemovedMembers))
             {
                 sb.Write('`');
                 sb.Write(modelDetail.DataSourceEntityName);
@@ -930,6 +953,7 @@ namespace Zerra.Repository.MySql
                 }
             }
         }
+        /// <inheritdoc/>
         protected override void GenerateFrom(ModelDetail modelDetail, ref CharWriter sb)
         {
             sb.Write(" FROM`");
@@ -937,12 +961,13 @@ namespace Zerra.Repository.MySql
             sb.Write('`');
             AppendLineBreak(ref sb);
         }
+        /// <inheritdoc/>
         protected override void GenerateJoin(ParameterDependant dependant, ref CharWriter sb)
         {
             foreach (var child in dependant.Dependants.Values)
             {
                 if (child.ModelDetail.IdentityProperties.Count != 1)
-                    throw new NotSupportedException($"Relational queries support only one identity on {child.ModelDetail.Type.GetNiceName()}");
+                    throw new NotSupportedException($"Relational queries support only one identity on {child.ModelDetail.Type.Name}");
                 var dependantIdentity = child.ModelDetail.IdentityProperties[0];
 
                 sb.Write("JOIN`");
@@ -962,6 +987,7 @@ namespace Zerra.Repository.MySql
                 GenerateJoin(child, ref sb);
             }
         }
+        /// <inheritdoc/>
         protected override void GenerateEnding(QueryOperation select, Graph? graph, ModelDetail modelDetail, ref CharWriter sb)
         {
             switch (select)
@@ -982,11 +1008,13 @@ namespace Zerra.Repository.MySql
             }
         }
 
+        /// <inheritdoc/>
         protected override void AppendLineBreak(ref CharWriter sb)
         {
             sb.Write(Environment.NewLine);
         }
 
+        /// <inheritdoc/>
         protected override string? OperatorToString(Operator operation)
         {
             return operation switch

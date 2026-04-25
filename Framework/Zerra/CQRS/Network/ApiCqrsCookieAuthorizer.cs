@@ -2,32 +2,42 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+#if NETCOREAPP
+
 using System.Net;
-using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using Zerra.Reflection;
+using Zerra.Serialization;
 
 namespace Zerra.CQRS.Network
 {
+    /// <summary>
+    /// Implements CQRS authorization using HTTP cookies obtained from a login endpoint.
+    /// </summary>
     public class ApiCqrsCookieAuthorizer : ICqrsAuthorizer
     {
         private const string cookieHeader = "Cookie";
 
+        private readonly ISerializer serializer;
         private readonly Uri endpoint;
         private readonly string loginRequestBody;
         private readonly string contentType;
         private CookieCollection? cookies;
 
-        public ApiCqrsCookieAuthorizer(string loginEndpoint, string loginRequestBody, string contentType)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ApiCqrsCookieAuthorizer"/> class.
+        /// </summary>
+        /// <param name="serializer">A JSON serializer for handling request and response serialization.</param>
+        /// <param name="loginEndpoint">The URI endpoint for the login request. Can include or omit the URI scheme.</param>
+        /// <param name="loginRequestBody">The request body to send to the login endpoint.</param>
+        /// <param name="contentType">The content type for the login request.</param>
+        /// <exception cref="ArgumentException">Thrown when the serializer is not a JSON serializer.</exception>
+        public ApiCqrsCookieAuthorizer(ISerializer serializer, string loginEndpoint, string loginRequestBody, string contentType)
         {
+            if (serializer.ContentType != ContentType.Json)
+                throw new ArgumentException("Must be JSON serializer", nameof(serializer));
+
+            this.serializer = serializer;
             if (!loginEndpoint.Contains("://"))
                 this.endpoint = new Uri($"tcp://{loginEndpoint}"); //hacky way to make it parse without scheme.
             else
@@ -37,7 +47,7 @@ namespace Zerra.CQRS.Network
             this.contentType = contentType;
         }
 
-        private static async Task<CookieCollection> GetCookiesRequest(Uri endpoint, string body, string contentType, CancellationToken cancellationToken)
+        private static async Task<CookieCollection> GetCookiesRequest(ISerializer serializer, Uri endpoint, string body, string contentType, CancellationToken cancellationToken)
         {
             using var handler = new HttpClientHandler()
             {
@@ -52,7 +62,7 @@ namespace Zerra.CQRS.Network
                 request.Content = new WriteStreamContent(async (postStream) =>
                 {
                     var data = System.Text.Encoding.UTF8.GetBytes(body);
-                    await ContentTypeSerializer.SerializeAsync(ContentType.Json, postStream, data, cancellationToken);
+                    await serializer.SerializeAsync(postStream, data, cancellationToken);
                 });
                 request.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
 
@@ -66,11 +76,11 @@ namespace Zerra.CQRS.Network
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(ContentType.Json, responseStream, cancellationToken);
+                    var responseException = await ExceptionSerializer.DeserializeAsync(serializer, responseStream, cancellationToken);
                     throw responseException;
                 }
 
-                var cookies = GetCookiesFromContainer(handler.CookieContainer);
+                var cookies = handler.CookieContainer.GetAllCookies();
                 return cookies;
             }
             catch
@@ -91,30 +101,11 @@ namespace Zerra.CQRS.Network
             }
         }
 
-        private static readonly Func<object, object?> cookieContainerGetter = TypeAnalyzer.GetTypeDetail(typeof(CookieContainer)).GetMember("m_domainTable").GetterBoxed;
-        private static readonly Func<object, object?> pathListGetter = TypeAnalyzer.GetTypeDetail(Discovery.GetTypeFromName("System.Net.PathList, System.Net.Primitives, Version=4.1.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a")).GetMember("m_list").GetterBoxed;
-        private static CookieCollection GetCookiesFromContainer(CookieContainer cookieJar)
-        {
-            var cookieCollection = new CookieCollection();
-
-            var table = (Hashtable)cookieContainerGetter(cookieJar)!;
-
-            foreach (var pathList in table.Values)
-            {
-                var list = (SortedList)pathListGetter(pathList)!;
-
-                foreach (CookieCollection collection in list.Values)
-                {
-                    foreach (var cookie in collection.Cast<Cookie>())
-                    {
-                        cookieCollection.Add(cookie);
-                    }
-                }
-            }
-
-            return cookieCollection;
-        }
-
+        /// <summary>
+        /// Parses a cookie header string into a dictionary of cookie names and values.
+        /// </summary>
+        /// <param name="cookieString">The cookie header string to parse.</param>
+        /// <returns>A dictionary containing the parsed cookie names and values.</returns>
         public static unsafe Dictionary<string, string> CookiesFromString(string cookieString)
         {
             var cookies = new Dictionary<string, string>();
@@ -185,10 +176,15 @@ namespace Zerra.CQRS.Network
             return cookies;
         }
 
-        public Task Login(CancellationToken cancellationToken = default) => GetCookiesRequest(endpoint, loginRequestBody, contentType, cancellationToken);
+        /// <inheritdoc/>
+        public Task Login(CancellationToken cancellationToken = default) => GetCookiesRequest(serializer, endpoint, loginRequestBody, contentType, cancellationToken);
 
+        /// <summary>
+        /// Gets the cookies obtained from the login request.
+        /// </summary>
         public CookieCollection? Cookies => cookies;
 
+        /// <inheritdoc/>
         public void Authorize(Dictionary<string, List<string?>> headers)
         {
             Dictionary<string, string>? cookies = null;
@@ -199,9 +195,10 @@ namespace Zerra.CQRS.Network
             AuthorizeCookies(cookies);
         }
 
+        /// <inheritdoc/>
         public async ValueTask<Dictionary<string, List<string?>>> GetAuthorizationHeadersAsync(CancellationToken cancellationToken = default)
         {
-            cookies ??= await GetCookiesRequest(endpoint, loginRequestBody, contentType, cancellationToken);
+            cookies ??= await GetCookiesRequest(serializer, endpoint, loginRequestBody, contentType, cancellationToken);
 
             var sb = new StringBuilder();
             foreach (Cookie cookie in cookies)
@@ -220,6 +217,13 @@ namespace Zerra.CQRS.Network
             return authHeaders;
         }
 
+        /// <summary>
+        /// Authorizes cookies. This method must be overridden by derived classes to implement cookie authorization logic.
+        /// </summary>
+        /// <param name="cookies">The cookies to authorize, or null if no cookies are available.</param>
+        /// <exception cref="NotImplementedException">Thrown when this method is not overridden by a derived class.</exception>
         public virtual void AuthorizeCookies(Dictionary<string, string>? cookies) => throw new NotImplementedException($"{nameof(ApiCqrsCookieAuthorizer)}.{nameof(AuthorizeCookies)} needs overridden to use.");
     }
 }
+
+#endif

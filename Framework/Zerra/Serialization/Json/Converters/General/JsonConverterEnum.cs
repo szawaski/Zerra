@@ -2,7 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Buffers.Text;
 using Zerra.Reflection;
 using Zerra.Serialization.Json.IO;
@@ -10,24 +9,24 @@ using Zerra.Serialization.Json.State;
 
 namespace Zerra.Serialization.Json.Converters.General
 {
-    internal sealed class JsonConverterEnum<TParent, TValue> : JsonConverter<TParent, TValue>
+    internal sealed class JsonConverterEnum<TValue> : JsonConverter<TValue>
     {
         protected override bool StackRequired => false;
 
-        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonValueType valueType, out TValue? value)
+        protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonToken token, out TValue? value)
         {
-            if (!typeDetail.EnumUnderlyingType.HasValue)
-                throw new InvalidOperationException($"{nameof(JsonConverterEnum<TParent, TValue>)} can only handle enum types.");
+            if (!TypeDetail.EnumUnderlyingType.HasValue)
+                throw new InvalidOperationException($"{nameof(JsonConverterEnum<TValue>)} can only handle enum types.");
 
-            switch (valueType)
+            switch (token)
             {
-                case JsonValueType.String:
-                    if (!reader.TryReadStringEscapedQuoted(true, out var str, out state.SizeNeeded))
-                    {
-                        value = default;
-                        return false;
-                    }
-                    if (EnumName.TryParse(str, typeDetail.IsNullable ? typeDetail.InnerType : typeDetail.Type, out var parsed))
+                case JsonToken.String:
+                    string str;
+                    if (reader.UseBytes)
+                        str = reader.UnescapeStringBytes();
+                    else
+                        str = reader.PositionOfFirstEscape == -1 ? reader.ValueChars.ToString() : reader.UnescapeStringChars();
+                    if (EnumName.TryParse(str, TypeDetail.IsNullable ? TypeDetail.InnerType! : TypeDetail.Type, out var parsed))
                     {
                         value = (TValue?)parsed;
                     }
@@ -38,20 +37,14 @@ namespace Zerra.Serialization.Json.Converters.General
                         value = default;
                     }
                     return true;
-                case JsonValueType.Number:
+                case JsonToken.Number:
                     if (reader.UseBytes)
                     {
-                        if (!reader.TryReadNumberBytes(out var bytes, out state.SizeNeeded))
-                        {
-                            value = default;
-                            return false;
-                        }
-
-                        if ((!Utf8Parser.TryParse(bytes, out long number, out var consumed) || consumed != bytes.Length) && state.ErrorOnTypeMismatch)
+                        if ((!Utf8Parser.TryParse(reader.ValueBytes, out long number, out var consumed) || consumed != reader.ValueBytes.Length) && state.ErrorOnTypeMismatch)
                             ThrowCannotConvert(ref reader);
                         try
                         {
-                            value = (TValue?)Enum.ToObject(typeDetail.IsNullable ? typeDetail.InnerType : typeDetail.Type, number);
+                            value = (TValue?)Enum.ToObject(TypeDetail.IsNullable ? TypeDetail.InnerType! : TypeDetail.Type, number);
                         }
                         catch
                         {
@@ -63,20 +56,15 @@ namespace Zerra.Serialization.Json.Converters.General
                     }
                     else
                     {
-                        if (!reader.TryReadNumberChars(out var chars, out state.SizeNeeded))
-                        {
-                            value = default;
-                            return false;
-                        }
 #if NETSTANDARD2_0
-                        if (!UInt64.TryParse(chars.ToString(), out var number) && state.ErrorOnTypeMismatch)
+                        if (!UInt64.TryParse(reader.ValueChars.ToString(), out var number) && state.ErrorOnTypeMismatch)
 #else
-                        if (!UInt64.TryParse(chars, out var number) && state.ErrorOnTypeMismatch)
+                        if (!UInt64.TryParse(reader.ValueChars, out var number) && state.ErrorOnTypeMismatch)
 #endif
                             ThrowCannotConvert(ref reader);
                         try
                         {
-                            value = (TValue?)Enum.ToObject(typeDetail.IsNullable ? typeDetail.InnerType : typeDetail.Type, number);
+                            value = (TValue?)Enum.ToObject(TypeDetail.IsNullable ? TypeDetail.InnerType! : TypeDetail.Type, number);
                         }
                         catch
                         {
@@ -86,33 +74,33 @@ namespace Zerra.Serialization.Json.Converters.General
                         }
                         return true;
                     }
-                case JsonValueType.Null_Completed:
-                    if (!typeDetail.IsNullable && state.ErrorOnTypeMismatch)
+                case JsonToken.Null:
+                    if (!TypeDetail.IsNullable && state.ErrorOnTypeMismatch)
                         ThrowCannotConvert(ref reader);
                     value = default;
                     return true;
-                case JsonValueType.False_Completed:
+                case JsonToken.False:
                     if (state.ErrorOnTypeMismatch)
                         ThrowCannotConvert(ref reader);
                     value = default;
                     return true;
-                case JsonValueType.True_Completed:
+                case JsonToken.True:
                     if (state.ErrorOnTypeMismatch)
                         ThrowCannotConvert(ref reader);
                     value = default;
                     return true;
-                case JsonValueType.Object:
+                case JsonToken.ObjectStart:
                     if (state.ErrorOnTypeMismatch)
                         ThrowCannotConvert(ref reader);
                     value = default;
                     return DrainObject(ref reader, ref state);
-                case JsonValueType.Array:
+                case JsonToken.ArrayStart:
                     if (state.ErrorOnTypeMismatch)
                         ThrowCannotConvert(ref reader);
                     value = default;
                     return DrainArray(ref reader, ref state);
                 default:
-                    throw new NotImplementedException();
+                    throw reader.CreateException();
             }
         }
 
@@ -125,12 +113,12 @@ namespace Zerra.Serialization.Json.Converters.General
                 return true;
             }
 
-            if (!typeDetail.EnumUnderlyingType.HasValue)
-                throw new InvalidOperationException($"{nameof(JsonConverterEnum<TParent, TValue>)} can only handle enum types.");
+            if (!TypeDetail.EnumUnderlyingType.HasValue)
+                throw new InvalidOperationException($"{nameof(JsonConverterEnum<TValue>)} can only handle enum types.");
 
             if (state.EnumAsNumber)
             {
-                switch (typeDetail.EnumUnderlyingType.Value)
+                switch (TypeDetail.EnumUnderlyingType.Value)
                 {
                     case CoreEnumType.Byte:
                     case CoreEnumType.ByteNullable:
@@ -177,7 +165,7 @@ namespace Zerra.Serialization.Json.Converters.General
             }
             else
             {
-                if (!writer.TryWriteQuoted(EnumName.GetName(typeDetail.IsNullable ? typeDetail.InnerType : typeDetail.Type, value), out state.SizeNeeded))
+                if (!writer.TryWriteQuoted(EnumName.GetName(TypeDetail.IsNullable ? TypeDetail.InnerType! : TypeDetail.Type, value), out state.SizeNeeded))
                     return false;
                 return true;
             }

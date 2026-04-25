@@ -2,7 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Text;
 using Zerra.Serialization.Bytes;
 
@@ -29,7 +28,7 @@ namespace Zerra.Repository
 
         public static string GetStreamName<TModel>(object id)
         {
-            var typeName = typeof(TModel).GetNiceName();
+            var typeName = typeof(TModel).Name;
 
             var sbStreamName = new StringBuilder();
             _ = sbStreamName.Append(typeName).Append('_');
@@ -52,7 +51,7 @@ namespace Zerra.Repository
 
         public static string GetStateStreamName<TModel>(object id)
         {
-            var typeName = typeof(TModel).GetNiceName();
+            var typeName = typeof(TModel).Name;
 
             var sbStreamName = new StringBuilder();
             _ = sbStreamName.Append(typeName).Append("_State_");

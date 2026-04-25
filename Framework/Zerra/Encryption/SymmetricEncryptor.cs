@@ -2,8 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -15,9 +13,10 @@ namespace Zerra.Encryption
     public static class SymmetricEncryptor
     {
         private static readonly byte[] defaultSalt = Encoding.UTF8.GetBytes("ενγρυπτιον"); //20 bytes
-        private const int defaultDeriveBytesIterations = 1000;
         private const SymmetricKeySize defaultKeySize = SymmetricKeySize.Bits_256;
         private const SymmetricBlockSize defaultBlockSize = SymmetricBlockSize.Bits_128;
+        private static readonly HashAlgorithmName defaultHashAlgorithm = HashAlgorithmName.SHA1;
+        private const int defaultDeriveBytesIterations = 1000;
 
         private static byte[] SaltFromPassword(string password, string? salt = null)
         {
@@ -34,42 +33,51 @@ namespace Zerra.Encryption
         /// <param name="salt">An optional salt for the key.</param>
         /// <param name="keySize">The size of the key.</param>
         /// <param name="blockSize">The size of each encrypted block.</param>
-        /// <param name="iterations">The number of itterations</param>
+        /// <param name="hashAlgorithm">The hash algorithm to use for the key derivation, default is SHA1.</param>
+        /// <param name="deriveKeyIterations">The number of iterations to perform in the key derivation, default is 1000.</param>
         /// <returns>The new symmetric key</returns>
-        public static SymmetricKey GetKey(string password, string? salt = null, SymmetricKeySize keySize = defaultKeySize, SymmetricBlockSize blockSize = defaultBlockSize, int iterations = defaultDeriveBytesIterations)
+        public static SymmetricKey GetKey(string password, string? salt = null, SymmetricKeySize keySize = defaultKeySize, SymmetricBlockSize blockSize = defaultBlockSize, HashAlgorithmName? hashAlgorithm = null, int deriveKeyIterations = defaultDeriveBytesIterations)
         {
             var saltBytes = SaltFromPassword(password, salt);
+            var keySizeValue = (int)keySize;
+            var blockSizeValue = (int)blockSize;
 
 #if NETSTANDARD2_0
-            using (var deriveBytes = new Rfc2898DeriveBytes(password, saltBytes))
-#else
-            using (var deriveBytes = new Rfc2898DeriveBytes(password, saltBytes, iterations, HashAlgorithmName.SHA1))
-#endif
+            using (var deriveBytes = new Rfc2898DeriveBytes(password, saltBytes, iterations, hashAlgorithmName ?? defaultHashAlgorithm))
             {
-                var keySizeValue = (int)keySize;
-                var blockSizeValue = (int)blockSize;
                 var keyBytes = deriveBytes.GetBytes(keySizeValue / 8);
                 var ivBytes = deriveBytes.GetBytes(blockSizeValue / 8);
-
-                var symmetricKey = new SymmetricKey(keyBytes, ivBytes);
-                return symmetricKey;
+                return new SymmetricKey(keyBytes, ivBytes);
             }
+#else
+            var passwordBytes = Encoding.UTF8.GetBytes(password);
+            var totalBytes = Rfc2898DeriveBytes.Pbkdf2(passwordBytes, saltBytes, deriveKeyIterations, hashAlgorithm ?? defaultHashAlgorithm, (keySizeValue + blockSizeValue) / 8);
+            var keyBytes = totalBytes[..(keySizeValue / 8)];
+            var ivBytes = totalBytes[(keySizeValue / 8)..];
+            return new SymmetricKey(keyBytes, ivBytes);
+#endif
         }
 
         /// <summary>
         /// Generates a new random symmetric key.
         /// </summary>
         /// <param name="symmetricAlgorithmType">The algoritm for the symmetric key.</param>
-        /// <param name="keySize">The size of the key.</param>
-        /// <param name="blockSize">The size of each encrypted block.</param>
+        /// <param name="minKeySize">The smallest legal key size for the algorithm will be used, otherwise the max will be used.</param>
+        /// <param name="minBlockSize">The smallest legal block size for the algorithm will be used, otherwise the max will be used.</param>
         /// <returns>The new symmetric key</returns>
-        public static SymmetricKey GenerateKey(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKeySize keySize = defaultKeySize, SymmetricBlockSize blockSize = defaultBlockSize)
+        public static SymmetricKey GenerateKey(SymmetricAlgorithmType symmetricAlgorithmType, bool minKeySize = false, bool minBlockSize = false)
         {
             var (symmetricAlgorithm, _) = GetAlgorithm(symmetricAlgorithmType);
+            if (symmetricAlgorithm.LegalBlockSizes.Length == 0 || symmetricAlgorithm.LegalKeySizes.Length == 0)
+                throw new NotSupportedException("The selected algorithm does not define key or block sizes.");
+
+            var keySize = minKeySize ? symmetricAlgorithm.LegalKeySizes[0].MinSize : symmetricAlgorithm.LegalKeySizes[0].MaxSize;
+            var blockSize = minBlockSize ? symmetricAlgorithm.LegalBlockSizes[0].MinSize : symmetricAlgorithm.LegalBlockSizes[0].MaxSize;
+
             try
             {
-                symmetricAlgorithm.KeySize = (int)keySize;
-                symmetricAlgorithm.BlockSize = (int)blockSize;
+                symmetricAlgorithm.KeySize = keySize;
+                symmetricAlgorithm.BlockSize = blockSize;
                 symmetricAlgorithm.GenerateKey();
                 symmetricAlgorithm.GenerateIV();
                 var symmetricKey = new SymmetricKey(symmetricAlgorithm.Key, symmetricAlgorithm.IV);
@@ -81,20 +89,26 @@ namespace Zerra.Encryption
             }
         }
 
-        private static (SymmetricAlgorithm, bool) GetAlgorithm(SymmetricAlgorithmType symmetricAlgorithmType)
+        private static (SymmetricAlgorithm, byte) GetAlgorithm(SymmetricAlgorithmType symmetricAlgorithmType)
         {
             return symmetricAlgorithmType switch
             {
-                SymmetricAlgorithmType.AES => (Aes.Create(), false),
-                SymmetricAlgorithmType.DES => (DES.Create(), false),
-                SymmetricAlgorithmType.TripleDES => (TripleDES.Create(), false),
-                SymmetricAlgorithmType.RC2 => (RC2.Create(), false),
+                SymmetricAlgorithmType.AES => (Aes.Create(), 0),
+                SymmetricAlgorithmType.DES => (DES.Create(), 0),
+                SymmetricAlgorithmType.TripleDES => (TripleDES.Create(), 0),
+                SymmetricAlgorithmType.RC2 => (RC2.Create(), 0),
 
-                SymmetricAlgorithmType.AESwithShift => (Aes.Create(), true),
-                SymmetricAlgorithmType.DESwithShift => (DES.Create(), true),
-                SymmetricAlgorithmType.TripleDESwithShift => (TripleDES.Create(), true),
-                SymmetricAlgorithmType.RC2withShift => (RC2.Create(), true),
+                SymmetricAlgorithmType.AESwithPrefix => (Aes.Create(), 1),
+                SymmetricAlgorithmType.DESwithPrefix => (DES.Create(), 1),
+                SymmetricAlgorithmType.TripleDESwithPrefix => (TripleDES.Create(), 1),
+                SymmetricAlgorithmType.RC2withPrefix => (RC2.Create(), 1),
 
+#pragma warning disable CS0612 // Type or member is obsolete
+                SymmetricAlgorithmType.AESwithShift => (Aes.Create(), 2),
+                SymmetricAlgorithmType.DESwithShift => (DES.Create(), 2),
+                SymmetricAlgorithmType.TripleDESwithShift => (TripleDES.Create(), 2),
+                SymmetricAlgorithmType.RC2withShift => (RC2.Create(), 2),
+#pragma warning restore CS0612 // Type or member is obsolete
                 _ => throw new NotImplementedException(),
             };
         }
@@ -154,7 +168,7 @@ namespace Zerra.Encryption
         /// <summary>
         /// Performs a symmetric encryption
         /// </summary>
-        /// <param name="symmetricAlgorithmType">The symmetric algorith type.</param>
+        /// <param name="symmetricAlgorithmType">The symmetric algorithm type.</param>
         /// <param name="key">The key for encryption.</param>
         /// <param name="plainBytes">The data to encrypt.</param>
         /// <returns>The encrypted data.</returns>
@@ -181,7 +195,7 @@ namespace Zerra.Encryption
         /// <summary>
         /// Performs a symmetric encryption
         /// </summary>
-        /// <param name="symmetricAlgorithmType">The symmetric algorith type.</param>
+        /// <param name="symmetricAlgorithmType">The symmetric algorithm type.</param>
         /// <param name="key">The key for encryption.</param>
         /// <param name="plainBytes">The data to encrypt.</param>
         /// <returns>The encrypted data.</returns>
@@ -206,7 +220,7 @@ namespace Zerra.Encryption
         /// <summary>
         /// Performs a symmetric encryption
         /// </summary>
-        /// <param name="symmetricAlgorithmType">The symmetric encryption information which contains the algorithm and key.</param>
+        /// <param name="symmetricAlgorithmType">The symmetric algorithm type.</param>
         /// <param name="key">The key for encryption.</param>
         /// <param name="stream">The stream to encrypt.</param>
         /// <param name="write">Indicates the stream is for writing.</param>
@@ -238,7 +252,22 @@ namespace Zerra.Encryption
 
             //NetStandard2.0 CryptoStream does not option leaveOpen but has no critial memory releases in dispose
 #if NETSTANDARD2_0
-            if (shiftAlgorithm)
+            if (shiftAlgorithm == 1)
+            {
+                if (write)
+                {
+                    var cryptoStream = new CryptoStream(stream, transform, CryptoStreamMode.Write);
+                    var shiftStream = new CryptoPrefixStream(cryptoStream, key.BlockSize, CryptoStreamMode.Write, false, leaveOpen);
+                    return new CryptoFlushStream(shiftStream, transform, false);
+                }
+                else
+                {
+                    var shiftStream = new CryptoPrefixStream(stream, key.BlockSize, CryptoStreamMode.Read, false, leaveOpen);
+                    var cryptoStream = new CryptoStream(shiftStream, transform, CryptoStreamMode.Read);
+                    return new CryptoFlushStream(cryptoStream, transform, false);
+                }
+            }
+            else if (shiftAlgorithm == 2)
             {
                 if (write)
                 {
@@ -259,17 +288,36 @@ namespace Zerra.Encryption
                 return new CryptoFlushStream(cryptoStream, transform, leaveOpen);
             }
 #else
-            if (shiftAlgorithm)
+            if (shiftAlgorithm == 1)
             {
                 if (write)
                 {
                     var cryptoStream = new CryptoStream(stream, transform, CryptoStreamMode.Write, leaveOpen);
-                    var shiftStream = new CryptoShiftStream(cryptoStream, key.BlockSize, CryptoStreamMode.Write, false, false);
+                    var shiftStream = new CryptoPrefixStream(cryptoStream, key.BlockSize, CryptoStreamMode.Write, false, false);
                     return new CryptoFlushStream(shiftStream, transform, false);
                 }
                 else
                 {
+                    var shiftStream = new CryptoPrefixStream(stream, key.BlockSize, CryptoStreamMode.Read, false, leaveOpen);
+                    var cryptoStream = new CryptoStream(shiftStream, transform, CryptoStreamMode.Read, false);
+                    return new CryptoFlushStream(cryptoStream, transform, false);
+                }
+            }
+            else if (shiftAlgorithm == 2)
+            {
+                if (write)
+                {
+                    var cryptoStream = new CryptoStream(stream, transform, CryptoStreamMode.Write, leaveOpen);
+#pragma warning disable CS0612 // Type or member is obsolete
+                    var shiftStream = new CryptoShiftStream(cryptoStream, key.BlockSize, CryptoStreamMode.Write, false, false);
+#pragma warning restore CS0612 // Type or member is obsolete
+                    return new CryptoFlushStream(shiftStream, transform, false);
+                }
+                else
+                {
+#pragma warning disable CS0612 // Type or member is obsolete
                     var shiftStream = new CryptoShiftStream(stream, key.BlockSize, CryptoStreamMode.Read, false, leaveOpen);
+#pragma warning restore CS0612 // Type or member is obsolete
                     var cryptoStream = new CryptoStream(shiftStream, transform, CryptoStreamMode.Read, false);
                     return new CryptoFlushStream(cryptoStream, transform, false);
                 }
@@ -313,13 +361,14 @@ namespace Zerra.Encryption
         /// <param name="write">Indicates the stream is for writing.</param>
         /// <param name="leaveOpen">Indicates if the original stream will stay open after the returning stream is closed or disposed.</param>
         /// <returns>The stream that will decrypt the data.</returns>
-        public static CryptoFlushStream Decrypt(SymmetricConfig symmetricConfig, Stream stream, bool write, bool leaveOpen = false) => Decrypt(symmetricConfig.Algorithm, symmetricConfig.Key, stream, write, leaveOpen);
+        public static CryptoFlushStream Decrypt(SymmetricConfig symmetricConfig, Stream stream, bool write, bool leaveOpen = false)
+            => Decrypt(symmetricConfig.Algorithm, symmetricConfig.Key, stream, write, leaveOpen);
 
         /// <summary>
         /// Performs a symmetric decryption
         /// </summary>
-        /// <param name="symmetricAlgorithmType">The symmetric encryption information which contains the algorithm and key.</param>
-        /// <param name="key">The key for encryption.</param>
+        /// <param name="symmetricAlgorithmType">The symmetric algorithm type.</param>
+        /// <param name="key">The key for decryption.</param>
         /// <param name="encryptedData">The data to decrypt.</param>
         /// <returns>The decrypted data.</returns>
         public static string? Decrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, string? encryptedData)
@@ -336,6 +385,13 @@ namespace Zerra.Encryption
             var plainData = Encoding.UTF8.GetString(plainBytes);
             return plainData;
         }
+        /// <summary>
+        /// Performs a symmetric decryption
+        /// </summary>
+        /// <param name="symmetricAlgorithmType">The symmetric algorithm type.</param>
+        /// <param name="key">The key for decryption.</param>
+        /// <param name="encryptedBytes">The data to decrypt.</param>
+        /// <returns>The decrypted data.</returns>
         public static byte[] Decrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, byte[] encryptedBytes)
         {
             if (key is null)
@@ -359,8 +415,8 @@ namespace Zerra.Encryption
         /// <summary>
         /// Performs a symmetric decryption
         /// </summary>
-        /// <param name="symmetricAlgorithmType">The symmetric encryption information which contains the algorithm and key.</param>
-        /// <param name="key">The key for encryption.</param>
+        /// <param name="symmetricAlgorithmType">The symmetric algorithm type.</param>
+        /// <param name="key">The key for decryption.</param>
         /// <param name="encryptedBytes">The data to decrypt.</param>
         /// <returns>The decrypted data.</returns>
         public static Span<byte> Decrypt(SymmetricAlgorithmType symmetricAlgorithmType, SymmetricKey key, ReadOnlySpan<byte> encryptedBytes)
@@ -384,8 +440,8 @@ namespace Zerra.Encryption
         /// <summary>
         /// Performs a symmetric decryption
         /// </summary>
-        /// <param name="symmetricAlgorithmType">The symmetric encryption information which contains the algorithm and key.</param>
-        /// <param name="key">The key for encryption.</param>
+        /// <param name="symmetricAlgorithmType">The symmetric algorithm type.</param>
+        /// <param name="key">The key for decryption.</param>
         /// <param name="stream">The stream to decrypt.</param>
         /// <param name="write">Indicates the stream is for writing.</param>
         /// <param name="leaveOpen">Indicates if the original stream will stay open after the returning stream is closed or disposed.</param>
@@ -416,7 +472,22 @@ namespace Zerra.Encryption
 
             //NetStandard2.0 CryptoStream does not option leaveOpen but has no critial memory releases in dispose
 #if NETSTANDARD2_0
-            if (shiftAlgorithm)
+            if (shiftAlgorithm == 1)
+            {
+                if (write)
+                {
+                    var shiftStream = new CryptoPrefixStream(stream, key.BlockSize, CryptoStreamMode.Write, true, leaveOpen);
+                    var cryptoStream = new CryptoStream(shiftStream, transform, CryptoStreamMode.Write);
+                    return new CryptoFlushStream(cryptoStream, transform, false);
+                }
+                else
+                {
+                    var cryptoStream = new CryptoStream(stream, transform, CryptoStreamMode.Read);
+                    var shiftStream = new CryptoPrefixStream(cryptoStream, key.BlockSize, CryptoStreamMode.Read, true, leaveOpen);
+                    return new CryptoFlushStream(shiftStream, transform, false);
+                }
+            }
+            else if (shiftAlgorithm == 2)
             {
                 if (write)
                 {
@@ -437,18 +508,37 @@ namespace Zerra.Encryption
                 return new CryptoFlushStream(cryptoStream, transform, leaveOpen);
             }
 #else
-            if (shiftAlgorithm)
+            if (shiftAlgorithm == 2)
             {
                 if (write)
                 {
+#pragma warning disable CS0612 // Type or member is obsolete
                     var shiftStream = new CryptoShiftStream(stream, key.BlockSize, CryptoStreamMode.Write, true, leaveOpen);
+#pragma warning restore CS0612 // Type or member is obsolete
                     var cryptoStream = new CryptoStream(shiftStream, transform, CryptoStreamMode.Write, false);
                     return new CryptoFlushStream(cryptoStream, transform, false);
                 }
                 else
                 {
                     var cryptoStream = new CryptoStream(stream, transform, CryptoStreamMode.Read, leaveOpen);
+#pragma warning disable CS0612 // Type or member is obsolete
                     var shiftStream = new CryptoShiftStream(cryptoStream, key.BlockSize, CryptoStreamMode.Read, true, false);
+#pragma warning restore CS0612 // Type or member is obsolete
+                    return new CryptoFlushStream(shiftStream, transform, false);
+                }
+            }
+            else if (shiftAlgorithm == 1)
+            {
+                if (write)
+                {
+                    var shiftStream = new CryptoPrefixStream(stream, key.BlockSize, CryptoStreamMode.Write, true, leaveOpen);
+                    var cryptoStream = new CryptoStream(shiftStream, transform, CryptoStreamMode.Write, false);
+                    return new CryptoFlushStream(cryptoStream, transform, false);
+                }
+                else
+                {
+                    var cryptoStream = new CryptoStream(stream, transform, CryptoStreamMode.Read, leaveOpen);
+                    var shiftStream = new CryptoPrefixStream(cryptoStream, key.BlockSize, CryptoStreamMode.Read, true, false);
                     return new CryptoFlushStream(shiftStream, transform, false);
                 }
             }

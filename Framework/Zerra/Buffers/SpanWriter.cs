@@ -2,7 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Runtime.CompilerServices;
 
 namespace Zerra.Buffers
@@ -36,10 +35,9 @@ namespace Zerra.Buffers
         /// </summary>
         /// <param name="values">The values to be written.</param>
         /// <exception cref="InvalidOperationException">Throws if the values excede the remaining length of the span.</exception>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(ReadOnlySpan<T> values)
         {
-            values.CopyTo(span.Slice(position));
+            values.CopyTo(span[position..]);
             position += values.Length;
         }
     }

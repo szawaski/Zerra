@@ -2,20 +2,24 @@
 
     <PropertyGroup>
         <TargetFramework>net48</TargetFramework>
-        <Authors>Steven Zawaski</Authors>
-        <Copyright>KaKush LLC</Copyright>
-        <Product>Zerra Framework T4</Product>
-        <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-        <PackageLicenseFile>LICENSE</PackageLicenseFile>
-        <LangVersion>8.0</LangVersion>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <LangVersion>14.0</LangVersion>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <Version>6.0.0</Version>
+        <Authors>Steven Zawaski</Authors>
         <Company>KaKush LLC</Company>
-        <Description>Tools for T4 files to use to generate code and client side libraries for CQRS.</Description>
-        <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, T4, Code Generation</PackageTags>
+        <Copyright>KaKush LLC</Copyright>
+        <Product>Zerra Framework</Product>
         <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
-        <Version>4.6.0</Version>
-        <LangVersion>10.0</LangVersion>
+        <PackageTags>Zerra, T4</PackageTags>
+        <Description>Tools for T4 files to use to generate code and client side libraries for CQRS.</Description>
     </PropertyGroup>
 
     <ItemGroup>
@@ -28,5 +32,20 @@
     <ItemGroup>
         <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
     </ItemGroup>
+
+    <!-- Copy build output to Front End Scripts Binaries folder -->
+    <Target Name="CopyToFrontEndScripts" AfterTargets="Build">
+        <PropertyGroup>
+            <FrontEndBinariesPath>$(SolutionDir)Front End Scripts\Binaries\</FrontEndBinariesPath>
+        </PropertyGroup>
+        <ItemGroup>
+            <BinariesToCopy Include="$(OutputPath)Zerra.T4.dll" />
+            <BinariesToCopy Include="$(OutputPath)Zerra.T4.pdb" />
+            <BinariesToCopy Include="$(OutputPath)Zerra.T4.xml" />
+        </ItemGroup>
+        <Message Text="Copying Zerra.T4 binaries to Front End Scripts folder..." Importance="high" />
+        <Copy SourceFiles="@(BinariesToCopy)" DestinationFolder="$(FrontEndBinariesPath)" SkipUnchangedFiles="true" />
+        <Message Text="Successfully copied binaries to $(FrontEndBinariesPath)" Importance="high" />
+    </Target>
 
 </Project>

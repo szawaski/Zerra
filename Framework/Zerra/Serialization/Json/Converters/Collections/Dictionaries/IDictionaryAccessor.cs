@@ -1,8 +1,6 @@
-﻿using System.Collections.Generic;
-
-namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
+﻿namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
 {
-    public sealed class IDictionaryAccessor<TKey, TValue>
+    internal sealed class IDictionaryAccessor<TKey, TValue>
         where TKey : notnull
     {
         private readonly IDictionary<TKey, TValue> dictionary;

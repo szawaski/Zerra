@@ -2,31 +2,27 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections.Generic;
 using Zerra.Reflection;
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;
 
 namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
 {
-    internal sealed class ByteConverterIEnumerableTOfT<TParent, TEnumerable, TValue> : ByteConverter<TParent, TEnumerable>
+    internal sealed class ByteConverterIEnumerableTOfT<TEnumerable, TValue> : ByteConverter<TEnumerable>
     {
-        private ByteConverter<ArrayAccessor<TValue>> readConverter = null!;
-        private ByteConverter<IEnumerator<TValue>> writeConverter = null!;
+        private ByteConverter converter = null!;
 
-        private static TValue Getter(IEnumerator<TValue> parent) => parent.Current;
-        private static void Setter(ArrayAccessor<TValue> parent, TValue value) => parent.Set(value);
+        private static TValue Getter(object parent) => ((IEnumerator<TValue>)parent).Current;
+        private static void Setter(object parent, TValue value) => ((ArrayAccessor<TValue>)parent).Set(value);
 
         protected override sealed void Setup()
         {
             var valueTypeDetail = TypeAnalyzer<TValue>.GetTypeDetail();
-            readConverter = ByteConverterFactory<ArrayAccessor<TValue>>.Get(valueTypeDetail, nameof(ByteConverterIEnumerableTOfT<TParent, TEnumerable, TValue>), null, Setter);
-            writeConverter = ByteConverterFactory<IEnumerator<TValue>>.Get(valueTypeDetail, nameof(ByteConverterIEnumerableTOfT<TParent, TEnumerable, TValue>), Getter, null);
+            converter = ByteConverterFactory.Get(valueTypeDetail, nameof(ByteConverterIEnumerableTOfT<TEnumerable, TValue>), Getter, Setter);
         }
 
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TEnumerable? value)
-            => throw new NotSupportedException($"Cannot deserialize {typeDetail.Type.GetNiceName()} because no interface to populate the collection");
+            => throw new NotSupportedException($"Cannot deserialize {TypeDetail.Type.Name} because no interface to populate the collection");
 
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in TEnumerable value)
         {
@@ -36,7 +32,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
             {
                 if (value is ICollection<TValue> collection1)
                 {
-                    if (!writer.TryWrite(collection1.Count, out state.BytesNeeded))
+                    if (!writer.TryWrite(collection1.Count, out state.SizeNeeded))
                     {
                         return false;
                     }
@@ -49,7 +45,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
                 }
                 else if (value is IReadOnlyCollection<TValue> collection2)
                 {
-                    if (!writer.TryWrite(collection2.Count, out state.BytesNeeded))
+                    if (!writer.TryWrite(collection2.Count, out state.SizeNeeded))
                     {
                         return false;
                     }
@@ -68,7 +64,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
                     foreach (var item in enumerable)
                         count++;
 
-                    if (!writer.TryWrite(count, out state.BytesNeeded))
+                    if (!writer.TryWrite(count, out state.SizeNeeded))
                     {
                         return false;
                     }
@@ -87,7 +83,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
 
             while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
             {
-                if (!writeConverter.TryWriteFromParent(ref writer, ref state, enumerator, true))
+                if (!converter.TryWriteFromParent(ref writer, ref state, enumerator))
                 {
                     state.Current.Object = enumerator;
                     state.Current.EnumeratorInProgress = true;

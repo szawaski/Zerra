@@ -201,11 +201,13 @@ const Bus = {
             Source: "JavaScript"
         };
 
+        const encoder = new TextEncoder();
+
         if (postData.ProviderArguments !== undefined) {
             if (!Array.isArray(postData.ProviderArguments))
                 throw "Arguments must be an array";
             for (let i = 0; i < postData.ProviderArguments.length; i++) {
-                postData.ProviderArguments[i] = Bus._serializeJson(postData.ProviderArguments[i]);
+                postData.ProviderArguments[i] = encoder.encode(Bus._serializeJson(postData.ProviderArguments[i])).toBase64();
             }
         }
 

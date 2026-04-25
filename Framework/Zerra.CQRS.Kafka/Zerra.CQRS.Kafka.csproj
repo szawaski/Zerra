@@ -1,33 +1,37 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+        <TargetFrameworks>net10.0</TargetFrameworks>
         <Nullable>enable</Nullable>
-        <CheckEolTargetFramework>false</CheckEolTargetFramework>
-        <Authors>Steven Zawaski</Authors>
-        <Copyright>KaKush LLC</Copyright>
-        <Product>Zerra Framework CQRS Service</Product>
-        <PackageLicenseFile>LICENSE</PackageLicenseFile>
-        <PackageTags>Framework, CQRS, Microservice, Event Sourcing, Repository, ORM, Kafka</PackageTags>
-        <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
-        <Description>Kafka implementations of producer and consumer for commands and events in the CQRS Zerra Framework.</Description>
-        <Company>KaKush LLC</Company>
-        <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <InvariantGlobalization>true</InvariantGlobalization>
+        <IsAotCompatible>true</IsAotCompatible>
+        <PublishAot>true</PublishAot>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <LangVersion>14.0</LangVersion>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
-        <LangVersion>14.0</LangVersion>
-        <Version>5.2.5</Version>
+        <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <Version>6.0.0</Version>
+        <Authors>Steven Zawaski</Authors>
+        <Company>KaKush LLC</Company>
+        <Copyright>KaKush LLC</Copyright>
+        <Product>Zerra Framework</Product>
+        <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
+        <PackageTags>Zerra, Kafka, Message Broker</PackageTags>
+        <Description>Kafka transport provider for the Zerra CQRS framework. Enables command, query, and event routing through Apache Kafka for distributed message-driven architectures.</Description>
     </PropertyGroup>
 
     <ItemGroup>
-        <None Include="..\..\LICENSE">
-            <Pack>True</Pack>
-            <PackagePath></PackagePath>
-        </None>
+        <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Confluent.Kafka" Version="2.3.0" />
+        <PackageReference Include="Confluent.Kafka" Version="2.14.0" />
     </ItemGroup>
 
     <ItemGroup>

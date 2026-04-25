@@ -176,9 +176,11 @@ export class Bus {
                 Source: "TypeScript"
             };
 
+            const encoder = new TextEncoder();
+
             if (postData.ProviderArguments !== undefined) {
                 for (let i = 0; i < postData.ProviderArguments.length; i++) {
-                    postData.ProviderArguments[i] = Bus._serializeJson(postData.ProviderArguments[i]);
+                    postData.ProviderArguments[i] = encoder.encode(Bus._serializeJson(postData.ProviderArguments[i])).toBase64();
                 }
             }
 

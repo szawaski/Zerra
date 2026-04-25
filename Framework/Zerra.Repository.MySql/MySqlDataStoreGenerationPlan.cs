@@ -1,16 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using Zerra.Logging;
+﻿using Zerra.Logging;
 
 namespace Zerra.Repository.MySql
 {
+    /// <summary>
+    /// Represents a generation plan for building or updating a MySQL data store schema.
+    /// </summary>
     public sealed class MySqlDataStoreGenerationPlan : IDataStoreGenerationPlan
     {
         private readonly MySqlEngine engine;
         private readonly string? createDatabaseName;
         private readonly ICollection<string> sql;
 
+        /// <summary>
+        /// Gets the ordered collection of SQL statements that make up the generation plan.
+        /// </summary>
         public ICollection<string> Plan
         {
             get
@@ -22,6 +25,12 @@ namespace Zerra.Repository.MySql
             }
         }
 
+        /// <summary>
+        /// Initializes a new instance of <see cref="MySqlDataStoreGenerationPlan"/>.
+        /// </summary>
+        /// <param name="engine">The <see cref="MySqlEngine"/> used to execute the plan.</param>
+        /// <param name="createDatabaseName">The name of the database to create, or <see langword="null"/> if no database creation is required.</param>
+        /// <param name="sql">The SQL statements to execute as part of the plan.</param>
         public MySqlDataStoreGenerationPlan(MySqlEngine engine, string? createDatabaseName, ICollection<string> sql)
         {
             this.engine = engine;
@@ -29,18 +38,21 @@ namespace Zerra.Repository.MySql
             this.sql = sql;
         }
 
-        public void Execute()
+        /// <summary>
+        /// Executes the generation plan against the MySQL database, creating the database and running all SQL statements.
+        /// </summary>
+        public void Execute(ILogger? log)
         {
             if (!String.IsNullOrWhiteSpace(createDatabaseName))
             {
                 try
                 {
                     engine.CreateDatabase(createDatabaseName);
-                    _ = Log.InfoAsync($"{nameof(MySqlEngine)}: Create Database {createDatabaseName}");
+                    log?.Info($"{nameof(MySqlEngine)}: Create Database {createDatabaseName}");
                 }
                 catch (Exception ex)
                 {
-                    _ = Log.ErrorAsync($"{nameof(MySqlEngine)} error while creating datastore.", ex);
+                    log?.Error($"{nameof(MySqlEngine)} error while creating datastore.", ex);
                 }
             }
 
@@ -49,11 +61,11 @@ namespace Zerra.Repository.MySql
                 try
                 {
                     engine.ExecuteSql(line);
-                    _ = Log.InfoAsync($"{nameof(MySqlEngine)}: {line}");
+                    log?.Info($"{nameof(MySqlEngine)}: {line}");
                 }
                 catch (Exception ex)
                 {
-                    _ = Log.ErrorAsync($"{nameof(MySqlEngine)} error while assuring datastore: {line}.", ex);
+                    log?.Error($"{nameof(MySqlEngine)} error while assuring datastore: {line}.", ex);
                     throw;
                 }
             }

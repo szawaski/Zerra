@@ -7,7 +7,7 @@ using Zerra.Serialization.Bytes.State;
 
 namespace Zerra.Serialization.Bytes.Converters.CoreTypes.Values
 {
-    internal sealed class ByteConverterInt64Nullable<TParent> : ByteConverter<TParent, long?>
+    internal sealed class ByteConverterInt64Nullable : ByteConverter<long?>
     {
         protected override bool StackRequired => false;
 
@@ -15,6 +15,6 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.Values
             => reader.TryRead(out value, out state.SizeNeeded);
 
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in long? value)
-            => writer.TryWrite(value!.Value, out state.BytesNeeded);
+            => writer.TryWrite(value!.Value, out state.SizeNeeded);
     }
 }

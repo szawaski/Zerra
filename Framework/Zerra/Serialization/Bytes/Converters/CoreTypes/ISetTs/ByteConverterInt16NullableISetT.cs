@@ -2,13 +2,12 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Collections.Generic;
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;
 
 namespace Zerra.Serialization.Bytes.Converters.CoreTypes.ISetTs
 {
-    internal sealed class ByteConverterInt16NullableISet<TParent> : ByteConverter<TParent, ISet<short?>>
+    internal sealed class ByteConverterInt16NullableISet : ByteConverter<ISet<short?>>
     {
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out ISet<short?>? value)
         {
@@ -23,6 +22,6 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.ISetTs
         }
 
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in ISet<short?> value)
-            => writer.TryWrite(value, value.Count, out state.BytesNeeded);
+            => writer.TryWrite(value, value.Count, out state.SizeNeeded);
     }
 }

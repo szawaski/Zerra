@@ -1,256 +1,547 @@
-# Zerra: Fast Powerful Microservice Communication Framework using CQRS
-- Container ready for Docker/Kubernetes
-- Run solutions as monoliths or split out domain pieces into **Microservices**
-- Call services agnostically as they run in the assembly or remotely
-- Communication requires little configuration and no code
-- Repositories agnostically access different datastores including **Event Sourcing**
-- Transparent security transfers claims across services
-- **High Speed** using advanced memory optimizations and Intermediate Language generation.
-- Check out the ZerraDemo Project in the code base for a complete example
+﻿# Zerra CQRS Framework
 
-# Quick Start Guide
+> **⚠️ Breaking Changes Notice:** Version 6 introduces many breaking changes from version 5. Please review the documentation and examples carefully before upgrading.
 
-## Installing
-You can find all the packages on NuGet with the Zerra namespace. Start with the core framework for the quick start. [https://www.nuget.org/packages/Zerra/]
-- Install-Package Zerra
+A high-performance, distributed CQRS (Command Query Responsibility Segregation) framework. Zerra enables message-driven architecture with unified, caller-agnostic routing that abstracts local and remote service boundaries for commands, queries, and events, supporting multiple transport services including Kafka, RabbitMQ, and Azure Service Bus.
 
-## Constructing a Query
-**If the domains are referenced in the same running project, they will automatically find the implementations with no other code needed.  If domains are running seperatly see Network Setup below.**\
-\
-Create a universally shared domain project for the following classes if you do not have one already.\
-\
-Create a model for the weather.
-```csharp
-public class WeatherModel
-{
-    public string WeatherType { get; set; }
-}
+## 📚 Documentation
+
+For comprehensive guides, see the [documentation folder](docs/README.md):
+
+**Getting Started**
+- [Agents](docs/Agents.md) - Architectural context for AI agents
+
+**Configuration & Setup**
+- [AOT Support](docs/AOT.md) - Source generator for precompiled reflection and Native AOT
+- [Serializers](docs/Serializers.md) - ZerraByteSerializer and ZerraJsonSerializer configuration
+  - [ByteSerializer](docs/ByteSerializer.md) - High-performance binary serialization
+  - [JsonSerializer](docs/JsonSerializer.md) - JSON serialization with Graph-based property control
+- [Encryptors](docs/Encryptors.md) - Message encryption with ZerraEncryptor
+- [Logging](docs/Logging.md) - ILogger and IBusLogger implementation
+- [Service Injection](docs/ServiceInjection.md) - Dependency management with BusServices
+- [Zerra.Web](docs/ZerraWeb.md) - ASP.NET integration and CQRS API Gateway
+- [Client Setup](docs/ClientSetup.md) - Configure client applications
+- [Server Setup](docs/ServerSetup.md) - Configure server applications
+
+**Core Concepts**
+- [Queries](docs/Queries.md) - Execute read operations
+- [Commands](docs/Commands.md) - Dispatch state-changing operations
+- [Events](docs/Events.md) - Publish and handle state changes
+
+## Features
+
+⚡ **Pure CQRS Pattern** - Clear separation between commands (write), events (notifications), and queries (read)
+
+🚀 **High Performance** - Source-generated proxy code eliminates reflection overhead; optimized for AOT compilation
+
+🔌 **Multiple Transports** - Built-in support for Kafka, RabbitMQ, and Azure Service Bus message brokers
+
+🔀 **Local and Remote Routing** - Seamlessly route messages to local handlers or remote services via configurable brokers
+
+🔒 **Type-Safe Queries** - Query interfaces with automatic proxy generation for type-safe remote calls
+
+⏱️ **Async-First** - Fully async/await support with configurable timeout and concurrency management
+
+🎛️ **Dependency Injection** - Built-in scoped dependency management via `BusContext`
+
+📊 **Observable** - Optional `IBusLogger` for cross-service message lifecycle tracking
+
+📦 **Built-in Serialization** - High-performance ZerraByteSerializer for compact binary serialization and flexible ZerraJsonSerializer for human-readable JSON format
+
+🔐 **Message Encryption** - Transparent symmetric encryption supporting AES, DES, TripleDES, RC2, and custom algorithms
+
+✨ **Zero Dependencies** - No external package dependencies, only .NET standard libraries
+
+## Quick Start
+
+### Install
+
+```bash
+dotnet add package Zerra
 ```
-Make an interface for queries. The attribute is to enable the calls over a network when domains run independently.  This project should contain nothing but interfaces and models, no logic or property mapping.
+
+### Basic Setup - Server Side
+
 ```csharp
-[ServiceExposed]
-public interface IWeatherQueryProvider : IBaseProvider
-{
-    Task<WeatherModel> GetWeather();
-}
+using Zerra.CQRS;
+using Zerra.CQRS.Network;
+using Zerra.Serialization;
+using Zerra.Encryption;
+using Zerra.Logging;
+
+// Configure serialization, encryption, and logging
+ISerializer serializer = new ZerraByteSerializer();
+IEncryptor encryptor = new ZerraEncryptor("mySecurePassword", SymmetricAlgorithmType.AESwithPrefix);
+ILogger logger = new Logger();
+IBusLogger busLogger = new BusLogger();
+BusScopes busScopes = new BusScopes();
+busScopes.AddService<IUserRepository>(userRepository);
+
+// Create the bus
+var bus = Bus.New(
+    service: "UserService",
+    log: logger,
+    busLog: busLogger,
+    busScopes: busScopes
+);
+
+// Register local handlers and services
+bus.AddHandler<IUserCommandHandlers>(userCommandHandler);
+bus.AddHandler<IUserQueries>(userQueryHandler);
+
+// Create TCP CQRS server with configured serializer, encryptor, and logger
+var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, logger);
+bus.AddCommandConsumer<IUserCommandHandlers>(server);
+bus.AddQueryServer<IUserQueries>(server);
+
+// Start processing messages
+await bus.WaitForExitAsync(cancellationToken);
 ```
-Make the implementation in a project just for that domain.
+
+### Basic Setup - Client Side
+
 ```csharp
-public class WeatherQueryProvider : IWeatherQueryProvider
+using Zerra.CQRS;
+using Zerra.CQRS.Network;
+using Zerra.Serialization;
+using Zerra.Encryption;
+using Zerra.Logging;
+
+// Configure serialization, encryption, and logging (must match server)
+ISerializer serializer = new ZerraByteSerializer();
+IEncryptor encryptor = new ZerraEncryptor("mySecurePassword", SymmetricAlgorithmType.AESwithPrefix);
+ILogger logger = new Logger();
+IBusLogger busLogger = new BusLogger();
+BusScopes busScopes = new BusScopes();
+
+// Create the bus
+var bus = Bus.New(
+    service: "ClientService",
+    log: logger,
+    busLog: busLogger,
+    busScopes: busScopes
+);
+
+// Create TCP CQRS client with configured serializer, encryptor, and logger
+var client = new TcpCqrsClient("localhost:9001", serializer, encryptor, logger);
+bus.AddCommandProducer<IUserCommandHandlers>(client);
+bus.AddQueryClient<IUserQueries>(client);
+
+// Now dispatch commands and queries to remote UserService
+var user = await bus.DispatchAwaitAsync(new CreateUserCommand { Email = "user@example.com" });
+
+await bus.DispatchAwaitAsync(new UpdateUserCommand { Id = user.Id, Email = "updated@example.com" });
+
+var activeUsers = await bus.Call<IUserQueries>().GetActiveUsers(cancellationToken);
+```
+
+## Core Concepts
+
+### Queries
+
+Execute read operations:
+
+```csharp
+// Shared domain - Define query interface
+public interface IUserQueries : IQueryHandler
 {
-    public async Task<WeatherModel> GetWeather()
+    Task<User> GetUserById(int id, CancellationToken cancellationToken);
+    Task<List<User>> GetActiveUsers(CancellationToken cancellationToken);
+    Task<Stream> ExportUsers(CancellationToken cancellationToken); // Live-streamed
+}
+
+// Server side - Implement the query handler
+public class UserQueryHandler : BaseHandler, IUserQueries
+{
+    public async Task<User> GetUserById(int id, CancellationToken cancellationToken)
     {
-        var weatherType = await WeatherServer.GetWeather();
-        return new WeatherModel
-        {
-            Date = DateTime.UtcNow,
-            WeatherType = weatherType
-        };
+        var repository = GetService<IUserRepository>();
+        return await repository.GetByIdAsync(id, cancellationToken);
+    }
+
+    public async Task<List<User>> GetActiveUsers(CancellationToken cancellationToken)
+    {
+        var repository = GetService<IUserRepository>();
+        return await repository.GetActiveAsync(cancellationToken);
+    }
+
+    public async Task<Stream> ExportUsers(CancellationToken cancellationToken)
+    {
+        var repository = GetService<IUserRepository>();
+        return await repository.ExportStreamAsync(cancellationToken);
     }
 }
+
+// Client side - Call queries (type-safe)
+var user = await bus.Call<IUserQueries>().GetUserById(123, cancellationToken);
+var activeUsers = await bus.Call<IUserQueries>().GetActiveUsers(cancellationToken);
 ```
-Calling from C#
+
+### Commands
+
+Execute operations that modify state:
+
 ```csharp
-var weather = Bus.Call<IWeatherQueryProvider>().GetWeather();
+// Shared domain - Define command classes
+public class CreateUserCommand : ICommand
+{
+    public String Email { get; set; }
+}
+
+public class UpdateUserCommand : ICommand<User>
+{
+    public int Id { get; set; }
+    public String Email { get; set; }
+}
+
+// Server side - Implement the command handler
+public class UserCommandHandler : BaseHandler, 
+    ICommandHandler<CreateUserCommand>,
+    ICommandHandler<UpdateUserCommand, User>
+{
+    public async Task Handle(CreateUserCommand command, CancellationToken ct)
+    {
+        var repository = GetService<IUserRepository>();
+        await repository.CreateAsync(command.Email, ct);
+    }
+
+    public async Task<User> Handle(UpdateUserCommand command, CancellationToken ct)
+    {
+        var repository = GetService<IUserRepository>();
+        return await repository.UpdateAsync(command.Id, command.Email, ct);
+    }
+}
+
+// Client side - Dispatch commands
+await bus.DispatchAsync(new CreateUserCommand { Email = "user@example.com" });
+
+await bus.DispatchAwaitAsync(new CreateUserCommand { Email = "user@example.com" });
+
+var user = await bus.DispatchAwaitAsync(new UpdateUserCommand { Id = 1, Email = "new@example.com" });
 ```
-Calling from TypeScript (see Generating The Front End below)
-```typescript
-const weather = await IWeatherQueryProvider.GetWeather();
-````
-Calling from JavaScript (see Generating The Front End below)
-```javascript
-const weather = IWeatherQueryProvider.GetWeather(function(data){
-  //completed
-  }, function(){
-  //error
-  }
+
+### Events
+
+Publish state change notifications:
+
+```csharp
+// Shared domain - Define event class
+public class UserCreatedEvent : IEvent
+{
+    public int UserId { get; set; }
+    public String Email { get; set; }
+}
+
+// Server side - Implement event handler
+public class UserEventHandler : BaseHandler,
+    IEventHandler<UserCreatedEvent>
+{
+    public async Task Handle(UserCreatedEvent @event)
+    {
+        var emailService = this.Context.Get<IEmailService>();
+        await emailService.SendWelcomeEmail(@event.Email);
+    }
+}
+
+// Client side - Dispatch events
+await bus.DispatchAsync(new UserCreatedEvent 
+{ 
+    UserId = 123, 
+    Email = "user@example.com" 
+});
+```
+
+## Routing
+
+Zerra's routing mechanism is agnostic to whether services are local or remote. Callers dispatch messages without needing to change code based on deployment topology.
+
+### Local Processing
+
+```csharp
+// Register local handlers
+bus.AddHandler<IUserCommandHandlers>(userCommandHandler);
+bus.AddHandler<IUserQueries>(userQueryHandler);
+
+// Commands routed to local handler immediately
+await bus.DispatchAsync(new CreateUserCommand { Email = "user@example.com" });
+
+// Queries routed to local handler immediately
+var user = await bus.Call<IUserQueries>().GetUserById(123, cancellationToken);
+```
+
+### Remote Query Processing
+
+#### TCP CQRS
+
+```csharp
+// Server side
+var tcpServer = new TcpCqrsServer("localhost:9001", serializer, encryptor, log);
+bus.AddQueryServer<IUserQueries>(tcpServer);
+bus.AddCommandConsumer<IUserCommandHandlers>(tcpServer);
+
+// Client side
+var tcpClient = new TcpCqrsClient("localhost:9001", serializer, encryptor, log);
+bus.AddQueryClient<IUserQueries>(tcpClient);
+bus.AddCommandProducer<IUserCommandHandlers>(tcpClient);
+
+// Use as before - type-safe queries
+var user = await bus.Call<IUserQueries>().GetUserById(123, cancellationToken);
+```
+
+#### HTTP CQRS
+
+```csharp
+// Server side
+var httpServer = new HttpCqrsServer("localhost:9001", serializer, encryptor, log);
+bus.AddQueryServer<IUserQueries>(httpServer);
+bus.AddCommandConsumer<IUserCommandHandlers>(httpServer);
+
+// Client side
+var httpClient = new HttpCqrsClient("localhost:9001", serializer, encryptor, log);
+bus.AddQueryClient<IUserQueries>(httpClient);
+bus.AddCommandProducer<IUserCommandHandlers>(httpClient);
+
+// Use as before - type-safe queries
+var user = await bus.Call<IUserQueries>().GetUserById(123, cancellationToken);
+```
+
+### Remote Command/Event Processing
+
+#### TCP CQRS
+
+```csharp
+// Server side
+var tcpServer = new TcpCqrsServer("localhost:9001", serializer, encryptor, log);
+bus.AddCommandConsumer<IUserCommandHandlers, IUserQueries>(tcpServer);
+
+// Client side
+var tcpClient = new TcpCqrsClient("localhost:9001", serializer, encryptor, log);
+bus.AddCommandProducer<IUserCommandHandlers, IUserQueries>(tcpClient);
+```
+
+#### HTTP CQRS
+
+```csharp
+// Server side
+var httpServer = new HttpCqrsServer("localhost:9001", serializer, encryptor, log);
+bus.AddCommandConsumer<IUserCommandHandlers, IUserQueries>(httpServer);
+
+// Client side
+var httpClient = new HttpCqrsClient("localhost:9001", serializer, encryptor, log);
+bus.AddCommandProducer<IUserCommandHandlers, IUserQueries>(httpClient);
+```
+
+#### Kafka
+
+```csharp
+// Server side
+var kafkaConsumer = new KafkaCommandConsumer(kafkaConfig);
+bus.AddCommandConsumer<IUserCommandHandlers>(kafkaConsumer);
+
+var kafkaEventConsumer = new KafkaEventConsumer(kafkaConfig);
+bus.AddEventConsumer<IUserEvents>(kafkaEventConsumer);
+
+// Client side
+var kafkaProducer = new KafkaCommandProducer(kafkaConfig);
+bus.AddCommandProducer<IUserCommandHandlers>(kafkaProducer);
+
+var kafkaEventProducer = new KafkaEventProducer(kafkaConfig);
+bus.AddEventProducer<IUserEvents>(kafkaEventProducer);
+```
+
+#### RabbitMQ
+
+```csharp
+// Server side
+var rabbitmqConsumer = new RabbitMQCommandConsumer(rabbitmqConfig);
+bus.AddCommandConsumer<IUserCommandHandlers>(rabbitmqConsumer);
+
+var rabbitmqEventConsumer = new RabbitMQEventConsumer(rabbitmqConfig);
+bus.AddEventConsumer<IUserEvents>(rabbitmqEventConsumer);
+
+// Client side
+var rabbitmqProducer = new RabbitMQCommandProducer(rabbitmqConfig);
+bus.AddCommandProducer<IUserCommandHandlers>(rabbitmqProducer);
+
+var rabbitmqEventProducer = new RabbitMQEventProducer(rabbitmqConfig);
+bus.AddEventProducer<IUserEvents>(rabbitmqEventProducer);
+```
+
+#### Azure Service Bus
+
+```csharp
+// Server side
+var asbConsumer = new AzureServiceBusCommandConsumer(asbConfig);
+bus.AddCommandConsumer<IUserCommandHandlers>(asbConsumer);
+
+var asbEventConsumer = new AzureServiceBusEventConsumer(asbConfig);
+bus.AddEventConsumer<IUserEvents>(asbEventConsumer);
+
+// Client side
+var asbProducer = new AzureServiceBusCommandProducer(asbConfig);
+bus.AddCommandProducer<IUserCommandHandlers>(asbProducer);
+
+var asbEventProducer = new AzureServiceBusEventProducer(asbConfig);
+bus.AddEventProducer<IUserEvents>(asbEventProducer);
+```
+
+## Configuration
+
+### Bus Creation
+
+```csharp
+var bus = Bus.New(
+    service: "MyService",
+    log: logger,
+    busLog: busLogger,
+    busScopes: dependencyScopes,
+    commandToReceiveUntilExit: 100,                    // Optional: graceful shutdown after N commands
+    defaultCallTimeout: TimeSpan.FromSeconds(30),      // Query timeout
+    defaultDispatchTimeout: TimeSpan.FromSeconds(5),   // Command/event dispatch timeout
+    defaultDispatchAwaitTimeout: TimeSpan.FromSeconds(10), // Await timeout
+    maxConcurrentQueries: Environment.ProcessorCount * 32,
+    maxConcurrentCommandsPerTopic: Environment.ProcessorCount * 8,
+    maxConcurrentEventsPerTopic: Environment.ProcessorCount * 16
 );
 ```
 
-## Constructing a Command
-**If the domains are referenced in the same running project, they will automatically find the implementations with no other code needed.  If domains are running seperatly see Network Setup below.**\
-\
-Create a universally shared domain project for the following classes if you do not have one already.\
-\
-Make a command to set the weather. The attribute is to enable the command over a network when domains run independently. This project should contain nothing but interfaces and models, no logic or property mapping.
+### Dependency Injection
+
 ```csharp
-[ServiceExposed]
-public class SetWeatherCommand : ICommand
+// Register dependencies in BusScopes
+var scopes = new BusScopes();
+scopes.AddService<IUserRepository>(userRepository);
+scopes.AddService<IEmailService>(emailService);
+
+var bus = Bus.New(
+    service: "MyService",
+    busScopes: scopes,
+    // ...
+);
+
+// Access dependencies in handlers via BusContext
+public class UserCommandHandler : BaseHandler, 
+    ICommandHandler<CreateUserCommand>,
+    ICommandHandler<UpdateUserCommand, User>
 {
-    public string WeatherType { get; set; }
-}
-```
-Make an interface in a common domain project. You can put all the domain commands in the same class or do one per class. This project should contain nothing but interfaces and models, no logic or property mapping.
-```csharp
-public interface IWeatherCommandHandler : IBaseProvider,
-    ICommandHandler<SetWeatherCommand>
-{
-}
-```
-Make the implementation in a project just for that domain.
-```csharp
-public class WeatherCommandHandler : IWeatherCommandHandler
-{
-    public async Task Handle(SetWeatherCommand command)
+    public async Task Handle(CreateUserCommand command, CancellationToken ct)
     {
-        await WeatherServer.SetWeather(command.WeatherType);
+        // Get scoped dependencies from context
+        var repository = GetService<IUserRepository>();
+        var emailService = GetService<IEmailService>();
+        
+        // Use dependencies
+        this.Context.Log.Info($"Creating user: {command.Email}");
+        var user = await repository.CreateAsync(command.Email, ct);
+        await emailService.SendWelcomeEmail(user.Email, ct);
+    }
+
+    public async Task<User> Handle(UpdateUserCommand command, CancellationToken ct)
+    {
+        var repository = GetService<IUserRepository>();
+        return await repository.UpdateAsync(command.Id, command.Email, ct);
+    }
+}
+
+// Same pattern works in query handlers and event handlers
+public class UserQueryHandler : BaseHandler, IUserQueries
+{
+    public async Task<User> GetUserById(int id, CancellationToken cancellationToken)
+    {
+        var repository = this.Context.Get<IUserRepository>();
+        return await repository.GetByIdAsync(id, cancellationToken);
+    }
+}
+
+public class UserEventHandler : BaseHandler, IEventHandler<UserCreatedEvent>
+{
+    public async Task Handle(UserCreatedEvent @event)
+    {
+        var emailService = this.Context.Get<IEmailService>();
+        await emailService.SendWelcomeEmail(@event.Email);
     }
 }
 ```
-Dispatching from C#
+
+### Logging
+
 ```csharp
-var command = new SetSeatherCommand()
+public class MyBusLogger : IBusLogger
 {
-    WeatherType = "Windy"
-};
-await Bus.DispatchAsync(command);
-```
-Dispatching from TypeScript (see Generating The Front End below)
-```typescript
-var command = new SetSeatherCommand(
-{
-    WeatherType = "Windy"
-});
-await Bus.DispatchAsync(command);
-```
-Dispatching from JavaScript (see Generating The Front End below)
-```javascript
-var command = new SetSeatherCommand(
-{
-    WeatherType = "Windy"
-});
-Bus.DispatchAsync(command, function(){
-    //success
-}, function(){
-    //failed
-});
-```
-### Special Dispatching
-The framework has an acknowledgement system that will wait for the return of a signal when a command has completed execution. This is helpful when eventual consistency is not adequate and needing more immediate confirmation. This will also return errors with actual exception information if the command fails. This will not return domain data, that is an anti-pattern of CQRS.  This works simularly for TypeScript and JavaScript
-```csharp
-await Bus.DispatchAwaitAsync(command);
-```
-
-## Generating The Front End
-There are a set of T4 files that will generate TypeScript or JavaScript front ends from the domain that will communicate with gateway (see Gateway For The Front End below).  They mirror the structure of calling it in C# natively to make it very easy.\
-You will need:
-- Bus.ts [https://github.com/szawaski/Zerra/tree/master/Framework/Zerra.Web/TypeScript/Bus.ts]
-- BusConfig.ts [https://github.com/szawaski/Zerra/tree/master/Framework/Zerra.Web/TypeScript/BusConfig.ts]
-- TypeScriptModels.tt  [https://github.com/szawaski/Zerra/tree/master/Framework/Zerra.Web/TypeScript/TypeScriptModels.tt]
-- Zerra.T4.dll [https://www.nuget.org/packages/Zerra.T4/]
-
-The JavaScript versions are here: [https://github.com/szawaski/Zerra/tree/master/Framework/Zerra.Web/JavaScript].  The T4 file should find the needed domain files run with a Host Enviroment like Visual Studio.  Otherwise you make need to edit it to point to the root of the domain project to scan.  BusConfig.ts can be edited to connect through the gateway or specify service connections directly.  If connecting to the services directly use Bus.SetHeader(name, value) from Bus.ts for adding authentication to be read by IApiAuthorizer.
-
-## Gateway For The Front End
-If you are using the prefered TcpInternal setup then clients outside the internal network need a gateway to access the backend such as those using TypeScript and JavaScript.  In an ASPNET front end project add the gateway to the Startup.cs referencing the Zerra.Web assembly. Make sure it comes after the authentication. Claims are transparently passed to the services.
-```csharp
-public void Configure(IApplicationBuilder app)
-{
-    //...
-
-    app.UseAuthentication();
-
-    app.UseCQRSGateway();
-
-    //...
-}
-```
-
-## Network Setup
-Create a cqrssettings.config file.
-- MessageHost: the address of the event streaming service if used.
-- RelayUrl: if the special relay/load balancer is used.
-- RelayKey: if the special relay/load balancer is used.
-- Services:  Each application needs a service entry.
-  - Name: The assembly name of the application.
-  - ExternalUrl: Where the service will be found by external services. This is also the default host address if none is provided by environmental variables (ASPNET compatible). 
-  - EncryptionKey: If supplied will encrypt the network traffic. It uses AES with a randomizer so the data will never look the same for the same encrypted bytes.
-  - Types: List the interface types for commands and queries that each service implements.
-  - InstantiateTypes: If there are any other startup needs it will instantiate any classes listed.
-```json
-{
-  "MessageHost": "",
-  "RelayUrl": "",
-  "RelayKey": "",
-  "Services": [
+    public void BeginCommand(Type commandType, ICommand command, string service, string source, bool handled)
     {
-      "Name": "ZerraDemo.Web"
-    },
-    {
-      "Name": "ZerraDemo.Service.Weather",
-      "ExternalUrl": "localhost:9002",
-      "EncryptionKey": "SecretTransportKey",
-      "Types": [
-        "IWeatherQueryProvider",
-        "IWeatherCommandHandler"
-      ],
-      "InstantiateTypes": []
+        // Log command start
     }
-  ]
+
+    public void EndCommand(Type commandType, ICommand command, string service, string source, bool handled, long milliseconds, Exception? ex)
+    {
+        // Log command completion
+    }
+
+    // Similar for events and queries...
 }
+
+var bus = Bus.New(
+    service: "MyService",
+    busLog: new MyBusLogger(),
+    // ...
+);
 ```
-Add the code to Program.cs Main.  You many consider adding a common project with startup static function.  The cqrssettings.json can then be shared by all the projects as well.
+
+## Lifecycle Management
+
+### Startup and Shutdown
+
 ```csharp
-static void Main(string[] args)
-{
-    Config.LoadConfiguration(args);
-   
-    var serviceSettings = Zerra.CQRS.Settings.CQRSSettings.Get();
+// Option 1: Manual shutdown
+await bus.StopServicesAsync();
 
-    var serviceCreatorInternal = new TcpInternalServiceCreator();
+// Option 2: Wait for process exit (recommended for services)
+await bus.WaitForExitAsync(cancellationToken);
 
-
-    //Enable one of the following service options
-    //----------------------------------------------------------
-
-    //Option1A: Enable this for Tcp for backend only services
-    var serviceCreator = serviceCreatorInternal;
-
-    //Option1B: Enable this for Http which can be access directly from a front end
-    //var authorizor = new DemoCookieApiAuthorizer();
-    //var serviceCreator = new TcpApiServiceCreator(authorizor, null);
-
-    //Option1C: Enable this using RabbitMQ for event streaming commands/events
-    //var serviceCreator = new RabbitServiceCreator(serviceSettings.MessageHost, serviceCreatorInternal);
-
-    //Option1D: Enable this using Kafka for event streaming commands/events
-    //var serviceCreator = new KafkaServiceCreator(serviceSettings.MessageHost, serviceCreatorInternal);
-
-
-
-    //Enable one of the following routing options
-    //----------------------------------------------------------
-
-    //Option2A: Enable this for direct service communication, no custom relay/loadbalancer (can still use container balancers)
-    Bus.StartServices(settingsName, serviceSettings, serviceCreator, null);
-
-    //Option2B: Enable this to use the relay/loadbalancer
-    //var relayRegister = new RelayRegister(serviceSettings.RelayUrl, serviceSettings.RelayKey);
-    //Bus.StartServices(settingsName, serviceSettings, serviceCreator, relayRegister);
-    
-   
-   
-    //If no other serivce holds the application open such as ASPNET then used this to wait termination
-    Bus.WaitUntilExit();
-}
+// Both will:
+// - Close all consumers/servers
+// - Dispose all producers/consumers/servers
+// - Stop processing new messages
 ```
-### Code-Only
-You can also link up the networking without using the config file.\
-Server Setup:
-```csharp
-var encryptionKey = SymmetricEncryptor.GetKey("SecretTransportKey");
 
-//This example is not using a seperate event stream service for commands/events
-var server = TcpRawCQRSServer.CreateDefault("http://localhost:9002", encryptionKey);
-Bus.AddQueryServer(server);
-Bus.AddCommandServer(server);
-```
-Client Setup:
-```csharp
-var encryptionKey = SymmetricEncryptor.GetKey("SecretTransportKey");
+## Source Generation
 
-//This example is not using a seperate event stream service for commands/events
-var client = TcpRawCQRSClient.CreateDefault("http://localhost:9002", encryptionKey);
-Bus.AddQueryClient<IWeatherQueryProvider>(client);
-Bus.AddCommandClient<IWeatherCommandHandler>(client);
-```
+Zerra uses C# source generators to create:
+- Proxy implementations of query interfaces
+- Message type routing metadata
+- Handler invocation code
+
+This eliminates reflection overhead and enables AOT compilation.
+
+## Performance Characteristics
+
+- **Local Handler Invocation**: Direct delegate call (~microseconds)
+- **Remote Command Dispatch**: Broker-dependent (typically < 100ms)
+- **Query Calls**: HTTP/TCP round-trip (typically < 50ms)
+- **Concurrency**: Configurable limits per message type
+
+## Best Practices
+
+1. **Group handlers by interface** - One interface for related commands/events
+2. **Keep query interfaces focused** - Single responsibility per interface
+3. **Use scoped dependencies** - Register in `BusScopes` for handler access
+4. **Handle exceptions properly** - They propagate from handlers to callers
+5. **Design for eventual consistency** - Events represent completed changes, not intents
+6. **Make handlers idempotent** - Especially for commands/events that might be retried
+
+## Framework Packages
+
+- **Zerra** - Core CQRS framework (this package)
+- **Zerra.CQRS.Kafka** - Kafka message broker support
+- **Zerra.CQRS.RabbitMQ** - RabbitMQ message broker support
+- **Zerra.CQRS.AzureServiceBus** - Azure Service Bus support
+- **Zerra.Web** - ASP.NET Core integration, including API gateway
+
+## License
+
+MIT - See LICENSE file
+
+## Repository
+
+[GitHub - Zerra CQRS Framework](https://github.com/szawaski/Zerra)

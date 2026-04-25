@@ -2,176 +2,144 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using Zerra.Collections;
-using Zerra.Reflection;
+using Zerra.Map.Converters;
 
 namespace Zerra.Map
 {
     /// <summary>
-    /// Methods for mapping properties of a source object to a target object.
+    /// Provides object mapping functionality with support for type conversion, graph-based mapping, and custom converters.
     /// </summary>
     public static class Mapper
     {
-        internal static bool DebugMode { get; set; } = Config.IsDebugBuild;
-
-        private static readonly Type mapType = typeof(MapGenerator<,>);
-        private static readonly ConcurrentFactoryDictionary<TypeKey, Func<object, Graph?, object>> copyFuncs = new();
-        private static readonly ConcurrentFactoryDictionary<TypeKey, Func<object, object, Graph?, object>> copyToFuncs = new();
+        private static readonly ConcurrentFactoryDictionary<TypePairKeyWithCategory, Delegate> mapCache = new();
 
         /// <summary>
-        /// Creates a new object of the target type and populates the members from the source object.
-        /// Matching names are automatically mapped and will attempt to convert types.
-        /// Customizations are made by implementing <see cref="IMapDefinition{TSource, TTarget}"/>
+        /// Maps the source object to an instance of <typeparamref name="TTarget"/>.
         /// </summary>
-        /// <typeparam name="TSource">The source type that will be mapped.</typeparam>
-        /// <typeparam name="TTarget">The target type that will be mapped.</typeparam>
-        /// <param name="source">The source object for the mapping.</param>
-        /// <param name="graph">A graph to filter which properties to map.</param>
-        /// <returns>The new object of the target type with members populated from the source.</returns>
-        public static TTarget Map<TSource, TTarget>(this TSource source, Graph? graph = null)
-        {
-            if (source is null)
-                throw new ArgumentNullException(nameof(source));
-
-            var map = MapGenerator<TSource, TTarget>.GetMap();
-            return map.Copy(source, graph);
-        }
-
-        /// <summary>
-        /// Populates the members of the target object from the source object.
-        /// Type is found from the generic parameter.
-        /// Matching names are automatically mapped and will attempt to convert types.
-        /// Customizations are made by implementing <see cref="IMapDefinition{TSource, TTarget}"/>
-        /// </summary>
-        /// <typeparam name="TSource">The source type that will be mapped.</typeparam>
-        /// <typeparam name="TTarget">The target type that will be mapped.</typeparam>
-        /// <param name="source">The source object for the mapping.</param>
-        /// <param name="target">The target object for the properies.</param>
-        /// <param name="graph">A graph to filter which properties to map.</param>
-        public static void MapTo<TSource, TTarget>(this TSource source, TTarget target, Graph? graph = null)
-        {
-            if (source is null)
-                throw new ArgumentNullException(nameof(source));
-            if (target is null)
-                throw new ArgumentNullException(nameof(target));
-
-            var map = MapGenerator<TSource, TTarget>.GetMap();
-            _ = map.CopyTo(source, target, graph);
-        }
-
-        /// <summary>
-        /// Creates a new object of the target type and populates the members from the source object.
-        /// Type is found using GetType.
-        /// Matching names are automatically mapped and will attempt to convert types.
-        /// Customizations are made by implementing <see cref="IMapDefinition{TSource, TTarget}"/>
-        /// </summary>
-        /// <typeparam name="TTarget">The target type that will be mapped.</typeparam>
-        /// <param name="source">The source object for the mapping.</param>
-        /// <param name="graph">A graph to filter which properties to map.</param>
-        /// <returns>The new object of the target type with members populated from the source.</returns>
+        /// <typeparam name="TTarget">The target type to map to.</typeparam>
+        /// <param name="source">The source object to map from. Cannot be null.</param>
+        /// <param name="graph">Optional graph specifying which members to include or exclude in the mapping.</param>
+        /// <returns>A new instance of <typeparamref name="TTarget"/> populated with mapped values from the source.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="source"/> is null.</exception>
         public static TTarget Map<TTarget>(this object source, Graph? graph = null)
         {
             if (source is null)
                 throw new ArgumentNullException(nameof(source));
 
             var sourceType = source.GetType();
-            var targetType = typeof(TTarget);
-
-            var key = new TypeKey(sourceType, targetType);
-            var copyFunc = copyFuncs.GetOrAdd(key, sourceType, targetType, static (key, sourceType, targetType) =>
-            {
-                var genericMapType = TypeAnalyzer.GetGenericTypeDetail(mapType, sourceType, targetType);
-                var map = genericMapType.GetMethodBoxed("GetMap").CallerBoxed(null, null);
-                return (s, g) => { return genericMapType.GetMethodBoxed("Copy").CallerBoxed(map, [s, g])!; };
-            });
-
-            return (TTarget)copyFunc(source, graph);
+            var map = GetMap<TTarget>(sourceType);
+            var result = map(source, default, graph);
+            return result!;
         }
 
         /// <summary>
-        /// Populates the members of the target object from the source object.
-        /// Matching names are automatically mapped and will attempt to convert types.
-        /// Customizations are made by implementing <see cref="IMapDefinition{TSource, TTarget}"/>
+        /// Maps the source object of type <typeparamref name="TSource"/> to an instance of <typeparamref name="TTarget"/>.
         /// </summary>
-        /// <typeparam name="TTarget">The target type that will be mapped.</typeparam>
-        /// <param name="source">The source object for the mapping.</param>
-        /// <param name="target">The target object for the properies.</param>
-        /// <param name="graph">A graph to filter which properties to map.</param>
-        public static void MapTo<TTarget>(this object source, TTarget target, Graph? graph = null)
+        /// <typeparam name="TSource">The source type to map from.</typeparam>
+        /// <typeparam name="TTarget">The target type to map to.</typeparam>
+        /// <param name="source">The source object to map from. Cannot be null.</param>
+        /// <param name="graph">Optional graph specifying which members to include or exclude in the mapping.</param>
+        /// <returns>A new instance of <typeparamref name="TTarget"/> populated with mapped values from the source.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="source"/> is null.</exception>
+        public static TTarget Map<TSource, TTarget>(this TSource source, Graph? graph = null)
+        {
+            if (source is null)
+                throw new ArgumentNullException(nameof(source));
+
+            var map = GetMap<TSource, TTarget>();
+            var result = map(source, default, graph);
+            return result!;
+        }
+
+        /// <summary>
+        /// Maps the source object of type <typeparamref name="TSource"/> to an existing instance of <typeparamref name="TTarget"/>.
+        /// </summary>
+        /// <typeparam name="TSource">The source type to map from.</typeparam>
+        /// <typeparam name="TTarget">The target type to map to.</typeparam>
+        /// <param name="source">The source object to map from. Cannot be null.</param>
+        /// <param name="target">The target object to map to. Cannot be null.</param>
+        /// <param name="graph">Optional graph specifying which members to include or exclude in the mapping.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="source"/> or <paramref name="target"/> is null.</exception>
+        public static void MapTo<TSource, TTarget>(this TSource source, TTarget target, Graph? graph = null)
+            where TSource : notnull
+            where TTarget : notnull
         {
             if (source is null)
                 throw new ArgumentNullException(nameof(source));
             if (target is null)
                 throw new ArgumentNullException(nameof(target));
 
-            var sourceType = source.GetType();
-            var targetType = typeof(TTarget);
-
-            var key = new TypeKey(sourceType, targetType);
-            var copyToFunc = copyToFuncs.GetOrAdd(key, sourceType, targetType, static (key, sourceType, targetType) =>
-            {
-                var genericMapType = TypeAnalyzer.GetGenericTypeDetail(mapType, sourceType, targetType);
-                var map = genericMapType.GetMethodBoxed("GetMap").CallerBoxed(null, null);
-                return (s, t, g) => { return genericMapType.GetMethodBoxed("CopyTo").CallerBoxed(map, [s, t, g])!; };
-            });
-
-            _ = copyToFunc(source, target, graph);
+            var map = GetMap<TSource, TTarget>();
+            _ = map(source, target, graph);
         }
 
         /// <summary>
-        /// Creates a copy of the source object populating the members.
-        /// Type is found from the generic parameter.
-        /// Matching names are automatically mapped.
-        /// Customizations are made by implementing <see cref="IMapDefinition{TSource, TTarget}"/>
+        /// Creates a deep copy of the source object of type <typeparamref name="TTarget"/>.
         /// </summary>
-        /// <typeparam name="TTarget">The type that will be copied.</typeparam>
-        /// <param name="source">The source object for the copy.</param>
-        /// <param name="graph">A graph to filter which properties to copy.</param>
-        /// <returns>The new object with members populated.</returns>
+        /// <typeparam name="TTarget">The type of object to copy.</typeparam>
+        /// <param name="source">The source object to copy. Cannot be null.</param>
+        /// <param name="graph">Optional graph specifying which members to include or exclude in the copy.</param>
+        /// <returns>A new instance of <typeparamref name="TTarget"/> that is a copy of the source.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="source"/> is null.</exception>
         public static TTarget Copy<TTarget>(this TTarget source, Graph? graph = null)
         {
             if (source is null)
                 throw new ArgumentNullException(nameof(source));
 
-            var type = typeof(TTarget);
-
-            var key = new TypeKey(type, type);
-            var copyFunc = copyFuncs.GetOrAdd(key, type, type, static (key, sourceType, targetType) =>
-            {
-                var genericMapType = TypeAnalyzer.GetGenericTypeDetail(mapType, sourceType, targetType);
-                var map = genericMapType.GetMethodBoxed("GetMap").CallerBoxed(null, null);
-                return (s, g) => { return genericMapType.GetMethodBoxed("Copy").CallerBoxed(map, [s, g])!; };
-            });
-
-            return (TTarget)copyFunc(source, graph);
+            var map = GetMap<TTarget, TTarget>();
+            var result = map(source, default, graph);
+            return result!;
         }
 
         /// <summary>
-        /// Creates a copy of the source object populating the members.
-        /// Type is found using GetType.
-        /// Matching names are automatically mapped.
-        /// Customizations are made by implementing <see cref="IMapDefinition{TSource, TTarget}"/>
+        /// Creates a deep copy of the source object using its runtime type.
         /// </summary>
-        /// <param name="source">The source object for the copy.</param>
-        /// <param name="graph">A graph to filter which properties to copy.</param>
-        /// <returns>The new object with members populated.</returns>
-        public static object Copy(object source, Graph? graph = null)
+        /// <param name="source">The source object to copy. Cannot be null.</param>
+        /// <param name="graph">Optional graph specifying which members to include or exclude in the copy.</param>
+        /// <returns>A new instance of the same type as <paramref name="source"/> that is a copy of the source.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="source"/> is null.</exception>
+        public static object CopyObject(this object source, Graph? graph = null)
         {
             if (source is null)
                 throw new ArgumentNullException(nameof(source));
 
-            var type = source.GetType();
-
-            var key = new TypeKey(type, type);
-            var copyFunc = copyFuncs.GetOrAdd(key, type, type, static (key, sourceType, targetType) =>
-            {
-                var genericMapType = TypeAnalyzer.GetGenericTypeDetail(mapType, sourceType, targetType);
-                var map = genericMapType.GetMethodBoxed("GetMap").CallerBoxed(null, null);
-                return (s, g) => { return genericMapType.GetMethodBoxed("Copy").CallerBoxed(map, [s, g])!; };
-            });
-
-            return copyFunc(source, graph);
+            var sourceType = source.GetType();
+            var map = GetMap(sourceType, sourceType);
+            var result = map(source, default, graph);
+            return result!;
         }
+
+        internal static Func<TSource, TTarget?, Graph?, TTarget?> GetMap<TSource, TTarget>()
+        {
+            var sourceType = typeof(TSource);
+            var targetType = typeof(TTarget);
+            var key = new TypePairKeyWithCategory(1, sourceType, targetType);
+            var map = (Func<TSource, TTarget?, Graph?, TTarget>)mapCache.GetOrAdd(key, static () => MapGenerator.Generate1<TSource, TTarget>);
+            return map;
+        }
+
+        private static Func<object, TTarget?, Graph?, TTarget?> GetMap<TTarget>(Type sourceType)
+        {
+            var targetType = typeof(TTarget);
+            var key = new TypePairKeyWithCategory(2, sourceType, targetType);
+            var map = (Func<object, TTarget?, Graph?, TTarget>)mapCache.GetOrAdd(key, static () => MapGenerator.Generate2<TTarget>);
+            return map;
+        }
+
+        private static Func<object, object?, Graph?, object?> GetMap(Type sourceType, Type targetType)
+        {
+            var key = new TypePairKeyWithCategory(3, sourceType, targetType);
+            var map = (Func<object, object?, Graph?, object>)mapCache.GetOrAdd(key, static () => MapGenerator.Generate3);
+            return map;
+        }
+
+        /// <summary>
+        /// Registers a custom converter for mapping between the specified source and target types.
+        /// </summary>
+        /// <param name="sourceType">The source type for the conversion. Cannot be null.</param>
+        /// <param name="targetType">The target type for the conversion. Cannot be null.</param>
+        /// <param name="converter">A factory function that creates instances of the converter. Cannot be null.</param>
+        public static void AddConverter(Type sourceType, Type targetType, Func<MapConverter> converter) => MapConverterFactory.AddConverter(sourceType, targetType, converter);
     }
 }

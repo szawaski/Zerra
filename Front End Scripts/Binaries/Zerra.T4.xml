@@ -1,0 +1,756 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Zerra.T4</name>
+    </assembly>
+    <members>
+        <member name="T:Zerra.T4.CQRSClientDomain">
+            <summary>
+            Provides code generation functionality for CQRS (Command Query Responsibility Segregation) client-side code.
+            </summary>
+        </member>
+        <member name="M:Zerra.T4.CQRSClientDomain.GenerateTypeScript(System.String)">
+            <summary>
+            Generates TypeScript client code for CQRS queries and commands from C# source files.
+            </summary>
+            <param name="directory">The directory path containing the C# source files to parse.</param>
+            <returns>A string containing the generated TypeScript code.</returns>
+        </member>
+        <member name="M:Zerra.T4.CQRSClientDomain.GenerateJavaScript(System.String)">
+            <summary>
+            Generates JavaScript client code for CQRS queries and commands from C# source files.
+            </summary>
+            <param name="directory">The directory path containing the C# source files to parse.</param>
+            <returns>A string containing the generated JavaScript code.</returns>
+        </member>
+        <member name="T:Zerra.T4.CSharp.CSharpAttribute">
+            <summary>
+            Represents an attribute applied to a C# code element.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpAttribute.Name">
+            <summary>
+            Gets the name of the attribute.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpAttribute.Arguments">
+            <summary>
+            Gets the arguments passed to the attribute.
+            </summary>
+        </member>
+        <member name="M:Zerra.T4.CSharp.CSharpAttribute.#ctor(System.String,System.Collections.Generic.IReadOnlyList{System.String})">
+            <summary>
+            Initializes a new instance of the <see cref="T:Zerra.T4.CSharp.CSharpAttribute"/> class.
+            </summary>
+            <param name="name">The name of the attribute.</param>
+            <param name="arguments">The arguments passed to the attribute.</param>
+        </member>
+        <member name="M:Zerra.T4.CSharp.CSharpAttribute.ToString">
+            <inheritdoc/>
+        </member>
+        <member name="T:Zerra.T4.CSharp.CSharpDelegate">
+            <summary>
+            Represents a delegate declaration in C# code.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpDelegate.ReturnType">
+            <summary>
+            Gets or sets the return type of the delegate.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpDelegate.Parameters">
+            <summary>
+            Gets or sets the parameters of the delegate.
+            </summary>
+        </member>
+        <member name="M:Zerra.T4.CSharp.CSharpDelegate.#ctor(Zerra.T4.CSharp.CSharpNamespace,System.Collections.Generic.IReadOnlyList{Zerra.T4.CSharp.CSharpNamespace},System.String,Zerra.T4.CSharp.CSharpUnresolvedType,System.Boolean,System.Collections.Generic.IReadOnlyList{Zerra.T4.CSharp.CSharpParameter},System.Collections.Generic.IReadOnlyList{Zerra.T4.CSharp.CSharpAttribute})">
+            <summary>
+            Initializes a new instance of the <see cref="T:Zerra.T4.CSharp.CSharpDelegate"/> class.
+            </summary>
+            <param name="ns">The namespace containing the delegate.</param>
+            <param name="usings">The using directives available to the delegate.</param>
+            <param name="name">The name of the delegate.</param>
+            <param name="returnType">The return type of the delegate.</param>
+            <param name="isPublic">Whether the delegate is public.</param>
+            <param name="parameters">The parameters of the delegate.</param>
+            <param name="attributes">The attributes applied to the delegate.</param>
+        </member>
+        <member name="M:Zerra.T4.CSharp.CSharpDelegate.ToString">
+            <inheritdoc/>
+        </member>
+        <member name="T:Zerra.T4.CSharp.CSharpEnum">
+            <summary>
+            Represents an enumeration declaration in C# code.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpEnum.Type">
+            <summary>
+            Gets the underlying type of the enumeration.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpEnum.Values">
+            <summary>
+            Gets the values defined in the enumeration.
+            </summary>
+        </member>
+        <member name="M:Zerra.T4.CSharp.CSharpEnum.#ctor(Zerra.T4.CSharp.CSharpSolution,Zerra.T4.CSharp.CSharpNamespace,System.Collections.Generic.IReadOnlyList{Zerra.T4.CSharp.CSharpNamespace},System.String,System.Type,System.Boolean,System.Collections.Generic.IReadOnlyList{Zerra.T4.CSharp.CSharpEnumValue},System.Collections.Generic.IReadOnlyList{Zerra.T4.CSharp.CSharpAttribute})">
+            <summary>
+            Initializes a new instance of the <see cref="T:Zerra.T4.CSharp.CSharpEnum"/> class.
+            </summary>
+            <param name="solution">The solution context.</param>
+            <param name="ns">The namespace containing the enumeration.</param>
+            <param name="usings">The using directives available to the enumeration.</param>
+            <param name="name">The name of the enumeration.</param>
+            <param name="type">The underlying type of the enumeration.</param>
+            <param name="isPublic">Whether the enumeration is public.</param>
+            <param name="values">The values defined in the enumeration.</param>
+            <param name="attributes">The attributes applied to the enumeration.</param>
+        </member>
+        <member name="T:Zerra.T4.CSharp.CSharpEnumValue">
+            <summary>
+            Represents a single value within an enumeration.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpEnumValue.Name">
+            <summary>
+            Gets the name of the enumeration value.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpEnumValue.Value">
+            <summary>
+            Gets the numeric value of the enumeration member.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpEnumValue.Attributes">
+            <summary>
+            Gets the attributes applied to the enumeration value.
+            </summary>
+        </member>
+        <member name="M:Zerra.T4.CSharp.CSharpEnumValue.#ctor(System.String,System.Int64,System.Collections.Generic.IReadOnlyList{Zerra.T4.CSharp.CSharpAttribute})">
+            <summary>
+            Initializes a new instance of the <see cref="T:Zerra.T4.CSharp.CSharpEnumValue"/> class.
+            </summary>
+            <param name="name">The name of the enumeration value.</param>
+            <param name="value">The numeric value of the enumeration member.</param>
+            <param name="attributes">The attributes applied to the enumeration value.</param>
+        </member>
+        <member name="M:Zerra.T4.CSharp.CSharpEnumValue.ToString">
+            <inheritdoc/>
+        </member>
+        <member name="T:Zerra.T4.CSharp.CSharpField">
+            <summary>
+            Represents a field declaration in C# code.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpField.Name">
+            <summary>
+            Gets the name of the field.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpField.Type">
+            <summary>
+            Gets the type of the field.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpField.IsPublic">
+            <summary>
+            Gets a value indicating whether the field is public.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpField.IsStatic">
+            <summary>
+            Gets a value indicating whether the field is static.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpField.IsReadOnly">
+            <summary>
+            Gets a value indicating whether the field is readonly.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpField.Attributes">
+            <summary>
+            Gets the attributes applied to the field.
+            </summary>
+        </member>
+        <member name="M:Zerra.T4.CSharp.CSharpField.#ctor(System.String,Zerra.T4.CSharp.CSharpUnresolvedType,System.Boolean,System.Boolean,System.Boolean,System.Collections.Generic.IReadOnlyList{Zerra.T4.CSharp.CSharpAttribute})">
+            <summary>
+            Initializes a new instance of the <see cref="T:Zerra.T4.CSharp.CSharpField"/> class.
+            </summary>
+            <param name="name">The name of the field.</param>
+            <param name="type">The type of the field.</param>
+            <param name="isPublic">Whether the field is public.</param>
+            <param name="isStatic">Whether the field is static.</param>
+            <param name="isReadOnly">Whether the field is readonly.</param>
+            <param name="attribues">The attributes applied to the field.</param>
+        </member>
+        <member name="M:Zerra.T4.CSharp.CSharpField.ToString">
+            <inheritdoc/>
+        </member>
+        <member name="T:Zerra.T4.CSharp.CSharpFileContext">
+            <summary>
+            Represents the parsing context for a C# source file.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpFileContext.FileName">
+            <summary>
+            Gets the name of the file being parsed.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpFileContext.Line">
+            <summary>
+            Gets or sets the current line number in the file.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpFileContext.Usings">
+            <summary>
+            Gets the using directives declared in the file.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpFileContext.Namespaces">
+            <summary>
+            Gets the stack of namespaces currently being parsed.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpFileContext.CurrentNamespace">
+            <summary>
+            Gets the current namespace being parsed, or null if not within a namespace.
+            </summary>
+        </member>
+        <member name="M:Zerra.T4.CSharp.CSharpFileContext.#ctor(System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Zerra.T4.CSharp.CSharpFileContext"/> class.
+            </summary>
+            <param name="fileName">The name of the file being parsed.</param>
+        </member>
+        <member name="T:Zerra.T4.CSharp.CSharpMethod">
+            <summary>
+            Represents a method or constructor declaration in C# code.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpMethod.Name">
+            <summary>
+            Gets or sets the name of the method.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpMethod.ReturnType">
+            <summary>
+            Gets or sets the return type of the method.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpMethod.IsPublic">
+            <summary>
+            Gets or sets a value indicating whether the method is public.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpMethod.IsStatic">
+            <summary>
+            Gets or sets a value indicating whether the method is static.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpMethod.IsVirtual">
+            <summary>
+            Gets or sets a value indicating whether the method is virtual.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpMethod.IsAbstract">
+            <summary>
+            Gets or sets a value indicating whether the method is abstract.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpMethod.IsImplemented">
+            <summary>
+            Gets or sets a value indicating whether the method has an implementation.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpMethod.Parameters">
+            <summary>
+            Gets or sets the parameters of the method.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpMethod.Attributes">
+            <summary>
+            Gets or sets the attributes applied to the method.
+            </summary>
+        </member>
+        <member name="M:Zerra.T4.CSharp.CSharpMethod.#ctor(System.String,Zerra.T4.CSharp.CSharpUnresolvedType,System.Boolean,System.Boolean,System.Boolean,System.Boolean,System.Boolean,System.Collections.Generic.IReadOnlyList{Zerra.T4.CSharp.CSharpParameter},System.Collections.Generic.IReadOnlyList{Zerra.T4.CSharp.CSharpAttribute})">
+            <summary>
+            Initializes a new instance of the <see cref="T:Zerra.T4.CSharp.CSharpMethod"/> class.
+            </summary>
+            <param name="name">The name of the method.</param>
+            <param name="returnType">The return type of the method.</param>
+            <param name="isPublic">Whether the method is public.</param>
+            <param name="isStatic">Whether the method is static.</param>
+            <param name="isVirtual">Whether the method is virtual.</param>
+            <param name="isAbstract">Whether the method is abstract.</param>
+            <param name="isImplemented">Whether the method has an implementation.</param>
+            <param name="parameters">The parameters of the method.</param>
+            <param name="attributes">The attributes applied to the method.</param>
+        </member>
+        <member name="M:Zerra.T4.CSharp.CSharpMethod.ToString">
+            <inheritdoc/>
+        </member>
+        <member name="T:Zerra.T4.CSharp.CSharpNamespace">
+            <summary>
+            Represents a namespace declaration in C# code.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpNamespace.Names">
+            <summary>
+            Gets the individual parts of the namespace name.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpNamespace.Name">
+            <summary>
+            Gets the full namespace name.
+            </summary>
+        </member>
+        <member name="M:Zerra.T4.CSharp.CSharpNamespace.#ctor(System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Zerra.T4.CSharp.CSharpNamespace"/> class.
+            </summary>
+            <param name="name">The namespace name.</param>
+        </member>
+        <member name="M:Zerra.T4.CSharp.CSharpNamespace.#ctor(Zerra.T4.CSharp.CSharpNamespace,System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Zerra.T4.CSharp.CSharpNamespace"/> class with a root namespace.
+            </summary>
+            <param name="root">The root namespace to prepend, or null.</param>
+            <param name="name">The namespace name.</param>
+        </member>
+        <member name="M:Zerra.T4.CSharp.CSharpNamespace.ToString">
+            <inheritdoc/>
+        </member>
+        <member name="T:Zerra.T4.CSharp.CSharpObject">
+            <summary>
+            Represents a type declaration (class, struct, interface, record) in C# code.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpObject.Namespace">
+            <summary>
+            Gets the namespace containing this type.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpObject.Usings">
+            <summary>
+            Gets the using directives available to this type.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpObject.Name">
+            <summary>
+            Gets the name of the type.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpObject.ObjectType">
+            <summary>
+            Gets the type category (class, struct, interface, etc.).
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpObject.Implements">
+            <summary>
+            Gets the base types and interfaces this type implements.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpObject.IsPublic">
+            <summary>
+            Gets a value indicating whether the type is public.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpObject.IsStatic">
+            <summary>
+            Gets or sets a value indicating whether the type is static.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpObject.IsAbstract">
+            <summary>
+            Gets or sets a value indicating whether the type is abstract.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpObject.IsPartial">
+            <summary>
+            Gets or sets a value indicating whether the type is declared as partial.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpObject.InnerClasses">
+            <summary>
+            Gets the inner classes declared within this type.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpObject.InnerStructs">
+            <summary>
+            Gets the inner structs declared within this type.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpObject.InnerInterfaces">
+            <summary>
+            Gets the inner interfaces declared within this type.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpObject.InnerEnums">
+            <summary>
+            Gets the inner enums declared within this type.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpObject.InnerDelegates">
+            <summary>
+            Gets the inner delegates declared within this type.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpObject.Properties">
+            <summary>
+            Gets the properties declared in this type.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpObject.Methods">
+            <summary>
+            Gets the methods declared in this type (excluding constructors).
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpObject.Constructors">
+            <summary>
+            Gets the constructors declared in this type.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpObject.Attributes">
+            <summary>
+            Gets the attributes applied to this type.
+            </summary>
+        </member>
+        <member name="M:Zerra.T4.CSharp.CSharpObject.#ctor(Zerra.T4.CSharp.CSharpNamespace,System.Collections.Generic.IReadOnlyList{Zerra.T4.CSharp.CSharpNamespace},System.String,Zerra.T4.CSharp.CSharpObjectType,System.Collections.Generic.IReadOnlyList{Zerra.T4.CSharp.CSharpUnresolvedType},System.Boolean,System.Boolean,System.Boolean,System.Boolean,System.Collections.Generic.IReadOnlyList{Zerra.T4.CSharp.CSharpObject},System.Collections.Generic.IReadOnlyList{Zerra.T4.CSharp.CSharpObject},System.Collections.Generic.IReadOnlyList{Zerra.T4.CSharp.CSharpObject},System.Collections.Generic.IReadOnlyList{Zerra.T4.CSharp.CSharpEnum},System.Collections.Generic.IReadOnlyList{Zerra.T4.CSharp.CSharpDelegate},System.Collections.Generic.IReadOnlyList{Zerra.T4.CSharp.CSharpProperty},System.Collections.Generic.IReadOnlyList{Zerra.T4.CSharp.CSharpMethod},System.Collections.Generic.IReadOnlyList{Zerra.T4.CSharp.CSharpAttribute})">
+            <summary>
+            Initializes a new instance of the <see cref="T:Zerra.T4.CSharp.CSharpObject"/> class.
+            </summary>
+            <param name="ns">The namespace containing this type.</param>
+            <param name="usings">The using directives available to this type.</param>
+            <param name="name">The name of the type.</param>
+            <param name="objectType">The type category (class, struct, interface, etc.).</param>
+            <param name="implements">The base types and interfaces this type implements.</param>
+            <param name="isPublic">Whether the type is public.</param>
+            <param name="isStatic">Whether the type is static.</param>
+            <param name="isAbstract">Whether the type is abstract.</param>
+            <param name="isPartial">Whether the type is declared as partial.</param>
+            <param name="classes">The inner classes declared within this type.</param>
+            <param name="structs">The inner structs declared within this type.</param>
+            <param name="interfaces">The inner interfaces declared within this type.</param>
+            <param name="enums">The inner enums declared within this type.</param>
+            <param name="delegates">The inner delegates declared within this type.</param>
+            <param name="properties">The properties declared in this type.</param>
+            <param name="methods">The methods and constructors declared in this type.</param>
+            <param name="attributes">The attributes applied to this type.</param>
+        </member>
+        <member name="M:Zerra.T4.CSharp.CSharpObject.ToString">
+            <inheritdoc/>
+        </member>
+        <member name="T:Zerra.T4.CSharp.CSharpObjectType">
+            <summary>
+            Specifies the category of a C# type declaration.
+            </summary>
+        </member>
+        <member name="F:Zerra.T4.CSharp.CSharpObjectType.Class">
+            <summary>
+            A class type.
+            </summary>
+        </member>
+        <member name="F:Zerra.T4.CSharp.CSharpObjectType.Struct">
+            <summary>
+            A struct type.
+            </summary>
+        </member>
+        <member name="F:Zerra.T4.CSharp.CSharpObjectType.Interface">
+            <summary>
+            An interface type.
+            </summary>
+        </member>
+        <member name="F:Zerra.T4.CSharp.CSharpObjectType.Enum">
+            <summary>
+            An enumeration type.
+            </summary>
+        </member>
+        <member name="F:Zerra.T4.CSharp.CSharpObjectType.Delegate">
+            <summary>
+            A delegate type.
+            </summary>
+        </member>
+        <member name="F:Zerra.T4.CSharp.CSharpObjectType.Record">
+            <summary>
+            A record type.
+            </summary>
+        </member>
+        <member name="T:Zerra.T4.CSharp.CSharpParameter">
+            <summary>
+            Represents a parameter in a method, delegate, or constructor declaration.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpParameter.Name">
+            <summary>
+            Gets the name of the parameter.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpParameter.Type">
+            <summary>
+            Gets the type of the parameter.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpParameter.IsIn">
+            <summary>
+            Gets a value indicating whether the parameter is an 'in' parameter.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpParameter.IsOut">
+            <summary>
+            Gets a value indicating whether the parameter is an 'out' parameter.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpParameter.IsRef">
+            <summary>
+            Gets a value indicating whether the parameter is a 'ref' parameter.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpParameter.DefaultValue">
+            <summary>
+            Gets the default value of the parameter, if any.
+            </summary>
+        </member>
+        <member name="M:Zerra.T4.CSharp.CSharpParameter.#ctor(System.String,Zerra.T4.CSharp.CSharpUnresolvedType,System.Boolean,System.Boolean,System.Boolean,System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Zerra.T4.CSharp.CSharpParameter"/> class.
+            </summary>
+            <param name="name">The name of the parameter.</param>
+            <param name="type">The type of the parameter.</param>
+            <param name="isIn">Whether the parameter is an 'in' parameter.</param>
+            <param name="isOut">Whether the parameter is an 'out' parameter.</param>
+            <param name="isRef">Whether the parameter is a 'ref' parameter.</param>
+            <param name="defaultValue">The default value of the parameter, if any.</param>
+        </member>
+        <member name="M:Zerra.T4.CSharp.CSharpParameter.ToString">
+            <inheritdoc/>
+        </member>
+        <member name="T:Zerra.T4.CSharp.CSharpParser">
+            <summary>
+            Provides functionality to parse C# source code files into a structured representation.
+            </summary>
+        </member>
+        <member name="M:Zerra.T4.CSharp.CSharpParser.ParseAllFiles(System.String)">
+            <summary>
+            Parses all C# source files in a directory tree into a solution structure.
+            </summary>
+            <param name="rootDirectory">The root directory to search for C# files.</param>
+            <returns>A <see cref="T:Zerra.T4.CSharp.CSharpSolution"/> containing the parsed types and namespaces.</returns>
+        </member>
+        <member name="T:Zerra.T4.CSharp.CSharpProperty">
+            <summary>
+            Represents a property declaration in C# code.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpProperty.Name">
+            <summary>
+            Gets or sets the name of the property.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpProperty.Type">
+            <summary>
+            Gets or sets the type of the property.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpProperty.IsPublic">
+            <summary>
+            Gets a value indicating whether the property is public.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpProperty.IsStatic">
+            <summary>
+            Gets a value indicating whether the property is static.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpProperty.IsVirtual">
+            <summary>
+            Gets or sets a value indicating whether the property is virtual.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpProperty.IsAbstract">
+            <summary>
+            Gets or sets a value indicating whether the property is abstract.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpProperty.HasGet">
+            <summary>
+            Gets a value indicating whether the property has a getter.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpProperty.HasSet">
+            <summary>
+            Gets a value indicating whether the property has a setter.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpProperty.IsGetPublic">
+            <summary>
+            Gets a value indicating whether the getter is public.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpProperty.IsSetPublic">
+            <summary>
+            Gets a value indicating whether the setter is public.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpProperty.Attributes">
+            <summary>
+            Gets the attributes applied to the property.
+            </summary>
+        </member>
+        <member name="M:Zerra.T4.CSharp.CSharpProperty.#ctor(System.String,Zerra.T4.CSharp.CSharpUnresolvedType,System.Boolean,System.Boolean,System.Boolean,System.Boolean,System.Boolean,System.Boolean,System.Boolean,System.Boolean,System.Collections.Generic.IReadOnlyList{Zerra.T4.CSharp.CSharpAttribute})">
+            <summary>
+            Initializes a new instance of the <see cref="T:Zerra.T4.CSharp.CSharpProperty"/> class.
+            </summary>
+            <param name="name">The name of the property.</param>
+            <param name="type">The type of the property.</param>
+            <param name="isPublic">Whether the property is public.</param>
+            <param name="isStatic">Whether the property is static.</param>
+            <param name="isVirtual">Whether the property is virtual.</param>
+            <param name="isAbstract">Whether the property is abstract.</param>
+            <param name="hasGet">Whether the property has a getter.</param>
+            <param name="hasSet">Whether the property has a setter.</param>
+            <param name="isGetPublic">Whether the getter is public.</param>
+            <param name="isSetPublic">Whether the setter is public.</param>
+            <param name="attributes">The attributes applied to the property.</param>
+        </member>
+        <member name="M:Zerra.T4.CSharp.CSharpProperty.ToString">
+            <inheritdoc/>
+        </member>
+        <member name="T:Zerra.T4.CSharp.CSharpSolution">
+            <summary>
+            Represents a collection of parsed C# types and namespaces from source files.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpSolution.Namespaces">
+            <summary>
+            Gets the namespaces found in the solution.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpSolution.Classes">
+            <summary>
+            Gets the classes found in the solution.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpSolution.Structs">
+            <summary>
+            Gets the structs found in the solution.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpSolution.Interfaces">
+            <summary>
+            Gets the interfaces found in the solution.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpSolution.Enums">
+            <summary>
+            Gets the enumerations found in the solution.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpSolution.Delegates">
+            <summary>
+            Gets the delegates found in the solution.
+            </summary>
+        </member>
+        <member name="M:Zerra.T4.CSharp.CSharpSolution.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:Zerra.T4.CSharp.CSharpSolution"/> class.
+            </summary>
+        </member>
+        <member name="T:Zerra.T4.CSharp.CSharpType">
+            <summary>
+            Represents a resolved C# type with generic arguments and type information.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpType.Name">
+            <summary>
+            Gets the name of the type.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpType.NativeType">
+            <summary>
+            Gets the native .NET type, if this represents a runtime type.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpType.SolutionType">
+            <summary>
+            Gets the parsed C# type declaration, if this represents a type from the solution.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpType.GenericArguments">
+            <summary>
+            Gets the generic type arguments, if this is a generic type.
+            </summary>
+        </member>
+        <member name="M:Zerra.T4.CSharp.CSharpType.#ctor(System.String,System.Type,Zerra.T4.CSharp.CSharpObject,System.Collections.Generic.IReadOnlyList{Zerra.T4.CSharp.CSharpType})">
+            <summary>
+            Initializes a new instance of the <see cref="T:Zerra.T4.CSharp.CSharpType"/> class.
+            </summary>
+            <param name="name">The name of the type.</param>
+            <param name="nativeType">The native .NET type, if applicable.</param>
+            <param name="solutionType">The parsed C# type declaration, if applicable.</param>
+            <param name="genericArguments">The generic type arguments, if this is a generic type.</param>
+        </member>
+        <member name="M:Zerra.T4.CSharp.CSharpType.ToString">
+            <inheritdoc/>
+        </member>
+        <member name="T:Zerra.T4.CSharp.CSharpUnresolvedType">
+            <summary>
+            Represents a C# type reference that has not yet been resolved to its actual type definition.
+            </summary>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpUnresolvedType.Name">
+            <summary>
+            Gets the name of the unresolved type.
+            </summary>
+        </member>
+        <member name="M:Zerra.T4.CSharp.CSharpUnresolvedType.#ctor(Zerra.T4.CSharp.CSharpSolution,Zerra.T4.CSharp.CSharpNamespace,System.Collections.Generic.IReadOnlyList{Zerra.T4.CSharp.CSharpNamespace},System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Zerra.T4.CSharp.CSharpUnresolvedType"/> class.
+            </summary>
+            <param name="solution">The solution context for type resolution.</param>
+            <param name="ns">The namespace where the type reference appears.</param>
+            <param name="usings">The using directives available for type resolution.</param>
+            <param name="name">The name of the unresolved type.</param>
+        </member>
+        <member name="P:Zerra.T4.CSharp.CSharpUnresolvedType.Resolved">
+            <summary>
+            Gets the resolved type information for this unresolved type reference.
+            </summary>
+        </member>
+        <member name="M:Zerra.T4.CSharp.CSharpUnresolvedType.ToString">
+            <inheritdoc/>
+        </member>
+        <member name="T:Zerra.T4.MsSqlFirst">
+            <summary>
+            Provides utilities for generating C# model and provider classes from SQL Server database schema.
+            </summary>
+        </member>
+        <member name="M:Zerra.T4.MsSqlFirst.GenerateModels(System.String,System.String,System.String)">
+            <summary>
+            Generates C# model classes from SQL Server database schema.
+            </summary>
+            <param name="connectionString">The SQL Server connection string.</param>
+            <param name="namespaceString">The namespace for the generated model classes.</param>
+            <param name="modelSuffix">The suffix to append to each generated model class name.</param>
+            <returns>A string containing the generated C# model classes.</returns>
+        </member>
+        <member name="M:Zerra.T4.MsSqlFirst.GenerateProviders(System.String,System.String,System.String,System.String,System.String)">
+            <summary>
+            Generates C# provider classes from SQL Server database schema.
+            </summary>
+            <param name="connectionString">The SQL Server connection string.</param>
+            <param name="namespaceString">The namespace for the generated provider classes.</param>
+            <param name="modelSuffix">The suffix appended to model class names that the providers reference.</param>
+            <param name="baseProvider">The base provider class that the generated providers inherit from.</param>
+            <param name="usingNamespace">Optional namespace to include in using directives.</param>
+            <returns>A string containing the generated C# provider classes.</returns>
+        </member>
+        <member name="M:Zerra.T4.MsSqlFirst.IsSafeName(System.String,System.String@)">
+            <summary>
+            Determines if a name is a safe C# identifier and converts it to a safe name if necessary.
+            </summary>
+            <param name="name">The name to check.</param>
+            <param name="safeName">The safe C# identifier name.</param>
+            <returns>True if the original name was already safe; otherwise, false.</returns>
+        </member>
+    </members>
+</doc>

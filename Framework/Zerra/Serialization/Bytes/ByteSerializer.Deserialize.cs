@@ -2,11 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.IO;
 using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
 using Zerra.Buffers;
 using Zerra.Reflection;
 using Zerra.Serialization.Bytes.Converters;
@@ -17,6 +13,14 @@ namespace Zerra.Serialization.Bytes
 {
     public static partial class ByteSerializer
     {
+        /// <summary>
+        /// Deserializes a byte span to an object of the specified type using the default or provided deserialization options.
+        /// </summary>
+        /// <typeparam name="T">The type to deserialize to.</typeparam>
+        /// <param name="bytes">The byte span containing the serialized data. If empty, returns the default value for the type.</param>
+        /// <param name="options">Optional deserialization options. If null, uses default options.</param>
+        /// <returns>The deserialized object, or the default value if the byte span is empty.</returns>
+        /// <exception cref="EndOfStreamException">Thrown if the data is invalid or incomplete.</exception>
         public static T? Deserialize<T>(ReadOnlySpan<byte> bytes, ByteSerializerOptions? options = null)
         {
             if (bytes.Length == 0)
@@ -25,38 +29,58 @@ namespace Zerra.Serialization.Bytes
             options ??= defaultOptions;
 
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
-            var converter = (ByteConverter<object, T>)ByteConverterFactory<object>.GetRoot(typeDetail);
+            var converter = (ByteConverter<T>)ByteConverterFactory.GetRoot(typeDetail);
 
             var state = new ReadState(options);
             T? result;
 
-            Read(converter, bytes, ref state, out result);
+            _ = Read(converter, bytes, ref state, out result);
 
             if (state.SizeNeeded > 0)
-                throw new EndOfStreamException();
+                throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)} or the stream ended early");
 
             return result;
         }
+        /// <summary>
+        /// Deserializes a byte span to an object of the specified type using the default or provided deserialization options.
+        /// </summary>
+        /// <param name="bytes">The byte span containing the serialized data. If empty, returns null.</param>
+        /// <param name="type">The type to deserialize to. Must not be null.</param>
+        /// <param name="options">Optional deserialization options. If null, uses default options.</param>
+        /// <returns>The deserialized object, or null if the byte span is empty.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if type is null.</exception>
+        /// <exception cref="EndOfStreamException">Thrown if the data is invalid or incomplete.</exception>
         public static object? Deserialize(ReadOnlySpan<byte> bytes, Type type, ByteSerializerOptions? options = null)
         {
             if (type is null) throw new ArgumentNullException(nameof(type));
+            if (bytes.Length == 0)
+                return default;
 
             options ??= defaultOptions;
 
             var typeDetail = type.GetTypeDetail();
-            var converter = ByteConverterFactory<object>.GetRoot(typeDetail);
+            var converter = ByteConverterFactory.GetRoot(typeDetail);
 
             var state = new ReadState(options);
             object? result;
 
-            ReadBoxed(converter, bytes, ref state, out result);
+            _ = ReadBoxed(converter, bytes, ref state, out result);
 
             if (state.SizeNeeded > 0)
-                throw new EndOfStreamException();
+                throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)} or the stream ended early");
 
             return result;
         }
 
+        /// <summary>
+        /// Deserializes data from a stream to an object of the specified type using the default or provided deserialization options.
+        /// </summary>
+        /// <typeparam name="T">The type to deserialize to.</typeparam>
+        /// <param name="stream">The stream containing the serialized data. Must not be null.</param>
+        /// <param name="options">Optional deserialization options. If null, uses default options.</param>
+        /// <returns>The deserialized object, or the default value if the stream is empty.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if stream is null.</exception>
+        /// <exception cref="EndOfStreamException">Thrown if the data is invalid or incomplete.</exception>
         public static T? Deserialize<T>(Stream stream, ByteSerializerOptions? options = null)
         {
             if (stream is null)
@@ -65,7 +89,7 @@ namespace Zerra.Serialization.Bytes
             options ??= defaultOptions;
 
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
-            var converter = (ByteConverter<object, T>)ByteConverterFactory<object>.GetRoot(typeDetail);
+            var converter = (ByteConverter<T>)ByteConverterFactory.GetRoot(typeDetail);
 
             var isFinalBlock = false;
             var buffer = ArrayPoolHelper<byte>.Rent(defaultBufferSize);
@@ -113,19 +137,20 @@ namespace Zerra.Serialization.Bytes
                             read = stream.Read(buffer.AsSpan(length));
 #endif
                             if (read != 0)
-                                throw new EndOfStreamException();
+                                throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)} or the stream ended early");
                         }
                         break;
                     }
 
                     if (isFinalBlock)
-                        throw new EndOfStreamException();
+                        throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)} or the stream ended early");
 
                     BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
 
-                    if (length + state.SizeNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, length + state.SizeNeeded);
+                    var totalSizeNeeded = length + state.SizeNeeded;
+                    if (totalSizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, totalSizeNeeded);
 
                     while (length < buffer.Length)
                     {
@@ -143,8 +168,8 @@ namespace Zerra.Serialization.Bytes
                         length += read;
                     }
 
-                    if (length < state.SizeNeeded)
-                        throw new EndOfStreamException();
+                    if (length < totalSizeNeeded)
+                        throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)} or the stream ended early");
 
                     state.SizeNeeded = 0;
                 }
@@ -157,6 +182,15 @@ namespace Zerra.Serialization.Bytes
                 ArrayPoolHelper<byte>.Return(buffer);
             }
         }
+        /// <summary>
+        /// Deserializes data from a stream to an object of the specified type using the default or provided deserialization options.
+        /// </summary>
+        /// <param name="stream">The stream containing the serialized data. Must not be null.</param>
+        /// <param name="type">The type to deserialize to. Must not be null.</param>
+        /// <param name="options">Optional deserialization options. If null, uses default options.</param>
+        /// <returns>The deserialized object, or null if the stream is empty.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if stream or type is null.</exception>
+        /// <exception cref="EndOfStreamException">Thrown if the data is invalid or incomplete.</exception>
         public static object? Deserialize(Stream stream, Type type, ByteSerializerOptions? options = null)
         {
             if (type is null)
@@ -167,7 +201,7 @@ namespace Zerra.Serialization.Bytes
             options ??= defaultOptions;
 
             var typeDetail = type.GetTypeDetail();
-            var converter = ByteConverterFactory<object>.GetRoot(typeDetail);
+            var converter = ByteConverterFactory.GetRoot(typeDetail);
 
             var isFinalBlock = false;
             var buffer = ArrayPoolHelper<byte>.Rent(defaultBufferSize);
@@ -215,19 +249,20 @@ namespace Zerra.Serialization.Bytes
                             read = stream.Read(buffer.AsSpan(length));
 #endif
                             if (read != 0)
-                                throw new EndOfStreamException();
+                                throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)} or the stream ended early");
                         }
                         break;
                     }
 
                     if (isFinalBlock)
-                        throw new EndOfStreamException();
+                        throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)} or the stream ended early");
 
                     BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
 
-                    if (length + state.SizeNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, length + state.SizeNeeded);
+                    var totalSizeNeeded = length + state.SizeNeeded;
+                    if (totalSizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, totalSizeNeeded);
 
                     while (length < buffer.Length)
                     {
@@ -245,8 +280,8 @@ namespace Zerra.Serialization.Bytes
                         length += read;
                     }
 
-                    if (length < state.SizeNeeded)
-                        throw new EndOfStreamException();
+                    if (length < totalSizeNeeded)
+                        throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)} or the stream ended early");
 
                     state.SizeNeeded = 0;
                 }
@@ -260,6 +295,16 @@ namespace Zerra.Serialization.Bytes
             }
         }
 
+        /// <summary>
+        /// Asynchronously deserializes data from a stream to an object of the specified type using the default or provided deserialization options.
+        /// </summary>
+        /// <typeparam name="T">The type to deserialize to.</typeparam>
+        /// <param name="stream">The stream containing the serialized data. Must not be null.</param>
+        /// <param name="options">Optional deserialization options. If null, uses default options.</param>
+        /// <param name="cancellationToken">A token to cancel the asynchronous operation.</param>
+        /// <returns>A task that represents the asynchronous deserialization operation and returns the deserialized object, or the default value if the stream is empty.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if stream is null.</exception>
+        /// <exception cref="EndOfStreamException">Thrown if the data is invalid or incomplete.</exception>
         public static async Task<T?> DeserializeAsync<T>(Stream stream, ByteSerializerOptions? options = null, CancellationToken cancellationToken = default)
         {
             if (stream is null)
@@ -268,7 +313,7 @@ namespace Zerra.Serialization.Bytes
             options ??= defaultOptions;
 
             var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
-            var converter = (ByteConverter<object, T>)ByteConverterFactory<object>.GetRoot(typeDetail);
+            var converter = (ByteConverter<T>)ByteConverterFactory.GetRoot(typeDetail);
 
             var isFinalBlock = false;
             var buffer = ArrayPoolHelper<byte>.Rent(defaultBufferSize);
@@ -316,19 +361,20 @@ namespace Zerra.Serialization.Bytes
                             read = await stream.ReadAsync(buffer.AsMemory(length), cancellationToken);
 #endif
                             if (read != 0)
-                                throw new EndOfStreamException();
+                                throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)} or the stream ended early");
                         }
                         break;
                     }
 
                     if (isFinalBlock)
-                        throw new EndOfStreamException();
+                        throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)} or the stream ended early");
 
                     BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
 
-                    if (length + state.SizeNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, length + state.SizeNeeded);
+                    var totalSizeNeeded = length + state.SizeNeeded;
+                    if (totalSizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, totalSizeNeeded);
 
                     while (length < buffer.Length)
                     {
@@ -346,8 +392,8 @@ namespace Zerra.Serialization.Bytes
                         length += read;
                     }
 
-                    if (length < state.SizeNeeded)
-                        throw new EndOfStreamException();
+                    if (length < totalSizeNeeded)
+                        throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)} or the stream ended early");
 
                     state.SizeNeeded = 0;
                 }
@@ -360,6 +406,16 @@ namespace Zerra.Serialization.Bytes
                 ArrayPoolHelper<byte>.Return(buffer);
             }
         }
+        /// <summary>
+        /// Asynchronously deserializes data from a stream to an object of the specified type using the default or provided deserialization options.
+        /// </summary>
+        /// <param name="stream">The stream containing the serialized data. Must not be null.</param>
+        /// <param name="type">The type to deserialize to. Must not be null.</param>
+        /// <param name="options">Optional deserialization options. If null, uses default options.</param>
+        /// <param name="cancellationToken">A token to cancel the asynchronous operation.</param>
+        /// <returns>A task that represents the asynchronous deserialization operation and returns the deserialized object, or null if the stream is empty.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if stream or type is null.</exception>
+        /// <exception cref="EndOfStreamException">Thrown if the data is invalid or incomplete.</exception>
         public static async Task<object?> DeserializeAsync(Stream stream, Type type, ByteSerializerOptions? options = null, CancellationToken cancellationToken = default)
         {
             if (type is null)
@@ -370,7 +426,7 @@ namespace Zerra.Serialization.Bytes
             options ??= defaultOptions;
 
             var typeDetail = type.GetTypeDetail();
-            var converter = ByteConverterFactory<object>.GetRoot(typeDetail);
+            var converter = ByteConverterFactory.GetRoot(typeDetail);
 
             var isFinalBlock = false;
             var buffer = ArrayPoolHelper<byte>.Rent(defaultBufferSize);
@@ -420,19 +476,20 @@ namespace Zerra.Serialization.Bytes
                             read = await stream.ReadAsync(buffer.AsMemory(length), cancellationToken);
 #endif
                             if (read != 0)
-                                throw new EndOfStreamException();
+                                throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)} or the stream ended early");
                         }
                         break;
                     }
 
                     if (isFinalBlock)
-                        throw new EndOfStreamException();
+                        throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)} or the stream ended early");
 
                     BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
 
-                    if (length + state.SizeNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, length + state.SizeNeeded);
+                    var totalSizeNeeded = length + state.SizeNeeded;
+                    if (totalSizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, totalSizeNeeded);
 
                     while (length < buffer.Length)
                     {
@@ -450,8 +507,8 @@ namespace Zerra.Serialization.Bytes
                         length += read;
                     }
 
-                    if (length < state.SizeNeeded)
-                        throw new EndOfStreamException();
+                    if (length < totalSizeNeeded)
+                        throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)} or the stream ended early");
 
                     state.SizeNeeded = 0;
                 }
@@ -466,7 +523,7 @@ namespace Zerra.Serialization.Bytes
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int Read<T>(ByteConverter<object, T> converter, ReadOnlySpan<byte> buffer, ref ReadState state, out T? result)
+        private static int Read<T>(ByteConverter<T> converter, ReadOnlySpan<byte> buffer, ref ReadState state, out T? result)
         {
             var reader = new ByteReader(buffer);
 #if DEBUG
@@ -487,11 +544,14 @@ namespace Zerra.Serialization.Bytes
 #endif
             }
 #if DEBUG
-            if (!read && ByteReader.Testing && reader.Position + state.SizeNeeded <= reader.Length)
+            if (!read && ByteReader.Testing && reader.Alternate)
                 goto again;
+            if (!read && reader.Position + state.SizeNeeded <= reader.Length)
+                System.Diagnostics.Debugger.Break();
 #endif
             return reader.Position;
         }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int ReadBoxed(ByteConverter converter, ReadOnlySpan<byte> buffer, ref ReadState state, out object? result)
         {
@@ -514,8 +574,10 @@ namespace Zerra.Serialization.Bytes
 #endif
             }
 #if DEBUG
-            if (!read && ByteReader.Testing && reader.Position + state.SizeNeeded <= reader.Length)
+            if (!read && ByteReader.Testing && reader.Alternate)
                 goto again;
+            if (!read && reader.Position + state.SizeNeeded <= reader.Length)
+                System.Diagnostics.Debugger.Break();
 #endif
             return reader.Position;
         }

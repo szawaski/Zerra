@@ -4,41 +4,71 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Security.Claims;
-using System.Threading;
-using System.Threading.Tasks;
 using Zerra.Buffers;
 using Zerra.CQRS;
 using Zerra.CQRS.Network;
 using Zerra.Encryption;
 using Zerra.Logging;
 using Zerra.Reflection;
+using Zerra.Serialization;
 using Zerra.Serialization.Json;
 
 namespace Zerra.Web
 {
+    /// <summary>
+    /// ASP.NET Core middleware that implements CQRS server functionality over HTTP/HTTPS using Kestrel.
+    /// </summary>
+    /// <remarks>
+    /// Provides an alternative CQRS transport mechanism using ASP.NET Kestrel instead of external message brokers.
+    /// Acts as a server endpoint for CQRS clients to send commands, queries, and events over HTTP.
+    /// Supports multiple content types (JSON, binary), optional message encryption, authorization, and origin validation.
+    /// Handles both request/response patterns and streaming responses with configurable concurrency control.
+    /// </remarks>
     public sealed class KestrelCqrsServerMiddleware : IDisposable
     {
         private readonly RequestDelegate requestDelegate;
-        private readonly SymmetricConfig symmetricConfig;
+        private readonly ISerializer serializer;
+        private readonly IEncryptor? encryptor;
+        private readonly ILogger? log;
         private readonly KestrelCqrsServerLinkedSettings settings;
 
-        public KestrelCqrsServerMiddleware(RequestDelegate requestDelegate, SymmetricConfig symmetricConfig, KestrelCqrsServerLinkedSettings settings)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="KestrelCqrsServerMiddleware"/> class.
+        /// </summary>
+        /// <param name="requestDelegate">The next middleware in the pipeline.</param>
+        /// <param name="serializer">The serializer for request/response serialization and deserialization.</param>
+        /// <param name="encryptor">Optional encryptor/decryptor for message encryption. If null, messages are assumed to be unencrypted.</param>
+        /// <param name="log">Optional logger for diagnostic information and errors.</param>
+        /// <param name="settings">The server settings including route, allowed origins, handler configurations, and registered CQRS types.</param>
+        public KestrelCqrsServerMiddleware(RequestDelegate requestDelegate, ISerializer serializer, IEncryptor? encryptor, ILogger? log, KestrelCqrsServerLinkedSettings settings)
         {
             this.requestDelegate = requestDelegate;
-            this.symmetricConfig = symmetricConfig;
+            this.serializer = serializer;
+            this.encryptor = encryptor;
+            this.log = log;
             this.settings = settings;
         }
 
+        /// <summary>
+        /// Releases all resources used by the <see cref="KestrelCqrsServerMiddleware"/>.
+        /// </summary>
         public void Dispose()
         {
             settings.Dispose();
         }
 
+        /// <summary>
+        /// Invokes the middleware to process HTTP requests from CQRS clients.
+        /// </summary>
+        /// <remarks>
+        /// Handles POST requests for CQRS message processing and OPTIONS requests for CORS preflight.
+        /// Validates content type, deserializes requests, routes to registered command/query/event handlers,
+        /// and serializes responses. Supports optional encryption and authorization validation.
+        /// Non-matching requests are passed to the next middleware in the pipeline.
+        /// </remarks>
+        /// <param name="context">The HTTP context for the current request.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
         public async Task Invoke(HttpContext context)
         {
             if ((!String.IsNullOrWhiteSpace(settings.Route) && context.Request.Path != settings.Route) || (context.Request.Method != "POST" && context.Request.Method != "OPTIONS"))
@@ -105,7 +135,7 @@ namespace Zerra.Web
 
                 if (settings.AllowOrigins.Contains(originRequestHeader))
                 {
-                    _ = Log.WarnAsync($"{nameof(KestrelCqrsServerMiddleware)} Origin Not Allowed {originRequestHeader}");
+                    log?.Warn($"{nameof(KestrelCqrsServerMiddleware)} Origin Not Allowed {originRequestHeader}");
                     context.Response.StatusCode = 401;
                     return;
                 }
@@ -124,10 +154,10 @@ namespace Zerra.Web
                 CqrsRequestData? data;
                 try
                 {
-                    if (symmetricConfig is not null)
-                        body = SymmetricEncryptor.Decrypt(symmetricConfig, body, false);
+                    if (encryptor is not null)
+                        body = encryptor.Decrypt(body, false);
 
-                    data = await ContentTypeSerializer.DeserializeAsync<CqrsRequestData>(contentType.Value, body, context.RequestAborted);
+                    data = await serializer.DeserializeAsync<CqrsRequestData>(body, context.RequestAborted);
 
                     if (data is null)
                         throw new Exception("Invalid Request");
@@ -167,15 +197,15 @@ namespace Zerra.Web
                     if (data.ProviderArguments is null) throw new Exception("Invalid Request");
                     if (String.IsNullOrWhiteSpace(data.Source)) throw new Exception("Invalid Request");
 
-                    var providerType = Discovery.GetTypeFromName(data.ProviderType);
+                    var providerType = TypeFinder.GetTypeFromName(data.ProviderType);
 
                     if (!settings.Types.TryGetValue(providerType, out throttle))
-                        throw new Exception($"{providerType.GetNiceName()} is not registered with {nameof(KestrelCqrsServerMiddleware)}");
+                        throw new Exception($"{providerType.Name} is not registered with {nameof(KestrelCqrsServerMiddleware)}");
 
                     await throttle.WaitAsync(context.RequestAborted);
 
                     inHandlerContext = true;
-                    var result = await settings.ProviderHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, data.Source, false, context.RequestAborted);
+                    var result = await settings.ProviderHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, data.Source, false, serializer, context.RequestAborted);
                     inHandlerContext = false;
 
                     //Response Header
@@ -207,12 +237,12 @@ namespace Zerra.Web
 
                         try
                         {
-                            if (symmetricConfig is not null)
+                            if (encryptor is not null)
                             {
                                 CryptoFlushStream? responseBodyCryptoStream = null;
                                 try
                                 {
-                                    responseBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, responseBodyStream, true);
+                                    responseBodyCryptoStream = encryptor.Encrypt(responseBodyStream, true);
 
                                     while ((bytesRead = await result.Stream.ReadAsync(buffer)) > 0)
                                         await responseBodyCryptoStream.WriteAsync(buffer.Slice(0, bytesRead), context.RequestAborted);
@@ -243,14 +273,14 @@ namespace Zerra.Web
                     }
                     else
                     {
-                        if (symmetricConfig is not null)
+                        if (encryptor is not null)
                         {
                             CryptoFlushStream? responseBodyCryptoStream = null;
                             try
                             {
-                                responseBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, responseBodyStream, true);
+                                responseBodyCryptoStream = encryptor.Encrypt(responseBodyStream, true);
 
-                                await ContentTypeSerializer.SerializeAsync(contentType.Value, responseBodyCryptoStream, result.Model, context.RequestAborted);
+                                await serializer.SerializeAsync(responseBodyCryptoStream, result.Model, context.RequestAborted);
                                 await responseBodyCryptoStream.FlushFinalBlockAsync(context.RequestAborted);
                                 return;
                             }
@@ -264,7 +294,7 @@ namespace Zerra.Web
                         }
                         else
                         {
-                            await ContentTypeSerializer.SerializeAsync(contentType.Value, responseBodyStream, result.Model, context.RequestAborted);
+                            await serializer.SerializeAsync(responseBodyStream, result.Model, context.RequestAborted);
                             await responseBodyStream.FlushAsync(context.RequestAborted);
                             return;
                         }
@@ -275,11 +305,11 @@ namespace Zerra.Web
                     if (data.MessageData is null) throw new Exception("Invalid Request");
                     if (String.IsNullOrWhiteSpace(data.Source)) throw new Exception("Invalid Request");
 
-                    var messageType = Discovery.GetTypeFromName(data.MessageType);
+                    var messageType = TypeFinder.GetTypeFromName(data.MessageType);
                     var typeDetail = TypeAnalyzer.GetTypeDetail(messageType);
 
                     if (!settings.Types.TryGetValue(messageType, out throttle))
-                        throw new Exception($"{messageType.GetNiceName()} is not registered with {nameof(KestrelCqrsServerMiddleware)}");
+                        throw new Exception($"{messageType.Name} is not registered with {nameof(KestrelCqrsServerMiddleware)}");
 
                     await throttle.WaitAsync(context.RequestAborted);
 
@@ -378,16 +408,16 @@ namespace Zerra.Web
                         }
 
                         var responseBodyStream = context.Response.Body;
-                        if (symmetricConfig is not null)
+                        if (encryptor is not null)
                         {
-                            var responseBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, responseBodyStream, true);
-                            await ContentTypeSerializer.SerializeAsync(contentType.Value, responseBodyCryptoStream, result, context.RequestAborted);
+                            var responseBodyCryptoStream = encryptor.Encrypt(responseBodyStream, true);
+                            await serializer.SerializeAsync(responseBodyCryptoStream, result, context.RequestAborted);
                             await responseBodyCryptoStream.FlushFinalBlockAsync(context.RequestAborted);
                             await responseBodyCryptoStream.DisposeAsync();
                         }
                         else
                         {
-                            await ContentTypeSerializer.SerializeAsync(contentType.Value, responseBodyStream, result, context.RequestAborted);
+                            await serializer.SerializeAsync(responseBodyStream, result, context.RequestAborted);
                             await responseBodyStream.FlushAsync(context.RequestAborted);
                         }
                     }
@@ -401,12 +431,12 @@ namespace Zerra.Web
             }
             catch (OperationCanceledException ex)
             {
-                _ = Log.ErrorAsync(ex);
+                log?.Error(ex);
             }
             catch (Exception ex)
             {
                 if (!inHandlerContext)
-                    _ = Log.ErrorAsync(ex);
+                    log?.Error(ex);
 
                 context.Response.StatusCode = 500;
 
@@ -430,16 +460,16 @@ namespace Zerra.Web
                 }
 
                 var responseBodyStream = context.Response.Body;
-                if (symmetricConfig is not null)
+                if (encryptor is not null)
                 {
-                    var responseBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, responseBodyStream, true);
-                    await ContentTypeSerializer.SerializeExceptionAsync(contentType.Value, responseBodyCryptoStream, ex, context.RequestAborted);
+                    var responseBodyCryptoStream = encryptor.Encrypt(responseBodyStream, true);
+                    await ExceptionSerializer.SerializeAsync(serializer, responseBodyCryptoStream, ex, context.RequestAborted);
                     await responseBodyCryptoStream.FlushFinalBlockAsync();
                     await responseBodyCryptoStream.DisposeAsync();
                 }
                 else
                 {
-                    await ContentTypeSerializer.SerializeExceptionAsync(contentType.Value, responseBodyStream, ex, context.RequestAborted);
+                    await ExceptionSerializer.SerializeAsync(serializer, responseBodyStream, ex, context.RequestAborted);
                     await responseBodyStream.FlushAsync(context.RequestAborted);
                 }
             }
@@ -450,7 +480,7 @@ namespace Zerra.Web
                     if (isCommand && settings.CommandCounter is not null)
                         settings.CommandCounter.CompleteReceive(throttle);
                     else
-                        throttle.Release();
+                        _ = throttle.Release();
                 }
             }
         }

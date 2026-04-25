@@ -2,26 +2,23 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Collections.Generic;
 using Zerra.Reflection;
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;
 
 namespace Zerra.Serialization.Bytes.Converters.Collections.Sets
 {
-    internal sealed class ByteConverterISetTOfT<TParent, TSet, TValue> : ByteConverter<TParent, TSet>
+    internal sealed class ByteConverterISetTOfT<TSet, TValue> : ByteConverter<TSet>
     {
-        private ByteConverter<ISet<TValue>> readConverter = null!;
-        private ByteConverter<IEnumerator<TValue>> writeConverter = null!;
+        private ByteConverter converter = null!;
 
-        private static TValue Getter(IEnumerator<TValue> parent) => parent.Current;
-        private static void Setter(ISet<TValue> parent, TValue value) => parent.Add(value);
+        private static TValue Getter(object parent) => ((IEnumerator<TValue>)parent).Current;
+        private static void Setter(object parent, TValue value) => ((ISet<TValue>)parent).Add(value);
 
         protected override sealed void Setup()
         {
             var valueTypeDetail = TypeAnalyzer<TValue>.GetTypeDetail();
-            readConverter = ByteConverterFactory<ISet<TValue>>.Get(valueTypeDetail, nameof(ByteConverterISetTOfT<TParent, TSet, TValue>), null, Setter);
-            writeConverter = ByteConverterFactory<IEnumerator<TValue>>.Get(valueTypeDetail, nameof(ByteConverterISetTOfT<TParent, TSet, TValue>), Getter, null);
+            converter = ByteConverterFactory.Get(valueTypeDetail, nameof(ByteConverterISetTOfT<TSet, TValue>), Getter, Setter);
         }
 
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TSet? value)
@@ -38,7 +35,9 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Sets
 
                 if (!state.Current.DrainBytes)
                 {
-                    value = typeDetail.Creator();
+                    if (!TypeDetail.HasCreator)
+                        throw new InvalidOperationException($"{TypeDetail.Type} does not have a parameterless constructor.");
+                    value = TypeDetail.Creator!();
                     set = (ISet<TValue>)value!;
                     if (state.Current.EnumerableLength!.Value == 0)
                         return true;
@@ -65,7 +64,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Sets
 
             for (; ; )
             {
-                if (!readConverter.TryReadFromParent(ref reader, ref state, set, true))
+                if (!converter.TryReadFromParent(ref reader, ref state, set))
                 {
                     state.Current.Object = set;
                     return false;
@@ -84,7 +83,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Sets
             {
                 var collection = (ISet<TValue>)value!;
 
-                if (!writer.TryWrite(collection.Count, out state.BytesNeeded))
+                if (!writer.TryWrite(collection.Count, out state.SizeNeeded))
                 {
                     return false;
                 }
@@ -102,7 +101,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Sets
 
             while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
             {
-                if (!writeConverter.TryWriteFromParent(ref writer, ref state, enumerator, true))
+                if (!converter.TryWriteFromParent(ref writer, ref state, enumerator))
                 {
                     state.Current.Object = enumerator;
                     state.Current.EnumeratorInProgress = true;

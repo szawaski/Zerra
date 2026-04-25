@@ -2,14 +2,10 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections.Generic;
 using System.Linq.Expressions;
-using System.Threading.Tasks;
 using Zerra.Repository.Reflection;
 using Zerra.Reflection;
 using System.Text;
-using System.Linq;
 using Zerra.Logging;
 using System.Data;
 using System.Runtime.CompilerServices;
@@ -20,28 +16,35 @@ using System.Data.Common;
 
 namespace Zerra.Repository.MySql
 {
+    /// <summary>
+    /// The core data store engine for MySQL, implementing query, insert, update, delete, and schema generation operations.
+    /// </summary>
     public sealed partial class MySqlEngine : ITransactStoreEngine
     {
         private readonly string connectionString;
+        /// <summary>
+        /// Initializes a new instance of <see cref="MySqlEngine"/>.
+        /// </summary>
+        /// <param name="connectionString">The MySQL connection string.</param>
         public MySqlEngine(string connectionString)
         {
             this.connectionString = connectionString;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static ICoreTypeSetter<TModel>[] ReadColumns<TModel>(DbDataReader reader, ModelDetail modelDetail)
+        private static ModelPropertyDetail[] ReadColumns<TModel>(DbDataReader reader, ModelDetail modelDetail)
         {
-            var columnProperties = new ICoreTypeSetter<TModel>[reader.FieldCount];
+            var columnProperties = new ModelPropertyDetail[reader.FieldCount];
             for (var i = 0; i < reader.FieldCount; i++)
             {
                 var property = reader.GetName(i);
                 if (modelDetail.TryGetProperty(property, out var propertyInfo))
-                    columnProperties[i] = (ICoreTypeSetter<TModel>)propertyInfo.CoreTypeSetter;
+                    columnProperties[i] = propertyInfo;
             }
             return columnProperties;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TModel ReadRow<TModel>(DbDataReader reader, ModelDetail modelDetail, ICoreTypeSetter<TModel>[] columnProperties)
+        private static TModel ReadRow<TModel>(DbDataReader reader, ModelDetail modelDetail, ModelPropertyDetail[] columnProperties)
         {
             var model = (TModel)modelDetail.Creator();
 
@@ -57,222 +60,222 @@ namespace Zerra.Repository.MySql
                             case CoreType.Boolean:
                                 {
                                     var value = reader.GetBoolean(i);
-                                    columnProperty.Setter(model, value);
+                                    ((Action<object, bool>)columnProperty.Setter)(model, value);
                                 }
                                 break;
                             case CoreType.Byte:
                                 {
                                     var value = reader.GetByte(i);
-                                    columnProperty.Setter(model, value);
+                                    ((Action<object, byte>)columnProperty.Setter)(model, value);
                                 }
                                 break;
                             case CoreType.Int16:
                                 {
                                     var value = reader.GetInt16(i);
-                                    columnProperty.Setter(model, value);
+                                    ((Action<object, short>)columnProperty.Setter)(model, value);
                                 }
                                 break;
                             case CoreType.Int32:
                                 {
                                     var value = reader.GetInt32(i);
-                                    columnProperty.Setter(model, value);
+                                    ((Action<object, int>)columnProperty.Setter)(model, value);
                                 }
                                 break;
                             case CoreType.Int64:
                                 {
                                     var value = reader.GetInt64(i);
-                                    columnProperty.Setter(model, value);
+                                    ((Action<object, long>)columnProperty.Setter)(model, value);
                                 }
                                 break;
                             case CoreType.Single:
                                 {
                                     var value = reader.GetFloat(i);
-                                    columnProperty.Setter(model, value);
+                                    ((Action<object, float>)columnProperty.Setter)(model, value);
                                 }
                                 break;
                             case CoreType.Double:
                                 {
                                     var value = reader.GetDouble(i);
-                                    columnProperty.Setter(model, value);
+                                    ((Action<object, double>)columnProperty.Setter)(model, value);
                                 }
                                 break;
                             case CoreType.Decimal:
                                 {
                                     var value = reader.GetDecimal(i);
-                                    columnProperty.Setter(model, value);
+                                    ((Action<object, decimal>)columnProperty.Setter)(model, value);
                                 }
                                 break;
                             case CoreType.Char:
                                 {
                                     var value = reader.GetString(i)[0];
-                                    columnProperty.Setter(model, value);
+                                    ((Action<object, char>)columnProperty.Setter)(model, value);
                                 }
                                 break;
                             case CoreType.DateTime:
                                 {
                                     var value = new DateTime(reader.GetDateTime(i).Ticks, DateTimeKind.Utc);
-                                    columnProperty.Setter(model, value);
+                                    ((Action<object, DateTime>)columnProperty.Setter)(model, value);
                                 }
                                 break;
                             case CoreType.DateTimeOffset:
                                 {
                                     var value = new DateTimeOffset(new DateTime(reader.GetDateTime(i).Ticks, DateTimeKind.Utc));
-                                    columnProperty.Setter(model, value);
+                                    ((Action<object, DateTimeOffset>)columnProperty.Setter)(model, value);
                                 }
                                 break;
                             case CoreType.TimeSpan:
                                 {
                                     var value = ((MySqlDataReader)reader).GetTimeSpan(i);
-                                    columnProperty.Setter(model, value);
+                                    ((Action<object, TimeSpan>)columnProperty.Setter)(model, value);
                                 }
                                 break;
                             case CoreType.DateOnly:
                                 {
                                     var value = reader.GetDateTime(i);
-                                    columnProperty.Setter(model, DateOnly.FromDateTime(value));
+                                    ((Action<object, DateOnly>)columnProperty.Setter)(model, DateOnly.FromDateTime(value));
                                 }
                                 break;
                             case CoreType.TimeOnly:
                                 {
                                     var value = ((MySqlDataReader)reader).GetTimeSpan(i);
-                                    columnProperty.Setter(model, TimeOnly.FromTimeSpan(value));
+                                    ((Action<object, TimeOnly>)columnProperty.Setter)(model, TimeOnly.FromTimeSpan(value));
                                 }
                                 break;
                             case CoreType.Guid:
                                 {
                                     var value = reader.GetGuid(i);
-                                    columnProperty.Setter(model, value);
+                                    ((Action<object, Guid>)columnProperty.Setter)(model, value);
                                 }
                                 break;
                             case CoreType.String:
                                 {
                                     var value = reader.GetValue(i);
                                     if (value != DBNull.Value)
-                                        columnProperty.Setter(model, (string)value);
+                                        ((Action<object, string>)columnProperty.Setter)(model, (string)value);
                                 }
                                 break;
                             case CoreType.BooleanNullable:
                                 {
                                     var value = reader.GetValue(i);
                                     if (value != DBNull.Value)
-                                        columnProperty.Setter(model, (bool?)value);
+                                        ((Action<object, bool?>)columnProperty.Setter)(model, (bool?)value);
                                 }
                                 break;
                             case CoreType.ByteNullable:
                                 {
                                     var value = reader.GetValue(i);
                                     if (value != DBNull.Value)
-                                        columnProperty.Setter(model, (byte?)(sbyte)value);
+                                        ((Action<object, byte?>)columnProperty.Setter)(model, (byte?)(sbyte)value);
                                 }
                                 break;
                             case CoreType.Int16Nullable:
                                 {
                                     var value = reader.GetValue(i);
                                     if (value != DBNull.Value)
-                                        columnProperty.Setter(model, (short?)value);
+                                        ((Action<object, short?>)columnProperty.Setter)(model, (short?)value);
                                 }
                                 break;
                             case CoreType.Int32Nullable:
                                 {
                                     var value = reader.GetValue(i);
                                     if (value != DBNull.Value)
-                                        columnProperty.Setter(model, (int?)value);
+                                        ((Action<object, int?>)columnProperty.Setter)(model, (int?)value);
                                 }
                                 break;
                             case CoreType.Int64Nullable:
                                 {
                                     var value = reader.GetValue(i);
                                     if (value != DBNull.Value)
-                                        columnProperty.Setter(model, (long?)value);
+                                        ((Action<object, long?>)columnProperty.Setter)(model, (long?)value);
                                 }
                                 break;
                             case CoreType.SingleNullable:
                                 {
                                     var value = reader.GetValue(i);
                                     if (value != DBNull.Value)
-                                        columnProperty.Setter(model, (float?)value);
+                                        ((Action<object, float?>)columnProperty.Setter)(model, (float?)value);
                                 }
                                 break;
                             case CoreType.DoubleNullable:
                                 {
                                     var value = reader.GetValue(i);  //GetSqlDouble doesn't handle SqlMoney
                                     if (value != DBNull.Value)
-                                        columnProperty.Setter(model, (double?)value);
+                                        ((Action<object, double?>)columnProperty.Setter)(model, (double?)value);
                                 }
                                 break;
                             case CoreType.DecimalNullable:
                                 {
                                     var value = reader.GetValue(i);  //GetSqlDecimal doesn't handle SqlMoney
                                     if (value != DBNull.Value)
-                                        columnProperty.Setter(model, (decimal?)value);
+                                        ((Action<object, decimal?>)columnProperty.Setter)(model, (decimal?)value);
                                 }
                                 break;
                             case CoreType.CharNullable:
                                 {
                                     var value = reader.GetValue(i);
                                     if (value != DBNull.Value)
-                                        columnProperty.Setter(model, (char?)((string)value)[0]);
+                                        ((Action<object, char?>)columnProperty.Setter)(model, (char?)((string)value)[0]);
                                 }
                                 break;
                             case CoreType.DateTimeNullable:
                                 {
                                     var value = reader.GetValue(i);
                                     if (value != DBNull.Value)
-                                        columnProperty.Setter(model, (DateTime?)new DateTime(((DateTime)value).Ticks, DateTimeKind.Utc));
+                                        ((Action<object, DateTime?>)columnProperty.Setter)(model, (DateTime?)new DateTime(((DateTime)value).Ticks, DateTimeKind.Utc));
                                 }
                                 break;
                             case CoreType.DateTimeOffsetNullable:
                                 {
                                     var value = reader.GetValue(i);
                                     if (value != DBNull.Value)
-                                        columnProperty.Setter(model, (DateTimeOffset?)new DateTimeOffset(new DateTime(((DateTime)value).Ticks, DateTimeKind.Utc)));
+                                        ((Action<object, DateTimeOffset?>)columnProperty.Setter)(model, (DateTimeOffset?)new DateTimeOffset(new DateTime(((DateTime)value).Ticks, DateTimeKind.Utc)));
                                 }
                                 break;
                             case CoreType.TimeSpanNullable:
                                 {
                                     var value = reader.GetValue(i);
                                     if (value != DBNull.Value)
-                                        columnProperty.Setter(model, (TimeSpan?)value);
+                                        ((Action<object, TimeSpan?>)columnProperty.Setter)(model, (TimeSpan?)value);
                                 }
                                 break;
                             case CoreType.DateOnlyNullable:
                                 {
                                     var value = reader.GetValue(i);
                                     if (value != DBNull.Value)
-                                        columnProperty.Setter(model, (DateOnly?)DateOnly.FromDateTime((DateTime)value));
+                                        ((Action<object, DateOnly?>)columnProperty.Setter)(model, (DateOnly?)DateOnly.FromDateTime((DateTime)value));
                                 }
                                 break;
                             case CoreType.TimeOnlyNullable:
                                 {
                                     var value = reader.GetValue(i);
                                     if (value != DBNull.Value)
-                                        columnProperty.Setter(model, (TimeOnly?)TimeOnly.FromTimeSpan((TimeSpan)value));
+                                        ((Action<object, TimeOnly?>)columnProperty.Setter)(model, (TimeOnly?)TimeOnly.FromTimeSpan((TimeSpan)value));
                                 }
                                 break;
                             case CoreType.GuidNullable:
                                 {
                                     var value = reader.GetValue(i);
                                     if (value != DBNull.Value)
-                                        columnProperty.Setter(model, (Guid?)Guid.Parse((string)value));
+                                        ((Action<object, Guid?>)columnProperty.Setter)(model, (Guid?)Guid.Parse((string)value));
                                 }
                                 break;
 
                             default:
-                                throw new NotSupportedException($"{nameof(MySqlEngine)} Cannot map to type {columnProperty.CoreType.Value} in {modelDetail.Type.GetNiceName()}");
+                                throw new NotSupportedException($"{nameof(MySqlEngine)} Cannot map to type {columnProperty.CoreType.Value} in {modelDetail.Type.Name}");
                         }
                     }
-                    else if (columnProperty.IsByteArray)
+                    else if (columnProperty.Type == typeof(byte[]))
                     {
                         if (!reader.IsDBNull(i))
                         {
                             var value = reader.GetValue(i);
                             if (value != DBNull.Value)
-                                columnProperty.Setter(model, (byte[])value);
+                                ((Action<object, byte[]>)columnProperty.Setter)(model, (byte[])value);
                         }
                     }
                     else
                     {
-                        throw new NotSupportedException($"{nameof(MySqlEngine)} cannot map to type in {modelDetail.Type.GetNiceName()}");
+                        throw new NotSupportedException($"{nameof(MySqlEngine)} cannot map to type in {modelDetail.Type.Name}");
                     }
                 }
             }
@@ -281,7 +284,7 @@ namespace Zerra.Repository.MySql
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static string GenerateSqlInsert<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail, bool getIdentities) where TModel : class, new()
+        private static string GenerateSqlInsert<TModel>(TModel model, Graph? graph, ModelDetail modelDetail, bool getIdentities) where TModel : class, new()
         {
             var sbColumns = new CharWriter();
             var sbValues = new CharWriter();
@@ -294,9 +297,9 @@ namespace Zerra.Repository.MySql
                     {
                         object? value;
                         if (isProperty)
-                            value = modelPropertyDetail.Getter(model);
+                            value = modelPropertyDetail.GetterBoxed(model);
                         else
-                            value = Instantiator.Create(modelPropertyDetail.Type);
+                            value = modelPropertyDetail.CreatorBoxed();
 
                         if (value is not null)
                         {
@@ -339,7 +342,7 @@ namespace Zerra.Repository.MySql
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static string? GenerateSqlUpdate<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
+        private static string? GenerateSqlUpdate<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             if (modelDetail.IdentityProperties.Count == 0)
                 return null;
@@ -355,7 +358,7 @@ namespace Zerra.Repository.MySql
                 {
                     if (graph is null || graph.HasMember(modelPropertyInfo.Name))
                     {
-                        var value = modelPropertyInfo.Getter(model);
+                        var value = modelPropertyInfo.GetterBoxed(model);
                         var property = modelPropertyInfo.PropertySourceName;
 
                         if (first)
@@ -377,7 +380,7 @@ namespace Zerra.Repository.MySql
                 first = true;
                 foreach (var modelPropertyInfo in modelDetail.IdentityProperties)
                 {
-                    var value = modelPropertyInfo.Getter(model);
+                    var value = modelPropertyInfo.GetterBoxed(model);
                     var property = modelPropertyInfo.PropertySourceName;
 
                     if (first)
@@ -534,13 +537,13 @@ namespace Zerra.Repository.MySql
                     case CoreType.DateTime:
                     case CoreType.DateTimeNullable:
                         writer.Write('\'');
-                        writer.Write(((DateTime)value).ToUniversalTime(), CharWriter.DateTimeFormat.MySql);
+                        writer.Write((DateTime)value, CharWriter.DateTimeFormat.MySql);
                         writer.Write('\'');
                         return;
                     case CoreType.DateTimeOffset:
                     case CoreType.DateTimeOffsetNullable:
                         writer.Write('\'');
-                        writer.Write(((DateTimeOffset)value).ToUniversalTime(), CharWriter.DateTimeFormat.MySql);
+                        writer.Write((DateTimeOffset)value, CharWriter.DateTimeFormat.MySql);
                         writer.Write('\'');
                         return;
                     case CoreType.TimeSpan:
@@ -582,10 +585,11 @@ namespace Zerra.Repository.MySql
                 return;
             }
 
-            throw new Exception($"Cannot convert type to SQL value {modelPropertyDetail.Type.GetNiceName()}");
+            throw new Exception($"Cannot convert type to SQL value {modelPropertyDetail.Type.Name}");
         }
 
-        public ICollection<TModel> ExecuteQueryToModelMany<TModel>(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
+        /// <inheritdoc />
+        public IReadOnlyCollection<TModel> ExecuteMany<TModel>(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = LinqMySqlConverter.Convert(QueryOperation.Many, where, order, skip, take, graph, modelDetail);
 
@@ -620,7 +624,8 @@ namespace Zerra.Repository.MySql
                 }
             }
         }
-        public TModel? ExecuteQueryToModelFirst<TModel>(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
+        /// <inheritdoc />
+        public TModel? ExecuteFirst<TModel>(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = LinqMySqlConverter.Convert(QueryOperation.First, where, order, skip, take, graph, modelDetail);
 
@@ -650,7 +655,8 @@ namespace Zerra.Repository.MySql
                 }
             }
         }
-        public TModel? ExecuteQueryToModelSingle<TModel>(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
+        /// <inheritdoc />
+        public TModel? ExecuteSingle<TModel>(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = LinqMySqlConverter.Convert(QueryOperation.Single, where, order, skip, take, graph, modelDetail);
 
@@ -684,7 +690,8 @@ namespace Zerra.Repository.MySql
                 }
             }
         }
-        public long ExecuteQueryCount(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail)
+        /// <inheritdoc />
+        public long ExecuteCount(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail)
         {
             var sql = LinqMySqlConverter.Convert(QueryOperation.Count, where, order, skip, take, graph, modelDetail);
 
@@ -711,7 +718,8 @@ namespace Zerra.Repository.MySql
                 }
             }
         }
-        public bool ExecuteQueryAny(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail)
+        /// <inheritdoc />
+        public bool ExecuteAny(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail)
         {
             var sql = LinqMySqlConverter.Convert(QueryOperation.Any, where, order, skip, take, graph, modelDetail);
 
@@ -731,7 +739,8 @@ namespace Zerra.Repository.MySql
             }
         }
 
-        public async Task<ICollection<TModel>> ExecuteQueryToModelManyAsync<TModel>(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
+        /// <inheritdoc />
+        public async Task<IReadOnlyCollection<TModel>> ExecuteManyAsync<TModel>(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = LinqMySqlConverter.Convert(QueryOperation.Many, where, order, skip, take, graph, modelDetail);
 
@@ -766,7 +775,8 @@ namespace Zerra.Repository.MySql
                 }
             }
         }
-        public async Task<TModel?> ExecuteQueryToModelFirstAsync<TModel>(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
+        /// <inheritdoc />
+        public async Task<TModel?> ExecuteFirstAsync<TModel>(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = LinqMySqlConverter.Convert(QueryOperation.First, where, order, skip, take, graph, modelDetail);
 
@@ -796,7 +806,8 @@ namespace Zerra.Repository.MySql
                 }
             }
         }
-        public async Task<TModel?> ExecuteQueryToModelSingleAsync<TModel>(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
+        /// <inheritdoc />
+        public async Task<TModel?> ExecuteSingleAsync<TModel>(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = LinqMySqlConverter.Convert(QueryOperation.Single, where, order, skip, take, graph, modelDetail);
 
@@ -830,7 +841,8 @@ namespace Zerra.Repository.MySql
                 }
             }
         }
-        public async Task<long> ExecuteQueryCountAsync(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail)
+        /// <inheritdoc />
+        public async Task<long> ExecuteCountAsync(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail)
         {
             var sql = LinqMySqlConverter.Convert(QueryOperation.Count, where, order, skip, take, graph, modelDetail);
 
@@ -857,7 +869,8 @@ namespace Zerra.Repository.MySql
                 }
             }
         }
-        public async Task<bool> ExecuteQueryAnyAsync(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail)
+        /// <inheritdoc />
+        public async Task<bool> ExecuteAnyAsync(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail)
         {
             var sql = LinqMySqlConverter.Convert(QueryOperation.Any, where, order, skip, take, graph, modelDetail);
 
@@ -877,7 +890,8 @@ namespace Zerra.Repository.MySql
             }
         }
 
-        public ICollection<object> ExecuteInsertGetIdentities<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
+        /// <inheritdoc />
+        public IReadOnlyCollection<object> ExecuteInsertGetIdentities<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = MySqlEngine.GenerateSqlInsert(model, graph, modelDetail, true);
 
@@ -918,7 +932,8 @@ namespace Zerra.Repository.MySql
 
             return allValues;
         }
-        public int ExecuteInsert<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
+        /// <inheritdoc />
+        public int ExecuteInsert<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = MySqlEngine.GenerateSqlInsert(model, graph, modelDetail, false);
 
@@ -933,7 +948,8 @@ namespace Zerra.Repository.MySql
                 }
             }
         }
-        public int ExecuteUpdate<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
+        /// <inheritdoc />
+        public int ExecuteUpdate<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = MySqlEngine.GenerateSqlUpdate(model, graph, modelDetail);
             if (sql is null)
@@ -950,6 +966,7 @@ namespace Zerra.Repository.MySql
                 }
             }
         }
+        /// <inheritdoc />
         public int ExecuteDelete(ICollection ids, ModelDetail modelDetail)
         {
             var sql = MySqlEngine.GenerateSqlDelete(ids, modelDetail);
@@ -966,7 +983,8 @@ namespace Zerra.Repository.MySql
             }
         }
 
-        public async Task<ICollection<object>> ExecuteInsertGetIdentitiesAsync<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
+        /// <inheritdoc />
+        public async Task<IReadOnlyCollection<object>> ExecuteInsertGetIdentitiesAsync<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = MySqlEngine.GenerateSqlInsert(model, graph, modelDetail, true);
 
@@ -1007,7 +1025,8 @@ namespace Zerra.Repository.MySql
 
             return allValues;
         }
-        public async Task<int> ExecuteInsertAsync<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
+        /// <inheritdoc />
+        public async Task<int> ExecuteInsertAsync<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = MySqlEngine.GenerateSqlInsert(model, graph, modelDetail, false);
 
@@ -1022,7 +1041,8 @@ namespace Zerra.Repository.MySql
                 }
             }
         }
-        public async Task<int> ExecuteUpdateAsync<TModel>(TModel model, Graph<TModel>? graph, ModelDetail modelDetail) where TModel : class, new()
+        /// <inheritdoc />
+        public async Task<int> ExecuteUpdateAsync<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = MySqlEngine.GenerateSqlUpdate(model, graph, modelDetail);
             if (sql is null)
@@ -1039,6 +1059,7 @@ namespace Zerra.Repository.MySql
                 }
             }
         }
+        /// <inheritdoc />
         public async Task<int> ExecuteDeleteAsync(ICollection ids, ModelDetail modelDetail)
         {
             var sql = MySqlEngine.GenerateSqlDelete(ids, modelDetail);
@@ -1124,6 +1145,7 @@ namespace Zerra.Repository.MySql
             return allValues;
         }
 
+        /// <inheritdoc />
         public IDataStoreGenerationPlan BuildStoreGenerationPlan(bool create, bool update, bool delete, ICollection<ModelDetail> modelDetails)
         {
             var connectionForParsing = new MySqlConnection(connectionString);
@@ -1159,7 +1181,7 @@ namespace Zerra.Repository.MySql
             }
             catch (Exception ex)
             {
-                _ = Log.ErrorAsync($"{nameof(MySqlEngine)} error while reading datastore.", ex);
+                Log.Error($"{nameof(MySqlEngine)} error while reading datastore.", ex);
                 throw;
             }
 
@@ -1300,7 +1322,7 @@ namespace Zerra.Repository.MySql
                         if (!sameType)
                         {
                             if (sqlColumn.IsPrimaryKey || sqlColumn.IsIdentity || sqlColumn.IsPrimaryKey != column.IsIdentity || sqlColumn.IsIdentity != column.IsIdentityAutoGenerated)
-                                throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} {nameof(MySqlEngine)} cannot automatically change column with a Primary Key or Identity {model.Type.GetNiceName()}.{column.Name}");
+                                throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} {nameof(MySqlEngine)} cannot automatically change column with a Primary Key or Identity {model.Type.Name}.{column.Name}");
 
                             var theseSqlConstraints = sqlConstraints.Where(x => (x.PK_Table == model.DataSourceEntityName.ToLower() && x.PK_Column == column.Name) || (x.FK_Table == model.DataSourceEntityName && x.FK_Column == column.Name)).ToArray();
                             if (theseSqlConstraints.Length > 0)
@@ -1371,10 +1393,10 @@ namespace Zerra.Repository.MySql
             {
                 var relatedModelDetails = ModelAnalyzer.GetModel(columnForRelation.InnerType);
                 if (relatedModelDetails.IdentityProperties.Count != 1)
-                    throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} {nameof(MySqlEngine)} does not support automatic constraints with multiple identities {relatedModelDetails.Type.GetNiceName()}");
+                    throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} {nameof(MySqlEngine)} does not support automatic constraints with multiple identities {relatedModelDetails.Type.Name}");
 
                 if (columnForRelation.ForeignIdentity is null)
-                    throw new Exception($"{columnForRelation.Type.GetNiceName()} missing Foreign Identity");
+                    throw new Exception($"{columnForRelation.Type.Name} missing Foreign Identity");
 
                 var fkColumn = columnForRelation.ForeignIdentity;
                 var pkTable = relatedModelDetails.DataSourceEntityName;
@@ -1429,6 +1451,11 @@ namespace Zerra.Repository.MySql
             }
         }
 
+        /// <summary>
+        /// Writes the MySQL column type definition for a model property into the provided <see cref="StringBuilder"/>.
+        /// </summary>
+        /// <param name="sb">The <see cref="StringBuilder"/> to write the type definition into.</param>
+        /// <param name="property">The model property to derive the SQL type from.</param>
         public static void WriteSqlTypeFromModel(StringBuilder sb, ModelPropertyDetail property)
         {
             var canBeIdentity = false;
@@ -1511,7 +1538,7 @@ namespace Zerra.Repository.MySql
                             _ = sb.Append("text");
                         break;
                     default:
-                        throw new Exception($"Cannot match type {property.Type.GetNiceName()} to an {nameof(MySqlEngine)} type.");
+                        throw new Exception($"Cannot match type {property.Type.Name} to an {nameof(MySqlEngine)} type.");
                 }
             }
             else if (property.Type == typeof(byte[]))
@@ -1523,7 +1550,7 @@ namespace Zerra.Repository.MySql
             }
             else
             {
-                throw new Exception($"Cannot match type {property.Type.GetNiceName()} to an {nameof(MySqlEngine)} type.");
+                throw new Exception($"Cannot match type {property.Type.Name} to an {nameof(MySqlEngine)} type.");
             }
 
             if (property.IsDataSourceNotNull) //model checks for identity not null
@@ -1544,7 +1571,7 @@ namespace Zerra.Repository.MySql
             if (property.IsIdentity && property.IsIdentityAutoGenerated)
             {
                 if (!canBeIdentity)
-                    throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} {nameof(MySqlEngine)} {property.Type.GetNiceName()} {property.Name} cannot be an auto generated identity");
+                    throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} {nameof(MySqlEngine)} {property.Type.Name} {property.Name} cannot be an auto generated identity");
                 _ = sb.Append(" AUTO_INCREMENT");
             }
         }
@@ -1597,7 +1624,7 @@ namespace Zerra.Repository.MySql
                         _ = sb.Append("''");
                         break;
                     default:
-                        throw new Exception($"Cannot match type {property.Type.GetNiceName()} to an {nameof(MySqlEngine)} type.");
+                        throw new Exception($"Cannot match type {property.Type.Name} to an {nameof(MySqlEngine)} type.");
                 }
             }
             else if (property.Type == typeof(byte[]))
@@ -1606,7 +1633,7 @@ namespace Zerra.Repository.MySql
             }
             else
             {
-                throw new Exception($"Cannot match type {property.Type.GetNiceName()} to an {nameof(MySqlEngine)} type.");
+                throw new Exception($"Cannot match type {property.Type.Name} to an {nameof(MySqlEngine)} type.");
             }
         }
 
@@ -1708,7 +1735,7 @@ namespace Zerra.Repository.MySql
                     return sqlColumn.DataType == "blob" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
             }
 
-            throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} cannot match type {property.Type.GetNiceName()} to an {nameof(MySqlEngine)} type.");
+            throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} cannot match type {property.Type.Name} to an {nameof(MySqlEngine)} type.");
         }
         private SqlColumnType[] GetSqlColumns(ModelDetail model)
         {
@@ -1760,6 +1787,7 @@ AND KF.TABLE_NAME = '{model.DataSourceEntityName.ToLower()}'";
             return sqlConstrains;
         }
 
+        /// <inheritdoc />
         public bool ValidateDataSource()
         {
             if (String.IsNullOrWhiteSpace(connectionString))
@@ -1784,14 +1812,14 @@ AND KF.TABLE_NAME = '{model.DataSourceEntityName.ToLower()}'";
                         if (version.Length > 0 && Char.IsNumber(version[0]))
                             return true;
 
-                        _ = Log.ErrorAsync($"{nameof(MySqlEngine)} failed to validate: Invalid version {version}");
+                        Log.Error($"{nameof(MySqlEngine)} failed to validate: Invalid version {version}");
                         return false;
                     }
                 }
             }
             catch (Exception ex)
             {
-                _ = Log.ErrorAsync($"{nameof(MySqlEngine)} failed to validate", ex);
+                Log.Error($"{nameof(MySqlEngine)} failed to validate", ex);
             }
             return false;
         }

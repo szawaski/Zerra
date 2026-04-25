@@ -2,19 +2,15 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Text;
-using Zerra.Reflection;
 
 namespace Zerra
 {
     /// <summary>
     /// A mapping of members and child members of an object to be used in a process.
-    /// Members indiciated are strings and not enforced to match the object.  Use the generic <see cref="Graph{T}" /> to help enforce correct naming.
-    /// Specific graphs for different object instances can be also be mapped within a graph.
+    /// Members indicated are strings and not enforced to match the object. Use the generic <see cref="Graph{T}"/> to help enforce correct naming.
+    /// Specific graphs for different object instances can also be mapped within a graph.
     /// </summary>
     public class Graph
     {
@@ -25,12 +21,12 @@ namespace Zerra
         private Dictionary<object, Graph>? instanceGraphs;
 
         /// <summary>
-        /// All members that were explicity added and not removed.
+        /// Gets all members that were explicitly added and not removed.
         /// </summary>
         public IEnumerable<string> ExplicitMembers => addedMembers is null ? Array.Empty<string>() : (removedMembers is null ? addedMembers : addedMembers.Where(x => !removedMembers.Contains(x)));
 
         /// <summary>
-        /// All members are included unless explicity removed.
+        /// Gets or sets a value indicating whether all members are included unless explicitly removed.
         /// </summary>
         public bool IncludeAllMembers
         {
@@ -42,12 +38,22 @@ namespace Zerra
             }
         }
 
-        private static readonly TypeDetail graphTType = typeof(Graph<>).GetTypeDetail();
+        /// <summary>
+        /// Gets a value indicating whether any members have been explicitly removed from the graph.
+        /// </summary>
+        public bool HasRemovedMembers => removedMembers is not null && removedMembers.Count > 0;
+        /// <summary>
+        /// Gets a value indicating whether any members have been explicitly added to the graph.
+        /// </summary>
+        public bool HasAddedMembers => addedMembers is not null && addedMembers.Count > 0;
 
+        /// <summary>
+        /// Stores the signature string associated with the current instance.
+        /// </summary>
         [NonSerialized]
         protected string? signature = null;
         /// <summary>
-        /// The unique signature of the graph used for comparing graphs.
+        /// Gets the unique signature of the graph used for comparing graphs.
         /// </summary>
         public string Signature
         {
@@ -62,9 +68,9 @@ namespace Zerra
         }
 
         /// <summary>
-        /// Creates a Graph copy from another graph.
+        /// Initializes a new instance of the <see cref="Graph"/> class as a copy of another graph.
         /// </summary>
-        /// <param name="graph">The graph to copy.</param>
+        /// <param name="graph">The graph to copy, or null to create an empty signature.</param>
         public Graph(Graph? graph)
         {
             if (graph is not null)
@@ -85,36 +91,36 @@ namespace Zerra
         }
 
         /// <summary>
-        /// Creates an empty graph with no members included.
+        /// Initializes a new instance of the <see cref="Graph"/> class with no members included.
         /// </summary>
         public Graph()
         {
             this.signature = "";
         }
         /// <summary>
-        /// Creates an empty graph with the to option to include all memebers.
+        /// Initializes a new instance of the <see cref="Graph"/> class with the option to include all members.
         /// </summary>
-        /// <param name="includeAllMembers">Indiciates if all members should be included.</param>
+        /// <param name="includeAllMembers">Indicates if all members should be included.</param>
         public Graph(bool includeAllMembers)
         {
-            this.includeAllMembers = true;
+            this.includeAllMembers = includeAllMembers;
             this.signature = "A";
         }
         /// <summary>
-        /// Creates a graph with the specified members included.
+        /// Initializes a new instance of the <see cref="Graph"/> class with the specified members included.
         /// </summary>
-        /// <param name="members">The members to include</param>
+        /// <param name="members">The members to include.</param>
         public Graph(params string[] members) : this(false, members) { }
         /// <summary>
-        /// Creates a graph with the specified members included.
+        /// Initializes a new instance of the <see cref="Graph"/> class with the specified members included.
         /// </summary>
-        /// <param name="members">The members to include</param>
+        /// <param name="members">The members to include.</param>
         public Graph(IEnumerable<string>? members) : this(false, members) { }
         /// <summary>
-        /// Creates a graph with the specified members included.
+        /// Initializes a new instance of the <see cref="Graph"/> class with the specified members included.
         /// </summary>
-        /// <param name="includeAllMembers">Indiciates if all members should be included.</param>
-        /// <param name="members">The members to include</param>
+        /// <param name="includeAllMembers">Indicates if all members should be included.</param>
+        /// <param name="members">The members to include.</param>
         public Graph(bool includeAllMembers, params string[] members)
         {
             this.includeAllMembers = includeAllMembers;
@@ -123,10 +129,10 @@ namespace Zerra
                 AddMembers(members);
         }
         /// <summary>
-        /// Creates a graph with the specified members included.
+        /// Initializes a new instance of the <see cref="Graph"/> class with the specified members included.
         /// </summary>
-        /// <param name="includeAllMembers">Indiciates if all members should be included.</param>
-        /// <param name="members">The members to include</param>
+        /// <param name="includeAllMembers">Indicates if all members should be included.</param>
+        /// <param name="members">The members to include.</param>
         public Graph(bool includeAllMembers, IEnumerable<string>? members)
         {
             this.includeAllMembers = includeAllMembers;
@@ -136,7 +142,7 @@ namespace Zerra
         }
 
         /// <summary>
-        /// Indicates that the graph has no members included.
+        /// Gets a value indicating whether the graph has no members included.
         /// </summary>
         public bool IsEmpty => !includeAllMembers && (addedMembers?.Count ?? 0) == 0 && (childGraphs?.Count ?? 0) == 0;
 
@@ -152,9 +158,9 @@ namespace Zerra
             return this.Signature == objCasted.Signature;
         }
         /// <summary>
-        /// Gets the Hash Code for a graph.  Graphs with instances cannot use Hash Codes.
+        /// Gets the hash code for a graph. Graphs with instances cannot use hash codes.
         /// </summary>
-        /// <returns>The Hash Code of the graph.</returns>
+        /// <returns>The hash code of the graph.</returns>
         public override int GetHashCode()
         {
             return this.Signature.GetHashCode();
@@ -211,7 +217,7 @@ namespace Zerra
                 }
             }
 
-            if (includeAllMembers && removedMembers is not null)
+            if (removedMembers is not null)
             {
                 foreach (var member in removedMembers.OrderBy(x => x))
                 {
@@ -250,12 +256,12 @@ namespace Zerra
         }
 
         /// <summary>
-        /// Removes members from the graph. This overrides IncludeAllMembers.
+        /// Removes members from the graph. This overrides <see cref="IncludeAllMembers"/>.
         /// </summary>
         /// <param name="members">The members to remove.</param>
         public void RemoveMembers(params string[] members) => RemoveMembers((IEnumerable<string>)members);
         /// <summary>
-        /// Removes members from the graph. This overrides IncludeAllMembers.
+        /// Removes members from the graph. This overrides <see cref="IncludeAllMembers"/>.
         /// </summary>
         /// <param name="members">The members to remove.</param>
         public void RemoveMembers(IEnumerable<string> members)
@@ -268,7 +274,7 @@ namespace Zerra
         }
 
         /// <summary>
-        /// Adds a members to include in the graph.
+        /// Adds a member to include in the graph.
         /// </summary>
         /// <param name="member">The member to include.</param>
         public void AddMember(string member)
@@ -288,10 +294,9 @@ namespace Zerra
             }
 
             signature = null;
-
         }
         /// <summary>
-        /// Removes a member from the graph. This overrides IncludeAllMembers.
+        /// Removes a member from the graph. This overrides <see cref="IncludeAllMembers"/>.
         /// </summary>
         /// <param name="member">The member to remove.</param>
         public void RemoveMember(string member)
@@ -307,7 +312,7 @@ namespace Zerra
             signature = null;
         }
         /// <summary>
-        /// Adds a child graph. If there is an existing child graph the members of the child will be merged.
+        /// Adds a child graph. If there is an existing child graph, the members of the child will be merged.
         /// </summary>
         /// <param name="member">The member of the child graph.</param>
         /// <param name="graph">The child graph for the member.</param>
@@ -348,7 +353,7 @@ namespace Zerra
             signature = null;
         }
         /// <summary>
-        /// Adds a child graph. If there is an existing child graph it will be replaced.
+        /// Adds or replaces a child graph.
         /// </summary>
         /// <param name="member">The member of the child graph.</param>
         /// <param name="graph">The child graph for the member.</param>
@@ -369,7 +374,7 @@ namespace Zerra
         }
 
         /// <summary>
-        /// Adds a child graph that is specific for an instance. This graph no longer able to be compared with other graphs.
+        /// Adds a child graph that is specific to an instance. After this is called, the graph can no longer be compared with other graphs.
         /// </summary>
         /// <param name="instance">The instance for the graph.</param>
         /// <param name="graph">The graph for the specific instance.</param>
@@ -386,9 +391,9 @@ namespace Zerra
             signature = null;
         }
         /// <summary>
-        /// Removes a child graph that is specific for an instance.
+        /// Removes the child graph that is specific to an instance.
         /// </summary>
-        /// <param name="instance">The instance for whoms graph should be removed.</param>
+        /// <param name="instance">The instance for which the graph should be removed.</param>
         public void RemoveInstanceGraph(object instance)
         {
             if (instanceGraphs is null)
@@ -398,20 +403,34 @@ namespace Zerra
         }
 
         /// <summary>
-        /// Indicates if the graph includes a member
+        /// Determines whether the graph includes a member.
         /// </summary>
-        /// <param name="member">The member to see if it is included.</param>
-        /// <returns>True if the graph has the member; otherwise, False.</returns>
+        /// <param name="member">The member to check.</param>
+        /// <returns>True if the graph has the member; otherwise false.</returns>
         public bool HasMember(string member)
         {
-            return (includeAllMembers && (removedMembers is null || !removedMembers.Contains(member))) || (addedMembers is not null && addedMembers.Contains(member)) || (childGraphs is not null && childGraphs.ContainsKey(member));
+            return (includeAllMembers && (removedMembers is null || !removedMembers.Contains(member))) ||
+                (addedMembers is not null && addedMembers.Contains(member)) ||
+                (childGraphs is not null && childGraphs.ContainsKey(member));
+        }
+
+
+        /// <summary>
+        /// Determines whether the graph explicitly includes a member, regardless of the <see cref="IncludeAllMembers"/> setting.
+        /// </summary>
+        /// <param name="member">The member to check.</param>
+        /// <returns>True if the member was explicitly added or has a child graph; otherwise false.</returns>
+        public bool HasMemberExplicitly(string member)
+        {
+            return (addedMembers is not null && addedMembers.Contains(member)) ||
+                 (childGraphs is not null && childGraphs.ContainsKey(member));
         }
 
         /// <summary>
         /// Returns the child graph of a member if the child graph exists.
         /// </summary>
         /// <param name="member">The member for the child graph.</param>
-        /// <returns>The child graph of the member if it exists; otherwise, null.</returns>
+        /// <returns>The child graph of the member if it exists; otherwise null.</returns>
         public Graph? GetChildGraph(string member)
         {
             if (childGraphs is null || childGraphs.Count == 0)
@@ -423,25 +442,9 @@ namespace Zerra
         /// <summary>
         /// Returns the generic child graph of a member if the child graph exists.
         /// </summary>
-        /// <param name="member">The member for the child graph.</param>
-        /// <param name="type">The generic type of the child graph.</param>
-        /// <returns>The child graph of the member if it exists; otherwise, null.</returns>
-        public Graph? GetChildGraph(string member, Type type)
-        {
-            if (childGraphs is null || childGraphs.Count == 0)
-                return null;
-            if (!childGraphs.TryGetValue(member, out var nonGenericGraph))
-                return null;
-            if (nonGenericGraph.GetModelType() == type)
-                return (Graph)System.Convert.ChangeType(nonGenericGraph, graphTType.GetGenericTypeDetail(type).Type);
-            return Convert(nonGenericGraph, type);
-        }
-        /// <summary>
-        /// Returns the generic child graph of a member if the child graph exists.
-        /// </summary>
         /// <typeparam name="TGraph">The generic type of the child graph.</typeparam>
         /// <param name="member">The member for the child graph.</param>
-        /// <returns>The child graph of the member if it exists; otherwise, null.</returns>
+        /// <returns>The child graph of the member if it exists; otherwise null.</returns>
         public Graph<TGraph>? GetChildGraph<TGraph>(string member)
         {
             if (childGraphs is null || childGraphs.Count == 0)
@@ -454,9 +457,9 @@ namespace Zerra
         }
 
         /// <summary>
-        /// Returns the graph specific for an instance. If there is none, this graph itself will be returned.
+        /// Returns the graph specific to an instance. If there is none, this graph itself will be returned.
         /// </summary>
-        /// <param name="instance">The instance for whoms graph should be returned.</param>
+        /// <param name="instance">The instance for which the graph should be returned.</param>
         /// <returns>The graph for the instance.</returns>
         public Graph GetInstanceGraph(object instance)
         {
@@ -465,11 +468,11 @@ namespace Zerra
             return this;
         }
         /// <summary>
-        /// Returns the child graph specific for an instance. If there is none, the containing child graph will be returned.
+        /// Returns the child graph specific to an instance. If there is none, the containing child graph will be returned.
         /// </summary>
         /// <param name="member">The member for the child graph.</param>
-        /// <param name="instance">The instance for whoms graph should be returned.</param>
-        /// <returns>The child graph for the instance.</returns>
+        /// <param name="instance">The instance for which the graph should be returned.</param>
+        /// <returns>The child graph for the instance, or null if the child graph does not exist.</returns>
         public Graph? GetChildInstanceGraph(string member, object instance)
         {
             if (childGraphs is null || childGraphs.Count == 0)
@@ -482,32 +485,12 @@ namespace Zerra
             return childGraph;
         }
         /// <summary>
-        /// Returns the generic child graph specific for an instance. If there is none, the containing child graph will be returned.
-        /// </summary>
-        /// <param name="member">The member for the child graph.</param>
-        /// <param name="type">The generic type of the child graph.</param>
-        /// <param name="instance">The instance for whoms graph should be returned.</param>
-        /// <returns>The generic child graph for the instance.</returns>
-        public Graph? GetChildInstanceGraph(string member, Type type, object instance)
-        {
-            if (childGraphs is null || childGraphs.Count == 0)
-                return null;
-            if (!childGraphs.TryGetValue(member, out var nonGenericGraph))
-                return null;
-            if (nonGenericGraph.GetModelType() == type)
-                return nonGenericGraph;
-
-            if (nonGenericGraph.instanceGraphs is not null && nonGenericGraph.instanceGraphs.TryGetValue(instance, out var instanceGraph))
-                return Convert(instanceGraph, type);
-            return Convert(nonGenericGraph, type);
-        }
-        /// <summary>
-        /// Returns the generic child graph specific for an instance. If there is none, the containing child graph will be returned.
+        /// Returns the generic child graph specific to an instance. If there is none, the containing child graph will be returned.
         /// </summary>
         /// <typeparam name="TGraph">The generic type of the child graph.</typeparam>
         /// <param name="member">The member for the child graph.</param>
-        /// <param name="instance">The instance for whoms graph should be returned.</param>
-        /// <returns>The generic child graph for the instance.</returns>
+        /// <param name="instance">The instance for which the graph should be returned.</param>
+        /// <returns>The generic child graph for the instance, or null if the child graph does not exist.</returns>
         public Graph<TGraph>? GetChildInstanceGraph<TGraph>(string member, object instance)
         {
             if (childGraphs is null || childGraphs.Count == 0)
@@ -524,13 +507,6 @@ namespace Zerra
             if (nonGenericGraph.GetModelType() == typeof(TGraph))
                 return (Graph<TGraph>)nonGenericGraph;
             return new Graph<TGraph>(nonGenericGraph);
-        }
-
-        private static Graph Convert(Graph graph, Type type)
-        {
-            var constructor = TypeAnalyzer.GetGenericTypeDetail(typeof(Graph<>), type).GetConstructorBoxed([typeof(Graph)]);
-            var genericGraph = (Graph)constructor.CreatorWithArgsBoxed([graph]);
-            return genericGraph;
         }
 
         /// <summary>
@@ -557,6 +533,7 @@ namespace Zerra
 
                 _ = sb.Append("[ALL]");
             }
+
             if (addedMembers is not null)
             {
                 foreach (var member in addedMembers)
@@ -591,9 +568,9 @@ namespace Zerra
         }
 
         /// <summary>
-        /// If the graph members are directed an object type, this returns that type.
+        /// If the graph members are directed to an object type, this returns that type.
         /// </summary>
-        /// <returns>The object type to which the graph members are directed.</returns>
+        /// <returns>The object type to which the graph members are directed, or null if not applicable.</returns>
         protected virtual Type? GetModelType() => null;
 
         internal static Graph? InternalGetChildGraph(Graph graph, MemberInfo member, bool canCreate, bool canIncludeAllMembers)
@@ -607,171 +584,21 @@ namespace Zerra
                 if (graph.removedMembers is not null && graph.removedMembers.Contains(member.Name))
                     return null;
 
-                if (member.MemberType == MemberTypes.Property)
-                {
-                    var graphTTypeGeneric = graphTType.GetGenericTypeDetail(((PropertyInfo)member).PropertyType);
-                    childGraph = (Graph)graphTTypeGeneric.CreatorBoxed();
-                }
-                else
-                {
-                    var graphTTypeGeneric = graphTType.GetGenericTypeDetail(((FieldInfo)member).FieldType);
-                    childGraph = (Graph)graphTTypeGeneric.CreatorBoxed();
-                }
+                childGraph = new();
 
-                if (canIncludeAllMembers && graph.addedMembers is not null && graph.addedMembers.Contains(member.Name))
+                if (canIncludeAllMembers && (graph.addedMembers is not null && graph.addedMembers.Contains(member.Name)))
                     childGraph.includeAllMembers = true;
 
                 graph.childGraphs.Add(member.Name, childGraph);
                 _ = graph.addedMembers?.Remove(member.Name);
             }
+            else
+            {
+                if (canIncludeAllMembers && (graph.addedMembers is not null && graph.addedMembers.Contains(member.Name)))
+                    childGraph.includeAllMembers = true;
+            }
 
             return childGraph;
         }
-
-        //private static readonly byte maxRecursiveDepth = 2;
-        //private static readonly MethodInfo selectMethod = typeof(Enumerable).GetMethods().Where(m => m.Name == "Select" && m.GetParameters().Length == 2).First();
-        //private static readonly MethodInfo listMethod = typeof(Enumerable).GetMethods().Where(m => m.Name == "ToList" && m.GetParameters().Length == 1).First();
-        //private static readonly MethodInfo arrayMethod = typeof(Enumerable).GetMethods().Where(m => m.Name == "ToArray" && m.GetParameters().Length == 1).First();
-        //private static readonly MethodInfo hashSetMethod = typeof(Enumerable).GetMethods().Where(m => m.Name == "ToHashSet" && m.GetParameters().Length == 1).First();
-        //private static readonly ConcurrentFactoryDictionary<TypeKey, Expression> selectExpressions = new();
-        ///// <summary>
-        ///// Generates a lambda expression that will create a new object of a different type based on the graph.
-        ///// </summary>
-        ///// <typeparam name="TSource">The original type of the object.</typeparam>
-        ///// <typeparam name="TTarget">The new type of the object.</typeparam>
-        ///// <returns>The lamba expression to create a new object.</returns>
-        //public Expression<Func<TSource, TTarget>> GenerateSelect<TSource, TTarget>()
-        //{
-        //    var key = new TypeKey(Signature, typeof(TSource), typeof(TTarget));
-
-        //    var expression = (Expression<Func<TSource, TTarget>>)selectExpressions.GetOrAdd(key, (_) =>
-        //    {
-        //        return GenerateSelectorExpression<TSource, TTarget>(this);
-        //    });
-
-        //    return expression;
-        //}
-        //private static Expression<Func<TSource, TTarget>> GenerateSelectorExpression<TSource, TTarget>(Graph? graph)
-        //{
-        //    var typeSource = typeof(TSource).GetTypeDetail();
-        //    var typeTarget = typeof(TTarget).GetTypeDetail();
-
-        //    var sourceParameterExpression = Expression.Parameter(typeSource.Type, "x");
-
-        //    var selectorExpression = GenerateSelectorExpression(typeSource, typeTarget, sourceParameterExpression, graph, new Stack<Type>());
-
-        //    var lambda = Expression.Lambda<Func<TSource, TTarget>>(selectorExpression, sourceParameterExpression);
-        //    return lambda;
-        //}
-        //private static Expression GenerateSelectorExpression(TypeDetail typeSource, TypeDetail typeTarget, Expression sourceExpression, Graph? graph, Stack<Type> stack)
-        //{
-        //    stack.Push(typeSource.Type);
-
-        //    var bindings = new List<MemberBinding>();
-
-        //    foreach (var targetProperty in typeTarget.MemberDetails)
-        //    {
-        //        if (typeSource.TryGetMember(targetProperty.Name, out var sourceProperty))
-        //        {
-        //            if (graph is not null && !graph.HasMember(targetProperty.Name))
-        //                continue;
-
-        //            if (sourceProperty.TypeDetail.CoreType.HasValue)
-        //            {
-        //                //Basic Property
-
-        //                Expression sourcePropertyExpression;
-        //                if (sourceProperty.MemberInfo is PropertyInfo propertyInfo)
-        //                    sourcePropertyExpression = Expression.Property(sourceExpression, propertyInfo);
-        //                else if (sourceProperty.MemberInfo is FieldInfo fieldInfo)
-        //                    sourcePropertyExpression = Expression.Field(sourceExpression, fieldInfo);
-        //                else
-        //                    throw new InvalidOperationException();
-
-        //                MemberBinding binding = Expression.Bind(targetProperty.MemberInfo, sourcePropertyExpression);
-        //                bindings.Add(binding);
-        //            }
-        //            else if (sourceProperty.Type.IsArray || sourceProperty.TypeDetail.IsIEnumerableGeneric)
-        //            {
-        //                //Related Enumerable
-        //                if (!targetProperty.Type.IsArray && !targetProperty.TypeDetail.IsIEnumerableGeneric)
-        //                    continue;
-        //                var childGraph = graph?.GetChildGraph(targetProperty.Name);
-
-        //                var sourcePropertyGenericType = sourceProperty.TypeDetail.InnerTypeDetail;
-        //                if (stack.Where(x => x == sourcePropertyGenericType.Type).Count() >= maxRecursiveDepth)
-        //                    continue;
-
-        //                var targetPropertyGenericType = targetProperty.TypeDetail.InnerTypeDetail;
-        //                Expression sourcePropertyExpression;
-        //                if (sourceProperty.MemberInfo is PropertyInfo propertyInfo)
-        //                    sourcePropertyExpression = Expression.Property(sourceExpression, propertyInfo);
-        //                else if (sourceProperty.MemberInfo is FieldInfo fieldInfo)
-        //                    sourcePropertyExpression = Expression.Field(sourceExpression, fieldInfo);
-        //                else
-        //                    throw new InvalidOperationException();
-
-        //                var sourcePropertyParameterExpression = Expression.Parameter(sourcePropertyGenericType.Type, "y");
-        //                var mapperExpression = GenerateSelectorExpression(sourcePropertyGenericType, targetPropertyGenericType, sourcePropertyParameterExpression, childGraph, stack);
-        //                Expression sourcePropertyLambda = Expression.Lambda(mapperExpression, [sourcePropertyParameterExpression]);
-
-        //                var selectMethodGeneric = selectMethod.MakeGenericMethod(sourcePropertyGenericType.Type, targetPropertyGenericType.Type);
-        //                var callSelect = Expression.Call(selectMethodGeneric, sourcePropertyExpression, sourcePropertyLambda);
-
-        //                Expression toExpression;
-        //                if (targetProperty.Type.IsArray)
-        //                {
-        //                    toExpression = Expression.Call(arrayMethod.MakeGenericMethod(targetPropertyGenericType.Type), callSelect);
-        //                }
-        //                else if (targetProperty.TypeDetail.IsIListGeneric || targetProperty.Type.Name == "List`1")
-        //                {
-        //                    toExpression = Expression.Call(arrayMethod.MakeGenericMethod(targetPropertyGenericType.Type), callSelect);
-        //                }
-        //                else if (targetProperty.TypeDetail.IsISetGeneric || targetProperty.Type.Name == "HashSet`1")
-        //                {
-        //                    toExpression = Expression.Call(hashSetMethod.MakeGenericMethod(targetPropertyGenericType.Type), callSelect);
-        //                }
-        //                else if (targetProperty.TypeDetail.IsICollectionGeneric)
-        //                {
-        //                    toExpression = Expression.Call(arrayMethod.MakeGenericMethod(targetPropertyGenericType.Type), callSelect);
-        //                }
-        //                else
-        //                {
-        //                    throw new NotSupportedException($"Graph {nameof(GenerateSelect)} does not support type {targetProperty.Type.GetNiceName()}");
-        //                }
-
-        //                MemberBinding binding = Expression.Bind(targetProperty.MemberInfo, toExpression);
-        //                bindings.Add(binding);
-        //            }
-        //            else
-        //            {
-        //                //Related Single
-        //                var childGraph = graph?.GetChildGraph(targetProperty.Name);
-
-        //                if (stack.Where(x => x == sourceProperty.Type).Count() >= maxRecursiveDepth)
-        //                    continue;
-
-        //                Expression sourcePropertyExpression;
-        //                if (sourceProperty.MemberInfo is PropertyInfo propertyInfo)
-        //                    sourcePropertyExpression = Expression.Property(sourceExpression, propertyInfo);
-        //                else if (sourceProperty.MemberInfo is FieldInfo fieldInfo)
-        //                    sourcePropertyExpression = Expression.Field(sourceExpression, fieldInfo);
-        //                else
-        //                    throw new InvalidOperationException();
-
-        //                Expression sourceNullIf = Expression.Equal(sourcePropertyExpression, Expression.Constant(null));
-        //                var mapperExpression = GenerateSelectorExpression(sourceProperty.TypeDetail, targetProperty.TypeDetail, sourcePropertyExpression, childGraph, stack);
-        //                Expression sourcePropertyConditionalExpression = Expression.Condition(sourceNullIf, Expression.Convert(Expression.Constant(null), targetProperty.Type), mapperExpression, targetProperty.Type);
-        //                MemberBinding binding = Expression.Bind(targetProperty.MemberInfo, sourcePropertyConditionalExpression);
-        //                bindings.Add(binding);
-        //            }
-        //        }
-        //    }
-
-        //    _ = stack.Pop();
-
-        //    var initializer = Expression.MemberInit(Expression.New(typeTarget.Type), bindings);
-        //    return initializer;
-        //}
     }
 }

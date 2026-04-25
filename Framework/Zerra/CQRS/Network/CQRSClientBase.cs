@@ -2,15 +2,8 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Collections.Concurrent;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
 using Zerra.Logging;
-using Zerra.Reflection;
 
 namespace Zerra.CQRS.Network
 {
@@ -20,6 +13,10 @@ namespace Zerra.CQRS.Network
     public abstract class CqrsClientBase : IQueryClient, ICommandProducer, IEventProducer, IDisposable
     {
         private readonly string serviceUrl;
+        /// <summary>
+        /// The logging provider.
+        /// </summary>
+        protected readonly ILogger? log;
         /// <summary>
         /// The URI of the target server.
         /// </summary>
@@ -37,15 +34,19 @@ namespace Zerra.CQRS.Network
         private readonly ConcurrentDictionary<string, SemaphoreSlim> throttleByTopic;
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="CqrsClientBase"/> class.
         /// Required by the inheriting class to call this constructor for information the connection needs.
         /// </summary>
-        /// <param name="serviceUrl">The url of the server to connect.</param>
-        public CqrsClientBase(string serviceUrl)
+        /// <param name="serviceUrl">The URL of the server to connect to.</param>
+        /// <param name="log">The optional logging provider.</param>
+        public CqrsClientBase(string serviceUrl, ILogger? log)
         {
             if (String.IsNullOrWhiteSpace(serviceUrl))
                 throw new ArgumentNullException(nameof(serviceUrl));
 
             this.serviceUrl = serviceUrl;
+            this.log = log;
+
             if (!serviceUrl.Contains("://"))
                 this.serviceUri = new Uri($"tcp://{serviceUrl}"); //hacky way to make it parse without scheme.
             else
@@ -58,7 +59,6 @@ namespace Zerra.CQRS.Network
             this.throttleByTopic = new();
         }
 
-        private static readonly MethodInfo callRequestAsyncMethod = TypeAnalyzer.GetTypeDetail(typeof(CqrsClientBase)).MethodDetailsBoxed.First(x => x.MethodInfo.Name == nameof(CqrsClientBase.CallInternalAsync)).MethodInfo;
         private static readonly Type streamType = typeof(Stream);
 
         string IQueryClient.ServiceUrl => serviceUrl;
@@ -69,7 +69,7 @@ namespace Zerra.CQRS.Network
         {
             if (topicsByMessageType.ContainsKey(type))
                 return;
-            topicsByMessageType.TryAdd(type, topic);
+            _ = topicsByMessageType.TryAdd(type, topic);
             if (throttleByTopic.ContainsKey(topic))
                 return;
             var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
@@ -81,7 +81,7 @@ namespace Zerra.CQRS.Network
         {
             if (topicsByMessageType.ContainsKey(type))
                 return;
-            topicsByMessageType.TryAdd(type, topic);
+            _ = topicsByMessageType.TryAdd(type, topic);
             if (throttleByTopic.ContainsKey(topic))
                 return;
             var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
@@ -98,57 +98,78 @@ namespace Zerra.CQRS.Network
                 throttle.Dispose();
         }
 
-        TReturn? IQueryClient.Call<TReturn>(Type interfaceType, string methodName, object[] arguments, string source, CancellationToken cancellationToken) where TReturn : default
+        TReturn IQueryClient.Call<TReturn>(Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, CancellationToken cancellationToken)
         {
             if (!throttleByInterfaceType.TryGetValue(interfaceType, out var throttle))
-                throw new Exception($"{interfaceType.GetNiceName()} is not registered with {this.GetType().GetNiceName()}");
+                throw new Exception($"{interfaceType.Name} is not registered with {this.GetType().Name}");
 
             try
             {
-                var returnTypeDetails = TypeAnalyzer<TReturn>.GetTypeDetail();
-
-                if (returnTypeDetails.IsTask)
-                {
-                    var isStream = returnTypeDetails.InnerType == streamType || returnTypeDetails.InnerTypeDetail.BaseTypes.Contains(streamType);
-                    var callRequestMethodGeneric = TypeAnalyzer.GetGenericMethodDetail(callRequestAsyncMethod, returnTypeDetails.InnerTypes.ToArray());
-                    return (TReturn?)callRequestMethodGeneric.CallerBoxed(this, [throttle, isStream, interfaceType, methodName, arguments, source, cancellationToken])!;
-                }
-                else
-                {
-                    var isStream = returnTypeDetails.Type == streamType || returnTypeDetails.BaseTypes.Contains(streamType);
-                    var task = CallInternalAsync<TReturn>(throttle, isStream, interfaceType, methodName, arguments, source, cancellationToken);
-                    var model = Task.Run(() => task).GetAwaiter().GetResult();
-                    return model;
-                }
+                var isStream = typeof(TReturn) == streamType;
+                var task = CallInternalAsync<TReturn>(throttle, isStream, interfaceType, methodName, argumentTypes, arguments, source, cancellationToken);
+                var result = Task.Run(() => task).GetAwaiter().GetResult();
+                return result;
             }
             catch (Exception ex)
             {
-                _ = Log.ErrorAsync($"Call Failed", ex);
+                log?.Error($"Call Failed", ex);
+                throw;
+            }
+        }
+        Task IQueryClient.CallTask(Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, CancellationToken cancellationToken)
+        {
+            if (!throttleByInterfaceType.TryGetValue(interfaceType, out var throttle))
+                throw new Exception($"{interfaceType.Name} is not registered with {this.GetType().Name}");
+
+            try
+            {
+                return CallInternalAsync<object>(throttle, false, interfaceType, methodName, argumentTypes, arguments, source, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                log?.Error($"Call Failed", ex);
+                throw;
+            }
+        }
+        Task<TReturn> IQueryClient.CallTaskGeneric<TReturn>(Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, CancellationToken cancellationToken)
+        {
+            if (!throttleByInterfaceType.TryGetValue(interfaceType, out var throttle))
+                throw new Exception($"{interfaceType.Name} is not registered with {this.GetType().Name}");
+
+            try
+            {
+                var isStream = typeof(TReturn) == streamType;
+                return CallInternalAsync<TReturn>(throttle, isStream, interfaceType, methodName, argumentTypes, arguments, source, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                log?.Error($"Call Failed", ex);
                 throw;
             }
         }
 
         /// <summary>
-        /// Sends CQRS queries and returns the result from the server asyncronously.
+        /// Sends CQRS queries and returns the result from the server asynchronously.
         /// </summary>
         /// <typeparam name="TReturn">The type returned from the server.</typeparam>
         /// <param name="throttle">Used to limit simultaneous requests.</param>
         /// <param name="isStream">Indicates the result is a stream.</param>
         /// <param name="interfaceType">The interface type of the query.</param>
         /// <param name="methodName">The query method to call in the interface type.</param>
+        /// <param name="argumentTypes">The types of the arguments for the query method.</param>
         /// <param name="arguments">The raw arguments for the query method.</param>
         /// <param name="source">A description of where the request came from.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>A task to await the result from the server.</returns>
-        protected abstract Task<TReturn?> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source, CancellationToken cancellationToken);
+        protected abstract Task<TReturn> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, CancellationToken cancellationToken);
 
         Task ICommandProducer.DispatchAsync(ICommand command, string source, CancellationToken cancellationToken)
         {
             var commandType = command.GetType();
             if (!topicsByMessageType.TryGetValue(commandType, out var topic))
-                throw new Exception($"{commandType.GetNiceName()} is not registered with {this.GetType().GetNiceName()}");
+                throw new Exception($"{commandType.Name} is not registered with {this.GetType().Name}");
             if (!throttleByTopic.TryGetValue(topic, out var throttle))
-                throw new Exception($"{commandType.GetNiceName()} is not registered with {this.GetType().GetNiceName()}");
+                throw new Exception($"{commandType.Name} is not registered with {this.GetType().Name}");
 
             try
             {
@@ -156,7 +177,7 @@ namespace Zerra.CQRS.Network
             }
             catch (Exception ex)
             {
-                _ = Log.ErrorAsync($"Dispatch Failed", ex);
+                log?.Error($"Dispatch Failed", ex);
                 throw;
             }
         }
@@ -164,9 +185,9 @@ namespace Zerra.CQRS.Network
         {
             var commandType = command.GetType();
             if (!topicsByMessageType.TryGetValue(commandType, out var topic))
-                throw new Exception($"{commandType.GetNiceName()} is not registered with {this.GetType().GetNiceName()}");
+                throw new Exception($"{commandType.Name} is not registered with {this.GetType().Name}");
             if (!throttleByTopic.TryGetValue(topic, out var throttle))
-                throw new Exception($"{commandType.GetNiceName()} is not registered with {this.GetType().GetNiceName()}");
+                throw new Exception($"{commandType.Name} is not registered with {this.GetType().Name}");
 
             try
             {
@@ -174,7 +195,7 @@ namespace Zerra.CQRS.Network
             }
             catch (Exception ex)
             {
-                _ = Log.ErrorAsync($"Dispatch Failed", ex);
+                log?.Error($"Dispatch Failed", ex);
                 throw;
             }
         }
@@ -182,12 +203,11 @@ namespace Zerra.CQRS.Network
         {
             var commandType = command.GetType();
             if (!topicsByMessageType.TryGetValue(commandType, out var topic))
-                throw new Exception($"{commandType.GetNiceName()} is not registered with {this.GetType().GetNiceName()}");
+                throw new Exception($"{commandType.Name} is not registered with {this.GetType().Name}");
             if (!throttleByTopic.TryGetValue(topic, out var throttle))
-                throw new Exception($"{commandType.GetNiceName()} is not registered with {this.GetType().GetNiceName()}");
+                throw new Exception($"{commandType.Name} is not registered with {this.GetType().Name}");
 
-            var resultTypeDetails = TypeAnalyzer<TResult>.GetTypeDetail();
-            var isStream = resultTypeDetails.Type == streamType || resultTypeDetails.BaseTypes.Contains(streamType);
+            var isStream = typeof(TResult) == streamType;
 
             try
             {
@@ -195,7 +215,7 @@ namespace Zerra.CQRS.Network
             }
             catch (Exception ex)
             {
-                _ = Log.ErrorAsync($"Dispatch Failed", ex);
+                log?.Error($"Dispatch Failed", ex);
                 throw;
             }
         }
@@ -204,9 +224,9 @@ namespace Zerra.CQRS.Network
         {
             var commandType = @event.GetType();
             if (!topicsByMessageType.TryGetValue(commandType, out var topic))
-                throw new Exception($"{commandType.GetNiceName()} is not registered with {this.GetType().GetNiceName()}");
+                throw new Exception($"{commandType.Name} is not registered with {this.GetType().Name}");
             if (!throttleByTopic.TryGetValue(topic, out var throttle))
-                throw new Exception($"{commandType.GetNiceName()} is not registered with {this.GetType().GetNiceName()}");
+                throw new Exception($"{commandType.Name} is not registered with {this.GetType().Name}");
 
             try
             {
@@ -214,7 +234,7 @@ namespace Zerra.CQRS.Network
             }
             catch (Exception ex)
             {
-                _ = Log.ErrorAsync($"Dispatch Failed", ex);
+                log?.Error($"Dispatch Failed", ex);
                 throw;
             }
         }
@@ -228,8 +248,9 @@ namespace Zerra.CQRS.Network
         /// <param name="messageAwait">If the request will wait for a response from the server when the command is completed.</param>
         /// <param name="source">A description of where the request came from.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-        /// <returns>A Task to await sending or await completion of the command.</returns>
+        /// <returns>A task to await sending or await completion of the command.</returns>
         protected abstract Task DispatchInternal(SemaphoreSlim throttle, Type commandType, ICommand command, bool messageAwait, string source, CancellationToken cancellationToken);
+
         /// <summary>
         /// Sends a CQRS command and gets a result.
         /// </summary>
@@ -240,7 +261,7 @@ namespace Zerra.CQRS.Network
         /// <param name="command">The command object itself.</param>
         /// <param name="source">A description of where the request came from.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-        /// <returns>A Task to await the result of the command from the server.</returns>
+        /// <returns>A task to await the result of the command from the server.</returns>
         protected abstract Task<TResult> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source, CancellationToken cancellationToken);
 
         /// <summary>
@@ -251,7 +272,7 @@ namespace Zerra.CQRS.Network
         /// <param name="event">The event object itself.</param>
         /// <param name="source">A description of where the request came from.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-        /// <returns>A Task to await sending the event.</returns>
+        /// <returns>A task to await sending the event.</returns>
         protected abstract Task DispatchInternal(SemaphoreSlim throttle, Type eventType, IEvent @event, string source, CancellationToken cancellationToken);
 
         /// <inheritdoc />

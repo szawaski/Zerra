@@ -2,23 +2,102 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
+using System.Runtime.CompilerServices;
 using Zerra.Collections;
-using Zerra.Reflection.Runtime;
+using Zerra.Reflection.Dynamic;
 
 namespace Zerra.Reflection
 {
+    /// <summary>
+    /// Provides runtime type analysis and conversion services for the Zerra framework.
+    /// Generates and caches detailed type information for reflection-based serialization, 
+    /// deserialization, and CQRS message routing.
+    /// </summary>
     public static class TypeAnalyzer
     {
-        public static T? Convert<T>(object? obj) { return (T?)Convert(obj, typeof(T)); }
+        private static readonly ConcurrentFactoryDictionary<Type, TypeDetail> byType = new();
+
+        /// <summary>
+        /// Gets or generates detailed type information for the specified type.
+        /// If type detail was source generated, it will be retrieved from cache without throwing.
+        /// </summary>
+        /// <param name="type">The type to analyze.</param>
+        /// <returns>Cached or newly generated type detail information.</returns>
+        /// <exception cref="NotSupportedException">Thrown if dynamic code generation is required but not supported in the current build configuration.</exception>
+        public static TypeDetail GetTypeDetail(Type type)
+        {
+            return byType.GetOrAdd(type, GenerateTypeDetail);
+        }
+
+        private static TypeDetail GenerateTypeDetail(Type type)
+        {
+            if (!RuntimeFeature.IsDynamicCodeSupported)
+                throw new NotSupportedException($"Cannot generate type detail for {type.Name}. Dynamic code generation is not supported in this build configuration.");
+
+#pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
+            return TypeDetailGenerator.GenerateTypeDetail(type);
+#pragma warning restore IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
+        }
+
+        /// <summary>
+        /// Registers pre-generated type information in the analyzer cache.
+        /// </summary>
+        /// <remarks>
+        /// Used by source generators to register type details without requiring runtime type generation.
+        /// Core types may appear in multiple assemblies, so duplicate registration is allowed.
+        /// </remarks>
+        /// <param name="typeInfo">The type detail information to register.</param>
+        internal static void Register(TypeDetail typeInfo)
+        {
+            //core types might repeat in different assemblies so don't duplicate check
+            _ = byType.TryAdd(typeInfo.Type, typeInfo);
+        }
+
+        /// <summary>
+        /// Converts an object to the specified type.
+        /// Supports all core types (primitives, dates, times, guids, strings) and their nullable equivalents.
+        /// </summary>
+        /// <typeparam name="T">The target type to convert to.</typeparam>
+        /// <param name="obj">The object to convert.</param>
+        /// <returns>The converted value, or null if conversion fails or type is not supported.</returns>
+        /// <exception cref="NotImplementedException">Thrown if the target type is not supported for conversion.</exception>
+        public static T? Convert<T>(object? obj)
+        {
+            var type = typeof(T);
+            if (!TypeLookup.GetCoreType(type, out var coreType))
+                throw new NotImplementedException($"Type convert not available for {type.Name}");
+            return (T?)Convert(obj, coreType);
+        }
+
+        /// <summary>
+        /// Converts an object to the specified type.
+        /// Supports all core types (primitives, dates, times, guids, strings) and their nullable equivalents.
+        /// </summary>
+        /// <param name="obj">The object to convert.</param>
+        /// <param name="type">The target type to convert to.</param>
+        /// <returns>The converted value, or null if conversion fails or type is not supported.</returns>
+        /// <exception cref="NotImplementedException">Thrown if the target type is not supported for conversion.</exception>
         public static object? Convert(object? obj, Type type)
         {
-            if (!TypeLookup.CoreTypeLookup(type, out var coreType))
+            if (!TypeLookup.GetCoreType(type, out var coreType))
                 throw new NotImplementedException($"Type convert not available for {type.Name}");
+            return Convert(obj, coreType);
+        }
 
+        /// <summary>
+        /// Converts an object to the specified core type.
+        /// Supports all core types (primitives, dates, times, guids, strings) and their nullable equivalents.
+        /// </summary>
+        /// <remarks>
+        /// This overload accepts pre-resolved CoreType enum for performance optimization.
+        /// Returns default values for null inputs on non-nullable types and null for null inputs on nullable types.
+        /// </remarks>
+        /// <param name="obj">The object to convert.</param>
+        /// <param name="coreType">The target core type to convert to.</param>
+        /// <returns>The converted value, or default/null if conversion fails or type is not supported.</returns>
+        /// <exception cref="NotImplementedException">Thrown if the target core type is not supported for conversion.</exception>
+        public static object? Convert(object? obj, CoreType coreType)
+        {
             if (obj is null)
             {
                 return coreType switch
@@ -66,7 +145,7 @@ namespace Zerra.Reflection
                     CoreType.TimeOnlyNullable => null,
 #endif
                     CoreType.GuidNullable => null,
-                    _ => throw new NotImplementedException($"Type conversion not available for {type.Name}"),
+                    _ => throw new NotImplementedException($"Type conversion not available for {coreType}"),
                 };
             }
             else
@@ -116,7 +195,7 @@ namespace Zerra.Reflection
                     CoreType.TimeOnlyNullable => ConvertToTimeOnly(obj),
 #endif
                     CoreType.GuidNullable => ConvertToGuid(obj),
-                    _ => throw new NotImplementedException($"Type conversion not available for {type.Name}"),
+                    _ => throw new NotImplementedException($"Type conversion not available for {coreType}"),
                 };
             }
         }
@@ -127,8 +206,6 @@ namespace Zerra.Reflection
                 return Guid.Empty;
             return Guid.Parse(obj.ToString() ?? String.Empty);
         }
-
-
         private static TimeSpan ConvertToTimeSpan(object? obj)
         {
             if (obj is null)
@@ -149,143 +226,11 @@ namespace Zerra.Reflection
             return TimeOnly.Parse(obj.ToString() ?? String.Empty, System.Globalization.CultureInfo.InvariantCulture);
         }
 #endif
-
         private static DateTimeOffset ConvertToDateTimeOffset(object? obj)
         {
             if (obj is null)
                 return DateTimeOffset.MinValue;
             return DateTimeOffset.Parse(obj.ToString() ?? String.Empty, System.Globalization.CultureInfo.CurrentCulture);
-        }
-
-        private static readonly ConcurrentFactoryDictionary<Type, TypeDetail> typeDetailsByType = new();
-        private static readonly Dictionary<Type, Func<TypeDetail>> typeDetailCreatorsByType = new();
-        public static TypeDetail GetTypeDetail(Type type) => typeDetailsByType.GetOrAdd(type, static (type) => typeDetailCreatorsByType.TryGetValue(type, out var typeDetailCreator) ? typeDetailCreator() : TypeDetailRuntime<object>.New(type));
-        public static void AddTypeDetailCreator(Type type, Func<TypeDetail> typeDetailCreator) => typeDetailCreatorsByType.Add(type, typeDetailCreator);
-        internal static void ReplaceTypeDetail(TypeDetail typeDetail) => typeDetailsByType[typeDetail.Type] = typeDetail;
-
-        private static readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail?> methodDetailsByType = new();
-        public static MethodDetail GetMethodDetail(Type type, string name, Type[]? parameterTypes = null)
-        {
-            var key = new TypeKey(name, type, parameterTypes);
-            var method = methodDetailsByType.GetOrAdd(key, type, name, parameterTypes, static (type, name, parameterTypes) =>
-            {
-                var typeDetails = GetTypeDetail(type);
-                foreach (var methodDetail in typeDetails.MethodDetailsBoxed.OrderBy(x => x.ParameterDetails.Count))
-                {
-                    if (methodDetail.Name == name && (parameterTypes is null || methodDetail.ParameterDetails.Count == parameterTypes.Length))
-                    {
-                        var match = true;
-                        if (parameterTypes is not null)
-                        {
-                            for (var i = 0; i < parameterTypes.Length; i++)
-                            {
-                                if (parameterTypes[i].Name != methodDetail.ParameterDetails[i].Type.Name || parameterTypes[i].Namespace != methodDetail.ParameterDetails[i].Type.Namespace)
-                                {
-                                    match = false;
-                                    break;
-                                }
-                            }
-                        }
-                        if (match)
-                            return methodDetail;
-                    }
-                }
-                return null;
-            });
-            return method ?? throw new ArgumentException($"{type.GetNiceName()}.{name} method not found");
-        }
-
-        private static readonly ConcurrentFactoryDictionary<MethodInfo, MethodDetail?> methodDetailsByMethodInfo = new();
-        public static MethodDetail GetMethodDetail(MethodInfo methodInfo)
-        {
-            if (methodInfo.ReflectedType is null)
-                throw new ArgumentException("MethodInfo.ReflectedType cannot be null");
-
-            var method = methodDetailsByMethodInfo.GetOrAdd(methodInfo, static (methodInfo) =>
-                 MethodDetailRuntime<object>.New(methodInfo.ReflectedType!, methodInfo.Name, methodInfo, false, new()));
-            return method ?? throw new ArgumentException($"{methodInfo.ReflectedType.GetNiceName()}.{methodInfo.Name} method not found");
-        }
-
-        private static readonly ConcurrentFactoryDictionary<TypeKey, ConstructorDetail?> constructorDetailsByType = new();
-        public static ConstructorDetail GetConstructorDetail(Type type, Type[]? parameterTypes = null)
-        {
-            var key = new TypeKey(type, parameterTypes);
-            var constructor = constructorDetailsByType.GetOrAdd(key, type, parameterTypes, static (type, parameterTypes) =>
-            {
-                var typeDetails = GetTypeDetail(type);
-                foreach (var constructorDetail in typeDetails.ConstructorDetailsBoxed)
-                {
-                    if (parameterTypes is null || constructorDetail.ParameterDetails.Count == parameterTypes.Length)
-                    {
-                        var match = true;
-                        if (parameterTypes is not null)
-                        {
-                            for (var i = 0; i < parameterTypes.Length; i++)
-                            {
-                                if (parameterTypes[i] != constructorDetail.ParameterDetails[i].Type)
-                                {
-                                    match = false;
-                                    break;
-                                }
-                            }
-                        }
-                        if (match)
-                            return constructorDetail;
-                    }
-                }
-                return null;
-            });
-            return constructor ?? throw new ArgumentException($"{type.GetNiceName()} constructor not found");
-        }
-
-        private static readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail> genericMethodDetailsByMethod = new();
-        public static MethodDetail GetGenericMethodDetail(MethodInfo method, params Type[] types)
-        {
-            if (method.ReflectedType is null)
-                throw new ArgumentNullException("method.ReflectedType");
-            var key = new TypeKey(method.ToString(), types);
-            var genericMethod = genericMethodDetailsByMethod.GetOrAdd(key, method, types, static (method, types) =>
-            {
-                var generic = method.MakeGenericMethod(types);
-                return MethodDetailRuntime<object>.New(method.ReflectedType!, method.Name, generic, false, new object());
-            });
-            return genericMethod;
-        }
-
-        private static readonly ConcurrentFactoryDictionary<TypeKey, MethodDetail> genericMethodDetails = new();
-        public static MethodDetail GetGenericMethodDetail(MethodDetail methodDetail, params Type[] types)
-        {
-            var key = new TypeKey(methodDetail.MethodInfo.ToString(), types);
-            var genericMethod = genericMethodDetails.GetOrAdd(key, methodDetail, types, static (methodDetail, types) => GetGenericMethodDetail(methodDetail.MethodInfo, types));
-            return genericMethod;
-        }
-
-        private static readonly ConcurrentFactoryDictionary<TypeKey, TypeDetail> genericTypeDetails = new();
-        public static TypeDetail GetGenericTypeDetail(TypeDetail typeDetail, params Type[] types)
-        {
-            var key = new TypeKey(typeDetail.Type, types);
-            var genericType = genericTypeDetails.GetOrAdd(key, typeDetail, types, static (typeDetail, types) =>
-            {
-                var generic = typeDetail.Type.MakeGenericType(types);
-                return GetTypeDetail(generic);
-            });
-            return genericType;
-        }
-
-        private static readonly ConcurrentFactoryDictionary<TypeKey, Type> genericTypesByType = new();
-        public static Type GetGenericType(Type type, params Type[] types)
-        {
-            var key = new TypeKey(type, types);
-            var genericType = genericTypesByType.GetOrAdd(key, type, types, static (type, types) => type.MakeGenericType(types));
-            return genericType;
-        }
-
-        private static readonly ConcurrentFactoryDictionary<TypeKey, TypeDetail> genericTypeDetailsByType = new();
-        public static TypeDetail GetGenericTypeDetail(Type type, params Type[] types)
-        {
-            var key = new TypeKey(type, types);
-            var genericTypeDetail = genericTypeDetailsByType.GetOrAdd(key, type, types, static (type, types) => GetTypeDetail(type.MakeGenericType(types)));
-            return genericTypeDetail;
         }
     }
 }

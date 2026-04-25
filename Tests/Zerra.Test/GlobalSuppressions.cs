@@ -5,6 +5,6 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-[assembly: SuppressMessage("Style", "IDE0017:Simplify object initialization", Justification = "<Pending>")]
-[assembly: SuppressMessage("Style", "IDE0028:Simplify collection initialization", Justification = "<Pending>")]
-[assembly: SuppressMessage("Style", "IDE0059:Unnecessary assignment of a value", Justification = "<Pending>")]
+[assembly: SuppressMessage("Style", "IDE0017:Simplify object initialization")]
+[assembly: SuppressMessage("Style", "IDE0028:Simplify collection initialization")]
+[assembly: SuppressMessage("Style", "IDE0059:Unnecessary assignment of a value")]

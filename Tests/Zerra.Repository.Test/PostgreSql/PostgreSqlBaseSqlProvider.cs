@@ -4,7 +4,7 @@
 
 namespace Zerra.Repository.Test
 {
-    public abstract class PostgreSqlBaseSqlProvider<TModel> : TransactStoreProvider<PostgreSqlTestSqlDataContext, TModel> where TModel : class, new()
+    public class PostgreSqlBaseSqlProvider<TModel> : TransactStoreProvider<PostgreSqlTestSqlDataContext, TModel> where TModel : class, new()
     {
 
     }

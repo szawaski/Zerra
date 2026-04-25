@@ -7,7 +7,7 @@ namespace Zerra.CQRS
     /// <summary>
     /// Indicates that this class is a command.
     /// </summary>
-    public interface ICommand : IMessage
+    public interface ICommand
     {
 
     }

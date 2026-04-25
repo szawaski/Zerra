@@ -3,26 +3,23 @@
 // Licensed to you under the MIT license
 
 using System.Collections;
-using System.Collections.Generic;
 using Zerra.Reflection;
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;
 
 namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
 {
-    internal sealed class ByteConverterIList<TParent, TValue> : ByteConverter<TParent, IList>
+    internal sealed class ByteConverterIList : ByteConverter<IList>
     {
-        private ByteConverter<IList> readConverter = null!;
-        private ByteConverter<IEnumerator> writeConverter = null!;
+        private ByteConverter converter = null!;
 
-        private static object Getter(IEnumerator parent) => parent.Current;
-        private static void Setter(IList parent, TValue value) => parent.Add(value);
+        private static object Getter(object parent) => ((IEnumerator)parent).Current;
+        private static void Setter(object parent, object value) => ((IList)parent).Add(value);
 
         protected override sealed void Setup()
         {
             var valueTypeDetail = TypeAnalyzer<object>.GetTypeDetail();
-            readConverter = ByteConverterFactory<IList>.Get(valueTypeDetail, nameof(ByteConverterIList<TParent, TValue>), null, Setter);
-            writeConverter = ByteConverterFactory<IEnumerator>.Get(valueTypeDetail, nameof(ByteConverterIList<TParent, TValue>), Getter, null);
+            converter = ByteConverterFactory.Get(valueTypeDetail, nameof(ByteConverterIList), Getter, Setter);
         }
 
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out IList? value)
@@ -37,7 +34,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
 
                 if (!state.Current.DrainBytes)
                 {
-                    value = new List<TValue>(state.Current.EnumerableLength!.Value);
+                    value = new List<object>(state.Current.EnumerableLength!.Value);
                     if (state.Current.EnumerableLength!.Value == 0)
                         return true;
                 }
@@ -59,7 +56,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
 
             for (; ; )
             {
-                if (!readConverter.TryReadFromParent(ref reader, ref state, value, true))
+                if (!converter.TryReadFromParent(ref reader, ref state, value))
                 {
                     state.Current.Object = value;
                     return false;
@@ -76,7 +73,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
 
             if (state.Current.Object is null)
             {
-                if (!writer.TryWrite(value.Count, out state.BytesNeeded))
+                if (!writer.TryWrite(value.Count, out state.SizeNeeded))
                 {
                     return false;
                 }
@@ -94,7 +91,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
 
             while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
             {
-                if (!writeConverter.TryWriteFromParent(ref writer, ref state, enumerator, true))
+                if (!converter.TryWriteFromParent(ref writer, ref state, enumerator))
                 {
                     state.Current.Object = enumerator;
                     state.Current.EnumeratorInProgress = true;

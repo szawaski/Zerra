@@ -3,19 +3,26 @@
 // Licensed to you under the MIT license
 
 using Azure.Messaging.ServiceBus;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Zerra.Encryption;
 using Zerra.Logging;
+using Zerra.Serialization;
 
 namespace Zerra.CQRS.AzureServiceBus
 {
+    /// <summary>
+    /// Azure Service Bus implementation of command and event consumer for distributed CQRS messaging.
+    /// </summary>
+    /// <remarks>
+    /// Provides high-performance, reliable message consumption from Azure Service Bus queues and topics.
+    /// Manages multiple exchanges (queues/topics) with concurrent processing capabilities.
+    /// Thread-safe for concurrent operations.
+    /// </remarks>
     public sealed partial class AzureServiceBusConsumer : ICommandConsumer, IEventConsumer, IAsyncDisposable
     {
         private readonly string host;
-        private readonly SymmetricConfig? symmetricConfig;
+        private readonly ISerializer serializer;
+        private readonly IEncryptor? encryptor;
+        private readonly ILogger? log;
         private readonly string? environment;
 
         private readonly Dictionary<string, CommandConsumer> commandExchanges;
@@ -37,12 +44,23 @@ namespace Zerra.CQRS.AzureServiceBus
             ReceiveMode = ServiceBusReceiveMode.ReceiveAndDelete,
         };
 
-        public AzureServiceBusConsumer(string host, SymmetricConfig? symmetricConfig, string? environment)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AzureServiceBusConsumer"/> class.
+        /// </summary>
+        /// <param name="host">The Azure Service Bus connection string.</param>
+        /// <param name="serializer">The serializer for message deserialization and serialization.</param>
+        /// <param name="encryptor">Optional decryptor for message decryption. If null, messages are assumed to be unencrypted.</param>
+        /// <param name="log">Optional logger for diagnostic information.</param>
+        /// <param name="environment">Optional environment name to match queue and topic name prefixes for isolation.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="host"/> is null or empty.</exception>
+        public AzureServiceBusConsumer(string host, ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 
             this.host = host;
-            this.symmetricConfig = symmetricConfig;
+            this.serializer = serializer;
+            this.encryptor = encryptor;
+            this.log = log;
             this.environment = environment;
             this.commandExchanges = new();
             this.eventExchanges = new();
@@ -74,12 +92,12 @@ namespace Zerra.CQRS.AzureServiceBus
         void ICommandConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(AzureServiceBusConsumer)} Command Consumer Listening");
+            log?.Info($"{nameof(AzureServiceBusConsumer)} Command Consumer Listening");
         }
         void IEventConsumer.Open()
         {
             Open();
-            _ = Log.InfoAsync($"{nameof(AzureServiceBusConsumer)} Event Consumer Listening");
+            log?.Info($"{nameof(AzureServiceBusConsumer)} Event Consumer Listening");
         }
         private void Open()
         {
@@ -109,12 +127,12 @@ namespace Zerra.CQRS.AzureServiceBus
         void ICommandConsumer.Close()
         {
             Close();
-            _ = Log.InfoAsync($"{nameof(AzureServiceBusConsumer)} Command Consumer Closed");
+            log?.Info($"{nameof(AzureServiceBusConsumer)} Command Consumer Closed");
         }
         void IEventConsumer.Close()
         {
             Close();
-            _ = Log.InfoAsync($"{nameof(AzureServiceBusConsumer)} Event Consumer Closed");
+            log?.Info($"{nameof(AzureServiceBusConsumer)} Event Consumer Closed");
         }
         private void Close()
         {
@@ -130,6 +148,12 @@ namespace Zerra.CQRS.AzureServiceBus
             }
         }
 
+        /// <summary>
+        /// Releases all resources used by the <see cref="AzureServiceBusConsumer"/>.
+        /// </summary>
+        /// <remarks>
+        /// Closes all open message exchanges and disposes the Service Bus client connection.
+        /// </remarks>
         public async ValueTask DisposeAsync()
         {
             this.Close();
@@ -147,7 +171,7 @@ namespace Zerra.CQRS.AzureServiceBus
                     return;
                 if (commandExchanges.ContainsKey(topic))
                     return;
-                commandExchanges.Add(topic, new CommandConsumer(maxConcurrent, commandCounter, topic, symmetricConfig, environment, commandHandlerAsync, commandHandlerAwaitAsync, commandHandlerWithResultAwaitAsync));
+                commandExchanges.Add(topic, new CommandConsumer(maxConcurrent, commandCounter, topic, serializer, encryptor, log, environment, commandHandlerAsync, commandHandlerAwaitAsync, commandHandlerWithResultAwaitAsync));
                 OpenExchanges();
             }
         }
@@ -162,8 +186,8 @@ namespace Zerra.CQRS.AzureServiceBus
                 if (!eventTypes.Add(type))
                     return;
                 if (eventExchanges.ContainsKey(topic))
-                    return;           
-                eventExchanges.Add(topic, new EventConsumer(maxConcurrent, topic, symmetricConfig, environment, eventHandlerAsync));
+                    return;
+                eventExchanges.Add(topic, new EventConsumer(maxConcurrent, topic, serializer, encryptor, log, environment, eventHandlerAsync));
                 OpenExchanges();
             }
         }

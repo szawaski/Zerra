@@ -1,14 +1,28 @@
-﻿using System;
-using System.Linq;
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using Zerra.Reflection;
 using Zerra.Repository.IO;
 using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository
 {
+    /// <summary>
+    /// Base class for converting LINQ expressions into SQL query strings.
+    /// </summary>
     public abstract partial class BaseLinqSqlConverter
     {
+        /// <summary>
+        /// Converts the specified query parameters into a SQL string.
+        /// </summary>
+        /// <param name="select">The query operation type (e.g., Single, Many, First).</param>
+        /// <param name="where">An optional filter expression.</param>
+        /// <param name="order">An optional ordering specification.</param>
+        /// <param name="skip">An optional number of records to skip.</param>
+        /// <param name="take">An optional number of records to take.</param>
+        /// <param name="graph">An optional graph describing which properties to include.</param>
+        /// <param name="modelDetail">Metadata about the model being queried.</param>
+        /// <returns>The generated SQL query string.</returns>
         public string ConvertInternal(QueryOperation select, Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail)
         {
             var operationContext = new MemberContext();
@@ -24,6 +38,18 @@ namespace Zerra.Repository
             }
         }
 
+        /// <summary>
+        /// Builds the SQL query into the provided <see cref="CharWriter"/>.
+        /// </summary>
+        /// <param name="sb">The writer to append the SQL into.</param>
+        /// <param name="select">The query operation type.</param>
+        /// <param name="where">An optional filter expression.</param>
+        /// <param name="order">An optional ordering specification.</param>
+        /// <param name="skip">An optional number of records to skip.</param>
+        /// <param name="take">An optional number of records to take.</param>
+        /// <param name="graph">An optional graph describing which properties to include.</param>
+        /// <param name="modelDetail">Metadata about the model being queried.</param>
+        /// <param name="operationContext">The current member context for the operation.</param>
         protected void Convert(ref CharWriter sb, QueryOperation select, Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail, MemberContext operationContext)
         {
             var hasWhere = where is not null;
@@ -57,6 +83,12 @@ namespace Zerra.Repository
             GenerateEnding(select, graph, modelDetail, ref sb);
         }
 
+        /// <summary>
+        /// Converts a LINQ <see cref="Expression"/> node into its SQL representation.
+        /// </summary>
+        /// <param name="exp">The expression to convert.</param>
+        /// <param name="sb">The writer to append SQL into.</param>
+        /// <param name="context">The current builder context.</param>
         protected void ConvertToSql(Expression exp, ref CharWriter sb, BuilderContext context)
         {
             switch (exp.NodeType)
@@ -268,6 +300,12 @@ namespace Zerra.Repository
                     throw new NotImplementedException();
             }
         }
+        /// <summary>
+        /// Converts a lambda expression into its SQL representation.
+        /// </summary>
+        /// <param name="exp">The lambda expression to convert.</param>
+        /// <param name="sb">The writer to append SQL into.</param>
+        /// <param name="context">The current builder context.</param>
         protected abstract void ConvertToSqlLambda(Expression exp, ref CharWriter sb, BuilderContext context);
         private void ConvertToSqlUnary(Operator prefixOperation, Expression exp, ref CharWriter sb, BuilderContext context)
         {
@@ -344,6 +382,12 @@ namespace Zerra.Repository
 
             ConvertToSqlValue(array.Left.Type.GetElementType()!, value, ref sb, context);
         }
+        /// <summary>
+        /// Converts a member access expression into its SQL representation.
+        /// </summary>
+        /// <param name="exp">The member access expression to convert.</param>
+        /// <param name="sb">The writer to append SQL into.</param>
+        /// <param name="context">The current builder context.</param>
         protected void ConvertToSqlMember(Expression exp, ref CharWriter sb, BuilderContext context)
         {
             var member = (MemberExpression)exp;
@@ -407,6 +451,12 @@ namespace Zerra.Repository
                 ConvertToSqlValue(type, value, ref sb, context);
             }
         }
+        /// <summary>
+        /// Converts a method call expression into its SQL representation.
+        /// </summary>
+        /// <param name="exp">The method call expression to convert.</param>
+        /// <param name="sb">The writer to append SQL into.</param>
+        /// <param name="context">The current builder context.</param>
         protected abstract void ConvertToSqlCall(Expression exp, ref CharWriter sb, BuilderContext context);
         private void ConvertToSqlNew(Expression exp, ref CharWriter sb, BuilderContext context)
         {
@@ -415,17 +465,22 @@ namespace Zerra.Repository
             var newExp = (NewExpression)exp;
 
             var argumentTypes = newExp.Arguments.Select(x => x.Type).ToArray();
-            var constructor = newExp.Type.GetConstructor(argumentTypes)!;
+
+            //constructor should not be trimmed since the expression should be evaluatable
+            var typeDetail = newExp.Type.GetTypeDetail();
+            var constructor = typeDetail.GetConstructor(argumentTypes);
+            //var constructor = newExp.Type.GetConstructor(argumentTypes)!;
 
             var parameters = new object?[newExp.Arguments.Count];
             var i = 0;
             foreach (var argument in newExp.Arguments)
             {
-                var argumentValue = Expression.Lambda(argument).Compile().DynamicInvoke();
+                var argumentValue = Evaluate(argument);
                 parameters[i++] = argumentValue;
             }
 
-            var value = constructor.Invoke(parameters.ToArray());
+            //var value = constructor.Invoke(parameters);
+            var value = constructor.CreatorBoxed(parameters);
             ConvertToSqlValue(newExp.Type, value, ref sb, context);
 
             _ = context.MemberContext.OperatorStack.Pop();
@@ -435,16 +490,35 @@ namespace Zerra.Repository
             var parameter = (ParameterExpression)exp;
 
             if (parameter.Name is null)
-                throw new Exception($"Parameter has no name {parameter.Type.GetNiceName()}");
+                throw new Exception($"Parameter has no name {parameter.Type.Name}");
 
             var modelDetail = context.MemberContext.ModelContexts[parameter.Name];
 
-            var parameterInContext = modelDetail == context.MemberContext.ModelStack.Peek();
+            var parameterInContext = modelDetail == context.MemberContext.ModelStack.Peek() || modelDetail.Type == typeof(object);
 
             ConvertToSqlParameterModel(modelDetail, ref sb, context, parameterInContext);
         }
+        /// <summary>
+        /// Converts a model parameter reference into its SQL representation.
+        /// </summary>
+        /// <param name="modelDetail">Metadata about the model.</param>
+        /// <param name="sb">The writer to append SQL into.</param>
+        /// <param name="context">The current builder context.</param>
+        /// <param name="parameterInContext">Indicates whether the parameter is the current model in context.</param>
         protected abstract void ConvertToSqlParameterModel(ModelDetail modelDetail, ref CharWriter sb, BuilderContext context, bool parameterInContext);
+        /// <summary>
+        /// Converts a conditional (ternary) expression into its SQL representation.
+        /// </summary>
+        /// <param name="exp">The conditional expression to convert.</param>
+        /// <param name="sb">The writer to append SQL into.</param>
+        /// <param name="context">The current builder context.</param>
         protected abstract void ConvertToSqlConditional(Expression exp, ref CharWriter sb, BuilderContext context);
+        /// <summary>
+        /// Evaluates an expression to a value and converts it into its SQL representation.
+        /// </summary>
+        /// <param name="exp">The expression to evaluate and convert.</param>
+        /// <param name="sb">The writer to append SQL into.</param>
+        /// <param name="context">The current builder context.</param>
         protected void ConvertToSqlEvaluate(Expression exp, ref CharWriter sb, BuilderContext context)
         {
             context.MemberContext.OperatorStack.Push(Operator.Evaluate);
@@ -455,6 +529,13 @@ namespace Zerra.Repository
             _ = context.MemberContext.OperatorStack.Pop();
         }
 
+        /// <summary>
+        /// Converts a runtime value of the given type into its SQL representation.
+        /// </summary>
+        /// <param name="type">The CLR type of the value.</param>
+        /// <param name="value">The value to convert.</param>
+        /// <param name="sb">The writer to append SQL into.</param>
+        /// <param name="context">The current builder context.</param>
         protected void ConvertToSqlValue(Type type, object? value, ref CharWriter sb, BuilderContext context)
         {
             MemberExpression? memberProperty = null;
@@ -471,8 +552,27 @@ namespace Zerra.Repository
                 context.MemberContext.MemberAccessStack.Push(memberProperty);
             }
         }
+
+        /// <summary>The type name of <see cref="Nullable{T}"/>, used for nullable type detection.</summary>
+        protected static readonly string nullableTypeName = typeof(Nullable<>).Name;
+
+        /// <summary>
+        /// Renders a value into SQL, optionally using a member property context.
+        /// </summary>
+        /// <param name="memberProperty">An optional member property that provides additional context.</param>
+        /// <param name="type">The CLR type of the value.</param>
+        /// <param name="value">The value to render.</param>
+        /// <param name="sb">The writer to append SQL into.</param>
+        /// <param name="context">The current builder context.</param>
+        /// <returns><see langword="true"/> if the member property was handled; otherwise, <see langword="false"/>.</returns>
         protected abstract bool ConvertToSqlValueRender(MemberExpression? memberProperty, Type type, object? value, ref CharWriter sb, BuilderContext context);
 
+        /// <summary>
+        /// Determines whether the given expression can be fully evaluated to a constant value
+        /// without requiring model/parameter context.
+        /// </summary>
+        /// <param name="exp">The expression to check.</param>
+        /// <returns><see langword="true"/> if the expression is evaluatable; otherwise, <see langword="false"/>.</returns>
         protected bool IsEvaluatable(Expression exp)
         {
             return exp.NodeType switch
@@ -622,6 +722,11 @@ namespace Zerra.Repository
             return IsEvaluatable(member.Expression);
         }
 
+        /// <summary>
+        /// Determines whether the given expression evaluates to <see langword="null"/>.
+        /// </summary>
+        /// <param name="exp">The expression to check.</param>
+        /// <returns><see langword="true"/> if the expression evaluates to <see langword="null"/>; otherwise, <see langword="false"/>.</returns>
         protected bool IsNull(Expression exp)
         {
             return exp.NodeType switch
@@ -802,21 +907,22 @@ namespace Zerra.Repository
             return value is null;
         }
 
-        private object? Evaluate(Expression exp)
+        private static object? Evaluate(Expression exp)
         {
             return exp.NodeType switch
             {
                 ExpressionType.Constant => EvaluateConstant(exp),
                 ExpressionType.MemberAccess => EvaluateMemberAccess(exp),
+                ExpressionType.Lambda => EvaludateLambda(exp),
                 _ => EvaluateInvoke(exp),
             };
         }
-        private object? EvaluateConstant(Expression exp)
+        private static object? EvaluateConstant(Expression exp)
         {
             var constant = (ConstantExpression)exp;
             return constant.Value;
         }
-        private object? EvaluateMemberAccess(Expression exp)
+        private static object? EvaluateMemberAccess(Expression exp)
         {
             var member = (MemberExpression)exp;
             var expressionValue = member.Expression is null ? null : Evaluate(member.Expression);
@@ -844,31 +950,103 @@ namespace Zerra.Repository
 
             return value;
         }
-        private object? EvaluateInvoke(Expression exp)
+        private static object? EvaludateLambda(Expression exp)
+        {
+            var lambda = (LambdaExpression)exp;
+            return lambda.Compile().DynamicInvoke();
+        }
+        private static object? EvaluateInvoke(Expression exp)
         {
             if (exp.NodeType == ExpressionType.Call && exp.Type.Name == "ReadOnlySpan`1" || exp.Type.Name == "Span`1")
             {
                 var call = (MethodCallExpression)exp;
                 if (call.Method.Name == "op_Implicit")
                 {
-                    var valueInner = Expression.Lambda(call.Arguments[0]).Compile().DynamicInvoke();
+                    var valueInner = Evaluate(call.Arguments[0]);
                     return valueInner;
                 }
             }
-            var value = Expression.Lambda(exp).Compile().DynamicInvoke();
-            return value;
+
+            try
+            {
+#pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
+                var value = Expression.Lambda(exp).Compile().DynamicInvoke();
+#pragma warning restore IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
+                return value;
+            }
+            catch (Exception ex)
+            {
+                if (!RuntimeFeature.IsDynamicCodeSupported)
+                    throw new InvalidOperationException($"Dynamic code execution is not supported in this runtime environment.", ex);
+                throw;
+            }
         }
 
+        /// <summary>
+        /// Generates the WHERE clause SQL into the provided writer.
+        /// </summary>
+        /// <param name="where">The filter expression.</param>
+        /// <param name="sb">The writer to append SQL into.</param>
+        /// <param name="rootDependant">The root parameter dependant used for join tracking.</param>
+        /// <param name="operationContext">The current member context for the operation.</param>
         protected abstract void GenerateWhere(Expression? where, ref CharWriter sb, ParameterDependant rootDependant, MemberContext operationContext);
+        /// <summary>
+        /// Generates the ORDER BY, OFFSET, and FETCH/LIMIT clauses into the provided writer.
+        /// </summary>
+        /// <param name="order">An optional ordering specification.</param>
+        /// <param name="skip">An optional number of records to skip.</param>
+        /// <param name="take">An optional number of records to take.</param>
+        /// <param name="sb">The writer to append SQL into.</param>
+        /// <param name="rootDependant">The root parameter dependant used for join tracking.</param>
+        /// <param name="operationContext">The current member context for the operation.</param>
         protected abstract void GenerateOrderSkipTake(QueryOrder? order, int? skip, int? take, ref CharWriter sb, ParameterDependant rootDependant, MemberContext operationContext);
+        /// <summary>
+        /// Generates the SELECT clause into the provided writer.
+        /// </summary>
+        /// <param name="select">The query operation type.</param>
+        /// <param name="graph">An optional graph describing which properties to include.</param>
+        /// <param name="modelDetail">Metadata about the model being queried.</param>
+        /// <param name="sb">The writer to append SQL into.</param>
         protected abstract void GenerateSelect(QueryOperation select, Graph? graph, ModelDetail modelDetail, ref CharWriter sb);
+        /// <summary>
+        /// Generates the column list for the SELECT clause into the provided writer.
+        /// </summary>
+        /// <param name="graph">An optional graph describing which properties to include.</param>
+        /// <param name="modelDetail">Metadata about the model being queried.</param>
+        /// <param name="sb">The writer to append SQL into.</param>
         protected abstract void GenerateSelectProperties(Graph? graph, ModelDetail modelDetail, ref CharWriter sb);
+        /// <summary>
+        /// Generates the FROM clause into the provided writer.
+        /// </summary>
+        /// <param name="modelDetail">Metadata about the model being queried.</param>
+        /// <param name="sb">The writer to append SQL into.</param>
         protected abstract void GenerateFrom(ModelDetail modelDetail, ref CharWriter sb);
+        /// <summary>
+        /// Generates any required JOIN clauses into the provided writer based on parameter dependants.
+        /// </summary>
+        /// <param name="dependant">The root parameter dependant describing the join graph.</param>
+        /// <param name="sb">The writer to append SQL into.</param>
         protected abstract void GenerateJoin(ParameterDependant dependant, ref CharWriter sb);
+        /// <summary>
+        /// Generates any trailing SQL (e.g., TOP/LIMIT wrappers, semicolons) into the provided writer.
+        /// </summary>
+        /// <param name="select">The query operation type.</param>
+        /// <param name="graph">An optional graph describing which properties to include.</param>
+        /// <param name="modelDetail">Metadata about the model being queried.</param>
+        /// <param name="sb">The writer to append SQL into.</param>
         protected abstract void GenerateEnding(QueryOperation select, Graph? graph, ModelDetail modelDetail, ref CharWriter sb);
 
+        /// <summary>
+        /// Appends a line break into the provided writer.
+        /// </summary>
+        /// <param name="sb">The writer to append into.</param>
         protected abstract void AppendLineBreak(ref CharWriter sb);
 
+        /// <summary>
+        /// Returns the SQL string representation of the given <see cref="Operator"/>.
+        /// </summary>
+        /// <param name="operation">The operator to convert.</param>
+        /// <returns>The SQL operator string, or <see langword="null"/> if not applicable.</returns>
         protected abstract string? OperatorToString(Operator operation);
     }
 }

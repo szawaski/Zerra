@@ -2,8 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections.Generic;
 using System.Linq.Expressions;
 
 namespace Zerra.Linq
@@ -12,16 +10,16 @@ namespace Zerra.Linq
     {
         private sealed class RebinderContext
         {
-            //public IDictionary<Type, Type> TypeReplacements { get; }
-            public IDictionary<Expression, Expression>? ExpressionReplacements { get; }
-            public IDictionary<string, Expression>? ExpressionStringReplacements { get; }
-            public IDictionary<Type, ParameterExpression> Parameters { get; }
-            public RebinderContext(IDictionary<Expression, Expression>? expressionReplacements, IDictionary<string, Expression>? expressionStringReplacements)
+            public Expression? Current { get; init; }
+            public Expression? Replacement { get; init; }
+            public Dictionary<Expression, Expression>? Replacements { get; init; }
+            public Dictionary<string, Expression>? StringReplacements { get; init; }
+            public RebinderContext(Expression? current, Expression? replacement, Dictionary<Expression, Expression>? replacements, Dictionary<string, Expression>? stringReplacements)
             {
-                //this.TypeReplacements = typeReplacements;
-                this.ExpressionReplacements = expressionReplacements;
-                this.ExpressionStringReplacements = expressionStringReplacements;
-                this.Parameters = new Dictionary<Type, ParameterExpression>();
+                this.Current = current;
+                this.Replacement = replacement; 
+                this.Replacements = replacements;
+                this.StringReplacements = stringReplacements;
             }
         }
     }

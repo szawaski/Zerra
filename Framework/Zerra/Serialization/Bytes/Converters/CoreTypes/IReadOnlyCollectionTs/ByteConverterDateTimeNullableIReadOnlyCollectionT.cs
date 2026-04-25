@@ -2,14 +2,12 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections.Generic;
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;
 
 namespace Zerra.Serialization.Bytes.Converters.CoreTypes.IReadOnlyCollectionTs
 {
-    internal sealed class ByteConverterDateTimeNullableIReadOnlyCollection<TParent> : ByteConverter<TParent, IReadOnlyCollection<DateTime?>>
+    internal sealed class ByteConverterDateTimeNullableIReadOnlyCollection : ByteConverter<IReadOnlyCollection<DateTime?>>
     {
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out IReadOnlyCollection<DateTime?>? value)
         {
@@ -24,6 +22,6 @@ namespace Zerra.Serialization.Bytes.Converters.CoreTypes.IReadOnlyCollectionTs
         }
 
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in IReadOnlyCollection<DateTime?> value)
-            => writer.TryWrite(value, value.Count, out state.BytesNeeded);
+            => writer.TryWrite(value, value.Count, out state.SizeNeeded);
     }
 }

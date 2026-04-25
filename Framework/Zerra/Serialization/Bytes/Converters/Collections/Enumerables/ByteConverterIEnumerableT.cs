@@ -2,27 +2,23 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections.Generic;
 using Zerra.Reflection;
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;
 
 namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
 {
-    internal sealed class ByteConverterIEnumerableT<TParent, TValue> : ByteConverter<TParent, IEnumerable<TValue>>
+    internal sealed class ByteConverterIEnumerableT<TValue> : ByteConverter<IEnumerable<TValue>>
     {
-        private ByteConverter<ArrayAccessor<TValue>> readConverter = null!;
-        private ByteConverter<IEnumerator<TValue>> writeConverter = null!;
+        private ByteConverter converter = null!;
 
-        private static TValue Getter(IEnumerator<TValue> parent) => parent.Current;
-        private static void Setter(ArrayAccessor<TValue> parent, TValue value) => parent.Set(value);
+        private static TValue Getter(object parent) => ((IEnumerator<TValue>)parent).Current;
+        private static void Setter(object parent, TValue value) => ((ArrayAccessor<TValue>)parent).Set(value);
 
         protected override sealed void Setup()
         {
             var valueTypeDetail = TypeAnalyzer<TValue>.GetTypeDetail();
-            readConverter = ByteConverterFactory<ArrayAccessor<TValue>>.Get(valueTypeDetail, nameof(ByteConverterIEnumerableT<TParent, TValue>), null, Setter);
-            writeConverter = ByteConverterFactory<IEnumerator<TValue>>.Get(valueTypeDetail, nameof(ByteConverterIEnumerableT<TParent, TValue>), Getter, null);
+            converter = ByteConverterFactory.Get(valueTypeDetail, nameof(ByteConverterIEnumerableT<TValue>), Getter, Setter);
         }
 
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out IEnumerable<TValue>? value)
@@ -39,14 +35,14 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
 
                 if (!state.Current.DrainBytes)
                 {
-                    if (typeDetail.Type.IsInterface)
+                    if (TypeDetail.Type.IsInterface)
                     {
                         accessor = new ArrayAccessor<TValue>(new TValue[length]);
                         value = accessor.Array;
                     }
                     else
                     {
-                        throw new InvalidOperationException($"{nameof(ByteSerializer)} cannot deserialize {typeDetail.Type.GetNiceName()}");
+                        throw new InvalidOperationException($"{nameof(ByteSerializer)} cannot deserialize {TypeDetail.Type.Name}");
                     }
                     if (length == 0)
                         return true;
@@ -70,7 +66,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
 
             for (; ; )
             {
-                if (!readConverter.TryReadFromParent(ref reader, ref state, accessor, true))
+                if (!converter.TryReadFromParent(ref reader, ref state, accessor))
                 {
                     state.Current.Object = accessor;
                     return false;
@@ -91,7 +87,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
                 foreach (var item in value)
                     count++;
 
-                if (!writer.TryWrite(count, out state.BytesNeeded))
+                if (!writer.TryWrite(count, out state.SizeNeeded))
                 {
                     return false;
                 }
@@ -109,7 +105,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
 
             while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
             {
-                if (!writeConverter.TryWriteFromParent(ref writer, ref state, enumerator, true))
+                if (!converter.TryWriteFromParent(ref writer, ref state, enumerator))
                 {
                     state.Current.Object = enumerator;
                     state.Current.EnumeratorInProgress = true;

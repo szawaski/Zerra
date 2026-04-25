@@ -2,8 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-
 namespace Zerra.Map
 {
     internal class MapRecursionKey
@@ -20,7 +18,7 @@ namespace Zerra.Map
         {
             if (obj is not MapRecursionKey objCasted)
                 return false;
-            return objCasted.source == source && objCasted.target == target;
+            return ReferenceEquals(objCasted.source, source) && objCasted.target == target;
         }
 
         public override int GetHashCode()

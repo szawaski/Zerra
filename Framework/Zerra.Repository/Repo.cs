@@ -2,86 +2,74 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using Zerra.Providers;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Zerra.Repository
 {
-    public static class Repo
+    /// <summary>
+    /// Default implementation of <see cref="IRepoSetup"/> that dispatches queries and persist operations to registered <see cref="ITransactStoreProvider{TModel}"/> instances.
+    /// </summary>
+    public sealed partial class Repo : IRepoSetup, IRepoInternal
     {
-        public static ICollection<TModel> Query<TModel>(QueryMany<TModel> query) where TModel : class, new()
+        private readonly RepoContext context;
+        private readonly Dictionary<Type, ITransactStoreProvider> providers;
+
+        /// <summary>
+        /// Creates a new <see cref="Repo"/> instance and sets it as the static repository.
+        /// </summary>
+        /// <returns>The new <see cref="IRepoSetup"/> instance.</returns>
+        public static IRepoSetup New()
         {
-            var provider = ProviderResolver.GetFirst<ITransactStoreProvider<TModel>>();
-            return (ICollection<TModel>)(provider.Query(query))!;
-        }
-        public static TModel? Query<TModel>(QueryFirst<TModel> query) where TModel : class, new()
-        {
-            var provider = ProviderResolver.GetFirst<ITransactStoreProvider<TModel>>();
-            return (TModel?)(provider.Query(query));
-        }
-        public static TModel? Query<TModel>(QuerySingle<TModel> query) where TModel : class, new()
-        {
-            var provider = ProviderResolver.GetFirst<ITransactStoreProvider<TModel>>();
-            return (TModel?)(provider.Query(query));
-        }
-        public static bool Query<TModel>(QueryAny<TModel> query) where TModel : class, new()
-        {
-            var provider = ProviderResolver.GetFirst<ITransactStoreProvider<TModel>>();
-            return (bool)(provider.Query(query))!;
-        }
-        public static long Query<TModel>(QueryCount<TModel> query) where TModel : class, new()
-        {
-            var provider = ProviderResolver.GetFirst<ITransactStoreProvider<TModel>>();
-            return (long)(provider.Query(query))!;
-        }
-        public static ICollection<EventModel<TModel>> Query<TModel>(EventQueryMany<TModel> query) where TModel : class, new()
-        {
-            var provider = ProviderResolver.GetFirst<ITransactStoreProvider<TModel>>();
-            return (ICollection<EventModel<TModel>>)(provider.Query(query))!;
+            var repo = new Repo();
+            return repo;
         }
 
-        public static void Persist<TModel>(Persist<TModel> persist) where TModel : class, new()
+        private Repo()
         {
-            var provider = ProviderResolver.GetFirst<ITransactStoreProvider<TModel>>();
+            this.context = new RepoContext(this);
+            this.providers = new();
+        }
+
+        object? IRepo.Query(Query query)
+        {
+            if (!providers.TryGetValue(query.ModelType, out var provider))
+                throw new Exception($"No provider for {query.ModelType.FullName}");
+            return provider.Query(query);
+        }
+
+        void IRepo.Persist(Persist persist)
+        {
+            if (!providers.TryGetValue(persist.ModelType, out var provider))
+                throw new Exception($"No provider for {persist.ModelType.FullName}");
             provider.Persist(persist);
         }
 
-        public static async Task<ICollection<TModel>> QueryAsync<TModel>(QueryMany<TModel> query) where TModel : class, new()
+        Task<object?> IRepo.QueryAsync(Query query)
         {
-            var provider = ProviderResolver.GetFirst<ITransactStoreProvider<TModel>>();
-            return (ICollection<TModel>)(await provider.QueryAsync(query))!;
-        }
-        public static async Task<TModel?> QueryAsync<TModel>(QueryFirst<TModel> query) where TModel : class, new()
-        {
-            var provider = ProviderResolver.GetFirst<ITransactStoreProvider<TModel>>();
-            return (TModel?)(await provider.QueryAsync(query));
-        }
-        public static async Task<TModel?> QueryAsync<TModel>(QuerySingle<TModel> query) where TModel : class, new()
-        {
-            var provider = ProviderResolver.GetFirst<ITransactStoreProvider<TModel>>();
-            return (TModel?)(await provider.QueryAsync(query));
-        }
-        public static async Task<bool> QueryAsync<TModel>(QueryAny<TModel> query) where TModel : class, new()
-        {
-            var provider = ProviderResolver.GetFirst<ITransactStoreProvider<TModel>>();
-            return (bool)(await provider.QueryAsync(query))!;
-        }
-        public static async Task<long> QueryAsync<TModel>(QueryCount<TModel> query) where TModel : class, new()
-        {
-            var provider = ProviderResolver.GetFirst<ITransactStoreProvider<TModel>>();
-            return (long)(await provider.QueryAsync(query))!;
-        }
-        public static async Task<ICollection<EventModel<TModel>>> QueryAsync<TModel>(EventQueryMany<TModel> query) where TModel : class, new()
-        {
-            var provider = ProviderResolver.GetFirst<ITransactStoreProvider<TModel>>();
-            return (ICollection<EventModel<TModel>>)(await provider.QueryAsync(query))!;
+            if (!providers.TryGetValue(query.ModelType, out var provider))
+                throw new Exception($"No provider for {query.ModelType.FullName}");
+            return provider.QueryAsync(query);
         }
 
-        public static Task PersistAsync<TModel>(Persist<TModel> persist) where TModel : class, new()
+        Task IRepo.PersistAsync(Persist persist)
         {
-            var provider = ProviderResolver.GetFirst<ITransactStoreProvider<TModel>>();
+            if (!providers.TryGetValue(persist.ModelType, out var provider))
+                throw new Exception($"No provider for {persist.ModelType.FullName}");
             return provider.PersistAsync(persist);
+        }
+
+        void IRepoSetup.AddProvider<TModel>(ITransactStoreProvider<TModel> provider)
+        {
+            var modelType = typeof(TModel);
+            if (!providers.TryAdd(modelType, provider))
+                throw new Exception($"Provider for {modelType.FullName} already exists");
+            if (provider is BaseStore baseStore)
+                baseStore.Initialize(context);
+        }
+
+        bool IRepoInternal.TryGetProvider(Type modelType, [MaybeNullWhen(false)] out ITransactStoreProvider provider)
+        {
+            return providers.TryGetValue(modelType, out provider);
         }
     }
 }

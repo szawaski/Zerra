@@ -2,20 +2,26 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using Zerra.T4.CSharp;
 
 namespace Zerra.T4
 {
+    /// <summary>
+    /// Provides code generation functionality for CQRS (Command Query Responsibility Segregation) client-side code.
+    /// </summary>
     public static class CQRSClientDomain
     {
         private static readonly string spacing = "    ";
+        /// <summary>
+        /// Generates TypeScript client code for CQRS queries and commands from C# source files.
+        /// </summary>
+        /// <param name="directory">The directory path containing the C# source files to parse.</param>
+        /// <returns>A string containing the generated TypeScript code.</returns>
         public static string GenerateTypeScript(string directory)
         {
             var (queryInterfaces, commands, models) = GetQueriesCommandsModels(directory);
+
 
             var modelsFiltered = models.Where(x => x.ObjectType == CSharpObjectType.Class || x.ObjectType == CSharpObjectType.Struct).ToArray();
 
@@ -111,6 +117,11 @@ namespace Zerra.T4
 
             return sb.ToString();
         }
+        /// <summary>
+        /// Generates JavaScript client code for CQRS queries and commands from C# source files.
+        /// </summary>
+        /// <param name="directory">The directory path containing the C# source files to parse.</param>
+        /// <returns>A string containing the generated JavaScript code.</returns>
         public static string GenerateJavaScript(string directory)
         {
             var (queryInterfaces, commands, models) = GetQueriesCommandsModels(directory);
@@ -156,7 +167,7 @@ namespace Zerra.T4
                     if (i > 0)
                         _ = sb.Append(", ");
                     _ = sb.Append("onComplete, onFail) {").Append(Environment.NewLine);
-                    _ = sb.Append(spacing).Append(spacing).Append("Bus.Call(\"").Append(query.Name).Append("\", \"").Append(method.Name).Append("\", [");
+                    _ = sb.Append(spacing).Append(spacing).Append("Bus.Call(\"").Append(query.Namespace).Append('.').Append(query.Name).Append("\", \"").Append(method.Name).Append("\", [");
                     for (i = 0; i < method.Parameters.Count; i++)
                     {
                         if (i > 0)
@@ -177,7 +188,7 @@ namespace Zerra.T4
                 {
                     _ = sb.Append(spacing).Append("this.").Append(property.Name).Append(" = (properties === undefined || properties.").Append(property.Name).Append(" === undefined) ? null : properties.").Append(property.Name).Append(";").Append(Environment.NewLine);
                 }
-                _ = sb.Append(spacing).Append("this.CommandType = \"").Append(command.Name).Append("\";").Append(Environment.NewLine);
+                _ = sb.Append(spacing).Append("this.CommandType = \"").Append(command.Namespace).Append('.').Append(command.Name).Append("\";").Append(Environment.NewLine);
                 var commandWithResultType = command.Implements.FirstOrDefault(x => x.Name.StartsWith("ICommand<"));
                 _ = sb.Append(spacing).Append("this.CommandWithResult = ").Append(commandWithResultType is not null ? "true" : "false").Append(";").Append(Environment.NewLine);
                 if (commandWithResultType is not null)
@@ -212,17 +223,16 @@ namespace Zerra.T4
             var queryInterfaces = new List<CSharpObject>();
             foreach (var csInterface in solution.Interfaces)
             {
-                var apiExposed = false;
+                if (!csInterface.Implements.Any(x => x.Name == "IQueryHandler"))
+                    continue;
+
+                var apiExposed = true;
                 foreach (var attribute in csInterface.Attributes)
                 {
                     if (attribute.Name == "ServiceBlocked" && (attribute.Arguments.Count == 0 || attribute.Arguments.Any(x => x.EndsWith("NetworkType.Api"))))
                     {
                         apiExposed = false;
                         break;
-                    }
-                    if (attribute.Name == "ServiceExposed" && (attribute.Arguments.Count == 0 || attribute.Arguments.Any(x => x.EndsWith("NetworkType.Api"))))
-                    {
-                        apiExposed = true;
                     }
                 }
                 if (apiExposed)
@@ -232,24 +242,20 @@ namespace Zerra.T4
             var commands = new List<CSharpObject>();
             foreach (var csClass in solution.Classes)
             {
-                if (csClass.Implements.Any(x => x.Name == "ICommand" || x.Name.StartsWith("ICommand<")))
+                if (!csClass.Implements.Any(x => x.Name == "ICommand" || x.Name.StartsWith("ICommand<")))
+                    continue;
+
+                var apiExposed = true;
+                foreach (var attribute in csClass.Attributes)
                 {
-                    var apiExposed = false;
-                    foreach (var attribute in csClass.Attributes)
+                    if (attribute.Name == "ServiceBlocked" && (attribute.Arguments.Count == 0 || attribute.Arguments.Any(x => x.EndsWith("NetworkType.Api"))))
                     {
-                        if (attribute.Name == "ServiceBlocked" && (attribute.Arguments.Count == 0 || attribute.Arguments.Any(x => x.EndsWith("NetworkType.Api"))))
-                        {
-                            apiExposed = false;
-                            break;
-                        }
-                        if (attribute.Name == "ServiceExposed" && (attribute.Arguments.Count == 0 || attribute.Arguments.Any(x => x.EndsWith("NetworkType.Api"))))
-                        {
-                            apiExposed = true;
-                        }
+                        apiExposed = false;
+                        break;
                     }
-                    if (apiExposed)
-                        commands.Add(csClass);
                 }
+                if (apiExposed)
+                    commands.Add(csClass);
             }
 
             var models = new List<CSharpObject>();
@@ -351,8 +357,7 @@ namespace Zerra.T4
             }
 
             string type;
-            var coreType = csharpType.NativeType is not null && IsCoreType(csharpType.NativeType);
-            if (coreType)
+            if (csharpType.NativeType != null && IsCoreType(csharpType.NativeType))
             {
                 type = ConvertCoreTypeToJavaScriptType(csharpType.NativeType);
                 isJavaScriptType = true;

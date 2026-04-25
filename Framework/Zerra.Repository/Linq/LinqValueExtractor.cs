@@ -2,19 +2,29 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Zerra.Reflection;
 using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository
 {
+    /// <summary>
+    /// Extracts values for specified model properties from a LINQ filter expression.
+    /// </summary>
     internal static partial class LinqValueExtractor
     {
+        /// <summary>
+        /// Extracts constant values compared against the named properties within the given filter expression.
+        /// </summary>
+        /// <param name="where">The filter expression to analyse.</param>
+        /// <param name="propertyModelType">The model type whose properties are being targeted.</param>
+        /// <param name="propertyNames">The names of the properties whose compared values should be extracted.</param>
+        /// <returns>
+        /// A dictionary mapping each property name to the list of values compared against it in the expression.
+        /// </returns>
         public static IDictionary<string, List<object?>> Extract(Expression where, Type propertyModelType, params string[] propertyNames)
         {
             var context = new Context(propertyModelType, propertyNames);
@@ -398,7 +408,7 @@ namespace Zerra.Repository
                 else if (call.Object is not null)
                 {
                     var typeDetails = TypeAnalyzer.GetTypeDetail(call.Method.DeclaringType);
-                    if (typeDetails.HasIEnumerableGeneric && TypeLookup.CoreTypesWithNullables.Contains(typeDetails.IEnumerableGenericInnerType))
+                    if (typeDetails.HasIEnumerableGeneric && typeDetails.IEnumerableGenericInnerTypeDetail!.CoreType.HasValue)
                     {
                         switch (call.Method.Name)
                         {
@@ -440,19 +450,20 @@ namespace Zerra.Repository
         private static Return? ExtractNew(Expression exp, Context context)
         {
             var newExp = (NewExpression)exp;
+            if (newExp.Constructor == null)
+                throw new NotSupportedException($"Cannot extract from new expression with no constructor");
 
             var argumentTypes = newExp.Arguments.Select(x => x.Type).ToArray();
-            var constructor = newExp.Type.GetConstructor(argumentTypes)!;
 
             var parameters = new object?[newExp.Arguments.Count];
             var i = 0;
             foreach (var argument in newExp.Arguments)
             {
-                var argumentValue = Expression.Lambda(argument).Compile().DynamicInvoke();
+                var argumentValue = Evaluate(argument);
                 parameters[i++] = argumentValue;
             }
 
-            var value = constructor.Invoke(parameters.ToArray());
+            var value = newExp.Constructor.Invoke(parameters);
             var ret = ExtractValue(newExp.Type, value, context);
 
             return ret;
@@ -518,7 +529,7 @@ namespace Zerra.Repository
         }
         private static Return? ExtractEvaluate(Expression exp, Context context)
         {
-            var value = Expression.Lambda(exp).Compile().DynamicInvoke();
+            var value = Evaluate(exp);
             var ret = ExtractValue(exp.Type, value, context);
 
             return ret;
@@ -876,6 +887,7 @@ namespace Zerra.Repository
             {
                 ExpressionType.Constant => EvaluateConstant(exp),
                 ExpressionType.MemberAccess => EvaluateMemberAccess(exp),
+                ExpressionType.Lambda => EvaludateLambda(exp),
                 _ => EvaluateInvoke(exp),
             };
         }
@@ -912,10 +924,36 @@ namespace Zerra.Repository
 
             return value;
         }
+        private static object? EvaludateLambda(Expression exp)
+        {
+            var lambda = (LambdaExpression)exp;
+            return lambda.Compile().DynamicInvoke();
+        }
         private static object? EvaluateInvoke(Expression exp)
         {
-            var value = Expression.Lambda(exp).Compile().DynamicInvoke();
-            return value;
+            if (exp.NodeType == ExpressionType.Call && exp.Type.Name == "ReadOnlySpan`1" || exp.Type.Name == "Span`1")
+            {
+                var call = (MethodCallExpression)exp;
+                if (call.Method.Name == "op_Implicit")
+                {
+                    var valueInner = Evaluate(call.Arguments[0]);
+                    return valueInner;
+                }
+            }
+
+            try
+            {
+#pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
+                var value = Expression.Lambda(exp).Compile().DynamicInvoke();
+#pragma warning restore IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
+                return value;
+            }
+            catch (Exception ex)
+            {
+                if (!RuntimeFeature.IsDynamicCodeSupported)
+                    throw new InvalidOperationException($"Dynamic code execution is not supported in this runtime environment.", ex);
+                throw;
+            }
         }
     }
 }

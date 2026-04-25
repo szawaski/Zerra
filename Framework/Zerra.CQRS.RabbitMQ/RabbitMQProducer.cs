@@ -2,27 +2,34 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Collections.Concurrent;
 using System.Data;
-using System.Linq;
 using System.Security.Claims;
-using System.Threading;
-using System.Threading.Tasks;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using Zerra.Encryption;
 using Zerra.Logging;
 using Zerra.CQRS.Network;
+using Zerra.Serialization;
 
 namespace Zerra.CQRS.RabbitMQ
 {
+    /// <summary>
+    /// RabbitMQ implementation of command and event producer for distributed CQRS messaging.
+    /// </summary>
+    /// <remarks>
+    /// Provides high-performance, reliable message delivery to RabbitMQ exchanges.
+    /// Supports command acknowledgements with automatic connection recovery and optional message encryption.
+    /// Thread-safe for concurrent operations with configurable throttling per topic.
+    /// </remarks>
     public sealed class RabbitMQProducer : ICommandProducer, IEventProducer, IDisposable
     {
-        private readonly object locker = new();
+        private readonly Lock locker = new();
 
         private readonly string host;
-        private readonly SymmetricConfig? symmetricConfig;
+        private readonly ISerializer serializer;
+        private readonly IEncryptor? encryptor;
+        private readonly ILogger? log;
         private readonly string? environment;
         private readonly ConcurrentDictionary<Type, string> topicsByCommandType;
         private readonly ConcurrentDictionary<Type, string> topicsByEventType;
@@ -30,12 +37,23 @@ namespace Zerra.CQRS.RabbitMQ
         private readonly ConnectionFactory factory;
         private IConnection? connection = null;
 
-        public RabbitMQProducer(string host, SymmetricConfig? symmetricConfig, string? environment)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RabbitMQProducer"/> class.
+        /// </summary>
+        /// <param name="host">The RabbitMQ server hostname or IP address.</param>
+        /// <param name="serializer">The serializer for message serialization and deserialization.</param>
+        /// <param name="encryptor">Optional encryptor for message encryption. If null, messages are not encrypted.</param>
+        /// <param name="log">Optional logger for diagnostic information and errors.</param>
+        /// <param name="environment">Optional environment name to prefix exchange names for isolation.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="host"/> is null or empty.</exception>
+        public RabbitMQProducer(string host, ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 
             this.host = host;
-            this.symmetricConfig = symmetricConfig;
+            this.serializer = serializer;
+            this.encryptor = encryptor;
+            this.log = log;
             this.environment = environment;
             this.topicsByCommandType = new();
             this.topicsByEventType = new();
@@ -48,7 +66,7 @@ namespace Zerra.CQRS.RabbitMQ
             }
             catch (Exception ex)
             {
-                _ = Log.ErrorAsync(ex);
+                log?.Error(ex);
                 throw;
             }
         }
@@ -65,9 +83,9 @@ namespace Zerra.CQRS.RabbitMQ
         {
             var commandType = command.GetType();
             if (!topicsByCommandType.TryGetValue(commandType, out var topic))
-                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(RabbitMQProducer)}");
+                throw new Exception($"{commandType.Name} is not registered with {nameof(RabbitMQProducer)}");
             if (!throttleByTopic.TryGetValue(topic, out var throttle))
-                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(RabbitMQProducer)}");
+                throw new Exception($"{commandType.Name} is not registered with {nameof(RabbitMQProducer)}");
 
             await throttle.WaitAsync(cancellationToken);
 
@@ -89,7 +107,7 @@ namespace Zerra.CQRS.RabbitMQ
                                 this.connection?.Close();
                                 this.connection?.Dispose();
                                 this.connection = factory.CreateConnection();
-                                _ = Log.InfoAsync($"Sender Reconnected");
+                                log?.Info($"Sender Reconnected");
                             }
                         }
                     }
@@ -102,16 +120,16 @@ namespace Zerra.CQRS.RabbitMQ
 
                     var rabbitMessage = new RabbitMQMessage()
                     {
-                        MessageData = RabbitMQCommon.Serialize(command),
+                        MessageData = serializer.SerializeBytes(command),
                         MessageType = command.GetType(),
                         HasResult = false,
                         Claims = claims,
                         Source = source
                     };
 
-                    var body = RabbitMQCommon.Serialize(rabbitMessage);
-                    if (symmetricConfig is not null)
-                        body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
+                    var body = serializer.SerializeBytes(rabbitMessage);
+                    if (encryptor is not null)
+                        body = encryptor.Encrypt(body);
 
                     var properties = channel.CreateBasicProperties();
 
@@ -146,10 +164,10 @@ namespace Zerra.CQRS.RabbitMQ
                                 channel.BasicCancel(consumerTag);
 
                                 var acknowledgementBody = e.Body.Span;
-                                if (symmetricConfig is not null)
-                                    acknowledgementBody = SymmetricEncryptor.Decrypt(symmetricConfig, acknowledgementBody);
+                                if (encryptor is not null)
+                                    acknowledgementBody = encryptor.Decrypt(acknowledgementBody);
 
-                                acknowledgement = RabbitMQCommon.Deserialize<Acknowledgement>(acknowledgementBody);
+                                acknowledgement = serializer.Deserialize<Acknowledgement>(acknowledgementBody);
                                 acknowledgement ??= new Acknowledgement("Invalid Acknowledgement");
                             }
                             catch (Exception ex)
@@ -171,13 +189,13 @@ namespace Zerra.CQRS.RabbitMQ
                 }
                 catch (Exception ex)
                 {
-                    _ = Log.ErrorAsync(ex);
+                    log?.Error(ex);
                     throw;
                 }
             }
             finally
             {
-                throttle.Release();
+                _ = throttle.Release();
             }
         }
 
@@ -185,9 +203,9 @@ namespace Zerra.CQRS.RabbitMQ
         {
             var commandType = command.GetType();
             if (!topicsByCommandType.TryGetValue(commandType, out var topic))
-                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(RabbitMQProducer)}");
+                throw new Exception($"{commandType.Name} is not registered with {nameof(RabbitMQProducer)}");
             if (!throttleByTopic.TryGetValue(topic, out var throttle))
-                throw new Exception($"{commandType.GetNiceName()} is not registered with {nameof(RabbitMQProducer)}");
+                throw new Exception($"{commandType.Name} is not registered with {nameof(RabbitMQProducer)}");
 
             await throttle.WaitAsync(cancellationToken);
 
@@ -209,7 +227,7 @@ namespace Zerra.CQRS.RabbitMQ
                                 this.connection?.Close();
                                 this.connection?.Dispose();
                                 this.connection = factory.CreateConnection();
-                                _ = Log.InfoAsync($"Sender Reconnected");
+                                log?.Info($"Sender Reconnected");
                             }
                         }
                     }
@@ -222,16 +240,16 @@ namespace Zerra.CQRS.RabbitMQ
 
                     var rabbitMessage = new RabbitMQMessage()
                     {
-                        MessageData = RabbitMQCommon.Serialize(command),
+                        MessageData = serializer.SerializeBytes(command),
                         MessageType = command.GetType(),
                         HasResult = true,
                         Claims = claims,
                         Source = source
                     };
 
-                    var body = RabbitMQCommon.Serialize(rabbitMessage);
-                    if (symmetricConfig is not null)
-                        body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
+                    var body = serializer.SerializeBytes(rabbitMessage);
+                    if (encryptor is not null)
+                        body = encryptor.Encrypt(body);
 
                     var properties = channel.CreateBasicProperties();
 
@@ -258,10 +276,10 @@ namespace Zerra.CQRS.RabbitMQ
                             channel.BasicCancel(consumerTag);
 
                             var acknowledgementBody = e.Body.Span;
-                            if (symmetricConfig is not null)
-                                acknowledgementBody = SymmetricEncryptor.Decrypt(symmetricConfig, acknowledgementBody);
+                            if (encryptor is not null)
+                                acknowledgementBody = encryptor.Decrypt(acknowledgementBody);
 
-                            acknowledgement = RabbitMQCommon.Deserialize<Acknowledgement>(acknowledgementBody);
+                            acknowledgement = serializer.Deserialize<Acknowledgement>(acknowledgementBody);
                             acknowledgement ??= new Acknowledgement("Invalid Acknowledgement");
                         }
                         catch (Exception ex)
@@ -284,13 +302,13 @@ namespace Zerra.CQRS.RabbitMQ
                 }
                 catch (Exception ex)
                 {
-                    _ = Log.ErrorAsync(ex);
+                    log?.Error(ex);
                     throw;
                 }
             }
             finally
             {
-                throttle.Release();
+                _ = throttle.Release();
             }
         }
 
@@ -298,9 +316,9 @@ namespace Zerra.CQRS.RabbitMQ
         {
             var eventType = @event.GetType();
             if (!topicsByEventType.TryGetValue(eventType, out var topic))
-                throw new Exception($"{eventType.GetNiceName()} is not registered with {nameof(RabbitMQProducer)}");
+                throw new Exception($"{eventType.Name} is not registered with {nameof(RabbitMQProducer)}");
             if (!throttleByTopic.TryGetValue(topic, out var throttle))
-                throw new Exception($"{eventType.GetNiceName()} is not registered with {nameof(RabbitMQProducer)}");
+                throw new Exception($"{eventType.Name} is not registered with {nameof(RabbitMQProducer)}");
 
             await throttle.WaitAsync(cancellationToken);
 
@@ -322,7 +340,7 @@ namespace Zerra.CQRS.RabbitMQ
                                 this.connection?.Close();
                                 this.connection?.Dispose();
                                 this.connection = factory.CreateConnection();
-                                _ = Log.InfoAsync($"Sender Reconnected");
+                                log?.Info($"Sender Reconnected");
                             }
                         }
                     }
@@ -335,16 +353,16 @@ namespace Zerra.CQRS.RabbitMQ
 
                     var rabbitMessage = new RabbitMQMessage()
                     {
-                        MessageData = RabbitMQCommon.Serialize(@event),
+                        MessageData = serializer.SerializeBytes(@event),
                         MessageType = @event.GetType(),
                         HasResult = false,
                         Claims = claims,
                         Source = source
                     };
 
-                    var body = RabbitMQCommon.Serialize(rabbitMessage);
-                    if (symmetricConfig is not null)
-                        body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
+                    var body = serializer.SerializeBytes(rabbitMessage);
+                    if (encryptor is not null)
+                        body = encryptor.Encrypt(body);
 
                     var properties = channel.CreateBasicProperties();
 
@@ -354,16 +372,22 @@ namespace Zerra.CQRS.RabbitMQ
                 }
                 catch (Exception ex)
                 {
-                    _ = Log.ErrorAsync(ex);
+                    log?.Error(ex);
                     throw;
                 }
             }
             finally
             {
-                throttle.Release();
+                _ = throttle.Release();
             }
         }
 
+        /// <summary>
+        /// Releases all resources used by the <see cref="RabbitMQProducer"/>.
+        /// </summary>
+        /// <remarks>
+        /// Closes and disposes the RabbitMQ connection. After disposal, the producer cannot be used.
+        /// </remarks>
         public void Dispose()
         {
             this.connection?.Close();
@@ -375,7 +399,7 @@ namespace Zerra.CQRS.RabbitMQ
         {
             if (topicsByCommandType.ContainsKey(type))
                 return;
-            topicsByCommandType.TryAdd(type, topic);
+            _ = topicsByCommandType.TryAdd(type, topic);
             if (throttleByTopic.ContainsKey(topic))
                 return;
             var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
@@ -387,7 +411,7 @@ namespace Zerra.CQRS.RabbitMQ
         {
             if (topicsByEventType.ContainsKey(type))
                 return;
-            topicsByEventType.TryAdd(type, topic);
+            _ = topicsByEventType.TryAdd(type, topic);
             if (throttleByTopic.ContainsKey(topic))
                 return;
             var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);

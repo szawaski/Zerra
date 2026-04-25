@@ -2,10 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using Zerra.Reflection;
 using Zerra.Serialization.Bytes.IO;
@@ -13,15 +10,23 @@ using Zerra.Serialization.Bytes.State;
 
 namespace Zerra.Serialization.Bytes.Converters.General
 {
-    internal sealed partial class ByteConverterObject<TParent, TValue> : ByteConverter<TParent, TValue>
+    internal sealed partial class ByteConverterObject<TValue> : ByteConverter<TValue>
     {
+        //In byte array, object properties start with index values from SerializerIndexAttribute or property order
+        private const ushort indexOffset = 1; //offset index values to reserve for Flag: 0
+
+        //Flag: 0 indicating the end of an object
+        private const ushort endObjectFlagUShort = 0;
+        private const byte endObjectFlagByte = 0;
+        private static readonly byte[] endObjectFlagUInt16 = [0, 0];
+
         private static readonly ConcurrentStack<Dictionary<string, object?>> collectedValuesPool = new();
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Dictionary<string, object?> RentCollectedValues()
         {
             if (collectedValuesPool.TryPop(out var collectedValues))
                 return collectedValues;
-            return new(MemberNameComparer.Instance);
+            return new(MemberAndParameterNameComparer.Instance);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ReturnCollectedValues(Dictionary<string, object?> collectedValues)
@@ -42,7 +47,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
         protected override sealed void Setup()
         {
             var validMembers = new List<MemberDetail>();
-            foreach (var member in typeDetail.SerializableMemberDetails)
+            foreach (var member in TypeDetail.SerializableMembers)
             {
                 if (member.Attributes.Any(x => x is NonSerializedAttribute))
                     continue;
@@ -63,9 +68,9 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 if (index > byte.MaxValue)
                     indexSizeUInt16Only = true;
                 if (index > ushort.MaxValue)
-                    throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has an {nameof(SerializerIndexAttribute)} index too high");
+                    throw new NotSupportedException($"{TypeDetail.Type.Name} has an {nameof(SerializerIndexAttribute)} index too high");
 
-                var detail = new ByteConverterObjectMember(typeDetail, member, index);
+                var detail = new ByteConverterObjectMember(TypeDetail, member, index);
                 membersByIndex.Add(index, detail);
             }
 
@@ -79,9 +84,9 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 if (index > byte.MaxValue)
                     indexSizeUInt16Only = true;
                 if (index > ushort.MaxValue)
-                    throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members to serialize");
+                    throw new NotSupportedException($"{TypeDetail.Type.Name} has too many members to serialize");
 
-                var detail = new ByteConverterObjectMember(typeDetail, member, index);
+                var detail = new ByteConverterObjectMember(TypeDetail, member, index);
                 if (!hasAttributes)
                 {
                     membersByIndex.Add(index, detail);
@@ -95,22 +100,22 @@ namespace Zerra.Serialization.Bytes.Converters.General
             members = membersByIndex.Select(x => new MemberKey(x.Key, x.Value)).ToArray();
             membersIngoreAttributes = membersByIndexIngoreAttributes.Select(x => new MemberKey(x.Key, x.Value)).ToArray();
 
-            if (typeDetail.Type.IsValueType || !typeDetail.HasCreator)
+            if (TypeDetail.Type.IsValueType || !TypeDetail.HasCreator)
             {
                 //find best constructor
-                foreach (var constructor in typeDetail.ConstructorDetails.OrderByDescending(x => x.ParameterDetails.Count))
+                foreach (var constructor in TypeDetail.Constructors.OrderByDescending(x => x.Parameters.Count))
                 {
                     var skip = false;
-                    foreach (var parameter in constructor.ParameterDetails)
+                    foreach (var parameter in constructor.Parameters)
                     {
                         //cannot have argument of itself or a null name
-                        if (parameter.Type == typeDetail.Type || parameter.Name is null)
+                        if (parameter.Type == TypeDetail.Type || parameter.Name is null)
                         {
                             skip = true;
                             break;
                         }
                         //must have a matching a member
-                        if (!membersByName.Values.Any(x => x.Member.Type == parameter.Type && MemberNameComparer.Instance.Equals(x.Member.Name, parameter.Name)))
+                        if (!membersByName.Values.Any(x => x.Member.Type == parameter.Type && MemberAndParameterNameComparer.Instance.Equals(x.Member.Name, parameter.Name)))
                         {
                             skip = true;
                             break;
@@ -128,7 +133,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TValue? value)
         {
             if (indexSizeUInt16Only && !state.UseIndexSizeUInt16 && !state.UseMemberNames)
-                throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members or {nameof(SerializerIndexAttribute)} index too high for index size");
+                throw new NotSupportedException($"{TypeDetail.Type.Name} has too many members or {nameof(SerializerIndexAttribute)} index too high for index size");
 
             Dictionary<string, object?>? collectedValues;
 
@@ -141,9 +146,9 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         value = default;
                         collectedValues = RentCollectedValues();
                     }
-                    else if (typeDetail.HasCreator)
+                    else if (TypeDetail.HasCreator)
                     {
-                        value = typeDetail.Creator();
+                        value = TypeDetail.Creator!();
                         collectedValues = null;
                     }
                     else
@@ -341,8 +346,8 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         throw new Exception($"Cannot deserialize with property undefined and no types.");
 
                     //consume bytes but object does not have property
-                    var converter = ByteConverterFactory<TValue>.GetDrainBytes();
-                    if (!converter.TryReadFromParent(ref reader, ref state, default, false, true))
+                    var converter = ByteConverterFactory.GetDrainBytes();
+                    if (!converter.TryReadFromParentMember(ref reader, ref state, default, true))
                     {
                         state.Current.HasReadProperty = true;
                         state.Current.Property = member;
@@ -357,7 +362,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 {
                     if (collectValues)
                     {
-                        if (!member.ConverterSetCollectedValues.TryReadFromParent(ref reader, ref state, collectedValues, false))
+                        if (!member.ConverterSetCollectedValues.TryReadFromParentMember(ref reader, ref state, collectedValues, false))
                         {
                             state.Current.HasReadProperty = true;
                             state.Current.Property = member;
@@ -370,7 +375,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                     else
                     {
-                        if (!member.Converter.TryReadFromParent(ref reader, ref state, value, false))
+                        if (!member.Converter.TryReadFromParentMember(ref reader, ref state, value, false))
                         {
                             state.Current.HasReadProperty = true;
                             state.Current.Property = member;
@@ -388,7 +393,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
 
             if (collectValues)
             {
-                var args = new object?[parameterConstructor!.ParameterDetails.Count];
+                var args = new object?[parameterConstructor!.Parameters.Count];
                 for (var i = 0; i < args.Length; i++)
                 {
 #if NETSTANDARD2_0
@@ -398,18 +403,15 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         args[i] = parameter;
                     }
 #else
-                    if (collectedValues!.Remove(parameterConstructor.ParameterDetails[i].Name!, out var parameter))
+                    if (collectedValues!.Remove(parameterConstructor.Parameters[i].Name!, out var parameter))
                         args[i] = parameter;
 #endif
                 }
-                if (typeDetail.Type.IsValueType)
-                {
-                    value = (TValue?)parameterConstructor.CreatorWithArgsBoxed(args);
-                }
+
+                if (TypeDetail.Type.IsValueType)
+                    value = (TValue?)parameterConstructor.CreatorBoxed(args);
                 else
-                {
-                    value = parameterConstructor.CreatorWithArgs(args);
-                }
+                    value = parameterConstructor.Creator(args);
 
                 foreach (var remaining in collectedValues!)
                 {
@@ -428,7 +430,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in TValue value)
         {
             if (indexSizeUInt16Only && !state.UseIndexSizeUInt16 && !state.UseMemberNames)
-                throw new NotSupportedException($"{typeDetail.Type.GetNiceName()} has too many members or {nameof(SerializerIndexAttribute)} index too high for index size");
+                throw new NotSupportedException($"{TypeDetail.Type.Name} has too many members or {nameof(SerializerIndexAttribute)} index too high for index size");
 
             var enumerator = state.IgnoreIndexAttribute ? membersIngoreAttributes : members;
 
@@ -437,7 +439,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 var current = enumerator[state.Current.EnumeratorIndex].Member;
                 //Base will write the property name or index if the value is not null.
                 //Done this way so we don't have to extract the value twice due to null checking.
-                if (!current.Converter.TryWriteFromParent(ref writer, ref state, value, false, current.Index, state.UseMemberNames ? current.NameAsBytes : null))
+                if (!current.Converter.TryWriteFromParentMember(ref writer, ref state, value!, current.Index, state.UseMemberNames ? current.NameAsBytes : null))
                     return false;
 
                 state.Current.EnumeratorIndex++;
@@ -445,19 +447,19 @@ namespace Zerra.Serialization.Bytes.Converters.General
 
             if (state.UseMemberNames)
             {
-                if (!writer.TryWrite(0, out state.BytesNeeded))
+                if (!writer.TryWrite(0, out state.SizeNeeded))
                     return false;
             }
             else
             {
                 if (state.UseIndexSizeUInt16)
                 {
-                    if (!writer.TryWriteRaw(endObjectFlagUInt16, out state.BytesNeeded))
+                    if (!writer.TryWriteRaw(endObjectFlagUInt16, out state.SizeNeeded))
                         return false;
                 }
                 else
                 {
-                    if (!writer.TryWrite(endObjectFlagByte, out state.BytesNeeded))
+                    if (!writer.TryWrite(endObjectFlagByte, out state.SizeNeeded))
                         return false;
                 }
             }

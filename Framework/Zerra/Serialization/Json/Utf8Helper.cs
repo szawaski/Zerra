@@ -2,7 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System;
 using System.Runtime.CompilerServices;
 
 namespace Zerra.Serialization.Json
@@ -263,7 +262,7 @@ namespace Zerra.Serialization.Json
             }
         }
 
-        public unsafe static bool TryParse(ReadOnlySpan<byte> source, out DateTime value)
+        public static bool TryParse(ReadOnlySpan<byte> source, out DateTime value)
         {
             if (!TryParse(source, out DateTimeOffset date))
             {
@@ -275,7 +274,7 @@ namespace Zerra.Serialization.Json
         }
 
 #if NET6_0_OR_GREATER
-        public unsafe static bool TryParse(ReadOnlySpan<byte> source, out DateOnly value)
+        public static bool TryParse(ReadOnlySpan<byte> source, out DateOnly value)
         {
             if (!TryParse(source, out DateTime date))
             {
@@ -530,7 +529,7 @@ namespace Zerra.Serialization.Json
             }
         }
 
-        public unsafe static bool TryParse(ReadOnlySpan<char> source, out DateTime value)
+        public static bool TryParse(ReadOnlySpan<char> source, out DateTime value)
         {
             if (!TryParse(source, out DateTimeOffset date))
             {
@@ -542,7 +541,7 @@ namespace Zerra.Serialization.Json
         }
 
 #if NET6_0_OR_GREATER
-        public unsafe static bool TryParse(ReadOnlySpan<char> source, out DateOnly value)
+        public static bool TryParse(ReadOnlySpan<char> source, out DateOnly value)
         {
             if (!TryParse(source, out DateTime date))
             {
