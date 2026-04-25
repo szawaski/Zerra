@@ -10,22 +10,18 @@ namespace Zerra.Encryption
 {
     internal class CryptoPrefixStream : StreamTransform
     {
-        private const int bufferSize = 8 * 1024;
-
         private readonly CryptoStream? cryptoStream;
         private readonly int blockSizeBytes;
         private readonly int keySizeBytes;
         private readonly CryptoStreamMode mode;
         private readonly bool removePrefix;
 
-        private byte[]? keyBufferOwner;
-        private byte[]? workingBufferOwner;
+        private byte[]? prefixBufferOwner;
 
-        private Memory<byte> keyBuffer;
-        private Memory<byte> workingBuffer;
+        private Memory<byte> prefixBuffer;
 
-        private bool keyLoaded;
-        private int keyPosition;
+        private bool prefixLoaded;
+        private int prefixPosition;
         private int position;
 
         public CryptoPrefixStream(Stream stream, int cryptoBlockSize, CryptoStreamMode mode, bool removePrefix, bool leaveOpen)
@@ -40,24 +36,8 @@ namespace Zerra.Encryption
             this.mode = mode;
             this.removePrefix = removePrefix;
 
-            this.keyBufferOwner = ArrayPoolHelper<byte>.Rent(this.keySizeBytes);
-            this.keyBuffer = this.keyBufferOwner.AsMemory().Slice(0, this.keySizeBytes);
-#if NETSTANDARD2_0
-
-            this.workingBufferOwner = ArrayPoolHelper<byte>.Rent(bufferSize);
-            this.workingBuffer = this.workingBufferOwner.AsMemory();
-#else
-            if (mode == CryptoStreamMode.Write)
-            {
-                this.workingBufferOwner = ArrayPoolHelper<byte>.Rent(bufferSize);
-                this.workingBuffer = this.workingBufferOwner.AsMemory();
-            }
-            else
-            {
-                this.workingBufferOwner = null;
-                this.workingBuffer = null;
-            }
-#endif
+            this.prefixBufferOwner = ArrayPoolHelper<byte>.Rent(this.keySizeBytes);
+            this.prefixBuffer = this.prefixBufferOwner.AsMemory().Slice(0, this.keySizeBytes);
 
             if (!removePrefix)
             {
@@ -66,45 +46,33 @@ namespace Zerra.Encryption
 #if NETSTANDARD2_0
                     rng.GetBytes(keyBufferOwner, 0, keySizeBytes);
 #else
-                    rng.GetBytes(keyBuffer.Span);
+                    rng.GetBytes(prefixBuffer.Span);
 #endif
                 }
             }
 
-            this.keyPosition = 0;
+            this.prefixPosition = 0;
             this.position = 0;
         }
 
         protected override void Dispose(bool disposing)
         {
-            if (keyBufferOwner is not null)
+            if (prefixBufferOwner is not null)
             {
-                ArrayPoolHelper<byte>.Return(keyBufferOwner);
-                keyBufferOwner = null;
-                keyBuffer = null;
-            }
-            if (workingBufferOwner is not null)
-            {
-                ArrayPoolHelper<byte>.Return(workingBufferOwner);
-                workingBufferOwner = null;
-                workingBuffer = null;
+                ArrayPoolHelper<byte>.Return(prefixBufferOwner);
+                prefixBufferOwner = null;
+                prefixBuffer = null;
             }
             base.Dispose(disposing);
         }
 #if !NETSTANDARD2_0
         public override ValueTask DisposeAsync()
         {
-            if (keyBufferOwner is not null)
+            if (prefixBufferOwner is not null)
             {
-                ArrayPoolHelper<byte>.Return(keyBufferOwner);
-                keyBufferOwner = null;
-                keyBuffer = null;
-            }
-            if (workingBufferOwner is not null)
-            {
-                ArrayPoolHelper<byte>.Return(workingBufferOwner);
-                workingBufferOwner = null;
-                workingBuffer = null;
+                ArrayPoolHelper<byte>.Return(prefixBufferOwner);
+                prefixBufferOwner = null;
+                prefixBuffer = null;
             }
             return base.DisposeAsync();
         }
@@ -145,46 +113,46 @@ namespace Zerra.Encryption
 
             var readTotal = 0;
 
-            if (!keyLoaded)
+            if (!prefixLoaded)
             {
                 if (!removePrefix)
                 {
-                    var size = Math.Min(keySizeBytes - keyPosition, buffer.Length);
-                    keyBuffer.Span.Slice(keyPosition, size).CopyTo(buffer.Slice(0, size));
-                    keyPosition += size;
+                    var size = Math.Min(keySizeBytes - prefixPosition, buffer.Length);
+                    prefixBuffer.Span.Slice(prefixPosition, size).CopyTo(buffer.Slice(0, size));
+                    prefixPosition += size;
                     position += size;
-                    if (keyPosition < keySizeBytes)
+                    if (prefixPosition < keySizeBytes)
                         return size;
                     readTotal += size;
-                    keyLoaded = true;
-                    keyPosition = 0;
+                    prefixLoaded = true;
+                    prefixPosition = 0;
                 }
                 else
                 {
-                    while (keyPosition < keySizeBytes)
+                    while (prefixPosition < keySizeBytes)
                     {
-                        int keyRead;
+                        int prefixRead;
 
 #if NETSTANDARD2_0
                         keyRead = stream.Read(keyBufferOwner, keyPosition, keySizeBytes - keyPosition);
 #else
-                        if (keyPosition == 0)
-                            keyRead = stream.Read(keyBuffer.Span);
+                        if (prefixPosition == 0)
+                            prefixRead = stream.Read(prefixBuffer.Span);
                         else
-                            keyRead = stream.Read(keyBuffer.Span[keyPosition..keySizeBytes]);
+                            prefixRead = stream.Read(prefixBuffer.Span[prefixPosition..keySizeBytes]);
 #endif
 
-                        if (keyRead == 0)
+                        if (prefixRead == 0)
                         {
-                            if (keyPosition > 0 && keyPosition < keySizeBytes)
-                                throw new InvalidOperationException("Stream ended before the key block was read");
+                            if (prefixPosition > 0 && prefixPosition < keySizeBytes)
+                                throw new InvalidOperationException("Stream ended before the prefix block was read");
                             break;
                         }
-                        keyPosition += keyRead;
+                        prefixPosition += prefixRead;
                     }
-                    position += keyPosition;
-                    keyLoaded = true;
-                    keyPosition = 0;
+                    position += prefixPosition;
+                    prefixLoaded = true;
+                    prefixPosition = 0;
                 }
             }
 
@@ -206,8 +174,8 @@ namespace Zerra.Encryption
                 readTotal += read;
             }
 
-            keyPosition += readTotal - offsetFromKey;
-            keyPosition %= keySizeBytes;
+            prefixPosition += readTotal - offsetFromKey;
+            prefixPosition %= keySizeBytes;
 
             position += readTotal;
 
@@ -224,46 +192,46 @@ namespace Zerra.Encryption
 
             var readTotal = 0;
 
-            if (!keyLoaded)
+            if (!prefixLoaded)
             {
                 if (!removePrefix)
                 {
-                    var size = Math.Min(keySizeBytes - keyPosition, buffer.Length);
-                    keyBuffer.Slice(keyPosition, size).CopyTo(buffer.Slice(0, size));
-                    keyPosition += size;
+                    var size = Math.Min(keySizeBytes - prefixPosition, buffer.Length);
+                    prefixBuffer.Slice(prefixPosition, size).CopyTo(buffer.Slice(0, size));
+                    prefixPosition += size;
                     position += size;
-                    if (keyPosition < keySizeBytes)
+                    if (prefixPosition < keySizeBytes)
                         return size;
                     readTotal += size;
-                    keyLoaded = true;
-                    keyPosition = 0;
+                    prefixLoaded = true;
+                    prefixPosition = 0;
                 }
                 else
                 {
-                    while (keyPosition < keySizeBytes)
+                    while (prefixPosition < keySizeBytes)
                     {
-                        int keyRead;
+                        int prefixRead;
 
 #if NETSTANDARD2_0
                         keyRead = await stream.ReadAsync(keyBufferOwner, keyPosition, keySizeBytes - keyPosition, cancellationToken);
 #else
-                        if (keyPosition == 0)
-                            keyRead = await stream.ReadAsync(keyBuffer, cancellationToken);
+                        if (prefixPosition == 0)
+                            prefixRead = await stream.ReadAsync(prefixBuffer, cancellationToken);
                         else
-                            keyRead = await stream.ReadAsync(keyBuffer[keyPosition..keySizeBytes], cancellationToken);
+                            prefixRead = await stream.ReadAsync(prefixBuffer[prefixPosition..keySizeBytes], cancellationToken);
 #endif
 
-                        if (keyRead == 0)
+                        if (prefixRead == 0)
                         {
-                            if (keyPosition > 0 && keyPosition < keySizeBytes)
-                                throw new InvalidOperationException("Stream ended before the key block was read");
+                            if (prefixPosition > 0 && prefixPosition < keySizeBytes)
+                                throw new InvalidOperationException("Stream ended before the prefix block was read");
                             break;
                         }
-                        keyPosition += keyRead;
+                        prefixPosition += prefixRead;
                     }
-                    position += keyPosition;
-                    keyLoaded = true;
-                    keyPosition = 0;
+                    position += prefixPosition;
+                    prefixLoaded = true;
+                    prefixPosition = 0;
                 }
             }
 
@@ -285,8 +253,8 @@ namespace Zerra.Encryption
                 readTotal += read;
             }
 
-            keyPosition += readTotal - offsetFromKey;
-            keyPosition %= keySizeBytes;
+            prefixPosition += readTotal - offsetFromKey;
+            prefixPosition %= keySizeBytes;
 
             position += readTotal;
 
@@ -300,43 +268,38 @@ namespace Zerra.Encryption
 
             var readTotal = 0;
 
-            if (!keyLoaded)
+            if (!prefixLoaded)
             {
                 if (!removePrefix)
                 {
 #if NETSTANDARD2_0
                     stream.Write(keyBufferOwner, 0, keySizeBytes);
 #else
-                    stream.Write(keyBuffer.Span);
+                    stream.Write(prefixBuffer.Span);
 #endif
-                    keyLoaded = true;
+                    prefixLoaded = true;
                 }
                 else
                 {
-                    var size = Math.Min(keySizeBytes - keyPosition, buffer.Length);
-                    buffer.Slice(0, size).CopyTo(keyBuffer.Span.Slice(keyPosition, size));
+                    var size = Math.Min(keySizeBytes - prefixPosition, buffer.Length);
+                    buffer.Slice(0, size).CopyTo(prefixBuffer.Span.Slice(prefixPosition, size));
 
-                    keyPosition += size;
-                    if (keyPosition < keySizeBytes)
+                    prefixPosition += size;
+                    if (prefixPosition < keySizeBytes)
                         return;
                     readTotal += size;
-                    keyLoaded = true;
-                    keyPosition = 0;
+                    prefixLoaded = true;
+                    prefixPosition = 0;
                 }
             }
 
             while (readTotal < buffer.Length)
             {
-                var read = Math.Min(buffer.Length - readTotal, workingBuffer.Length);
-                buffer.Slice(readTotal, read).CopyTo(workingBuffer.Span.Slice(0, read));
-
-                keyPosition += read;
-                keyPosition %= keySizeBytes;
-
+                var read = buffer.Length - readTotal;
 #if NETSTANDARD2_0
-                stream.Write(workingBufferOwner, 0, read);
+                stream.Write(buffer, readTotal, read);
 #else
-                stream.Write(workingBuffer.Span.Slice(0, read));
+                stream.Write(buffer.Slice(readTotal, read));
 #endif
 
                 readTotal += read;
@@ -350,43 +313,39 @@ namespace Zerra.Encryption
 
             var readTotal = 0;
 
-            if (!keyLoaded)
+            if (!prefixLoaded)
             {
                 if (!removePrefix)
                 {
 #if NETSTANDARD2_0
                     await stream.WriteAsync(keyBufferOwner, 0, keySizeBytes, cancellationToken);
 #else
-                    await stream.WriteAsync(keyBuffer, cancellationToken);
+                    await stream.WriteAsync(prefixBuffer, cancellationToken);
 #endif
-                    keyLoaded = true;
+                    prefixLoaded = true;
                 }
                 else
                 {
-                    var size = Math.Min(keySizeBytes - keyPosition, buffer.Length);
-                    buffer.Slice(0, size).CopyTo(keyBuffer.Slice(keyPosition, size));
+                    var size = Math.Min(keySizeBytes - prefixPosition, buffer.Length);
+                    buffer.Slice(0, size).CopyTo(prefixBuffer.Slice(prefixPosition, size));
 
-                    keyPosition += size;
-                    if (keyPosition < keySizeBytes)
+                    prefixPosition += size;
+                    if (prefixPosition < keySizeBytes)
                         return;
                     readTotal += size;
-                    keyLoaded = true;
-                    keyPosition = 0;
+                    prefixLoaded = true;
+                    prefixPosition = 0;
                 }
             }
 
             while (readTotal < buffer.Length)
             {
-                var read = Math.Min(buffer.Length - readTotal, workingBuffer.Length);
-                buffer.Slice(readTotal, read).CopyTo(workingBuffer.Slice(0, read));
-
-                keyPosition += read;
-                keyPosition %= keySizeBytes;
+                var read = buffer.Length - readTotal;
 
 #if NETSTANDARD2_0
-                await stream.WriteAsync(workingBufferOwner, 0, read, cancellationToken);
+                await stream.WriteAsync(buffer, readTotal, read, cancellationToken);
 #else
-                await stream.WriteAsync(workingBuffer.Slice(0, read), cancellationToken);
+                await stream.WriteAsync(buffer.Slice(readTotal, read), cancellationToken);
 #endif
 
                 readTotal += read;
