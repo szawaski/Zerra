@@ -313,13 +313,28 @@ namespace Zerra.Repository
                                 }
                                 else
                                 {
-                                    var relatedForModel = (IList)listTypeDetails.CreatorBoxed!();
-                                    foreach (var relatedModel in relatedModelIdentities)
+                                    if (modelPropertyInfo.Type.IsArray)
                                     {
-                                        if (ModelAnalyzer.CompareIdentities(identity, relatedModel.Value))
-                                            _ = relatedForModel.Add(relatedModel.Key);
+                                        var constructor = modelPropertyInfo.MemberDetail.TypeDetail.GetConstructor([typeof(int)]);
+                                        var relatedForModel = (Array)constructor.CreatorBoxed([relatedModelIdentities.Count]);
+                                        var i = 0;
+                                        foreach (var relatedModel in relatedModelIdentities)
+                                        {
+                                            if (ModelAnalyzer.CompareIdentities(identity, relatedModel.Value))
+                                                relatedForModel.SetValue(relatedModel.Key, i++);
+                                        }
+                                        modelPropertyInfo.SetterBoxed(model, relatedForModel);
                                     }
-                                    modelPropertyInfo.SetterBoxed(model, relatedForModel);
+                                    else
+                                    {
+                                        var relatedForModel = (IList)listTypeDetails.CreatorBoxed!();
+                                        foreach (var relatedModel in relatedModelIdentities)
+                                        {
+                                            if (ModelAnalyzer.CompareIdentities(identity, relatedModel.Value))
+                                                _ = relatedForModel.Add(relatedModel.Key);
+                                        }
+                                        modelPropertyInfo.SetterBoxed(model, relatedForModel);
+                                    }
                                 }
                             }
                         }
@@ -462,17 +477,17 @@ namespace Zerra.Repository
                                 var identity = ModelAnalyzer.GetIdentity(modelType, model);
                                 var modelTypeDetail = modelPropertyInfo.Type.GetTypeDetail();
                                 var listTypeDetails = relatedModels.GetType().GetTypeDetail();
-                                if (listTypeDetails.Type.IsArray)
+                                if (modelPropertyInfo.Type.IsArray)
                                 {
-                                    var relatedForModel = new List<object>();
+                                    var constructor = modelPropertyInfo.MemberDetail.TypeDetail.GetConstructor([typeof(int)]);
+                                    var relatedForModel = (Array)constructor.CreatorBoxed([relatedModelIdentities.Count]);
+                                    var i = 0;
                                     foreach (var relatedModel in relatedModelIdentities)
                                     {
                                         if (ModelAnalyzer.CompareIdentities(identity, relatedModel.Value))
-                                            relatedForModel.Add(relatedModel.Key);
+                                            relatedForModel.SetValue(relatedModel.Key, i++);
                                     }
-                                    var array = (Array)listTypeDetails.Constructors[0].CreatorBoxed([relatedForModel.Count]);
-                                    for (var i = 0; i < relatedForModel.Count; i++)
-                                        array.SetValue(relatedForModel[i], i);
+                                    modelPropertyInfo.SetterBoxed(model, relatedForModel);
                                 }
                                 else
                                 {

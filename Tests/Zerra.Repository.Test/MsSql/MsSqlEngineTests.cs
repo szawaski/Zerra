@@ -42,7 +42,7 @@ namespace Zerra.Repository.Test
         }
 
         [Fact]
-        public void TestSequence()
+        public async Task TestSequence()
         {
             var context = new MsSqlTestSqlDataContext();
 
@@ -53,6 +53,7 @@ namespace Zerra.Repository.Test
             CodeFirstGeneration.Generate<MsSqlTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
 
             RepoTest.TestSequence<MsSqlTestSqlDataContext>();
+            await RepoTest.TestSequenceAsync<MsSqlTestSqlDataContext>();
 
             const string changeColumn = "ALTER TABLE [TestTypes] ALTER COLUMN [Int32Thing] bigint NULL";
             const string addColumn = "ALTER TABLE [TestTypes] ADD [DummyToMakeNullable] int NOT NULL";

@@ -332,10 +332,8 @@ var detail2 = TypeAnalyzer.GetTypeDetail(typeof(User)); // Same instance
 For Native AOT scenarios, use source generators to pre-generate type details:
 
 ```csharp
-// Add to your project file
-<PackageReference Include="Zerra.SourceGeneration" />
-
-// Add attribute to types
+// Source generator is automatically included with Zerra package
+// Just add attribute to types
 [Zerra.SourceGeneration.GenerateTypeDetail]
 public class User
 {

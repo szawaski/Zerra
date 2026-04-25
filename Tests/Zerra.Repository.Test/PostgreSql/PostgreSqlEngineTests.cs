@@ -45,7 +45,7 @@ namespace Zerra.Repository.Test
 
 
         [Fact]
-        public void TestSequence()
+        public async Task TestSequence()
         {
             var context = new PostgreSqlTestSqlDataContext();
 
@@ -56,6 +56,7 @@ namespace Zerra.Repository.Test
             CodeFirstGeneration.Generate<PostgreSqlTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
 
             RepoTest.TestSequence<PostgreSqlTestSqlDataContext>();
+            await RepoTest.TestSequenceAsync<PostgreSqlTestSqlDataContext>();
 
             const string changeColumn = "ALTER TABLE testtypes ALTER COLUMN int32thing TYPE bigint; ALTER TABLE testtypes ALTER COLUMN int32thing DROP NOT NULL;";
             const string addColumn = "ALTER TABLE testtypes ADD dummytomakenullable int NOT NULL";
