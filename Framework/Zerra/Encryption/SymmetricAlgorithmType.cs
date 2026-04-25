@@ -28,46 +28,46 @@ namespace Zerra.Encryption
 
         /// <summary>
         /// Advanced Encryption Standard (AES) algorithm.
-        /// Inserts a random block at the begining combinded with CBC will make the same data look unique each time.
+        /// Inserts a random block at the begining combinded with CBC will make the same data look unique each time even with the same key and IV.
         /// </summary>
         AESwithPrefix,
         /// <summary>
         /// Data Encryption Standard (DES) algorithm.
-        /// Inserts a random block at the begining combinded with CBC will make the same data look unique each time.
+        /// Inserts a random block at the begining combinded with CBC will make the same data look unique each time even with the same key and IV.
         /// </summary>
         DESwithPrefix,
         /// <summary>
         /// Data Encryption Standard (DES) algorithm applied three times to each block
-        /// Inserts a random block at the begining combinded with CBC will make the same data look unique each time.
+        /// Inserts a random block at the begining combinded with CBC will make the same data look unique each time even with the same key and IV.
         /// </summary>
         TripleDESwithPrefix,
         /// <summary>
         /// Rivest Cipher 2 (RC2) algorithm.
-        /// Inserts a random block at the begining combinded with CBC will make the same data look unique each time.
+        /// Inserts a random block at the begining combinded with CBC will make the same data look unique each time even with the same key and IV.
         /// </summary>
         RC2withPrefix,
 
         /// <summary>
         /// Advanced Encryption Standard (AES) algorithm.
-        /// The shift inserts a random block used to shift all other blocks so encrypting the same data will look unique.
+        /// The shift inserts a random block used to shift all other blocks so encrypting the same data will look unique even even with the same key and IV.
         /// </summary>
         [Obsolete]
         AESwithShift,
         /// <summary>
         /// Data Encryption Standard (DES) algorithm.
-        /// The shift inserts a random block used to shift all other blocks so encrypting the same data will look unique.
+        /// The shift inserts a random block used to shift all other blocks so encrypting the same data will look unique even with the same key and IV.
         /// </summary>
         [Obsolete]
         DESwithShift,
         /// <summary>
         /// Data Encryption Standard (DES) algorithm applied three times to each block
-        /// The shift inserts a random block used to shift all other blocks so encrypting the same data will look unique.
+        /// The shift inserts a random block used to shift all other blocks so encrypting the same data will look unique even with the same key and IV.
         /// </summary>
         [Obsolete]
         TripleDESwithShift,
         /// <summary>
         /// Rivest Cipher 2 (RC2) algorithm.
-        /// The shift inserts a random block used to shift all other blocks so encrypting the same data will look unique.
+        /// The shift inserts a random block used to shift all other blocks so encrypting the same data will look unique even with the same key and IV.
         /// </summary>
         [Obsolete]
         RC2withShift

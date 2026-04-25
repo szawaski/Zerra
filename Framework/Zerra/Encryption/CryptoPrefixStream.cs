@@ -16,7 +16,7 @@ namespace Zerra.Encryption
         private readonly int blockSizeBytes;
         private readonly int keySizeBytes;
         private readonly CryptoStreamMode mode;
-        private readonly bool deshift;
+        private readonly bool removePrefix;
 
         private byte[]? keyBufferOwner;
         private byte[]? workingBufferOwner;
@@ -28,7 +28,7 @@ namespace Zerra.Encryption
         private int keyPosition;
         private int position;
 
-        public CryptoPrefixStream(Stream stream, int cryptoBlockSize, CryptoStreamMode mode, bool deshift, bool leaveOpen)
+        public CryptoPrefixStream(Stream stream, int cryptoBlockSize, CryptoStreamMode mode, bool removePrefix, bool leaveOpen)
             : base(stream, leaveOpen)
         {
             if (cryptoBlockSize < 16 || cryptoBlockSize % 8 != 0)
@@ -38,7 +38,7 @@ namespace Zerra.Encryption
             this.blockSizeBytes = cryptoBlockSize / 8;
             this.keySizeBytes = blockSizeBytes;
             this.mode = mode;
-            this.deshift = deshift;
+            this.removePrefix = removePrefix;
 
             this.keyBufferOwner = ArrayPoolHelper<byte>.Rent(this.keySizeBytes);
             this.keyBuffer = this.keyBufferOwner.AsMemory().Slice(0, this.keySizeBytes);
@@ -59,7 +59,7 @@ namespace Zerra.Encryption
             }
 #endif
 
-            if (!deshift)
+            if (!removePrefix)
             {
                 using (var rng = RandomNumberGenerator.Create())
                 {
@@ -147,7 +147,7 @@ namespace Zerra.Encryption
 
             if (!keyLoaded)
             {
-                if (!deshift)
+                if (!removePrefix)
                 {
                     var size = Math.Min(keySizeBytes - keyPosition, buffer.Length);
                     keyBuffer.Span.Slice(keyPosition, size).CopyTo(buffer.Slice(0, size));
@@ -226,7 +226,7 @@ namespace Zerra.Encryption
 
             if (!keyLoaded)
             {
-                if (!deshift)
+                if (!removePrefix)
                 {
                     var size = Math.Min(keySizeBytes - keyPosition, buffer.Length);
                     keyBuffer.Slice(keyPosition, size).CopyTo(buffer.Slice(0, size));
@@ -302,7 +302,7 @@ namespace Zerra.Encryption
 
             if (!keyLoaded)
             {
-                if (!deshift)
+                if (!removePrefix)
                 {
 #if NETSTANDARD2_0
                     stream.Write(keyBufferOwner, 0, keySizeBytes);
@@ -352,7 +352,7 @@ namespace Zerra.Encryption
 
             if (!keyLoaded)
             {
-                if (!deshift)
+                if (!removePrefix)
                 {
 #if NETSTANDARD2_0
                     await stream.WriteAsync(keyBufferOwner, 0, keySizeBytes, cancellationToken);

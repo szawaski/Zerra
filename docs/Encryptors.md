@@ -21,7 +21,6 @@ The `ZerraEncryptor` class provides symmetric encryption for message payloads us
 
 - **Transparent Encryption**: Automatically encrypts/decrypts all messages
 - **Multiple Algorithms**: AES, DES, TripleDES, RC2 support
-- **Prefix Mode**: Optional algorithm identifier in encrypted data
 - **Secure**: Uses industry-standard cryptographic algorithms
 - **Simple Configuration**: Single setup for all message types
 
@@ -74,7 +73,7 @@ Zerra supports several symmetric encryption algorithms through the `SymmetricAlg
 // AES without prefix
 IEncryptor encryptor = new ZerraEncryptor("myPassword", SymmetricAlgorithmType.AES);
 
-// AES with prefix (recommended for version compatibility)
+// AES with prefix (recommended for enhanced security)
 IEncryptor encryptor = new ZerraEncryptor("myPassword", SymmetricAlgorithmType.AESwithPrefix);
 ```
 
