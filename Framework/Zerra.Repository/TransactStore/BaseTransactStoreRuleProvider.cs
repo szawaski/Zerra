@@ -118,6 +118,133 @@ namespace Zerra.Repository
         }
 
         /// <inheritdoc/>
+        public override sealed object? Many(Query query)
+        {
+            var appenedQuery = new Query(query);
+
+            OnQuery(appenedQuery.Graph);
+            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
+
+            appenedQuery.Where = where;
+
+            var models = (IReadOnlyCollection<TModel>)(NextProvider.Query(appenedQuery))!;
+
+            IEnumerable returnModels;
+            if (models.Count > 0)
+            {
+                returnModels = OnGet(models, appenedQuery.Graph);
+            }
+            else
+            {
+                returnModels = Array.Empty<TModel>();
+            }
+
+            return returnModels;
+        }
+
+        /// <inheritdoc/>
+        public override sealed object? First(Query query)
+        {
+            var appenedQuery = new Query(query);
+
+            OnQuery(appenedQuery.Graph);
+            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
+
+            appenedQuery.Where = where;
+
+            var model = (TModel?)NextProvider.Query(appenedQuery);
+
+            TModel? returnModel = null;
+
+            if (model is not null)
+            {
+                returnModel = OnGet(new TModel[] { model }, appenedQuery.Graph).Cast<TModel>().SingleOrDefault();
+            }
+
+            return returnModel;
+        }
+
+        /// <inheritdoc/>
+        public override sealed object? Single(Query query)
+        {
+            var appenedQuery = new Query(query);
+
+            OnQuery(appenedQuery.Graph);
+
+            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
+            appenedQuery.Where = where;
+
+            var model = (TModel?)NextProvider.Query(appenedQuery);
+
+            TModel? returnModel = null;
+
+            if (model is not null)
+            {
+                returnModel = OnGet(new TModel[] { model }, appenedQuery.Graph).Cast<TModel>().SingleOrDefault();
+            }
+
+            return returnModel;
+        }
+
+        /// <inheritdoc/>
+        public override sealed object? Count(Query query)
+        {
+            var appenedQuery = new Query(query);
+
+            OnQuery(appenedQuery.Graph);
+
+            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
+            appenedQuery.Where = where;
+
+            var count = NextProvider.Query(appenedQuery);
+
+            return count;
+        }
+
+        /// <inheritdoc/>
+        public override sealed object? Any(Query query)
+        {
+            var appenedQuery = new Query(query);
+
+            OnQuery(appenedQuery.Graph);
+
+            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
+            appenedQuery.Where = where;
+
+            var any = NextProvider.Query(appenedQuery);
+
+            return any;
+        }
+
+        /// <inheritdoc/>
+        public override sealed object? EventMany(Query query)
+        {
+            var appenedQuery = new Query(query);
+
+            OnQuery(appenedQuery.Graph);
+
+            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
+            appenedQuery.Where = where;
+
+            var eventModels = (ICollection<EventModel<TModel>>)(NextProvider.Query(appenedQuery))!;
+
+            var models = eventModels.Select(x => x.Model).ToArray();
+
+            ICollection<EventModel<TModel>>? returnEventModels = null;
+            if (models.Length > 0)
+            {
+                var returnModels = OnGet(models, appenedQuery.Graph).Cast<TModel>();
+                returnEventModels = eventModels.Where(x => returnModels.Contains(x.Model)).ToArray();
+            }
+            else
+            {
+                returnEventModels = Array.Empty<EventModel<TModel>>();
+            }
+
+            return returnEventModels;
+        }
+
+        /// <inheritdoc/>
         public override sealed async Task<object?> ManyAsync(Query query)
         {
             var appenedQuery = new Query(query);
@@ -270,6 +397,60 @@ namespace Zerra.Repository
         /// <summary>Called after models have been successfully deleted. Override to perform post-delete side effects.</summary>
         /// <param name="identities">The identities of the models that were deleted.</param>
         protected virtual void OnDeleteComplete(ICollection identities) { }
+
+        /// <inheritdoc/>
+        public override sealed void Create(Persist persist)
+        {
+            if (persist.Models is null)
+                throw new Exception($"Invalid {nameof(Persist)} for {nameof(CreateAsync)}");
+
+            var appenedPersist = new Persist(persist);
+            var returnModels = OnCreate(appenedPersist.Models!, appenedPersist.Graph);
+            NextProvider.Persist(new Persist(appenedPersist.Operation, appenedPersist.Event, appenedPersist.ModelType, returnModels.Cast<object>().ToArray(), null, appenedPersist.Graph));
+            OnCreateComplete(returnModels, appenedPersist.Graph);
+        }
+
+        /// <inheritdoc/>
+        public override sealed void Update(Persist persist)
+        {
+            if (persist.Models is null)
+                throw new Exception($"Invalid {nameof(Persist)} for {nameof(UpdateAsync)}");
+
+            var appenedPersist = new Persist(persist);
+            var returnModels = OnUpdate(appenedPersist.Models!, appenedPersist.Graph);
+            NextProvider.Persist(new Persist(appenedPersist.Operation, appenedPersist.Event, appenedPersist.ModelType, returnModels.Cast<object>().ToArray(), null, appenedPersist.Graph));
+            OnUpdateComplete(returnModels, appenedPersist.Graph);
+        }
+
+        /// <inheritdoc/>
+        public override sealed void Delete(Persist persist)
+        {
+            ICollection returnIds;
+            if (persist.IDs is not null)
+            {
+                returnIds = OnDelete(persist.IDs);
+            }
+            else if (persist.Models is not null)
+            {
+                var ids = new List<object>();
+                foreach (var model in persist.Models)
+                {
+                    var id = ModelAnalyzer.GetIdentity(modelType, model);
+                    if (id is null)
+                        throw new Exception($"Model {typeof(TModel).Name} missing Identity");
+                    ids.Add(id);
+                }
+
+                returnIds = OnDelete(ids);
+            }
+            else
+            {
+                throw new Exception($"Invalid {nameof(Persist)} for {nameof(DeleteAsync)}");
+            }
+
+            NextProvider.Persist(new Persist<TModel>(PersistOperation.Delete, persist.Event, null, returnIds.Cast<object>().ToArray(), null));
+            OnDeleteComplete(returnIds);
+        }
 
         /// <inheritdoc/>
         public override sealed async Task CreateAsync(Persist persist)

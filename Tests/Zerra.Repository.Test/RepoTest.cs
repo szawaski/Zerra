@@ -6,10 +6,15 @@ using Xunit;
 
 namespace Zerra.Repository.Test
 {
-    public static class TestModelMethods
+    public static class RepoTest
     {
-        public static void TestSequence(IRepo repo)
+        public static void TestSequence<T>() 
+            where T : DataContext, new()
         {
+            var repo = Repo.New();
+            repo.AddProvider(new TransactStoreProvider<T, TestTypesModel>());
+            repo.AddProvider(new TransactStoreProvider<T, TestRelationsModel>());
+
             var model = GetTestTypesModel();
             model.KeyA = Guid.NewGuid();
             repo.Create<TestTypesModel>(model);
@@ -22,7 +27,7 @@ namespace Zerra.Repository.Test
             modelCheck = repo.Single<TestTypesModel>(x => x.KeyA == model.KeyA);
             AssertAreEqual(model, modelCheck);
 
-            var relationModel = new TestRelationsModel();
+            var relationModel = GetTestRelationsModel();
             relationModel.RelationAKey = Guid.NewGuid();
             repo.Create<TestRelationsModel>(relationModel);
             var relationModelCheck = repo.Single<TestRelationsModel>(x => x.RelationAKey == relationModel.RelationAKey);
@@ -37,6 +42,12 @@ namespace Zerra.Repository.Test
             Assert.Equal(model.RelationAKey, modelCheck.RelationA.RelationAKey);
 
             TestQuery(repo, model, relationModel);
+
+            var repoWithRules = Repo.New();
+            repoWithRules.AddProvider(new TransactStoreProvider<T, TestTypesModel>());
+            repoWithRules.AddProvider(new TestRelationsRule2Provider<T>());
+
+            TestQuery(repoWithRules, model, relationModel);
 
             model.RelationAKey = null;
             repo.Update<TestTypesModel>(model, new Graph<TestTypesModel>(x => x.RelationAKey));
@@ -54,7 +65,7 @@ namespace Zerra.Repository.Test
             Assert.Null(relationModelCheck);
         }
 
-        public static TestTypesModel GetTestTypesModel()
+        private static TestTypesModel GetTestTypesModel()
         {
             var model = new TestTypesModel()
             {
@@ -111,7 +122,7 @@ namespace Zerra.Repository.Test
             };
             return model;
         }
-        public static void UpdateModel(TestTypesModel model)
+        private static void UpdateModel(TestTypesModel model)
         {
             model.ByteThing++;
             model.Int16Thing++;
@@ -143,7 +154,7 @@ namespace Zerra.Repository.Test
             model.TimeOnlyNullableThing = TimeOnly.FromDateTime(DateTime.Now);
             model.GuidNullableThing = Guid.NewGuid();
         }
-        public static void AssertAreEqual(TestTypesModel model1, TestTypesModel model2)
+        private static void AssertAreEqual(TestTypesModel model1, TestTypesModel model2)
         {
             Assert.NotNull(model1);
             Assert.NotNull(model2);
@@ -214,7 +225,16 @@ namespace Zerra.Repository.Test
             Assert.Null(model2.BytesThingNull);
         }
 
-        public static void TestQuery(IRepo repo, TestTypesModel model, TestRelationsModel relationModel)
+        private static TestRelationsModel GetTestRelationsModel()
+        {
+            var model = new TestRelationsModel()
+            {
+               SomeValue = "Hello\r\nWorld!"
+            };
+            return model;
+        }
+
+        private static void TestQuery(IRepo repo, TestTypesModel model, TestRelationsModel relationModel)
         {
             //many
             _ = repo.Many<TestTypesModel>(x => x.KeyA == model.KeyA);
@@ -253,6 +273,18 @@ namespace Zerra.Repository.Test
 
             //LINQ any
             _ = repo.Single<TestTypesModel>(x => x.RelationB.Any(y => y.RelationAKey == relationModel.RelationAKey));
+
+            //Connect 1-1
+            _ = repo.Many<TestTypesModel>(new Graph<TestTypesModel>(true, x => x.RelationA));
+
+            //Connect 1-Many
+            _ = repo.Many<TestTypesModel>(new Graph<TestTypesModel>(true, x => x.RelationB));
+
+            //Connect 1-1 with Where
+            _ = repo.Many<TestTypesModel>(x => x.RelationA.SomeValue.Contains("Hello"), new Graph<TestTypesModel>(true, x => x.RelationA));
+
+            //Connect 1-Many with Where
+            _ = repo.Many<TestTypesModel>(x => x.RelationB.Any(y => y.SomeValue.Contains("Hello")), new Graph<TestTypesModel>(true, x => x.RelationB));
         }
     }
 }

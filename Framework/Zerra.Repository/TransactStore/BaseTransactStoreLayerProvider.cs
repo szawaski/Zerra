@@ -109,7 +109,7 @@ namespace Zerra.Repository
         /// <summary>Executes a many query and returns the matching models.</summary>
         /// <param name="query">The query parameters.</param>
         /// <returns>The matching models as an object.</returns>
-        public abstract object Many(Query query);
+        public abstract object? Many(Query query);
         /// <summary>Executes a first query and returns the first matching model, or <see langword="null"/>.</summary>
         /// <param name="query">The query parameters.</param>
         /// <returns>The first matching model, or <see langword="null"/>.</returns>
@@ -121,15 +121,15 @@ namespace Zerra.Repository
         /// <summary>Executes a count query and returns the count of matching models.</summary>
         /// <param name="query">The query parameters.</param>
         /// <returns>The count as an object.</returns>
-        public abstract object Count(Query query);
+        public abstract object? Count(Query query);
         /// <summary>Executes an any query and returns whether any matching models exist.</summary>
         /// <param name="query">The query parameters.</param>
         /// <returns>A boolean result as an object.</returns>
-        public abstract object Any(Query query);
+        public abstract object? Any(Query query);
         /// <summary>Executes an event-many query and returns the matching event models.</summary>
         /// <param name="query">The query parameters.</param>
         /// <returns>The matching event models as an object.</returns>
-        public abstract object EventMany(Query query);
+        public abstract object? EventMany(Query query);
 
         /// <summary>Asynchronously executes a many query and returns the matching models.</summary>
         /// <param name="query">The query parameters.</param>

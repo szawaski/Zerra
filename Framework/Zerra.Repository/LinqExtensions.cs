@@ -79,6 +79,44 @@ namespace Zerra.Repository
         }
 
         /// <summary>
+        /// Applies the filtering, ordering, skip, and take to a sequence.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements of <paramref name="source"/>.</typeparam>
+        /// <param name="source">The sequence to query.</param>
+        /// <param name="where">The filter expression to apply, or null for no filtering.</param>
+        /// <param name="order">The <see cref="QueryOrder"/> that defines the ordering expressions, or null for no ordering.</param>
+        /// <param name="skip">The number of elements to skip, or null to skip none.</param>
+        /// <param name="take">The number of elements to take, or null to take all.</param>
+        /// <returns>An <see cref="IEnumerable{TSource}"/> that contains elements from the input sequence that satisfy the query.</returns>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="where"/> is not of type <c>Expression&lt;Func&lt;TSource, bool&gt;&gt;</c>.</exception>
+        public static IEnumerable<TSource> Query<TSource>(this IEnumerable<TSource> source, Expression? where, QueryOrder? order, int? skip, int? take)
+           where TSource : class, new()
+        {
+            var whereQuery = source;
+            if (where is not null)
+            {
+                var whereExpression = where as Expression<Func<TSource, bool>>;
+                if (whereExpression == null)
+                    throw new ArgumentException($"Where must be of type Expression<Func<TSource, bool>>");
+                whereQuery = whereQuery.Where(whereExpression.Compile());
+            }
+
+            var orderQuery = whereQuery;
+            if (order is not null)
+            {
+                orderQuery = orderQuery.OrderBy(order);
+            }
+
+            var skiptake = orderQuery;
+            if (skip.HasValue)
+                skiptake = skiptake.Skip(skip.Value);
+            if (take.HasValue)
+                skiptake = skiptake.Take(take.Value);
+
+            return skiptake;
+        }
+
+        /// <summary>
         /// Applies the filtering, ordering, skip, and take from a <see cref="Zerra.Repository.Query"/> to a queryable.
         /// </summary>
         /// <typeparam name="TSource">The type of the elements of <paramref name="source"/>.</typeparam>
@@ -109,6 +147,44 @@ namespace Zerra.Repository
                 skiptake = skiptake.Skip(query.Skip.Value);
             if (query.Take.HasValue)
                 skiptake = skiptake.Take(query.Take.Value);
+
+            return skiptake;
+        }
+
+        /// <summary>
+        /// Applies the filtering, ordering, skip, and take to a queryable.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements of <paramref name="source"/>.</typeparam>
+        /// <param name="source">The queryable to query.</param>
+        /// <param name="where">The filter expression to apply, or null for no filtering.</param>
+        /// <param name="order">The <see cref="QueryOrder"/> that defines the ordering expressions, or null for no ordering.</param>
+        /// <param name="skip">The number of elements to skip, or null to skip none.</param>
+        /// <param name="take">The number of elements to take, or null to take all.</param>
+        /// <returns>An <see cref="IQueryable{TSource}"/> that contains elements from the input queryable that satisfy the query.</returns>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="where"/> is not of type <c>Expression&lt;Func&lt;TSource, bool&gt;&gt;</c>.</exception>
+        public static IQueryable<TSource> Query<TSource>(this IQueryable<TSource> source, Expression? where, QueryOrder? order, int? skip, int? take)
+            where TSource : class, new()
+        {
+            var whereQuery = source;
+            if (where is not null)
+            {
+                var whereExpression = where as Expression<Func<TSource, bool>>;
+                if (whereExpression == null)
+                    throw new ArgumentException($"Where must be of type Expression<Func<TSource, bool>>");
+                whereQuery = whereQuery.Where(whereExpression);
+            }
+
+            var orderQuery = whereQuery;
+            if (order is not null)
+            {
+                orderQuery = orderQuery.OrderBy(order);
+            }
+
+            var skiptake = orderQuery;
+            if (skip.HasValue)
+                skiptake = skiptake.Skip(skip.Value);
+            if (take.HasValue)
+                skiptake = skiptake.Take(take.Value);
 
             return skiptake;
         }

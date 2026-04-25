@@ -11,5 +11,7 @@ namespace Zerra.Repository.Test
         public Guid RelationAKey { get; set; }
 
         public Guid? RelationBKey { get; set; }
+
+        public string SomeValue { get; set; }
     }
 }

@@ -200,7 +200,7 @@ namespace Zerra.Repository
         }
 
         /// <inheritdoc/>
-        public override sealed object Many(Query query)
+        public override sealed object? Many(Query query)
         {
             var whereCompressed = EncryptWhere(query.Where);
             var orderCompressed = EncryptOrder(query.Order);
@@ -263,7 +263,7 @@ namespace Zerra.Repository
             return count;
         }
         /// <inheritdoc/>
-        public override sealed object Any(Query query)
+        public override sealed object? Any(Query query)
         {
             var whereCompressed = EncryptWhere(query.Where);
 
@@ -274,7 +274,7 @@ namespace Zerra.Repository
             return any;
         }
         /// <inheritdoc/>
-        public override sealed object EventMany(Query query)
+        public override sealed object? EventMany(Query query)
         {
             var whereCompressed = EncryptWhere(query.Where);
             var orderCompressed = EncryptOrder(query.Order);

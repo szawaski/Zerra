@@ -52,14 +52,7 @@ namespace Zerra.Repository.Test
 
             CodeFirstGeneration.Generate<MySqlTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
 
-            var provider = new MySqlBaseSqlProvider<TestTypesModel>();
-            var relationProvider = new MySqlBaseSqlProvider<TestRelationsModel>();
-
-            var repo = Repo.New();
-            repo.AddProvider(provider);
-            repo.AddProvider(relationProvider);
-
-            TestModelMethods.TestSequence(repo);
+            RepoTest.TestSequence<MySqlTestSqlDataContext>();
 
             const string changeColumn = "ALTER TABLE `TestTypes` MODIFY `Int32Thing` bigint NULL";
             const string addColumn = "ALTER TABLE `TestTypes` ADD `DummyToMakeNullable` int NOT NULL";

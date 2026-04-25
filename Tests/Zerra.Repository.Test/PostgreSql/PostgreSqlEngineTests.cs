@@ -55,14 +55,7 @@ namespace Zerra.Repository.Test
 
             CodeFirstGeneration.Generate<PostgreSqlTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
 
-            var provider = new PostgreSqlBaseSqlProvider<TestTypesModel>();
-            var relationProvider = new PostgreSqlBaseSqlProvider<TestRelationsModel>();
-
-            var repo = Repo.New();
-            repo.AddProvider(provider);
-            repo.AddProvider(relationProvider);
-
-            TestModelMethods.TestSequence(repo);
+            RepoTest.TestSequence<PostgreSqlTestSqlDataContext>();
 
             const string changeColumn = "ALTER TABLE testtypes ALTER COLUMN int32thing TYPE bigint; ALTER TABLE testtypes ALTER COLUMN int32thing DROP NOT NULL;";
             const string addColumn = "ALTER TABLE testtypes ADD dummytomakenullable int NOT NULL";

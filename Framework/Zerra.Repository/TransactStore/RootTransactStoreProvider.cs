@@ -28,8 +28,8 @@ namespace Zerra.Repository
         private static readonly Type listObjectType = typeof(List<object>);
         private static readonly MethodInfo containsMethod = typeof(List<object>).GetMethods().First(m => m.Name == nameof(List<>.Contains));
 
-        /// <summary>Gets a value indicating whether event-based relation linking is enabled. Defaults to <see langword="false"/>.</summary>
-        protected virtual bool EventLinking { get { return false; } }
+        /// <summary>Gets a value indicating whether event-based relation linking is enabled. Defaults to <see langword="true"/>.</summary>
+        protected virtual bool EventLinking { get { return true; } }
         /// <summary>Gets a value indicating whether query-based relation linking is enabled. Defaults to <see langword="true"/>.</summary>
         protected virtual bool QueryLinking { get { return true; } }
         /// <summary>Gets a value indicating whether persist-based relation linking is enabled. Defaults to <see langword="true"/>.</summary>
@@ -268,7 +268,7 @@ namespace Zerra.Repository
                             var foreignIdentities = new List<object>();
                             foreach (var model in returnModels)
                             {
-                                var identity = ModelAnalyzer.GetIdentity(modelPropertyInfo.Type, model);
+                                var identity = ModelAnalyzer.GetIdentity(modelType, model);
                                 foreignIdentities.Add(identity);
                             }
 
@@ -297,7 +297,7 @@ namespace Zerra.Repository
 
                             foreach (var model in returnModels)
                             {
-                                var identity = ModelAnalyzer.GetIdentity(modelPropertyInfo.Type, model);
+                                var identity = ModelAnalyzer.GetIdentity(modelType, model);
                                 var modelTypeDetail = modelPropertyInfo.Type.GetTypeDetail();
                                 var listTypeDetails = relatedModels.GetType().GetTypeDetail();
                                 if (listTypeDetails.Type.IsArray)

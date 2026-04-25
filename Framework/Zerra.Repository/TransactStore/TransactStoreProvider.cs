@@ -11,7 +11,7 @@ namespace Zerra.Repository
     /// </summary>
     /// <typeparam name="TContext">The data context type that supplies the engine.</typeparam>
     /// <typeparam name="TModel">The model type managed by this provider.</typeparam>
-    public abstract class TransactStoreProvider<TContext, TModel> : RootTransactStoreProvider<TModel>
+    public class TransactStoreProvider<TContext, TModel> : RootTransactStoreProvider<TModel>
         where TContext : DataContext, new()
         where TModel : class, new()
     {

@@ -9,6 +9,7 @@
     <Project Path="Framework/Zerra.CQRS.Kafka/Zerra.CQRS.Kafka.csproj" />
     <Project Path="Framework/Zerra.CQRS.RabbitMQ/Zerra.CQRS.RabbitMQ.csproj" />
     <Project Path="Framework/Zerra.Repository.KurrentDB/Zerra.Repository.KurrentDB.csproj" />
+    <Project Path="Framework/Zerra.Repository.Memory/Zerra.Repository.Memory.csproj" />
     <Project Path="Framework/Zerra.Repository.MsSql/Zerra.Repository.MsSql.csproj" />
     <Project Path="Framework/Zerra.Repository.MySql/Zerra.Repository.MySql.csproj" />
     <Project Path="Framework/Zerra.Repository.PostgreSql/Zerra.Repository.PostgreSql.csproj" />
