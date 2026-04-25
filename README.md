@@ -6,7 +6,7 @@ A high-performance, distributed CQRS (Command Query Responsibility Segregation) 
 
 ## 📚 Documentation
 
-For comprehensive guides, see the [documentation folder](docs/README.md):
+For comprehensive guides, see the [Documentation Index](docs/Index.md):
 
 **Getting Started**
 - [Agents](docs/Agents.md) - Architectural context for AI agents
@@ -16,12 +16,18 @@ For comprehensive guides, see the [documentation folder](docs/README.md):
 - [Serializers](docs/Serializers.md) - ZerraByteSerializer and ZerraJsonSerializer configuration
   - [ByteSerializer](docs/ByteSerializer.md) - High-performance binary serialization
   - [JsonSerializer](docs/JsonSerializer.md) - JSON serialization with Graph-based property control
+- [Mapper](docs/Mapper.md) - Object mapping and type conversion with AOT support
 - [Encryptors](docs/Encryptors.md) - Message encryption with ZerraEncryptor
 - [Logging](docs/Logging.md) - ILogger and IBusLogger implementation
 - [Service Injection](docs/ServiceInjection.md) - Dependency management with BusServices
 - [Zerra.Web](docs/ZerraWeb.md) - ASP.NET integration and CQRS API Gateway
 - [Client Setup](docs/ClientSetup.md) - Configure client applications
 - [Server Setup](docs/ServerSetup.md) - Configure server applications
+
+**Messaging Transports**
+- [Azure Service Bus Setup](docs/AzureServiceBusSetup.md) - Distributed messaging with Azure Service Bus
+- [Kafka Setup](docs/KafkaSetup.md) - High-throughput messaging with Apache Kafka
+- [RabbitMQ Setup](docs/RabbitMQSetup.md) - Reliable message delivery with RabbitMQ
 
 **Core Concepts**
 - [Queries](docs/Queries.md) - Execute read operations

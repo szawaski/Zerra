@@ -53,10 +53,10 @@
     <File Path="docs/Commands.md" />
     <File Path="docs/Encryptors.md" />
     <File Path="docs/Events.md" />
+    <File Path="docs/Index.md" />
     <File Path="docs/JsonSerializer.md" />
     <File Path="docs/Logging.md" />
     <File Path="docs/Queries.md" />
-    <File Path="docs/README.md" />
     <File Path="docs/Serializers.md" />
     <File Path="docs/ServerSetup.md" />
     <File Path="docs/ServiceInjection.md" />
