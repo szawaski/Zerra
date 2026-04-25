@@ -160,7 +160,7 @@ var (userPatch, graph) = JsonSerializer.DeserializePatch<User>(jsonString);
 ApplyPatch(existingUser, userPatch, graph);
 ```
 
-### 3. Nameless JSON Mode### 3. Nameless JSON Mode
+### 3. Nameless JSON Mode
 
 Compact JSON arrays for browser endpoints with JavaScript decoders:
 
@@ -195,7 +195,7 @@ string json = JsonSerializer.Serialize(user, options: options);
 - ❌ Not self-describing
 - ❌ Deserialization issues if used with Graph (deserializer can't determine property mappings without names)
 
-### 4. Custom Converters
+> **Note**: See [Zerra.Web](ZerraWeb.md) for JavaScript decoder scripts that can decode nameless JSON arrays in browser applications.
 
 ### 4. Custom Converters
 

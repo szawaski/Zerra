@@ -340,116 +340,6 @@ await app.RunAsync();
 - Configure application settings in Azure Portal
 - The app runs in IIS with Kestrel as the web server
 
-### Browser Client (JavaScript)
-
-```javascript
-// Call a query
-async function getUser(userId) {
-    const response = await fetch('https://myapp.azurewebsites.net/api/cqrs', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-API-Key': 'my-secret-key'
-        },
-        body: JSON.stringify({
-            MessageType: 'MyApp.Queries.GetUserQuery',
-            Message: {
-                UserId: userId
-            }
-        })
-    });
-
-    if (!response.ok) {
-        throw new Error('Query failed');
-    }
-
-    return await response.json();
-}
-
-// Dispatch a command
-async function createUser(email, name) {
-    const response = await fetch('https://myapp.azurewebsites.net/api/cqrs', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-API-Key': 'my-secret-key'
-        },
-        body: JSON.stringify({
-            MessageType: 'MyApp.Commands.CreateUserCommand',
-            Message: {
-                Email: email,
-                Name: name
-            }
-        })
-    });
-
-    if (!response.ok) {
-        throw new Error('Command failed');
-    }
-
-    return await response.json();
-}
-
-// Usage
-const user = await getUser('12345');
-console.log('User:', user);
-
-const result = await createUser('user@example.com', 'John Doe');
-console.log('Created user:', result);
-```
-
-### Mobile App Integration
-
-```csharp
-// Xamarin/MAUI client
-using System.Net.Http;
-using System.Text.Json;
-
-public class CqrsClient
-{
-    private readonly HttpClient _httpClient;
-    private readonly string _baseUrl;
-    private readonly string _apiKey;
-
-    public CqrsClient(string baseUrl, string apiKey)
-    {
-        _baseUrl = baseUrl;
-        _apiKey = apiKey;
-        _httpClient = new HttpClient();
-    }
-
-    public async Task<TResult> CallAsync<TResult>(string messageType, object message)
-    {
-        var request = new
-        {
-            MessageType = messageType,
-            Message = message
-        };
-
-        var content = new StringContent(
-            JsonSerializer.Serialize(request),
-            System.Text.Encoding.UTF8,
-            "application/json"
-        );
-
-        _httpClient.DefaultRequestHeaders.Add("X-API-Key", _apiKey);
-
-        var response = await _httpClient.PostAsync($"{_baseUrl}/api/cqrs", content);
-        response.EnsureSuccessStatusCode();
-
-        var json = await response.Content.ReadAsStringAsync();
-        return JsonSerializer.Deserialize<TResult>(json);
-    }
-}
-
-// Usage
-var client = new CqrsClient("https://myapp.azurewebsites.net", "my-secret-key");
-var user = await client.CallAsync<User>(
-    "MyApp.Queries.GetUserQuery",
-    new { UserId = "12345" }
-);
-```
-
 ### Front End Scripts (JavaScript/TypeScript)
 
 Zerra provides pre-built JavaScript and TypeScript utilities in the **Front End Scripts** solution folder to simplify browser integration with the CQRS API Gateway.
@@ -553,60 +443,63 @@ BusRoutes["Gateway"] = "https://myapp.azurewebsites.net/api/cqrs";
 // Set custom headers (e.g., API key)
 Bus.setHeader("X-API-Key", "my-secret-key");
 
-// Call a query with standard JSON
-Bus.Call(
-    "MyApp.Queries.IUserQueries",           // Provider type
-    "GetUser",                               // Method name
-    [{ UserId: "12345" }],                   // Arguments array
-    null,                                    // Model type (null = standard JSON)
-    false,                                   // Has many (array result)
-    function(result) {                       // Success callback
-        console.log("User:", result);
-        document.getElementById("userName").innerText = result.Name;
-    },
-    function(error) {                        // Error callback
-        console.error("Error:", error);
-    }
-);
+// Example 1: Simple query call
+IUserQueries.GetUser("12345", function(user) {
+    console.log("User:", user);
+    document.getElementById("userName").innerText = user.Name;
+}, function(jqXHR, textStatus, errorThrown) {
+    console.error("Error:", textStatus, errorThrown);
+});
 
-// Call a query with Nameless JSON (compact)
-Bus.Call(
-    "MyApp.Queries.IUserQueries",
-    "GetAllUsers",
-    [],
-    ModelTypeDictionary["User"],             // Model type for deserialization
-    true,                                    // Has many (array result)
-    function(users) {
-        console.log("Users:", users);
-        // Result automatically deserialized from compact JSON arrays
-        users.forEach(u => console.log(u.Name));
-    },
-    function(error) {
-        console.error("Error:", error);
-    }
-);
+// Example 2: Query returning a list
+IUserQueries.GetAllUsers(function(users) {
+    console.log("Found " + users.length + " users");
+    users.forEach(function(user) {
+        console.log(user.Name + " - " + user.Email);
+    });
+}, function(jqXHR, textStatus, errorThrown) {
+    console.error("Error loading users:", textStatus);
+});
 
-// Dispatch a command
-const command = {
-    CommandType: "MyApp.Commands.CreateUserCommand",
-    CommandWithResult: true,
+// Example 3: Dispatch a command with result
+const createCommand = new CreateUserCommand({
     Email: "user@example.com",
     Name: "John Doe"
-};
+});
 
-Bus.Dispatch(
-    command,
-    function(result) {
-        console.log("User created:", result);
+Bus.Dispatch(createCommand, function(result) {
+    console.log("User created with ID:", result.UserId);
+}, function(jqXHR, textStatus, errorThrown) {
+    console.error("Failed to create user:", textStatus);
+});
+
+// Example 4: Dispatch command without awaiting result (fire and forget)
+const updateCommand = new UpdateUserCommand({
+    UserId: "12345",
+    Name: "Jane Doe"
+});
+
+Bus.DispatchAwait(updateCommand);
+
+// Example 5: Using Bus.Call directly for more control
+Bus.Call(
+    "MyApp.Queries.IUserQueries",
+    "SearchUsers",
+    ["john", 10, 0],  // searchTerm, pageSize, offset
+    UserModelType,
+    true,  // hasMany = true for arrays
+    function(users) {
+        console.log("Search results:", users);
     },
-    function(error) {
-        console.error("Error:", error);
+    function(jqXHR, textStatus, errorThrown) {
+        console.error("Search failed:", textStatus);
     }
 );
 
 // Global error handler
 BusFail = function(message, url) {
-    alert("CQRS Error: " + message);
+    console.error("CQRS Error at " + url + ": " + message);
+    alert("An error occurred. Please try again.");
 };
 </script>
 ```
@@ -616,49 +509,243 @@ BusFail = function(message, url) {
 ```typescript
 import { Bus } from "./Bus";
 import { SetBusRoute, SetBusFailCallback } from "./BusConfig";
-import { User, GetUserQuery, CreateUserCommand } from "./TypeScriptModels";
+import { User, UserSettings, GetUserQuery, GetAllUsersQuery, CreateUserCommand, UpdateUserSettingsCommand } from "./TypeScriptModels";
 
 // Configure routes
 SetBusRoute("Gateway", "https://myapp.azurewebsites.net/api/cqrs");
 
 // Set global error handler
-SetBusFailCallback((message) => {
+SetBusFailCallback((message: string) => {
     console.error("Bus error:", message);
-    alert(message);
+    alert(`An error occurred: ${message}`);
 });
 
-// Call a query with full type safety
+// Example 1: Simple query with parameters
 const query = new GetUserQuery();
 query.UserId = "12345";
 
-const user = await Bus.Call<User>(
-    "MyApp.Queries.IUserQueries",
-    "GetUser",
-    [query],
-    User,           // Type for IntelliSense and deserialization
-    false
-);
+try {
+    const user = await Bus.Call<User>(
+        "MyApp.Queries.IUserQueries",
+        "GetUser",
+        [query],
+        User,    // Type for IntelliSense and deserialization
+        false    // hasMany = false for single result
+    );
 
-console.log(user.Name); // Full IntelliSense support
+    console.log(`User: ${user.Name} (${user.Email})`); // Full IntelliSense support
+} catch (error) {
+    console.error("Failed to load user:", error);
+}
 
-// Call query returning array
-const users = await Bus.Call<User[]>(
-    "MyApp.Queries.IUserQueries",
-    "GetAllUsers",
-    [],
-    User,
-    true            // Has many = true for arrays
-);
+// Example 2: Query returning array
+try {
+    const users = await Bus.Call<User[]>(
+        "MyApp.Queries.IUserQueries",
+        "GetAllUsers",
+        [],
+        User,
+        true     // hasMany = true for arrays
+    );
 
-users.forEach(u => console.log(u.Email));
+    console.log(`Loaded ${users.length} users`);
+    users.forEach(u => console.log(`${u.Name} - ${u.Email}`));
+} catch (error) {
+    console.error("Failed to load users:", error);
+}
 
-// Dispatch command
-const command = new CreateUserCommand();
-command.Email = "user@example.com";
-command.Name = "John Doe";
+// Example 3: Dispatch command with result
+const createCommand = new CreateUserCommand();
+createCommand.Email = "user@example.com";
+createCommand.Name = "John Doe";
 
-const result = await Bus.Dispatch(command);
-console.log("Created user:", result);
+try {
+    const result = await Bus.Dispatch(createCommand);
+    console.log(`User created with ID: ${result.UserId}`);
+} catch (error) {
+    console.error("Failed to create user:", error);
+}
+
+// Example 4: Complex command with nested objects
+const updateCommand = new UpdateUserSettingsCommand();
+updateCommand.UserId = "12345";
+updateCommand.Settings = {
+    FirstName: "Jane",
+    LastName: "Doe",
+    TimeZone: "America/New_York",
+    EmailNotifications: true,
+    Theme: "dark"
+};
+
+try {
+    await Bus.Dispatch(updateCommand);
+    console.log("Settings updated successfully");
+} catch (error) {
+    console.error("Failed to update settings:", error);
+}
+```
+
+**TypeScript Settings Page Example:**
+
+```typescript
+// settings.ts - Type-safe settings page
+
+import { Bus } from "./Bus";
+import { 
+    UserSettings, 
+    GetSettingsQuery, 
+    UpdateUserSettingsCommand 
+} from "./TypeScriptModels";
+
+class SettingsPage {
+    private currentUserId: string;
+    private originalSettings: UserSettings | null = null;
+
+    constructor(userId: string) {
+        this.currentUserId = userId;
+    }
+
+    async loadSettings(): Promise<void> {
+        try {
+            this.showLoading(true);
+
+            const query = new GetSettingsQuery();
+            query.UserId = this.currentUserId;
+
+            this.originalSettings = await Bus.Call<UserSettings>(
+                "MyApp.Queries.IUserQueries",
+                "GetSettings",
+                [query],
+                UserSettings,
+                false
+            );
+
+            this.populateForm(this.originalSettings);
+            this.showForm(true);
+        } catch (error) {
+            console.error("Failed to load settings:", error);
+            this.showError("Failed to load settings. Please refresh the page.");
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
+    async saveSettings(): Promise<void> {
+        const settings = this.getFormData();
+
+        if (!this.validateForm(settings)) {
+            return;
+        }
+
+        try {
+            this.setSaveButtonState(true, "Saving...");
+
+            const command = new UpdateUserSettingsCommand();
+            command.UserId = this.currentUserId;
+            command.FirstName = settings.FirstName;
+            command.LastName = settings.LastName;
+            command.Email = settings.Email;
+            command.TimeZone = settings.TimeZone;
+            command.EmailNotifications = settings.EmailNotifications;
+            command.Theme = settings.Theme;
+
+            const result = await Bus.Dispatch(command);
+
+            if (result.Success) {
+                this.showSuccess("Settings saved successfully!");
+                await this.loadSettings(); // Reload fresh data
+            } else {
+                alert(`Error: ${result.ErrorMessage}`);
+            }
+        } catch (error) {
+            console.error("Failed to save settings:", error);
+            alert("Failed to save settings. Please try again.");
+        } finally {
+            this.setSaveButtonState(false, "Save Changes");
+        }
+    }
+
+    resetForm(): void {
+        if (this.originalSettings && confirm("Discard all changes?")) {
+            this.populateForm(this.originalSettings);
+        }
+    }
+
+    private getFormData(): UserSettings {
+        return {
+            UserId: this.currentUserId,
+            FirstName: (document.getElementById("txtFirstName") as HTMLInputElement).value.trim(),
+            LastName: (document.getElementById("txtLastName") as HTMLInputElement).value.trim(),
+            Email: (document.getElementById("txtEmail") as HTMLInputElement).value.trim(),
+            TimeZone: (document.getElementById("ddlTimeZone") as HTMLSelectElement).value,
+            EmailNotifications: (document.getElementById("chkEmailNotifications") as HTMLInputElement).checked,
+            Theme: (document.getElementById("ddlTheme") as HTMLSelectElement).value
+        };
+    }
+
+    private validateForm(settings: UserSettings): boolean {
+        if (!settings.FirstName || !settings.LastName) {
+            alert("First name and last name are required.");
+            return false;
+        }
+
+        if (!settings.Email || !settings.Email.includes("@")) {
+            alert("Please enter a valid email address.");
+            return false;
+        }
+
+        return true;
+    }
+
+    private populateForm(settings: UserSettings): void {
+        (document.getElementById("txtFirstName") as HTMLInputElement).value = settings.FirstName;
+        (document.getElementById("txtLastName") as HTMLInputElement).value = settings.LastName;
+        (document.getElementById("txtEmail") as HTMLInputElement).value = settings.Email;
+        (document.getElementById("ddlTimeZone") as HTMLSelectElement).value = settings.TimeZone;
+        (document.getElementById("chkEmailNotifications") as HTMLInputElement).checked = settings.EmailNotifications;
+        (document.getElementById("ddlTheme") as HTMLSelectElement).value = settings.Theme;
+    }
+
+    private showLoading(show: boolean): void {
+        document.getElementById("loading")!.style.display = show ? "block" : "none";
+    }
+
+    private showForm(show: boolean): void {
+        document.getElementById("settingsForm")!.style.display = show ? "block" : "none";
+    }
+
+    private showError(message: string): void {
+        const errorDiv = document.getElementById("error")!;
+        errorDiv.textContent = message;
+        errorDiv.style.display = "block";
+    }
+
+    private showSuccess(message: string): void {
+        const successDiv = document.getElementById("successMessage")!;
+        successDiv.textContent = message;
+        successDiv.style.display = "block";
+
+        setTimeout(() => {
+            successDiv.style.display = "none";
+        }, 3000);
+    }
+
+    private setSaveButtonState(disabled: boolean, text: string): void {
+        const btn = document.getElementById("btnSave") as HTMLButtonElement;
+        btn.disabled = disabled;
+        btn.textContent = text;
+    }
+}
+
+// Initialize page
+const settingsPage = new SettingsPage("12345"); // From auth/session
+document.addEventListener("DOMContentLoaded", () => {
+    settingsPage.loadSettings();
+
+    document.getElementById("btnSave")!.addEventListener("click", () => settingsPage.saveSettings());
+    document.getElementById("btnReset")!.addEventListener("click", () => settingsPage.resetForm());
+});
+```
 ```
 
 #### Nameless JSON Support
@@ -674,20 +761,228 @@ app.UseCqrsApiGateway();
 
 **Client Code:**
 ```javascript
+// The generated JavaScriptModels.js includes type definitions like:
+const UserModelType = {
+    UserId: "string",
+    Name: "string",
+    Email: "string",
+    CreatedDate: "Date"
+};
+
 // Bus automatically detects "application/jsonnameless" content type
-// and deserializes compact arrays back to objects
+// and deserializes compact arrays back to objects using the model type
+IUserQueries.GetAllUsers(function(users) {
+    // Server sends compact JSON: [["123","John","john@example.com","2024-01-15"],["456","Jane","jane@example.com","2024-01-16"]]
+    // Bus deserializes to: [{ UserId: "123", Name: "John", Email: "john@example.com", CreatedDate: Date }, ...]
+
+    users.forEach(function(user) {
+        console.log(user.Name + " (" + user.Email + ")");
+        console.log("Created:", user.CreatedDate.toLocaleDateString());
+    });
+}, function(jqXHR, textStatus, errorThrown) {
+    console.error("Error:", textStatus);
+});
+
+// For custom queries with Bus.Call, specify the model type:
 Bus.Call(
     "MyApp.Queries.IUserQueries",
-    "GetUsers",
-    [],
-    ModelTypeDictionary["User"],  // Required for nameless deserialization
-    true,
+    "SearchUsers",
+    ["john"],
+    UserModelType,  // Required for nameless deserialization
+    true,           // hasMany = true for arrays
     function(users) {
-        // Compact JSON: [[1,"John","john@example.com"],[2,"Jane","jane@example.com"]]
-        // Deserialized to: [{ Id: 1, Name: "John", Email: "john@example.com" }, ...]
-        console.log(users);
+        console.log("Found users:", users);
+    },
+    function(jqXHR, textStatus, errorThrown) {
+        console.error("Search failed:", textStatus);
     }
 );
+```
+
+#### Real-World Example: User Settings Page
+
+Here's a complete example showing how to build a settings page with data loading, validation, and command dispatching:
+
+```javascript
+// settings.js - Complete user settings page example
+
+// Model generated by JavaScriptModels.tt
+const UserSettingsModelType = {
+    UserId: "string",
+    Email: "string",
+    FirstName: "string",
+    LastName: "string",
+    TimeZone: "string",
+    EmailNotifications: "boolean",
+    Theme: "string"
+};
+
+// Initialize page
+var currentUserId = "12345"; // From session or auth
+var originalSettings = null;
+
+function loadSettings() {
+    // Show loading indicator
+    $("#loading").show();
+    $("#settingsForm").hide();
+
+    // Load user settings from query
+    IUserQueries.GetSettings(currentUserId, function(settings) {
+        originalSettings = settings;
+
+        // Populate form fields
+        $("#txtFirstName").val(settings.FirstName);
+        $("#txtLastName").val(settings.LastName);
+        $("#txtEmail").val(settings.Email);
+        $("#ddlTimeZone").val(settings.TimeZone);
+        $("#chkEmailNotifications").prop("checked", settings.EmailNotifications);
+        $("#ddlTheme").val(settings.Theme);
+
+        // Hide loading, show form
+        $("#loading").hide();
+        $("#settingsForm").show();
+    }, function(jqXHR, textStatus, errorThrown) {
+        console.error("Failed to load settings:", textStatus, errorThrown);
+        $("#loading").hide();
+        $("#error").text("Failed to load settings. Please refresh the page.").show();
+    });
+}
+
+function saveSettings() {
+    // Validate form
+    var firstName = $("#txtFirstName").val().trim();
+    var lastName = $("#txtLastName").val().trim();
+    var email = $("#txtEmail").val().trim();
+
+    if (!firstName || !lastName) {
+        alert("First name and last name are required.");
+        return;
+    }
+
+    if (!email || !email.includes("@")) {
+        alert("Please enter a valid email address.");
+        return;
+    }
+
+    // Build command
+    var updateCommand = new UpdateUserSettingsCommand({
+        UserId: currentUserId,
+        FirstName: firstName,
+        LastName: lastName,
+        Email: email,
+        TimeZone: $("#ddlTimeZone").val(),
+        EmailNotifications: $("#chkEmailNotifications").is(":checked"),
+        Theme: $("#ddlTheme").val()
+    });
+
+    // Show saving indicator
+    $("#btnSave").prop("disabled", true).text("Saving...");
+
+    // Dispatch command
+    Bus.Dispatch(updateCommand, function(result) {
+        $("#btnSave").prop("disabled", false).text("Save Changes");
+
+        if (result.Success) {
+            $("#successMessage").text("Settings saved successfully!").show();
+            setTimeout(function() {
+                $("#successMessage").fadeOut();
+            }, 3000);
+
+            // Reload to get fresh data
+            loadSettings();
+        } else {
+            alert("Error: " + result.ErrorMessage);
+        }
+    }, function(jqXHR, textStatus, errorThrown) {
+        $("#btnSave").prop("disabled", false).text("Save Changes");
+        console.error("Failed to save settings:", textStatus, errorThrown);
+        alert("Failed to save settings. Please try again.");
+    });
+}
+
+function resetForm() {
+    if (originalSettings && confirm("Discard all changes?")) {
+        $("#txtFirstName").val(originalSettings.FirstName);
+        $("#txtLastName").val(originalSettings.LastName);
+        $("#txtEmail").val(originalSettings.Email);
+        $("#ddlTimeZone").val(originalSettings.TimeZone);
+        $("#chkEmailNotifications").prop("checked", originalSettings.EmailNotifications);
+        $("#ddlTheme").val(originalSettings.Theme);
+    }
+}
+
+// Load data when page loads
+$(document).ready(function() {
+    loadSettings();
+
+    // Wire up button handlers
+    $("#btnSave").click(saveSettings);
+    $("#btnReset").click(resetForm);
+});
+```
+
+**Corresponding HTML:**
+```html
+<div id="loading" style="display:none;">
+    <p>Loading settings...</p>
+</div>
+
+<div id="error" style="display:none; color:red;"></div>
+
+<form id="settingsForm" style="display:none;">
+    <div class="form-group">
+        <label for="txtFirstName">First Name:</label>
+        <input type="text" id="txtFirstName" class="form-control" />
+    </div>
+
+    <div class="form-group">
+        <label for="txtLastName">Last Name:</label>
+        <input type="text" id="txtLastName" class="form-control" />
+    </div>
+
+    <div class="form-group">
+        <label for="txtEmail">Email:</label>
+        <input type="email" id="txtEmail" class="form-control" />
+    </div>
+
+    <div class="form-group">
+        <label for="ddlTimeZone">Time Zone:</label>
+        <select id="ddlTimeZone" class="form-control">
+            <option value="UTC">UTC</option>
+            <option value="America/New_York">Eastern Time</option>
+            <option value="America/Chicago">Central Time</option>
+            <option value="America/Denver">Mountain Time</option>
+            <option value="America/Los_Angeles">Pacific Time</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>
+            <input type="checkbox" id="chkEmailNotifications" />
+            Enable email notifications
+        </label>
+    </div>
+
+    <div class="form-group">
+        <label for="ddlTheme">Theme:</label>
+        <select id="ddlTheme" class="form-control">
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+            <option value="auto">Auto</option>
+        </select>
+    </div>
+
+    <div id="successMessage" style="display:none; color:green;"></div>
+
+    <button type="button" id="btnSave" class="btn btn-primary">Save Changes</button>
+    <button type="button" id="btnReset" class="btn btn-secondary">Reset</button>
+</form>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="JavaScriptModels.js"></script>
+<script src="Bus.js"></script>
+<script src="BusRoutes.js"></script>
+<script src="settings.js"></script>
 ```
 
 The Bus utilities handle:
