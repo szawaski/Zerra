@@ -30,6 +30,12 @@ namespace Zerra.Repository.PostgreSql
             this.connectionString = connectionString;
         }
 
+        /// <summary>
+        /// Gets the PostgreSQL connection string used to connect to the database.
+        /// </summary>
+        /// <returns>The connection string.</returns>
+        public string GetConnectionString() => connectionString;
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static ModelPropertyDetail[] ReadColumns<TModel>(NpgsqlDataReader reader, ModelDetail modelDetail)
         {

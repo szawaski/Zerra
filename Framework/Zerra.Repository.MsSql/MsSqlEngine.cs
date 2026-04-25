@@ -30,6 +30,12 @@ namespace Zerra.Repository.MsSql
             this.connectionString = connectionString;
         }
 
+        /// <summary>
+        /// Gets the SQL Server connection string used to connect to the database.
+        /// </summary>
+        /// <returns>The connection string.</returns>
+        public string GetConnectionString() => connectionString;
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static ModelPropertyDetail[] ReadColumns<TModel>(SqlDataReader reader, ModelDetail modelDetail)
         {

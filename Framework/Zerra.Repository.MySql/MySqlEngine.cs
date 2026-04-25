@@ -31,6 +31,12 @@ namespace Zerra.Repository.MySql
             this.connectionString = connectionString;
         }
 
+        /// <summary>
+        /// Gets the MySQL connection string used to connect to the database.
+        /// </summary>
+        /// <returns>The connection string.</returns>
+        public string GetConnectionString() => connectionString;
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static ModelPropertyDetail[] ReadColumns<TModel>(DbDataReader reader, ModelDetail modelDetail)
         {
