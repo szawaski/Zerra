@@ -2,13 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-
-// Copyright © KaKush LLC
-// Written By Steven Zawaski
-// Licensed to you under the MIT license
-
-using System.Runtime.CompilerServices;
-
 namespace Zerra.Reflection
 {
     /// <summary>
