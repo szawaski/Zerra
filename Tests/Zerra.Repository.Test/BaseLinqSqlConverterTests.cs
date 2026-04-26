@@ -344,6 +344,135 @@ namespace Zerra.Repository.Test
 
         #endregion
 
+        #region Related Model (Join) Where Clauses
+
+        [Fact]
+        public void Convert_WhereOnOneToOneRelation_GeneratesJoinAndWhere()
+        {
+            var d = GetDialect();
+            Expression<Func<TestTypesModel, bool>> where = x => x.RelationA.SomeValue == "hello";
+            var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.Contains("WHERE", sql);
+            Assert.Contains("JOIN", sql);
+            Assert.Contains(d.Column("TestRelations", "SomeValue"), sql);
+            Assert.Contains("hello", sql);
+        }
+
+        [Fact]
+        public void Convert_WhereOnOneToOneRelationNotEquals_GeneratesJoinAndNotEquals()
+        {
+            var d = GetDialect();
+            Expression<Func<TestTypesModel, bool>> where = x => x.RelationA.SomeValue != "hello";
+            var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.Contains("WHERE", sql);
+            Assert.Contains("JOIN", sql);
+            Assert.Contains(d.Column("TestRelations", "SomeValue"), sql);
+            Assert.Contains("!=", sql);
+        }
+
+        [Fact]
+        public void Convert_WhereOnOneToOneRelationNull_GeneratesJoinAndIsNull()
+        {
+            var d = GetDialect();
+            Expression<Func<TestTypesModel, bool>> where = x => x.RelationA.SomeValue == null;
+            var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.Contains("WHERE", sql);
+            Assert.Contains("JOIN", sql);
+            Assert.Contains(d.Column("TestRelations", "SomeValue"), sql);
+            Assert.Contains("IS NULL", sql);
+        }
+
+        [Fact]
+        public void Convert_WhereOnOneToOneRelationKey_GeneratesJoinAndWhere()
+        {
+            var d = GetDialect();
+            var testGuid = Guid.NewGuid();
+            Expression<Func<TestTypesModel, bool>> where = x => x.RelationA.RelationAKey == testGuid;
+            var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.Contains("WHERE", sql);
+            Assert.Contains("JOIN", sql);
+            Assert.Contains(d.Column("TestRelations", "RelationAKey"), sql);
+        }
+
+        [Fact]
+        public void Convert_WhereOnOneToManyRelation_GeneratesSubqueryAndWhere()
+        {
+            var d = GetDialect();
+            Expression<Func<TestTypesModel, bool>> where = x => x.RelationB.Any(r => r.SomeValue == "hello");
+            var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.Contains("WHERE", sql);
+            Assert.DoesNotContain("JOIN", sql);
+            Assert.Contains("ANY", sql);
+            Assert.Contains("SELECT", sql);
+            Assert.Contains(d.Column("TestRelations", "SomeValue"), sql);
+            Assert.Contains("hello", sql);
+        }
+
+        [Fact]
+        public void Convert_WhereOnOneToManyRelationNotEquals_GeneratesSubqueryAndNotEquals()
+        {
+            var d = GetDialect();
+            Expression<Func<TestTypesModel, bool>> where = x => x.RelationB.Any(r => r.SomeValue != "hello");
+            var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.Contains("WHERE", sql);
+            Assert.DoesNotContain("JOIN", sql);
+            Assert.Contains("ANY", sql);
+            Assert.Contains("SELECT", sql);
+            Assert.Contains(d.Column("TestRelations", "SomeValue"), sql);
+            Assert.Contains("!=", sql);
+        }
+
+        [Fact]
+        public void Convert_WhereOnOneToManyRelationNull_GeneratesSubqueryAndIsNull()
+        {
+            var d = GetDialect();
+            Expression<Func<TestTypesModel, bool>> where = x => x.RelationB.Any(r => r.SomeValue == null);
+            var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.Contains("WHERE", sql);
+            Assert.DoesNotContain("JOIN", sql);
+            Assert.Contains("ANY", sql);
+            Assert.Contains("SELECT", sql);
+            Assert.Contains(d.Column("TestRelations", "SomeValue"), sql);
+            Assert.Contains("IS NULL", sql);
+        }
+
+        [Fact]
+        public void Convert_WhereOnBothDirectAndRelationProperty_GeneratesJoinAndAnd()
+        {
+            var d = GetDialect();
+            Expression<Func<TestTypesModel, bool>> where = x => x.Int32Thing > 5 && x.RelationA.SomeValue == "hello";
+            var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.Contains("WHERE", sql);
+            Assert.Contains("JOIN", sql);
+            Assert.Contains("AND", sql);
+            Assert.Contains(d.Column("TestTypes", "Int32Thing"), sql);
+            Assert.Contains(d.Column("TestRelations", "SomeValue"), sql);
+        }
+
+        [Fact]
+        public void Convert_WhereOnOneToOneRelationStringContains_GeneratesJoinAndLike()
+        {
+            var d = GetDialect();
+            Expression<Func<TestTypesModel, bool>> where = x => x.RelationA.SomeValue.Contains("hello");
+            var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.Contains("WHERE", sql);
+            Assert.Contains("JOIN", sql);
+            Assert.Contains(d.Column("TestRelations", "SomeValue"), sql);
+            Assert.Contains("LIKE", sql);
+            Assert.Contains("hello", sql);
+        }
+
+        #endregion
+
         #region Graph
 
         [Fact]
