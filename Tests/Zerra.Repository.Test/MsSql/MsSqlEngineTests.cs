@@ -6,6 +6,7 @@ using Xunit;
 using System.Text;
 using Zerra.Repository.Reflection;
 using Microsoft.Data.SqlClient;
+using Zerra.Repository.MsSql;
 
 namespace Zerra.Repository.Test
 {
@@ -90,7 +91,7 @@ namespace Zerra.Repository.Test
                 if (property.IsNullable)
                 {
                     _ = sb.Append("ALTER TABLE [TestTypes] ADD [Junk").Append(property.PropertySourceName).Append("] ");
-                    MsSql.MsSqlEngine.WriteSqlTypeFromModel(sb, property, true);
+                    MsSqlEngine.WriteSqlTypeFromModel(sb, property, true);
                     _ = sb.Insert(sb.Length - 4, "NOT ");
                     _ = sb.Append("\r\n");
                 }

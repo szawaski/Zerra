@@ -6,6 +6,7 @@ using Xunit;
 using Npgsql;
 using System.Text;
 using Zerra.Repository.Reflection;
+using Zerra.Repository.PostgreSql;
 
 namespace Zerra.Repository.Test
 {
@@ -93,8 +94,8 @@ namespace Zerra.Repository.Test
                 if (property.IsNullable)
                 {
                     _ = sb.Append("ALTER TABLE testtypes ADD Junk").Append(property.PropertySourceName).Append(' ');
-                    PostgreSql.PostgreSqlEngine.WriteSqlTypeFromModel(sb, property);
-                    PostgreSql.PostgreSqlEngine.WriteTypeEndingFromModel(sb, property);
+                    PostgreSqlEngine.WriteSqlTypeFromModel(sb, property);
+                    PostgreSqlEngine.WriteTypeEndingFromModel(sb, property);
                     _ = sb.Insert(sb.Length - 4, "NOT ");
                     _ = sb.Append(";\r\n");
                 }

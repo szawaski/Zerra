@@ -755,7 +755,7 @@ namespace Zerra.Repository.MsSql
                             }
                         }
                         sb.Write('\'');
-                        sb.Write((TimeSpan)value, CharWriter.TimeFormat.MsSql);
+                        sb.Write((TimeOnly)value, CharWriter.TimeFormat.MsSql);
                         sb.Write('\'');
                         return false;
                     case CoreType.Guid:

@@ -6,6 +6,7 @@ using Xunit;
 using MySql.Data.MySqlClient;
 using System.Text;
 using Zerra.Repository.Reflection;
+using Zerra.Repository.MySql;
 
 namespace Zerra.Repository.Test
 {
@@ -78,7 +79,7 @@ namespace Zerra.Repository.Test
 
             _ = ExecuteSql(context, dropAllColumns);
 
-            CodeFirstGeneration.Generate<MsSqlTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
+            CodeFirstGeneration.Generate<MySqlTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
 
             _ = sb.Clear();
             foreach (var property in modelDetails.Properties)
@@ -90,7 +91,7 @@ namespace Zerra.Repository.Test
                 if (property.IsNullable)
                 {
                     _ = sb.Append("ALTER TABLE `TestTypes` ADD `Junk").Append(property.PropertySourceName).Append("` ");
-                    MySql.MySqlEngine.WriteSqlTypeFromModel(sb, property);
+                    MySqlEngine.WriteSqlTypeFromModel(sb, property);
                     _ = sb.Insert(sb.Length - 4, "NOT ");
                     _ = sb.Append(";\r\n");
                 }
