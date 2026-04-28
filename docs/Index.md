@@ -37,6 +37,7 @@ Welcome to the Zerra CQRS Framework documentation. This guide provides comprehen
 - [Graph](Graph.md) - Selective member inclusion/exclusion for serialization and mapping
 - [Mapper](Mapper.md) - Object mapping and type conversion with AOT support
 - [Collections](Collections.md) - Thread-safe collection classes (ConcurrentFactoryDictionary, ConcurrentList)
+- [EnumName](EnumName.md) - Attribute-based custom string names for enum values with parse and extension method support
 - [Reflection](Reflection.md) - TypeAnalyzer and TypeDetail for runtime type analysis
 - [String Extensions](StringExtensions.md) - String manipulation, truncation, and type conversion helpers
 - [Stream Wrappers](StreamWrappers.md) - Stream interception, transformation, and monitoring
@@ -65,6 +66,7 @@ Welcome to the Zerra CQRS Framework documentation. This guide provides comprehen
 - **Add logging** → See [Logging](Logging.md) for ILogger and IBusLogger
 - **Inject services** → See [Service Injection](ServiceInjection.md) for BusServices usage
 - **Map between types** → See [Mapper](Mapper.md) for object mapping and conversions
+- **Custom enum names** → See [EnumName](EnumName.md) for attribute-based enum string representation
 - **Enable AOT** → See [AOT Support](AOT.md) for Native AOT compilation
 - **Expose HTTP API** → See [Zerra.Web](ZerraWeb.md) for API Gateway setup
 - **Deploy to Azure** → See [Zerra.Web](ZerraWeb.md) for IIS/Azure App Services hosting

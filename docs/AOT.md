@@ -254,6 +254,7 @@ The source generator works seamlessly with all Zerra features:
 - ✅ **Logging** - [IBusLogger](Logging.md) receives full type information from generated code
 - ✅ **Service Injection** - [BusServices](ServiceInjection.md) uses generated type metadata
 - ✅ **Bus Routing** - [Commands](Commands.md), [Queries](Queries.md), and [Events](Events.md) use generated routing logic
+- ✅ **EnumName** - [EnumName](EnumName.md) enum name mappings are prebuilt by the source generator for AOT-safe string conversion and parsing
 
 ## Performance Comparison
 

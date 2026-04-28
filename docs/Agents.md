@@ -60,8 +60,8 @@ All handlers inherit from `BaseHandler` (implements `IHandler`).
 ### BusContext Access
 
 Handlers receive `BusContext` via `this.Context`:
-- `Context.Bus`: Access to bus for dispatching
-- `Context.Log`: Optional logger
+- `this.Bus`: Access to bus for dispatching
+- `this.Log`: Optional logger
 - `Context.Get<TInterface>()`: Retrieve scoped dependencies
 - `Context.Service`: Current service name
 

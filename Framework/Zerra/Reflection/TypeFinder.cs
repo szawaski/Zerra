@@ -14,8 +14,6 @@ namespace Zerra.Reflection
     /// </summary>
     public static class TypeFinder
     {
-        //private static readonly ConcurrentFactoryDictionary<Type, string> niceNames = new();
-        //private static readonly ConcurrentFactoryDictionary<Type, string> niceFullNames = new();
         private static readonly ConcurrentFactoryDictionary<string, ConcurrentList<Type?>> typeByName = new();
 
         /// <summary>
@@ -119,9 +117,6 @@ namespace Zerra.Reflection
         /// <param name="type">The type to register.</param>
         public static void Register(Type type)
         {
-            //var niceName = GetNiceName(type);
-            //var niceFullName = GetNiceFullName(type);
-
             if (type.AssemblyQualifiedName != null)
             {
                 var types = typeByName.GetOrAdd(type.AssemblyQualifiedName, static (key) => new());
@@ -135,14 +130,6 @@ namespace Zerra.Reflection
                 if (!types.Contains(type))
                     types.Add(type);
             }
-
-            //types = typeByName.GetOrAdd(niceName, static (key) => new());
-            //if (!types.Contains(type))
-            //    types.Add(type);
-
-            //types = typeByName.GetOrAdd(niceFullName, static (key) => new());
-            //if (!types.Contains(type))
-            //    types.Add(type);
         }
     }
 }
