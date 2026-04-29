@@ -89,7 +89,7 @@ namespace Zerra.Repository
         /// <param name="take">The number of elements to take, or null to take all.</param>
         /// <returns>An <see cref="IEnumerable{TSource}"/> that contains elements from the input sequence that satisfy the query.</returns>
         /// <exception cref="ArgumentException">Thrown when <paramref name="where"/> is not of type <c>Expression&lt;Func&lt;TSource, bool&gt;&gt;</c>.</exception>
-        public static IEnumerable<TSource> Query<TSource>(this IEnumerable<TSource> source, Expression? where, QueryOrder? order, int? skip, int? take)
+        public static IEnumerable<TSource> Query<TSource>(this IEnumerable<TSource> source, LambdaExpression? where, QueryOrder? order, int? skip, int? take)
            where TSource : class, new()
         {
             var whereQuery = source;
@@ -162,7 +162,7 @@ namespace Zerra.Repository
         /// <param name="take">The number of elements to take, or null to take all.</param>
         /// <returns>An <see cref="IQueryable{TSource}"/> that contains elements from the input queryable that satisfy the query.</returns>
         /// <exception cref="ArgumentException">Thrown when <paramref name="where"/> is not of type <c>Expression&lt;Func&lt;TSource, bool&gt;&gt;</c>.</exception>
-        public static IQueryable<TSource> Query<TSource>(this IQueryable<TSource> source, Expression? where, QueryOrder? order, int? skip, int? take)
+        public static IQueryable<TSource> Query<TSource>(this IQueryable<TSource> source, LambdaExpression? where, QueryOrder? order, int? skip, int? take)
             where TSource : class, new()
         {
             var whereQuery = source;

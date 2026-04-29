@@ -23,7 +23,7 @@ namespace Zerra.Repository
         /// <param name="graph">An optional graph describing which properties to include.</param>
         /// <param name="modelDetail">Metadata about the model being queried.</param>
         /// <returns>The generated SQL query string.</returns>
-        public string ConvertInternal(QueryOperation select, Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail)
+        public string ConvertInternal(QueryOperation select, LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail)
         {
             var operationContext = new MemberContext();
             var sb = new CharWriter();
@@ -50,7 +50,7 @@ namespace Zerra.Repository
         /// <param name="graph">An optional graph describing which properties to include.</param>
         /// <param name="modelDetail">Metadata about the model being queried.</param>
         /// <param name="operationContext">The current member context for the operation.</param>
-        protected void Convert(ref CharWriter sb, QueryOperation select, Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail, MemberContext operationContext)
+        protected void Convert(ref CharWriter sb, QueryOperation select, LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail, MemberContext operationContext)
         {
             var hasWhere = where is not null;
             var hasOrderSkipTake = (select == QueryOperation.Many || select == QueryOperation.First) && (order?.OrderExpressions.Length > 0 || skip > 0 || take > 0);
@@ -989,7 +989,7 @@ namespace Zerra.Repository
         /// <param name="sb">The writer to append SQL into.</param>
         /// <param name="rootDependant">The root parameter dependant used for join tracking.</param>
         /// <param name="operationContext">The current member context for the operation.</param>
-        protected abstract void GenerateWhere(Expression? where, ref CharWriter sb, ParameterDependant rootDependant, MemberContext operationContext);
+        protected abstract void GenerateWhere(LambdaExpression? where, ref CharWriter sb, ParameterDependant rootDependant, MemberContext operationContext);
         /// <summary>
         /// Generates the ORDER BY, OFFSET, and FETCH/LIMIT clauses into the provided writer.
         /// </summary>

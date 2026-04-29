@@ -595,7 +595,7 @@ namespace Zerra.Repository.MySql
         }
 
         /// <inheritdoc />
-        public IReadOnlyCollection<TModel> ExecuteMany<TModel>(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
+        public IReadOnlyCollection<TModel> ExecuteMany<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = LinqMySqlConverter.Convert(QueryOperation.Many, where, order, skip, take, graph, modelDetail);
 
@@ -631,7 +631,7 @@ namespace Zerra.Repository.MySql
             }
         }
         /// <inheritdoc />
-        public TModel? ExecuteFirst<TModel>(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
+        public TModel? ExecuteFirst<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = LinqMySqlConverter.Convert(QueryOperation.First, where, order, skip, take, graph, modelDetail);
 
@@ -662,7 +662,7 @@ namespace Zerra.Repository.MySql
             }
         }
         /// <inheritdoc />
-        public TModel? ExecuteSingle<TModel>(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
+        public TModel? ExecuteSingle<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = LinqMySqlConverter.Convert(QueryOperation.Single, where, order, skip, take, graph, modelDetail);
 
@@ -697,7 +697,7 @@ namespace Zerra.Repository.MySql
             }
         }
         /// <inheritdoc />
-        public long ExecuteCount(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail)
+        public long ExecuteCount<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = LinqMySqlConverter.Convert(QueryOperation.Count, where, order, skip, take, graph, modelDetail);
 
@@ -725,7 +725,7 @@ namespace Zerra.Repository.MySql
             }
         }
         /// <inheritdoc />
-        public bool ExecuteAny(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail)
+        public bool ExecuteAny<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = LinqMySqlConverter.Convert(QueryOperation.Any, where, order, skip, take, graph, modelDetail);
 
@@ -746,7 +746,7 @@ namespace Zerra.Repository.MySql
         }
 
         /// <inheritdoc />
-        public async Task<IReadOnlyCollection<TModel>> ExecuteManyAsync<TModel>(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
+        public async Task<IReadOnlyCollection<TModel>> ExecuteManyAsync<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = LinqMySqlConverter.Convert(QueryOperation.Many, where, order, skip, take, graph, modelDetail);
 
@@ -782,7 +782,7 @@ namespace Zerra.Repository.MySql
             }
         }
         /// <inheritdoc />
-        public async Task<TModel?> ExecuteFirstAsync<TModel>(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
+        public async Task<TModel?> ExecuteFirstAsync<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = LinqMySqlConverter.Convert(QueryOperation.First, where, order, skip, take, graph, modelDetail);
 
@@ -813,7 +813,7 @@ namespace Zerra.Repository.MySql
             }
         }
         /// <inheritdoc />
-        public async Task<TModel?> ExecuteSingleAsync<TModel>(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
+        public async Task<TModel?> ExecuteSingleAsync<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = LinqMySqlConverter.Convert(QueryOperation.Single, where, order, skip, take, graph, modelDetail);
 
@@ -848,7 +848,7 @@ namespace Zerra.Repository.MySql
             }
         }
         /// <inheritdoc />
-        public async Task<long> ExecuteCountAsync(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail)
+        public async Task<long> ExecuteCountAsync<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = LinqMySqlConverter.Convert(QueryOperation.Count, where, order, skip, take, graph, modelDetail);
 
@@ -876,7 +876,7 @@ namespace Zerra.Repository.MySql
             }
         }
         /// <inheritdoc />
-        public async Task<bool> ExecuteAnyAsync(Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail)
+        public async Task<bool> ExecuteAnyAsync<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = LinqMySqlConverter.Convert(QueryOperation.Any, where, order, skip, take, graph, modelDetail);
 
@@ -897,11 +897,10 @@ namespace Zerra.Repository.MySql
         }
 
         /// <inheritdoc />
-        public IReadOnlyCollection<object> ExecuteInsertGetIdentities<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
+        public object ExecuteInsertGetIdentities<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = MySqlEngine.GenerateSqlInsert(model, graph, modelDetail, true);
 
-            var allValues = new List<object>();
             using (var connection = new MySqlConnection(connectionString))
             {
                 connection.Open();
@@ -913,35 +912,36 @@ namespace Zerra.Repository.MySql
                     {
                         if (reader.HasRows)
                         {
-                            while (reader.Read())
+                            _ = reader.Read();
+
+                            if (reader.FieldCount == 1)
                             {
-                                if (reader.FieldCount == 1)
+                                var value = reader[0];
+                                return value;
+                            }
+                            else
+                            {
+                                var values = new List<object>();
+                                for (var i = 0; i < reader.FieldCount; i++)
                                 {
-                                    var value = reader[0];
-                                    allValues.Add(value);
+                                    var value = reader[i];
+                                    values.Add(value);
                                 }
-                                else
-                                {
-                                    var values = new List<object>();
-                                    for (var i = 0; i < reader.FieldCount; i++)
-                                    {
-                                        var value = reader[i];
-                                        values.Add(value);
-                                    }
-                                    allValues.Add(values.ToArray());
-                                }
+                                return values;
                             }
                         }
                     }
                 }
             }
 
-            return allValues;
+            throw new Exception($"No rows returned from insert operation for model of type {typeof(TModel).Name}");
         }
         /// <inheritdoc />
-        public int ExecuteInsert<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
+        public bool ExecuteInsert<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = MySqlEngine.GenerateSqlInsert(model, graph, modelDetail, false);
+            if (sql is null)
+                return false;
 
             using (var connection = new MySqlConnection(connectionString))
             {
@@ -950,16 +950,16 @@ namespace Zerra.Repository.MySql
                 {
                     command.CommandTimeout = 0;
                     command.CommandText = sql;
-                    return command.ExecuteNonQuery();
+                    return command.ExecuteNonQuery() > 0;
                 }
             }
         }
         /// <inheritdoc />
-        public int ExecuteUpdate<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
+        public bool ExecuteUpdate<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = MySqlEngine.GenerateSqlUpdate(model, graph, modelDetail);
             if (sql is null)
-                return 0;
+                return false;
 
             using (var connection = new MySqlConnection(connectionString))
             {
@@ -968,12 +968,12 @@ namespace Zerra.Repository.MySql
                 {
                     command.CommandTimeout = 0;
                     command.CommandText = sql;
-                    return command.ExecuteNonQuery();
+                    return command.ExecuteNonQuery() > 0;
                 }
             }
         }
         /// <inheritdoc />
-        public int ExecuteDelete(ICollection ids, ModelDetail modelDetail)
+        public int ExecuteDelete<TModel>(ICollection ids, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = MySqlEngine.GenerateSqlDelete(ids, modelDetail);
 
@@ -990,11 +990,10 @@ namespace Zerra.Repository.MySql
         }
 
         /// <inheritdoc />
-        public async Task<IReadOnlyCollection<object>> ExecuteInsertGetIdentitiesAsync<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
+        public async Task<object> ExecuteInsertGetIdentitiesAsync<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = MySqlEngine.GenerateSqlInsert(model, graph, modelDetail, true);
 
-            var allValues = new List<object>();
             using (var connection = new MySqlConnection(connectionString))
             {
                 await connection.OpenAsync();
@@ -1006,33 +1005,32 @@ namespace Zerra.Repository.MySql
                     {
                         if (reader.HasRows)
                         {
-                            while (await reader.ReadAsync())
+                            _ = await reader.ReadAsync();
+
+                            if (reader.FieldCount == 1)
                             {
-                                if (reader.FieldCount == 1)
+                                var value = reader[0];
+                                return value;
+                            }
+                            else
+                            {
+                                var values = new List<object>();
+                                for (var i = 0; i < reader.FieldCount; i++)
                                 {
-                                    var value = reader[0];
-                                    allValues.Add(value);
+                                    var value = reader[i];
+                                    values.Add(value);
                                 }
-                                else
-                                {
-                                    var values = new List<object>();
-                                    for (var i = 0; i < reader.FieldCount; i++)
-                                    {
-                                        var value = reader[i];
-                                        values.Add(value);
-                                    }
-                                    allValues.Add(values.ToArray());
-                                }
+                                return values;
                             }
                         }
                     }
                 }
             }
 
-            return allValues;
+            throw new Exception($"No rows returned from insert operation for model of type {typeof(TModel).Name}");
         }
         /// <inheritdoc />
-        public async Task<int> ExecuteInsertAsync<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
+        public async Task<bool> ExecuteInsertAsync<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = MySqlEngine.GenerateSqlInsert(model, graph, modelDetail, false);
 
@@ -1043,16 +1041,16 @@ namespace Zerra.Repository.MySql
                 {
                     command.CommandTimeout = 0;
                     command.CommandText = sql;
-                    return await command.ExecuteNonQueryAsync();
+                    return await command.ExecuteNonQueryAsync() > 0;
                 }
             }
         }
         /// <inheritdoc />
-        public async Task<int> ExecuteUpdateAsync<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
+        public async Task<bool> ExecuteUpdateAsync<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = MySqlEngine.GenerateSqlUpdate(model, graph, modelDetail);
             if (sql is null)
-                return 0;
+                return false;
 
             using (var connection = new MySqlConnection(connectionString))
             {
@@ -1061,12 +1059,12 @@ namespace Zerra.Repository.MySql
                 {
                     command.CommandTimeout = 0;
                     command.CommandText = sql;
-                    return await command.ExecuteNonQueryAsync();
+                    return await command.ExecuteNonQueryAsync() > 0;
                 }
             }
         }
         /// <inheritdoc />
-        public async Task<int> ExecuteDeleteAsync(ICollection ids, ModelDetail modelDetail)
+        public async Task<int> ExecuteDeleteAsync<TModel>(ICollection ids, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = MySqlEngine.GenerateSqlDelete(ids, modelDetail);
 

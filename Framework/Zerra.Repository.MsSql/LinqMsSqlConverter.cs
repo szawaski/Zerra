@@ -20,7 +20,7 @@ namespace Zerra.Repository.MsSql
         /// Converts a LINQ query into an MS SQL query string.
         /// </summary>
         /// <returns>The SQL query string.</returns>
-        public static string Convert(QueryOperation select, Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail)
+        public static string Convert(QueryOperation select, LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail)
         {
             return instance.ConvertInternal(select, where, order, skip, take, graph, modelDetail);
         }
@@ -107,7 +107,7 @@ namespace Zerra.Repository.MsSql
                                 if (subMember.Expression is null)
                                     throw new NotSupportedException($"Cannot convert call expression {call.Method.Name}");
 
-                                var subWhere = call.Arguments[1];
+                                var subWhere = (LambdaExpression?)call.Arguments[1];
 
                                 if (context.Inverted)
                                     sb.Write("NOT ");
@@ -143,7 +143,7 @@ namespace Zerra.Repository.MsSql
                                 if (subMember.Expression is null)
                                     throw new NotSupportedException($"Cannot convert call expression {call.Method.Name}");
 
-                                var subWhere = call.Arguments.Count > 1 ? call.Arguments[1] : null;
+                                var subWhere = call.Arguments.Count > 1 ? (LambdaExpression?)call.Arguments[1] : null;
 
                                 if (context.Inverted)
                                     sb.Write("NOT ");
@@ -179,7 +179,7 @@ namespace Zerra.Repository.MsSql
                                 if (subMember.Expression is null)
                                     throw new NotSupportedException($"Cannot convert call expression {call.Method.Name}");
 
-                                var subWhere = call.Arguments.Count > 1 ? call.Arguments[1] : null;
+                                var subWhere = call.Arguments.Count > 1 ? (LambdaExpression?)call.Arguments[1] : null;
 
                                 context.MemberContext.InCallNoRender++;
                                 ConvertToSqlMember(subMember, ref sb, context);
@@ -847,7 +847,7 @@ namespace Zerra.Repository.MsSql
         }
 
         /// <inheritdoc/>
-        protected override void GenerateWhere(Expression? where, ref CharWriter sb, ParameterDependant rootDependant, MemberContext operationContext)
+        protected override void GenerateWhere(LambdaExpression? where, ref CharWriter sb, ParameterDependant rootDependant, MemberContext operationContext)
         {
             if (where is null)
                 return;

@@ -12,7 +12,7 @@ namespace Zerra.Repository.Test
     {
         private static readonly ModelDetail testTypesModelDetail = ModelAnalyzer.GetModel(typeof(TestTypesModel));
 
-        protected abstract string ConvertToSql(QueryOperation select, Expression where, QueryOrder order, int? skip, int? take, Graph graph, ModelDetail modelDetail);
+        protected abstract string ConvertToSql(QueryOperation select, LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail);
         protected abstract SqlDialectExpectations GetDialect();
 
         #region Basic Select

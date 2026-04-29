@@ -12,7 +12,7 @@ namespace Zerra.Repository.Test
     // FROM has no space before the backtick: FROM`TestTypes`
     public class LinqMySqlConverterTests : BaseLinqSqlConverterTests
     {
-        protected override string ConvertToSql(QueryOperation select, Expression where, QueryOrder order, int? skip, int? take, Graph graph, ModelDetail modelDetail)
+        protected override string ConvertToSql(QueryOperation select, LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail)
             => LinqMySqlConverter.Convert(select, where, order, skip, take, graph, modelDetail);
 
         protected override SqlDialectExpectations GetDialect() => new()
