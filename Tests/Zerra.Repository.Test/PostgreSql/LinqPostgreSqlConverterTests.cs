@@ -12,7 +12,7 @@ namespace Zerra.Repository.Test
     // FROM uses a space before the identifier: FROM testtypes
     public class LinqPostgreSqlConverterTests : BaseLinqSqlConverterTests
     {
-        protected override string ConvertToSql(QueryOperation select, Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail)
+        protected override string ConvertToSql(QueryOperation select, Expression where, QueryOrder order, int? skip, int? take, Graph graph, ModelDetail modelDetail)
             => LinqPostgreSqlConverter.Convert(select, where, order, skip, take, graph, modelDetail);
 
         protected override SqlDialectExpectations GetDialect() => new()

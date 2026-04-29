@@ -13,7 +13,7 @@ namespace Zerra.Repository.Test.Linq
         private sealed class SampleModel
         {
             public int Value { get; set; }
-            public string? Name { get; set; }
+            public string Name { get; set; }
         }
 
         [Fact]

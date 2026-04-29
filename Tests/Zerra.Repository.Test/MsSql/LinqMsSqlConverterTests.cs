@@ -12,7 +12,7 @@ namespace Zerra.Repository.Test
     // FROM has no space before the bracket: FROM[TestTypes]
     public class LinqMsSqlConverterTests : BaseLinqSqlConverterTests
     {
-        protected override string ConvertToSql(QueryOperation select, Expression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail)
+        protected override string ConvertToSql(QueryOperation select, Expression where, QueryOrder order, int? skip, int? take, Graph graph, ModelDetail modelDetail)
             => LinqMsSqlConverter.Convert(select, where, order, skip, take, graph, modelDetail);
 
         protected override SqlDialectExpectations GetDialect() => new()

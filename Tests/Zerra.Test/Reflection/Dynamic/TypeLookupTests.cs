@@ -63,7 +63,7 @@ namespace Zerra.Test.Reflection.Dynamic
             var result = TypeLookup.GetCoreType(type, out var coreType);
 
             Assert.True(result);
-            Assert.EndsWith(coreType.ToString(), "Nullable");
+            Assert.EndsWith("Nullable", coreType.ToString());
         }
 
         [Theory]
@@ -114,7 +114,7 @@ namespace Zerra.Test.Reflection.Dynamic
             var result = TypeLookup.GetCoreEnumType(type, out var coreEnumType);
 
             Assert.True(result);
-            Assert.EndsWith(coreEnumType.ToString(), "Nullable");
+            Assert.EndsWith("Nullable", coreEnumType.ToString());
         }
 
         [Theory]

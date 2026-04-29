@@ -67,17 +67,17 @@ namespace Zerra.Repository.Linq
             var exp = itLambda.Body;
             var parameter = itLambda.Parameters[0];
 
-            var typeDetails = TypeAnalyzer.GetTypeDetail(type);
-            if (typeDetails.HasIEnumerable)
+            var typeDetail = TypeAnalyzer.GetTypeDetail(type);
+            if (typeDetail.HasIEnumerable)
             {
                 Expression memberExpression = member.MemberType == MemberTypes.Property ?
                     Expression.Property(parameter, propertyInfo!) :
                     Expression.Field(parameter, fieldInfo!);
 
-                var anyMethod2Generic = anyMethod2.MakeGenericMethod(typeDetails.InnerType);
+                var anyMethod2Generic = anyMethod2.MakeGenericMethod(typeDetail.IEnumerableGenericInnerType!);
                 var callAny2 = Expression.Call(anyMethod2Generic, memberExpression, expression);
 
-                var anyMethod1Generic = anyMethod1.MakeGenericMethod(typeDetails.InnerType);
+                var anyMethod1Generic = anyMethod1.MakeGenericMethod(typeDetail.IEnumerableGenericInnerType!);
                 var callAny1 = Expression.Call(anyMethod1Generic, memberExpression);
 
                 Expression emptyCheckExpression = Expression.OrElse(Expression.Not(callAny1), callAny2);
