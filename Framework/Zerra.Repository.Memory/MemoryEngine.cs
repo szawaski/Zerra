@@ -143,6 +143,7 @@ namespace Zerra.Repository.Memory
                 }
                 source.Add(copy);
             }
+            MapRelated(copy, modelDetail);
             var id = ModelAnalyzer.GetIdentity(type, copy);
             return id;
         }
@@ -163,6 +164,7 @@ namespace Zerra.Repository.Memory
                 }
                 source.Add(copy);
             }
+            MapRelated(copy, modelDetail);
             return true;
         }
         /// <inheritdoc/>
@@ -175,6 +177,7 @@ namespace Zerra.Repository.Memory
             if (existing == null)
                 return false;
             model.MapTo(existing, graph);
+            MapRelated(existing, modelDetail);
             return true;
         }
         /// <inheritdoc/>
@@ -212,6 +215,7 @@ namespace Zerra.Repository.Memory
                 }
                 source.Add(copy);
             }
+            MapRelated(copy, modelDetail);
             var id = ModelAnalyzer.GetIdentity(type, copy);
             return Task.FromResult(id);
         }
@@ -232,6 +236,7 @@ namespace Zerra.Repository.Memory
                 }
                 source.Add(copy);
             }
+            MapRelated(copy, modelDetail);
             return Task.FromResult(true);
         }
         /// <inheritdoc/>
@@ -244,6 +249,7 @@ namespace Zerra.Repository.Memory
             if (existing == null)
                 return Task.FromResult(false);
             model.MapTo(existing, graph);
+            MapRelated(existing, modelDetail);
             return Task.FromResult(true);
         }
         /// <inheritdoc/>
@@ -264,7 +270,16 @@ namespace Zerra.Repository.Memory
             return Task.FromResult(deleteCount);
         }
 
-        private object GenerateIdentity<TModel>(ConcurrentList<TModel> source, ModelPropertyDetail property)
+        /// <inheritdoc />
+        public bool ValidateDataSource() => true;
+
+        /// <inheritdoc />
+        public IDataStoreGenerationPlan BuildStoreGenerationPlan(bool create, bool update, bool delete, ICollection<ModelDetail> modelDetail)
+        {
+            return new EmptyDataStoreGenerationPlan();
+        }
+
+        private object GenerateIdentity<TModel>(ConcurrentList<TModel> source, ModelPropertyDetail property) where TModel : class, new()
         {
             if (!property.CoreType.HasValue)
                 throw new InvalidOperationException($"Identity property {property.Name} does not have a core type.");
@@ -286,13 +301,28 @@ namespace Zerra.Repository.Memory
             };
         }
 
-        /// <inheritdoc />
-        public bool ValidateDataSource() => true;
-
-        /// <inheritdoc />
-        public IDataStoreGenerationPlan BuildStoreGenerationPlan(bool create, bool update, bool delete, ICollection<ModelDetail> modelDetail)
+        private void MapRelated<TModel>(TModel model, ModelDetail modelDetail) where TModel : class, new()
         {
-            return new EmptyDataStoreGenerationPlan();
+            foreach (var property in modelDetail.RelatedProperties)
+            {
+                if (!data.TryGetValue(property.Type, out var sourceObject))
+                    continue;
+
+                var source = (IList)sourceObject;
+
+                if (property.IsEnumerable)
+                {
+                    var id = ModelAnalyzer.GetIdentity(modelDetail.Type, model);
+                    var relatedSet = source.Cast<object>().Where(x => ModelAnalyzer.CompareIdentities(id, ModelAnalyzer.GetForeignIdentity(property.Type, property.ForeignIdentity!, x))).ToArray();
+                    property.SetterBoxed(model, relatedSet);
+                }
+                else
+                {
+                    var foreignId = ModelAnalyzer.GetForeignIdentity(modelDetail.Type, property.ForeignIdentity!, model);
+                    var related = source.Cast<object>().FirstOrDefault(x => ModelAnalyzer.CompareIdentities(foreignId, ModelAnalyzer.GetIdentity(property.Type, x)));
+                    property.SetterBoxed(model, related);
+                }
+            }
         }
     }
 }
