@@ -36,40 +36,22 @@ namespace Zerra.Repository
         /// <summary>Returns the combined where expression from the next provider in the chain, including base type considerations.</summary>
         /// <param name="graph">The graph for the current query.</param>
         /// <returns>A lambda where expression, or <see langword="null"/> if none applies.</returns>
-        public virtual LambdaExpression? GetWhereExpressionIncludingBase(Graph? graph)
-        {
-            var expression = ProviderRelation?.GetWhereExpressionIncludingBase(graph);
-            return expression;
-        }
+        public abstract LambdaExpression? GetWhereExpressionIncludingBase(Graph? graph);
 
         /// <summary>Propagates the query event to the next provider in the chain.</summary>
         /// <param name="graph">The graph for the current query.</param>
-        public virtual void OnQueryIncludingBase(Graph? graph)
-        {
-            ProviderRelation?.OnQueryIncludingBase(graph);
-        }
-
+        public abstract void OnQueryIncludingBase(Graph? graph);
         /// <summary>Propagates the post-retrieve event to the next provider in the chain.</summary>
         /// <param name="models">The retrieved models.</param>
         /// <param name="graph">The graph used during the query.</param>
         /// <returns>The processed models.</returns>
-        public virtual IEnumerable OnGetIncludingBase(IEnumerable models, Graph? graph)
-        {
-            if (ProviderRelation is null)
-                return models;
-            return ProviderRelation.OnGetIncludingBase(models, graph);
-        }
+        public abstract IEnumerable OnGetIncludingBase(IEnumerable models, Graph? graph);
 
         /// <summary>Asynchronously propagates the post-retrieve event to the next provider in the chain.</summary>
         /// <param name="models">The retrieved models.</param>
         /// <param name="graph">The graph used during the query.</param>
         /// <returns>A task containing the processed models.</returns>
-        public virtual Task<IEnumerable> OnGetIncludingBaseAsync(IEnumerable models, Graph? graph)
-        {
-            if (ProviderRelation is null)
-                return Task.FromResult(models);
-            return ProviderRelation.OnGetIncludingBaseAsync(models, graph);
-        }
+        public abstract Task<IEnumerable> OnGetIncludingBaseAsync(IEnumerable models, Graph? graph);
 
         /// <summary>Executes a synchronous query operation and returns the result.</summary>
         /// <param name="query">The query to execute.</param>

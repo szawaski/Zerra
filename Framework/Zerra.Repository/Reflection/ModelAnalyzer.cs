@@ -27,6 +27,66 @@ namespace Zerra.Repository.Reflection
                 var typeDetails = TypeAnalyzer.GetTypeDetail(type);
                 return new ModelDetail(typeDetails);
             });
+
+            if (!modelInfo.ForeignReferenceLoadCompleted)
+            {
+                HashSet<ModelDetail>? relatedModelInfosNeedLoaded = null;
+
+                lock (modelInfo)
+                {
+                    if (!modelInfo.ForeignReferenceLoadCompleted)
+                    {
+                        foreach (var member in modelInfo.Members)
+                        {
+                            if (!member.IsRelated)
+                                continue;
+
+                            var relatedModelInfo = modelInfos.GetOrAdd(member.ActualType, static (type) =>
+                            {
+                                var typeDetails = TypeAnalyzer.GetTypeDetail(type);
+                                return new ModelDetail(typeDetails);
+                            });
+                            if (!relatedModelInfo.ForeignReferenceLoadCompleted)
+                            {
+                                relatedModelInfosNeedLoaded ??= new();
+                                _ = relatedModelInfosNeedLoaded.Add(relatedModelInfo);
+                            }
+
+                            if (member.IsEnumerable)
+                            {
+                                foreach (var relatedMember in relatedModelInfo.Members)
+                                {
+                                    if (relatedMember.Name == member.ForeignIdentity)
+                                    {
+                                        relatedMember.AddForeignReference(modelInfo);
+                                        break;
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                foreach (var member2 in modelInfo.Members)
+                                {
+                                    if (member2.Name == member.ForeignIdentity)
+                                    {
+                                        member2.AddForeignReference(relatedModelInfo);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
+                        modelInfo.MarkForeignReferenceLoadCompleted();
+                    }
+                }
+
+                if (relatedModelInfosNeedLoaded is not null)
+                {
+                    foreach (var relatedModelInfo in relatedModelInfosNeedLoaded)
+                        _ = GetModel(relatedModelInfo.Type);
+                }
+            }
+
             return modelInfo;
         }
 
@@ -82,7 +142,7 @@ namespace Zerra.Repository.Reflection
         {
             var sourceExpression = Expression.Parameter(typeof(object), "x");
 
-            var identityProperties = GetModel(type).IdentityProperties;
+            var identityProperties = GetModel(type).IdentityMembers;
 
             if (identityProperties.Count == 1)
             {
@@ -157,7 +217,7 @@ namespace Zerra.Repository.Reflection
         }
         private static Action<object, object?> GenerateSetterFunctionByAttribute(Type type)
         {
-            var identityProperties = GetModel(type).IdentityProperties;
+            var identityProperties = GetModel(type).IdentityMembers;
 
             if (identityProperties.Count == 1)
             {
@@ -326,7 +386,7 @@ namespace Zerra.Repository.Reflection
         {
             var type = typeof(TModel);
             var queryExpressionParameter = Expression.Parameter(type, "x");
-            var identityProperties = GetModel(type).IdentityProperties;
+            var identityProperties = GetModel(type).IdentityMembers;
 
             if (identityProperties.Count == 0)
                 return null;

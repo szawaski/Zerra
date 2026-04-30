@@ -69,7 +69,7 @@ namespace Zerra.Repository
         {
             Expression<Func<TModel, bool>>? whereExpression = null;
 
-            foreach (var property in ModelTypeDetail.RelatedProperties)
+            foreach (var property in ModelTypeDetail.RelatedMembers)
             {
                 if (graph is not null && graph.HasMemberExplicitly(property.Name))
                 {
@@ -111,7 +111,7 @@ namespace Zerra.Repository
             if (!EventLinking || graph is null)
                 return;
 
-            foreach (var property in ModelTypeDetail.RelatedProperties)
+            foreach (var property in ModelTypeDetail.RelatedMembers)
             {
                 if (graph.HasMemberExplicitly(property.Name))
                 {
@@ -148,7 +148,7 @@ namespace Zerra.Repository
 
             if (QueryLinking)
             {
-                foreach (var modelPropertyInfo in ModelTypeDetail.RelatedProperties)
+                foreach (var modelPropertyInfo in ModelTypeDetail.RelatedMembers)
                 {
                     if (graph is not null && graph.HasMemberExplicitly(modelPropertyInfo.Name))
                     {
@@ -177,16 +177,12 @@ namespace Zerra.Repository
         public IReadOnlyCollection<TModel> OnGetWithRelations(IReadOnlyCollection<TModel> models, Graph? graph)
         {
             var returnModels = models;
-            if (EventLinking)
-            {
-                returnModels = OnGet(models, graph);
-            }
-
+        
             if (QueryLinking)
             {
                 //Get related
                 //var tasks = new HashSet<Task>();
-                foreach (var modelPropertyInfo in ModelTypeDetail.RelatedProperties)
+                foreach (var modelPropertyInfo in ModelTypeDetail.RelatedMembers)
                 {
                     if (graph is not null && graph.HasMemberExplicitly(modelPropertyInfo.Name))
                     {
@@ -195,7 +191,7 @@ namespace Zerra.Repository
                         if (!modelPropertyInfo.IsEnumerable)
                         {
                             //related single
-                            var relatedType = modelPropertyInfo.InnerType;
+                            var relatedType = modelPropertyInfo.ActualType;
                             var relatedGraph = graph.GetChildGraph(modelPropertyInfo.Name);
 
                             var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
@@ -203,9 +199,9 @@ namespace Zerra.Repository
                             if (modelPropertyInfo.ForeignIdentity is null || !ModelTypeDetail.TryGetProperty(modelPropertyInfo.ForeignIdentity, out var foreignIdentityPropertyInfo))
                                 throw new Exception($"Missing ForeignIdentity {modelPropertyInfo.ForeignIdentity} for {relatedModelInfo.Name} defined in {ModelTypeDetail.Name}");
 
-                            if (relatedModelInfo.IdentityProperties.Count == 0)
+                            if (relatedModelInfo.IdentityMembers.Count == 0)
                                 throw new Exception($"Missing ForeignIdentity {modelPropertyInfo.ForeignIdentity} for {relatedModelInfo.Name} defined in {ModelTypeDetail.Name}");
-                            var relatedIdentityPropertyInfo = relatedModelInfo.IdentityProperties[0];
+                            var relatedIdentityPropertyInfo = relatedModelInfo.IdentityMembers[0];
 
                             var foreignIdentities = new List<object>();
                             foreach (var model in returnModels)
@@ -254,7 +250,7 @@ namespace Zerra.Repository
                         else
                         {
                             //related many
-                            var relatedType = modelPropertyInfo.InnerType;
+                            var relatedType = modelPropertyInfo.ActualType;
                             var relatedGraph = graph.GetChildGraph(modelPropertyInfo.Name);
 
                             var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
@@ -299,42 +295,27 @@ namespace Zerra.Repository
                                 var identity = ModelAnalyzer.GetIdentity(modelType, model);
                                 var modelTypeDetail = modelPropertyInfo.Type.GetTypeDetail();
                                 var listTypeDetails = relatedModels.GetType().GetTypeDetail();
-                                if (listTypeDetails.Type.IsArray)
+                                if (modelPropertyInfo.Type.IsArray)
                                 {
-                                    var relatedForModel = new List<object>();
+                                    var constructor = modelPropertyInfo.MemberDetail.TypeDetail.GetConstructor([typeof(int)]);
+                                    var relatedForModel = (Array)constructor.CreatorBoxed([relatedModelIdentities.Count]);
+                                    var i = 0;
                                     foreach (var relatedModel in relatedModelIdentities)
                                     {
                                         if (ModelAnalyzer.CompareIdentities(identity, relatedModel.Value))
-                                            relatedForModel.Add(relatedModel.Key);
+                                            relatedForModel.SetValue(relatedModel.Key, i++);
                                     }
-                                    var array = (Array)listTypeDetails.Constructors[0].CreatorBoxed([relatedForModel.Count]);
-                                    for (var i = 0; i < relatedForModel.Count; i++)
-                                        array.SetValue(relatedForModel[i], i);
+                                    modelPropertyInfo.SetterBoxed(model, relatedForModel);
                                 }
                                 else
                                 {
-                                    if (modelPropertyInfo.Type.IsArray)
+                                    var relatedForModel = (IList)listTypeDetails.CreatorBoxed!();
+                                    foreach (var relatedModel in relatedModelIdentities)
                                     {
-                                        var constructor = modelPropertyInfo.MemberDetail.TypeDetail.GetConstructor([typeof(int)]);
-                                        var relatedForModel = (Array)constructor.CreatorBoxed([relatedModelIdentities.Count]);
-                                        var i = 0;
-                                        foreach (var relatedModel in relatedModelIdentities)
-                                        {
-                                            if (ModelAnalyzer.CompareIdentities(identity, relatedModel.Value))
-                                                relatedForModel.SetValue(relatedModel.Key, i++);
-                                        }
-                                        modelPropertyInfo.SetterBoxed(model, relatedForModel);
+                                        if (ModelAnalyzer.CompareIdentities(identity, relatedModel.Value))
+                                            _ = relatedForModel.Add(relatedModel.Key);
                                     }
-                                    else
-                                    {
-                                        var relatedForModel = (IList)listTypeDetails.CreatorBoxed!();
-                                        foreach (var relatedModel in relatedModelIdentities)
-                                        {
-                                            if (ModelAnalyzer.CompareIdentities(identity, relatedModel.Value))
-                                                _ = relatedForModel.Add(relatedModel.Key);
-                                        }
-                                        modelPropertyInfo.SetterBoxed(model, relatedForModel);
-                                    }
+                                    modelPropertyInfo.SetterBoxed(model, relatedForModel);
                                 }
                             }
                         }
@@ -355,25 +336,21 @@ namespace Zerra.Repository
         public async Task<IReadOnlyCollection<TModel>> OnGetWithRelationsAsync(IReadOnlyCollection<TModel> models, Graph? graph)
         {
             var returnModels = models;
-            if (EventLinking && graph is not null)
-            {
-                returnModels = await OnGetAsync(models, graph);
-            }
 
-            if (QueryLinking && graph is not null)
+            if (QueryLinking)
             {
                 //Get related
                 //var tasks = new List<Task>();
-                foreach (var modelPropertyInfo in ModelTypeDetail.RelatedProperties)
+                foreach (var modelPropertyInfo in ModelTypeDetail.RelatedMembers)
                 {
-                    if (graph.HasMemberExplicitly(modelPropertyInfo.Name))
+                    if (graph is not null && graph.HasMemberExplicitly(modelPropertyInfo.Name))
                     {
                         //var task = Task.Run(async () =>
                         //{
                         if (!modelPropertyInfo.IsEnumerable)
                         {
                             //related single
-                            var relatedType = modelPropertyInfo.InnerType;
+                            var relatedType = modelPropertyInfo.ActualType;
                             var relatedGraph = graph.GetChildGraph(modelPropertyInfo.Name);
 
                             var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
@@ -381,9 +358,9 @@ namespace Zerra.Repository
                             if (modelPropertyInfo.ForeignIdentity is null || !ModelTypeDetail.TryGetProperty(modelPropertyInfo.ForeignIdentity, out var foreignIdentityPropertyInfo))
                                 throw new Exception($"Missing ForeignIdentity {modelPropertyInfo.ForeignIdentity} for {relatedModelInfo.Name} defined in {ModelTypeDetail.Name}");
 
-                            if (relatedModelInfo.IdentityProperties.Count == 0)
+                            if (relatedModelInfo.IdentityMembers.Count == 0)
                                 throw new Exception($"Missing ForeignIdentity {modelPropertyInfo.ForeignIdentity} for {relatedModelInfo.Name} defined in {ModelTypeDetail.Name}");
-                            var relatedIdentityPropertyInfo = relatedModelInfo.IdentityProperties[0];
+                            var relatedIdentityPropertyInfo = relatedModelInfo.IdentityMembers[0];
 
                             var foreignIdentities = new List<object>();
                             foreach (var model in returnModels)
@@ -432,7 +409,7 @@ namespace Zerra.Repository
                         else
                         {
                             //related many
-                            var relatedType = modelPropertyInfo.InnerType;
+                            var relatedType = modelPropertyInfo.ActualType;
                             var relatedGraph = graph.GetChildGraph(modelPropertyInfo.Name);
 
                             var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
@@ -510,153 +487,6 @@ namespace Zerra.Repository
             }
 
             return returnModels;
-        }
-
-        /// <summary>Invokes event-linked related providers to post-process retrieved models.</summary>
-        /// <param name="models">The models to post-process.</param>
-        /// <param name="graph">The graph specifying which members to process.</param>
-        /// <returns>The post-processed models.</returns>
-        public IReadOnlyCollection<TModel> OnGet(IReadOnlyCollection<TModel> models, Graph? graph)
-        {
-            if (!EventLinking || graph is null)
-                return models;
-
-            foreach (var property in ModelTypeDetail.RelatedProperties)
-            {
-                if (graph.HasMemberExplicitly(property.Name))
-                {
-                    var relatedProvider = GetRelatedProvider(property.Type);
-
-                    if (relatedProvider is not null && relatedProvider is IProviderRelation relatedProviderGeneric)
-                    {
-                        var relatedGraph = graph.GetChildGraph(property.Name);
-
-                        if (property.Type.GetTypeDetail().IsIEnumerableGeneric)
-                        {
-                            foreach (var model in models)
-                            {
-                                var related = (IEnumerable)property.GetterBoxed(model)!;
-                                if (related is not null)
-                                {
-                                    var returnModels = relatedProviderGeneric.OnGetIncludingBase(related, relatedGraph);
-                                    property.SetterBoxed(model, returnModels);
-                                }
-                            }
-                        }
-                        else
-                        {
-                            var relatedModels = new List<object>();
-                            var relatedModelsDictionary = new Dictionary<object, List<TModel>>();
-                            foreach (var model in models)
-                            {
-                                var related = property.GetterBoxed(model);
-                                if (related is not null)
-                                {
-                                    relatedModels.Add(related);
-                                    if (!relatedModelsDictionary.TryGetValue(model, out var relatedModelList))
-                                    {
-                                        relatedModelList = new List<TModel>();
-                                        relatedModelsDictionary.Add(related, relatedModelList);
-                                    }
-                                    relatedModelList.Add(model);
-                                }
-                            }
-
-                            if (relatedModels.Count > 0)
-                            {
-                                var returnModels = relatedProviderGeneric.OnGetIncludingBase(relatedModels, relatedGraph);
-                                foreach (var returnModel in returnModels)
-                                {
-                                    _ = relatedModelsDictionary.Remove(returnModel);
-                                }
-
-                                foreach (var relatedModelSet in relatedModelsDictionary)
-                                {
-                                    foreach (var model in relatedModelSet.Value)
-                                    {
-                                        property.SetterBoxed(model, null);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            return models;
-        }
-        /// <summary>Asynchronously invokes event-linked related providers to post-process retrieved models.</summary>
-        /// <param name="models">The models to post-process.</param>
-        /// <param name="graph">The graph specifying which members to process.</param>
-        /// <returns>A task representing the asynchronous operation, containing the post-processed models.</returns>
-        public async Task<IReadOnlyCollection<TModel>> OnGetAsync(IReadOnlyCollection<TModel> models, Graph? graph)
-        {
-            if (!EventLinking || graph is null)
-                return models;
-
-            foreach (var property in ModelTypeDetail.RelatedProperties)
-            {
-                if (graph.HasMemberExplicitly(property.Name))
-                {
-                    var relatedProvider = GetRelatedProvider(property.Type);
-
-                    if (relatedProvider is not null && relatedProvider is IProviderRelation relatedProviderGeneric)
-                    {
-                        var relatedGraph = graph.GetChildGraph(property.Name);
-
-                        if (property.Type.GetTypeDetail().IsIEnumerableGeneric)
-                        {
-                            foreach (var model in models)
-                            {
-                                var related = (IEnumerable)property.GetterBoxed(model)!;
-                                if (related is not null)
-                                {
-                                    var returnModels = relatedProviderGeneric.OnGetIncludingBaseAsync(related, relatedGraph);
-                                    property.SetterBoxed(model, returnModels);
-                                }
-                            }
-                        }
-                        else
-                        {
-                            var relatedModels = new List<object>();
-                            var relatedModelsDictionary = new Dictionary<object, List<TModel>>();
-                            foreach (var model in models)
-                            {
-                                var related = property.GetterBoxed(model);
-                                if (related is not null)
-                                {
-                                    relatedModels.Add(related);
-                                    if (!relatedModelsDictionary.TryGetValue(model, out var relatedModelList))
-                                    {
-                                        relatedModelList = new List<TModel>();
-                                        relatedModelsDictionary.Add(related, relatedModelList);
-                                    }
-                                    relatedModelList.Add(model);
-                                }
-                            }
-
-                            if (relatedModels.Count > 0)
-                            {
-                                var returnModels = await relatedProviderGeneric.OnGetIncludingBaseAsync(relatedModels, relatedGraph);
-                                foreach (var returnModel in returnModels)
-                                {
-                                    _ = relatedModelsDictionary.Remove(returnModel);
-                                }
-
-                                foreach (var relatedModelSet in relatedModelsDictionary)
-                                {
-                                    foreach (var model in relatedModelSet.Value)
-                                    {
-                                        property.SetterBoxed(model, null);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            return models;
         }
 
         /// <summary>Populates related properties on models, including base type handling.</summary>
@@ -1301,13 +1131,13 @@ namespace Zerra.Repository
         {
             //var tasks = new List<Task>();
 
-            foreach (var modelPropertyInfo in ModelTypeDetail.RelatedNonEnumerableProperties)
+            foreach (var modelPropertyInfo in ModelTypeDetail.RelatedNonEnumerableMembers)
             {
                 if (graph.HasMemberExplicitly(modelPropertyInfo.Name))
                 {
                     //var task = Task.Run(() =>
                     //{
-                    var relatedType = modelPropertyInfo.InnerType;
+                    var relatedType = modelPropertyInfo.ActualType;
 
                     if (modelPropertyInfo.ForeignIdentity is null)
                         throw new Exception($"Model {modelPropertyInfo.Type.Name} missing Foreign Identity");
@@ -1348,13 +1178,13 @@ namespace Zerra.Repository
         {
             //var tasks = new List<Task>();
 
-            foreach (var modelPropertyInfo in ModelTypeDetail.RelatedEnumerableProperties)
+            foreach (var modelPropertyInfo in ModelTypeDetail.RelatedEnumerableMembers)
             {
                 if (graph.HasMemberExplicitly(modelPropertyInfo.Name))
                 {
                     //var task = Task.Run(() =>
                     //{
-                    var relatedType = modelPropertyInfo.InnerType;
+                    var relatedType = modelPropertyInfo.ActualType;
 
                     var relatedModels = (IEnumerable)modelPropertyInfo.GetterBoxed(model)!;
 
@@ -1485,13 +1315,13 @@ namespace Zerra.Repository
         {
             //var tasks = new List<Task>();
 
-            foreach (var modelPropertyInfo in ModelTypeDetail.RelatedEnumerableProperties)
+            foreach (var modelPropertyInfo in ModelTypeDetail.RelatedEnumerableMembers)
             {
                 if (graph.HasMemberExplicitly(modelPropertyInfo.Name))
                 {
                     //var task = Task.Run(() =>
                     //{
-                    var relatedType = modelPropertyInfo.InnerType;
+                    var relatedType = modelPropertyInfo.ActualType;
 
                     var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
 
@@ -1537,13 +1367,13 @@ namespace Zerra.Repository
         {
             var tasks = new List<Task>();
 
-            foreach (var modelPropertyInfo in ModelTypeDetail.RelatedNonEnumerableProperties)
+            foreach (var modelPropertyInfo in ModelTypeDetail.RelatedNonEnumerableMembers)
             {
                 if (graph.HasMemberExplicitly(modelPropertyInfo.Name))
                 {
                     //var task = Task.Run(async () =>
                     //{
-                    var relatedType = modelPropertyInfo.InnerType;
+                    var relatedType = modelPropertyInfo.ActualType;
 
                     if (modelPropertyInfo.ForeignIdentity is null)
                         throw new Exception($"Model {modelPropertyInfo.Type.Name} missing Foreign Identity");
@@ -1585,13 +1415,13 @@ namespace Zerra.Repository
         {
             //var tasks = new List<Task>();
 
-            foreach (var modelPropertyInfo in ModelTypeDetail.RelatedEnumerableProperties)
+            foreach (var modelPropertyInfo in ModelTypeDetail.RelatedEnumerableMembers)
             {
                 if (graph.HasMemberExplicitly(modelPropertyInfo.Name))
                 {
                     //var task = Task.Run(async () =>
                     //{
-                    var relatedType = modelPropertyInfo.InnerType;
+                    var relatedType = modelPropertyInfo.ActualType;
 
                     var relatedModels = (IEnumerable)modelPropertyInfo.GetterBoxed(model)!;
 
@@ -1723,13 +1553,13 @@ namespace Zerra.Repository
         {
             //var tasks = new List<Task>();
 
-            foreach (var modelPropertyInfo in ModelTypeDetail.RelatedEnumerableProperties)
+            foreach (var modelPropertyInfo in ModelTypeDetail.RelatedEnumerableMembers)
             {
                 if (graph.HasMemberExplicitly(modelPropertyInfo.Name))
                 {
                     //var task = Task.Run(async () =>
                     //{
-                    var relatedType = modelPropertyInfo.InnerType;
+                    var relatedType = modelPropertyInfo.ActualType;
 
                     var relatedModelInfo = ModelAnalyzer.GetModel(relatedType);
 

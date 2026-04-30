@@ -81,10 +81,10 @@ namespace Zerra.Repository.Test
 
         public Guid? RelationAKey { get; set; }
 
-        [Relation("RelationAKey")]
+        [Relation(nameof(RelationAKey))]
         public TestRelationsModel RelationA { get; set; }
 
-        [Relation("RelationBKey")]
+        [Relation(nameof(TestRelationsModel.RelationBKey))]
         public TestRelationsModel[] RelationB { get; set; }
     }
 }

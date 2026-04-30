@@ -95,6 +95,21 @@ namespace Zerra.Repository
         /// <returns>The filtered or transformed models.</returns>
         public virtual IEnumerable OnGet(IEnumerable models, Graph? graph) { return models; }
         /// <inheritdoc/>
+        public override sealed IEnumerable OnGetIncludingBase(IEnumerable models, Graph? graph)
+        {
+            if (ProviderRelation is not null)
+            {
+                var returnModels1 = ProviderRelation.OnGetIncludingBase(models, graph);
+                var returnModels2 = this.OnGet(returnModels1, graph);
+                return returnModels2;
+            }
+            else
+            {
+                var returnModels1 = this.OnGet(models, graph);
+                return returnModels1;
+            }
+        }
+        /// <inheritdoc/>
         public override sealed async Task<IEnumerable> OnGetIncludingBaseAsync(IEnumerable models, Graph? graph)
         {
             if (ProviderRelation is not null)

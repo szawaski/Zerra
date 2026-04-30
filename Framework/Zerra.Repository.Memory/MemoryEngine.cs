@@ -23,54 +23,54 @@ namespace Zerra.Repository.Memory
     public sealed partial class MemoryEngine : ITransactStoreEngine
     {
         private static readonly ConcurrentFactoryDictionary<Type, object> data = new();
+        private static readonly ConcurrentFactoryDictionary<Type, Graph> allLocalMemberGraph = new();
 
         /// <inheritdoc/>
         public IReadOnlyCollection<TModel> ExecuteMany<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
-            var source = (ConcurrentList<TModel>)data.GetOrAdd(typeof(TModel), () => new ConcurrentList<TModel>());
-            if (where is not Expression<Func<TModel, bool>> whereTyped)
-                throw new InvalidOperationException();
-
+            var type = typeof(TModel);
+            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
             var whereQuery = source.AsEnumerable().Query(where, order, skip, take);
-            return whereQuery.Select(x => x.Copy(graph)).ToArray();
+            var localGraph = BuildLocalGraph(type, graph);
+            return whereQuery.Select(x => x.Copy(localGraph)).ToArray();
         }
         /// <inheritdoc/>
         public TModel? ExecuteFirst<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
-            var source = (ConcurrentList<TModel>)data.GetOrAdd(typeof(TModel), () => new ConcurrentList<TModel>());
-            if (where is not Expression<Func<TModel, bool>> whereTyped)
-                throw new InvalidOperationException();
-
+            var type = typeof(TModel);
+            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
             var whereQuery = source.AsEnumerable().Query(where, order, skip, take);
-            return whereQuery.First().Copy(graph);
+            var localGraph = BuildLocalGraph(type, graph);
+            var result = whereQuery.FirstOrDefault();
+            if (result == null)
+                return null;
+            return result.Copy(localGraph);
         }
         /// <inheritdoc/>
         public TModel? ExecuteSingle<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
-            var source = (ConcurrentList<TModel>)data.GetOrAdd(typeof(TModel), () => new ConcurrentList<TModel>());
-            if (where is not Expression<Func<TModel, bool>> whereTyped)
-                throw new InvalidOperationException();
-
+            var type = typeof(TModel);
+            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
             var whereQuery = source.AsEnumerable().Query(where, order, skip, take);
-            return whereQuery.Single().Copy(graph);
+            var localGraph = BuildLocalGraph(type, graph);
+            var result = whereQuery.SingleOrDefault();
+            if (result == null)
+                return null;
+            return result.Copy(localGraph);
         }
         /// <inheritdoc/>
         public long ExecuteCount<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
-            var source = (ConcurrentList<TModel>)data.GetOrAdd(typeof(TModel), () => new ConcurrentList<TModel>());
-            if (where is not Expression<Func<TModel, bool>> whereTyped)
-                throw new InvalidOperationException();
-
+            var type = typeof(TModel);
+            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
             var whereQuery = source.AsEnumerable().Query(where, order, skip, take);
             return whereQuery.Count();
         }
         /// <inheritdoc/>
         public bool ExecuteAny<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
-            var source = (ConcurrentList<TModel>)data.GetOrAdd(typeof(TModel), () => new ConcurrentList<TModel>());
-            if (where is not Expression<Func<TModel, bool>> whereTyped)
-                throw new InvalidOperationException();
-
+            var type = typeof(TModel);
+            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
             var whereQuery = source.AsEnumerable().Query(where, order, skip, take);
             return whereQuery.Any();
         }
@@ -78,50 +78,49 @@ namespace Zerra.Repository.Memory
         /// <inheritdoc/>
         public Task<IReadOnlyCollection<TModel>> ExecuteManyAsync<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
-            var source = (ConcurrentList<TModel>)data.GetOrAdd(typeof(TModel), () => new ConcurrentList<TModel>());
-            if (where is not Expression<Func<TModel, bool>> whereTyped)
-                throw new InvalidOperationException();
-
+            var type = typeof(TModel);
+            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
             var whereQuery = source.AsEnumerable().Query(where, order, skip, take);
-            return Task.FromResult<IReadOnlyCollection<TModel>>(whereQuery.Select(x => x.Copy(graph)).ToArray());
+            var localGraph = BuildLocalGraph(type, graph);
+            return Task.FromResult<IReadOnlyCollection<TModel>>(whereQuery.Select(x => x.Copy(localGraph)).ToArray());
         }
         /// <inheritdoc/>
         public Task<TModel?> ExecuteFirstAsync<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
-            var source = (ConcurrentList<TModel>)data.GetOrAdd(typeof(TModel), () => new ConcurrentList<TModel>());
-            if (where is not Expression<Func<TModel, bool>> whereTyped)
-                throw new InvalidOperationException();
-
+            var type = typeof(TModel);
+            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
             var whereQuery = source.AsEnumerable().Query(where, order, skip, take);
-            return Task.FromResult<TModel?>(whereQuery.First().Copy(graph));
+            var localGraph = BuildLocalGraph(type, graph);
+            var result = whereQuery.FirstOrDefault();
+            if (result == null)
+                return Task.FromResult<TModel?>(null);
+            return Task.FromResult<TModel?>(result.Copy(localGraph));
         }
         /// <inheritdoc/>
         public Task<TModel?> ExecuteSingleAsync<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
-            var source = (ConcurrentList<TModel>)data.GetOrAdd(typeof(TModel), () => new ConcurrentList<TModel>());
-            if (where is not Expression<Func<TModel, bool>> whereTyped)
-                throw new InvalidOperationException();
-
+            var type = typeof(TModel);
+            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
             var whereQuery = source.AsEnumerable().Query(where, order, skip, take);
-            return Task.FromResult<TModel?>(whereQuery.Single().Copy(graph));
+            var localGraph = BuildLocalGraph(type, graph);
+            var result = whereQuery.SingleOrDefault();
+            if (result == null)
+                return Task.FromResult<TModel?>(null);
+            return Task.FromResult<TModel?>(result.Copy(localGraph));
         }
         /// <inheritdoc/>
         public Task<long> ExecuteCountAsync<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
-            var source = (ConcurrentList<TModel>)data.GetOrAdd(typeof(TModel), () => new ConcurrentList<TModel>());
-            if (where is not Expression<Func<TModel, bool>> whereTyped)
-                throw new InvalidOperationException();
-
+            var type = typeof(TModel);
+            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
             var whereQuery = source.AsEnumerable().Query(where, order, skip, take);
             return Task.FromResult<long>(whereQuery.Count());
         }
         /// <inheritdoc/>
         public Task<bool> ExecuteAnyAsync<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
-            var source = (ConcurrentList<TModel>)data.GetOrAdd(typeof(TModel), () => new ConcurrentList<TModel>());
-            if (where is not Expression<Func<TModel, bool>> whereTyped)
-                throw new InvalidOperationException();
-
+            var type = typeof(TModel);
+            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
             var whereQuery = source.AsEnumerable().Query(where, order, skip, take);
             return Task.FromResult(whereQuery.Any());
         }
@@ -134,7 +133,7 @@ namespace Zerra.Repository.Memory
             var copy = model.Copy();
             lock (source)
             {
-                foreach (var identityProperty in modelDetail.IdentityProperties)
+                foreach (var identityProperty in modelDetail.IdentityMembers)
                 {
                     if (!identityProperty.IsIdentityAutoGenerated)
                         continue;
@@ -143,7 +142,7 @@ namespace Zerra.Repository.Memory
                 }
                 source.Add(copy);
             }
-            MapRelated(copy, modelDetail);
+            MapRelated(copy, modelDetail, false);
             var id = ModelAnalyzer.GetIdentity(type, copy);
             return id;
         }
@@ -155,7 +154,7 @@ namespace Zerra.Repository.Memory
             var copy = model.Copy();
             lock (source)
             {
-                foreach (var identityProperty in modelDetail.IdentityProperties)
+                foreach (var identityProperty in modelDetail.IdentityMembers)
                 {
                     if (!identityProperty.IsIdentityAutoGenerated)
                         continue;
@@ -164,7 +163,7 @@ namespace Zerra.Repository.Memory
                 }
                 source.Add(copy);
             }
-            MapRelated(copy, modelDetail);
+            MapRelated(copy, modelDetail, false);
             return true;
         }
         /// <inheritdoc/>
@@ -177,7 +176,7 @@ namespace Zerra.Repository.Memory
             if (existing == null)
                 return false;
             model.MapTo(existing, graph);
-            MapRelated(existing, modelDetail);
+            MapRelated(existing, modelDetail, false);
             return true;
         }
         /// <inheritdoc/>
@@ -193,6 +192,7 @@ namespace Zerra.Repository.Memory
                 {
                     if (source.Remove(existing))
                         deleteCount++;
+                    MapRelated(existing, modelDetail, true);
                 }
             }
             return deleteCount;
@@ -206,7 +206,7 @@ namespace Zerra.Repository.Memory
             var copy = model.Copy();
             lock (source)
             {
-                foreach (var identityProperty in modelDetail.IdentityProperties)
+                foreach (var identityProperty in modelDetail.IdentityMembers)
                 {
                     if (!identityProperty.IsIdentityAutoGenerated)
                         continue;
@@ -215,7 +215,7 @@ namespace Zerra.Repository.Memory
                 }
                 source.Add(copy);
             }
-            MapRelated(copy, modelDetail);
+            MapRelated(copy, modelDetail, false);
             var id = ModelAnalyzer.GetIdentity(type, copy);
             return Task.FromResult(id);
         }
@@ -227,7 +227,7 @@ namespace Zerra.Repository.Memory
             var copy = model.Copy();
             lock (source)
             {
-                foreach (var identityProperty in modelDetail.IdentityProperties)
+                foreach (var identityProperty in modelDetail.IdentityMembers)
                 {
                     if (!identityProperty.IsIdentityAutoGenerated)
                         continue;
@@ -236,7 +236,7 @@ namespace Zerra.Repository.Memory
                 }
                 source.Add(copy);
             }
-            MapRelated(copy, modelDetail);
+            MapRelated(copy, modelDetail, false);
             return Task.FromResult(true);
         }
         /// <inheritdoc/>
@@ -249,7 +249,7 @@ namespace Zerra.Repository.Memory
             if (existing == null)
                 return Task.FromResult(false);
             model.MapTo(existing, graph);
-            MapRelated(existing, modelDetail);
+            MapRelated(existing, modelDetail, false);
             return Task.FromResult(true);
         }
         /// <inheritdoc/>
@@ -265,6 +265,7 @@ namespace Zerra.Repository.Memory
                 {
                     if (source.Remove(existing))
                         deleteCount++;
+                    MapRelated(existing, modelDetail, true);
                 }
             }
             return Task.FromResult(deleteCount);
@@ -279,7 +280,40 @@ namespace Zerra.Repository.Memory
             return new EmptyDataStoreGenerationPlan();
         }
 
-        private object GenerateIdentity<TModel>(ConcurrentList<TModel> source, ModelPropertyDetail property) where TModel : class, new()
+        private static Graph GetAllLocalMemberGraph(Type type)
+        {
+            return allLocalMemberGraph.GetOrAdd(type, (type) =>
+            {
+                var modelType = ModelAnalyzer.GetModel(type);
+                var graph = new Graph();
+                foreach (var member in modelType.Members)
+                {
+                    if (member.IsDataSourceEntity)
+                        continue;
+                    graph.AddMember(member.Name);
+                }
+                return graph;
+            });
+        }
+        private static Graph BuildLocalGraph(Type type, Graph? inputGraph)
+        {
+            if (inputGraph == null)
+                return GetAllLocalMemberGraph(type);
+
+            var modelType = ModelAnalyzer.GetModel(type);
+            var graph = new Graph();
+            foreach (var member in modelType.Members)
+            {
+                if (member.IsDataSourceEntity)
+                    continue;
+                if (!inputGraph.HasMember(member.Name))
+                    continue;
+                graph.AddMember(member.Name);
+            }
+            return graph;
+        }
+
+        private static object GenerateIdentity<TModel>(ConcurrentList<TModel> source, ModelMemberDetail property) where TModel : class, new()
         {
             if (!property.CoreType.HasValue)
                 throw new InvalidOperationException($"Identity property {property.Name} does not have a core type.");
@@ -301,26 +335,68 @@ namespace Zerra.Repository.Memory
             };
         }
 
-        private void MapRelated<TModel>(TModel model, ModelDetail modelDetail) where TModel : class, new()
+        private static void MapRelated(object model, ModelDetail modelDetail, bool isDelete)
         {
-            foreach (var property in modelDetail.RelatedProperties)
+            MapRelated(model, modelDetail, isDelete, new Stack<object>());
+        }
+        private static void MapRelated(object model, ModelDetail modelDetail, bool isDelete, Stack<object> stack)
+        {
+            foreach (var member in modelDetail.Members)
             {
-                if (!data.TryGetValue(property.Type, out var sourceObject))
-                    continue;
-
-                var source = (IList)sourceObject;
-
-                if (property.IsEnumerable)
+                if (!isDelete && member.IsRelated)
                 {
-                    var id = ModelAnalyzer.GetIdentity(modelDetail.Type, model);
-                    var relatedSet = source.Cast<object>().Where(x => ModelAnalyzer.CompareIdentities(id, ModelAnalyzer.GetForeignIdentity(property.Type, property.ForeignIdentity!, x))).ToArray();
-                    property.SetterBoxed(model, relatedSet);
+                    if (data.TryGetValue(member.ActualType, out var sourceObject))
+                    {
+                        var source = (IList)sourceObject;
+
+                        if (member.IsEnumerable)
+                        {
+                            var id = ModelAnalyzer.GetIdentity(modelDetail.Type, model);
+                            var relatedEnumerable = source.Cast<object>().Where(x => ModelAnalyzer.CompareIdentities(id, ModelAnalyzer.GetForeignIdentity(member.ActualType, member.ForeignIdentity!, x)));
+                            if (member.MemberDetail.Type.IsArray)
+                            {
+                                var constructor = member.MemberDetail.TypeDetail.GetConstructor([typeof(int)]);
+                                var array = (Array)constructor.CreatorBoxed([relatedEnumerable.Count()]);
+                                var i = 0;
+                                foreach (var related in relatedEnumerable)
+                                    array.SetValue(related, i++);
+                                member.SetterBoxed(model, array);
+                            }
+                            else
+                            {
+                                var list = (IList)member.CreatorBoxed!();
+                                foreach (var related in relatedEnumerable)
+                                    _ = list.Add(related);
+                                member.SetterBoxed(model, list);
+                            }
+                        }
+                        else
+                        {
+                            var foreignId = ModelAnalyzer.GetForeignIdentity(modelDetail.Type, member.ForeignIdentity!, model);
+                            var related = source.Cast<object>().FirstOrDefault(x => ModelAnalyzer.CompareIdentities(foreignId, ModelAnalyzer.GetIdentity(member.ActualType, x)));
+                            member.SetterBoxed(model, related);
+                        }
+                    }
                 }
-                else
+
+                foreach (var foreignReference in member.ForeignReferences)
                 {
-                    var foreignId = ModelAnalyzer.GetForeignIdentity(modelDetail.Type, property.ForeignIdentity!, model);
-                    var related = source.Cast<object>().FirstOrDefault(x => ModelAnalyzer.CompareIdentities(foreignId, ModelAnalyzer.GetIdentity(property.Type, x)));
-                    property.SetterBoxed(model, related);
+                    if (data.TryGetValue(foreignReference.Type, out var sourceObject))
+                    {
+                        var source = (IList)sourceObject;
+
+                        var foreignId = member.GetterBoxed!(model);
+                        var relatedEnumerable = source.Cast<object>().Where(x => ModelAnalyzer.CompareIdentities(foreignId, ModelAnalyzer.GetIdentity(foreignReference.Type, x)));
+                        foreach (var related in relatedEnumerable)
+                        {
+                            if (!stack.Contains(related))
+                            {
+                                stack.Push(related);
+                                MapRelated(related, foreignReference, false, stack);
+                                _ = stack.Pop();
+                            }
+                        }
+                    }
                 }
             }
         }

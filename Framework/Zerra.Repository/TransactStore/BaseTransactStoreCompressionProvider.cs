@@ -34,7 +34,7 @@ namespace Zerra.Repository
         /// <inheritdoc/>
         public override sealed LambdaExpression? GetWhereExpressionIncludingBase(Graph? graph)
         {
-            return base.GetWhereExpressionIncludingBase(graph);
+            return ProviderRelation?.GetWhereExpressionIncludingBase(graph);
         }
 
         private static LambdaExpression? CompressWhere(LambdaExpression? expression)

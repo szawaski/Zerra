@@ -170,7 +170,7 @@ namespace Zerra.CQRS.AzureServiceBus
                     var serviceBusMessage = new ServiceBusMessage(body);
                     await using (var sender = client.CreateSender(queue))
                     {
-                        await sender.SendMessageAsync(serviceBusMessage);
+                        await sender.SendMessageAsync(serviceBusMessage, cancellationToken);
                     }
                 }
             }

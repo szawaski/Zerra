@@ -50,11 +50,11 @@ namespace Zerra.Repository.PostgreSql
                 var callingModel = context.MemberContext.ModelStack.Peek();
                 var property = context.MemberContext.MemberLambdaStack.Peek();
 
-                if (callingModel.IdentityProperties.Count != 1)
+                if (callingModel.IdentityMembers.Count != 1)
                     throw new NotSupportedException($"Relational queries support only one identity on {callingModel.Type.Name}");
-                var callingModelIdentity = callingModel.IdentityProperties[0];
+                var callingModelIdentity = callingModel.IdentityMembers[0];
 
-                var modelProperty = callingModel.GetProperty(property.Member.Name);
+                var modelProperty = callingModel.GetMember(property.Member.Name);
 
                 if (modelProperty.ForeignIdentity is null)
                     throw new Exception($"{modelProperty.Type.Name} missing Foreign Identity");
@@ -116,11 +116,11 @@ namespace Zerra.Repository.PostgreSql
                                     sb.Write("NOT ");
 
                                 var subMemberModel = ModelAnalyzer.GetModel(subMember.Expression.Type);
-                                var propertyInfo = subMemberModel.GetProperty(subMember.Member.Name);
+                                var propertyInfo = subMemberModel.GetMember(subMember.Member.Name);
                                 if (propertyInfo.ForeignIdentity is null)
                                     throw new Exception($"{propertyInfo.Type.Name} missing Foreign Identity");
 
-                                var subModelInfo = ModelAnalyzer.GetModel(propertyInfo.InnerType);
+                                var subModelInfo = ModelAnalyzer.GetModel(propertyInfo.ActualType);
 
                                 context.MemberContext.InCallRenderIdentity++;
                                 ConvertToSqlMember(subMember, ref sb, context);
@@ -152,11 +152,11 @@ namespace Zerra.Repository.PostgreSql
                                     sb.Write("NOT ");
 
                                 var subMemberModel = ModelAnalyzer.GetModel(subMember.Expression.Type);
-                                var propertyInfo = subMemberModel.GetProperty(subMember.Member.Name);
+                                var propertyInfo = subMemberModel.GetMember(subMember.Member.Name);
                                 if (propertyInfo.ForeignIdentity is null)
                                     throw new Exception($"{propertyInfo.Type.Name} missing Foreign Identity");
 
-                                var subModelInfo = ModelAnalyzer.GetModel(propertyInfo.InnerType);
+                                var subModelInfo = ModelAnalyzer.GetModel(propertyInfo.ActualType);
 
                                 context.MemberContext.InCallRenderIdentity++;
                                 ConvertToSqlMember(subMember, ref sb, context);
@@ -189,11 +189,11 @@ namespace Zerra.Repository.PostgreSql
                                 context.MemberContext.InCallNoRender--;
 
                                 var subMemberModel = ModelAnalyzer.GetModel(subMember.Expression.Type);
-                                var propertyInfo = subMemberModel.GetProperty(subMember.Member.Name);
+                                var propertyInfo = subMemberModel.GetMember(subMember.Member.Name);
                                 if (propertyInfo.ForeignIdentity is null)
                                     throw new Exception($"{propertyInfo.Type.Name} missing Foreign Identity");
 
-                                var subModelInfo = ModelAnalyzer.GetModel(propertyInfo.InnerType);
+                                var subModelInfo = ModelAnalyzer.GetModel(propertyInfo.ActualType);
 
                                 context.MemberContext.MemberLambdaStack.Push(subMember);
                                 context.MemberContext.ModelStack.Push(subMemberModel);
@@ -294,10 +294,10 @@ namespace Zerra.Repository.PostgreSql
         {
             var member = context.MemberContext.MemberAccessStack.Pop();
 
-            var modelProperty = modelDetail.GetProperty(member.Member.Name);
+            var modelProperty = modelDetail.GetMember(member.Member.Name);
             if (modelProperty.IsDataSourceEntity)
             {
-                var subModelInfo = ModelAnalyzer.GetModel(modelProperty.InnerType);
+                var subModelInfo = ModelAnalyzer.GetModel(modelProperty.ActualType);
 
                 if (parameterInContext)
                 {
@@ -332,9 +332,9 @@ namespace Zerra.Repository.PostgreSql
             }
             else if (context.MemberContext.InCallRenderIdentity > 0)
             {
-                if (modelDetail.IdentityProperties.Count != 1)
+                if (modelDetail.IdentityMembers.Count != 1)
                     throw new NotSupportedException($"Relational queries support only one identity on {modelDetail.Type.Name}");
-                var modelIdentity = modelDetail.IdentityProperties[0];
+                var modelIdentity = modelDetail.IdentityMembers[0];
 
                 sb.Write(modelDetail.DataSourceEntityName.ToLower());
                 sb.Write('.');
@@ -430,7 +430,7 @@ namespace Zerra.Repository.PostgreSql
                 var lastOperator = context.MemberContext.OperatorStack.Peek();
                 if (lastOperator == Operator.And || lastOperator == Operator.Or)
                 {
-                    if (modelProperty.InnerType == typeof(bool))
+                    if (modelProperty.ActualType == typeof(bool))
                         sb.Write("=1");
                     else
                         sb.Write("IS NOT NULL");
@@ -934,12 +934,12 @@ namespace Zerra.Repository.PostgreSql
             else
             {
                 var passedfirst = false;
-                foreach (var property in modelDetail.Properties)
+                foreach (var member in modelDetail.Members)
                 {
-                    if (graph is not null && !graph.HasMember(property.Name))
+                    if (graph is not null && !graph.HasMember(member.Name))
                         continue;
 
-                    if (property.PropertySourceName is not null && property.ForeignIdentity is null)
+                    if (member.PropertySourceName is not null && member.ForeignIdentity is null)
                     {
                         if (passedfirst)
                             sb.Write(',');
@@ -947,7 +947,7 @@ namespace Zerra.Repository.PostgreSql
                             passedfirst = true;
                         sb.Write(modelDetail.DataSourceEntityName.ToLower());
                         sb.Write('.');
-                        sb.Write(property.Name.ToLower());
+                        sb.Write(member.Name.ToLower());
                         AppendLineBreak(ref sb);
                     }
                 }
@@ -969,7 +969,7 @@ namespace Zerra.Repository.PostgreSql
         {
             foreach (var child in dependant.Dependants.Values)
             {
-                if (child.ModelDetail.IdentityProperties.Count != 1)
+                if (child.ModelDetail.IdentityMembers.Count != 1)
                     throw new NotSupportedException($"Relational queries support only one identity on {child.ModelDetail.Type.Name}");
 
                 if (child.ParentMember is null)
@@ -977,7 +977,7 @@ namespace Zerra.Repository.PostgreSql
                 if (child.ParentMember.ForeignIdentity is null)
                     throw new Exception($"{child.ParentMember.Type.Name} missing Foreign Identity");
 
-                var dependantIdentity = child.ModelDetail.IdentityProperties[0];
+                var dependantIdentity = child.ModelDetail.IdentityMembers[0];
 
                 sb.Write("LEFT JOIN ");
                 sb.Write(child.ModelDetail.DataSourceEntityName.ToLower());
