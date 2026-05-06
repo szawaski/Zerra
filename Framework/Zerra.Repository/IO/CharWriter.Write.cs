@@ -14,7 +14,8 @@ namespace Zerra.Repository.IO
         public void Write(byte value)
         {
             EnsureBufferSize(4);
-            WriteUInt64(value);
+            _ = value.TryFormat(buffer.Slice(position), out var consumed);
+            position += consumed;
         }
 
         /// <summary>Writes the decimal text representation of an <see cref="sbyte"/> value.</summary>
@@ -23,7 +24,8 @@ namespace Zerra.Repository.IO
         public void Write(sbyte value)
         {
             EnsureBufferSize(3);
-            WriteInt64(value);
+            _ = value.TryFormat(buffer.Slice(position), out var consumed);
+            position += consumed;
         }
 
         /// <summary>Writes the decimal text representation of a <see cref="short"/> value.</summary>
@@ -32,7 +34,8 @@ namespace Zerra.Repository.IO
         public void Write(short value)
         {
             EnsureBufferSize(6);
-            WriteInt64(value);
+            _ = value.TryFormat(buffer.Slice(position), out var consumed);
+            position += consumed;
         }
 
         /// <summary>Writes the decimal text representation of a <see cref="ushort"/> value.</summary>
@@ -41,7 +44,8 @@ namespace Zerra.Repository.IO
         public void Write(ushort value)
         {
             EnsureBufferSize(5);
-            WriteUInt64(value);
+            _ = value.TryFormat(buffer.Slice(position), out var consumed);
+            position += consumed;
         }
 
         /// <summary>Writes the decimal text representation of an <see cref="int"/> value.</summary>
@@ -50,7 +54,8 @@ namespace Zerra.Repository.IO
         public void Write(int value)
         {
             EnsureBufferSize(11);
-            WriteInt64(value);
+            _ = value.TryFormat(buffer.Slice(position), out var consumed);
+            position += consumed;
         }
 
         /// <summary>Writes the decimal text representation of a <see cref="uint"/> value.</summary>
@@ -59,7 +64,8 @@ namespace Zerra.Repository.IO
         public void Write(uint value)
         {
             EnsureBufferSize(10);
-            WriteUInt64(value);
+            _ = value.TryFormat(buffer.Slice(position), out var consumed);
+            position += consumed;
         }
 
         /// <summary>Writes the decimal text representation of a <see cref="long"/> value.</summary>
@@ -68,7 +74,8 @@ namespace Zerra.Repository.IO
         public void Write(long value)
         {
             EnsureBufferSize(20);
-            WriteInt64(value);
+            _ = value.TryFormat(buffer.Slice(position), out var consumed);
+            position += consumed; ;
         }
 
         /// <summary>Writes the decimal text representation of a <see cref="ulong"/> value.</summary>
@@ -77,7 +84,8 @@ namespace Zerra.Repository.IO
         public void Write(ulong value)
         {
             EnsureBufferSize(20);
-            WriteUInt64(value);
+            _ = value.TryFormat(buffer.Slice(position), out var consumed);
+            position += consumed;
         }
 
         /// <summary>Writes the text representation of a <see cref="float"/> value.</summary>
@@ -86,7 +94,8 @@ namespace Zerra.Repository.IO
         public void Write(float value)
         {
             EnsureBufferSize(16); //min
-            Write(value.ToString());
+            _ = value.TryFormat(buffer.Slice(position), out var consumed);
+            position += consumed;
         }
 
         /// <summary>Writes the text representation of a <see cref="double"/> value.</summary>
@@ -95,7 +104,8 @@ namespace Zerra.Repository.IO
         public void Write(double value)
         {
             EnsureBufferSize(32); //min
-            Write(value.ToString());
+            _ = value.TryFormat(buffer.Slice(position), out var consumed);
+            position += consumed;
         }
 
         /// <summary>Writes the text representation of a <see cref="decimal"/> value.</summary>
@@ -104,7 +114,8 @@ namespace Zerra.Repository.IO
         public void Write(decimal value)
         {
             EnsureBufferSize(31);
-            Write(value.ToString());
+            _ = value.TryFormat(buffer.Slice(position), out var consumed);
+            position += consumed;
         }
 
         /// <summary>Writes a single <see cref="char"/>.</summary>
@@ -181,33 +192,33 @@ namespace Zerra.Repository.IO
                             buffer[position++] = '0';
                         if (value.Year < 1000)
                             buffer[position++] = '0';
-                        WriteInt64(value.Year);
+                        Write(value.Year);
                         buffer[position++] = '-';
 
                         if (value.Month < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Month);
+                        Write(value.Month);
                         buffer[position++] = '-';
 
                         if (value.Day < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Day);
+                        Write(value.Day);
 
                         buffer[position++] = 'T';
 
                         if (value.Hour < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Hour);
+                        Write(value.Hour);
                         buffer[position++] = ':';
 
                         if (value.Minute < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Minute);
+                        Write(value.Minute);
                         buffer[position++] = ':';
 
                         if (value.Second < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Second);
+                        Write(value.Second);
 
                         var fraction = value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / 10000000) * 10000000;
                         if (fraction > 0)
@@ -227,7 +238,7 @@ namespace Zerra.Repository.IO
                                 buffer[position++] = '0';
                             while (fraction % 10 == 0)
                                 fraction /= 10;
-                            WriteInt64(fraction);
+                            Write(fraction);
                         }
 
                         switch (value.Kind)
@@ -246,12 +257,12 @@ namespace Zerra.Repository.IO
                                         buffer[position++] = '+';
                                     if (offset.Offset.Hours < 10)
                                         buffer[position++] = '0';
-                                    WriteInt64(offset.Offset.Hours < 0 ? -offset.Offset.Hours : offset.Offset.Hours);
+                                    Write(offset.Offset.Hours < 0 ? -offset.Offset.Hours : offset.Offset.Hours);
                                     buffer[position++] = ':';
 
                                     if (offset.Offset.Minutes < 10)
                                         buffer[position++] = '0';
-                                    WriteInt64(offset.Offset.Minutes);
+                                    Write(offset.Offset.Minutes);
                                     break;
                                 }
                             case DateTimeKind.Unspecified:
@@ -276,33 +287,33 @@ namespace Zerra.Repository.IO
                             buffer[position++] = '0';
                         if (value.Year < 1000)
                             buffer[position++] = '0';
-                        WriteInt64(value.Year);
+                        Write(value.Year);
                         buffer[position++] = '-';
 
                         if (value.Month < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Month);
+                        Write(value.Month);
                         buffer[position++] = '-';
 
                         if (value.Day < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Day);
+                        Write(value.Day);
 
                         buffer[position++] = ' ';
 
                         if (value.Hour < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Hour);
+                        Write(value.Hour);
                         buffer[position++] = ':';
 
                         if (value.Minute < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Minute);
+                        Write(value.Minute);
                         buffer[position++] = ':';
 
                         if (value.Second < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Second);
+                        Write(value.Second);
 
                         var fraction = (value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / 10000000) * 10000000) / 10000;
                         if (fraction > 0)
@@ -314,7 +325,7 @@ namespace Zerra.Repository.IO
                                 buffer[position++] = '0';
                             while (fraction % 10 == 0)
                                 fraction /= 10;
-                            WriteInt64(fraction);
+                            Write(fraction);
                         }
 
                         break;
@@ -332,33 +343,33 @@ namespace Zerra.Repository.IO
                             buffer[position++] = '0';
                         if (value.Year < 1000)
                             buffer[position++] = '0';
-                        WriteInt64(value.Year);
+                        Write(value.Year);
                         buffer[position++] = '-';
 
                         if (value.Month < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Month);
+                        Write(value.Month);
                         buffer[position++] = '-';
 
                         if (value.Day < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Day);
+                        Write(value.Day);
 
                         buffer[position++] = ' ';
 
                         if (value.Hour < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Hour);
+                        Write(value.Hour);
                         buffer[position++] = ':';
 
                         if (value.Minute < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Minute);
+                        Write(value.Minute);
                         buffer[position++] = ':';
 
                         if (value.Second < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Second);
+                        Write(value.Second);
 
                         var fraction = (value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / 10000000) * 10000000) / 10;
                         if (fraction > 0)
@@ -376,7 +387,7 @@ namespace Zerra.Repository.IO
                                 buffer[position++] = '0';
                             while (fraction % 10 == 0)
                                 fraction /= 10;
-                            WriteInt64(fraction);
+                            Write(fraction);
                         }
 
                         break;
@@ -394,33 +405,33 @@ namespace Zerra.Repository.IO
                             buffer[position++] = '0';
                         if (value.Year < 1000)
                             buffer[position++] = '0';
-                        WriteInt64(value.Year);
+                        Write(value.Year);
                         buffer[position++] = '-';
 
                         if (value.Month < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Month);
+                        Write(value.Month);
                         buffer[position++] = '-';
 
                         if (value.Day < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Day);
+                        Write(value.Day);
 
                         buffer[position++] = ' ';
 
                         if (value.Hour < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Hour);
+                        Write(value.Hour);
                         buffer[position++] = ':';
 
                         if (value.Minute < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Minute);
+                        Write(value.Minute);
                         buffer[position++] = ':';
 
                         if (value.Second < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Second);
+                        Write(value.Second);
 
                         var fraction = (value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / 10000000) * 10000000) / 10;
                         if (fraction > 0)
@@ -438,7 +449,7 @@ namespace Zerra.Repository.IO
                                 buffer[position++] = '0';
                             while (fraction % 10 == 0)
                                 fraction /= 10;
-                            WriteInt64(fraction);
+                            Write(fraction);
                         }
 
                         break;
@@ -467,33 +478,33 @@ namespace Zerra.Repository.IO
                             buffer[position++] = '0';
                         if (value.Year < 1000)
                             buffer[position++] = '0';
-                        WriteInt64(value.Year);
+                        Write(value.Year);
                         buffer[position++] = '-';
 
                         if (value.Month < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Month);
+                        Write(value.Month);
                         buffer[position++] = '-';
 
                         if (value.Day < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Day);
+                        Write(value.Day);
 
                         buffer[position++] = 'T';
 
                         if (value.Hour < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Hour);
+                        Write(value.Hour);
                         buffer[position++] = ':';
 
                         if (value.Minute < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Minute);
+                        Write(value.Minute);
                         buffer[position++] = ':';
 
                         if (value.Second < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Second);
+                        Write(value.Second);
                      
                         var fraction = value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / 10000000) * 10000000;
                         if (fraction > 0)
@@ -513,7 +524,7 @@ namespace Zerra.Repository.IO
                                 buffer[position++] = '0';
                             while (fraction % 10 == 0)
                                 fraction /= 10;
-                            WriteInt64(fraction);
+                            Write(fraction);
                         }
 
                         if (value.Offset.Hours < 0)
@@ -522,12 +533,12 @@ namespace Zerra.Repository.IO
                             buffer[position++] = '+';
                         if (value.Offset.Hours < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Offset.Hours < 0 ? -value.Offset.Hours : value.Offset.Hours);
+                        Write(value.Offset.Hours < 0 ? -value.Offset.Hours : value.Offset.Hours);
                         buffer[position++] = ':';
 
                         if (value.Offset.Minutes < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Offset.Minutes);
+                        Write(value.Offset.Minutes);
 
                         break;
                     }
@@ -542,33 +553,33 @@ namespace Zerra.Repository.IO
                             buffer[position++] = '0';
                         if (value.Year < 1000)
                             buffer[position++] = '0';
-                        WriteInt64(value.Year);
+                        Write(value.Year);
                         buffer[position++] = '-';
 
                         if (value.Month < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Month);
+                        Write(value.Month);
                         buffer[position++] = '-';
 
                         if (value.Day < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Day);
+                        Write(value.Day);
 
                         buffer[position++] = ' ';
 
                         if (value.Hour < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Hour);
+                        Write(value.Hour);
                         buffer[position++] = ':';
 
                         if (value.Minute < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Minute);
+                        Write(value.Minute);
                         buffer[position++] = ':';
 
                         if (value.Second < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Second);
+                        Write(value.Second);
 
                         var fraction = (value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / 10000000) * 10000000) / 10000;
                         if (fraction > 0)
@@ -580,7 +591,7 @@ namespace Zerra.Repository.IO
                                 buffer[position++] = '0';
                             while (fraction % 10 == 0)
                                 fraction /= 10;
-                            WriteInt64(fraction);
+                            Write(fraction);
                         }
 
                         if (value.Offset.Hours < 0)
@@ -589,12 +600,12 @@ namespace Zerra.Repository.IO
                             buffer[position++] = '+';
                         if (value.Offset.Hours < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Offset.Hours < 0 ? -value.Offset.Hours : value.Offset.Hours);
+                        Write(value.Offset.Hours < 0 ? -value.Offset.Hours : value.Offset.Hours);
                         buffer[position++] = ':';
 
                         if (value.Offset.Minutes < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Offset.Minutes);
+                        Write(value.Offset.Minutes);
 
                         break;
                     }
@@ -611,33 +622,33 @@ namespace Zerra.Repository.IO
                             buffer[position++] = '0';
                         if (value.Year < 1000)
                             buffer[position++] = '0';
-                        WriteInt64(value.Year);
+                        Write(value.Year);
                         buffer[position++] = '-';
 
                         if (value.Month < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Month);
+                        Write(value.Month);
                         buffer[position++] = '-';
 
                         if (value.Day < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Day);
+                        Write(value.Day);
 
                         buffer[position++] = ' ';
 
                         if (value.Hour < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Hour);
+                        Write(value.Hour);
                         buffer[position++] = ':';
 
                         if (value.Minute < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Minute);
+                        Write(value.Minute);
                         buffer[position++] = ':';
 
                         if (value.Second < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Second);
+                        Write(value.Second);
 
                         var fraction = (value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / 10000000) * 10000000) / 10;
                         if (fraction > 0)
@@ -655,7 +666,7 @@ namespace Zerra.Repository.IO
                                 buffer[position++] = '0';
                             while (fraction % 10 == 0)
                                 fraction /= 10;
-                            WriteInt64(fraction);
+                            Write(fraction);
                         }
 
                         break;
@@ -671,33 +682,33 @@ namespace Zerra.Repository.IO
                             buffer[position++] = '0';
                         if (value.Year < 1000)
                             buffer[position++] = '0';
-                        WriteInt64(value.Year);
+                        Write(value.Year);
                         buffer[position++] = '-';
 
                         if (value.Month < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Month);
+                        Write(value.Month);
                         buffer[position++] = '-';
 
                         if (value.Day < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Day);
+                        Write(value.Day);
 
                         buffer[position++] = ' ';
 
                         if (value.Hour < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Hour);
+                        Write(value.Hour);
                         buffer[position++] = ':';
 
                         if (value.Minute < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Minute);
+                        Write(value.Minute);
                         buffer[position++] = ':';
 
                         if (value.Second < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Second);
+                        Write(value.Second);
 
                         var fraction = (value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / 10000000) * 10000000) / 10;
                         if (fraction > 0)
@@ -715,7 +726,7 @@ namespace Zerra.Repository.IO
                                 buffer[position++] = '0';
                             while (fraction % 10 == 0)
                                 fraction /= 10;
-                            WriteInt64(fraction);
+                            Write(fraction);
                         }
 
 
@@ -725,12 +736,12 @@ namespace Zerra.Repository.IO
                             buffer[position++] = '+';
                         if (value.Offset.Hours < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Offset.Hours < 0 ? -value.Offset.Hours : value.Offset.Hours);
+                        Write(value.Offset.Hours < 0 ? -value.Offset.Hours : value.Offset.Hours);
                         buffer[position++] = ':';
 
                         if (value.Offset.Minutes < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Offset.Minutes);
+                        Write(value.Offset.Minutes);
 
                         break;
                     }
@@ -758,12 +769,12 @@ namespace Zerra.Repository.IO
 
                         if (value.Days > 0)
                         {
-                            WriteInt64(value.Days);
+                            Write(value.Days);
                             buffer[position++] = '.';
                         }
                         else if (value.Days < 0)
                         {
-                            WriteInt64(-value.Days);
+                            Write(-value.Days);
                             buffer[position++] = '.';
                         }
 
@@ -771,14 +782,14 @@ namespace Zerra.Repository.IO
                         {
                             if (value.Hours < 10)
                                 buffer[position++] = '0';
-                            WriteInt64(value.Hours);
+                            Write(value.Hours);
                             buffer[position++] = ':';
                         }
                         else
                         {
                             if (-value.Hours < 10)
                                 buffer[position++] = '0';
-                            WriteInt64(-value.Hours);
+                            Write(-value.Hours);
                             buffer[position++] = ':';
                         }
 
@@ -786,14 +797,14 @@ namespace Zerra.Repository.IO
                         {
                             if (value.Minutes < 10)
                                 buffer[position++] = '0';
-                            WriteInt64(value.Minutes);
+                            Write(value.Minutes);
                             buffer[position++] = ':';
                         }
                         else
                         {
                             if (-value.Minutes < 10)
                                 buffer[position++] = '0';
-                            WriteInt64(-value.Minutes);
+                            Write(-value.Minutes);
                             buffer[position++] = ':';
                         }
 
@@ -801,13 +812,13 @@ namespace Zerra.Repository.IO
                         {
                             if (value.Seconds < 10)
                                 buffer[position++] = '0';
-                            WriteInt64(value.Seconds);
+                            Write(value.Seconds);
                         }
                         else
                         {
                             if (-value.Seconds < 10)
                                 buffer[position++] = '0';
-                            WriteInt64(-value.Seconds);
+                            Write(-value.Seconds);
                         }
 
                         long fraction;
@@ -830,7 +841,7 @@ namespace Zerra.Repository.IO
                                 buffer[position++] = '0';
                             if (fraction < 1000000)
                                 buffer[position++] = '0';
-                            WriteInt64(fraction);
+                            Write(fraction);
                         }
 
                         break;
@@ -846,12 +857,12 @@ namespace Zerra.Repository.IO
 
                         if (value.Days > 0)
                         {
-                            WriteInt64(value.Days);
+                            Write(value.Days);
                             buffer[position++] = '.';
                         }
                         else if (value.Days < 0)
                         {
-                            WriteInt64(-value.Days);
+                            Write(-value.Days);
                             buffer[position++] = '.';
                         }
 
@@ -859,14 +870,14 @@ namespace Zerra.Repository.IO
                         {
                             if (value.Hours < 10)
                                 buffer[position++] = '0';
-                            WriteInt64(value.Hours);
+                            Write(value.Hours);
                             buffer[position++] = ':';
                         }
                         else
                         {
                             if (-value.Hours < 10)
                                 buffer[position++] = '0';
-                            WriteInt64(-value.Hours);
+                            Write(-value.Hours);
                             buffer[position++] = ':';
                         }
 
@@ -874,14 +885,14 @@ namespace Zerra.Repository.IO
                         {
                             if (value.Minutes < 10)
                                 buffer[position++] = '0';
-                            WriteInt64(value.Minutes);
+                            Write(value.Minutes);
                             buffer[position++] = ':';
                         }
                         else
                         {
                             if (-value.Minutes < 10)
                                 buffer[position++] = '0';
-                            WriteInt64(-value.Minutes);
+                            Write(-value.Minutes);
                             buffer[position++] = ':';
                         }
 
@@ -889,13 +900,13 @@ namespace Zerra.Repository.IO
                         {
                             if (value.Seconds < 10)
                                 buffer[position++] = '0';
-                            WriteInt64(value.Seconds);
+                            Write(value.Seconds);
                         }
                         else
                         {
                             if (-value.Seconds < 10)
                                 buffer[position++] = '0';
-                            WriteInt64(-value.Seconds);
+                            Write(-value.Seconds);
                         }
 
                         long fraction;
@@ -918,7 +929,7 @@ namespace Zerra.Repository.IO
                                 buffer[position++] = '0';
                             while (fraction % 10 == 0)
                                 fraction /= 10;
-                            WriteInt64(fraction);
+                            Write(fraction);
                         }
 
                         break;
@@ -946,17 +957,17 @@ namespace Zerra.Repository.IO
                             buffer[position++] = '0';
                         if (value.Year < 1000)
                             buffer[position++] = '0';
-                        WriteInt64(value.Year);
+                        Write(value.Year);
                         buffer[position++] = '-';
 
                         if (value.Month < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Month);
+                        Write(value.Month);
                         buffer[position++] = '-';
 
                         if (value.Day < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Day);
+                        Write(value.Day);
 
                         break;
                     }
@@ -971,17 +982,17 @@ namespace Zerra.Repository.IO
                             buffer[position++] = '0';
                         if (value.Year < 1000)
                             buffer[position++] = '0';
-                        WriteInt64(value.Year);
+                        Write(value.Year);
                         buffer[position++] = '-';
 
                         if (value.Month < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Month);
+                        Write(value.Month);
                         buffer[position++] = '-';
 
                         if (value.Day < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Day);
+                        Write(value.Day);
 
                         break;
                     }
@@ -996,17 +1007,17 @@ namespace Zerra.Repository.IO
                             buffer[position++] = '0';
                         if (value.Year < 1000)
                             buffer[position++] = '0';
-                        WriteInt64(value.Year);
+                        Write(value.Year);
                         buffer[position++] = '-';
 
                         if (value.Month < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Month);
+                        Write(value.Month);
                         buffer[position++] = '-';
 
                         if (value.Day < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Day);
+                        Write(value.Day);
 
                         buffer[position++] = ' ';
 
@@ -1023,17 +1034,17 @@ namespace Zerra.Repository.IO
                             buffer[position++] = '0';
                         if (value.Year < 1000)
                             buffer[position++] = '0';
-                        WriteInt64(value.Year);
+                        Write(value.Year);
                         buffer[position++] = '-';
 
                         if (value.Month < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Month);
+                        Write(value.Month);
                         buffer[position++] = '-';
 
                         if (value.Day < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Day);
+                        Write(value.Day);
 
                         break;
                     }
@@ -1057,17 +1068,17 @@ namespace Zerra.Repository.IO
 
                         if (value.Hour < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Hour);
+                        Write(value.Hour);
                         buffer[position++] = ':';
 
                         if (value.Minute < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Minute);
+                        Write(value.Minute);
                         buffer[position++] = ':';
 
                         if (value.Second < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Second);
+                        Write(value.Second);
 
                         var fraction = value.Ticks - (value.Ticks / 10000000) * 10000000;
                         if (fraction > 0)
@@ -1087,7 +1098,7 @@ namespace Zerra.Repository.IO
                                 buffer[position++] = '0';
                             //while (fraction % 10 == 0) System.Text.Json does all figures
                             //    fraction /= 10;
-                            WriteInt64(fraction);
+                            Write(fraction);
                         }
 
                         break;
@@ -1099,17 +1110,17 @@ namespace Zerra.Repository.IO
 
                         if (value.Hour < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Hour);
+                        Write(value.Hour);
                         buffer[position++] = ':';
 
                         if (value.Minute < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Minute);
+                        Write(value.Minute);
                         buffer[position++] = ':';
 
                         if (value.Second < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Second);
+                        Write(value.Second);
 
                         var fraction = value.Ticks - (value.Ticks / 10000000) * 10000000;
                         if (fraction > 0)
@@ -1129,7 +1140,7 @@ namespace Zerra.Repository.IO
                                 buffer[position++] = '0';
                             while (fraction % 10 == 0)
                                 fraction /= 10;
-                            WriteInt64(fraction);
+                            Write(fraction);
                         }
 
                         break;
@@ -1142,17 +1153,17 @@ namespace Zerra.Repository.IO
 
                         if (value.Hour < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Hour);
+                        Write(value.Hour);
                         buffer[position++] = ':';
 
                         if (value.Minute < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Minute);
+                        Write(value.Minute);
                         buffer[position++] = ':';
 
                         if (value.Second < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Second);
+                        Write(value.Second);
 
                         var fraction = (value.Ticks - (value.Ticks / 10000000) * 10000000) / 10;
                         if (fraction > 0)
@@ -1170,7 +1181,7 @@ namespace Zerra.Repository.IO
                                 buffer[position++] = '0';
                             while (fraction % 10 == 0)
                                 fraction /= 10;
-                            WriteInt64(fraction);
+                            Write(fraction);
                         }
 
                         break;
@@ -1184,7 +1195,8 @@ namespace Zerra.Repository.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(Guid value)
         {
-            Write(value.ToString());
+            _ = value.TryFormat(buffer.Slice(position), out var consumed);
+            position += consumed;
         }
 
         /// <summary>Writes a byte array in the specified <see cref="ByteFormat"/>.</summary>

@@ -5,16 +5,16 @@
 using Xunit;
 using System.Text;
 using Zerra.Repository.Reflection;
-using Microsoft.Data.SqlClient;
-using Zerra.Repository.MsSql;
+using Zerra.Repository.MySql;
+using MySqlConnector;
 
 namespace Zerra.Repository.Test
 {
-    public class MsSqlEngineTests
+    public class MariaDbEngineTests
     {
-        private static int ExecuteSql(MsSqlTestSqlDataContext context, string sql)
+        private static int ExecuteSql(MariaDbTestSqlDataContext context, string sql)
         {
-            using (var connection = new SqlConnection(context.GetConnectionString()))
+            using (var connection = new MySqlConnection(context.GetConnectionString()))
             {
                 connection.Open();
                 using (var command = connection.CreateCommand())
@@ -25,18 +25,18 @@ namespace Zerra.Repository.Test
             }
         }
 
-        private static void DropDatabase(MsSqlTestSqlDataContext context)
+        private static void DropDatabase(MariaDbTestSqlDataContext context)
         {
-            var builder = new SqlConnectionStringBuilder(context.GetConnectionString());
-            var testDatabase = builder.InitialCatalog;
-            builder.InitialCatalog = "master";
+            var builder = new MySqlConnectionStringBuilder(context.GetConnectionString());
+            var testDatabase = builder.Database;
+            builder.Database = "sys";
             var connectionStringForMaster = builder.ToString();
-            using (var connection = new SqlConnection(connectionStringForMaster))
+            using (var connection = new MySqlConnection(connectionStringForMaster))
             {
                 connection.Open();
                 using (var command = connection.CreateCommand())
                 {
-                    command.CommandText = $"IF EXISTS(SELECT[dbid] FROM master.dbo.sysdatabases where[name] = '{testDatabase}')\r\nBEGIN\r\nALTER DATABASE [{testDatabase}] SET single_user WITH ROLLBACK IMMEDIATE\r\nDROP DATABASE {testDatabase}\r\nEND";
+                    command.CommandText = $"SELECT CONCAT('KILL ', id, ';') FROM INFORMATION_SCHEMA.PROCESSLIST WHERE `db` = '{testDatabase}'; DROP DATABASE IF EXISTS {testDatabase};";
                     _ = command.ExecuteNonQuery();
                 }
             }
@@ -45,25 +45,25 @@ namespace Zerra.Repository.Test
         [Fact]
         public async Task TestSequence()
         {
-            var context = new MsSqlTestSqlDataContext();
+            var context = new MariaDbTestSqlDataContext();
 
             DropDatabase(context);
 
             var modelTypes = new[] { typeof(TestTypesModel), typeof(TestRelationsModel) };
 
-            CodeFirstGeneration.Generate<MsSqlTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
+            CodeFirstGeneration.Generate<MariaDbTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
 
-            RepoTest.TestSequence<MsSqlTestSqlDataContext>();
-            await RepoTest.TestSequenceAsync<MsSqlTestSqlDataContext>();
+            RepoTest.TestSequence<MariaDbTestSqlDataContext>();
+            await RepoTest.TestSequenceAsync<MariaDbTestSqlDataContext>();
 
-            const string changeColumn = "ALTER TABLE [TestTypes] ALTER COLUMN [Int32Thing] bigint NULL";
-            const string addColumn = "ALTER TABLE [TestTypes] ADD [DummyToMakeNullable] int NOT NULL";
-            const string dropColumn = "ALTER TABLE [TestTypes] DROP COLUMN [ByteThing]";
+            const string changeColumn = "ALTER TABLE `TestTypes` MODIFY `Int32Thing` bigint NULL";
+            const string addColumn = "ALTER TABLE `TestTypes` ADD `DummyToMakeNullable` int NOT NULL";
+            const string dropColumn = "ALTER TABLE `TestTypes` DROP COLUMN `ByteThing`";
             _ = ExecuteSql(context, changeColumn);
             _ = ExecuteSql(context, addColumn);
             _ = ExecuteSql(context, dropColumn);
 
-            CodeFirstGeneration.Generate<MsSqlTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
+            CodeFirstGeneration.Generate<MariaDbTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
 
             var sb = new StringBuilder();
             var modelDetails = ModelAnalyzer.GetModel(typeof(TestTypesModel));
@@ -73,13 +73,13 @@ namespace Zerra.Repository.Test
                     continue;
                 if (modelDetails.Members.Any(x => x.ForeignIdentity == property.Name))
                     continue;
-                _ = sb.Append("ALTER TABLE [TestTypes] DROP COLUMN [").Append(property.PropertySourceName).Append("]\r\n");
+                _ = sb.Append("ALTER TABLE `TestTypes` DROP COLUMN `").Append(property.PropertySourceName).Append("`;\r\n");
             }
             var dropAllColumns = sb.ToString();
 
             _ = ExecuteSql(context, dropAllColumns);
 
-            CodeFirstGeneration.Generate<MsSqlTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
+            CodeFirstGeneration.Generate<MariaDbTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
 
             _ = sb.Clear();
             foreach (var property in modelDetails.Members)
@@ -90,17 +90,17 @@ namespace Zerra.Repository.Test
                     continue;
                 if (property.IsNullable)
                 {
-                    _ = sb.Append("ALTER TABLE [TestTypes] ADD [Junk").Append(property.PropertySourceName).Append("] ");
-                    MsSqlEngine.WriteSqlTypeFromModel(sb, property);
+                    _ = sb.Append("ALTER TABLE `TestTypes` ADD `Junk").Append(property.PropertySourceName).Append("` ");
+                    MySqlEngine.WriteSqlTypeFromModel(sb, property);
                     _ = sb.Insert(sb.Length - 4, "NOT ");
-                    _ = sb.Append("\r\n");
+                    _ = sb.Append(";\r\n");
                 }
             }
             var addJunkColumns = sb.ToString();
 
             _ = ExecuteSql(context, addJunkColumns);
 
-            CodeFirstGeneration.Generate<MsSqlTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
+            CodeFirstGeneration.Generate<MariaDbTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
 
             DropDatabase(context);
         }

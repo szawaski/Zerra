@@ -8,12 +8,12 @@ namespace Zerra.Repository
     /// Abstract base for a provider that combines an event store with a next (transactional) store.
     /// Temporal queries are routed to the event store provider; all other queries and persists are forwarded to both providers.
     /// </summary>
-    /// <typeparam name="TThisProviderInterface">The interface type of the event store (this) provider.</typeparam>
-    /// <typeparam name="TNextProviderInterface">The interface type of the next (transactional) provider.</typeparam>
+    /// <typeparam name="TEventStoreProviderInterface">The interface type of the event store (this) provider.</typeparam>
+    /// <typeparam name="TTransactionProviderInterface">The interface type of the next (transactional) provider.</typeparam>
     /// <typeparam name="TModel">The model type this provider operates on.</typeparam>
-    public abstract class BaseDualEventStoreProvider<TThisProviderInterface, TNextProviderInterface, TModel> : LayerProvider<TNextProviderInterface>, ITransactStoreProvider<TModel>
-        where TThisProviderInterface : ITransactStoreProvider<TModel>
-        where TNextProviderInterface : ITransactStoreProvider<TModel>
+    public abstract class BaseDualEventStoreProvider<TEventStoreProviderInterface, TTransactionProviderInterface, TModel> : LayerProvider<TTransactionProviderInterface>, ITransactStoreProvider<TModel>
+        where TEventStoreProviderInterface : ITransactStoreProvider<TModel>
+        where TTransactionProviderInterface : ITransactStoreProvider<TModel>
         where TModel : class, new()
     {
         /// <summary>
@@ -23,23 +23,23 @@ namespace Zerra.Repository
         /// <inheritdoc/>
         public Type ModelType => modelType;
 
-        private readonly ITransactStoreProvider thisProvider;
+        private readonly ITransactStoreProvider eventStoreProvider;
 
         /// <summary>
         /// Initializes a new instance wiring the event store provider and the next provider.
         /// </summary>
-        /// <param name="thisProvider">The event store provider used for temporal queries and persists.</param>
-        /// <param name="nextProvider">The next (transactional) provider used for non-temporal queries and persists.</param>
-        public BaseDualEventStoreProvider(TThisProviderInterface thisProvider, TNextProviderInterface nextProvider)
-            : base(nextProvider)
+        /// <param name="eventStoreProvider">The event store provider used for temporal queries and persists.</param>
+        /// <param name="trancationProvider">The next (transactional) provider used for non-temporal queries and persists.</param>
+        public BaseDualEventStoreProvider(TEventStoreProviderInterface eventStoreProvider, TTransactionProviderInterface trancationProvider)
+            : base(trancationProvider)
         {
-            this.thisProvider = thisProvider;
+            this.eventStoreProvider = eventStoreProvider;
         }
 
         /// <summary>
         /// Gets the event store (this) provider.
         /// </summary>
-        protected ITransactStoreProvider ThisProvider => thisProvider;
+        protected ITransactStoreProvider EventStoreProvider => eventStoreProvider;
 
         /// <summary>
         /// Routes the query to the event store provider for temporal queries, or to the next provider for standard queries.
@@ -50,7 +50,7 @@ namespace Zerra.Repository
         {
             if (query.IsTemporal)
             {
-                return ThisProvider.Query(query);
+                return EventStoreProvider.Query(query);
             }
             else
             {
@@ -67,7 +67,7 @@ namespace Zerra.Repository
         {
             if (query.IsTemporal)
             {
-                return ThisProvider.QueryAsync(query);
+                return EventStoreProvider.QueryAsync(query);
             }
             else
             {
@@ -81,7 +81,7 @@ namespace Zerra.Repository
         /// <param name="persist">The persist operation to apply.</param>
         public void Persist(Persist persist)
         {
-            ThisProvider.Persist(persist);
+            EventStoreProvider.Persist(persist);
             NextProvider.Persist(persist);
         }
 
@@ -91,7 +91,7 @@ namespace Zerra.Repository
         /// <param name="persist">The persist operation to apply.</param>
         public async Task PersistAsync(Persist persist)
         {
-            await ThisProvider.PersistAsync(persist);
+            await EventStoreProvider.PersistAsync(persist);
             await NextProvider.PersistAsync(persist);
         }
     }

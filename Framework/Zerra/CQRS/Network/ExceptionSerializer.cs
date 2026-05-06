@@ -24,7 +24,7 @@ namespace Zerra.CQRS.Network
             var content = new ExceptionContent()
             {
                 ErrorMessage = ex.GetBaseException().Message,
-                ErrorType = errorType.FullName
+                ErrorType = errorType.AssemblyQualifiedName
             };
 
             content.ErrorBytes = serializer.SerializeBytes(ex, errorType);
@@ -75,7 +75,7 @@ namespace Zerra.CQRS.Network
             var content = new ExceptionContent()
             {
                 ErrorMessage = ex.GetBaseException().Message,
-                ErrorType = errorType.FullName
+                ErrorType = errorType.AssemblyQualifiedName
             };
 
             content.ErrorBytes = serializer.SerializeBytes(ex, errorType);

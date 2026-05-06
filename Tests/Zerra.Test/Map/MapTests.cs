@@ -305,5 +305,32 @@ namespace Zerra.Test.Map
             Assert.Equal(64, modelA.PropA);
             Assert.Equal(128, modelA.PropC);
         }
+
+        [Fact]
+        public void Overloads()
+        {
+            var modelA = ModelA.GetModelA();
+
+            var modelB = modelA.Map<ModelB>();
+            ValidateModelAModelB(modelA, modelB);
+
+            modelB = ((object)modelA).Map<ModelB>(typeof(ModelA));
+            ValidateModelAModelB(modelA, modelB);
+
+            modelB = (ModelB)((object)modelA).Map(typeof(ModelA), typeof(ModelB));
+            ValidateModelAModelB(modelA, modelB);
+
+            modelB = modelA.Map<ModelA, ModelB>();
+            ValidateModelAModelB(modelA, modelB);
+
+            modelA.MapTo<ModelA, ModelB>(modelB);
+            ValidateModelAModelB(modelA, modelB);
+
+            ((object)modelA).MapTo(typeof(ModelA), modelB, typeof(ModelB));
+            ValidateModelAModelB(modelA, modelB);
+
+            _ = modelA.Copy<ModelA>();
+            _ = ((object)modelA).Copy(typeof(ModelA));
+        }
     }
 }

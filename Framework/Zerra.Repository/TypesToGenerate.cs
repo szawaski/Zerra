@@ -10,5 +10,6 @@ namespace Zerra.Repository
     internal static class TypesToGenerate
     {
         private static readonly List<object>? objectList = null;
+        private static readonly HashSet<object>? hashSetList = null;
     }
 }

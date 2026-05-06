@@ -7,7 +7,7 @@ namespace Zerra.Repository.KurrentDB
     /// <summary>
     /// Abstract base class for KurrentDB data contexts that provides connection management and engine initialization.
     /// </summary>
-    public abstract class KurrentDBDataContext : DataContext
+    public abstract class KurrentDbDataContext : DataContext
     {
         /// <summary>
         /// Gets the connection string used to connect to the KurrentDB instance.
@@ -29,7 +29,7 @@ namespace Zerra.Repository.KurrentDB
                 {
                     if (engine is null)
                     {
-                        engine = new KurrentDBEngine(ConnectionString, Insecure);
+                        engine = new KurrentDbEngine(ConnectionString, Insecure);
                         return engine;
                     }
                 }

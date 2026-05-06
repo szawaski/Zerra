@@ -8,16 +8,16 @@ using Zerra.Repository.IO;
 using Zerra.Reflection;
 using Zerra.Repository.Reflection;
 
-namespace Zerra.Repository.MySql
+namespace Zerra.Repository.MariaDb
 {
     /// <summary>
-    /// Converts LINQ expressions into MySQL query strings.
+    /// Converts LINQ expressions into MariaDB query strings.
     /// </summary>
-    public sealed class LinqMySqlConverter : BaseLinqSqlConverter
+    public sealed class LinqMariaDbConverter : BaseLinqSqlConverter
     {
-        private static readonly LinqMySqlConverter instance = new();
+        private static readonly LinqMariaDbConverter instance = new();
         /// <summary>
-        /// Converts a LINQ query into a MySQL query string.
+        /// Converts a LINQ query into a MariaDB query string.
         /// </summary>
         /// <returns>The SQL query string.</returns>
         public static string Convert(QueryOperation select, LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail)
@@ -758,9 +758,9 @@ namespace Zerra.Repository.MySql
                         sb.Write('\'');
                         return false;
                     case CoreType.Guid:
-                        sb.Write("UUID_TO_BIN('");
+                        sb.Write('\'');
                         sb.Write((Guid)value);
-                        sb.Write("')");
+                        sb.Write('\'');
                         return false;
                     case CoreType.String:
                         sb.Write('\'');

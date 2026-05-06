@@ -16,7 +16,6 @@ namespace Zerra.Repository.Test
             repo.AddProvider(new TransactStoreProvider<T, TestRelationsModel>());
 
             var model = GetTestTypesModel();
-            model.KeyA = Guid.NewGuid();
             repo.Create<TestTypesModel>(model);
 
             var modelCheck = repo.Single<TestTypesModel>(x => x.KeyA == model.KeyA);
@@ -28,7 +27,6 @@ namespace Zerra.Repository.Test
             AssertAreEqual(model, modelCheck);
 
             var relationAModel = GetTestRelationsModel();
-            relationAModel.RelationAKey = Guid.NewGuid();
             repo.Create<TestRelationsModel>(relationAModel);
             var relationAModelCheck = repo.Single<TestRelationsModel>(x => x.RelationAKey == relationAModel.RelationAKey);
             Assert.NotNull(relationAModelCheck);
@@ -42,7 +40,6 @@ namespace Zerra.Repository.Test
             Assert.Equal(model.RelationAKey, modelCheck.RelationA.RelationAKey);
 
             var relationBModel = GetTestRelationsModel();
-            relationBModel.RelationAKey = Guid.NewGuid();
             relationBModel.RelationBKey = model.KeyA;
             repo.Create<TestRelationsModel>(relationBModel);
             var relationBModelCheck = repo.Single<TestRelationsModel>(x => x.RelationBKey == model.KeyA);
@@ -84,7 +81,6 @@ namespace Zerra.Repository.Test
             repo.AddProvider(new TransactStoreProvider<T, TestRelationsModel>());
 
             var model = GetTestTypesModel();
-            model.KeyA = Guid.NewGuid();
             await repo.CreateAsync<TestTypesModel>(model);
 
             var modelCheck = await repo.SingleAsync<TestTypesModel>(x => x.KeyA == model.KeyA);
@@ -96,7 +92,6 @@ namespace Zerra.Repository.Test
             AssertAreEqual(model, modelCheck);
 
             var relationAModel = GetTestRelationsModel();
-            relationAModel.RelationAKey = Guid.NewGuid();
             await repo.CreateAsync<TestRelationsModel>(relationAModel);
             var relationAModelCheck = await repo.SingleAsync<TestRelationsModel>(x => x.RelationAKey == relationAModel.RelationAKey);
             Assert.NotNull(relationAModelCheck);
@@ -110,7 +105,6 @@ namespace Zerra.Repository.Test
             Assert.Equal(model.RelationAKey, modelCheck.RelationA.RelationAKey);
 
             var relationBModel = GetTestRelationsModel();
-            relationBModel.RelationAKey = Guid.NewGuid();
             relationBModel.RelationBKey = model.KeyA;
             await repo.CreateAsync<TestRelationsModel>(relationBModel);
             var relationBModelCheck = await repo.SingleAsync<TestRelationsModel>(x => x.RelationBKey == model.KeyA);
@@ -226,7 +220,7 @@ namespace Zerra.Repository.Test
             var anyResult = repo.Any<TestTypesModel>(x => x.KeyA == model.KeyA);
             Assert.True(anyResult);
 
-            var keyArray = new Guid[] { model.KeyA };
+            var keyArray = new[] { model.KeyA };
 
             //array index
             var arrayIndexResult = repo.Single<TestTypesModel>(x => x.KeyA == keyArray[0]);
@@ -309,7 +303,7 @@ namespace Zerra.Repository.Test
             var anyResult = await repo.AnyAsync<TestTypesModel>(x => x.KeyA == model.KeyA);
             Assert.True(anyResult);
 
-            var keyArray = new Guid[] { model.KeyA };
+            var keyArray = new[] { model.KeyA };
 
             //array index
             var arrayIndexResult = await repo.SingleAsync<TestTypesModel>(x => x.KeyA == keyArray[0]);
@@ -414,7 +408,7 @@ namespace Zerra.Repository.Test
             Assert.Equal(model1.DoubleThing, model2.DoubleThing);
             Assert.Equal(model1.DecimalThing, model2.DecimalThing);
             Assert.Equal(model1.CharThing, model2.CharThing);
-            Assert.Equal(model1.DateTimeThing.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss.f"), model2.DateTimeThing.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss.f"));
+            Assert.Equal(model1.DateTimeThing.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss.ff"), model2.DateTimeThing.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss.ff"));
             Assert.Equal(model1.DateTimeOffsetThing.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss.ffzzz"), model2.DateTimeOffsetThing.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss.ffzzz"));
             Assert.Equal((int)model1.TimeSpanThing.TotalMilliseconds, (int)model2.TimeSpanThing.TotalMilliseconds);
             Assert.Equal(model1.DateOnlyThing.ToString("yyyy-MM-dd"), model2.DateOnlyThing.ToString("yyyy-MM-dd"));

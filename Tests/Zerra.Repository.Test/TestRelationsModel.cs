@@ -7,8 +7,8 @@ namespace Zerra.Repository.Test
     [Entity("TestRelations")]
     public sealed class TestRelationsModel
     {
-        [Identity]
-        public Guid RelationAKey { get; set; }
+        [Identity(true)]
+        public int RelationAKey { get; set; }
 
         public Guid? RelationBKey { get; set; }
 

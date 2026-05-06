@@ -7,8 +7,8 @@ namespace Zerra.Repository.Test
     [Entity("TestTypes")]
     public sealed class TestTypesModel
     {
-        [Identity]
-        public Guid KeyA { get; set; }
+        [Identity(true)]
+        public Guid KeyA { get; set; } = Guid.NewGuid();
         //[Identity(true)]
         public int KeyB { get; set; }
 
@@ -79,7 +79,7 @@ namespace Zerra.Repository.Test
         [StoreProperties(false)]
         public byte[] BytesThingNull { get; set; }
 
-        public Guid? RelationAKey { get; set; }
+        public int? RelationAKey { get; set; }
 
         [Relation(nameof(RelationAKey))]
         public TestRelationsModel RelationA { get; set; }

@@ -432,8 +432,15 @@ namespace Zerra.Repository
             if (newCopy)
             {
                 var copy = new object[models.Length];
-                for (var i = 0; i < models.Length; i++)
-                    copy[i] = models[i].CopyObject();
+                if (models.Length > 0)
+                {
+                    var modelType = models[0].GetType();
+                    for (var i = 0; i < models.Length; i++)
+                    {
+                        var model = models[i];
+                        copy[i] = model.Copy(modelType);
+                    }
+                }
             }
 
             foreach (var model in models)

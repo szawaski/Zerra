@@ -389,7 +389,7 @@ namespace Zerra.Repository.Test
         public void Convert_WhereOnOneToOneRelationKey_GeneratesJoinAndWhere()
         {
             var d = GetDialect();
-            var testGuid = Guid.NewGuid();
+            var testGuid = 7;
             Expression<Func<TestTypesModel, bool>> where = x => x.RelationA.RelationAKey == testGuid;
             var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
 

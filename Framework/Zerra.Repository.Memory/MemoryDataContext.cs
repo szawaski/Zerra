@@ -7,7 +7,7 @@ namespace Zerra.Repository.Memory
     /// <summary>
     /// Abstract base class for a Memory data context.
     /// </summary>
-    public abstract class MemoryDataContext : DataContext
+    public class MemoryDataContext : DataContext
     {
         private readonly Lock locker = new();
         private IDataStoreEngine? engine = null;

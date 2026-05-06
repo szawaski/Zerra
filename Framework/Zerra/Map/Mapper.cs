@@ -4,6 +4,7 @@
 
 using Zerra.Collections;
 using Zerra.Map.Converters;
+using Zerra.Reflection;
 
 namespace Zerra.Map
 {
@@ -12,8 +13,6 @@ namespace Zerra.Map
     /// </summary>
     public static class Mapper
     {
-        private static readonly ConcurrentFactoryDictionary<TypePairKeyWithCategory, Delegate> mapCache = new();
-
         /// <summary>
         /// Maps the source object to an instance of <typeparamref name="TTarget"/>.
         /// </summary>
@@ -27,9 +26,52 @@ namespace Zerra.Map
             if (source is null)
                 throw new ArgumentNullException(nameof(source));
 
-            var sourceType = source.GetType();
-            var map = GetMap<TTarget>(sourceType);
-            var result = map(source, default, graph);
+            var sourceTypeDetail = source.GetType().GetTypeDetail();
+            var targetTypeDetail = TypeAnalyzer<TTarget>.GetTypeDetail();
+            var converter = MapConverterFactory.GetRoot(sourceTypeDetail, targetTypeDetail);
+            var result = (TTarget?)converter.Map(source, default, graph);
+            return result!;
+        }
+
+        /// <summary>
+        /// Maps the source object to an instance of <typeparamref name="TTarget"/>.
+        /// </summary>
+        /// <typeparam name="TTarget">The target type to map to.</typeparam>
+        /// <param name="source">The source object to map from. Cannot be null.</param>
+        /// <param name="sourceType">The type of the object to map. Cannot be null.</param>
+        /// <param name="graph">Optional graph specifying which members to include or exclude in the mapping.</param>
+        /// <returns>A new instance of <typeparamref name="TTarget"/> populated with mapped values from the source.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="source"/> is null.</exception>
+        public static TTarget Map<TTarget>(this object source, Type sourceType, Graph? graph = null)
+        {
+            if (source is null)
+                throw new ArgumentNullException(nameof(source));
+
+            var sourceTypeDetail = sourceType.GetTypeDetail();
+            var targetTypeDetail = TypeAnalyzer<TTarget>.GetTypeDetail();
+            var converter = MapConverterFactory.GetRoot(sourceTypeDetail, targetTypeDetail);
+            var result = (TTarget?)converter.Map(source, default, graph);
+            return result!;
+        }
+
+        /// <summary>
+        /// Maps the source object to an instance of <typeparamref name="TTarget"/>.
+        /// </summary>
+        /// <param name="source">The source object to map from. Cannot be null.</param>
+        /// <param name="sourceType">The type of the object to map. Cannot be null.</param>
+        /// <param name="targetType">The type of the target object to map to. Cannot be null.</param>
+        /// <param name="graph">Optional graph specifying which members to include or exclude in the mapping.</param>
+        /// <returns>A new instance of the target type populated with mapped values from the source.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="source"/> is null.</exception>
+        public static object Map(this object source, Type sourceType, Type targetType, Graph? graph = null)
+        {
+            if (source is null)
+                throw new ArgumentNullException(nameof(source));
+
+            var sourceTypeDetail = sourceType.GetTypeDetail();
+            var targetTypeDetail = targetType.GetTypeDetail();
+            var converter = MapConverterFactory.GetRoot(sourceTypeDetail, targetTypeDetail);
+            var result = converter.Map(source, default, graph);
             return result!;
         }
 
@@ -47,8 +89,10 @@ namespace Zerra.Map
             if (source is null)
                 throw new ArgumentNullException(nameof(source));
 
-            var map = GetMap<TSource, TTarget>();
-            var result = map(source, default, graph);
+            var sourceTypeDetail = TypeAnalyzer<TSource>.GetTypeDetail();
+            var targetTypeDetail = TypeAnalyzer<TTarget>.GetTypeDetail();
+            var converter = (MapConverter<TSource, TTarget>)MapConverterFactory.GetRoot(sourceTypeDetail, targetTypeDetail);
+            var result = converter.Map(source, default, graph);
             return result!;
         }
 
@@ -62,16 +106,38 @@ namespace Zerra.Map
         /// <param name="graph">Optional graph specifying which members to include or exclude in the mapping.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="source"/> or <paramref name="target"/> is null.</exception>
         public static void MapTo<TSource, TTarget>(this TSource source, TTarget target, Graph? graph = null)
-            where TSource : notnull
-            where TTarget : notnull
         {
             if (source is null)
                 throw new ArgumentNullException(nameof(source));
             if (target is null)
                 throw new ArgumentNullException(nameof(target));
 
-            var map = GetMap<TSource, TTarget>();
-            _ = map(source, target, graph);
+            var sourceTypeDetail = TypeAnalyzer<TSource>.GetTypeDetail();
+            var targetTypeDetail = TypeAnalyzer<TTarget>.GetTypeDetail();
+            var converter = (MapConverter<TSource, TTarget>)MapConverterFactory.GetRoot(sourceTypeDetail, targetTypeDetail);
+            _ = converter.Map(source, target, graph);
+        }
+
+        /// <summary>
+        /// Maps the source object of type <typeparamref name="TSource"/> to an existing instance of <typeparamref name="TTarget"/>.
+        /// </summary>
+        /// <param name="source">The source object to map from. Cannot be null.</param>
+        /// <param name="sourceType">The type of the object to map. Cannot be null.</param>
+        /// <param name="target">The target object to map to. Cannot be null.</param>
+        /// <param name="targetType">The type of the target object to map to. Cannot be null.</param>
+        /// <param name="graph">Optional graph specifying which members to include or exclude in the mapping.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="source"/> or <paramref name="target"/> is null.</exception>
+        public static void MapTo(this object source, Type sourceType, object target, Type targetType, Graph? graph = null)
+        {
+            if (source is null)
+                throw new ArgumentNullException(nameof(source));
+            if (target is null)
+                throw new ArgumentNullException(nameof(target));
+
+            var sourceTypeDetail = sourceType.GetTypeDetail();
+            var targetTypeDetail = targetType.GetTypeDetail();
+            var converter = MapConverterFactory.GetRoot(sourceTypeDetail, targetTypeDetail);
+            _ = converter.Map(source, target, graph);
         }
 
         /// <summary>
@@ -87,8 +153,28 @@ namespace Zerra.Map
             if (source is null)
                 throw new ArgumentNullException(nameof(source));
 
-            var map = GetMap<TTarget, TTarget>();
-            var result = map(source, default, graph);
+            var targetTypeDetail = TypeAnalyzer<TTarget>.GetTypeDetail();
+            var converter = (MapConverter<TTarget, TTarget>)MapConverterFactory.GetRoot(targetTypeDetail, targetTypeDetail);
+            var result = converter.Map(source, default, graph);
+            return result!;
+        }
+
+        /// <summary>
+        /// Creates a deep copy of the source object of type <typeparamref name="TTarget"/>.
+        /// </summary>
+        /// <typeparam name="TTarget">The type of object to copy.</typeparam>
+        /// <param name="source">The source object to copy. Cannot be null.</param>
+        /// <param name="graph">Optional graph specifying which members to include or exclude in the copy.</param>
+        /// <returns>A new instance of <typeparamref name="TTarget"/> that is a copy of the source.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="source"/> is null.</exception>
+        public static TTarget Copy<TTarget>(this object source, Graph? graph = null)
+        {
+            if (source is null)
+                throw new ArgumentNullException(nameof(source));
+
+            var targetTypeDetail = TypeAnalyzer<TTarget>.GetTypeDetail();
+            var converter = MapConverterFactory.GetRoot(targetTypeDetail, targetTypeDetail);
+            var result = (TTarget?)converter.Map(source, default, graph);
             return result!;
         }
 
@@ -96,42 +182,19 @@ namespace Zerra.Map
         /// Creates a deep copy of the source object using its runtime type.
         /// </summary>
         /// <param name="source">The source object to copy. Cannot be null.</param>
+        /// <param name="sourceType">The type of the object to copy. Cannot be null.</param>
         /// <param name="graph">Optional graph specifying which members to include or exclude in the copy.</param>
         /// <returns>A new instance of the same type as <paramref name="source"/> that is a copy of the source.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="source"/> is null.</exception>
-        public static object CopyObject(this object source, Graph? graph = null)
+        public static object Copy(this object source, Type sourceType, Graph? graph = null)
         {
             if (source is null)
                 throw new ArgumentNullException(nameof(source));
 
-            var sourceType = source.GetType();
-            var map = GetMap(sourceType, sourceType);
-            var result = map(source, default, graph);
+            var targetTypeDetail = sourceType.GetTypeDetail();
+            var converter = MapConverterFactory.GetRoot(targetTypeDetail, targetTypeDetail);
+            var result = converter.Map(source, default, graph);
             return result!;
-        }
-
-        internal static Func<TSource, TTarget?, Graph?, TTarget?> GetMap<TSource, TTarget>()
-        {
-            var sourceType = typeof(TSource);
-            var targetType = typeof(TTarget);
-            var key = new TypePairKeyWithCategory(1, sourceType, targetType);
-            var map = (Func<TSource, TTarget?, Graph?, TTarget>)mapCache.GetOrAdd(key, static () => MapGenerator.Generate1<TSource, TTarget>);
-            return map;
-        }
-
-        private static Func<object, TTarget?, Graph?, TTarget?> GetMap<TTarget>(Type sourceType)
-        {
-            var targetType = typeof(TTarget);
-            var key = new TypePairKeyWithCategory(2, sourceType, targetType);
-            var map = (Func<object, TTarget?, Graph?, TTarget>)mapCache.GetOrAdd(key, static () => MapGenerator.Generate2<TTarget>);
-            return map;
-        }
-
-        private static Func<object, object?, Graph?, object?> GetMap(Type sourceType, Type targetType)
-        {
-            var key = new TypePairKeyWithCategory(3, sourceType, targetType);
-            var map = (Func<object, object?, Graph?, object>)mapCache.GetOrAdd(key, static () => MapGenerator.Generate3);
-            return map;
         }
 
         /// <summary>

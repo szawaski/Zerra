@@ -6,8 +6,10 @@ namespace Pets.Service.Data
     {
         protected override ICollection<DataContext> LoadDataContexts() =>
         [
+            new ZerraPetsMemoryContext(),
             new ZerraPetsMsSqlContext(),
             new ZerraPetsMySqlContext(),
+            new ZerraPetsMariaDbContext(),
             new ZerraPetsPostgreSqlContext()
         ];
     }

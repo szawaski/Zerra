@@ -11,18 +11,18 @@ namespace Zerra.Repository.KurrentDB
     /// <summary>
     /// KurrentDB implementation of the event store engine that provides event sourcing capabilities.
     /// </summary>
-    public sealed class KurrentDBEngine : IEventStoreEngine, IDisposable
+    public sealed class KurrentDbEngine : IEventStoreEngine, IDisposable
     {
         private const int maxPerQuery = 25;
         private const int saveStateEvery = 100;
 
         private readonly KurrentDBClient client;
         /// <summary>
-        /// Initializes a new instance of the <see cref="KurrentDBEngine"/> class.
+        /// Initializes a new instance of the <see cref="KurrentDbEngine"/> class.
         /// </summary>
         /// <param name="connectionString">The connection string for the KurrentDB instance.</param>
         /// <param name="insecure">Whether to use an insecure connection (without TLS/SSL).</param>
-        public KurrentDBEngine(string connectionString, bool insecure)
+        public KurrentDbEngine(string connectionString, bool insecure)
         {
             var settings = new KurrentDBClientSettings
             {
@@ -38,22 +38,22 @@ namespace Zerra.Repository.KurrentDB
         /// <inheritdoc/>
         public ulong Append(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState, byte[] data)
         {
-            throw new NotSupportedException($"{nameof(KurrentDBEngine)} does not support synchronous operations");
+            throw new NotSupportedException($"{nameof(KurrentDbEngine)} does not support synchronous operations");
         }
         /// <inheritdoc/>
         public ulong Terminate(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState)
         {
-            throw new NotSupportedException($"{nameof(KurrentDBEngine)} does not support synchronous operations");
+            throw new NotSupportedException($"{nameof(KurrentDbEngine)} does not support synchronous operations");
         }
         /// <inheritdoc/>
         public EventStoreEventData[] Read(string streamName, ulong? startEventNumber, long? eventCount, ulong? endEventNumber, DateTime? startEventDate, DateTime? endEventDate)
         {
-            throw new NotSupportedException($"{nameof(KurrentDBEngine)} does not support synchronous operations");
+            throw new NotSupportedException($"{nameof(KurrentDbEngine)} does not support synchronous operations");
         }
         /// <inheritdoc/>
         public EventStoreEventData[] ReadBackwards(string streamName, ulong? startEventNumber, long? eventCount, ulong? endEventNumber, DateTime? startEventDate, DateTime? endEventDate)
         {
-            throw new NotSupportedException($"{nameof(KurrentDBEngine)} does not support synchronous operations");
+            throw new NotSupportedException($"{nameof(KurrentDbEngine)} does not support synchronous operations");
         }
 
         /// <inheritdoc/>
@@ -288,7 +288,7 @@ namespace Zerra.Repository.KurrentDB
             }
             catch (Exception ex)
             {
-                Log.Error($"{nameof(KurrentDBEngine)} failed to validate", ex);
+                Log.Error($"{nameof(KurrentDbEngine)} failed to validate", ex);
             }
             return false;
         }

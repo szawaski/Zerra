@@ -130,7 +130,7 @@ namespace Zerra.Repository.Memory
         {
             var type = typeof(TModel);
             var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
-            var copy = model.Copy();
+            TModel copy;
             lock (source)
             {
                 foreach (var identityProperty in modelDetail.IdentityMembers)
@@ -140,6 +140,7 @@ namespace Zerra.Repository.Memory
                     var newIdentity = GenerateIdentity(source, identityProperty);
                     identityProperty.SetterBoxed(model, newIdentity);
                 }
+                copy = model.Copy();
                 source.Add(copy);
             }
             MapRelated(copy, modelDetail, false);
@@ -151,7 +152,7 @@ namespace Zerra.Repository.Memory
         {
             var type = typeof(TModel);
             var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
-            var copy = model.Copy();
+            TModel copy;
             lock (source)
             {
                 foreach (var identityProperty in modelDetail.IdentityMembers)
@@ -161,6 +162,7 @@ namespace Zerra.Repository.Memory
                     var newIdentity = GenerateIdentity(source, identityProperty);
                     identityProperty.SetterBoxed(model, newIdentity);
                 }
+                copy = model.Copy();
                 source.Add(copy);
             }
             MapRelated(copy, modelDetail, false);
@@ -203,7 +205,7 @@ namespace Zerra.Repository.Memory
         {
             var type = typeof(TModel);
             var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
-            var copy = model.Copy();
+            TModel copy;
             lock (source)
             {
                 foreach (var identityProperty in modelDetail.IdentityMembers)
@@ -213,6 +215,7 @@ namespace Zerra.Repository.Memory
                     var newIdentity = GenerateIdentity(source, identityProperty);
                     identityProperty.SetterBoxed(model, newIdentity);
                 }
+                copy = model.Copy();
                 source.Add(copy);
             }
             MapRelated(copy, modelDetail, false);
@@ -224,7 +227,7 @@ namespace Zerra.Repository.Memory
         {
             var type = typeof(TModel);
             var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
-            var copy = model.Copy();
+            TModel copy;
             lock (source)
             {
                 foreach (var identityProperty in modelDetail.IdentityMembers)
@@ -234,6 +237,7 @@ namespace Zerra.Repository.Memory
                     var newIdentity = GenerateIdentity(source, identityProperty);
                     identityProperty.SetterBoxed(model, newIdentity);
                 }
+                copy = model.Copy();
                 source.Add(copy);
             }
             MapRelated(copy, modelDetail, false);
