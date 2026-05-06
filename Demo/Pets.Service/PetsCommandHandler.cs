@@ -69,6 +69,8 @@ namespace Pets.Service
                 await ZerraPetsMySqlContext.DeleteMySql(mySqlEngine);
             else if (engine is Zerra.Repository.PostgreSql.PostgreSqlEngine postgreSqlEngine)
                 await ZerraPetsPostgreSqlContext.DeletePostgreSql(postgreSqlEngine);
+            else if (engine is Zerra.Repository.MariaDb.MariaDbEngine mariaDbEngine)
+                await ZerraPetsMariaDbContext.DeleteMariaDb(mariaDbEngine);
         }
     }
 }

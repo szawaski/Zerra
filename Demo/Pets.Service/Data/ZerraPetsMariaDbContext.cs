@@ -13,7 +13,7 @@ namespace Pets.Service.Data
         }
 
 
-        public static async Task DeleteMySql(MariaDbEngine engine)
+        public static async Task DeleteMariaDb(MariaDbEngine engine)
         {
             var builder = new MySqlConnectionStringBuilder(engine.GetConnectionString());
             var testDatabase = builder.Database;
