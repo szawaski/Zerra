@@ -75,7 +75,7 @@ namespace Zerra.Repository.IO
         {
             EnsureBufferSize(20);
             _ = value.TryFormat(buffer.Slice(position), out var consumed);
-            position += consumed; ;
+            position += consumed;
         }
 
         /// <summary>Writes the decimal text representation of a <see cref="ulong"/> value.</summary>

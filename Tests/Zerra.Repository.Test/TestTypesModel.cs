@@ -7,7 +7,7 @@ namespace Zerra.Repository.Test
     [Entity("TestTypes")]
     public sealed class TestTypesModel
     {
-        [Identity(true)]
+        [Identity(false)]
         public Guid KeyA { get; set; } = Guid.NewGuid();
         //[Identity(true)]
         public int KeyB { get; set; }
