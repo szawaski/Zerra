@@ -148,12 +148,12 @@ namespace Zerra.Test.CQRS
             var streamBytes = stream.ToArray();
             stream.Dispose();
             Assert.True(streamBytes.SequenceEqual(new byte[] { 1, 2, 3, 4, 5 }));
-           
+
             var streamAsync = await bus.Call<ITestQueryHandler>().GetStreamAsync();
             var streamAsyncBytes = await streamAsync.ToArrayAsync();
             await streamAsync.DisposeAsync();
             Assert.True(streamAsyncBytes.SequenceEqual(new byte[] { 1, 2, 3, 4, 5 }));
-    
+
             using (var cancellationTokenSource = new CancellationTokenSource())
             {
                 var task = bus.Call<ITestQueryHandler>().GetThingsWithCancellationAsync(21, cancellationTokenSource.Token);
@@ -186,24 +186,64 @@ namespace Zerra.Test.CQRS
             {
                 var task = bus.DispatchAwaitAsync(new TestCommand { Thing = 24, Delay = 50 }, cancellationTokenSource.Token);
                 cancellationTokenSource.Cancel();
-                _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await task);
+                _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+                {
+                    try
+                    {
+                        await task;
+                    }
+                    catch (Exception ex)
+                    {
+                        throw ex.GetBaseException();
+                    }
+                });
             }
 
             using (var cancellationTokenSource = new CancellationTokenSource())
             {
                 var task = bus.DispatchAwaitAsync(new TestCommandWithResult { Thing = 25, Delay = 50 }, cancellationTokenSource.Token);
                 cancellationTokenSource.Cancel();
-                _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await task);
+                _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+                {
+                    try
+                    {
+                        await task;
+                    }
+                    catch (Exception ex)
+                    {
+                        throw ex.GetBaseException();
+                    }
+                });
             }
 
             {
                 var task = bus.DispatchAwaitAsync(new TestCommand { Thing = 26, Delay = 200 }, TimeSpan.FromMilliseconds(100));
-                _ = await Assert.ThrowsAnyAsync<TimeoutException>(async () => await task);
+                _ = await Assert.ThrowsAnyAsync<TimeoutException>(async () =>
+                {
+                    try
+                    {
+                        await task;
+                    }
+                    catch (Exception ex)
+                    {
+                        throw ex.GetBaseException();
+                    }
+                });
             }
 
             {
                 var task = bus.DispatchAwaitAsync(new TestCommandWithResult { Thing = 27, Delay = 200 }, TimeSpan.FromMilliseconds(100));
-                _ = await Assert.ThrowsAnyAsync<TimeoutException>(async () => await task);
+                _ = await Assert.ThrowsAnyAsync<TimeoutException>(async () =>
+                {
+                    try
+                    {
+                        await task;
+                    }
+                    catch (Exception ex)
+                    {
+                        throw ex.GetBaseException();
+                    }
+                });
             }
         }
 
