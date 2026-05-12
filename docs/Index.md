@@ -32,6 +32,7 @@ Welcome to the Zerra CQRS Framework documentation. This guide provides comprehen
 - [Queries](Queries.md) - Execute read operations with type-safe query interfaces
 - [Commands](Commands.md) - Dispatch state-changing operations with commands
 - [Events](Events.md) - Publish and handle state change notifications
+- [Security](Security.md) - Claims propagation from client to server for Queries, Commands, and Events
 
 ### Utility Features
 - [Graph](Graph.md) - Selective member inclusion/exclusion for serialization and mapping
@@ -41,6 +42,10 @@ Welcome to the Zerra CQRS Framework documentation. This guide provides comprehen
 - [Reflection](Reflection.md) - TypeAnalyzer and TypeDetail for runtime type analysis
 - [String Extensions](StringExtensions.md) - String manipulation, truncation, and type conversion helpers
 - [Stream Wrappers](StreamWrappers.md) - Stream interception, transformation, and monitoring
+
+### Repository (Experimental)
+- [Repository](Repository.md) - Data store agnostic LINQ-based data access with AOT support
+- [Repository Generation](RepositoryGeneration.md) - Code First schema generation and Database First T4 reverse engineering
 
 ### Additional Resources
 - [Main Project README](../README.md) - Quick start, installation, and project overview
@@ -60,6 +65,8 @@ Welcome to the Zerra CQRS Framework documentation. This guide provides comprehen
 - **`ICommandHandler`** - Handles write operations ([Commands](Commands.md))
 - **`IEventHandler`** - Handles event notifications ([Events](Events.md))
 - **`BaseHandler`** - Base class providing `Bus`, `Log`, and `Context` access
+- **`BaseHandlerWithRepo`** - Extends `BaseHandler` with `Repo` access ([Repository](Repository.md))
+- **`IRepo`** - LINQ-based data store agnostic data access interface ([Repository](Repository.md))
 
 ### Common Tasks
 - **Add encryption** → See [Encryptors](Encryptors.md) for ZerraEncryptor setup
@@ -68,6 +75,7 @@ Welcome to the Zerra CQRS Framework documentation. This guide provides comprehen
 - **Map between types** → See [Mapper](Mapper.md) for object mapping and conversions
 - **Custom enum names** → See [EnumName](EnumName.md) for attribute-based enum string representation
 - **Enable AOT** → See [AOT Support](AOT.md) for Native AOT compilation
+- **Access a data store** → See [Repository](Repository.md) for `IRepo` setup and usage
 - **Expose HTTP API** → See [Zerra.Web](ZerraWeb.md) for API Gateway setup
 - **Deploy to Azure** → See [Zerra.Web](ZerraWeb.md) for IIS/Azure App Services hosting
 
