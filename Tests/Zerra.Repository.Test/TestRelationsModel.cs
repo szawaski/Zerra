@@ -13,5 +13,14 @@ namespace Zerra.Repository.Test
         public Guid? RelationBKey { get; set; }
 
         public string SomeValue { get; set; }
+
+        public static TestRelationsModel Create()
+        {
+            var model = new TestRelationsModel()
+            {
+                SomeValue = "Hello\r\nWorld!"
+            };
+            return model;
+        }
     }
 }

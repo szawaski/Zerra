@@ -15,7 +15,7 @@ namespace Zerra.Repository.Test
             repo.AddProvider(new TransactStoreProvider<T, TestTypesModel>());
             repo.AddProvider(new TransactStoreProvider<T, TestRelationsModel>());
 
-            var model = GetTestTypesModel();
+            var model = TestTypesModel.Create();
             repo.Create<TestTypesModel>(model);
 
             var modelCheck = repo.Single<TestTypesModel>(x => x.KeyA == model.KeyA);
@@ -26,7 +26,7 @@ namespace Zerra.Repository.Test
             modelCheck = repo.Single<TestTypesModel>(x => x.KeyA == model.KeyA);
             AssertAreEqual(model, modelCheck);
 
-            var relationAModel = GetTestRelationsModel();
+            var relationAModel = TestRelationsModel.Create();
             repo.Create<TestRelationsModel>(relationAModel);
             var relationAModelCheck = repo.Single<TestRelationsModel>(x => x.RelationAKey == relationAModel.RelationAKey);
             Assert.NotNull(relationAModelCheck);
@@ -39,7 +39,7 @@ namespace Zerra.Repository.Test
             Assert.NotNull(modelCheck.RelationA);
             Assert.Equal(model.RelationAKey, modelCheck.RelationA.RelationAKey);
 
-            var relationBModel = GetTestRelationsModel();
+            var relationBModel = TestRelationsModel.Create();
             relationBModel.RelationBKey = model.KeyA;
             repo.Create<TestRelationsModel>(relationBModel);
             var relationBModelCheck = repo.Single<TestRelationsModel>(x => x.RelationBKey == model.KeyA);
@@ -80,7 +80,7 @@ namespace Zerra.Repository.Test
             repo.AddProvider(new TransactStoreProvider<T, TestTypesModel>());
             repo.AddProvider(new TransactStoreProvider<T, TestRelationsModel>());
 
-            var model = GetTestTypesModel();
+            var model = TestTypesModel.Create();
             await repo.CreateAsync<TestTypesModel>(model);
 
             var modelCheck = await repo.SingleAsync<TestTypesModel>(x => x.KeyA == model.KeyA);
@@ -91,7 +91,7 @@ namespace Zerra.Repository.Test
             modelCheck = await repo.SingleAsync<TestTypesModel>(x => x.KeyA == model.KeyA);
             AssertAreEqual(model, modelCheck);
 
-            var relationAModel = GetTestRelationsModel();
+            var relationAModel = TestRelationsModel.Create();
             await repo.CreateAsync<TestRelationsModel>(relationAModel);
             var relationAModelCheck = await repo.SingleAsync<TestRelationsModel>(x => x.RelationAKey == relationAModel.RelationAKey);
             Assert.NotNull(relationAModelCheck);
@@ -104,7 +104,7 @@ namespace Zerra.Repository.Test
             Assert.NotNull(modelCheck.RelationA);
             Assert.Equal(model.RelationAKey, modelCheck.RelationA.RelationAKey);
 
-            var relationBModel = GetTestRelationsModel();
+            var relationBModel = TestRelationsModel.Create();
             relationBModel.RelationBKey = model.KeyA;
             await repo.CreateAsync<TestRelationsModel>(relationBModel);
             var relationBModelCheck = await repo.SingleAsync<TestRelationsModel>(x => x.RelationBKey == model.KeyA);
@@ -136,64 +136,6 @@ namespace Zerra.Repository.Test
             await repo.DeleteAsync<TestRelationsModel>(relationBModel);
             relationBModelCheck = await repo.SingleAsync<TestRelationsModel>(x => x.RelationAKey == relationBModel.RelationAKey);
             Assert.Null(relationBModelCheck);
-        }
-
-        private static TestTypesModel GetTestTypesModel()
-        {
-            var model = new TestTypesModel()
-            {
-                ByteThing = 1,
-                Int16Thing = -3,
-                Int32Thing = -5,
-                Int64Thing = -7,
-                SingleThing = -9.1f,
-                DoubleThing = -10.2,
-                DecimalThing = -11.3m,
-                CharThing = 'Z',
-                DateTimeThing = DateTime.Now,
-                DateTimeOffsetThing = DateTimeOffset.Now.AddDays(1),
-                TimeSpanThing = DateTime.Now.TimeOfDay,
-                DateOnlyThing = DateOnly.FromDateTime(DateTime.Now),
-                TimeOnlyThing = TimeOnly.FromDateTime(DateTime.Now),
-                GuidThing = Guid.NewGuid(),
-
-                ByteNullableThing = 11,
-                Int16NullableThing = -13,
-                Int32NullableThing = -15,
-                Int64NullableThing = -17,
-                SingleNullableThing = -19.1f,
-                DoubleNullableThing = -110.2,
-                DecimalNullableThing = -111.3m,
-                CharNullableThing = 'X',
-                DateTimeNullableThing = DateTime.Now.AddMonths(1),
-                DateTimeOffsetNullableThing = DateTimeOffset.Now.AddMonths(1).AddDays(1),
-                TimeSpanNullableThing = DateTime.Now.AddHours(1).TimeOfDay,
-                DateOnlyNullableThing = DateOnly.FromDateTime(DateTime.Now),
-                TimeOnlyNullableThing = TimeOnly.FromDateTime(DateTime.Now),
-                GuidNullableThing = Guid.NewGuid(),
-
-                ByteNullableThingNull = null,
-                Int16NullableThingNull = null,
-                Int32NullableThingNull = null,
-                Int64NullableThingNull = null,
-                SingleNullableThingNull = null,
-                DoubleNullableThingNull = null,
-                DecimalNullableThingNull = null,
-                CharNullableThingNull = null,
-                DateTimeNullableThingNull = null,
-                DateTimeOffsetNullableThingNull = null,
-                TimeSpanNullableThingNull = null,
-                DateOnlyNullableThingNull = null,
-                TimeOnlyNullableThingNull = null,
-                GuidNullableThingNull = null,
-
-                StringThing = "Hello\r\nWorld!",
-                StringThingNull = null,
-
-                BytesThing = [1, 2, 3],
-                BytesThingNull = null,
-            };
-            return model;
         }
 
         private static void TestQuery(IRepo repo, TestTypesModel model, TestRelationsModel relationModel)
@@ -464,15 +406,6 @@ namespace Zerra.Repository.Test
 
             Assert.Null(model1.BytesThingNull);
             Assert.Null(model2.BytesThingNull);
-        }
-
-        private static TestRelationsModel GetTestRelationsModel()
-        {
-            var model = new TestRelationsModel()
-            {
-                SomeValue = "Hello\r\nWorld!"
-            };
-            return model;
         }
     }
 }

@@ -8,7 +8,7 @@
     <Project Path="Framework/Zerra.CQRS.AzureServiceBus/Zerra.CQRS.AzureServiceBus.csproj" />
     <Project Path="Framework/Zerra.CQRS.Kafka/Zerra.CQRS.Kafka.csproj" />
     <Project Path="Framework/Zerra.CQRS.RabbitMQ/Zerra.CQRS.RabbitMQ.csproj" />
-    <Project Path="Framework/Zerra.Repository.KurrentDb/Zerra.Repository.KurrentDb.csproj" DisplayName="Zerra.Repository.KurrentDb" />
+    <Project Path="Framework/Zerra.Repository.KurrentDb/Zerra.Repository.KurrentDb.csproj" />
     <Project Path="Framework/Zerra.Repository.MariaDb/Zerra.Repository.MariaDb.csproj" />
     <Project Path="Framework/Zerra.Repository.Memory/Zerra.Repository.Memory.csproj" />
     <Project Path="Framework/Zerra.Repository.MsSql/Zerra.Repository.MsSql.csproj" />
@@ -40,6 +40,7 @@
   </Folder>
   <Folder Name="/Test/">
     <Project Path="Tests/Zerra.Benchmark/Zerra.Benchmark.csproj" />
+    <Project Path="Tests/Zerra.Repository.Benchmark/Zerra.Repository.Benchmark.csproj" />
     <Project Path="Tests/Zerra.Repository.Test/Zerra.Repository.Test.csproj" />
     <Project Path="Tests/Zerra.SourceGeneration.Test/Zerra.SourceGeneration.Test.csproj" />
     <Project Path="Tests/Zerra.T4.TestDev/Zerra.T4.TestDev.csproj" />

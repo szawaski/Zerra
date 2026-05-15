@@ -8,4 +8,4 @@ using Zerra.Benchmark.Benchmarks;
 //_ = BenchmarkRunner.Run<MapBenchmarks>();
 _ = BenchmarkRunner.Run<SerializerBenchmarks>();
 
-//dotnet run -project Tests\Zerra.Benchmark\Zerra.Benchmark.csproj -c Release
+//dotnet run --project Tests\Zerra.Benchmark\Zerra.Benchmark.csproj -c Release

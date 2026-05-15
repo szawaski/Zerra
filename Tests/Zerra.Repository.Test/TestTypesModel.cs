@@ -86,5 +86,63 @@ namespace Zerra.Repository.Test
 
         [Relation(nameof(TestRelationsModel.RelationBKey))]
         public TestRelationsModel[] RelationB { get; set; }
+
+        public static TestTypesModel Create()
+        {
+            var model = new TestTypesModel()
+            {
+                ByteThing = 1,
+                Int16Thing = -3,
+                Int32Thing = -5,
+                Int64Thing = -7,
+                SingleThing = -9.1f,
+                DoubleThing = -10.2,
+                DecimalThing = -11.3m,
+                CharThing = 'Z',
+                DateTimeThing = DateTime.Now,
+                DateTimeOffsetThing = DateTimeOffset.Now.AddDays(1),
+                TimeSpanThing = DateTime.Now.TimeOfDay,
+                DateOnlyThing = DateOnly.FromDateTime(DateTime.Now),
+                TimeOnlyThing = TimeOnly.FromDateTime(DateTime.Now),
+                GuidThing = Guid.NewGuid(),
+
+                ByteNullableThing = 11,
+                Int16NullableThing = -13,
+                Int32NullableThing = -15,
+                Int64NullableThing = -17,
+                SingleNullableThing = -19.1f,
+                DoubleNullableThing = -110.2,
+                DecimalNullableThing = -111.3m,
+                CharNullableThing = 'X',
+                DateTimeNullableThing = DateTime.Now.AddMonths(1),
+                DateTimeOffsetNullableThing = DateTimeOffset.Now.AddMonths(1).AddDays(1),
+                TimeSpanNullableThing = DateTime.Now.AddHours(1).TimeOfDay,
+                DateOnlyNullableThing = DateOnly.FromDateTime(DateTime.Now),
+                TimeOnlyNullableThing = TimeOnly.FromDateTime(DateTime.Now),
+                GuidNullableThing = Guid.NewGuid(),
+
+                ByteNullableThingNull = null,
+                Int16NullableThingNull = null,
+                Int32NullableThingNull = null,
+                Int64NullableThingNull = null,
+                SingleNullableThingNull = null,
+                DoubleNullableThingNull = null,
+                DecimalNullableThingNull = null,
+                CharNullableThingNull = null,
+                DateTimeNullableThingNull = null,
+                DateTimeOffsetNullableThingNull = null,
+                TimeSpanNullableThingNull = null,
+                DateOnlyNullableThingNull = null,
+                TimeOnlyNullableThingNull = null,
+                GuidNullableThingNull = null,
+
+                StringThing = "Hello\r\nWorld!",
+                StringThingNull = null,
+
+                BytesThing = [1, 2, 3],
+                BytesThingNull = null,
+            };
+            return model;
+        }
     }
 }
