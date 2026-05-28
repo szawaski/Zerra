@@ -422,15 +422,20 @@ public class UserQueryHandler : BaseHandler, IUserQueries
 
 ### Client-Side Error Handling
 
+When a query is handled by a remote service, any exception thrown in the handler is captured and returned to the caller as a `RemoteServiceException`. The exception carries the original error message (`Message`), the original exception type name (`ErrorType`), the query or command that caused it (`Source`), and the remote stack trace (`StackTrace`).
+
 ```csharp
 try
 {
     var user = await bus.Call<IUserQueries>().GetUserById(123, cancellationToken);
 }
-catch (KeyNotFoundException ex)
+catch (RemoteServiceException ex)
 {
-    // Handle not found
-    Console.WriteLine($"User not found: {ex.Message}");
+    // Server handler threw an exception
+    Console.WriteLine($"Source:     {ex.Source}");    // e.g. "IUserQueries.GetUserById"
+    Console.WriteLine($"Error type: {ex.ErrorType}"); // e.g. "KeyNotFoundException"
+    Console.WriteLine($"Message:    {ex.Message}");
+    Console.WriteLine($"Stack trace:\n{ex.StackTrace}");
 }
 catch (TimeoutException ex)
 {
@@ -444,7 +449,7 @@ catch (OperationCanceledException)
 }
 catch (Exception ex)
 {
-    // Handle other errors
+    // Network or connection error
     Console.WriteLine($"Query failed: {ex.Message}");
 }
 ```

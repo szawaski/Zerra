@@ -14,6 +14,7 @@ Commands in Zerra:
 - Support timeouts and cancellation
 - CancellationTokens do **NOT** propagate remotely (important difference from queries)
 - Handler execution can be local or distributed via message brokers
+- Exceptions thrown in a remote handler are returned as `RemoteServiceException` **only** when using `DispatchAwaitAsync`; fire-and-forget `DispatchAsync` does not return exceptions
 
 ## Command Types
 
@@ -446,46 +447,38 @@ Console.WriteLine("Command completed");
 
 ### Server-Side Error Handling
 
+Handlers should throw meaningful exceptions to communicate failures. Any unhandled exception in a handler is captured and, when the command was awaited, returned to the caller.
+
 ```csharp
 public class UserCommandHandler : BaseHandler, IUserCommandHandler
 {
     public async Task Handle(CreateUserCommand command, CancellationToken cancellationToken)
     {
-        // Validate input
+        // Validate input - throw descriptive exceptions the caller can act on
         if (string.IsNullOrWhiteSpace(command.Email))
             throw new ArgumentException("Email is required", nameof(command.Email));
 
-        try
-        {
-            var repository = Context.GetService<IUserRepository>();
+        var repository = Context.GetService<IUserRepository>();
 
-            // Check for duplicates
-            var existingUser = await repository.FindByEmailAsync(command.Email, cancellationToken);
-            if (existingUser != null)
-                throw new InvalidOperationException($"User with email {command.Email} already exists");
+        var existingUser = await repository.FindByEmailAsync(command.Email, cancellationToken);
+        if (existingUser != null)
+            throw new InvalidOperationException($"User with email {command.Email} already exists");
 
-            // Create user
-            var user = new User { Email = command.Email, Name = command.Name };
-            await repository.CreateAsync(user, cancellationToken);
+        var user = new User { Email = command.Email, Name = command.Name };
+        await repository.CreateAsync(user, cancellationToken);
 
-            Log?.Info($"User created: {command.Email}");
-        }
-        catch (Exception ex)
-        {
-            Log?.Error($"Failed to create user: {command.Email}", ex);
-            throw;
-        }
+        Log?.Info($"User created: {command.Email}");
     }
 }
 ```
 
 ### Client-Side Error Handling
 
-When using `DispatchAwaitAsync`, exceptions thrown in the server's handler code are wrapped in `RemoteServiceException` and propagated to the client:
+When a remote handler throws an exception it is captured by the framework and returned to the caller as a `RemoteServiceException`. The exception carries the original error message (`Message`), the original exception type name (`ErrorType`), the command that caused it (`Source`), and the remote stack trace (`StackTrace`). There is no `InnerException`.
+
+This only applies when using `DispatchAwaitAsync`. Fire-and-forget `DispatchAsync` does not wait for the handler to complete and therefore cannot return exceptions — see [Fire-and-Forget Does Not Return Exceptions](#fire-and-forget-does-not-return-exceptions) below.
 
 ```csharp
-using Zerra.CQRS;
-
 try
 {
     await bus.DispatchAwaitAsync(new CreateUserCommand 
@@ -498,117 +491,57 @@ try
 }
 catch (RemoteServiceException ex)
 {
-    // Server-side handler threw an exception
-    // This is NOT a connection error - the server processed the command and threw an error
-    Log?.Error($"Server error: {ex.Message}", ex);
+    // The remote handler threw an exception.
+    // Use ErrorType to distinguish the original exception without an InnerException.
+    Log?.Error($"Source:     {ex.Source}");    // e.g. "CreateUserCommand"
+    Log?.Error($"Error type: {ex.ErrorType}"); // e.g. "ArgumentException"
+    Log?.Error($"Message:    {ex.Message}");
 
-    // Original exception type and message are preserved
-    Log?.Error($"Server error type: {ex.InnerException?.GetType().Name}");
-    Log?.Error($"Server error message: {ex.InnerException?.Message}");
-
-    // Handle specific server-side errors
-    if (ex.InnerException is ArgumentException)
-    {
-        Log?.Error("Invalid input on server");
-    }
-    else if (ex.InnerException is InvalidOperationException)
-    {
-        Log?.Error("Business logic error on server");
-    }
+    if (ex.ErrorType == nameof(ArgumentException))
+        Log?.Error("Validation error on server");
+    else if (ex.ErrorType == nameof(InvalidOperationException))
+        Log?.Error("Business rule violation on server");
+    else if (ex.ErrorType == nameof(KeyNotFoundException))
+        Log?.Warning("Entity not found on server");
 }
 catch (TimeoutException)
 {
-    // Connection or response timeout
+    // The server did not respond in time.
+    // The command may or may not have been processed.
     Log?.Warning("Command timed out");
 }
 catch (Exception ex)
 {
-    // Connection errors or other unexpected errors
+    // Network or connection error — command was not delivered.
     Log?.Error($"Command failed: {ex.Message}");
 }
 ```
 
-### RemoteServiceException vs Other Exceptions
+### Exception Types at a Glance
 
-```csharp
-try
-{
-    var result = await bus.DispatchAwaitAsync(new ProcessOrderCommand { OrderId = 123 });
-}
-catch (RemoteServiceException ex)
-{
-    // ✅ Server handler code threw an exception
-    // The command was received and processed by the server
-    // Example: validation failed, business rule violated, database error
-    Log?.Error("Server-side error during command processing", ex);
-}
-catch (TimeoutException ex)
-{
-    // ⚠️ Network timeout or server didn't respond in time
-    // Command may or may not have been processed
-    Log?.Warning("Command timed out", ex);
-}
-catch (IOException ex)
-{
-    // ❌ Network connection error
-    // Command was not delivered to server
-    Log?.Error("Network error", ex);
-}
-```
+Understanding which exception type is thrown helps distinguish between different failure scenarios:
 
-### Accessing Original Server Exception
-
-```csharp
-try
-{
-    await bus.DispatchAwaitAsync(new CreateUserCommand 
-    { 
-        Email = "invalid-email",
-        Name = "John"
-    });
-}
-catch (RemoteServiceException ex)
-{
-    // Get the original exception from server
-    var serverException = ex.InnerException;
-
-    if (serverException is ArgumentException argEx)
-    {
-        Log?.Error($"Validation error: {argEx.ParamName} - {argEx.Message}");
-    }
-    else if (serverException is InvalidOperationException invalidEx)
-    {
-        Log?.Error($"Business rule violation: {invalidEx.Message}");
-    }
-    else if (serverException is KeyNotFoundException notFoundEx)
-    {
-        Log?.Warning($"Entity not found: {notFoundEx.Message}");
-    }
-    else
-    {
-        // Unknown server error
-        Log?.Error($"Server error: {serverException?.GetType().Name} - {serverException?.Message}");
-    }
-}
-```
+| Exception | Meaning | Command delivered? |
+|---|---|---|
+| `RemoteServiceException` | Handler code threw — validation failed, business rule violated, etc. Check `ErrorType` and `Message` for details. | ✅ Yes |
+| `TimeoutException` | Server did not respond in time | ⚠️ Unknown |
+| `IOException` / other | Network or connection failure | ❌ No |
 
 ### Fire-and-Forget Does Not Return Exceptions
 
-⚠️ **Important**: `DispatchAsync` (fire-and-forget) does **not** return server-side exceptions:
+⚠️ **Important**: `DispatchAsync` (fire-and-forget) returns as soon as the command is sent and does **not** propagate exceptions from the remote handler. If you need to handle server-side failures, use `DispatchAwaitAsync` instead.
 
 ```csharp
-// ❌ Server exceptions are NOT propagated
+// DispatchAsync returns immediately - exceptions from the handler are never surfaced
 await bus.DispatchAsync(new CreateUserCommand 
 { 
     Email = "invalid-email",
     Name = "John"
 });
 
-// Continues immediately - even if server throws exception
-Log?.Info("Command dispatched");
-// No exception thrown here, even if server-side validation failed
+// Execution continues here regardless of what happens on the server
 
-// ✅ To receive server exceptions, use DispatchAwaitAsync
+// ✅ Use DispatchAwaitAsync to receive exceptions
 try
 {
     await bus.DispatchAwaitAsync(new CreateUserCommand 
@@ -619,8 +552,7 @@ try
 }
 catch (RemoteServiceException ex)
 {
-    // Now you can handle server-side errors
-    Log?.Error($"Server error: {ex.InnerException?.Message}");
+    Log?.Error($"Server error ({ex.ErrorType}): {ex.Message}");
 }
 ```
 
