@@ -211,7 +211,7 @@ namespace Zerra.Web
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    var responseException = await ExceptionSerializer.DeserializeAsync(serializer, responseStream, cancellationToken);
+                    var responseException = await ExceptionSerializer.DeserializeAsync(data.MessageType, serializer, responseStream, cancellationToken);
                     throw responseException;
                 }
 

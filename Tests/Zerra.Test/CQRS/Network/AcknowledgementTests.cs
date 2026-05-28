@@ -69,7 +69,8 @@ namespace Zerra.Test.CQRS.Network
         {
             var serializer = CreateTestSerializer();
 
-            _ = Assert.Throws<RemoteServiceException>(() => Acknowledgement.ThrowIfFailed(serializer, null));
+            var ex = Assert.Throws<RemoteServiceException>(() => Acknowledgement.ThrowIfFailed("Test Source", serializer, null));
+            Assert.Contains("Test Source", ex.Message);
         }
 
         [Fact]
@@ -78,7 +79,7 @@ namespace Zerra.Test.CQRS.Network
             var serializer = CreateTestSerializer();
             var ack = new Acknowledgement(serializer, "result", null);
 
-            Acknowledgement.ThrowIfFailed(serializer, ack);
+            Acknowledgement.ThrowIfFailed("Test Source", serializer, ack);
         }
 
         [Fact]
@@ -87,7 +88,7 @@ namespace Zerra.Test.CQRS.Network
             var serializer = CreateTestSerializer();
             var ack = new Acknowledgement(serializer, null, new InvalidOperationException("Remote failure"));
 
-            var ex = Assert.Throws<RemoteServiceException>(() => Acknowledgement.ThrowIfFailed(serializer, ack));
+            var ex = Assert.Throws<RemoteServiceException>(() => Acknowledgement.ThrowIfFailed("Test Source", serializer, ack));
             Assert.Contains("Remote failure", ex.Message);
         }
 
@@ -97,7 +98,7 @@ namespace Zerra.Test.CQRS.Network
             var serializer = CreateTestSerializer();
             var ack = new Acknowledgement(serializer, "Error from service");
 
-            var ex = Assert.Throws<RemoteServiceException>(() => Acknowledgement.ThrowIfFailed(serializer, ack));
+            var ex = Assert.Throws<RemoteServiceException>(() => Acknowledgement.ThrowIfFailed("Test Source", serializer, ack));
             Assert.Contains("Error from service", ex.Message);
         }
 
@@ -106,7 +107,8 @@ namespace Zerra.Test.CQRS.Network
         {
             var serializer = CreateTestSerializer();
 
-            _ = Assert.Throws<RemoteServiceException>(() => Acknowledgement.GetResultOrThrowIfFailed(serializer, null));
+            var ex = Assert.Throws<RemoteServiceException>(() => Acknowledgement.GetResultOrThrowIfFailed("Test Source", serializer, null));
+            Assert.Contains("Test Source", ex.Message);
         }
 
         [Fact]
@@ -115,7 +117,7 @@ namespace Zerra.Test.CQRS.Network
             var serializer = CreateTestSerializer();
             var ack = new Acknowledgement(serializer, null, new ArgumentException("Bad argument"));
 
-            var ex = Assert.Throws<RemoteServiceException>(() => Acknowledgement.GetResultOrThrowIfFailed(serializer, ack));
+            var ex = Assert.Throws<RemoteServiceException>(() => Acknowledgement.GetResultOrThrowIfFailed("Test Source", serializer, ack));
             Assert.Contains("Bad argument", ex.Message);
         }
 
@@ -125,7 +127,7 @@ namespace Zerra.Test.CQRS.Network
             var serializer = CreateTestSerializer();
             var ack = new Acknowledgement(serializer, "Service error message");
 
-            var ex = Assert.Throws<RemoteServiceException>(() => Acknowledgement.GetResultOrThrowIfFailed(serializer, ack));
+            var ex = Assert.Throws<RemoteServiceException>(() => Acknowledgement.GetResultOrThrowIfFailed("Test Source", serializer, ack));
             Assert.Contains("Service error message", ex.Message);
         }
 
@@ -135,7 +137,7 @@ namespace Zerra.Test.CQRS.Network
             var serializer = CreateTestSerializer();
             var ack = new Acknowledgement(serializer, null, null);
 
-            var result = Acknowledgement.GetResultOrThrowIfFailed(serializer, ack);
+            var result = Acknowledgement.GetResultOrThrowIfFailed("Test Source", serializer, ack);
 
             Assert.Null(result);
         }
@@ -147,7 +149,7 @@ namespace Zerra.Test.CQRS.Network
             var expected = "Hello, World!";
             var ack = new Acknowledgement(serializer, expected, null);
 
-            var result = Acknowledgement.GetResultOrThrowIfFailed(serializer, ack);
+            var result = Acknowledgement.GetResultOrThrowIfFailed("Test Source", serializer, ack);
 
             Assert.NotNull(result);
             Assert.Equal(expected, result);
@@ -160,7 +162,7 @@ namespace Zerra.Test.CQRS.Network
             var expected = 42;
             var ack = new Acknowledgement(serializer, expected, null);
 
-            var result = Acknowledgement.GetResultOrThrowIfFailed(serializer, ack);
+            var result = Acknowledgement.GetResultOrThrowIfFailed("Test Source", serializer, ack);
 
             Assert.NotNull(result);
             Assert.Equal(expected, result);

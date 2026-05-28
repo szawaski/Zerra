@@ -158,7 +158,7 @@ namespace Zerra.CQRS.Network
 
                     if (responseHeader.IsError)
                     {
-                        var responseException = await ExceptionSerializer.DeserializeAsync(serializer, responseBodyStream, cancellationToken);
+                        var responseException = await ExceptionSerializer.DeserializeAsync($"{interfaceType.Name}.{methodName}", serializer, responseBodyStream, cancellationToken);
                         isThrowingRemote = true;
                         throw responseException;
                     }
@@ -378,7 +378,7 @@ namespace Zerra.CQRS.Network
 
                     if (responseHeader.IsError)
                     {
-                        var responseException = await ExceptionSerializer.DeserializeAsync(serializer, responseBodyStream, cancellationToken);
+                        var responseException = await ExceptionSerializer.DeserializeAsync(commandType.Name, serializer, responseBodyStream, cancellationToken);
                         isThrowingRemote = true;
                         throw responseException;
                     }
@@ -583,7 +583,7 @@ namespace Zerra.CQRS.Network
 
                     if (responseHeader.IsError)
                     {
-                        var responseException = await ExceptionSerializer.DeserializeAsync(serializer, responseBodyStream, cancellationToken);
+                        var responseException = await ExceptionSerializer.DeserializeAsync(commandType.Name, serializer, responseBodyStream, cancellationToken);
                         isThrowingRemote = true;
                         throw responseException;
                     }
@@ -798,7 +798,7 @@ namespace Zerra.CQRS.Network
 
                     if (responseHeader.IsError)
                     {
-                        var responseException = await ExceptionSerializer.DeserializeAsync(serializer, responseBodyStream, cancellationToken);
+                        var responseException = await ExceptionSerializer.DeserializeAsync(eventType.Name, serializer, responseBodyStream, cancellationToken);
                         isThrowingRemote = true;
                         throw responseException;
                     }

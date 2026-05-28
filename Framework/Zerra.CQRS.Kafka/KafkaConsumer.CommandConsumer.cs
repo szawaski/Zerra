@@ -185,7 +185,7 @@ namespace Zerra.CQRS.Kafka
                     var ackTopic = Encoding.UTF8.GetString(consumerResult.Message.Headers.GetLastBytes(KafkaCommon.AckTopicHeader));
                     var ackKey = Encoding.UTF8.GetString(consumerResult.Message.Headers.GetLastBytes(KafkaCommon.AckKeyHeader));
 
-                    var acknowledgement = new Acknowledgement(result, error);
+                    var acknowledgement = new Acknowledgement(serializer, result, error);
                     var body = serializer.SerializeBytes(acknowledgement);
                     if (encryptor is not null)
                         body = encryptor.Encrypt(body);

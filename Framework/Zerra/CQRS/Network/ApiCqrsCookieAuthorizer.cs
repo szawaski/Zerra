@@ -71,14 +71,10 @@ namespace Zerra.CQRS.Network
                 request.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
 
                 using var response = await client.SendAsync(request, cancellationToken);
+                if (!response.IsSuccessStatusCode)
+                    throw new Exception($"Authorization request failed with status code {response.StatusCode}.");
 
                 responseStream = await response.Content.ReadAsStreamAsync();
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    var responseException = await ExceptionSerializer.DeserializeAsync(serializer, responseStream, cancellationToken);
-                    throw responseException;
-                }
 
                 var cookies = handler.CookieContainer.GetAllCookies();
                 return cookies;

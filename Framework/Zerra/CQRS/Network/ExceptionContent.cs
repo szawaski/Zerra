@@ -9,8 +9,8 @@ namespace Zerra.CQRS.Network
     [GenerateTypeDetail]
     internal sealed class ExceptionContent
     {
-        public required string ErrorType { get; set; }
-        public string? ErrorMessage { get; set; }
+        public required string ExceptionType { get; set; }
+        public string? Message { get; set; }
         public string? StackTrace { get; set; }
     }
 }

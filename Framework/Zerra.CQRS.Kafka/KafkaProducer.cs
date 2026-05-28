@@ -180,7 +180,7 @@ namespace Zerra.CQRS.Kafka
 
                         await waiter.WaitAsync(cancellationToken);
 
-                        Acknowledgement.ThrowIfFailed(acknowledgement);
+                        Acknowledgement.ThrowIfFailed(message.MessageType.Name, serializer, acknowledgement);
                     }
                     finally
                     {
@@ -280,7 +280,7 @@ namespace Zerra.CQRS.Kafka
 
                     await waiter.WaitAsync(cancellationToken);
 
-                    var result = (TResult)Acknowledgement.GetResultOrThrowIfFailed(acknowledgement)!;
+                    var result = (TResult)Acknowledgement.GetResultOrThrowIfFailed(message.MessageType.Name, serializer, acknowledgement)!;
 
                     return result;
                 }
@@ -371,11 +371,11 @@ namespace Zerra.CQRS.Kafka
                                 if (encryptor is not null)
                                     response = encryptor.Decrypt(response);
                                 acknowledgement = serializer.Deserialize<Acknowledgement>(response);
-                                acknowledgement ??= new Acknowledgement("Invalid Acknowledgement");
+                                acknowledgement ??= new Acknowledgement(serializer, "Invalid Acknowledgement");
                             }
                             catch (Exception ex)
                             {
-                                acknowledgement = new Acknowledgement(ex.Message);
+                                acknowledgement = new Acknowledgement(serializer, ex.Message);
                             }
 
                             callback(acknowledgement);

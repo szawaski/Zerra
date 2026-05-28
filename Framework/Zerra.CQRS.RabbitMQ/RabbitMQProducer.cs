@@ -168,11 +168,11 @@ namespace Zerra.CQRS.RabbitMQ
                                     acknowledgementBody = encryptor.Decrypt(acknowledgementBody);
 
                                 acknowledgement = serializer.Deserialize<Acknowledgement>(acknowledgementBody);
-                                acknowledgement ??= new Acknowledgement("Invalid Acknowledgement");
+                                acknowledgement ??= new Acknowledgement(serializer, "Invalid Acknowledgement");
                             }
                             catch (Exception ex)
                             {
-                                acknowledgement = new Acknowledgement(ex.Message);
+                                acknowledgement = new Acknowledgement(serializer, ex.Message);
                             }
                             finally
                             {
@@ -182,7 +182,7 @@ namespace Zerra.CQRS.RabbitMQ
 
                         await waiter.WaitAsync(cancellationToken);
 
-                        Acknowledgement.ThrowIfFailed(acknowledgement);
+                        Acknowledgement.ThrowIfFailed(rabbitMessage.MessageType.Name, serializer, acknowledgement);
                     }
 
                     channel.Close();
@@ -280,11 +280,11 @@ namespace Zerra.CQRS.RabbitMQ
                                 acknowledgementBody = encryptor.Decrypt(acknowledgementBody);
 
                             acknowledgement = serializer.Deserialize<Acknowledgement>(acknowledgementBody);
-                            acknowledgement ??= new Acknowledgement("Invalid Acknowledgement");
+                            acknowledgement ??= new Acknowledgement(serializer, "Invalid Acknowledgement");
                         }
                         catch (Exception ex)
                         {
-                            acknowledgement = new Acknowledgement(ex.Message);
+                            acknowledgement = new Acknowledgement(serializer, ex.Message);
                         }
                         finally
                         {
@@ -294,7 +294,7 @@ namespace Zerra.CQRS.RabbitMQ
 
                     await waiter.WaitAsync(cancellationToken);
 
-                    var result = (TResult)Acknowledgement.GetResultOrThrowIfFailed(acknowledgement)!;
+                    var result = (TResult)Acknowledgement.GetResultOrThrowIfFailed(rabbitMessage.MessageType.Name, serializer, acknowledgement)!;
 
                     channel.Close();
 

@@ -150,7 +150,7 @@ namespace Zerra.CQRS.RabbitMQ
                             var replyProperties = this.channel.CreateBasicProperties();
                             replyProperties.CorrelationId = e.BasicProperties.CorrelationId;
 
-                            var acknowledgement = new Acknowledgement(result, error);
+                            var acknowledgement = new Acknowledgement(serializer, result, error);
 
                             var acknowledgmentBody = serializer.SerializeBytes(acknowledgement);
                             if (encryptor is not null)

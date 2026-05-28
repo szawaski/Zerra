@@ -62,7 +62,7 @@ namespace Zerra.Test.CQRS.Network
             ExceptionSerializer.Serialize(serializer, stream, originalException);
             stream.Position = 0;
 
-            var deserializedException = ExceptionSerializer.Deserialize(serializer, stream);
+            var deserializedException = ExceptionSerializer.Deserialize("Test Source", serializer, stream);
 
             Assert.NotNull(deserializedException);
             _ = Assert.IsType<RemoteServiceException>(deserializedException);
@@ -75,7 +75,8 @@ namespace Zerra.Test.CQRS.Network
             var serializer = CreateTestSerializer();
             var stream = new MemoryStream();
 
-            _ = Assert.ThrowsAny<Exception>(() => ExceptionSerializer.Deserialize(serializer, stream));
+            var ex = Assert.ThrowsAny<Exception>(() => ExceptionSerializer.Deserialize("Test Source", serializer, stream));
+            Assert.Contains("Test Source", ex.Message);
         }
 
         [Fact]
@@ -89,7 +90,7 @@ namespace Zerra.Test.CQRS.Network
             ExceptionSerializer.Serialize(serializer, stream, exception);
             stream.Position = 0;
 
-            var deserializedException = ExceptionSerializer.Deserialize(serializer, stream);
+            var deserializedException = ExceptionSerializer.Deserialize("Test Source", serializer, stream);
 
             Assert.Contains(expectedMessage, deserializedException.Message);
         }
@@ -143,7 +144,7 @@ namespace Zerra.Test.CQRS.Network
             await ExceptionSerializer.SerializeAsync(serializer, stream, originalException, CancellationToken.None);
             stream.Position = 0;
 
-            var deserializedException = await ExceptionSerializer.DeserializeAsync(serializer, stream, CancellationToken.None);
+            var deserializedException = await ExceptionSerializer.DeserializeAsync("Test Source", serializer, stream, CancellationToken.None);
 
             Assert.NotNull(deserializedException);
             _ = Assert.IsType<RemoteServiceException>(deserializedException);
@@ -156,7 +157,8 @@ namespace Zerra.Test.CQRS.Network
             var serializer = CreateTestSerializer();
             var stream = new MemoryStream();
 
-            _ = await Assert.ThrowsAnyAsync<Exception>(() => ExceptionSerializer.DeserializeAsync(serializer, stream, CancellationToken.None));
+            var ex = await Assert.ThrowsAnyAsync<Exception>(() => ExceptionSerializer.DeserializeAsync("Test Source", serializer, stream, CancellationToken.None));
+            Assert.Contains("Test Source", ex.Message);
         }
 
         [Fact]
@@ -170,7 +172,7 @@ namespace Zerra.Test.CQRS.Network
             await ExceptionSerializer.SerializeAsync(serializer, stream, exception, CancellationToken.None);
             stream.Position = 0;
 
-            var deserializedException = await ExceptionSerializer.DeserializeAsync(serializer, stream, CancellationToken.None);
+            var deserializedException = await ExceptionSerializer.DeserializeAsync("Test Source", serializer, stream, CancellationToken.None);
 
             Assert.Contains(expectedMessage, deserializedException.Message);
         }
@@ -197,7 +199,7 @@ namespace Zerra.Test.CQRS.Network
             ExceptionSerializer.Serialize(serializer, stream, originalException);
             stream.Position = 0;
 
-            var deserializedException = ExceptionSerializer.Deserialize(serializer, stream);
+            var deserializedException = ExceptionSerializer.Deserialize("Test Source", serializer, stream);
 
             Assert.NotNull(deserializedException);
             Assert.Contains("Round trip test message", deserializedException.Message);
@@ -213,7 +215,7 @@ namespace Zerra.Test.CQRS.Network
             await ExceptionSerializer.SerializeAsync(serializer, stream, originalException, CancellationToken.None);
             stream.Position = 0;
 
-            var deserializedException = await ExceptionSerializer.DeserializeAsync(serializer, stream, CancellationToken.None);
+            var deserializedException = await ExceptionSerializer.DeserializeAsync("Test Source", serializer, stream, CancellationToken.None);
 
             Assert.NotNull(deserializedException);
             Assert.Contains("Async round trip test", deserializedException.Message);
@@ -243,7 +245,7 @@ namespace Zerra.Test.CQRS.Network
             ExceptionSerializer.Serialize(serializer, stream, exception);
             stream.Position = 0;
 
-            var result = ExceptionSerializer.Deserialize(serializer, stream);
+            var result = ExceptionSerializer.Deserialize("Test Source", serializer, stream);
 
             _ = Assert.IsType<RemoteServiceException>(result);
         }
@@ -258,7 +260,7 @@ namespace Zerra.Test.CQRS.Network
             await ExceptionSerializer.SerializeAsync(serializer, stream, exception, CancellationToken.None);
             stream.Position = 0;
 
-            var result = await ExceptionSerializer.DeserializeAsync(serializer, stream, CancellationToken.None);
+            var result = await ExceptionSerializer.DeserializeAsync("Test Source", serializer, stream, CancellationToken.None);
 
             _ = Assert.IsType<RemoteServiceException>(result);
         }
@@ -306,7 +308,7 @@ namespace Zerra.Test.CQRS.Network
             var exception = new InvalidOperationException("Byte deserialization test");
 
             var bytes = ExceptionSerializer.Serialize(serializer, exception);
-            var result = ExceptionSerializer.Deserialize(serializer, bytes);
+            var result = ExceptionSerializer.Deserialize("Test Source", serializer, bytes);
 
             Assert.NotNull(result);
             _ = Assert.IsType<RemoteServiceException>(result);
@@ -321,7 +323,7 @@ namespace Zerra.Test.CQRS.Network
             var exception = new InvalidOperationException(expectedMessage);
 
             var bytes = ExceptionSerializer.Serialize(serializer, exception);
-            var result = ExceptionSerializer.Deserialize(serializer, bytes);
+            var result = ExceptionSerializer.Deserialize("Test Source", serializer, bytes);
 
             Assert.Contains(expectedMessage, result.Message);
         }
@@ -333,7 +335,7 @@ namespace Zerra.Test.CQRS.Network
             var errorMessage = "Round trip error message string";
 
             var bytes = ExceptionSerializer.Serialize(serializer, errorMessage);
-            var result = ExceptionSerializer.Deserialize(serializer, bytes);
+            var result = ExceptionSerializer.Deserialize("Test Source", serializer, bytes);
 
             Assert.NotNull(result);
             _ = Assert.IsType<RemoteServiceException>(result);

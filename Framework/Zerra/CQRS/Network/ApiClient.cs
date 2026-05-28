@@ -163,7 +163,7 @@ namespace Zerra.CQRS.Network
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    var responseException = await ExceptionSerializer.DeserializeAsync(serializer, responseStream, cancellationToken);
+                    var responseException = await ExceptionSerializer.DeserializeAsync(providerType, serializer, responseStream, cancellationToken);
                     throw responseException;
                 }
 

@@ -61,18 +61,19 @@ namespace Zerra.CQRS.Network
         /// The inner exception will be the original exception.
         /// If the original exception type is not know to this assembly, the inner exception will be null.
         /// </summary>
+        /// <param name="source">The source of the acknowledgement.</param>
         /// <param name="serializer">The serializer to use for deserializing the result or exception.</param>
         /// <param name="ack">The acknowledgement to check for a failure.</param>
         /// <exception cref="RemoteServiceException"></exception>
-        public static void ThrowIfFailed(ISerializer serializer, Acknowledgement? ack)
+        public static void ThrowIfFailed(string source, ISerializer serializer, Acknowledgement? ack)
         {
             if (ack is null)
-                throw new RemoteServiceException( "Failed to deserialize acknowledgement from remote service");
+                throw new RemoteServiceException(source, $"Failed to deserialize acknowledgement from remote service for {source}");
 
             if (ack.Exception == null)
                 return;
 
-            var ex = ExceptionSerializer.Deserialize(serializer, ack.Exception);
+            var ex = ExceptionSerializer.Deserialize(source, serializer, ack.Exception);
             throw ex;
         }
 
@@ -81,18 +82,19 @@ namespace Zerra.CQRS.Network
         /// The inner exception will be the original exception.
         /// If the original exception type is not know to this assembly, the inner exception will be null.
         /// </summary>
+        /// <param name="source">The source of the acknowledgement.</param>
         /// <param name="serializer">The serializer to use for deserializing the result or exception.</param>
         /// <param name="ack">The acknowledgement for the result or failure.</param>
         /// <returns>The result if successful which may be a null.  A failure will throw an exception.</returns>
         /// <exception cref="RemoteServiceException"></exception>
-        public static object? GetResultOrThrowIfFailed(ISerializer serializer, Acknowledgement? ack)
+        public static object? GetResultOrThrowIfFailed(string source, ISerializer serializer, Acknowledgement? ack)
         {
             if (ack is null)
-                throw new RemoteServiceException("Failed to deserialize acknowledgement from remote service");
+                throw new RemoteServiceException(source, $"Failed to deserialize acknowledgement from remote service for {source}");
 
             if (ack.Exception != null)
             {
-                var ex = ExceptionSerializer.Deserialize(serializer, ack.Exception);
+                var ex = ExceptionSerializer.Deserialize(source, serializer, ack.Exception);
                 throw ex;
             }
 
@@ -104,9 +106,9 @@ namespace Zerra.CQRS.Network
                     var result = serializer.Deserialize(ack.Data, type);
                     return result;
                 }
-                catch (Exception ex)
+                catch
                 {
-                    throw new RemoteServiceException($"Failed to deserialize acknowledgement from remote service of type {ack.DataType}");
+                    throw new RemoteServiceException(source, $"Failed to deserialize acknowledgement of type {ack.DataType} from remote service for {source}");
                 }
             }
 

@@ -157,7 +157,7 @@ namespace Zerra.CQRS.AzureServiceBus
 
                         await waiter.WaitAsync(cancellationToken);
 
-                        Acknowledgement.ThrowIfFailed(serializer, acknowledgement);
+                        Acknowledgement.ThrowIfFailed(message.MessageType.Name, serializer, acknowledgement);
                     }
                     finally
                     {
@@ -256,7 +256,7 @@ namespace Zerra.CQRS.AzureServiceBus
 
                     await waiter.WaitAsync(cancellationToken);
 
-                    var result = (TResult)Acknowledgement.GetResultOrThrowIfFailed(serializer, acknowledgement)!;
+                    var result = (TResult)Acknowledgement.GetResultOrThrowIfFailed(message.MessageType.Name, serializer, acknowledgement)!;
 
                     return result;
                 }
