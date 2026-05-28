@@ -243,7 +243,11 @@ namespace Zerra.CQRS.Network
                             }
                         }
                     }
-                    throw;
+
+                    if (isThrowingRemote)
+                        throw;
+                    else
+                        throw new Exception($"Call failed for {interfaceType.Name}.{methodName} - {ex.GetBaseException().Message}");
                 }
             }
             finally
@@ -449,7 +453,11 @@ namespace Zerra.CQRS.Network
                             }
                         }
                     }
-                    throw;
+
+                    if (isThrowingRemote)
+                        throw;
+                    else
+                        throw new Exception($"Dispatch failed for {commandType.Name} - {ex.GetBaseException().Message}");
                 }
             }
             finally
@@ -663,7 +671,11 @@ namespace Zerra.CQRS.Network
                             }
                         }
                     }
-                    throw;
+
+                    if (isThrowingRemote)
+                        throw;
+                    else
+                        throw new Exception($"Dispatch failed for {commandType.Name}", ex);
                 }
             }
             finally
@@ -869,7 +881,11 @@ namespace Zerra.CQRS.Network
                             }
                         }
                     }
-                    throw;
+
+                    if (isThrowingRemote)
+                        throw;
+                    else
+                        throw new Exception($"Dispatch failed for {eventType.Name} - {ex.GetBaseException().Message}");
                 }
             }
             finally
