@@ -12,10 +12,26 @@ namespace Zerra.Repository
         /// Gets the count of models matching the specified filter criteria.
         /// </summary>
         /// <typeparam name="TModel">The type of the model to query.</typeparam>
+        /// <returns>The count of models matching the criteria.</returns>
+        long Count<TModel>() where TModel : class, new()
+            => (long)Query(new Query<TModel>(QueryOperation.Count, null, null, null, null, null))!;
+
+        /// <summary>
+        /// Gets the count of models matching the specified filter criteria.
+        /// </summary>
+        /// <typeparam name="TModel">The type of the model to query.</typeparam>
         /// <param name="where">An optional filter expression to apply to the query.</param>
         /// <returns>The count of models matching the criteria.</returns>
         long Count<TModel>(Expression<Func<TModel, bool>>? where) where TModel : class, new()
             => (long)Query(new Query<TModel>(QueryOperation.Count, where, null, null, null, null))!;
+
+        /// <summary>
+        /// Asynchronously gets the count of models matching the specified filter criteria.
+        /// </summary>
+        /// <typeparam name="TModel">The type of the model to query.</typeparam>
+        /// <returns>A task that represents the asynchronous operation. The task result contains the count of models matching the criteria.</returns>
+        async Task<long> CountAsync<TModel>() where TModel : class, new()
+            => (long)(await QueryAsync(new Query<TModel>(QueryOperation.Count, null, null, null, null, null)))!;
 
         /// <summary>
         /// Asynchronously gets the count of models matching the specified filter criteria.

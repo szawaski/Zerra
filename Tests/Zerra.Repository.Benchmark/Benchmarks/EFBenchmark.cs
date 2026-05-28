@@ -15,6 +15,9 @@ namespace Zerra.Repository.Benchmark.Benchmarks
     public class EFBenchmarks
     {
         private IRepo repo;
+        TestTypesModel singleModel;
+        EFTestTypesModel singleEF;
+        EFDataContext reuseContext;
 
         [GlobalSetup]
         public void Setup()
@@ -30,7 +33,7 @@ namespace Zerra.Repository.Benchmark.Benchmarks
 
             for (var i = 0; i < 100; i++)
             {
-                var relationBModel0 = TestRelationsModel.Create();;
+                var relationBModel0 = TestRelationsModel.Create();
                 repo.Create(relationBModel0);
 
                 var model = TestTypesModel.Create();
@@ -44,11 +47,18 @@ namespace Zerra.Repository.Benchmark.Benchmarks
                     repo.Create(relationBModel);
                 }
             }
+
+            singleModel = repo.First<TestTypesModel>();
+
+            reuseContext = new EFDataContext();
+            singleEF = reuseContext.TestTypes.First();
         }
 
         [GlobalCleanup]
         public void Cleanup()
         {
+            reuseContext.Dispose();
+
             var context = new MsSqlTestSqlDataContext();
             var builder = new SqlConnectionStringBuilder(context.GetConnectionString());
             var testDatabase = builder.InitialCatalog;
@@ -68,7 +78,7 @@ namespace Zerra.Repository.Benchmark.Benchmarks
         [Benchmark]
         public async Task<IReadOnlyCollection<TestTypesModel>> QueryMany_Zerra()
         {
-            var results =  await repo.ManyAsync<TestTypesModel>();
+            var results = await repo.ManyAsync<TestTypesModel>();
             return results;
         }
 
@@ -83,9 +93,18 @@ namespace Zerra.Repository.Benchmark.Benchmarks
         }
 
         [Benchmark]
+        public async Task<List<EFTestTypesModel>> QueryMany_EF_Reuse()
+        {
+            var results = await reuseContext.TestTypes
+                .AsNoTracking()
+                .ToListAsync();
+            return results;
+        }
+
+        [Benchmark]
         public async Task<IReadOnlyCollection<TestTypesModel>> QueryManyWhere_Zerra()
         {
-            var results = await repo.ManyAsync<TestTypesModel>(x => x.StringThing.Contains("Hello"));
+            var results = await repo.ManyAsync<TestTypesModel>(x => x.Int32Thing > 0 && x.StringThing.Contains("Hello"));
             return results;
         }
 
@@ -95,7 +114,7 @@ namespace Zerra.Repository.Benchmark.Benchmarks
             using var context = new EFDataContext();
             var results = await context.TestTypes
                 .AsNoTracking()
-                .Where(results => results.StringThing.Contains("Hello"))
+                .Where(x => x.Int32Thing > 0 && x.StringThing.Contains("Hello"))
                 .ToListAsync();
             return results;
         }
@@ -160,6 +179,20 @@ namespace Zerra.Repository.Benchmark.Benchmarks
                 .Include(x => x.RelationB)
                 .ToListAsync();
             return results;
+        }
+
+        [Benchmark]
+        public async Task Update_Zerra()
+        {
+            await repo.UpdateAsync(singleModel);
+        }
+
+        [Benchmark]
+        public async Task Update_EF()
+        {
+            using var context = new EFDataContext();
+            context.Attach(singleEF).State = EntityState.Modified;
+            _ = await context.SaveChangesAsync();
         }
     }
 }

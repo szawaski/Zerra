@@ -11,7 +11,7 @@ namespace Zerra.Repository
     /// <typeparam name="TEventStoreProviderInterface">The interface type of the event store (this) provider.</typeparam>
     /// <typeparam name="TTransactionProviderInterface">The interface type of the next (transactional) provider.</typeparam>
     /// <typeparam name="TModel">The model type this provider operates on.</typeparam>
-    public abstract class BaseDualEventStoreProvider<TEventStoreProviderInterface, TTransactionProviderInterface, TModel> : LayerProvider<TTransactionProviderInterface>, ITransactStoreProvider<TModel>
+    public abstract class BaseDualEventStoreProvider<TEventStoreProviderInterface, TTransactionProviderInterface, TModel> : BaseLayerProvider<TTransactionProviderInterface>, ITransactStoreProvider<TModel>
         where TEventStoreProviderInterface : ITransactStoreProvider<TModel>
         where TTransactionProviderInterface : ITransactStoreProvider<TModel>
         where TModel : class, new()

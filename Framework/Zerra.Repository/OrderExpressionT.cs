@@ -18,7 +18,7 @@ namespace Zerra.Repository
         private readonly bool descending;
 
         /// <inheritdoc/>
-        public override Expression Expression => expression;
+        public override LambdaExpression Expression => expression;
 
         /// <inheritdoc/>
         public override bool Descending => descending;

@@ -8,7 +8,7 @@ namespace Zerra.Repository
     /// An abstract base class for layered byte store providers that wrap another <see cref="IByteStoreProvider"/> and can intercept or transform streams on get and save operations.
     /// </summary>
     /// <typeparam name="TNextProviderInterface">The type of the next <see cref="IByteStoreProvider"/> in the layer chain.</typeparam>
-    public abstract class BaseByteStoreLayerProvider<TNextProviderInterface> : LayerProvider<TNextProviderInterface>, IByteStoreProvider
+    public abstract class BaseByteStoreLayerProvider<TNextProviderInterface> : BaseLayerProvider<TNextProviderInterface>, IByteStoreProvider
         where TNextProviderInterface : IByteStoreProvider
     {
         /// <summary>

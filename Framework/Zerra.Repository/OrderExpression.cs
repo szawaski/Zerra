@@ -14,7 +14,7 @@ namespace Zerra.Repository
         /// <summary>
         /// Gets the expression used to determine the ordering key.
         /// </summary>
-        public abstract Expression Expression { get; }
+        public abstract LambdaExpression Expression { get; }
 
         /// <summary>
         /// Gets a value indicating whether the ordering is descending.

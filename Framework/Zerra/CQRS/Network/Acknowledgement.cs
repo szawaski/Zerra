@@ -3,7 +3,7 @@
 // Licensed to you under the MIT license
 
 using Zerra.Reflection;
-using Zerra.Serialization.Bytes;
+using Zerra.Serialization;
 
 namespace Zerra.CQRS.Network
 {
@@ -14,13 +14,9 @@ namespace Zerra.CQRS.Network
     public sealed class Acknowledgement
     {
         /// <summary>
-        /// Indicates if the acknowledgment was a success.
+        /// The serialized exception content if the acknowledgment was a failure.
         /// </summary>
-        public bool Success { get; private set; }
-        /// <summary>
-        /// The error message text if the acknowledgment was a failure.
-        /// </summary>
-        public string? ErrorMessage { get; private set; }
+        public byte[]? Exception { get; private set; }
         /// <summary>
         /// The data type of the result or the exception.
         /// </summary>
@@ -33,73 +29,51 @@ namespace Zerra.CQRS.Network
         /// <summary>
         /// Creates a acknowledgement response that indicates a failure.
         /// </summary>
+        /// <param name="serializer">The serializer to use for serializing the exception.</param>
         /// <param name="errorMessage">The error message describing the failure.</param>
-        public Acknowledgement(string errorMessage)
+        public Acknowledgement(ISerializer serializer, string errorMessage)
         {
-            this.Success = false;
-            this.ErrorMessage = errorMessage;
+            this.Exception = ExceptionSerializer.Serialize(serializer, errorMessage);
         }
 
         /// <summary>
         /// Creates a acknowledgement response that either has a successful result or failure with an exception.
         /// </summary>
+        /// <param name="serializer">The serializer to use for serializing the result or exception.</param>
         /// <param name="result">The successful result.</param>
         /// <param name="ex">The exception indicating a failure.</param>
-        public Acknowledgement(object? result, Exception? ex)
+        public Acknowledgement(ISerializer serializer, object? result, Exception? ex)
         {
-            this.Success = ex is null;
             if (ex is not null)
             {
-                this.Success = false;
-                this.ErrorMessage = ex.Message;
-                var type = ex.GetType();
-                this.DataType = type.AssemblyQualifiedName;
-                this.Data = ByteSerializer.Serialize(ex, type, byteSerializerOptions);
+                this.Exception = ExceptionSerializer.Serialize(serializer, ex);
             }
             else if (result is not null)
             {
-                this.Success = true;
                 var type = result.GetType();
                 this.DataType = type.AssemblyQualifiedName;
-                this.Data = ByteSerializer.Serialize(result, type, byteSerializerOptions);
-            }
-            else
-            {
-                this.Success = true;
+                this.Data = serializer.SerializeBytes(result, type);
             }
         }
-
-        private static readonly ByteSerializerOptions byteSerializerOptions = new()
-        {
-            IndexType = ByteSerializerIndexType.MemberNames,
-            IgnoreIndexAttribute = true
-        };
 
         /// <summary>
         /// Throws an exception if the acknowledgement indicates a failure.
         /// The inner exception will be the original exception.
         /// If the original exception type is not know to this assembly, the inner exception will be null.
         /// </summary>
+        /// <param name="serializer">The serializer to use for deserializing the result or exception.</param>
         /// <param name="ack">The acknowledgement to check for a failure.</param>
         /// <exception cref="RemoteServiceException"></exception>
-        public static void ThrowIfFailed(Acknowledgement? ack)
+        public static void ThrowIfFailed(ISerializer serializer, Acknowledgement? ack)
         {
             if (ack is null)
-                throw new RemoteServiceException("Acknowledgement Failed");
-            if (ack.Success)
+                throw new RemoteServiceException( "Failed to deserialize acknowledgement from remote service");
+
+            if (ack.Exception == null)
                 return;
 
-            Exception? ex = null;
-            if (ack.DataType is not null && ack.Data is not null && ack.Data.Length > 0)
-            {
-                try
-                {
-                    if (TypeFinder.TryGetTypeFromName(ack.DataType, out var type))
-                        ex = (Exception?)ByteSerializer.Deserialize(ack.Data, type, byteSerializerOptions);
-                }
-                catch { }
-            }
-            throw new RemoteServiceException(ack.ErrorMessage, ex);
+            var ex = ExceptionSerializer.Deserialize(serializer, ack.Exception);
+            throw ex;
         }
 
         /// <summary>
@@ -107,27 +81,19 @@ namespace Zerra.CQRS.Network
         /// The inner exception will be the original exception.
         /// If the original exception type is not know to this assembly, the inner exception will be null.
         /// </summary>
+        /// <param name="serializer">The serializer to use for deserializing the result or exception.</param>
         /// <param name="ack">The acknowledgement for the result or failure.</param>
         /// <returns>The result if successful which may be a null.  A failure will throw an exception.</returns>
         /// <exception cref="RemoteServiceException"></exception>
-        public static object? GetResultOrThrowIfFailed(Acknowledgement? ack)
+        public static object? GetResultOrThrowIfFailed(ISerializer serializer, Acknowledgement? ack)
         {
             if (ack is null)
-                throw new RemoteServiceException("Acknowledgement Failed");
+                throw new RemoteServiceException("Failed to deserialize acknowledgement from remote service");
 
-            if (!ack.Success)
+            if (ack.Exception != null)
             {
-                Exception? ex = null;
-                if (ack.DataType is not null && ack.Data is not null && ack.Data.Length > 0)
-                {
-                    try
-                    {
-                        if (TypeFinder.TryGetTypeFromName(ack.DataType, out var type))
-                            ex = (Exception?)ByteSerializer.Deserialize(ack.Data, type, byteSerializerOptions);
-                    }
-                    catch { }
-                }
-                throw new RemoteServiceException(ack.ErrorMessage, ex);
+                var ex = ExceptionSerializer.Deserialize(serializer, ack.Exception);
+                throw ex;
             }
 
             if (ack.DataType is not null && ack.Data is not null && ack.Data.Length > 0)
@@ -135,12 +101,12 @@ namespace Zerra.CQRS.Network
                 try
                 {
                     var type = TypeFinder.GetTypeFromName(ack.DataType);
-                    var result = ByteSerializer.Deserialize(ack.Data, type, byteSerializerOptions);
+                    var result = serializer.Deserialize(ack.Data, type);
                     return result;
                 }
                 catch (Exception ex)
                 {
-                    throw new RemoteServiceException($"Failed to deserialize result type {ack.DataType}", ex);
+                    throw new RemoteServiceException($"Failed to deserialize acknowledgement from remote service of type {ack.DataType}");
                 }
             }
 

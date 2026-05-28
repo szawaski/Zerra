@@ -12,7 +12,7 @@ namespace Zerra.Repository
     /// </summary>
     /// <typeparam name="TNextProviderInterface">The type of the next provider in the chain.</typeparam>
     /// <typeparam name="TModel">The model type managed by this provider.</typeparam>
-    public abstract class BaseTransactStoreLayerProvider<TNextProviderInterface, TModel> : LayerProvider<TNextProviderInterface>, ITransactStoreProvider<TModel>, IProviderRelation
+    public abstract class BaseTransactStoreLayerProvider<TNextProviderInterface, TModel> : BaseLayerProvider<TNextProviderInterface>, ITransactStoreProvider<TModel>, IProviderRelation
         where TNextProviderInterface : ITransactStoreProvider<TModel>
         where TModel : class, new()
     {

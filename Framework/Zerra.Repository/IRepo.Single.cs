@@ -15,7 +15,7 @@ namespace Zerra.Repository
         /// <param name="where">A filter expression to apply to the query.</param>
         /// <param name="graph">An optional graph specification for eager loading related data.</param>
         /// <returns>The single model matching the criteria, or <c>null</c> if no match is found.</returns>
-        TModel? Single<TModel>(Expression<Func<TModel, bool>> where, Graph<TModel>? graph = null) where TModel : class, new()
+        TModel? Single<TModel>(Expression<Func<TModel, bool>>? where = null, Graph<TModel>? graph = null) where TModel : class, new()
             => (TModel?)Query(new Query<TModel>(QueryOperation.Single, where, null, null, null, graph));
 
         /// <summary>
@@ -34,7 +34,7 @@ namespace Zerra.Repository
         /// <param name="where">A filter expression to apply to the query.</param>
         /// <param name="graph">An optional graph specification for eager loading related data.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains the single model matching the criteria, or <c>null</c> if no match is found.</returns>
-        async Task<TModel?> SingleAsync<TModel>(Expression<Func<TModel, bool>> where, Graph<TModel>? graph = null) where TModel : class, new()
+        async Task<TModel?> SingleAsync<TModel>(Expression<Func<TModel, bool>>? where = null, Graph<TModel>? graph = null) where TModel : class, new()
             => (TModel?)await QueryAsync(new Query<TModel>(QueryOperation.Single, where, null, null, null, graph));
 
         /// <summary>

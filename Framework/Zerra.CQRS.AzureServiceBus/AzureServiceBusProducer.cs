@@ -157,7 +157,7 @@ namespace Zerra.CQRS.AzureServiceBus
 
                         await waiter.WaitAsync(cancellationToken);
 
-                        Acknowledgement.ThrowIfFailed(acknowledgement);
+                        Acknowledgement.ThrowIfFailed(serializer, acknowledgement);
                     }
                     finally
                     {
@@ -256,7 +256,7 @@ namespace Zerra.CQRS.AzureServiceBus
 
                     await waiter.WaitAsync(cancellationToken);
 
-                    var result = (TResult)Acknowledgement.GetResultOrThrowIfFailed(acknowledgement)!;
+                    var result = (TResult)Acknowledgement.GetResultOrThrowIfFailed(serializer, acknowledgement)!;
 
                     return result;
                 }
@@ -343,11 +343,11 @@ namespace Zerra.CQRS.AzureServiceBus
                             if (encryptor is not null)
                                 response = encryptor.Decrypt(response, false);
                             acknowledgement = await serializer.DeserializeAsync<Acknowledgement>(response, canceller.Token);
-                            acknowledgement ??= new Acknowledgement("Invalid Acknowledgement");
+                            acknowledgement ??= new Acknowledgement(serializer, "Invalid Acknowledgement");
                         }
                         catch (Exception ex)
                         {
-                            acknowledgement = new Acknowledgement(ex.Message);
+                            acknowledgement = new Acknowledgement(serializer, ex.Message);
                         }
 
                         callback(acknowledgement);

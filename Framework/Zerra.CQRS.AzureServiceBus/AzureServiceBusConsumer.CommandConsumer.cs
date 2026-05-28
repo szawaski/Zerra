@@ -170,7 +170,7 @@ namespace Zerra.CQRS.AzureServiceBus
                     var ackTopic = serviceBusMessage.ReplyTo;
                     var ackKey = serviceBusMessage.ReplyToSessionId;
 
-                    var acknowledgement = new Acknowledgement(result, error);
+                    var acknowledgement = new Acknowledgement(serializer, result, error);
 
                     var body = serializer.SerializeBytes(acknowledgement);
                     if (encryptor is not null)

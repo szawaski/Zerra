@@ -1067,9 +1067,6 @@ namespace Zerra.Repository
         }
         private async Task DeleteAsync(Persist persist)
         {
-            if (persist.Models is null || persist.Models.Length == 0)
-                return;
-
             object[] ids;
             if (persist.IDs is not null)
             {

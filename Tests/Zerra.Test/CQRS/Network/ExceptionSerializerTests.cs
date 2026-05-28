@@ -262,5 +262,82 @@ namespace Zerra.Test.CQRS.Network
 
             _ = Assert.IsType<RemoteServiceException>(result);
         }
+
+        [Fact]
+        public void SerializeBytes_WithException_ReturnsByteArray()
+        {
+            var serializer = CreateTestSerializer();
+            var exception = new InvalidOperationException("Byte array test error");
+
+            var bytes = ExceptionSerializer.Serialize(serializer, exception);
+
+            Assert.NotNull(bytes);
+            Assert.True(bytes.Length > 0);
+        }
+
+        [Fact]
+        public void SerializeBytes_WithArgumentException_ReturnsByteArray()
+        {
+            var serializer = CreateTestSerializer();
+            var exception = new ArgumentException("Byte array argument error", "paramName");
+
+            var bytes = ExceptionSerializer.Serialize(serializer, exception);
+
+            Assert.NotNull(bytes);
+            Assert.True(bytes.Length > 0);
+        }
+
+        [Fact]
+        public void SerializeBytes_WithErrorMessage_ReturnsByteArray()
+        {
+            var serializer = CreateTestSerializer();
+            var errorMessage = "Error message string serialization";
+
+            var bytes = ExceptionSerializer.Serialize(serializer, errorMessage);
+
+            Assert.NotNull(bytes);
+            Assert.True(bytes.Length > 0);
+        }
+
+        [Fact]
+        public void DeserializeBytes_WithValidBytes_ReturnsRemoteServiceException()
+        {
+            var serializer = CreateTestSerializer();
+            var exception = new InvalidOperationException("Byte deserialization test");
+
+            var bytes = ExceptionSerializer.Serialize(serializer, exception);
+            var result = ExceptionSerializer.Deserialize(serializer, bytes);
+
+            Assert.NotNull(result);
+            _ = Assert.IsType<RemoteServiceException>(result);
+            Assert.Contains("Byte deserialization test", result.Message);
+        }
+
+        [Fact]
+        public void DeserializeBytes_PreservesExceptionMessage()
+        {
+            var serializer = CreateTestSerializer();
+            var expectedMessage = "Preserved byte array message";
+            var exception = new InvalidOperationException(expectedMessage);
+
+            var bytes = ExceptionSerializer.Serialize(serializer, exception);
+            var result = ExceptionSerializer.Deserialize(serializer, bytes);
+
+            Assert.Contains(expectedMessage, result.Message);
+        }
+
+        [Fact]
+        public void SerializeDeserializeBytes_RoundTrip_ErrorMessage()
+        {
+            var serializer = CreateTestSerializer();
+            var errorMessage = "Round trip error message string";
+
+            var bytes = ExceptionSerializer.Serialize(serializer, errorMessage);
+            var result = ExceptionSerializer.Deserialize(serializer, bytes);
+
+            Assert.NotNull(result);
+            _ = Assert.IsType<RemoteServiceException>(result);
+            Assert.Contains(errorMessage, result.Message);
+        }
     }
 }

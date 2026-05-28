@@ -33,6 +33,23 @@ Zerra Repository is not a replacement for Entity Framework — it is a lighter a
 | **Migration tooling** | ⚠️ Code First generation, no migration history | ✅ Rich migration tooling |
 | **Ecosystem maturity** | ⚠️ Experimental | ✅ Mature, large community |
 
+## Performance vs. Entity Framework
+
+Benchmarks were run against Microsoft SQL Server using [BenchmarkDotNet](https://benchmarkdotnet.org/) with `AsNoTracking()` on the EF side. All Zerra results use the default `IRepo` API. Results are approximate and will vary by environment.
+
+| Scenario | Speed | Memory |
+|---|---|---|
+| **Query many (all rows)** | Zerra is moderately faster (~20–25%) | Zerra allocates significantly less (~40% less) |
+| **Query many with a where clause** | Zerra is substantially faster (~3–4×) | Zerra allocates dramatically less (~75% less) |
+| **Query first with a where clause** | Zerra is substantially faster (~3–4×) | Zerra allocates dramatically less (~75% less) |
+| **Query many with one-to-one include** | Zerra is moderately faster (~30–35%) | Zerra allocates significantly less (~60% less) |
+| **Query many with one-to-many include** | Zerra is dramatically faster (~15–16×) | Zerra allocates dramatically less (~95% less) |
+| **Update** | Zerra is moderately faster (~40%) | Zerra allocates dramatically less (~80% less) |
+
+The one-to-many include result is particularly notable: EF performs a separate query per parent row (N+1 style) unless carefully tuned, while Zerra batches the related rows in a single additional query, dramatically reducing both round-trips and allocations at scale.
+
+> Benchmarks are in [`EFBenchmark.cs`](../Tests/Zerra.Repository.Benchmark/Benchmarks/EFBenchmark.cs).
+
 ## NuGet Packages
 
 | Package | Data Store |

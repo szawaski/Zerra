@@ -8,23 +8,23 @@ namespace Zerra.Repository
     /// An abstract base class for implementing layered providers that wrap another provider of type <typeparamref name="TProvider"/>.
     /// </summary>
     /// <typeparam name="TProvider">The interface type of the next provider in the chain.</typeparam>
-    public abstract class LayerProvider<TProvider> : BaseStore
+    public abstract class BaseLayerProvider<TProvider> : BaseStore
     {
         private static readonly Type InterfaceType;
-        static LayerProvider()
+        static BaseLayerProvider()
         {
             InterfaceType = typeof(TProvider);
             if (!InterfaceType.IsInterface)
-                throw new Exception($"{nameof(LayerProvider<TProvider>)} must have a generic argument that is an interface, {InterfaceType.Name} is not an interface");
+                throw new Exception($"{nameof(BaseLayerProvider<TProvider>)} must have a generic argument that is an interface, {InterfaceType.Name} is not an interface");
         }
 
         private readonly TProvider nextProvider;
         /// <summary>
-        /// Initializes a new instance of <see cref="LayerProvider{TProvider}"/> with the specified next provider.
+        /// Initializes a new instance of <see cref="BaseLayerProvider{TProvider}"/> with the specified next provider.
         /// </summary>
         /// <param name="nextProvider">The next provider in the chain to delegate calls to.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="nextProvider"/> is <see langword="null"/>.</exception>
-        public LayerProvider(TProvider nextProvider)
+        public BaseLayerProvider(TProvider nextProvider)
         {
             if (nextProvider == null)
                 throw new ArgumentNullException(nameof(nextProvider));

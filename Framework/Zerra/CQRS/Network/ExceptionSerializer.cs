@@ -2,7 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Zerra.Reflection;
 using Zerra.Serialization;
 
 namespace Zerra.CQRS.Network
@@ -20,16 +19,56 @@ namespace Zerra.CQRS.Network
         /// <param name="ex">The Exception to be serialized.</param>
         public static void Serialize(ISerializer serializer, Stream stream, Exception ex)
         {
-            var errorType = ex.GetType();
+            var baseException = ex.GetBaseException();
+
             var content = new ExceptionContent()
             {
-                ErrorMessage = ex.GetBaseException().Message,
-                ErrorType = errorType.AssemblyQualifiedName
+                ErrorMessage = baseException.Message,
+                ErrorType = baseException.GetType().Name,
+                StackTrace = baseException.StackTrace
             };
 
-            content.ErrorBytes = serializer.SerializeBytes(ex, errorType);
             serializer.Serialize(stream, content);
         }
+
+        /// <summary>
+        /// Serializes an Exception using the specified serializer.
+        /// </summary>
+        /// <param name="serializer">The serializer to use for serialization.</param>
+        /// <param name="ex">The Exception to be serialized.</param>
+        /// <returns>The serialized exception as a byte array.</returns>
+        public static byte[] Serialize(ISerializer serializer, Exception ex)
+        {
+            var baseException = ex.GetBaseException();
+
+            var content = new ExceptionContent()
+            {
+                ErrorMessage = baseException.Message,
+                ErrorType = baseException.GetType().Name,
+                StackTrace = baseException.StackTrace
+            };
+
+            return serializer.SerializeBytes(content);
+        }
+
+        /// <summary>
+        /// Serializes an Exception using the specified serializer.
+        /// </summary>
+        /// <param name="serializer">The serializer to use for serialization.</param>
+        /// <param name="errorMessage">The error message describing the failure.</param>
+        /// <returns>The serialized exception as a byte array.</returns>
+        public static byte[] Serialize(ISerializer serializer, string errorMessage)
+        {
+            var content = new ExceptionContent()
+            {
+                ErrorMessage = errorMessage,
+                ErrorType = "Unknown",
+                StackTrace = null
+            };
+
+            return serializer.SerializeBytes(content);
+        }
+
         /// <summary>
         /// Deserializes an Exception using the specified serializer.
         /// </summary>
@@ -40,25 +79,24 @@ namespace Zerra.CQRS.Network
         {
             var content = serializer.Deserialize<ExceptionContent>(stream);
             if (content is null)
-                throw new RemoteServiceException("Invalid Exception Content");
+                throw new RemoteServiceException("Failed to deserialize exception content from remote service");
 
-            Exception? ex = null;
-            if (content.ErrorType is not null)
-            {
-                try
-                {
-                    var type = TypeFinder.GetTypeFromName(content.ErrorType);
+            return new RemoteServiceException(content.ErrorType, content.ErrorMessage, content.StackTrace);
+        }
 
-                    if (type == null)
-                        return new RemoteServiceException(content?.ErrorMessage, ex);
+        /// <summary>
+        /// Deserializes an Exception using the specified serializer.
+        /// </summary>
+        /// <param name="serializer">The serializer to use for deserialization.</param>
+        /// <param name="bytes">The source byte array of the serialized exception.</param>
+        /// <returns>The deserialized Exception.</returns>
+        public static Exception Deserialize(ISerializer serializer, byte[] bytes)
+        {
+            var content = serializer.Deserialize<ExceptionContent>(bytes);
+            if (content is null)
+                throw new RemoteServiceException("Failed to deserialize exception content from remote service");
 
-                    _ = serializer.Deserialize(content.ErrorBytes, type);
-                    ex = (Exception?)serializer.Deserialize(content.ErrorBytes, type);
-                }
-                catch { }
-            }
-
-            return new RemoteServiceException(content?.ErrorMessage, ex);
+            return new RemoteServiceException(content.ErrorType, content.ErrorMessage, content.StackTrace);
         }
 
         /// <summary>
@@ -71,14 +109,15 @@ namespace Zerra.CQRS.Network
         /// <returns>A task representing the asynchronous serialization operation.</returns>
         public static Task SerializeAsync(ISerializer serializer, Stream stream, Exception ex, CancellationToken cancellationToken)
         {
-            var errorType = ex.GetType();
+            var baseException = ex.GetBaseException();
+
             var content = new ExceptionContent()
             {
-                ErrorMessage = ex.GetBaseException().Message,
-                ErrorType = errorType.AssemblyQualifiedName
+                ErrorMessage = baseException.Message,
+                ErrorType = baseException.GetType().Name,
+                StackTrace = baseException.StackTrace
             };
 
-            content.ErrorBytes = serializer.SerializeBytes(ex, errorType);
             return serializer.SerializeAsync(stream, content, cancellationToken);
         }
         /// <summary>
@@ -92,24 +131,9 @@ namespace Zerra.CQRS.Network
         {
             var content = await serializer.DeserializeAsync<ExceptionContent>(stream, cancellationToken);
             if (content is null)
-                throw new RemoteServiceException("Invalid Exception Content");
+                throw new RemoteServiceException("Failed to deserialize exception content from remote service");
 
-            Exception? ex = null;
-            if (content.ErrorType is not null)
-            {
-                try
-                {
-                    var type = TypeFinder.GetTypeFromName(content.ErrorType);
-
-                    if (type == null)
-                        return new RemoteServiceException(content?.ErrorMessage, ex);
-
-                    ex = (Exception?)serializer.Deserialize(content.ErrorBytes, type);
-                }
-                catch { }
-            }
-
-            return new RemoteServiceException(content?.ErrorMessage, ex);
+            return new RemoteServiceException(content.ErrorType, content.ErrorMessage, content.StackTrace);
         }
     }
 }
