@@ -350,11 +350,9 @@ namespace Zerra
                 if (discoveryStarted)
                     throw new InvalidOperationException("Discovery has already started");
 
-                var newNamespaces = assemblyNameStartsWiths.Select(x => x + '.').ToArray();
-
-                var newNamespacesToLoad = new string[DiscoveryAssemblyNameStartsWiths.Length + newNamespaces.Length];
+                var newNamespacesToLoad = new string[DiscoveryAssemblyNameStartsWiths.Length + assemblyNameStartsWiths.Length];
                 DiscoveryAssemblyNameStartsWiths.CopyTo(newNamespacesToLoad, 0);
-                newNamespaces.CopyTo(newNamespacesToLoad, DiscoveryAssemblyNameStartsWiths.Length);
+                assemblyNameStartsWiths.CopyTo(newNamespacesToLoad, DiscoveryAssemblyNameStartsWiths.Length);
                 DiscoveryAssemblyNameStartsWiths = newNamespacesToLoad;
             }
         }
@@ -401,9 +399,7 @@ namespace Zerra
                 if (discoveryStarted)
                     throw new InvalidOperationException("Discovery has already started");
 
-                var newNamespaces = assemblyNameStartsWiths.Select(x => x + '.').ToArray();
-
-                DiscoveryAssemblyNameStartsWiths = newNamespaces;
+                DiscoveryAssemblyNameStartsWiths = assemblyNameStartsWiths;
             }
         }
         /// <summary>
