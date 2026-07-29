@@ -69,16 +69,16 @@ public sealed class EnumName : Attribute
             var underlyingType = GetUnderlyingType(type);
 
             var typeDetail = type.GetTypeDetail();
-            var values = Enum.GetValues(type);
+            var fields = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
 
-            foreach (var enumValue in values)
+            foreach (var @field in fields)
             {
-                var name = enumValue.ToString();
+                var name = @field.Name;
+                var enumValue = @field.GetValue(null)!;
                 if (name is null)
                     continue;
 
-                var field = typeDetail.GetMember(name);
-                foreach (var attribute in field.Attributes)
+                foreach (var attribute in @field.GetCustomAttributes(true))
                 {
                     if (attribute is EnumName enumNameAttribute && enumNameAttribute.Text is not null)
                         name = enumNameAttribute.Text;
@@ -168,11 +168,11 @@ public sealed class EnumName : Attribute
                 if (nameLookup.TryGetValue(longValue, out name))
                     return name;
 
-                var enumNames = Enum.GetNames(type);
+                var fields = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
                 var sb = new StringBuilder();
-                foreach (var enumName in enumNames)
+                foreach (var @field in fields)
                 {
-                    var enumValue = Enum.Parse(type, enumName);
+                    var enumValue = @field.GetValue(null)!;
 
                     long longEnumValue;
                     unchecked
@@ -214,10 +214,10 @@ public sealed class EnumName : Attribute
                     if (!hasFlag)
                         continue;
 
-                    var enumNameWithAttribute = enumName;
+                    var enumNameWithAttribute = @field.Name;
                     var typeDetail = type.GetTypeDetail();
-                    var field = typeDetail.GetMember(enumName);
-                    foreach (var attribute in field.Attributes)
+                    
+                    foreach (var attribute in @field.GetCustomAttributes(true))
                     {
                         if (attribute is EnumName enumNameAttribute && enumNameAttribute.Text is not null)
                             enumNameWithAttribute = enumNameAttribute.Text;
@@ -284,9 +284,12 @@ public sealed class EnumName : Attribute
         {
             var items = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             var typeDetail = type.GetTypeDetail();
-            foreach (var enumName in Enum.GetNames(type))
+
+            var fields = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+            foreach (var @field in fields)
             {
-                var enumValue = Enum.Parse(type, enumName);
+                var enumName = @field.Name;
+                var enumValue = @field.GetValue(null)!;
 
                 items[enumName] = enumValue;
 
@@ -326,10 +329,8 @@ public sealed class EnumName : Attribute
                         break;
                 }
 
-                var field = typeDetail.GetMember(enumName);
-
                 string? enumNameWithAttribute = null;
-                foreach (var attribute in field.Attributes)
+                foreach (var attribute in @field.GetCustomAttributes(true))
                 {
                     if (attribute is EnumName enumNameAttribute && enumNameAttribute.Text is not null)
                         enumNameWithAttribute = enumNameAttribute.Text;

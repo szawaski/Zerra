@@ -555,12 +555,18 @@ namespace Zerra.Reflection.Runtime
                                 {
                                     if (property.GetIndexParameters().Length > 0)
                                         continue;
+                                    if (property.PropertyType.IsPointer)
+                                        continue;
+                                    if (property.GetMethod?.IsPublic != true && property.SetMethod?.IsPublic != true)
+                                        continue;
                                     MemberDetail? backingMember = null;
 
-                                    //<{property.Name}>k__BackingField
-                                    //<{property.Name}>i__Field
+                                    //try backing field pattern <{property.Name}>k__BackingField or <{property.Name}>i__Field
                                     var backingName = $"<{property.Name}>";
-                                    var backingField = fields.FirstOrDefault(x => x.Name.StartsWith(backingName));
+                                    var backingField = fields.FirstOrDefault(x => x.Name.StartsWith(backingName) && x.FieldType == property.PropertyType);
+                                    //try same name without underscores case insensitive
+                                    backingField ??= fields.FirstOrDefault(x => MemberAndParameterNameComparer.Instance.Equals(x.Name, property.Name) && x.FieldType == property.PropertyType);
+
                                     if (backingField is not null)
                                         backingMember = MemberDetailRuntime<object, object>.New(Type, property.PropertyType, property.Name, backingField, null, false, locker);
 
@@ -581,6 +587,10 @@ namespace Zerra.Reflection.Runtime
                                         foreach (var property in iProperties)
                                         {
                                             if (property.GetIndexParameters().Length > 0)
+                                                continue;
+                                            if (property.PropertyType.IsPointer)
+                                                continue;
+                                            if (property.GetMethod?.IsPublic != true && property.SetMethod?.IsPublic != true)
                                                 continue;
                                             //MemberDetail? backingMember = null;
 
@@ -618,6 +628,11 @@ namespace Zerra.Reflection.Runtime
 
                                 foreach (var @field in fields.Where(x => !items.Any(y => y.BackingFieldDetailBoxed?.MemberInfo == x)))
                                 {
+                                    if (@field.IsLiteral)
+                                        continue;
+                                    if (@field.IsPrivate)
+                                        continue;
+
                                     items.Add(MemberDetailRuntime<object, object>.New(Type, @field.FieldType, @field.Name, @field, null, false, locker));
                                 }
                             }
@@ -726,7 +741,7 @@ namespace Zerra.Reflection.Runtime
                 }
 
                 var property = Type.GetProperty(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
-                if (property is not null && property.GetIndexParameters().Length == 0)
+                if (property is not null && property.GetIndexParameters().Length == 0 && !property.PropertyType.IsPointer && (property.GetMethod?.IsPublic == true || property.SetMethod?.IsPublic == true))
                 {
                     MemberDetail? backingMember = null;
                     //<{property.Name}>k__BackingField    
@@ -741,7 +756,7 @@ namespace Zerra.Reflection.Runtime
                     return true;
                 }
                 var field = Type.GetField(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
-                if (field is not null)
+                if (field is not null && !field.IsLiteral && field.IsPublic)
                 {
                     member = MemberDetailRuntime<object, object>.New(Type, field.FieldType, field.Name, field, null, false, locker);
                     membersByName!.Add(member.Name, member);
