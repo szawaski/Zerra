@@ -91,12 +91,12 @@ timer.Restart();
 Console.WriteLine();
 
 var modelA = ModelA.GetModelA();
-var modelB = modelA.Map<ModelA, ModelB>();
+var modelB = modelA.Map<ModelB>();
 if (modelA.Prop1 != modelB.Prop1) throw new Exception("Mapping Failed");
 if (641 != modelB.PropB) throw new Exception("Mapping Failed");
 if (128 != modelB.PropD) throw new Exception("Mapping Failed");
 
-modelA = modelB.Map<ModelB, ModelA>();
+modelA = modelB.Map<ModelA>();
 if (64 != modelA.PropA) throw new Exception("Mapping Failed");
 if (128 != modelA.PropC) throw new Exception("Mapping Failed");
 Console.WriteLine($"Mapper: {timer.ElapsedMilliseconds} ms");

@@ -256,6 +256,8 @@ var user = await bus.Call<IUserQueries>().GetUserById(123, cancellationToken);
 ```csharp
 // Server side
 var tcpServer = new TcpCqrsServer("localhost:9001", serializer, encryptor, log);
+bus.AddHandler<IUserQueries>(userQueryHandler);
+bus.AddHandler<IUserCommandHandlers>(userCommandHandler);
 bus.AddQueryServer<IUserQueries>(tcpServer);
 bus.AddCommandConsumer<IUserCommandHandlers>(tcpServer);
 
@@ -273,6 +275,8 @@ var user = await bus.Call<IUserQueries>().GetUserById(123, cancellationToken);
 ```csharp
 // Server side
 var httpServer = new HttpCqrsServer("localhost:9001", serializer, encryptor, log);
+bus.AddHandler<IUserQueries>(userQueryHandler);
+bus.AddHandler<IUserCommandHandlers>(userCommandHandler);
 bus.AddQueryServer<IUserQueries>(httpServer);
 bus.AddCommandConsumer<IUserCommandHandlers>(httpServer);
 
@@ -292,6 +296,7 @@ var user = await bus.Call<IUserQueries>().GetUserById(123, cancellationToken);
 ```csharp
 // Server side
 var tcpServer = new TcpCqrsServer("localhost:9001", serializer, encryptor, log);
+bus.AddHandler<IUserCommandHandlers>(userCommandHandler);
 bus.AddCommandConsumer<IUserCommandHandlers, IUserQueries>(tcpServer);
 
 // Client side
@@ -304,6 +309,7 @@ bus.AddCommandProducer<IUserCommandHandlers, IUserQueries>(tcpClient);
 ```csharp
 // Server side
 var httpServer = new HttpCqrsServer("localhost:9001", serializer, encryptor, log);
+bus.AddHandler<IUserCommandHandlers>(userCommandHandler);
 bus.AddCommandConsumer<IUserCommandHandlers, IUserQueries>(httpServer);
 
 // Client side
@@ -316,9 +322,10 @@ bus.AddCommandProducer<IUserCommandHandlers, IUserQueries>(httpClient);
 ```csharp
 // Server side
 var kafkaConsumer = new KafkaCommandConsumer(kafkaConfig);
-bus.AddCommandConsumer<IUserCommandHandlers>(kafkaConsumer);
-
 var kafkaEventConsumer = new KafkaEventConsumer(kafkaConfig);
+bus.AddHandler<IUserCommandHandlers>(userCommandHandler);
+bus.AddHandler<IUserEvents>(userEventHandler);
+bus.AddCommandConsumer<IUserCommandHandlers>(kafkaConsumer);
 bus.AddEventConsumer<IUserEvents>(kafkaEventConsumer);
 
 // Client side
@@ -334,9 +341,10 @@ bus.AddEventProducer<IUserEvents>(kafkaEventProducer);
 ```csharp
 // Server side
 var rabbitmqConsumer = new RabbitMQCommandConsumer(rabbitmqConfig);
-bus.AddCommandConsumer<IUserCommandHandlers>(rabbitmqConsumer);
-
 var rabbitmqEventConsumer = new RabbitMQEventConsumer(rabbitmqConfig);
+bus.AddHandler<IUserCommandHandlers>(userCommandHandler);
+bus.AddHandler<IUserEvents>(userEventHandler);
+bus.AddCommandConsumer<IUserCommandHandlers>(rabbitmqConsumer);
 bus.AddEventConsumer<IUserEvents>(rabbitmqEventConsumer);
 
 // Client side
@@ -352,9 +360,10 @@ bus.AddEventProducer<IUserEvents>(rabbitmqEventProducer);
 ```csharp
 // Server side
 var asbConsumer = new AzureServiceBusCommandConsumer(asbConfig);
-bus.AddCommandConsumer<IUserCommandHandlers>(asbConsumer);
-
 var asbEventConsumer = new AzureServiceBusEventConsumer(asbConfig);
+bus.AddHandler<IUserCommandHandlers>(userCommandHandler);
+bus.AddHandler<IUserEvents>(userEventHandler);
+bus.AddCommandConsumer<IUserCommandHandlers>(asbConsumer);
 bus.AddEventConsumer<IUserEvents>(asbEventConsumer);
 
 // Client side
