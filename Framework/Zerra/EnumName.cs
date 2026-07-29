@@ -284,9 +284,12 @@ public sealed class EnumName : Attribute
         {
             var items = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             var typeDetail = type.GetTypeDetail();
-            foreach (var enumName in Enum.GetNames(type))
+
+            var fields = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+            foreach (var @field in fields)
             {
-                var enumValue = Enum.Parse(type, enumName);
+                var enumName = @field.Name;
+                var enumValue = @field.GetValue(null)!;
 
                 items[enumName] = enumValue;
 
@@ -326,10 +329,8 @@ public sealed class EnumName : Attribute
                         break;
                 }
 
-                var field = typeDetail.GetMember(enumName);
-
                 string? enumNameWithAttribute = null;
-                foreach (var attribute in field.Attributes)
+                foreach (var attribute in @field.GetCustomAttributes(true))
                 {
                     if (attribute is EnumName enumNameAttribute && enumNameAttribute.Text is not null)
                         enumNameWithAttribute = enumNameAttribute.Text;

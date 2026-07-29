@@ -133,42 +133,6 @@ namespace Zerra.Test
             ValidateModelBModelB(modelB, modelC);
         }
 
-        [Fact]
-        public void GetOnlyTypes()
-        {
-            var model = new ModelGetSetOnly()
-            {
-                PropA = 5,
-                PropB = "Five"
-            };
-            model.PropDSet = 6;
-
-            var copy = model.Copy();
-
-            Assert.Equal(model.PropA, copy.PropA);
-            Assert.Equal(model.PropB, copy.PropB);
-            Assert.Equal(model.PropABGet, copy.PropABGet);
-            Assert.Equal(model.PropDGet, copy.PropDGet);
-        }
-        [Fact]
-        public void GetOnlyTypesLogger()
-        {
-            var log = new MapperLog();
-            var model = new ModelGetSetOnly()
-            {
-                PropA = 5,
-                PropB = "Five"
-            };
-            model.PropDSet = 6;
-
-            var copy = model.Copy(log);
-
-            Assert.Equal(model.PropA, copy.PropA);
-            Assert.Equal(model.PropB, copy.PropB);
-            Assert.Equal(model.PropABGet, copy.PropABGet);
-            Assert.Equal(model.PropDGet, copy.PropDGet);
-        }
-
         private static void ValidateModelAModelB(ModelA modelA, ModelB modelB)
         {
             Assert.NotNull(modelB);

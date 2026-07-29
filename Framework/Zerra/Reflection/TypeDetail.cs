@@ -122,7 +122,14 @@ namespace Zerra.Reflection
                 {
                     lock (locker)
                     {
-                        serializableMemberDetails ??= MemberDetails.Where(x => !x.IsStatic && x.IsBacked && !x.IsExplicitFromInterface && IsSerializableType(x.TypeDetailBoxed)).ToArray();
+                        var allConstructorParameters = ConstructorDetailsBoxed.SelectMany(x => x.ParameterDetails).ToArray();
+                        serializableMemberDetails ??= MemberDetails.Where(x =>
+                            !x.IsStatic &&
+                            !x.IsExplicitFromInterface &&
+                            IsSerializableType(x.TypeDetailBoxed) &&
+                            x.HasGetterBoxed &&
+                            (x.HasSetterBoxed || allConstructorParameters.Any(y => MemberAndParameterNameComparer.Instance.Equals(y.Name, x.Name) && y.Type == x.Type))
+                        ).ToArray();
                     }
                 }
                 return serializableMemberDetails;
