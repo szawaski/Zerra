@@ -23,17 +23,5 @@ namespace Zerra.Identity
             this.HasFormContentType = hasFormContentType;
             this.Form = form;
         }
-
-#if !NET48
-        public IdentityHttpRequest(HttpContext context)
-        {
-            this.QueryString = context.Request.QueryString.Value;
-            this.Query = context.Request.Query.ToDictionary(x => x.Key, x => (string)x.Value);
-
-            this.HasFormContentType = context.Request.HasFormContentType;
-            if (this.HasFormContentType)
-                this.Form = context.Request.Form.ToDictionary(x => x.Key, x => (string)x.Value);
-        }
-#endif
     }
 }

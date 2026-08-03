@@ -13,7 +13,6 @@ using System.Text;
 using Zerra.Identity.OpenID.Bindings;
 using System.Security.Cryptography;
 using System.Reflection;
-using Zerra.Encryption;
 using System.IO;
 
 namespace Zerra.Identity.OpenID

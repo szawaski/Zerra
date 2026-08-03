@@ -14,7 +14,6 @@ using Zerra.Identity.OpenID.Documents;
 using Zerra.Identity.TokenManagers;
 using System.Text;
 using System.Security.Cryptography;
-using Zerra.Encryption;
 using System.Net.Http;
 
 namespace Zerra.Identity.Consumers
@@ -55,15 +54,6 @@ namespace Zerra.Identity.Consumers
         public static async Task<OpenIDIdentityConsumer> FromMetadata(string serviceProvider, string secret, string metadataUrl, string redirectUrl, string redirectUrlPostLogout, string scope, OpenIDResponseType responseType, string acrValues)
         {
             OpenIDMetadataResponse document;
-#if NET48
-            var request = WebRequest.Create(metadataUrl);
-            using (var response = await request.GetResponseAsync())
-            {
-                var stream = response.GetResponseStream();
-                var binding = OpenIDBinding.GetBindingForResponse(stream, BindingDirection.Response);
-                document = new OpenIDMetadataResponse(binding);
-            }
-#else
             using (var client = new HttpClient())
             using (var response = await client.GetAsync(metadataUrl))
             {
@@ -71,7 +61,6 @@ namespace Zerra.Identity.Consumers
                 var binding = OpenIDBinding.GetBindingForResponse(stream, BindingDirection.Response);
                 document = new OpenIDMetadataResponse(binding);
             }
-#endif
 
             if (!document.ScopesSupported.Contains("openid"))
                 throw new IdentityProviderException("OpenID Scope Not Supported From This Service.");
@@ -144,37 +133,6 @@ namespace Zerra.Identity.Consumers
                 var requestTokenDocument = new OpenIDTokenRequest(this.serviceProvider, callbackCodeDocument.AccessCode, this.secret, OpenIDGrantType.authorization_code, redirectUrl);
                 var requestTokenBinding = OpenIDBinding.GetBindingForDocument(requestTokenDocument, BindingType.Form);
 
-#if NET48
-                var requestTokenBody = requestTokenBinding.GetContent();
-                var requestToken = WebRequest.Create(tokenUrl);
-                requestToken.Method = "POST";
-                requestToken.ContentType = "application/x-www-form-urlencoded";
-                var requestTokenBodyBytes = Encoding.UTF8.GetBytes(requestTokenBody);
-                requestToken.ContentLength = requestTokenBodyBytes.Length;
-                using (var stream = await requestToken.GetRequestStreamAsync())
-                {
-                    await stream.WriteAsync(requestTokenBodyBytes, 0, requestTokenBodyBytes.Length);
-                    await stream.FlushAsync();
-                }
-
-                WebResponse responseToken;
-                try
-                {
-                    responseToken = await requestToken.GetResponseAsync();
-                }
-                catch (WebException ex)
-                {
-                    if (ex.Response is null)
-                        throw ex;
-                    var responseTokenStream = ex.Response.GetResponseStream();
-                    var error = await new StreamReader(responseTokenStream).ReadToEndAsync();
-                    ex.Response.Close();
-                    ex.Response.Dispose();
-                    throw new IdentityProviderException(error);
-                }
-
-                callbackBinding = OpenIDJwtBinding.GetBindingForResponse(responseToken.GetResponseStream(), BindingDirection.Response);
-#else
                 var requestTokenBody = requestTokenBinding.GetContent();
                 using (var client = new HttpClient())
                 using (var content = new StringContent(requestTokenBody, Encoding.UTF8, "application/x-www-form-urlencoded"))
@@ -183,7 +141,6 @@ namespace Zerra.Identity.Consumers
                 {
                     callbackBinding = OpenIDJwtBinding.GetBindingForResponse(stream, BindingDirection.Response);
                 }
-#endif
             }
             else
             {
@@ -200,8 +157,12 @@ namespace Zerra.Identity.Consumers
                 throw new IdentityProviderException("OpenID Audience is not valid", $"Received: {serviceProvider}, Expected: {callbackDocument.Audience}");
 
             var keys = await GetSignaturePublicKeys(this.identityProviderCertUrl);
-            var key = keys.FirstOrDefault(x => x.X509Thumbprint == callbackDocument.X509Thumbprint);
-            key ??= keys.FirstOrDefault(x => x.KeyID == callbackDocument.KeyID);
+
+            JwtKey key = null;
+            if (!String.IsNullOrWhiteSpace(callbackDocument.KeyID))
+                key = keys.FirstOrDefault(x => x.KeyID == callbackDocument.KeyID);
+            if (key == null && !String.IsNullOrWhiteSpace(callbackDocument.X509Thumbprint))
+                key = keys.FirstOrDefault(x => x.X509Thumbprint == callbackDocument.X509Thumbprint);
             if (key is null)
                 throw new IdentityProviderException("Identity Provider OpenID certificate not found from Json Key Url");
             if (key.KeyType != "RSA")
@@ -250,20 +211,6 @@ namespace Zerra.Identity.Consumers
 
         private static async Task<JwtKey[]> GetSignaturePublicKeys(string url)
         {
-#if NET48
-            var request = WebRequest.Create(url);
-            using (var response = await request.GetResponseAsync())
-            using (var stream = response.GetResponseStream())
-            {
-                var content = await new StreamReader(stream).ReadToEndAsync();
-                var keys = JsonConvert.DeserializeObject<JwtKeys>(content);
-
-                if (keys is null)
-                    return null;
-
-                return keys.keys;
-            }
-#else
             using (var client = new HttpClient())
             using (var response = await client.GetAsync(url))
             using (var stream = await response.Content.ReadAsStreamAsync())
@@ -277,7 +224,6 @@ namespace Zerra.Identity.Consumers
 
                 return keys.keys;
             }
-#endif
         }
 
         public ValueTask<IdentityHttpResponse> Logout(string state)

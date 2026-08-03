@@ -55,10 +55,10 @@ namespace Zerra.Identity.OpenID.Documents
                         this.RedirectUrl = jsonObject.Value.ToObject<string>();
                         break;
                     case "response_type":
-                        this.ResponseType = EnumName.Parse<OpenIDResponseType>(jsonObject.Value.ToObject<string>());
+                        this.ResponseType = OpenIDResponseTypeNames.Parse(jsonObject.Value.ToObject<string>());
                         break;
                     case "response_mode":
-                        this.ResponseMode = EnumName.Parse<OpenIDResponseMode>(jsonObject.Value.ToObject<string>());
+                        this.ResponseMode = OpenIDResponseModeNames.Parse(jsonObject.Value.ToObject<string>());
                         break;
                     case "scope":
                         this.Scope = jsonObject.Value.ToObject<string>();
@@ -98,9 +98,9 @@ namespace Zerra.Identity.OpenID.Documents
             if (this.RedirectUrl is not null)
                 json.Add("redirect_uri", JToken.FromObject(this.RedirectUrl));
             if (this.ResponseMode is not null)
-                json.Add("response_mode", JToken.FromObject(this.ResponseMode?.EnumName()));
+                json.Add("response_mode", JToken.FromObject(OpenIDResponseModeNames.ToName(this.ResponseMode.Value)));
             if (this.ResponseType is not null)
-                json.Add("response_type", JToken.FromObject(this.ResponseType?.EnumName()));
+                json.Add("response_type", JToken.FromObject(OpenIDResponseTypeNames.ToName(this.ResponseType.Value)));
             if (this.Scope is not null)
                 json.Add("scope", JToken.FromObject(this.Scope));
             if (this.State is not null)

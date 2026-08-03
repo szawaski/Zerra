@@ -61,21 +61,12 @@ namespace Zerra.Identity.Consumers
             var requestTokenAction = requestTokenBinding.GetResponse(tokenUrl);
 
             OAuth2Binding responseTokenBinding;
-#if NET48
-            var requestToken = WebRequest.Create(requestTokenAction.RedirectUrl);
-            using (var response = await requestToken.GetResponseAsync())
-            {
-                var stream = response.GetResponseStream();
-                responseTokenBinding = OAuth2Binding.GetBindingForResponse(stream, BindingDirection.Response);
-            }
-#else
             using (var client = new HttpClient())
             using (var response = await client.GetAsync(requestTokenAction.RedirectUrl))
             using (var stream = await response.Content.ReadAsStreamAsync())
             {
                 responseTokenBinding = OAuth2Binding.GetBindingForResponse(stream, BindingDirection.Response);
             }
-#endif
             var responseTokenDocument = new OAuth2TokenResponse(responseTokenBinding);
 
             //Get Identity---------------
@@ -87,21 +78,13 @@ namespace Zerra.Identity.Consumers
             var requestIdentityAction = requestIdentityBinding.GetResponse(identityUrl);
 
             OAuth2Binding responseIdentityBinding;
-#if NET48
-            var requestIdentity = WebRequest.Create(requestIdentityAction.RedirectUrl);
-            using (var response = await requestIdentity.GetResponseAsync())
-            {
-                var stream = response.GetResponseStream();
-                responseIdentityBinding = OAuth2Binding.GetBindingForResponse(stream, BindingDirection.Response);
-            }
-#else
             using (var client = new HttpClient())
             using (var response = await client.GetAsync(requestIdentityAction.RedirectUrl))
             using (var stream = await response.Content.ReadAsStreamAsync())
             {
                 responseIdentityBinding = OAuth2Binding.GetBindingForResponse(stream, BindingDirection.Response);
             }
-#endif
+
             var responseIdentityDocument = new OAuth2IdentityResponse(responseIdentityBinding);
 
             if (responseIdentityDocument.ServiceProvider != serviceProvider)

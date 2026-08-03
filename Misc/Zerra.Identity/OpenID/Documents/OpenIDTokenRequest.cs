@@ -41,7 +41,7 @@ namespace Zerra.Identity.OpenID.Documents
             this.Secret = json["client_secret"]?.ToObject<string>();
 
             if (!String.IsNullOrWhiteSpace(json["grant_type"]?.ToObject<string>()))
-                this.GrantType = EnumName.Parse<OpenIDGrantType>(json["grant_type"]?.ToObject<string>());
+                this.GrantType = OpenIDGrantTypeNames.Parse(json["grant_type"]?.ToObject<string>());
 
             this.RedirectUrl = json["redirect_uri"]?.ToObject<string>();
         }
@@ -51,7 +51,7 @@ namespace Zerra.Identity.OpenID.Documents
             var json = new JObject();
 
             if (this.GrantType is not null)
-                json.Add("grant_type", JToken.FromObject(this.GrantType?.EnumName()));
+                json.Add("grant_type", JToken.FromObject(OpenIDGrantTypeNames.ToName(this.GrantType.Value)));
             if (this.ClientId is not null)
                 json.Add("client_id", JToken.FromObject(this.ClientId));
             if (this.Code is not null)

@@ -21,24 +21,5 @@ namespace Zerra.Identity
             this.ContentType = contentType;
             this.Content = content;
         }
-
-#if !NET48
-        public IActionResult ToIActionResult()
-        {
-            if (!System.String.IsNullOrWhiteSpace(RedirectUrl))
-            {
-                return new RedirectResult(RedirectUrl);
-            }
-            else
-            {
-                return new ContentResult()
-                {
-                    StatusCode = (int)HttpStatusCode.OK,
-                    ContentType = ContentType,
-                    Content = Content
-                };
-            }
-        }
-#endif
     }
 }
