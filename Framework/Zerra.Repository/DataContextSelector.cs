@@ -35,15 +35,15 @@ namespace Zerra.Repository
             {
                 lock (locker)
                 {
-                    contexts ??= LoadDataContexts();
+                    contexts ??= [.. LoadDataContexts()];
                 }
             }
             return contexts;
         }
         /// <summary>
-        /// Loads the collection of candidate <see cref="DataContext"/> instances used for engine selection.
+        /// Loads the candidate <see cref="DataContext"/> instances used for engine selection.
         /// </summary>
-        /// <returns>The collection of <see cref="DataContext"/> instances to select from.</returns>
-        protected abstract ICollection<DataContext> LoadDataContexts();
+        /// <returns>The <see cref="DataContext"/> instances to select from.</returns>
+        protected abstract IEnumerable<DataContext> LoadDataContexts();
     }
 }

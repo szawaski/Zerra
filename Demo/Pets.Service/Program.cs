@@ -110,7 +110,7 @@ await Bus.DispatchAwaitAsync(new DeleteTestDatabaseCommand());
 Console.WriteLine($"Delete Test Database: {timer.ElapsedMilliseconds} ms");
 timer.Restart();
 
-CodeFirstGeneration.Generate<ZerraPetsDbContext>(DataStoreGenerationType.CodeFirst, [typeof(PetDataModel), typeof(PetTypeDataModel)], log);
+CodeFirstGeneration.Generate<ZerraPetsSelectorDbContext>(DataStoreGenerationType.CodeFirst, [typeof(PetDataModel), typeof(PetTypeDataModel)], log);
 Console.WriteLine($"CodeFirstGeneration.Generate: {timer.ElapsedMilliseconds} ms");
 timer.Restart();
 

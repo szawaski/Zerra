@@ -2,7 +2,7 @@
 
 namespace Pets.Service.Data
 {
-    public sealed class ZerraPetsSqlProvider<TModel> : TransactStoreProvider<ZerraPetsDbContext, TModel>
+    public sealed class ZerraPetsSqlProvider<TModel> : TransactStoreProvider<ZerraPetsSelectorDbContext, TModel>
         where TModel : class, new()
     {
         protected override bool EventLinking => false;
