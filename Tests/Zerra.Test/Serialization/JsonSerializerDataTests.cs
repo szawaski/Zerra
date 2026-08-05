@@ -1019,6 +1019,15 @@ namespace Zerra.Test.Serialization
         }
 
         [Fact]
+        public void StringDrainWithCreatedParent()
+        {
+            var json = @"{""key"":{""value"":""True""}}";
+            var model = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+            Assert.NotNull(model);
+            Assert.Equal(String.Empty, model["key"]);
+        }
+
+        [Fact]
         public async Task StreamMatchesNewtonsoft()
         {
             var baseModel = TypesAllModel.Create();
@@ -2258,6 +2267,16 @@ namespace Zerra.Test.Serialization
             Assert.Equal(model1.Value1, model2.Value1);
             Assert.Equal(model1.Value2, model2.Value2);
             Assert.Equal(model1.Value3, model2.Value3);
+        }
+
+        [Fact]
+        public async Task StreamDrainWithCreatedParent()
+        {
+            var json = @"{""key"":{""value"":""True""}}";
+            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(json));
+            var model = await JsonSerializer.DeserializeAsync<Dictionary<string, string>>(stream, null, null, TestContext.Current.CancellationToken);
+            Assert.NotNull(model);
+            Assert.Equal(String.Empty, model["key"]);
         }
     }
 }

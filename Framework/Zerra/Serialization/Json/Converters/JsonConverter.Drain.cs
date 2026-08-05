@@ -28,7 +28,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 case JsonToken.ObjectStart:
                     state.PushFrame(null);
-                    if (!DrainObject(ref reader, ref state))
+                    if (!DrainObjectInternal(ref reader, ref state))
                     {
                         state.StashFrame();
                         return false;
@@ -38,7 +38,7 @@ namespace Zerra.Serialization.Json.Converters
                     return true;
                 case JsonToken.ArrayStart:
                     state.PushFrame(null);
-                    if (!DrainArray(ref reader, ref state))
+                    if (!DrainArrayInternal(ref reader, ref state))
                     {
                         state.StashFrame();
                         return false;
@@ -85,7 +85,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 case JsonToken.ObjectStart:
                     state.PushFrame(null);
-                    if (!DrainObject(ref reader, ref state))
+                    if (!DrainObjectInternal(ref reader, ref state))
                     {
                         state.StashFrame();
                         return false;
@@ -95,7 +95,7 @@ namespace Zerra.Serialization.Json.Converters
                     return true;
                 case JsonToken.ArrayStart:
                     state.PushFrame(null);
-                    if (!DrainArray(ref reader, ref state))
+                    if (!DrainArrayInternal(ref reader, ref state))
                     {
                         state.StashFrame();
                         return false;
@@ -135,9 +135,9 @@ namespace Zerra.Serialization.Json.Converters
             switch (token)
             {
                 case JsonToken.ObjectStart:
-                    return DrainObject(ref reader, ref state);
+                    return DrainObjectInternal(ref reader, ref state);
                 case JsonToken.ArrayStart:
-                    return DrainArray(ref reader, ref state);
+                    return DrainArrayInternal(ref reader, ref state);
                 case JsonToken.String:
                     return true;
                 case JsonToken.Null:
@@ -160,6 +160,18 @@ namespace Zerra.Serialization.Json.Converters
         /// <returns><c>true</c> if draining completed; otherwise <c>false</c> if more data is needed.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected static bool DrainObject(ref JsonReader reader, ref ReadState state)
+        {
+            state.PushFrame(null);
+            if (!DrainObjectInternal(ref reader, ref state))
+            {
+                state.StashFrame();
+                return false;
+            }
+            state.EndFrame();
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool DrainObjectInternal(ref JsonReader reader, ref ReadState state)
         {
             if (!state.Current.HasCreated)
             {
@@ -240,6 +252,18 @@ namespace Zerra.Serialization.Json.Converters
         /// <returns><c>true</c> if draining completed; otherwise <c>false</c> if more data is needed.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected static bool DrainArray(ref JsonReader reader, ref ReadState state)
+        {
+            state.PushFrame(null);
+            if (!DrainArrayInternal(ref reader, ref state))
+            {
+                state.StashFrame();
+                return false;
+            }
+            state.EndFrame();
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool DrainArrayInternal(ref JsonReader reader, ref ReadState state)
         {
             if (!state.Current.HasCreated)
             {
