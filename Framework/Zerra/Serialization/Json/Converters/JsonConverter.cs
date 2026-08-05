@@ -36,7 +36,7 @@ namespace Zerra.Serialization.Json.Converters
             {
                 case JsonValueType.Object:
                     state.PushFrame(null);
-                    if (!DrainObject(ref reader, ref state))
+                    if (!DrainObjectInternal(ref reader, ref state))
                     {
                         state.StashFrame();
                         return false;
@@ -46,7 +46,7 @@ namespace Zerra.Serialization.Json.Converters
                     return true;
                 case JsonValueType.Array:
                     state.PushFrame(null);
-                    if (!DrainArray(ref reader, ref state))
+                    if (!DrainArrayInternal(ref reader, ref state))
                     {
                         state.StashFrame();
                         return false;
@@ -93,9 +93,9 @@ namespace Zerra.Serialization.Json.Converters
             switch (valueType)
             {
                 case JsonValueType.Object:
-                    return DrainObject(ref reader, ref state);
+                    return DrainObjectInternal(ref reader, ref state);
                 case JsonValueType.Array:
-                    return DrainArray(ref reader, ref state);
+                    return DrainArrayInternal(ref reader, ref state);
                 case JsonValueType.String:
                     return DrainString(ref reader, ref state);
                 case JsonValueType.Null_Completed:
@@ -112,6 +112,18 @@ namespace Zerra.Serialization.Json.Converters
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected static bool DrainObject(ref JsonReader reader, ref ReadState state)
+        {
+            state.PushFrame(null);
+            if (!DrainObjectInternal(ref reader, ref state))
+            {
+                state.StashFrame();
+                return false;
+            }
+            state.EndFrame();
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool DrainObjectInternal(ref JsonReader reader, ref ReadState state)
         {
             char c;
 
@@ -188,6 +200,18 @@ namespace Zerra.Serialization.Json.Converters
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected static bool DrainArray(ref JsonReader reader, ref ReadState state)
+        {
+            state.PushFrame(null);
+            if (!DrainArrayInternal(ref reader, ref state))
+            {
+                state.StashFrame();
+                return false;
+            }
+            state.EndFrame();
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool DrainArrayInternal(ref JsonReader reader, ref ReadState state)
         {
             char c;
 
