@@ -55,13 +55,13 @@ namespace Zerra.Map
         }
 
         /// <summary>
-        /// Maps the source object to an instance of <typeparamref name="TTarget"/>.
+        /// Maps the source object to an instance of <paramref name="targetType"/>.
         /// </summary>
         /// <param name="source">The source object to map from. Cannot be null.</param>
         /// <param name="sourceType">The type of the object to map. Cannot be null.</param>
         /// <param name="targetType">The type of the target object to map to. Cannot be null.</param>
         /// <param name="graph">Optional graph specifying which members to include or exclude in the mapping.</param>
-        /// <returns>A new instance of the target type populated with mapped values from the source.</returns>
+        /// <returns>A new instance of <paramref name="targetType"/> populated with mapped values from the source.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="source"/> is null.</exception>
         public static object Map(this object source, Type sourceType, Type targetType, Graph? graph = null)
         {
@@ -119,7 +119,7 @@ namespace Zerra.Map
         }
 
         /// <summary>
-        /// Maps the source object of type <typeparamref name="TSource"/> to an existing instance of <typeparamref name="TTarget"/>.
+        /// Maps the source object of type <paramref name="sourceType"/> to an existing instance of <paramref name="targetType"/>.
         /// </summary>
         /// <param name="source">The source object to map from. Cannot be null.</param>
         /// <param name="sourceType">The type of the object to map. Cannot be null.</param>

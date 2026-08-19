@@ -1491,7 +1491,6 @@ namespace Zerra.Repository.MsSql
         /// </summary>
         /// <param name="sb">The <see cref="StringBuilder"/> to write the type definition into.</param>
         /// <param name="property">The model property to derive the SQL type from.</param>
-        /// <param name="allowDefaults">Whether to include a DEFAULT constraint in the type definition.</param>
         public static void WriteSqlTypeFromModel(StringBuilder sb, ModelMemberDetail property)
         {
             var canBeIdentity = false;
