@@ -39,6 +39,177 @@ namespace Zerra.CQRS.Network
         }
 
         /// <inheritdoc />
+        protected override TReturn? CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source) where TReturn : default
+        {
+            throttle.Wait();
+
+            SocketPoolStream? stream = null;
+            Stream? requestBodyStream = null;
+            CryptoFlushStream? requestBodyCryptoStream = null;
+            Stream? responseBodyStream = null;
+            var bufferOwner = ArrayPoolHelper<byte>.Rent(TcpRawCommon.BufferLength);
+            var isThrowingRemote = false;
+            try
+            {
+                string[][]? claims = null;
+                if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
+                    claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
+
+                var data = new CqrsRequestData()
+                {
+                    ProviderType = interfaceType.Name,
+                    ProviderMethod = methodName,
+
+                    Claims = claims,
+                    Source = source
+                };
+                data.AddProviderArguments(arguments);
+
+                var buffer = bufferOwner.AsMemory();
+
+                var requireNewConnection = false;
+            newconnection:
+                try
+                {
+                    //Request Header
+                    var requestHeaderLength = TcpRawCommon.BufferHeader(buffer, data.ProviderType, contentType);
+
+#if NETSTANDARD2_0
+                    stream = socketPool.BeginStream(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength, requireNewConnection);
+#else
+                    stream = socketPool.BeginStream(host, port, ProtocolType.Tcp, buffer.Span.Slice(0, requestHeaderLength), requireNewConnection);
+#endif
+
+                    requestBodyStream = new TcpRawProtocolBodyStream(stream, null, true);
+
+                    if (symmetricConfig is not null)
+                    {
+                        requestBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, requestBodyStream, true);
+                        ContentTypeSerializer.Serialize(contentType, requestBodyCryptoStream, data);
+                        requestBodyCryptoStream.FlushFinalBlock();
+                        requestBodyCryptoStream.Dispose();
+                        requestBodyCryptoStream = null;
+                    }
+                    else
+                    {
+                        ContentTypeSerializer.Serialize(contentType, requestBodyStream, data);
+                        requestBodyStream.Flush();
+                        requestBodyStream.Dispose();
+                    }
+
+                    requestBodyStream = null;
+
+                    //Response Header
+                    var headerPosition = 0;
+                    var headerLength = 0;
+                    var requestHeaderEnd = false;
+                    while (!requestHeaderEnd)
+                    {
+                        if (headerLength == buffer.Length)
+                            throw new CqrsNetworkException($"{nameof(TcpRawCqrsClient)} Header Too Long");
+
+                        var bytesRead = stream.Read(bufferOwner, headerPosition, buffer.Length - headerPosition);
+
+                        if (bytesRead == 0)
+                        {
+                            stream.DisposeSocket();
+                            if (stream.IsNewConnection)
+                            {
+                                stream = null;
+                                throw new ConnectionAbortedException();
+                            }
+                            else
+                            {
+                                stream = null;
+                                requireNewConnection = true;
+                                goto newconnection;
+                            }
+                        }
+                        headerLength += bytesRead;
+
+                        requestHeaderEnd = TcpRawCommon.ReadToHeaderEnd(buffer, ref headerPosition, headerLength);
+                    }
+                    var responseHeader = TcpRawCommon.ReadHeader(buffer, headerPosition, headerLength);
+
+                    //Response Body
+                    if (isStream)
+                        responseBodyStream = new TcpRawProtocolBodyStream(stream, responseHeader.BodyStartBuffer.ToArray(), false);
+                    else
+                        responseBodyStream = new TcpRawProtocolBodyStream(stream, responseHeader.BodyStartBuffer, false);
+
+                    if (symmetricConfig is not null)
+                        responseBodyStream = SymmetricEncryptor.Decrypt(symmetricConfig, responseBodyStream, false);
+
+                    if (responseHeader.IsError)
+                    {
+                        var responseException = ContentTypeSerializer.DeserializeException(contentType, responseBodyStream);
+                        isThrowingRemote = true;
+                        throw responseException;
+                    }
+
+                    if (isStream)
+                    {
+                        return (TReturn)(object)responseBodyStream; //TODO better way to convert type???
+                    }
+                    else
+                    {
+                        var model = ContentTypeSerializer.Deserialize<TReturn>(contentType, responseBodyStream);
+                        if (responseBodyStream is not null)
+                        {
+                            responseBodyStream.Dispose();
+                        }
+                        return model;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    if (responseBodyStream is not null)
+                    {
+                        try
+                        {
+                            //crypto stream can error, we want to throw the actual error
+                            responseBodyStream.Dispose();
+                        }
+                        catch { }
+                    }
+                    if (requestBodyStream is not null)
+                    {
+                        requestBodyStream.Dispose();
+                    }
+                    if (requestBodyCryptoStream is not null)
+                    {
+                        requestBodyCryptoStream.Dispose();
+                    }
+                    if (isThrowingRemote)
+                    {
+                        if (stream is not null)
+                            stream.Dispose();
+                    }
+                    else
+                    {
+                        if (stream is not null)
+                        {
+                            stream.DisposeSocket();
+                            if (!stream.IsNewConnection)
+                            {
+                                _ = Log.ErrorAsync(ex);
+                                stream = null;
+                                requireNewConnection = true;
+                                goto newconnection;
+                            }
+                        }
+                    }
+                    throw;
+                }
+            }
+            finally
+            {
+                ArrayPoolHelper<byte>.Return(bufferOwner);
+                throttle.Release();
+            }
+        }
+
+        /// <inheritdoc />
         protected override async Task<TReturn?> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source, CancellationToken cancellationToken) where TReturn : default
         {
             await throttle.WaitAsync();
@@ -222,7 +393,7 @@ namespace Zerra.CQRS.Network
                         _ = Log.ErrorAsync(ex);
                         if (stream is not null)
                         {
-                            var abortAcknowledged = await SocketAbortMonitor.SendAndAcknowledgeAbort(stream);
+                            var abortAcknowledged = await SocketAbortMonitor.SendAndAcknowledgeAbortAsync(stream);
                             if (abortAcknowledged)
                                 stream?.Dispose();
                             else
@@ -427,7 +598,7 @@ namespace Zerra.CQRS.Network
                         _ = Log.ErrorAsync(ex);
                         if (stream is not null)
                         {
-                            var abortAcknowledged = await SocketAbortMonitor.SendAndAcknowledgeAbort(stream);
+                            var abortAcknowledged = await SocketAbortMonitor.SendAndAcknowledgeAbortAsync(stream);
                             if (abortAcknowledged)
                                 stream?.Dispose();
                             else
@@ -640,7 +811,7 @@ namespace Zerra.CQRS.Network
                         _ = Log.ErrorAsync(ex);
                         if (stream is not null)
                         {
-                            var abortAcknowledged = await SocketAbortMonitor.SendAndAcknowledgeAbort(stream);
+                            var abortAcknowledged = await SocketAbortMonitor.SendAndAcknowledgeAbortAsync(stream);
                             if (abortAcknowledged)
                                 stream?.Dispose();
                             else
@@ -845,7 +1016,7 @@ namespace Zerra.CQRS.Network
                         _ = Log.ErrorAsync(ex);
                         if (stream is not null)
                         {
-                            var abortAcknowledged = await SocketAbortMonitor.SendAndAcknowledgeAbort(stream);
+                            var abortAcknowledged = await SocketAbortMonitor.SendAndAcknowledgeAbortAsync(stream);
                             if (abortAcknowledged)
                                 stream?.Dispose();
                             else
