@@ -98,7 +98,7 @@ namespace Zerra.CQRS.Network
                 throttle.Dispose();
         }
 
-        TReturn IQueryClient.Call<TReturn>(Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, CancellationToken cancellationToken)
+        TReturn IQueryClient.Call<TReturn>(Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source)
         {
             if (!throttleByInterfaceType.TryGetValue(interfaceType, out var throttle))
                 throw new Exception($"{interfaceType.Name} is not registered with {this.GetType().Name}");
@@ -106,8 +106,7 @@ namespace Zerra.CQRS.Network
             try
             {
                 var isStream = typeof(TReturn) == streamType;
-                var task = CallInternalAsync<TReturn>(throttle, isStream, interfaceType, methodName, argumentTypes, arguments, source, cancellationToken);
-                var result = Task.Run(() => task).GetAwaiter().GetResult();
+                var result = CallInternal<TReturn>(throttle, isStream, interfaceType, methodName, argumentTypes, arguments, source);
                 return result;
             }
             catch (Exception ex)
@@ -147,6 +146,20 @@ namespace Zerra.CQRS.Network
                 throw;
             }
         }
+
+        /// <summary>
+        /// Sends CQRS queries and returns the result from the server synchronously.
+        /// </summary>
+        /// <typeparam name="TReturn">The type returned from the server.</typeparam>
+        /// <param name="throttle">Used to limit simultaneous requests.</param>
+        /// <param name="isStream">Indicates the result is a stream.</param>
+        /// <param name="interfaceType">The interface type of the query.</param>
+        /// <param name="methodName">The query method to call in the interface type.</param>
+        /// <param name="argumentTypes">The types of the arguments for the query method.</param>
+        /// <param name="arguments">The raw arguments for the query method.</param>
+        /// <param name="source">A description of where the request came from.</param>
+        /// <returns>The result from the server.</returns>
+        protected abstract TReturn CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source);
 
         /// <summary>
         /// Sends CQRS queries and returns the result from the server asynchronously.

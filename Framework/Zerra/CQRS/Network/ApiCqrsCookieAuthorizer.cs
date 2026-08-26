@@ -47,7 +47,7 @@ namespace Zerra.CQRS.Network
             this.contentType = contentType;
         }
 
-        private static async Task<CookieCollection> GetCookiesRequest(ISerializer serializer, Uri endpoint, string body, string contentType, CancellationToken cancellationToken)
+        private static async Task<CookieCollection> GetCookiesRequestAsync(ISerializer serializer, Uri endpoint, string body, string contentType, CancellationToken cancellationToken)
         {
             using var handler = new HttpClientHandler()
             {
@@ -90,6 +90,52 @@ namespace Zerra.CQRS.Network
 #else
                         await responseStream.DisposeAsync();
 #endif
+                    }
+                    catch { }
+                }
+                throw;
+            }
+        }
+
+        private static CookieCollection GetCookiesRequest(ISerializer serializer, Uri endpoint, string body, string contentType, CancellationToken cancellationToken)
+        {
+            using var handler = new HttpClientHandler()
+            {
+                CookieContainer = new CookieContainer()
+            };
+            using var client = new HttpClient(handler);
+            using var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
+
+            Stream? responseStream = null;
+            try
+            {
+                var data = System.Text.Encoding.UTF8.GetBytes(body);
+                using var postStream = new MemoryStream();
+                serializer.Serialize(postStream, data);
+                postStream.Position = 0;
+                request.Content = new StreamContent(postStream);
+                request.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
+
+                request.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, "*");
+                request.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
+                request.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
+
+                using var response = client.Send(request, cancellationToken);
+                if (!response.IsSuccessStatusCode)
+                    throw new Exception($"Authorization request failed with status code {response.StatusCode}.");
+
+                responseStream = response.Content.ReadAsStream();
+
+                var cookies = handler.CookieContainer.GetAllCookies();
+                return cookies;
+            }
+            catch
+            {
+                if (responseStream is not null)
+                {
+                    try
+                    {
+                        responseStream.Dispose();
                     }
                     catch { }
                 }
@@ -173,7 +219,7 @@ namespace Zerra.CQRS.Network
         }
 
         /// <inheritdoc/>
-        public Task Login(CancellationToken cancellationToken = default) => GetCookiesRequest(serializer, endpoint, loginRequestBody, contentType, cancellationToken);
+        public Task Login(CancellationToken cancellationToken = default) => GetCookiesRequestAsync(serializer, endpoint, loginRequestBody, contentType, cancellationToken);
 
         /// <summary>
         /// Gets the cookies obtained from the login request.
@@ -194,7 +240,29 @@ namespace Zerra.CQRS.Network
         /// <inheritdoc/>
         public async ValueTask<Dictionary<string, List<string?>>> GetAuthorizationHeadersAsync(CancellationToken cancellationToken = default)
         {
-            cookies ??= await GetCookiesRequest(serializer, endpoint, loginRequestBody, contentType, cancellationToken);
+            cookies ??= await GetCookiesRequestAsync(serializer, endpoint, loginRequestBody, contentType, cancellationToken);
+
+            var sb = new StringBuilder();
+            foreach (Cookie cookie in cookies)
+            {
+                if (sb.Length > 0)
+                    _ = sb.Append("; ");
+                _ = sb.Append(cookie.Name).Append('=').Append(cookie.Value);
+            }
+            var cookieString = sb.ToString();
+
+            var authHeaders = new Dictionary<string, List<string?>>
+            {
+                { cookieHeader, [cookieString] }
+            };
+
+            return authHeaders;
+        }
+
+        /// <inheritdoc/>
+        public Dictionary<string, List<string?>> GetAuthorizationHeaders(CancellationToken cancellationToken = default)
+        {
+            cookies ??= GetCookiesRequest(serializer, endpoint, loginRequestBody, contentType, cancellationToken);
 
             var sb = new StringBuilder();
             foreach (Cookie cookie in cookies)

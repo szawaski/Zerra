@@ -22,5 +22,11 @@ namespace Zerra.CQRS.Network
         /// </summary>
         /// <returns>A dictionary of outgoing headers.</returns>
         ValueTask<Dictionary<string, List<string?>>> GetAuthorizationHeadersAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// The client side adds headers needed by the server side to validate the request synchronously.
+        /// </summary>
+        /// <returns>A dictionary of outgoing headers.</returns>
+        Dictionary<string, List<string?>> GetAuthorizationHeaders(CancellationToken cancellationToken = default);
     }
 }

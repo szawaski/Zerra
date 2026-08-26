@@ -197,7 +197,7 @@ namespace Zerra.Test.CQRS.Network
 
                 // Client sends abort and waits for acknowledgment
                 var clientStream = new NetworkStream(clientSocket, false);
-                var result = await SocketAbortMonitor.SendAndAcknowledgeAbort(clientStream);
+                var result = await SocketAbortMonitor.SendAndAcknowledgeAbortAsync(clientStream);
 
                 // Give time for handshake to complete
                 await Task.Delay(100, TestContext.Current.CancellationToken);
@@ -217,7 +217,45 @@ namespace Zerra.Test.CQRS.Network
             var stream = new MemoryStream();
 
             // No actual socket to respond, should timeout and return false
-            var result = await SocketAbortMonitor.SendAndAcknowledgeAbort(stream);
+            var result = await SocketAbortMonitor.SendAndAcknowledgeAbortAsync(stream);
+
+            Assert.False(result);
+        }
+
+        [Fact]
+        public void SendAndAcknowledgeAbort_Sync_WithValidHandshake_ReturnsTrue()
+        {
+            var (clientSocket, serverSocket) = CreateConnectedSocketPairAsync().GetAwaiter().GetResult();
+
+            try
+            {
+                var cts = new CancellationTokenSource();
+
+                // Start monitor on server to handle abort and send acknowledgment
+                var monitor = new SocketAbortMonitor(serverSocket, cts.Token);
+
+                // Client sends abort and waits for acknowledgment
+                var clientStream = new NetworkStream(clientSocket, false);
+                var result = SocketAbortMonitor.SendAndAcknowledgeAbort(clientStream);
+
+                Assert.True(result);
+
+                monitor.Dispose();
+            }
+            finally
+            {
+                clientSocket.Dispose();
+                serverSocket.Dispose();
+            }
+        }
+
+        [Fact]
+        public void SendAndAcknowledgeAbort_Sync_WithTimeout_ReturnsFalse()
+        {
+            var stream = new MemoryStream();
+
+            // No actual socket to respond, should timeout and return false
+            var result = SocketAbortMonitor.SendAndAcknowledgeAbort(stream);
 
             Assert.False(result);
         }
@@ -362,7 +400,7 @@ namespace Zerra.Test.CQRS.Network
                 await Task.Delay(100, TestContext.Current.CancellationToken);
 
                 var clientStream = new NetworkStream(clientSocket, false);
-                var handshakeResult = await SocketAbortMonitor.SendAndAcknowledgeAbort(clientStream);
+                var handshakeResult = await SocketAbortMonitor.SendAndAcknowledgeAbortAsync(clientStream);
 
                 await Task.Delay(100, TestContext.Current.CancellationToken);
                 var monitor = await monitorTask;

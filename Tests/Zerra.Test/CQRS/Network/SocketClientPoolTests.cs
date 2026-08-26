@@ -221,11 +221,92 @@ namespace Zerra.Test.CQRS.Network
         public void Dispose_SuppressesFinalize()
         {
             var pool = new SocketClientPool();
-            
+
             pool.Dispose();
-            
+
             // GC.SuppressFinalize should have been called
             Assert.NotNull(pool);
+        }
+
+        [Fact]
+        public void BeginStream_WithValidHost_ReturnsStream()
+        {
+            var pool = new SocketClientPool();
+            var buffer = new byte[] { 1, 2, 3 };
+
+            try
+            {
+                var stream = pool.BeginStream("localhost", 80, ProtocolType.Tcp, buffer.AsSpan(), false, CancellationToken.None);
+
+                Assert.NotNull(stream);
+                stream.Dispose();
+            }
+            catch (ConnectionFailedException)
+            {
+                // Expected if no server is listening on localhost:80
+            }
+        }
+
+        [Fact]
+        public void BeginStream_WithCancelledToken_ThrowsOperationCanceledException()
+        {
+            var pool = new SocketClientPool();
+            var buffer = new byte[] { 1, 2, 3 };
+            var cts = new CancellationTokenSource();
+            cts.Cancel();
+
+            Assert.Throws<OperationCanceledException>(() =>
+                pool.BeginStream("localhost", 80, ProtocolType.Tcp, buffer.AsSpan(), false, cts.Token));
+        }
+
+        [Fact]
+        public void BeginStream_ThrowsConnectionFailedException_OnConnectionError()
+        {
+            var pool = new SocketClientPool();
+            var buffer = new byte[] { 1, 2, 3 };
+
+            var exception = Assert.Throws<ConnectionFailedException>(() =>
+                pool.BeginStream("localhost", 1, ProtocolType.Tcp, buffer.AsSpan(), false, CancellationToken.None));
+
+            Assert.NotNull(exception);
+        }
+
+        [Fact]
+        public async Task BeginStreamAsync_WithRequireNewConnection_ReturnsNewStream()
+        {
+            var pool = new SocketClientPool();
+            var buffer = new byte[] { 1, 2, 3 };
+
+            try
+            {
+                var stream = await pool.BeginStreamAsync("localhost", 80, ProtocolType.Tcp, buffer.AsMemory(), true, CancellationToken.None);
+
+                Assert.NotNull(stream);
+                stream.Dispose();
+            }
+            catch (ConnectionFailedException)
+            {
+                // Expected if no server is listening on localhost:80
+            }
+        }
+
+        [Fact]
+        public void BeginStream_WithRequireNewConnection_ReturnsNewStream()
+        {
+            var pool = new SocketClientPool();
+            var buffer = new byte[] { 1, 2, 3 };
+
+            try
+            {
+                var stream = pool.BeginStream("localhost", 80, ProtocolType.Tcp, buffer.AsSpan(), true, CancellationToken.None);
+
+                Assert.NotNull(stream);
+                stream.Dispose();
+            }
+            catch (ConnectionFailedException)
+            {
+                // Expected if no server is listening on localhost:80
+            }
         }
     }
 }

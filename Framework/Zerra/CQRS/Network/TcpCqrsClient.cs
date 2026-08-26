@@ -36,6 +36,173 @@ namespace Zerra.CQRS.Network
         }
 
         /// <inheritdoc />
+        protected override TReturn CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source)
+        {
+            throttle.Wait();
+
+            SocketPoolStream? stream = null;
+            Stream? requestBodyStream = null;
+            CryptoFlushStream? requestBodyCryptoStream = null;
+            Stream? responseBodyStream = null;
+            var bufferOwner = ArrayPoolHelper<byte>.Rent(TcpCommon.BufferLength);
+            var isThrowingRemote = false;
+            try
+            {
+                string[][]? claims = null;
+                if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
+                    claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
+
+                var data = new CqrsRequestData()
+                {
+                    ProviderType = interfaceType.AssemblyQualifiedName ?? throw new ArgumentException("Handler interface must have AssemblyQualifiedName"),
+                    ProviderMethod = methodName,
+
+                    Claims = claims,
+                    Source = source
+                };
+
+                data.ProviderArguments = new byte[argumentTypes.Count][];
+                for (var i = 0; i < argumentTypes.Count; i++)
+                    data.ProviderArguments[i] = serializer.SerializeBytes(arguments[i], argumentTypes[i]);
+
+                var buffer = bufferOwner.AsMemory();
+
+                var requireNewConnection = false;
+            newconnection:
+                try
+                {
+                    //Request Header
+                    var requestHeaderLength = TcpCommon.BufferHeader(buffer, data.ProviderType, serializer.ContentType);
+
+                    stream = socketPool.BeginStream(host, port, ProtocolType.Tcp, buffer.Span.Slice(0, requestHeaderLength), requireNewConnection, CancellationToken.None);
+
+                    requestBodyStream = new TcpProtocolBodyStream(stream, null, true, true);
+
+                    if (encryptor is not null)
+                    {
+                        requestBodyCryptoStream = encryptor.Encrypt(requestBodyStream, true);
+                        serializer.Serialize(requestBodyCryptoStream, data);
+                        requestBodyCryptoStream.FlushFinalBlock();
+                        requestBodyCryptoStream.Dispose();
+                        requestBodyCryptoStream = null;
+                    }
+                    else
+                    {
+                        serializer.Serialize(requestBodyStream, data);
+                        requestBodyStream.Flush();
+                        requestBodyStream.Dispose();
+                    }
+
+                    requestBodyStream = null;
+
+                    //Response Header
+                    var headerPosition = 0;
+                    var headerLength = 0;
+                    var requestHeaderEnd = false;
+                    while (!requestHeaderEnd)
+                    {
+                        if (headerLength == buffer.Length)
+                            throw new CqrsNetworkException($"{nameof(TcpCqrsClient)} Header Too Long");
+
+                        var bytesRead = stream.Read(buffer.Span.Slice(headerPosition, buffer.Length - headerPosition));
+
+                        if (bytesRead == 0)
+                        {
+                            stream.DisposeSocket();
+                            if (stream.IsNewConnection)
+                            {
+                                stream = null;
+                                throw new ConnectionAbortedException();
+                            }
+                            else
+                            {
+                                stream = null;
+                                requireNewConnection = true;
+                                goto newconnection;
+                            }
+                        }
+                        headerLength += bytesRead;
+
+                        requestHeaderEnd = TcpCommon.TryReadToHeaderEnd(buffer[..headerLength], ref headerPosition);
+                    }
+                    var responseHeader = TcpCommon.ReadHeader(buffer[..headerLength], headerPosition);
+
+                    //Response Body
+                    if (isStream)
+                        responseBodyStream = new TcpProtocolBodyStream(stream, responseHeader.BodyStartBuffer.ToArray(), false, false);
+                    else
+                        responseBodyStream = new TcpProtocolBodyStream(stream, responseHeader.BodyStartBuffer, false, false);
+
+                    if (encryptor is not null)
+                        responseBodyStream = encryptor.Decrypt(responseBodyStream, false);
+
+                    if (responseHeader.IsError)
+                    {
+                        var responseException = ExceptionSerializer.Deserialize($"{interfaceType.Name}.{methodName}", serializer, responseBodyStream);
+                        isThrowingRemote = true;
+                        throw responseException;
+                    }
+
+                    if (isStream)
+                    {
+                        return (TReturn)(object)responseBodyStream; //TODO better way to convert type???
+                    }
+                    else
+                    {
+                        var model = serializer.Deserialize<TReturn>(responseBodyStream);
+                        responseBodyStream.Dispose();
+                        return model!;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    if (responseBodyStream is not null)
+                    {
+                        try
+                        {
+                            //crypto stream can error, we want to throw the actual error
+                            responseBodyStream.Dispose();
+                        }
+                        catch { }
+                    }
+                    if (requestBodyStream is not null)
+                        requestBodyStream.Dispose();
+                    if (requestBodyCryptoStream is not null)
+                        requestBodyCryptoStream.Dispose();
+                    if (isThrowingRemote)
+                    {
+                        if (stream is not null)
+                            stream.Dispose();
+                    }
+                    else
+                    {
+                        if (stream is not null)
+                        {
+                            stream.DisposeSocket();
+                            if (!stream.IsNewConnection)
+                            {
+                                log?.Error(ex);
+                                stream = null;
+                                requireNewConnection = true;
+                                goto newconnection;
+                            }
+                        }
+                    }
+
+                    if (isThrowingRemote)
+                        throw;
+                    else
+                        throw new Exception($"Call failed for {interfaceType.Name}.{methodName} - {ex.GetBaseException().Message}");
+                }
+            }
+            finally
+            {
+                ArrayPoolHelper<byte>.Return(bufferOwner);
+                throttle.Release();
+            }
+        }
+
+        /// <inheritdoc />
         protected override async Task<TReturn> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, CancellationToken cancellationToken) where TReturn : default
         {
             await throttle.WaitAsync();
@@ -219,7 +386,7 @@ namespace Zerra.CQRS.Network
                         log?.Error(ex);
                         if (stream is not null)
                         {
-                            var abortAcknowledged = await SocketAbortMonitor.SendAndAcknowledgeAbort(stream);
+                            var abortAcknowledged = await SocketAbortMonitor.SendAndAcknowledgeAbortAsync(stream);
                             if (abortAcknowledged)
                                 stream?.Dispose();
                             else
@@ -425,7 +592,7 @@ namespace Zerra.CQRS.Network
                         log?.Error(ex);
                         if (stream is not null)
                         {
-                            var abortAcknowledged = await SocketAbortMonitor.SendAndAcknowledgeAbort(stream);
+                            var abortAcknowledged = await SocketAbortMonitor.SendAndAcknowledgeAbortAsync(stream);
                             if (abortAcknowledged)
                                 stream?.Dispose();
                             else
@@ -639,7 +806,7 @@ namespace Zerra.CQRS.Network
                         log?.Error(ex);
                         if (stream is not null)
                         {
-                            var abortAcknowledged = await SocketAbortMonitor.SendAndAcknowledgeAbort(stream);
+                            var abortAcknowledged = await SocketAbortMonitor.SendAndAcknowledgeAbortAsync(stream);
                             if (abortAcknowledged)
                                 stream?.Dispose();
                             else
@@ -845,7 +1012,7 @@ namespace Zerra.CQRS.Network
                         log?.Error(ex);
                         if (stream is not null)
                         {
-                            var abortAcknowledged = await SocketAbortMonitor.SendAndAcknowledgeAbort(stream);
+                            var abortAcknowledged = await SocketAbortMonitor.SendAndAcknowledgeAbortAsync(stream);
                             if (abortAcknowledged)
                                 stream?.Dispose();
                             else

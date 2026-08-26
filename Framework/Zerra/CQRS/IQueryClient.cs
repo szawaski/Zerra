@@ -28,9 +28,8 @@ namespace Zerra.CQRS
         /// /<param name="argumentTypes">The types of the arguments needed for the method.</param>
         /// <param name="arguments">The arguments needed for the method.</param>
         /// <param name="source">A description of where the query came from.</param>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>The result of the query.</returns>
-        TReturn Call<TReturn>(Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, CancellationToken cancellationToken);
+        TReturn Call<TReturn>(Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source);
         /// <summary>
         /// Executes a query from a query interface method asynchronously without returning a result.
         /// </summary>

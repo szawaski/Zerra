@@ -59,6 +59,35 @@ namespace Zerra.Web
         }
 
         /// <inheritdoc />
+        protected override TReturn CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source)
+        {
+            var providerName = interfaceType.Name;
+            var stringArguments = new string?[arguments.Length];
+            for (var i = 0; i < arguments.Length; i++)
+                stringArguments[i] = JsonSerializer.Serialize(arguments);
+
+            string[][]? claims = null;
+            if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
+                claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
+
+            var data = new CqrsRequestData()
+            {
+                ProviderType = interfaceType.AssemblyQualifiedName,
+                ProviderMethod = methodName,
+
+                Claims = claims,
+                Source = source
+            };
+
+            data.ProviderArguments = new byte[argumentTypes.Count][];
+            for (var i = 0; i < argumentTypes.Count; i++)
+                data.ProviderArguments[i] = serializer.SerializeBytes(arguments[i], argumentTypes[i]);
+
+            var model = Request<TReturn>(throttle, isStream, routeUri, providerName, data, true);
+            return model;
+        }
+
+        /// <inheritdoc />
         protected override Task<TReturn> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, CancellationToken cancellationToken) where TReturn : default
         {
             var providerName = interfaceType.Name;
@@ -241,6 +270,102 @@ namespace Zerra.Web
                     try
                     {
                         await responseStream.DisposeAsync();
+                    }
+                    catch { }
+                    client?.Dispose();
+                }
+                throw;
+            }
+            finally
+            {
+                _ = throttle.Release();
+            }
+        }
+
+        private TReturn Request<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, string? providerType, CqrsRequestData data, bool getResponseData)
+        {
+            throttle.Wait();
+
+            Stream? responseStream = null;
+            try
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Post, url);
+
+                request.Content = new WriteStreamContent((postStream) =>
+                {
+                    if (encryptor is not null)
+                    {
+                        var cryptoStream = encryptor.Encrypt(postStream, true);
+                        serializer.Serialize(cryptoStream, data);
+                        cryptoStream.FlushFinalBlock();
+                        cryptoStream.Dispose();
+                    }
+                    else
+                    {
+                        serializer.Serialize(postStream, data);
+                    }
+                });
+                request.Content.Headers.ContentType = serializer.ContentType switch
+                {
+                    ContentType.Bytes => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeBytes),
+                    ContentType.Json => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJson),
+                    ContentType.JsonNameless => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJsonNameless),
+                    _ => throw new NotImplementedException(),
+                };
+
+                request.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, "*");
+                request.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
+                request.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
+
+                if (authorizer is not null)
+                {
+                    var authHeaders = authorizer.GetAuthorizationHeaders();
+                    foreach (var authHeader in authHeaders)
+                        request.Headers.Add(authHeader.Key, authHeader.Value);
+                }
+
+                if (!String.IsNullOrWhiteSpace(providerType))
+                    request.Headers.Add(HttpCommon.ProviderTypeHeader, providerType);
+
+                using var response = client.Send(request);
+
+                responseStream = response.Content.ReadAsStream();
+
+                if (encryptor is not null)
+                    responseStream = encryptor.Decrypt(responseStream, false);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var responseException = ExceptionSerializer.Deserialize(data.MessageType, serializer, responseStream);
+                    throw responseException;
+                }
+
+                if (!getResponseData)
+                {
+                    responseStream.Dispose();
+                    client.Dispose();
+                    return default!;
+                }
+
+                if (isStream)
+                {
+                    return (TReturn)(object)responseStream; //TODO better way to convert type???
+                }
+                else
+                {
+                    var result = serializer.Deserialize<TReturn>(responseStream);
+                    responseStream.Dispose();
+                    client.Dispose();
+                    return result!;
+                }
+            }
+            catch
+            {
+                if (responseStream is not null)
+                {
+                    try
+                    {
+                        responseStream.Dispose();
                     }
                     catch { }
                     client?.Dispose();

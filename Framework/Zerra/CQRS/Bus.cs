@@ -101,7 +101,93 @@ namespace Zerra.CQRS
         /// <inheritdoc />
         public void StopServices()
         {
-            Task.Run(StopServicesAsync).GetAwaiter().GetResult();
+            context.Log?.Info($"{nameof(Bus)} Shutting Down");
+
+            if (processWaiter is not null)
+                processWaiter.Dispose();
+
+            var disposed = new HashSet<IDisposable>();
+
+            //if (commandProducers != null)
+            //{
+            //    foreach (var commandProducer in commandProducers.Values)
+            //    {
+            //        if (commandProducer is IDisposable disposable && !disposed.Contains(disposable))
+            //        {
+            //            disposable.Dispose();
+            //            _ = disposed.Add(disposable);
+            //        }
+            //    }
+            //    commandProducers.Clear();
+            //}
+
+            if (commandConsumers != null)
+            {
+                foreach (var commandConsumer in commandConsumers)
+                {
+                    commandConsumer.Close();
+                    if (commandConsumer is IDisposable disposable && !disposed.Contains(disposable))
+                    {
+                        disposable.Dispose();
+                        _ = disposed.Add(disposable);
+                    }
+                }
+                commandConsumers.Clear();
+            }
+
+            //if (eventProducers != null)
+            //{
+            //    foreach (var eventProducer in eventProducers.Values)
+            //    {
+            //        if (eventProducer is IDisposable disposable && !disposed.Contains(disposable))
+            //        {
+            //            disposable.Dispose();
+            //            _ = disposed.Add(disposable);
+            //        }
+            //    }
+            //    eventProducers.Clear();
+            //}
+
+            if (eventConsumers != null)
+            {
+                foreach (var eventConsumer in eventConsumers)
+                {
+                    eventConsumer.Close();
+                    if (eventConsumer is IDisposable disposable && !disposed.Contains(disposable))
+                    {
+                        disposable.Dispose();
+                        _ = disposed.Add(disposable);
+                    }
+                }
+                eventConsumers.Clear();
+            }
+
+            //if (queryClients != null)
+            //{
+            //    foreach (var client in queryClients.Values)
+            //    {
+            //        if (client is IDisposable disposable && !disposed.Contains(disposable))
+            //        {
+            //            disposable.Dispose();
+            //            _ = disposed.Add(disposable);
+            //        }
+            //    }
+            //    queryClients.Clear();
+            //}
+
+            if (queryServers != null)
+            {
+                foreach (var server in queryServers)
+                {
+                    server.Close();
+                    if (server is IDisposable disposable && !disposed.Contains(disposable))
+                    {
+                        disposable.Dispose();
+                        _ = disposed.Add(disposable);
+                    }
+                }
+                queryServers.Clear();
+            }
         }
         /// <inheritdoc />
         public async Task StopServicesAsync()
@@ -241,7 +327,7 @@ namespace Zerra.CQRS
                 processWaiter.Wait(cancellationToken);
             }
             catch { }
-            Task.Run(StopServicesAsync).GetAwaiter().GetResult();
+            StopServices();
         }
         /// <inheritdoc />
         public async Task WaitForExitAsync(CancellationToken cancellationToken = default)
@@ -503,40 +589,12 @@ namespace Zerra.CQRS
         {
             var metadata = BusMetadata.GetByType(interfaceType);
 
-            CancellationTokenSource? cancellationTokenSource = null;
-            CancellationToken cancellationToken;
-            if (arguments.Length > 0 && arguments[^1] is CancellationToken argumentCancellationToken)
-            {
-                if (argumentCancellationToken != CancellationToken.None)
-                {
-                    cancellationToken = argumentCancellationToken;
-                }
-                else if (defaultCallTimeout.HasValue)
-                {
-                    cancellationTokenSource = new CancellationTokenSource(defaultCallTimeout.Value);
-                    cancellationToken = cancellationTokenSource.Token;
-                }
-                else
-                {
-                    cancellationToken = CancellationToken.None;
-                }
-            }
-            else if (defaultCallTimeout.HasValue)
-            {
-                cancellationTokenSource = new CancellationTokenSource(defaultCallTimeout.Value);
-                cancellationToken = cancellationTokenSource.Token;
-            }
-            else
-            {
-                cancellationToken = CancellationToken.None;
-            }
-
             TReturn result;
 
             if (handlers != null && handlers.TryGetValue(interfaceType, out var handler))
             {
                 if (busLog != null && (metadata.BusLogging == BusLogging.SenderAndHandler || metadata.BusLogging == BusLogging.HandlerOnly))
-                    result = HandleMethodLogged<TReturn>(handler, null, interfaceType, methodName, arguments, source, cancellationToken);
+                    result = HandleMethodLogged<TReturn>(handler, null, interfaceType, methodName, arguments, source);
                 else
                     result = (TReturn)BusHandlers.Invoke(interfaceType, handler, methodName, arguments)!;
             }
@@ -544,21 +602,18 @@ namespace Zerra.CQRS
             {
                 if (busLog != null && (metadata.BusLogging == BusLogging.SenderAndHandler || metadata.BusLogging == BusLogging.SenderOnly))
                 {
-                    result = HandleMethodLogged<TReturn>(null, queryClient, interfaceType, methodName, arguments, source, cancellationToken);
+                    result = HandleMethodLogged<TReturn>(null, queryClient, interfaceType, methodName, arguments, source);
                 }
                 else
                 {
                     var into = BusHandlers.GetMethod(interfaceType, methodName);
-                    result = queryClient.Call<TReturn>(interfaceType, methodName, into.ParameterTypes, arguments, source, cancellationToken)!;
+                    result = queryClient.Call<TReturn>(interfaceType, methodName, into.ParameterTypes, arguments, source)!;
                 }
             }
             else
             {
                 throw new InvalidOperationException($"No handler or client registered for {interfaceType.FullName}");
             }
-
-            if (cancellationTokenSource is not null)
-                cancellationTokenSource.Dispose();
 
             return result;
         }
@@ -693,7 +748,7 @@ namespace Zerra.CQRS
             return result;
         }
 
-        private TReturn HandleMethodLogged<TReturn>(object? handler, IQueryClient? queryClient, Type interfaceType, string methodName, object[] arguments, string source, CancellationToken cancellationToken)
+        private TReturn HandleMethodLogged<TReturn>(object? handler, IQueryClient? queryClient, Type interfaceType, string methodName, object[] arguments, string source)
         {
             var handled = handler != null;
 
@@ -710,7 +765,7 @@ namespace Zerra.CQRS
                 else
                 {
                     var info = BusHandlers.GetMethod(interfaceType, methodName);
-                    result = queryClient!.Call<TReturn>(interfaceType, methodName, info.ParameterTypes, arguments, source, cancellationToken)!;
+                    result = queryClient!.Call<TReturn>(interfaceType, methodName, info.ParameterTypes, arguments, source)!;
                 }
             }
             catch (Exception ex)
