@@ -261,6 +261,41 @@ namespace Zerra.Test.CQRS.Network
         }
 
         [Fact]
+        public void SendAndAcknowledgeAbort_Sync_WithValidHandshake_RestoresOriginalTimeouts()
+        {
+            var (clientSocket, serverSocket) = CreateConnectedSocketPairAsync().GetAwaiter().GetResult();
+
+            try
+            {
+                var cts = new CancellationTokenSource();
+
+                var monitor = new SocketAbortMonitor(serverSocket, cts.Token);
+
+                var clientStream = new NetworkStream(clientSocket, false);
+
+                const int originalReadTimeout = 12345;
+                const int originalWriteTimeout = 54321;
+                clientStream.ReadTimeout = originalReadTimeout;
+                clientStream.WriteTimeout = originalWriteTimeout;
+
+                var result = SocketAbortMonitor.SendAndAcknowledgeAbort(clientStream);
+
+                Assert.True(result);
+
+                // Timeouts should be restored to their original values after a successful handshake
+                Assert.Equal(originalReadTimeout, clientStream.ReadTimeout);
+                Assert.Equal(originalWriteTimeout, clientStream.WriteTimeout);
+
+                monitor.Dispose();
+            }
+            finally
+            {
+                clientSocket.Dispose();
+                serverSocket.Dispose();
+            }
+        }
+
+        [Fact]
         public async Task Constructor_WithCancelledToken()
         {
             var (clientSocket, serverSocket) = await CreateConnectedSocketPairAsync();
