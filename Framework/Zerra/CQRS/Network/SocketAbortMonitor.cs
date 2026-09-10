@@ -120,11 +120,13 @@ namespace Zerra.CQRS.Network
                     return true;
             }
             catch { }
-
-            if (stream.CanTimeout)
+            finally
             {
-                stream.ReadTimeout = originalReadTimeout;
-                stream.WriteTimeout = originalWriteTimeout;
+                if (stream.CanTimeout)
+                {
+                    stream.ReadTimeout = originalReadTimeout;
+                    stream.WriteTimeout = originalWriteTimeout;
+                }
             }
 
             return false;
