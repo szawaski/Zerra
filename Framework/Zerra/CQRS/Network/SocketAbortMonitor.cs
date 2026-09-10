@@ -54,7 +54,7 @@ namespace Zerra.CQRS.Network
                     _ = stream.WriteAsync(abortMessageBytes, 0, 1, cancellationTokenSource.Token);
 #endif
                 }
-                finally { }
+                catch { }
 
 
 #if NET8_0_OR_GREATER
@@ -72,6 +72,7 @@ namespace Zerra.CQRS.Network
         public static async Task<bool> SendAndAcknowledgeAbortAsync(Stream stream)
         {
             using var source = new CancellationTokenSource(sendAbortMessageTimeout);
+
             try
             {
                 //send abort
@@ -91,21 +92,22 @@ namespace Zerra.CQRS.Network
                 if (result == 1 && buffer[0] == 0)
                     return true;
             }
-            finally { }
+            catch { }
 
             return false;
         }
 
         public static bool SendAndAcknowledgeAbort(Stream stream)
         {
-            var originalTimeout = stream.CanTimeout ? stream.WriteTimeout : -1;
             var originalReadTimeout = stream.CanTimeout ? stream.ReadTimeout : -1;
+            var originalWriteTimeout = stream.CanTimeout ? stream.WriteTimeout : -1;
+
             try
             {
                 if (stream.CanTimeout)
                 {
-                    stream.WriteTimeout = (int)sendAbortMessageTimeout.TotalMilliseconds;
                     stream.ReadTimeout = (int)sendAbortMessageTimeout.TotalMilliseconds;
+                    stream.WriteTimeout = (int)sendAbortMessageTimeout.TotalMilliseconds;
                 }
 
                 //send abort
@@ -118,13 +120,11 @@ namespace Zerra.CQRS.Network
                     return true;
             }
             catch { }
-            finally
+
+            if (stream.CanTimeout)
             {
-                if (stream.CanTimeout)
-                {
-                    stream.WriteTimeout = originalTimeout;
-                    stream.ReadTimeout = originalReadTimeout;
-                }
+                stream.ReadTimeout = originalReadTimeout;
+                stream.WriteTimeout = originalWriteTimeout;
             }
 
             return false;
@@ -147,3 +147,4 @@ namespace Zerra.CQRS.Network
         }
     }
 }
+
