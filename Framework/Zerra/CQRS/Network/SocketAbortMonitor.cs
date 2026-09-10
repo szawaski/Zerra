@@ -50,7 +50,7 @@ namespace Zerra.CQRS.Network
                     _ = stream.WriteAsync(abortMessageBytes, 0, 1, cancellationTokenSource.Token);
 #endif
                 }
-                finally { }
+                catch { }
 
 
 #if NET8_0_OR_GREATER
@@ -68,6 +68,7 @@ namespace Zerra.CQRS.Network
         public static async Task<bool> SendAndAcknowledgeAbortAsync(Stream stream)
         {
             using var source = new CancellationTokenSource(sendAbortMessageTimeout);
+
             try
             {
                 //send abort
@@ -87,7 +88,7 @@ namespace Zerra.CQRS.Network
                 if (result == 1 && buffer[0] == 0)
                     return true;
             }
-            finally { }
+            catch { }
 
             return false;
         }
@@ -96,6 +97,7 @@ namespace Zerra.CQRS.Network
         {
             var originalReadTimeout = stream.CanTimeout ? stream.ReadTimeout : -1;
             var originalWriteTimeout = stream.CanTimeout ? stream.WriteTimeout : -1;
+
             try
             {
                 if (stream.CanTimeout)
@@ -113,17 +115,12 @@ namespace Zerra.CQRS.Network
                 if (result == 1 && buffer[0] == 0)
                     return true;
             }
-            catch (IOException)
+            catch { }
+
+            if (stream.CanTimeout)
             {
-                //timeout
-            }
-            finally
-            {
-                if (stream.CanTimeout)
-                {
-                    stream.ReadTimeout = originalReadTimeout;
-                    stream.WriteTimeout = originalWriteTimeout;
-                }
+                stream.ReadTimeout = originalReadTimeout;
+                stream.WriteTimeout = originalWriteTimeout;
             }
 
             return false;

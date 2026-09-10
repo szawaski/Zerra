@@ -205,7 +205,7 @@ namespace Zerra.CQRS.Network
         /// <inheritdoc />
         protected override async Task<TReturn> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, CancellationToken cancellationToken) where TReturn : default
         {
-            await throttle.WaitAsync();
+            await throttle.WaitAsync(cancellationToken);
 
             SocketPoolStream? stream = null;
             Stream? requestBodyStream = null;
