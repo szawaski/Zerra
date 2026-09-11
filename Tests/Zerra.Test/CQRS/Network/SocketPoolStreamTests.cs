@@ -1,4 +1,4 @@
-// Copyright © KaKush LLC
+// Copyright ï¿½ KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -184,8 +184,8 @@ namespace Zerra.Test.CQRS.Network
             stream.Dispose();
 
             Assert.NotNull(receivedHostAndPort);
-            Assert.Equal(hostAndPort.Host, receivedHostAndPort.Host);
-            Assert.Equal(hostAndPort.Port, receivedHostAndPort.Port);
+            Assert.Equal(hostAndPort.Host, receivedHostAndPort.Value.Host);
+            Assert.Equal(hostAndPort.Port, receivedHostAndPort.Value.Port);
             
             server.Dispose();
         }

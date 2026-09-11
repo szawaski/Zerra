@@ -80,11 +80,11 @@ namespace Zerra.CQRS.Network
                 try
                 {
                     //Request Header
-                    var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, null, data.ProviderType, serializer.ContentType, authHeaders);
+                    var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, data.ProviderType, serializer.ContentType, authHeaders);
 
-                    stream = socketPool.BeginStream(host, port, ProtocolType.Tcp, buffer.Span.Slice(0, requestHeaderLength), requireNewConnection, CancellationToken.None);
+                    stream = socketPool.BeginStream(host, port, ProtocolType.Tcp, ReadOnlySpan<byte>.Empty, requireNewConnection, CancellationToken.None);
 
-                    requestBodyStream = new HttpProtocolBodyStream(null, stream, null, true, true);
+                    requestBodyStream = new HttpProtocolBodyStream(null, stream, null, true, true, buffer.Slice(0, requestHeaderLength)); //the header goes out with the body
 
                     if (encryptor is not null)
                     {
@@ -132,7 +132,7 @@ namespace Zerra.CQRS.Network
                         headerLength += bytesRead;
                         responseStarted = true;
 
-                        headerEnd = HttpCommon.TryReadToHeaderEnd(buffer[..headerLength], ref headerPosition);
+                        headerEnd = HttpCommon.TryReadToHeaderEnd(bufferOwner.AsSpan(0, headerLength), ref headerPosition);
                     }
                     var responseHeader = HttpCommon.ReadHeader(buffer[..headerLength], headerPosition);
 
@@ -246,15 +246,15 @@ namespace Zerra.CQRS.Network
                 try
                 {
                     //Request Header
-                    var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, null, data.ProviderType, serializer.ContentType, authHeaders);
+                    var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, data.ProviderType, serializer.ContentType, authHeaders);
 
 #if NETSTANDARD2_0
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength, requireNewConnection, cancellationToken);
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, 0, requireNewConnection, cancellationToken);
 #else
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength), requireNewConnection, cancellationToken);
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, Memory<byte>.Empty, requireNewConnection, cancellationToken);
 #endif
 
-                    requestBodyStream = new HttpProtocolBodyStream(null, stream, null, true, true);
+                    requestBodyStream = new HttpProtocolBodyStream(null, stream, null, true, true, buffer.Slice(0, requestHeaderLength)); //the header goes out with the body
 
                     if (encryptor is not null)
                     {
@@ -318,7 +318,7 @@ namespace Zerra.CQRS.Network
                         headerLength += bytesRead;
                         responseStarted = true;
 
-                        headerEnd = HttpCommon.TryReadToHeaderEnd(buffer[..headerLength], ref headerPosition);
+                        headerEnd = HttpCommon.TryReadToHeaderEnd(bufferOwner.AsSpan(0, headerLength), ref headerPosition);
                     }
                     var responseHeader = HttpCommon.ReadHeader(buffer[..headerLength], headerPosition);
 
@@ -469,15 +469,15 @@ namespace Zerra.CQRS.Network
                 try
                 {
                     //Request Header
-                    var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, null, data.MessageType, serializer.ContentType, authHeaders);
+                    var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, data.MessageType, serializer.ContentType, authHeaders);
 
 #if NETSTANDARD2_0
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength, requireNewConnection, cancellationToken);
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, 0, requireNewConnection, cancellationToken);
 #else
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength), requireNewConnection, cancellationToken);
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, Memory<byte>.Empty, requireNewConnection, cancellationToken);
 #endif
 
-                    requestBodyStream = new HttpProtocolBodyStream(null, stream, null, true, true);
+                    requestBodyStream = new HttpProtocolBodyStream(null, stream, null, true, true, buffer.Slice(0, requestHeaderLength)); //the header goes out with the body
 
                     if (encryptor is not null)
                     {
@@ -542,7 +542,7 @@ namespace Zerra.CQRS.Network
                         headerLength += bytesRead;
                         responseStarted = true;
 
-                        headerEnd = HttpCommon.TryReadToHeaderEnd(buffer[..headerLength], ref headerPosition);
+                        headerEnd = HttpCommon.TryReadToHeaderEnd(bufferOwner.AsSpan(0, headerLength), ref headerPosition);
                     }
                     var responseHeader = HttpCommon.ReadHeader(buffer[..headerLength], headerPosition);
 
@@ -680,15 +680,15 @@ namespace Zerra.CQRS.Network
                 try
                 {
                     //Request Header
-                    var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, null, data.MessageType, serializer.ContentType, authHeaders);
+                    var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, data.MessageType, serializer.ContentType, authHeaders);
 
 #if NETSTANDARD2_0
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength, requireNewConnection, cancellationToken);
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, 0, requireNewConnection, cancellationToken);
 #else
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength), requireNewConnection, cancellationToken);
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, Memory<byte>.Empty, requireNewConnection, cancellationToken);
 #endif
 
-                    requestBodyStream = new HttpProtocolBodyStream(null, stream, null, true, true);
+                    requestBodyStream = new HttpProtocolBodyStream(null, stream, null, true, true, buffer.Slice(0, requestHeaderLength)); //the header goes out with the body
 
                     if (encryptor is not null)
                     {
@@ -753,7 +753,7 @@ namespace Zerra.CQRS.Network
                         headerLength += bytesRead;
                         responseStarted = true;
 
-                        headerEnd = HttpCommon.TryReadToHeaderEnd(buffer[..headerLength], ref headerPosition);
+                        headerEnd = HttpCommon.TryReadToHeaderEnd(bufferOwner.AsSpan(0, headerLength), ref headerPosition);
                     }
                     var responseHeader = HttpCommon.ReadHeader(buffer[..headerLength], headerPosition);
 
@@ -901,15 +901,15 @@ namespace Zerra.CQRS.Network
                 try
                 {
                     //Request Header
-                    var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, null, data.MessageType, serializer.ContentType, authHeaders);
+                    var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, data.MessageType, serializer.ContentType, authHeaders);
 
 #if NETSTANDARD2_0
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength, requireNewConnection, cancellationToken);
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, 0, requireNewConnection, cancellationToken);
 #else
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength), requireNewConnection, cancellationToken);
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, Memory<byte>.Empty, requireNewConnection, cancellationToken);
 #endif
 
-                    requestBodyStream = new HttpProtocolBodyStream(null, stream, null, true, true);
+                    requestBodyStream = new HttpProtocolBodyStream(null, stream, null, true, true, buffer.Slice(0, requestHeaderLength)); //the header goes out with the body
 
                     if (encryptor is not null)
                     {
@@ -974,7 +974,7 @@ namespace Zerra.CQRS.Network
                         headerLength += bytesRead;
                         responseStarted = true;
 
-                        headerEnd = HttpCommon.TryReadToHeaderEnd(buffer[..headerLength], ref headerPosition);
+                        headerEnd = HttpCommon.TryReadToHeaderEnd(bufferOwner.AsSpan(0, headerLength), ref headerPosition);
                     }
                     var responseHeader = HttpCommon.ReadHeader(buffer[..headerLength], headerPosition);
 

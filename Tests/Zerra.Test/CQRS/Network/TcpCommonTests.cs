@@ -19,9 +19,8 @@ namespace Zerra.Test.CQRS.Network
         public void ReadToHeaderEnd_FindsHeaderEnder()
         {
             var buffer = new byte[] { 1, 2, 3, 126, 5, 6 }; // 126 is '~'
-            var bufferMemory = buffer.AsMemory();
             var position = 0;
-            var result = TcpCommon.TryReadToHeaderEnd(bufferMemory, ref position);
+            var result = TcpCommon.TryReadToHeaderEnd(buffer, ref position);
 
             Assert.True(result);
             Assert.Equal(4, position); // Position after the header ender
@@ -31,9 +30,8 @@ namespace Zerra.Test.CQRS.Network
         public void ReadToHeaderEnd_NoHeaderEnder()
         {
             var buffer = new byte[] { 1, 2, 3, 4, 5, 6 };
-            var bufferMemory = buffer.AsMemory();
             var position = 0;
-            var result = TcpCommon.TryReadToHeaderEnd(bufferMemory, ref position);
+            var result = TcpCommon.TryReadToHeaderEnd(buffer, ref position);
 
             Assert.False(result);
             Assert.Equal(6, position); // Position at end of buffer
@@ -43,9 +41,8 @@ namespace Zerra.Test.CQRS.Network
         public void ReadToHeaderEnd_HeaderEnderAtStart()
         {
             var buffer = new byte[] { 126, 2, 3, 4, 5, 6 }; // 126 is '~'
-            var bufferMemory = buffer.AsMemory();
             var position = 0;
-            var result = TcpCommon.TryReadToHeaderEnd(bufferMemory, ref position);
+            var result = TcpCommon.TryReadToHeaderEnd(buffer, ref position);
 
             Assert.True(result);
             Assert.Equal(1, position);
@@ -65,6 +62,18 @@ namespace Zerra.Test.CQRS.Network
 
             // Verify the header ends with ~
             Assert.Equal(126, buffer[length - 1]); // 126 is '~'
+        }
+
+        [Fact]
+        public void BufferHeader_WritesExactHeader()
+        {
+            var buffer = new byte[TcpCommon.BufferLength];
+
+            var length = TcpCommon.BufferHeader(buffer, "TestProvider", ContentType.Json);
+            var errorLength = TcpCommon.BufferErrorHeader(buffer.AsMemory(length), "TestProvider", ContentType.Json);
+
+            Assert.Equal($"RAW|TestProvider|{(int)ContentType.Json}~", System.Text.Encoding.UTF8.GetString(buffer, 0, length));
+            Assert.Equal($"ERR|TestProvider|{(int)ContentType.Json}~", System.Text.Encoding.UTF8.GetString(buffer, length, errorLength));
         }
 
         [Fact]

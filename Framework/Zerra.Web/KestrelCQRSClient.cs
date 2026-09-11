@@ -217,10 +217,6 @@ namespace Zerra.Web
                     _ => throw new NotImplementedException(),
                 };
 
-                request.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, "*");
-                request.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
-                request.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
-
                 if (authorizer is not null)
                 {
                     var authHeaders = await authorizer.GetAuthorizationHeadersAsync();
@@ -312,10 +308,6 @@ namespace Zerra.Web
                     ContentType.JsonNameless => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeJsonNameless),
                     _ => throw new NotImplementedException(),
                 };
-
-                request.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, "*");
-                request.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
-                request.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
 
                 if (authorizer is not null)
                 {

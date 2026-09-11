@@ -183,8 +183,13 @@ namespace Zerra.Test.CQRS.Network
 
             stream.Write(data, 0, data.Length);
 
-            // Should write: hex length + \r\n + data + \r\n
-            Assert.True(baseStream.Length > 5);
+            // Writes are buffered until flush
+            Assert.Equal(0, baseStream.Length);
+            stream.Flush();
+
+            // Should write: padded hex length + \r\n + data + \r\n + ending
+            byte[] expected = [.. "00000005\r\n"u8, 1, 2, 3, 4, 5, .. "\r\n0\r\n\r\n"u8];
+            Assert.Equal(expected, baseStream.ToArray());
         }
 
         [Fact]
@@ -274,8 +279,10 @@ namespace Zerra.Test.CQRS.Network
             var data = new byte[] { 1, 2, 3, 4, 5 };
 
             await stream.WriteAsync(data, 0, data.Length, TestContext.Current.CancellationToken);
+            await stream.FlushAsync(TestContext.Current.CancellationToken);
 
-            Assert.True(baseStream.Length > 5);
+            byte[] expected = [.. "00000005\r\n"u8, 1, 2, 3, 4, 5, .. "\r\n0\r\n\r\n"u8];
+            Assert.Equal(expected, baseStream.ToArray());
         }
 
         [Fact]
@@ -357,9 +364,113 @@ namespace Zerra.Test.CQRS.Network
 
             Assert.Equal(0, stream.Position);
             stream.Write([1, 2, 3], 0, 3);
-            // Without ContentLength, uses chunked encoding: hex length + \r\n + data + \r\n
-            // "3\r\n" (3 bytes) + [1,2,3] (3 bytes) + "\r\n" (2 bytes) = 8 bytes
-            Assert.Equal(8, stream.Position);
+            // Position counts the data written, chunk framing is added when chunks are sent
+            Assert.Equal(3, stream.Position);
+        }
+
+        [Fact]
+        public async Task FlushAsync_WithPrefix_SendsPrefixChunkAndEndingInOneWrite()
+        {
+            var baseStream = new WriteCountingStream();
+            var stream = new HttpProtocolBodyStream(null, baseStream, null, writeMode: true, leaveOpen: false, writePrefix: "HEADER"u8.ToArray());
+
+            await stream.WriteAsync("hel"u8.ToArray(), TestContext.Current.CancellationToken);
+            await stream.WriteAsync("lo"u8.ToArray(), TestContext.Current.CancellationToken);
+            await stream.FlushAsync(TestContext.Current.CancellationToken);
+
+            Assert.Equal(1, baseStream.WriteCount);
+            Assert.Equal("HEADER00000005\r\nhello\r\n0\r\n\r\n", System.Text.Encoding.UTF8.GetString(baseStream.ToArray()));
+        }
+
+        [Fact]
+        public void Flush_WithPrefixWithoutData_SendsPrefixAndEndingInOneWrite()
+        {
+            var baseStream = new WriteCountingStream();
+            var stream = new HttpProtocolBodyStream(null, baseStream, null, writeMode: true, leaveOpen: false, writePrefix: "HEADER"u8.ToArray());
+
+            stream.Flush();
+
+            Assert.Equal(1, baseStream.WriteCount);
+            Assert.Equal("HEADER0\r\n\r\n", System.Text.Encoding.UTF8.GetString(baseStream.ToArray()));
+        }
+
+        [Fact]
+        public void Constructor_WithPrefixAndContentLength_Throws()
+        {
+            _ = Assert.Throws<ArgumentException>(() => new HttpProtocolBodyStream(10, new MemoryStream(), null, writeMode: true, leaveOpen: false, writePrefix: "HEADER"u8.ToArray()));
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task WriteChunked_LargerThanBuffer_RoundTrips(bool async)
+        {
+            var data = Enumerable.Range(0, 100_000).Select(x => (byte)x).ToArray();
+            var baseStream = new MemoryStream();
+            var writer = new HttpProtocolBodyStream(null, baseStream, null, writeMode: true, leaveOpen: true, writePrefix: "H"u8.ToArray());
+            if (async)
+            {
+                await writer.WriteAsync(data.AsMemory(0, 30_000), TestContext.Current.CancellationToken);
+                await writer.WriteAsync(data.AsMemory(30_000), TestContext.Current.CancellationToken);
+                await writer.FlushAsync(TestContext.Current.CancellationToken);
+            }
+            else
+            {
+                writer.Write(data, 0, 30_000);
+                writer.Write(data, 30_000, data.Length - 30_000);
+                writer.Flush();
+            }
+
+            var written = baseStream.ToArray();
+            Assert.Equal((byte)'H', written[0]);
+            var reader = new HttpProtocolBodyStream(null, new NoReadPastEndStream(written[1..]), null, writeMode: false, leaveOpen: false);
+            using var ms = new MemoryStream();
+            await reader.CopyToAsync(ms, TestContext.Current.CancellationToken);
+            Assert.Equal(data, ms.ToArray());
+        }
+
+        //counts writes to show buffered data goes out together
+        private sealed class WriteCountingStream : Stream
+        {
+            private readonly MemoryStream inner = new();
+
+            public int WriteCount { get; private set; }
+
+            public byte[] ToArray() => inner.ToArray();
+
+            public override bool CanRead => false;
+            public override bool CanSeek => false;
+            public override bool CanWrite => true;
+            public override long Length => inner.Length;
+            public override long Position { get => inner.Position; set => throw new NotSupportedException(); }
+
+            public override void Write(byte[] buffer, int offset, int count)
+            {
+                WriteCount++;
+                inner.Write(buffer, offset, count);
+            }
+            public override void Write(ReadOnlySpan<byte> buffer)
+            {
+                WriteCount++;
+                inner.Write(buffer);
+            }
+            public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+            {
+                WriteCount++;
+                inner.Write(buffer, offset, count);
+                return Task.CompletedTask;
+            }
+            public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
+            {
+                WriteCount++;
+                inner.Write(buffer.Span);
+                return ValueTask.CompletedTask;
+            }
+
+            public override void Flush() { }
+            public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+            public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+            public override void SetLength(long value) => throw new NotSupportedException();
         }
 
         [Fact]

@@ -133,9 +133,10 @@ namespace Zerra.Test.CQRS.Network
             var data = new byte[] { 1, 2, 3, 4, 5 };
 
             stream.Write(data, 0, data.Length);
+            stream.Flush();
 
-            // Should have written: 4 bytes for length + 5 bytes for data = 9 bytes
-            Assert.Equal(9, baseStream.Length);
+            // 4 bytes for length + 5 bytes for data + 4 bytes for ending
+            Assert.Equal([5, 0, 0, 0, 1, 2, 3, 4, 5, 0, 0, 0, 0], baseStream.ToArray());
         }
 
         [Fact]
@@ -146,8 +147,10 @@ namespace Zerra.Test.CQRS.Network
 
             stream.Write([1, 2, 3], 0, 3);
             stream.Write([4, 5], 0, 2);
+            stream.Flush();
 
-            Assert.True(baseStream.Length > 0);
+            // Buffered writes combine into one segment
+            Assert.Equal([5, 0, 0, 0, 1, 2, 3, 4, 5, 0, 0, 0, 0], baseStream.ToArray());
         }
 
         [Fact]
@@ -157,11 +160,77 @@ namespace Zerra.Test.CQRS.Network
             var stream = new TcpProtocolBodyStream(baseStream, Array.Empty<byte>(), writeMode: true, leaveOpen: false);
             stream.Write([1, 2, 3], 0, 3);
 
-            var lengthBeforeFlush = baseStream.Length;
+            // Writes are buffered until flush
+            Assert.Equal(0, baseStream.Length);
             stream.Flush();
 
-            // Should have written 4 more bytes for ending marker
-            Assert.Equal(lengthBeforeFlush + 4, baseStream.Length);
+            Assert.Equal([3, 0, 0, 0, 1, 2, 3, 0, 0, 0, 0], baseStream.ToArray());
+        }
+
+        [Fact]
+        public void Flush_WithoutData_WritesOnlyEnding()
+        {
+            var baseStream = new MemoryStream();
+            var stream = new TcpProtocolBodyStream(baseStream, Array.Empty<byte>(), writeMode: true, leaveOpen: false);
+
+            stream.Flush();
+
+            Assert.Equal([0, 0, 0, 0], baseStream.ToArray());
+        }
+
+        [Fact]
+        public async Task FlushAsync_WithPrefix_SendsPrefixDataAndEndingInOneWrite()
+        {
+            var baseStream = new WriteCountingStream();
+            var stream = new TcpProtocolBodyStream(baseStream, Array.Empty<byte>(), writeMode: true, leaveOpen: false, writePrefix: new byte[] { 9, 9 });
+
+            await stream.WriteAsync(new byte[] { 1, 2 }, TestContext.Current.CancellationToken);
+            await stream.WriteAsync(new byte[] { 3 }, TestContext.Current.CancellationToken);
+            await stream.FlushAsync(TestContext.Current.CancellationToken);
+
+            Assert.Equal(1, baseStream.WriteCount);
+            Assert.Equal([9, 9, 3, 0, 0, 0, 1, 2, 3, 0, 0, 0, 0], baseStream.ToArray());
+        }
+
+        [Fact]
+        public void Flush_WithPrefixWithoutData_SendsPrefixAndEndingInOneWrite()
+        {
+            var baseStream = new WriteCountingStream();
+            var stream = new TcpProtocolBodyStream(baseStream, Array.Empty<byte>(), writeMode: true, leaveOpen: false, writePrefix: new byte[] { 9, 9 });
+
+            stream.Flush();
+
+            Assert.Equal(1, baseStream.WriteCount);
+            Assert.Equal([9, 9, 0, 0, 0, 0], baseStream.ToArray());
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task Write_LargerThanBuffer_RoundTrips(bool async)
+        {
+            var data = Enumerable.Range(0, 100_000).Select(x => (byte)x).ToArray();
+            var baseStream = new MemoryStream();
+            var writer = new TcpProtocolBodyStream(baseStream, Array.Empty<byte>(), writeMode: true, leaveOpen: true, writePrefix: new byte[] { 9 });
+            if (async)
+            {
+                await writer.WriteAsync(data.AsMemory(0, 30_000), TestContext.Current.CancellationToken);
+                await writer.WriteAsync(data.AsMemory(30_000), TestContext.Current.CancellationToken);
+                await writer.FlushAsync(TestContext.Current.CancellationToken);
+            }
+            else
+            {
+                writer.Write(data, 0, 30_000);
+                writer.Write(data, 30_000, data.Length - 30_000);
+                writer.Flush();
+            }
+
+            var written = baseStream.ToArray();
+            Assert.Equal(9, written[0]);
+            var reader = new TcpProtocolBodyStream(new MemoryStream(written, 1, written.Length - 1), Array.Empty<byte>(), writeMode: false, leaveOpen: false);
+            using var ms = new MemoryStream();
+            await reader.CopyToAsync(ms, TestContext.Current.CancellationToken);
+            Assert.Equal(data, ms.ToArray());
         }
 
         [Fact]
@@ -203,9 +272,10 @@ namespace Zerra.Test.CQRS.Network
             var data = new byte[] { 1, 2, 3, 4, 5 };
 
             await stream.WriteAsync(data, 0, data.Length, TestContext.Current.CancellationToken);
+            await stream.FlushAsync(TestContext.Current.CancellationToken);
 
-            // Should have written: 4 bytes for length + 5 bytes for data = 9 bytes
-            Assert.Equal(9, baseStream.Length);
+            // 4 bytes for length + 5 bytes for data + 4 bytes for ending
+            Assert.Equal([5, 0, 0, 0, 1, 2, 3, 4, 5, 0, 0, 0, 0], baseStream.ToArray());
         }
 
         [Fact]
@@ -215,11 +285,11 @@ namespace Zerra.Test.CQRS.Network
             var stream = new TcpProtocolBodyStream(baseStream, Array.Empty<byte>(), writeMode: true, leaveOpen: false);
             await stream.WriteAsync([1, 2, 3], 0, 3, TestContext.Current.CancellationToken);
 
-            var lengthBeforeFlush = baseStream.Length;
+            // Writes are buffered until flush
+            Assert.Equal(0, baseStream.Length);
             await stream.FlushAsync(TestContext.Current.CancellationToken);
 
-            // Should have written 4 more bytes for ending marker
-            Assert.Equal(lengthBeforeFlush + 4, baseStream.Length);
+            Assert.Equal([3, 0, 0, 0, 1, 2, 3, 0, 0, 0, 0], baseStream.ToArray());
         }
 
         [Fact]
@@ -277,11 +347,54 @@ namespace Zerra.Test.CQRS.Network
 
             Assert.Equal(0, stream.Position);
             stream.Write([1, 2, 3], 0, 3);
-            // Position includes both segment length (4 bytes) + data (3 bytes) = 7 bytes
-            Assert.Equal(7, stream.Position);
+            // Position counts the data written, framing is added when segments are sent
+            Assert.Equal(3, stream.Position);
             stream.Write([4, 5], 0, 2);
-            // Position is cumulative: (4 + 3) + (4 + 2) = 13 bytes
-            Assert.Equal(13, stream.Position);
+            Assert.Equal(5, stream.Position);
+        }
+
+        //counts writes to show buffered data goes out together
+        private sealed class WriteCountingStream : Stream
+        {
+            private readonly MemoryStream inner = new();
+
+            public int WriteCount { get; private set; }
+
+            public byte[] ToArray() => inner.ToArray();
+
+            public override bool CanRead => false;
+            public override bool CanSeek => false;
+            public override bool CanWrite => true;
+            public override long Length => inner.Length;
+            public override long Position { get => inner.Position; set => throw new NotSupportedException(); }
+
+            public override void Write(byte[] buffer, int offset, int count)
+            {
+                WriteCount++;
+                inner.Write(buffer, offset, count);
+            }
+            public override void Write(ReadOnlySpan<byte> buffer)
+            {
+                WriteCount++;
+                inner.Write(buffer);
+            }
+            public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+            {
+                WriteCount++;
+                inner.Write(buffer, offset, count);
+                return Task.CompletedTask;
+            }
+            public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
+            {
+                WriteCount++;
+                inner.Write(buffer.Span);
+                return ValueTask.CompletedTask;
+            }
+
+            public override void Flush() { }
+            public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+            public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+            public override void SetLength(long value) => throw new NotSupportedException();
         }
     }
 }

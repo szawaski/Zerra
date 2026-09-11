@@ -40,5 +40,23 @@ namespace Zerra.Buffers
             values.CopyTo(span[position..]);
             position += values.Length;
         }
+
+        /// <summary>
+        /// The part of the span not yet written to.
+        /// Write to it directly, such as encoding a string, then call <see cref="Advance"/> with the count written.
+        /// </summary>
+        public readonly Span<T> Remaining => span[position..];
+
+        /// <summary>
+        /// Moves the position forward after writing directly to <see cref="Remaining"/>.
+        /// </summary>
+        /// <param name="count">The number of values written.</param>
+        /// <exception cref="ArgumentOutOfRangeException">Throws if the count is negative or excedes the remaining length of the span.</exception>
+        public void Advance(int count)
+        {
+            if (count < 0 || count > span.Length - position)
+                throw new ArgumentOutOfRangeException(nameof(count));
+            position += count;
+        }
     }
 }

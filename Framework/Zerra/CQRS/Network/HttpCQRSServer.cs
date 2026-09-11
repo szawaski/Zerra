@@ -49,6 +49,7 @@ namespace Zerra.CQRS.Network
         {
             if (throttle is null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
 
+            var stream = new NetworkStream(socket, false); //one stream for the connection instead of one per request
             try
             {
                 for (; ; )
@@ -58,7 +59,6 @@ namespace Zerra.CQRS.Network
 
                     var bufferOwner = ArrayPoolHelper<byte>.Rent(HttpCommon.BufferLength);
                     var buffer = bufferOwner.AsMemory();
-                    var stream = new NetworkStream(socket, false);
 
                     Stream? requestBodyStream = null;
                     Stream? responseBodyStream = null;
@@ -91,9 +91,9 @@ namespace Zerra.CQRS.Network
                                 return; //not an abort if we haven't started receiving, simple socket disconnect
                             headerLength += bytesRead;
 
-                            headerEnd = HttpCommon.TryReadToHeaderEnd(buffer[..headerLength], ref headerPosition);
+                            headerEnd = HttpCommon.TryReadToHeaderEnd(bufferOwner.AsSpan(0, headerLength), ref headerPosition);
                         }
-                        requestHeader = HttpCommon.ReadHeader(buffer[..headerLength], headerPosition);
+                        requestHeader = HttpCommon.ReadHeader(buffer[..headerLength], headerPosition, authorizer is not null); //all headers only for the authorizer
 
                         if (requestHeader.ContentType.HasValue && requestHeader.ContentType != serializer.ContentType)
                         {
@@ -197,7 +197,7 @@ namespace Zerra.CQRS.Network
                             }
                             finally
                             {
-                                monitorIsCancellationRequested = monitor.DisposeAndGetIsCancellationRequested();
+                                monitorIsCancellationRequested = await monitor.DisposeAndGetIsCancellationRequestedAsync();
                             }
                             inHandlerContext = false;
 
@@ -211,14 +211,9 @@ namespace Zerra.CQRS.Network
 
                             //Response Header
                             var responseHeaderLength = HttpCommon.BufferOkResponseHeader(buffer, requestHeader.Origin, requestHeader.ProviderType, requestHeader.ContentType.Value, null);
-#if NETSTANDARD2_0
-                            await stream.WriteAsync(bufferOwner, 0, responseHeaderLength);
-#else
-                            await stream.WriteAsync(buffer.Slice(0, responseHeaderLength), cancellationToken);
-#endif
 
-                            //Response Body
-                            responseBodyStream = new HttpProtocolBodyStream(null, stream, null, true, false);
+                            //Response Body, the header goes out with it
+                            responseBodyStream = new HttpProtocolBodyStream(null, stream, null, true, true, buffer.Slice(0, responseHeaderLength));
 
                             int bytesRead;
                             if (result.Stream is not null)
@@ -316,7 +311,7 @@ namespace Zerra.CQRS.Network
                                     }
                                     finally
                                     {
-                                        monitorIsCancellationRequested = monitor.DisposeAndGetIsCancellationRequested();
+                                        monitorIsCancellationRequested = await monitor.DisposeAndGetIsCancellationRequestedAsync();
                                     }
                                     hasResult = true;
                                 }
@@ -330,7 +325,7 @@ namespace Zerra.CQRS.Network
                                     }
                                     finally
                                     {
-                                        monitorIsCancellationRequested = monitor.DisposeAndGetIsCancellationRequested();
+                                        monitorIsCancellationRequested = await monitor.DisposeAndGetIsCancellationRequestedAsync();
                                     }
                                     hasResult = false;
                                 }
@@ -372,16 +367,11 @@ namespace Zerra.CQRS.Network
 
                             //Response Header
                             var responseHeaderLength = HttpCommon.BufferOkResponseHeader(buffer, requestHeader.Origin, requestHeader.ProviderType, serializer.ContentType, null, hasResult);
-#if NETSTANDARD2_0
-                            await stream.WriteAsync(bufferOwner, 0, responseHeaderLength, cancellationToken);
-#else
-                            await stream.WriteAsync(buffer.Slice(0, responseHeaderLength), cancellationToken);
-#endif
 
                             if (hasResult)
                             {
-                                //Response Body
-                                responseBodyStream = new HttpProtocolBodyStream(null, stream, null, true, false);
+                                //Response Body, the header goes out with it
+                                responseBodyStream = new HttpProtocolBodyStream(null, stream, null, true, true, buffer.Slice(0, responseHeaderLength));
                                 if (encryptor is not null)
                                 {
                                     responseBodyCryptoStream = encryptor.Encrypt(responseBodyStream, true);
@@ -402,6 +392,11 @@ namespace Zerra.CQRS.Network
                             else
                             {
                                 //Response Body Empty
+#if NETSTANDARD2_0
+                                await stream.WriteAsync(bufferOwner, 0, responseHeaderLength, cancellationToken);
+#else
+                                await stream.WriteAsync(buffer.Slice(0, responseHeaderLength), cancellationToken);
+#endif
                                 await stream.FlushAsync(cancellationToken);
                             }
 
@@ -430,14 +425,9 @@ namespace Zerra.CQRS.Network
                             {
                                 //Response Header
                                 var responseHeaderLength = HttpCommon.BufferErrorResponseHeader(buffer, requestHeader.Origin);
-#if NETSTANDARD2_0
-                                await stream.WriteAsync(bufferOwner, 0, responseHeaderLength, cancellationToken);
-#else
-                                await stream.WriteAsync(buffer.Slice(0, responseHeaderLength), cancellationToken);
-#endif
 
-                                //Response Body
-                                responseBodyStream = new HttpProtocolBodyStream(null, stream, null, true, false);
+                                //Response Body, the header goes out with it
+                                responseBodyStream = new HttpProtocolBodyStream(null, stream, null, true, true, buffer.Slice(0, responseHeaderLength));
                                 if (encryptor is not null)
                                 {
                                     responseBodyCryptoStream = encryptor.Encrypt(responseBodyStream, true);
@@ -487,14 +477,6 @@ namespace Zerra.CQRS.Network
                             await requestBodyStream.DisposeAsync();
 #endif
                         }
-                        if (stream is not null)
-                        {
-#if NETSTANDARD2_0
-                            stream.Dispose();
-#else
-                            await stream.DisposeAsync();
-#endif
-                        }
                         ArrayPoolHelper<byte>.Return(bufferOwner);
                         if (throttleUsed && !commandCounterUsedContinuation)
                         {
@@ -508,6 +490,11 @@ namespace Zerra.CQRS.Network
             }
             finally
             {
+#if NETSTANDARD2_0
+                stream.Dispose();
+#else
+                await stream.DisposeAsync();
+#endif
                 socket.Dispose();
             }
         }

@@ -404,7 +404,7 @@ namespace Zerra.Test.CQRS.Network
                             return null;
                         length += read;
                     }
-                    while (!TcpCommon.TryReadToHeaderEnd(buffer.AsMemory(0, length), ref position));
+                    while (!TcpCommon.TryReadToHeaderEnd(buffer.AsSpan(0, length), ref position));
                 }
                 catch (IOException)
                 {

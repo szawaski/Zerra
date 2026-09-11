@@ -474,8 +474,8 @@ namespace Zerra.Test.CQRS.Network
                         return null;
                     length += read;
                 }
-                while (!HttpCommon.TryReadToHeaderEnd(buffer.AsMemory(0, length), ref position));
-                return HttpCommon.ReadHeader(buffer.AsMemory(0, length), position);
+                while (!HttpCommon.TryReadToHeaderEnd(buffer.AsSpan(0, length), ref position));
+                return HttpCommon.ReadHeader(buffer.AsMemory(0, length), position, true);
             }
 
             public void Dispose()

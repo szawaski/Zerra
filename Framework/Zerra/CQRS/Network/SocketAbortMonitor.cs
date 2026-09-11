@@ -10,7 +10,7 @@ namespace Zerra.CQRS.Network
 
         private readonly Stream stream;
         private readonly CancellationTokenSource cancellationTokenSource;
-        private readonly SemaphoreSlim monitorCompleteWaiter;
+        private readonly Task monitorTask;
 
         private bool isCancellationRequested;
 
@@ -18,8 +18,7 @@ namespace Zerra.CQRS.Network
         {
             this.stream = new NetworkStream(socket, false);
             this.cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            this.monitorCompleteWaiter = new(0, 1);
-            _ = Task.Run(Monitor);
+            this.monitorTask = Monitor(); //runs until the read waits, no thread or waiter needed
         }
 
         public CancellationToken Token => cancellationTokenSource.Token;
@@ -59,10 +58,7 @@ namespace Zerra.CQRS.Network
                 cancellationTokenSource.Cancel();
 #endif
             }
-            finally
-            {
-                monitorCompleteWaiter.Release();
-            }
+            catch { } //the read is canceled on dispose or fails when the connection closes, the monitor just ends
         }
 
         public static async Task<bool> SendAndAcknowledgeAbortAsync(Stream stream)
@@ -134,14 +130,24 @@ namespace Zerra.CQRS.Network
             return isCancellationRequested;
         }
 
-        public void Dispose()
+        //awaits the monitor ending instead of blocking a thread
+        public async Task<bool> DisposeAndGetIsCancellationRequestedAsync()
         {
             cancellationTokenSource.Cancel();
-            monitorCompleteWaiter.Wait();
+            await monitorTask;
 
             stream.Dispose();
             cancellationTokenSource.Dispose();
-            monitorCompleteWaiter.Dispose();
+            return isCancellationRequested;
+        }
+
+        public void Dispose()
+        {
+            cancellationTokenSource.Cancel();
+            monitorTask.GetAwaiter().GetResult();
+
+            stream.Dispose();
+            cancellationTokenSource.Dispose();
         }
     }
 }

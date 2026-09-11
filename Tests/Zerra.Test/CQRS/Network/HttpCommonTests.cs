@@ -19,9 +19,8 @@ namespace Zerra.Test.CQRS.Network
         public void ReadToHeaderEnd_FindsHeaderEnd()
         {
             var buffer = new byte[] { 72, 84, 84, 80, 47, 49, 46, 49, 32, 50, 48, 48, 32, 79, 75, 13, 10, 13, 10 }; // HTTP/1.1 200 OK\r\n\r\n
-            var bufferMemory = buffer.AsMemory();
             var position = 0;
-            var result = HttpCommon.TryReadToHeaderEnd(bufferMemory, ref position);
+            var result = HttpCommon.TryReadToHeaderEnd(buffer, ref position);
 
             Assert.True(result);
             Assert.Equal(buffer.Length, position);
@@ -31,9 +30,8 @@ namespace Zerra.Test.CQRS.Network
         public void ReadToHeaderEnd_NoHeaderEnd()
         {
             var buffer = new byte[] { 72, 84, 84, 80, 47, 49, 46, 49 }; // HTTP/1.1
-            var bufferMemory = buffer.AsMemory();
             var position = 0;
-            var result = HttpCommon.TryReadToHeaderEnd(bufferMemory, ref position);
+            var result = HttpCommon.TryReadToHeaderEnd(buffer, ref position);
 
             Assert.False(result);
         }
@@ -42,9 +40,8 @@ namespace Zerra.Test.CQRS.Network
         public void ReadToBreak_FindsLineBreak()
         {
             var buffer = new byte[] { 72, 84, 84, 80, 47, 49, 46, 49, 13, 10, 13, 10 }; // HTTP/1.1\r\n\r\n
-            var bufferMemory = buffer.AsMemory();
             var position = 0;
-            var result = HttpCommon.ReadToBreak(bufferMemory, ref position);
+            var result = HttpCommon.ReadToBreak(buffer, ref position);
 
             Assert.True(result);
         }
@@ -53,9 +50,8 @@ namespace Zerra.Test.CQRS.Network
         public void ReadToBreak_NoLineBreak()
         {
             var buffer = new byte[] { 72, 84, 84, 80, 47, 49, 46, 49 }; // HTTP/1.1
-            var bufferMemory = buffer.AsMemory();
             var position = 0;
-            var result = HttpCommon.ReadToBreak(bufferMemory, ref position);
+            var result = HttpCommon.ReadToBreak(buffer, ref position);
 
             Assert.False(result);
         }
@@ -66,7 +62,7 @@ namespace Zerra.Test.CQRS.Network
             var buffer = new byte[] { 72 }; // H
             var position = 0;
 
-            var result = HttpCommon.TryReadToHeaderEnd(buffer.AsMemory(), ref position);
+            var result = HttpCommon.TryReadToHeaderEnd(buffer, ref position);
 
             Assert.False(result);
             Assert.Equal(0, position);
@@ -82,6 +78,44 @@ namespace Zerra.Test.CQRS.Network
             Assert.Equal(ContentType.Json, header.ContentType);
             Assert.Equal("Provider", header.ProviderType);
             Assert.True(header.Chuncked);
+        }
+
+        [Fact]
+        public void ReadHeader_KnownHeadersWithoutBuildingAllHeaders()
+        {
+            var bytes = System.Text.Encoding.UTF8.GetBytes("HTTP/1.1 500 Server Error\r\nContent-Type: application/json\r\nContent-Length: 12\r\nProvider-Type: Provider\r\nOrigin: example.com\r\nX-Other: value\r\n\r\n");
+
+            var header = HttpCommon.ReadHeader(bytes, bytes.Length);
+
+            Assert.True(header.IsError);
+            Assert.Equal(ContentType.Json, header.ContentType);
+            Assert.Equal(12, header.ContentLength);
+            Assert.Equal("Provider", header.ProviderType);
+            Assert.Equal("example.com", header.Origin);
+            Assert.Null(header.Headers);
+            Assert.Null(header.Declarations);
+        }
+
+        [Fact]
+        public void ReadHeader_ParseAllHeaders_BuildsHeadersAndDeclarations()
+        {
+            var bytes = System.Text.Encoding.UTF8.GetBytes("OPTIONS / HTTP/1.1\r\nOrigin: example.com\r\nX-Other: one\r\nx-other: two\r\n\r\n");
+
+            var header = HttpCommon.ReadHeader(bytes, bytes.Length, true);
+
+            Assert.True(header.Preflight);
+            Assert.Equal("OPTIONS / HTTP/1.1", header.Declarations);
+            Assert.NotNull(header.Headers);
+            Assert.Equal(["example.com"], header.Headers["Origin"]);
+            Assert.Equal(["one", "two"], header.Headers["X-Other"]);
+        }
+
+        [Fact]
+        public void ReadHeader_NoHeaders_Throws()
+        {
+            var bytes = System.Text.Encoding.UTF8.GetBytes("HTTP/1.1 200 OK\r\n\r\n");
+
+            _ = Assert.ThrowsAny<Exception>(() => HttpCommon.ReadHeader(bytes, bytes.Length));
         }
 
         [Theory]
@@ -142,7 +176,6 @@ namespace Zerra.Test.CQRS.Network
             var buffer = new byte[HttpCommon.BufferLength];
             var bufferMemory = buffer.AsMemory();
             var url = new Uri("http://localhost:9001/api");
-            var origin = "https://example.com";
             var providerType = "ITestQueryHandler";
             var contentType = ContentType.Bytes;
             var authHeaders = new Dictionary<string, List<string?>>
@@ -150,10 +183,24 @@ namespace Zerra.Test.CQRS.Network
                 { "Authorization", new List<string?> { "Bearer token123" } }
             };
 
-            var length = HttpCommon.BufferPostRequestHeader(bufferMemory, url, origin, providerType, contentType, authHeaders);
+            var length = HttpCommon.BufferPostRequestHeader(bufferMemory, url, providerType, contentType, authHeaders);
 
             Assert.True(length > 0);
             Assert.True(length < HttpCommon.BufferLength);
+        }
+
+        [Fact]
+        public void BufferPostRequestHeader_WritesRequestHeadersOnly()
+        {
+            var buffer = new byte[HttpCommon.BufferLength];
+            var url = new Uri("http://localhost:9001/api");
+            var authHeaders = new Dictionary<string, List<string?>> { { "Authorization", new List<string?> { "Bearer token123" } } };
+
+            var length = HttpCommon.BufferPostRequestHeader(buffer, url, "TestProvider", ContentType.Bytes, authHeaders);
+
+            //response-only Access-Control-Allow headers are not sent
+            var expected = "POST http://localhost:9001/api HTTP/1.1\r\nProvider-Type: TestProvider\r\nContent-Type: application/octet-stream\r\nAuthorization: Bearer token123\r\nTransfer-Encoding: chunked\r\nHost: localhost:9001\r\nOrigin: localhost\r\n\r\n";
+            Assert.Equal(expected, System.Text.Encoding.UTF8.GetString(buffer, 0, length));
         }
 
         [Fact]
@@ -162,11 +209,10 @@ namespace Zerra.Test.CQRS.Network
             var buffer = new byte[HttpCommon.BufferLength];
             var bufferMemory = buffer.AsMemory();
             var url = new Uri("http://localhost:9001/api");
-            var origin = "https://example.com";
             var providerType = "ITestQueryHandler";
             var contentType = ContentType.Json;
 
-            var length = HttpCommon.BufferPostRequestHeader(bufferMemory, url, origin, providerType, contentType, null);
+            var length = HttpCommon.BufferPostRequestHeader(bufferMemory, url, providerType, contentType, null);
 
             Assert.True(length > 0);
             Assert.True(length < HttpCommon.BufferLength);
@@ -180,7 +226,7 @@ namespace Zerra.Test.CQRS.Network
             var url = new Uri("http://localhost:9001/api");
             var contentType = ContentType.JsonNameless;
 
-            var length = HttpCommon.BufferPostRequestHeader(bufferMemory, url, null, null, contentType, null);
+            var length = HttpCommon.BufferPostRequestHeader(bufferMemory, url, null, contentType, null);
 
             Assert.True(length > 0);
             Assert.True(length < HttpCommon.BufferLength);
@@ -313,7 +359,7 @@ namespace Zerra.Test.CQRS.Network
                 { "X-Custom-Header", new List<string?> { "value1", "value2" } }
             };
 
-            var length = HttpCommon.BufferPostRequestHeader(bufferMemory, url, null, "TestProvider", ContentType.Json, authHeaders);
+            var length = HttpCommon.BufferPostRequestHeader(bufferMemory, url, "TestProvider", ContentType.Json, authHeaders);
 
             Assert.True(length > 0);
             Assert.True(length < HttpCommon.BufferLength);

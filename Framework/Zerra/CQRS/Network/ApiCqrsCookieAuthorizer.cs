@@ -66,10 +66,6 @@ namespace Zerra.CQRS.Network
                 });
                 request.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
 
-                request.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, "*");
-                request.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
-                request.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
-
                 using var response = await client.SendAsync(request, cancellationToken);
                 if (!response.IsSuccessStatusCode)
                     throw new Exception($"Authorization request failed with status code {response.StatusCode}.");
@@ -113,10 +109,6 @@ namespace Zerra.CQRS.Network
                 using var postStream = new MemoryStream(data); //the body is already formatted for the content type
                 request.Content = new StreamContent(postStream);
                 request.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
-
-                request.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, "*");
-                request.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
-                request.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
 
                 using var response = client.Send(request, cancellationToken);
                 if (!response.IsSuccessStatusCode)

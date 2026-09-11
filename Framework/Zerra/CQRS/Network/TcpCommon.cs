@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Buffers.Text;
+using System.Runtime.CompilerServices;
 using System.Text;
 using Zerra.Buffers;
 
@@ -24,9 +25,9 @@ namespace Zerra.CQRS.Network
         private static readonly byte[] headerEnderBytes = encoding.GetBytes($"{headerEnder}");
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe bool TryReadToHeaderEnd(ReadOnlyMemory<byte> buffer, ref int position)
+        public static unsafe bool TryReadToHeaderEnd(ReadOnlySpan<byte> buffer, ref int position)
         {
-            fixed (byte* pHeaderBuffer = buffer.Span)
+            fixed (byte* pHeaderBuffer = buffer)
             {
                 while (position < buffer.Length)
                 {
@@ -134,8 +135,7 @@ namespace Zerra.CQRS.Network
             headerBuffer.Write(protocolRawPrefixBytes);
             if (!String.IsNullOrWhiteSpace(providerType))
             {
-                var providerTypeBytes = encoding.GetBytes(providerType);
-                headerBuffer.Write(providerTypeBytes);
+                headerBuffer.Advance(encoding.GetBytes(providerType, headerBuffer.Remaining));
                 headerBuffer.Write(headerSeperatorBytes);
             }
             else
@@ -143,8 +143,8 @@ namespace Zerra.CQRS.Network
                 headerBuffer.Write(nullProviderBytes);
             }
 
-            var contentTypeBytes = encoding.GetBytes(((int)contentType).ToString());
-            headerBuffer.Write(contentTypeBytes);
+            _ = Utf8Formatter.TryFormat((int)contentType, headerBuffer.Remaining, out var contentTypeLength);
+            headerBuffer.Advance(contentTypeLength);
             headerBuffer.Write(headerEnderBytes);
             return headerBuffer.Position;
         }
@@ -157,8 +157,7 @@ namespace Zerra.CQRS.Network
             headerBuffer.Write(protocolErrorPrefixBytes);
             if (!String.IsNullOrWhiteSpace(providerType))
             {
-                var providerTypeBytes = encoding.GetBytes(providerType);
-                headerBuffer.Write(providerTypeBytes);
+                headerBuffer.Advance(encoding.GetBytes(providerType, headerBuffer.Remaining));
                 headerBuffer.Write(headerSeperatorBytes);
             }
             else
@@ -166,8 +165,8 @@ namespace Zerra.CQRS.Network
                 headerBuffer.Write(nullProviderBytes);
             }
 
-            var contentTypeBytes = encoding.GetBytes(((int)contentType).ToString());
-            headerBuffer.Write(contentTypeBytes);
+            _ = Utf8Formatter.TryFormat((int)contentType, headerBuffer.Remaining, out var contentTypeLength);
+            headerBuffer.Advance(contentTypeLength);
             headerBuffer.Write(headerEnderBytes);
 
             return headerBuffer.Position;

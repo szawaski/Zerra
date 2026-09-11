@@ -482,7 +482,7 @@ namespace Zerra.Test.CQRS.Network
             public async Task SendAsync(CqrsRequestData data, IEncryptor? encryptor, ContentType? contentType = null, Dictionary<string, List<string?>>? authHeaders = null)
             {
                 var buffer = new byte[HttpCommon.BufferLength];
-                var headerLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, null, data.ProviderType ?? data.MessageType, contentType ?? serializer.ContentType, authHeaders);
+                var headerLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, data.ProviderType ?? data.MessageType, contentType ?? serializer.ContentType, authHeaders);
                 await stream.WriteAsync(buffer.AsMemory(0, headerLength));
 
                 var body = new HttpProtocolBodyStream(null, stream, null, true, true);
@@ -530,7 +530,7 @@ namespace Zerra.Test.CQRS.Network
                             return null;
                         length += read;
                     }
-                    while (!HttpCommon.TryReadToHeaderEnd(buffer.AsMemory(0, length), ref position));
+                    while (!HttpCommon.TryReadToHeaderEnd(buffer.AsSpan(0, length), ref position));
                 }
                 catch (IOException)
                 {

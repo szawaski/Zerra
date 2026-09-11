@@ -41,6 +41,7 @@ namespace Zerra.CQRS.Network
         {
             if (throttle is null) throw new InvalidOperationException($"{nameof(TcpCqrsServer)} is not setup");
 
+            var stream = new NetworkStream(socket, false); //one stream for the connection instead of one per request
             try
             {
                 for (; ; )
@@ -50,7 +51,6 @@ namespace Zerra.CQRS.Network
 
                     var bufferOwner = ArrayPoolHelper<byte>.Rent(TcpCommon.BufferLength);
                     var buffer = bufferOwner.AsMemory();
-                    var stream = new NetworkStream(socket, false);
 
                     Stream? requestBodyStream = null;
                     Stream? responseBodyStream = null;
@@ -83,7 +83,7 @@ namespace Zerra.CQRS.Network
                                 return; //not an abort if we haven't started receiving, simple socket disconnect
                             headerLength += bytesRead;
 
-                            requestHeaderEnd = TcpCommon.TryReadToHeaderEnd(buffer[..headerLength], ref headerPosition);
+                            requestHeaderEnd = TcpCommon.TryReadToHeaderEnd(bufferOwner.AsSpan(0, headerLength), ref headerPosition);
                         }
                         requestHeader = TcpCommon.ReadHeader(buffer[..headerLength], headerPosition);
 
@@ -152,7 +152,7 @@ namespace Zerra.CQRS.Network
                             }
                             finally
                             {
-                                monitorIsCancellationRequested = monitor.DisposeAndGetIsCancellationRequested();
+                                monitorIsCancellationRequested = await monitor.DisposeAndGetIsCancellationRequestedAsync();
                             }
                             inHandlerContext = false;
 
@@ -168,14 +168,9 @@ namespace Zerra.CQRS.Network
 #pragma warning disable CS8629 // Nullable value type may be null. False Positive
                             var responseHeaderLength = TcpCommon.BufferHeader(buffer, data.ProviderType, requestHeader.ContentType.Value);
 #pragma warning restore CS8629 // Nullable value type may be null. False Positive
-#if NETSTANDARD2_0
-                            await stream.WriteAsync(bufferOwner, 0, responseHeaderLength, cancellationToken);
-#else
-                            await stream.WriteAsync(buffer.Slice(0, responseHeaderLength), cancellationToken);
-#endif
 
-                            //Response Body
-                            responseBodyStream = new TcpProtocolBodyStream(stream, null, true, true);
+                            //Response Body, the header goes out with it
+                            responseBodyStream = new TcpProtocolBodyStream(stream, null, true, true, buffer.Slice(0, responseHeaderLength));
 
                             int bytesRead;
                             if (result.Stream is not null)
@@ -273,7 +268,7 @@ namespace Zerra.CQRS.Network
                                     }
                                     finally
                                     {
-                                        monitorIsCancellationRequested = monitor.DisposeAndGetIsCancellationRequested();
+                                        monitorIsCancellationRequested = await monitor.DisposeAndGetIsCancellationRequestedAsync();
                                     }
                                     hasResult = true;
                                 }
@@ -287,7 +282,7 @@ namespace Zerra.CQRS.Network
                                     }
                                     finally
                                     {
-                                        monitorIsCancellationRequested = monitor.DisposeAndGetIsCancellationRequested();
+                                        monitorIsCancellationRequested = await monitor.DisposeAndGetIsCancellationRequestedAsync();
                                     }
                                     hasResult = false;
                                 }
@@ -332,16 +327,11 @@ namespace Zerra.CQRS.Network
 #pragma warning disable CS8629 // Nullable value type may be null. False Positive
                             var responseHeaderLength = TcpCommon.BufferHeader(buffer, data.MessageType, requestHeader.ContentType.Value);
 #pragma warning restore CS8629 // Nullable value type may be null. False Positive
-#if NETSTANDARD2_0
-                            await stream.WriteAsync(bufferOwner, 0, responseHeaderLength, cancellationToken);
-#else
-                            await stream.WriteAsync(buffer.Slice(0, responseHeaderLength), cancellationToken);
-#endif
 
                             if (hasResult)
                             {
-                                //Response Body
-                                responseBodyStream = new TcpProtocolBodyStream(stream, null, true, true);
+                                //Response Body, the header goes out with it
+                                responseBodyStream = new TcpProtocolBodyStream(stream, null, true, true, buffer.Slice(0, responseHeaderLength));
                                 if (encryptor is not null)
                                 {
                                     responseBodyCryptoStream = encryptor.Encrypt(responseBodyStream, true);
@@ -362,6 +352,11 @@ namespace Zerra.CQRS.Network
                             else
                             {
                                 //Response Body Empty
+#if NETSTANDARD2_0
+                                await stream.WriteAsync(bufferOwner, 0, responseHeaderLength, cancellationToken);
+#else
+                                await stream.WriteAsync(buffer.Slice(0, responseHeaderLength), cancellationToken);
+#endif
                                 await stream.FlushAsync(cancellationToken);
                             }
 
@@ -390,14 +385,9 @@ namespace Zerra.CQRS.Network
                             {
                                 //Response Header for Error
                                 var responseHeaderLength = TcpCommon.BufferErrorHeader(buffer, requestHeader.ProviderType, requestHeader.ContentType.Value);
-#if NETSTANDARD2_0
-                                await stream.WriteAsync(bufferOwner, 0, responseHeaderLength, cancellationToken);
-#else
-                                await stream.WriteAsync(buffer.Slice(0, responseHeaderLength), cancellationToken);
-#endif
 
-                                //Response Body
-                                responseBodyStream = new TcpProtocolBodyStream(stream, null, true, true);
+                                //Response Body, the header goes out with it
+                                responseBodyStream = new TcpProtocolBodyStream(stream, null, true, true, buffer.Slice(0, responseHeaderLength));
                                 if (encryptor is not null)
                                 {
                                     responseBodyCryptoStream = encryptor.Encrypt(responseBodyStream, true);
@@ -447,14 +437,6 @@ namespace Zerra.CQRS.Network
                             await requestBodyStream.DisposeAsync();
 #endif
                         }
-                        if (stream is not null)
-                        {
-#if NETSTANDARD2_0
-                            stream.Dispose();
-#else
-                            await stream.DisposeAsync();
-#endif
-                        }
                         ArrayPoolHelper<byte>.Return(bufferOwner);
                         if (throttlerUsed && !commandCounterUsedContinuation)
                         {
@@ -468,6 +450,11 @@ namespace Zerra.CQRS.Network
             }
             finally
             {
+#if NETSTANDARD2_0
+                stream.Dispose();
+#else
+                await stream.DisposeAsync();
+#endif
                 socket.Dispose();
             }
         }
