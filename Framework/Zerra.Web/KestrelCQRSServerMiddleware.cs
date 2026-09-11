@@ -12,7 +12,6 @@ using Zerra.Encryption;
 using Zerra.Logging;
 using Zerra.Reflection;
 using Zerra.Serialization;
-using Zerra.Serialization.Json;
 
 namespace Zerra.Web
 {
@@ -58,6 +57,18 @@ namespace Zerra.Web
             settings.Dispose();
         }
 
+        //browsers send the origin as scheme://host[:port] and KestrelCqrsClient sends the host, an allowed value can be either, case doesn't matter
+        private bool IsOriginAllowed(string origin)
+        {
+            var originHost = Uri.TryCreate(origin, UriKind.Absolute, out var originUri) ? originUri.Host : null;
+            foreach (var allowOrigin in settings.AllowOrigins!)
+            {
+                if (String.Equals(allowOrigin, origin, StringComparison.OrdinalIgnoreCase) || (originHost is not null && String.Equals(allowOrigin, originHost, StringComparison.OrdinalIgnoreCase)))
+                    return true;
+            }
+            return false;
+        }
+
         /// <summary>
         /// Invokes the middleware to process HTTP requests from CQRS clients.
         /// </summary>
@@ -79,7 +90,17 @@ namespace Zerra.Web
 
             if (context.Request.Method == "OPTIONS")
             {
-                context.Response.Headers.Append(HttpCommon.AccessControlAllowOriginHeader, settings.AllowOriginsString);
+                //browsers accept one origin or * so an allowed request origin is echoed, a disallowed one gets none
+                if (settings.AllowOrigins is null)
+                {
+                    context.Response.Headers.Append(HttpCommon.AccessControlAllowOriginHeader, "*");
+                }
+                else
+                {
+                    string? preflightOrigin = context.Request.Headers[HttpCommon.OriginHeader];
+                    if (preflightOrigin is not null && IsOriginAllowed(preflightOrigin))
+                        context.Response.Headers.Append(HttpCommon.AccessControlAllowOriginHeader, preflightOrigin);
+                }
                 context.Response.Headers.Append(HttpCommon.AccessControlAllowMethodsHeader, "*");
                 context.Response.Headers.Append(HttpCommon.AccessControlAllowHeadersHeader, "*");
                 return;
@@ -133,7 +154,7 @@ namespace Zerra.Web
                 }
                 originRequestHeader = originRequestHeaderValue;
 
-                if (settings.AllowOrigins.Contains(originRequestHeader))
+                if (originRequestHeader is null || !IsOriginAllowed(originRequestHeader))
                 {
                     log?.Warn($"{nameof(KestrelCqrsServerMiddleware)} Origin Not Allowed {originRequestHeader}");
                     context.Response.StatusCode = 401;
@@ -199,10 +220,11 @@ namespace Zerra.Web
 
                     var providerType = TypeFinder.GetTypeFromName(data.ProviderType);
 
-                    if (!settings.Types.TryGetValue(providerType, out throttle))
+                    if (!settings.Types.TryGetValue(providerType, out var providerThrottle))
                         throw new Exception($"{providerType.Name} is not registered with {nameof(KestrelCqrsServerMiddleware)}");
 
-                    await throttle.WaitAsync(context.RequestAborted);
+                    await providerThrottle.WaitAsync(context.RequestAborted);
+                    throttle = providerThrottle; //only released once taken, a request canceled while waiting has nothing to release
 
                     inHandlerContext = true;
                     var result = await settings.ProviderHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, data.Source, serializer, context.RequestAborted);
@@ -266,6 +288,7 @@ namespace Zerra.Web
                         finally
                         {
                             ArrayPoolHelper<byte>.Return(bufferOwner);
+                            await result.Stream.DisposeAsync(); //the handler's stream is done once sent
                         }
                         await context.Response.Body.FlushAsync(context.RequestAborted);
 
@@ -308,10 +331,11 @@ namespace Zerra.Web
                     var messageType = TypeFinder.GetTypeFromName(data.MessageType);
                     var typeDetail = TypeAnalyzer.GetTypeDetail(messageType);
 
-                    if (!settings.Types.TryGetValue(messageType, out throttle))
+                    if (!settings.Types.TryGetValue(messageType, out var messageThrottle))
                         throw new Exception($"{messageType.Name} is not registered with {nameof(KestrelCqrsServerMiddleware)}");
 
-                    await throttle.WaitAsync(context.RequestAborted);
+                    await messageThrottle.WaitAsync(context.RequestAborted);
+                    throttle = messageThrottle; //only released once taken, a request canceled while waiting has nothing to release
 
                     bool hasResult;
                     object? result = null;
@@ -324,7 +348,7 @@ namespace Zerra.Web
                         if (!settings.CommandCounter.BeginReceive())
                             throw new Exception("Cannot receive any more commands");
 
-                        var command = (ICommand?)JsonSerializer.Deserialize(data.MessageData, messageType);
+                        var command = (ICommand?)serializer.Deserialize(data.MessageData, messageType); //the client serializes with the same serializer
                         if (command is null)
                             throw new Exception("Invalid Request");
 
@@ -349,9 +373,9 @@ namespace Zerra.Web
                         }
                         inHandlerContext = false;
                     }
-                    else if (typeDetail.Interfaces.Contains(typeof(ICommand)))
+                    else if (typeDetail.Interfaces.Contains(typeof(IEvent)))
                     {
-                        var @event = (IEvent?)JsonSerializer.Deserialize(data.MessageData, messageType);
+                        var @event = (IEvent?)serializer.Deserialize(data.MessageData, messageType);
                         if (@event is null)
                             throw new Exception("Invalid Request");
 
@@ -367,7 +391,7 @@ namespace Zerra.Web
                     }
 
                     //Response Header
-                    context.Response.Headers.Append(HttpCommon.ProviderTypeHeader, data.ProviderType);
+                    context.Response.Headers.Append(HttpCommon.ProviderTypeHeader, data.MessageType);
                     context.Response.Headers.Append(HttpCommon.AccessControlAllowOriginHeader, originRequestHeader);
                     context.Response.Headers.Append(HttpCommon.AccessControlAllowMethodsHeader, "*");
                     context.Response.Headers.Append(HttpCommon.AccessControlAllowHeadersHeader, "*");
@@ -388,25 +412,6 @@ namespace Zerra.Web
 
                     if (hasResult)
                     {
-                        //Response Header
-                        context.Response.Headers.Append(HttpCommon.AccessControlAllowOriginHeader, originRequestHeader);
-                        context.Response.Headers.Append(HttpCommon.AccessControlAllowMethodsHeader, "*");
-                        context.Response.Headers.Append(HttpCommon.AccessControlAllowHeadersHeader, "*");
-                        switch (contentType.Value)
-                        {
-                            case ContentType.Bytes:
-                                context.Response.Headers.Append(HttpCommon.ContentTypeHeader, HttpCommon.ContentTypeBytes);
-                                break;
-                            case ContentType.Json:
-                                context.Response.Headers.Append(HttpCommon.ContentTypeHeader, HttpCommon.ContentTypeJson);
-                                break;
-                            case ContentType.JsonNameless:
-                                context.Response.Headers.Append(HttpCommon.ContentTypeHeader, HttpCommon.ContentTypeJsonNameless);
-                                break;
-                            default:
-                                throw new NotImplementedException();
-                        }
-
                         var responseBodyStream = context.Response.Body;
                         if (encryptor is not null)
                         {

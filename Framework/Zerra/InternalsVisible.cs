@@ -3,4 +3,5 @@
 // Licensed to you under the MIT license
 
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Zerra.Test")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Zerra.Test.Web")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Zerra.Repository")]

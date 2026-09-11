@@ -48,7 +48,7 @@ namespace Zerra.CQRS.Network
             this.log = log;
 
             if (!serviceUrl.Contains("://"))
-                this.serviceUri = new Uri($"tcp://{serviceUrl}"); //hacky way to make it parse without scheme.
+                this.serviceUri = new Uri($"http://{serviceUrl}"); //hacky way to make it parse without scheme, http so HttpClient based clients accept it
             else
                 this.serviceUri = new Uri(serviceUrl, UriKind.RelativeOrAbsolute);
             host = this.serviceUri.Host;
@@ -122,7 +122,7 @@ namespace Zerra.CQRS.Network
 
             try
             {
-                return CallInternalAsync<object>(throttle, false, interfaceType, methodName, argumentTypes, arguments, source, cancellationToken);
+                return LogFailure(CallInternalAsync<object>(throttle, false, interfaceType, methodName, argumentTypes, arguments, source, cancellationToken), "Call Failed");
             }
             catch (Exception ex)
             {
@@ -138,7 +138,7 @@ namespace Zerra.CQRS.Network
             try
             {
                 var isStream = typeof(TReturn) == streamType;
-                return CallInternalAsync<TReturn>(throttle, isStream, interfaceType, methodName, argumentTypes, arguments, source, cancellationToken);
+                return LogFailure(CallInternalAsync<TReturn>(throttle, isStream, interfaceType, methodName, argumentTypes, arguments, source, cancellationToken), "Call Failed");
             }
             catch (Exception ex)
             {
@@ -186,7 +186,7 @@ namespace Zerra.CQRS.Network
 
             try
             {
-                return DispatchInternal(throttle, commandType, command, false, source, cancellationToken);
+                return LogFailure(DispatchInternal(throttle, commandType, command, false, source, cancellationToken), "Dispatch Failed");
             }
             catch (Exception ex)
             {
@@ -204,7 +204,7 @@ namespace Zerra.CQRS.Network
 
             try
             {
-                return DispatchInternal(throttle, commandType, command, true, source, cancellationToken);
+                return LogFailure(DispatchInternal(throttle, commandType, command, true, source, cancellationToken), "Dispatch Failed");
             }
             catch (Exception ex)
             {
@@ -224,7 +224,7 @@ namespace Zerra.CQRS.Network
 
             try
             {
-                return DispatchInternal<TResult>(throttle, isStream, commandType, command, source, cancellationToken);
+                return LogFailure(DispatchInternal<TResult>(throttle, isStream, commandType, command, source, cancellationToken), "Dispatch Failed");
             }
             catch (Exception ex)
             {
@@ -243,11 +243,39 @@ namespace Zerra.CQRS.Network
 
             try
             {
-                return DispatchInternal(throttle, commandType, @event, source, cancellationToken);
+                return LogFailure(DispatchInternal(throttle, commandType, @event, source, cancellationToken), "Dispatch Failed");
             }
             catch (Exception ex)
             {
                 log?.Error($"Dispatch Failed", ex);
+                throw;
+            }
+        }
+
+        //async failures happen in the returned task instead of when it's created, the extra await is skipped without a logger
+        private Task LogFailure(Task task, string message) => log is null ? task : LogFailureAsync(task, message);
+        private Task<T> LogFailure<T>(Task<T> task, string message) => log is null ? task : LogFailureAsync(task, message);
+        private async Task LogFailureAsync(Task task, string message)
+        {
+            try
+            {
+                await task;
+            }
+            catch (Exception ex)
+            {
+                log?.Error(message, ex);
+                throw;
+            }
+        }
+        private async Task<T> LogFailureAsync<T>(Task<T> task, string message)
+        {
+            try
+            {
+                return await task;
+            }
+            catch (Exception ex)
+            {
+                log?.Error(message, ex);
                 throw;
             }
         }

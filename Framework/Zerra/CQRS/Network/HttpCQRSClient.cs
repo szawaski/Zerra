@@ -165,12 +165,18 @@ namespace Zerra.CQRS.Network
                 }
                 catch (Exception ex)
                 {
-                    if (responseBodyStream is not null)
-                        responseBodyStream.Dispose();
+                    //the request streams leave the socket open so they go first, the response stream closes the socket stream so it goes after the socket is handled
+                    if (requestBodyCryptoStream is not null)
+                    {
+                        try
+                        {
+                            //disposing flushes its final block into the request stream, which can fail the same as the request did
+                            requestBodyCryptoStream.Dispose();
+                        }
+                        catch { }
+                    }
                     if (requestBodyStream is not null)
                         requestBodyStream.Dispose();
-                    if (requestBodyCryptoStream is not null)
-                        requestBodyCryptoStream.Dispose();
                     if (isThrowingRemote)
                     {
                         if (stream is not null)
@@ -190,6 +196,9 @@ namespace Zerra.CQRS.Network
                             }
                         }
                     }
+
+                    if (responseBodyStream is not null)
+                        responseBodyStream.Dispose();
 
                     if (isThrowingRemote)
                         throw;
@@ -355,13 +364,19 @@ namespace Zerra.CQRS.Network
                 }
                 catch (Exception ex)
                 {
-                    if (responseBodyStream is not null)
+                    //the request streams leave the socket open so they go first, the response stream closes the socket stream so it goes after the socket is handled
+                    if (requestBodyCryptoStream is not null)
                     {
+                        try
+                        {
+                            //disposing flushes its final block into the request stream, which can fail the same as the request did
 #if NETSTANDARD2_0
-                        responseBodyStream.Dispose();
+                            requestBodyCryptoStream.Dispose();
 #else
-                        await responseBodyStream.DisposeAsync();
+                            await requestBodyCryptoStream.DisposeAsync();
 #endif
+                        }
+                        catch { }
                     }
                     if (requestBodyStream is not null)
                     {
@@ -369,14 +384,6 @@ namespace Zerra.CQRS.Network
                         requestBodyStream.Dispose();
 #else
                         await requestBodyStream.DisposeAsync();
-#endif
-                    }
-                    if (requestBodyCryptoStream is not null)
-                    {
-#if NETSTANDARD2_0
-                        requestBodyCryptoStream.Dispose();
-#else
-                        await requestBodyCryptoStream.DisposeAsync();
 #endif
                     }
                     if (isThrowingRemote)
@@ -389,13 +396,13 @@ namespace Zerra.CQRS.Network
                         log?.Error(ex);
                         if (stream is not null)
                         {
-                            var abortAcknowledged = await SocketAbortMonitor.SendAndAcknowledgeAbortAsync(stream);
+                            //only while the server has the whole request and hasn't responded, mid request the abort byte reads as request data and mid response the server is done with it
+                            var abortAcknowledged = requestBodyStream is null && !responseStarted && await SocketAbortMonitor.SendAndAcknowledgeAbortAsync(stream);
                             if (abortAcknowledged)
                                 stream?.Dispose();
                             else
                                 stream?.DisposeSocket();
                         }
-                        throw;
                     }
                     else
                     {
@@ -412,7 +419,16 @@ namespace Zerra.CQRS.Network
                         }
                     }
 
-                    if (isThrowingRemote)
+                    if (responseBodyStream is not null)
+                    {
+#if NETSTANDARD2_0
+                        responseBodyStream.Dispose();
+#else
+                        await responseBodyStream.DisposeAsync();
+#endif
+                    }
+
+                    if (isThrowingRemote || cancellationToken.IsCancellationRequested)
                         throw;
                     else
                         throw new Exception($"Call failed for {interfaceType.Name}.{methodName} - {ex.GetBaseException().Message}");
@@ -567,13 +583,19 @@ namespace Zerra.CQRS.Network
                 }
                 catch (Exception ex)
                 {
-                    if (responseBodyStream is not null)
+                    //the request streams leave the socket open so they go first, the response stream closes the socket stream so it goes after the socket is handled
+                    if (requestBodyCryptoStream is not null)
                     {
+                        try
+                        {
+                            //disposing flushes its final block into the request stream, which can fail the same as the request did
 #if NETSTANDARD2_0
-                        responseBodyStream.Dispose();
+                            requestBodyCryptoStream.Dispose();
 #else
-                        await responseBodyStream.DisposeAsync();
+                            await requestBodyCryptoStream.DisposeAsync();
 #endif
+                        }
+                        catch { }
                     }
                     if (requestBodyStream is not null)
                     {
@@ -581,14 +603,6 @@ namespace Zerra.CQRS.Network
                         requestBodyStream.Dispose();
 #else
                         await requestBodyStream.DisposeAsync();
-#endif
-                    }
-                    if (requestBodyCryptoStream is not null)
-                    {
-#if NETSTANDARD2_0
-                        requestBodyCryptoStream.Dispose();
-#else
-                        await requestBodyCryptoStream.DisposeAsync();
 #endif
                     }
                     if (isThrowingRemote)
@@ -601,13 +615,13 @@ namespace Zerra.CQRS.Network
                         log?.Error(ex);
                         if (stream is not null)
                         {
-                            var abortAcknowledged = await SocketAbortMonitor.SendAndAcknowledgeAbortAsync(stream);
+                            //only while the server has the whole request and hasn't responded, mid request the abort byte reads as request data and mid response the server is done with it
+                            var abortAcknowledged = requestBodyStream is null && !responseStarted && await SocketAbortMonitor.SendAndAcknowledgeAbortAsync(stream);
                             if (abortAcknowledged)
                                 stream?.Dispose();
                             else
                                 stream?.DisposeSocket();
                         }
-                        throw;
                     }
                     else
                     {
@@ -624,7 +638,16 @@ namespace Zerra.CQRS.Network
                         }
                     }
 
-                    if (isThrowingRemote)
+                    if (responseBodyStream is not null)
+                    {
+#if NETSTANDARD2_0
+                        responseBodyStream.Dispose();
+#else
+                        await responseBodyStream.DisposeAsync();
+#endif
+                    }
+
+                    if (isThrowingRemote || cancellationToken.IsCancellationRequested)
                         throw;
                     else
                         throw new Exception($"Dispatch failed for {commandType.Name} - {ex.GetBaseException().Message}");
@@ -787,13 +810,19 @@ namespace Zerra.CQRS.Network
                 }
                 catch (Exception ex)
                 {
-                    if (responseBodyStream is not null)
+                    //the request streams leave the socket open so they go first, the response stream closes the socket stream so it goes after the socket is handled
+                    if (requestBodyCryptoStream is not null)
                     {
+                        try
+                        {
+                            //disposing flushes its final block into the request stream, which can fail the same as the request did
 #if NETSTANDARD2_0
-                        responseBodyStream.Dispose();
+                            requestBodyCryptoStream.Dispose();
 #else
-                        await responseBodyStream.DisposeAsync();
+                            await requestBodyCryptoStream.DisposeAsync();
 #endif
+                        }
+                        catch { }
                     }
                     if (requestBodyStream is not null)
                     {
@@ -801,14 +830,6 @@ namespace Zerra.CQRS.Network
                         requestBodyStream.Dispose();
 #else
                         await requestBodyStream.DisposeAsync();
-#endif
-                    }
-                    if (requestBodyCryptoStream is not null)
-                    {
-#if NETSTANDARD2_0
-                        requestBodyCryptoStream.Dispose();
-#else
-                        await requestBodyCryptoStream.DisposeAsync();
 #endif
                     }
                     if (isThrowingRemote)
@@ -821,13 +842,13 @@ namespace Zerra.CQRS.Network
                         log?.Error(ex);
                         if (stream is not null)
                         {
-                            var abortAcknowledged = await SocketAbortMonitor.SendAndAcknowledgeAbortAsync(stream);
+                            //only while the server has the whole request and hasn't responded, mid request the abort byte reads as request data and mid response the server is done with it
+                            var abortAcknowledged = requestBodyStream is null && !responseStarted && await SocketAbortMonitor.SendAndAcknowledgeAbortAsync(stream);
                             if (abortAcknowledged)
                                 stream?.Dispose();
                             else
                                 stream?.DisposeSocket();
                         }
-                        throw;
                     }
                     else
                     {
@@ -844,7 +865,16 @@ namespace Zerra.CQRS.Network
                         }
                     }
 
-                    if (isThrowingRemote)
+                    if (responseBodyStream is not null)
+                    {
+#if NETSTANDARD2_0
+                        responseBodyStream.Dispose();
+#else
+                        await responseBodyStream.DisposeAsync();
+#endif
+                    }
+
+                    if (isThrowingRemote || cancellationToken.IsCancellationRequested)
                         throw;
                     else
                         throw new Exception($"Dispatch failed for {commandType.Name}", ex);
@@ -999,13 +1029,19 @@ namespace Zerra.CQRS.Network
                 }
                 catch (Exception ex)
                 {
-                    if (responseBodyStream is not null)
+                    //the request streams leave the socket open so they go first, the response stream closes the socket stream so it goes after the socket is handled
+                    if (requestBodyCryptoStream is not null)
                     {
+                        try
+                        {
+                            //disposing flushes its final block into the request stream, which can fail the same as the request did
 #if NETSTANDARD2_0
-                        responseBodyStream.Dispose();
+                            requestBodyCryptoStream.Dispose();
 #else
-                        await responseBodyStream.DisposeAsync();
+                            await requestBodyCryptoStream.DisposeAsync();
 #endif
+                        }
+                        catch { }
                     }
                     if (requestBodyStream is not null)
                     {
@@ -1013,14 +1049,6 @@ namespace Zerra.CQRS.Network
                         requestBodyStream.Dispose();
 #else
                         await requestBodyStream.DisposeAsync();
-#endif
-                    }
-                    if (requestBodyCryptoStream is not null)
-                    {
-#if NETSTANDARD2_0
-                        requestBodyCryptoStream.Dispose();
-#else
-                        await requestBodyCryptoStream.DisposeAsync();
 #endif
                     }
                     if (isThrowingRemote)
@@ -1033,13 +1061,13 @@ namespace Zerra.CQRS.Network
                         log?.Error(ex);
                         if (stream is not null)
                         {
-                            var abortAcknowledged = await SocketAbortMonitor.SendAndAcknowledgeAbortAsync(stream);
+                            //only while the server has the whole request and hasn't responded, mid request the abort byte reads as request data and mid response the server is done with it
+                            var abortAcknowledged = requestBodyStream is null && !responseStarted && await SocketAbortMonitor.SendAndAcknowledgeAbortAsync(stream);
                             if (abortAcknowledged)
                                 stream?.Dispose();
                             else
                                 stream?.DisposeSocket();
                         }
-                        throw;
                     }
                     else
                     {
@@ -1056,7 +1084,16 @@ namespace Zerra.CQRS.Network
                         }
                     }
 
-                    if (isThrowingRemote)
+                    if (responseBodyStream is not null)
+                    {
+#if NETSTANDARD2_0
+                        responseBodyStream.Dispose();
+#else
+                        await responseBodyStream.DisposeAsync();
+#endif
+                    }
+
+                    if (isThrowingRemote || cancellationToken.IsCancellationRequested)
                         throw;
                     else
                         throw new Exception($"Dispatch failed for {eventType.Name} - {ex.GetBaseException().Message}");

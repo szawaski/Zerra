@@ -135,16 +135,16 @@ namespace Zerra.CQRS.Network
                     else
                     {
 #if NETSTANDARD2_0
-                        bytesRead += stream.ReadToSpan(buffer.Slice(bytesRead, bytesToRead - bytesRead));
+                        var read = stream.ReadToSpan(buffer.Slice(bytesRead, bytesToRead - bytesRead));
 #else
-                        bytesRead += stream.Read(buffer.Slice(bytesRead, bytesToRead - bytesRead));
+                        var read = stream.Read(buffer.Slice(bytesRead, bytesToRead - bytesRead));
 #endif
+                        if (read == 0)
+                            throw new ConnectionAbortedException();
+                        bytesRead += read;
                     }
-                    if (bytesRead == 0)
-                        throw new ConnectionAbortedException();
-
-                    position += bytesRead;
                 }
+                position += bytesRead;
                 return bytesRead;
             }
             else
@@ -258,9 +258,9 @@ namespace Zerra.CQRS.Network
 #else
                         bytesRead = stream.Read(buffer.Slice(totalBytesRead, bytesToRead));
 #endif
+                        if (bytesRead == 0)
+                            throw new ConnectionAbortedException(); //the chunk isn't complete
                     }
-                    if (bytesRead == 0)
-                        break;
 
                     segmentPosition += bytesRead;
                     totalBytesRead += bytesRead;
@@ -300,16 +300,16 @@ namespace Zerra.CQRS.Network
                     else
                     {
 #if NETSTANDARD2_0
-                        bytesRead += await stream.ReadToMemoryAsync(buffer.Slice(bytesRead, bytesToRead - bytesRead), cancellationToken);
+                        var read = await stream.ReadToMemoryAsync(buffer.Slice(bytesRead, bytesToRead - bytesRead), cancellationToken);
 #else
-                        bytesRead += await stream.ReadAsync(buffer.Slice(bytesRead, bytesToRead - bytesRead), cancellationToken);
+                        var read = await stream.ReadAsync(buffer.Slice(bytesRead, bytesToRead - bytesRead), cancellationToken);
 #endif
+                        if (read == 0)
+                            throw new ConnectionAbortedException();
+                        bytesRead += read;
                     }
-                    if (bytesRead == 0)
-                        throw new ConnectionAbortedException();
-
-                    position += bytesRead;
                 }
+                position += bytesRead;
                 return bytesRead;
             }
             else
@@ -424,9 +424,9 @@ namespace Zerra.CQRS.Network
 #else
                         bytesRead = await stream.ReadAsync(buffer.Slice(totalBytesRead, bytesToRead), cancellationToken);
 #endif
+                        if (bytesRead == 0)
+                            throw new ConnectionAbortedException(); //the chunk isn't complete
                     }
-                    if (bytesRead == 0)
-                        break;
 
                     segmentPosition += bytesRead;
                     totalBytesRead += bytesRead;
@@ -536,15 +536,8 @@ namespace Zerra.CQRS.Network
 
             if (writeMode)
             {
-                if (contentLength.HasValue)
-                {
-#if NETSTANDARD2_0
-                    stream.Write(endingBytes, 0, endingBytes.Length);
-#else
-                    stream.Write(endingBytes.AsSpan());
-#endif
-                }
-                else
+                //a content length body is complete as written, the ending is only for chunked
+                if (!contentLength.HasValue)
                 {
                     //the last chunk and the ending go out together, without data the ending takes the chunk's place
                     var dataLength = writeBufferPosition - writeSegmentStart - writeChunkHeaderLength;
@@ -580,15 +573,8 @@ namespace Zerra.CQRS.Network
 
             if (writeMode)
             {
-                if (contentLength.HasValue)
-                {
-#if NETSTANDARD2_0
-                    await stream.WriteAsync(endingBytes, 0, endingBytes.Length, cancellationToken);
-#else
-                    await stream.WriteAsync(endingBytes.AsMemory(), cancellationToken);
-#endif
-                }
-                else
+                //a content length body is complete as written, the ending is only for chunked
+                if (!contentLength.HasValue)
                 {
                     //the last chunk and the ending go out together, without data the ending takes the chunk's place
                     var dataLength = writeBufferPosition - writeSegmentStart - writeChunkHeaderLength;

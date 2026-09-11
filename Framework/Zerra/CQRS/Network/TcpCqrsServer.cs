@@ -39,7 +39,11 @@ namespace Zerra.CQRS.Network
         /// <inheritdoc />
         protected override async Task Handle(Socket socket, CancellationToken cancellationToken)
         {
-            if (throttle is null) throw new InvalidOperationException($"{nameof(TcpCqrsServer)} is not setup");
+            if (throttle is null)
+            {
+                socket.Dispose();
+                throw new InvalidOperationException($"{nameof(TcpCqrsServer)} is not setup");
+            }
 
             var stream = new NetworkStream(socket, false); //one stream for the connection instead of one per request
             try
@@ -54,6 +58,7 @@ namespace Zerra.CQRS.Network
 
                     Stream? requestBodyStream = null;
                     Stream? responseBodyStream = null;
+                    Stream? resultStream = null; //the handler's stream, disposed once sent
                     CryptoFlushStream? responseBodyCryptoStream = null;
                     var isCommand = false;
 
@@ -157,6 +162,7 @@ namespace Zerra.CQRS.Network
                                 monitorIsCancellationRequested = await monitor.DisposeAndGetIsCancellationRequestedAsync();
                             }
                             inHandlerContext = false;
+                            resultStream = result.Stream;
 
                             if (monitorIsCancellationRequested)
                             {
@@ -440,6 +446,14 @@ namespace Zerra.CQRS.Network
                             requestBodyStream.Dispose();
 #else
                             await requestBodyStream.DisposeAsync();
+#endif
+                        }
+                        if (resultStream is not null)
+                        {
+#if NETSTANDARD2_0
+                            resultStream.Dispose();
+#else
+                            await resultStream.DisposeAsync();
 #endif
                         }
                         ArrayPoolHelper<byte>.Return(bufferOwner);

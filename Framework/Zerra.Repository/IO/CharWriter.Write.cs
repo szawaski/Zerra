@@ -1195,6 +1195,7 @@ namespace Zerra.Repository.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(Guid value)
         {
+            EnsureBufferSize(36);
             _ = value.TryFormat(buffer.Slice(position), out var consumed);
             position += consumed;
         }

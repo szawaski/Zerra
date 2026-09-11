@@ -8,6 +8,7 @@ using System.Net.Sockets;
 using Xunit;
 using Zerra.CQRS;
 using Zerra.CQRS.Network;
+using Zerra.Logging;
 using Zerra.Serialization;
 
 namespace Zerra.Test.CQRS.Network
@@ -84,6 +85,48 @@ namespace Zerra.Test.CQRS.Network
             var request = Assert.Single(server.Requests);
             Assert.Equal(messageAwait, request.MessageAwait);
             Assert.False(request.MessageResult);
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task CallTaskGeneric_UrlWithoutScheme_UsesHttp()
+        {
+            using var server = new FakeGateway(_ => serializer.SerializeBytes(42));
+            using var client = new ApiClient(server.Url["http://".Length..], serializer, null, null);
+            ((IQueryClient)client).RegisterInterfaceType(10, typeof(ITestQueryHandler));
+
+            Assert.Equal(42, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, default));
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task CallTaskGeneric_Fails_LogsError()
+        {
+            int port;
+            using (var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
+            {
+                socket.Bind(new IPEndPoint(IPAddress.Loopback, 0));
+                port = ((IPEndPoint)socket.LocalEndPoint!).Port;
+            }
+            var log = new ErrorLog();
+            using var client = new ApiClient($"http://127.0.0.1:{port}/", serializer, log, null);
+            ((IQueryClient)client).RegisterInterfaceType(10, typeof(ITestQueryHandler));
+
+            //the failure happens in the returned task, nothing is listening
+            _ = await Assert.ThrowsAnyAsync<Exception>(() => ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, default));
+
+            Assert.Equal("Call Failed", Assert.Single(log.Errors));
+        }
+
+        private sealed class ErrorLog : ILogger
+        {
+            public ConcurrentQueue<string?> Errors { get; } = new();
+            public void Trace(string message) { }
+            public void Debug(string message) { }
+            public void Info(string message) { }
+            public void Warn(string message) { }
+            public void Error(string? message = null, Exception? ex = null) => Errors.Enqueue(message);
+            public void Error(Exception? ex = null) => Errors.Enqueue(null);
+            public void Critical(string? message = null, Exception? ex = null) { }
+            public void Critical(Exception? ex = null) { }
         }
 
         private static ApiClient CreateClient(FakeGateway server)

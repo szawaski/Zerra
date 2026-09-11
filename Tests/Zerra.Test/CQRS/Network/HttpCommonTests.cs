@@ -80,6 +80,36 @@ namespace Zerra.Test.CQRS.Network
             Assert.True(header.Chuncked);
         }
 
+        [Theory]
+        [InlineData("chunked")]
+        [InlineData("CHUNKED ")]
+        [InlineData("chunked,")]
+        [InlineData(", chunked")]
+        public void ReadHeader_TransferEncodingChunked(string transferEncoding)
+        {
+            var bytes = System.Text.Encoding.UTF8.GetBytes($"POST / HTTP/1.1\r\nTransfer-Encoding: {transferEncoding}\r\n\r\n");
+
+            var header = HttpCommon.ReadHeader(bytes, bytes.Length);
+
+            Assert.True(header.Chuncked);
+        }
+
+        [Theory]
+        [InlineData("Transfer-Encoding: gzip, chunked")] //gzip isn't decoded
+        [InlineData("Transfer-Encoding: chunked, gzip")] //the body doesn't end with the chunked framing
+        [InlineData("Transfer-Encoding: gzip")]
+        [InlineData("Transfer-Encoding: ")]
+        [InlineData("Transfer-Encoding: chunked, chunked")]
+        [InlineData("Transfer-Encoding: chunked\r\nTransfer-Encoding: chunked")] //the lines add up to one list
+        [InlineData("Transfer-Encoding: gzip\r\nTransfer-Encoding: chunked")]
+        public void ReadHeader_UnsupportedTransferEncoding_Throws(string transferEncodingLines)
+        {
+            //a body that can't be read would leave the connection out of step with the next request
+            var bytes = System.Text.Encoding.UTF8.GetBytes($"POST / HTTP/1.1\r\n{transferEncodingLines}\r\n\r\n");
+
+            _ = Assert.Throws<CqrsNetworkException>(() => HttpCommon.ReadHeader(bytes, bytes.Length));
+        }
+
         [Fact]
         public void ReadHeader_KnownHeadersWithoutBuildingAllHeaders()
         {
@@ -199,7 +229,7 @@ namespace Zerra.Test.CQRS.Network
             var length = HttpCommon.BufferPostRequestHeader(buffer, url, "TestProvider", ContentType.Bytes, authHeaders);
 
             //response-only Access-Control-Allow headers are not sent
-            var expected = "POST http://localhost:9001/api HTTP/1.1\r\nProvider-Type: TestProvider\r\nContent-Type: application/octet-stream\r\nAuthorization: Bearer token123\r\nTransfer-Encoding: chunked\r\nHost: localhost:9001\r\nOrigin: localhost\r\n\r\n";
+            var expected = "POST /api HTTP/1.1\r\nProvider-Type: TestProvider\r\nContent-Type: application/octet-stream\r\nAuthorization: Bearer token123\r\nTransfer-Encoding: chunked\r\nHost: localhost:9001\r\nOrigin: localhost\r\n\r\n";
             Assert.Equal(expected, System.Text.Encoding.UTF8.GetString(buffer, 0, length));
         }
 

@@ -89,10 +89,12 @@ namespace Zerra.CQRS.Network
                             }
                             catch (Exception ex)
                             {
-                                if (ex.GetBaseException() is not SocketException)
-                                    throw;
-
                                 stream.DisposeNoReturnSocket();
+                                if (ex.GetBaseException() is not SocketException)
+                                {
+                                    holder.Socket.Dispose(); //part of the request may have been written so the socket can't go back to the pool
+                                    throw;
+                                }
                             }
                         }
                         holder.Socket.Dispose();
@@ -152,6 +154,8 @@ namespace Zerra.CQRS.Network
                     {
                         socket?.Dispose();
                         stream?.DisposeNoReturnSocket();
+                        if (ex is OperationCanceledException)
+                            throw; //canceled, not a failed address to move past
                         lastex = ex;
                     }
                 }
@@ -214,10 +218,12 @@ namespace Zerra.CQRS.Network
                             }
                             catch (Exception ex)
                             {
-                                if (ex.GetBaseException() is not SocketException)
-                                    throw;
-
                                 stream.DisposeNoReturnSocket();
+                                if (ex.GetBaseException() is not SocketException)
+                                {
+                                    holder.Socket.Dispose(); //part of the request may have been written so the socket can't go back to the pool
+                                    throw;
+                                }
                             }
                         }
                         holder.Socket.Dispose();
@@ -273,6 +279,8 @@ namespace Zerra.CQRS.Network
                     {
                         socket?.Dispose();
                         stream?.DisposeNoReturnSocket();
+                        if (ex is OperationCanceledException)
+                            throw; //canceled, not a failed address to move past
                         lastex = ex;
                     }
                 }
@@ -329,10 +337,12 @@ namespace Zerra.CQRS.Network
                             }
                             catch (Exception ex)
                             {
-                                if (ex.GetBaseException() is not SocketException)
-                                    throw;
-
                                 stream.DisposeNoReturnSocket();
+                                if (ex.GetBaseException() is not SocketException)
+                                {
+                                    holder.Socket.Dispose(); //part of the request may have been written so the socket can't go back to the pool
+                                    throw;
+                                }
                             }
                         }
                         holder.Socket.Dispose();
@@ -380,6 +390,8 @@ namespace Zerra.CQRS.Network
                     {
                         socket?.Dispose();
                         stream?.DisposeNoReturnSocket();
+                        if (ex is OperationCanceledException)
+                            throw; //canceled, not a failed address to move past
                         lastex = ex;
                     }
                 }
@@ -434,10 +446,12 @@ namespace Zerra.CQRS.Network
                             }
                             catch (Exception ex)
                             {
-                                if (ex.GetBaseException() is not SocketException)
-                                    throw;
-
                                 stream.DisposeNoReturnSocket();
+                                if (ex.GetBaseException() is not SocketException)
+                                {
+                                    holder.Socket.Dispose(); //part of the request may have been written so the socket can't go back to the pool
+                                    throw;
+                                }
                             }
                         }
                         holder.Socket.Dispose();
@@ -485,6 +499,8 @@ namespace Zerra.CQRS.Network
                     {
                         socket?.Dispose();
                         stream?.DisposeNoReturnSocket();
+                        if (ex is OperationCanceledException)
+                            throw; //canceled, not a failed address to move past
                         lastex = ex;
                     }
                 }

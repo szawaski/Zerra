@@ -70,9 +70,10 @@ namespace Zerra.Web
         private string[]? allowOrigins;
 
         /// <summary>
-        /// Gets or sets the list of allowed origin hosts for CORS validation.
+        /// Gets or sets the list of allowed origins for CORS validation.
         /// </summary>
         /// <remarks>
+        /// Each value can be a full origin such as "https://app.example.com" or just the host such as "app.example.com", compared without case.
         /// Setting this to null or an empty array allows all origins ("*").
         /// </remarks>
         public string[]? AllowOrigins
@@ -114,7 +115,6 @@ namespace Zerra.Web
             this.ContentType = contentType;
 
             Types = new();
-            Types = new();
             this.allowOriginsString = "*";
         }
 
@@ -126,10 +126,6 @@ namespace Zerra.Web
         /// </remarks>
         public void Dispose()
         {
-            foreach (var throttle in Types.Values)
-                throttle.Dispose();
-            Types.Clear();
-
             foreach (var throttle in Types.Values)
                 throttle.Dispose();
             Types.Clear();

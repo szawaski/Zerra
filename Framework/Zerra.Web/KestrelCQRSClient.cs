@@ -8,9 +8,9 @@ using System.Security.Claims;
 using Zerra.CQRS;
 using Zerra.CQRS.Network;
 using Zerra.Encryption;
+using Zerra.IO;
 using Zerra.Logging;
 using Zerra.Serialization;
-using Zerra.Serialization.Json;
 
 namespace Zerra.Web
 {
@@ -62,9 +62,6 @@ namespace Zerra.Web
         protected override TReturn CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source)
         {
             var providerName = interfaceType.Name;
-            var stringArguments = new string?[arguments.Length];
-            for (var i = 0; i < arguments.Length; i++)
-                stringArguments[i] = JsonSerializer.Serialize(arguments);
 
             string[][]? claims = null;
             if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
@@ -91,9 +88,6 @@ namespace Zerra.Web
         protected override Task<TReturn> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, CancellationToken cancellationToken) where TReturn : default
         {
             var providerName = interfaceType.Name;
-            var stringArguments = new string?[arguments.Length];
-            for (var i = 0; i < arguments.Length; i++)
-                stringArguments[i] = JsonSerializer.Serialize(arguments);
 
             string[][]? claims = null;
             if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
@@ -154,7 +148,7 @@ namespace Zerra.Web
                 MessageType = messageType,
                 MessageData = messageData,
                 MessageAwait = true,
-                MessageResult = false,
+                MessageResult = true,
 
                 Claims = claims,
                 Source = source
@@ -190,6 +184,7 @@ namespace Zerra.Web
         {
             await throttle.WaitAsync(cancellationToken);
 
+            HttpResponseMessage? response = null;
             Stream? responseStream = null;
             try
             {
@@ -199,7 +194,7 @@ namespace Zerra.Web
                 {
                     if (encryptor is not null)
                     {
-                        var cryptoStream = encryptor.Encrypt(postStream, true);
+                        var cryptoStream = encryptor.Encrypt(new LeaveOpenStream(postStream), true);
                         await serializer.SerializeAsync(cryptoStream, data, cancellationToken);
                         await cryptoStream.FlushFinalBlockAsync(cancellationToken);
                         await cryptoStream.DisposeAsync();
@@ -227,7 +222,10 @@ namespace Zerra.Web
                 if (!String.IsNullOrWhiteSpace(providerType))
                     request.Headers.Add(HttpCommon.ProviderTypeHeader, providerType);
 
-                using var response = await client.SendAsync(request, cancellationToken);
+                request.Headers.Add(HttpCommon.OriginHeader, serviceUri.Host); //the same as HttpCqrsClient, a server with allowed origins requires one
+
+                //headers only so the body streams instead of buffering, the response stays undisposed for a stream result
+                response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
                 responseStream = await response.Content.ReadAsStreamAsync(cancellationToken);
 
@@ -236,14 +234,14 @@ namespace Zerra.Web
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    var responseException = await ExceptionSerializer.DeserializeAsync(data.MessageType, serializer, responseStream, cancellationToken);
+                    var responseException = await ExceptionSerializer.DeserializeAsync(providerType ?? String.Empty, serializer, responseStream, cancellationToken);
                     throw responseException;
                 }
 
                 if (!getResponseData)
                 {
                     await responseStream.DisposeAsync();
-                    client.Dispose();
+                    response.Dispose();
                     return default!;
                 }
 
@@ -255,7 +253,7 @@ namespace Zerra.Web
                 {
                     var result = await serializer.DeserializeAsync<TReturn>(responseStream, cancellationToken);
                     await responseStream.DisposeAsync();
-                    client.Dispose();
+                    response.Dispose();
                     return result!;
                 }
             }
@@ -268,8 +266,8 @@ namespace Zerra.Web
                         await responseStream.DisposeAsync();
                     }
                     catch { }
-                    client?.Dispose();
                 }
+                response?.Dispose(); //the client is shared by every request so only the response is disposed
                 throw;
             }
             finally
@@ -282,6 +280,7 @@ namespace Zerra.Web
         {
             throttle.Wait();
 
+            HttpResponseMessage? response = null;
             Stream? responseStream = null;
             try
             {
@@ -291,7 +290,7 @@ namespace Zerra.Web
                 {
                     if (encryptor is not null)
                     {
-                        var cryptoStream = encryptor.Encrypt(postStream, true);
+                        var cryptoStream = encryptor.Encrypt(new LeaveOpenStream(postStream), true);
                         serializer.Serialize(cryptoStream, data);
                         cryptoStream.FlushFinalBlock();
                         cryptoStream.Dispose();
@@ -319,7 +318,10 @@ namespace Zerra.Web
                 if (!String.IsNullOrWhiteSpace(providerType))
                     request.Headers.Add(HttpCommon.ProviderTypeHeader, providerType);
 
-                using var response = client.Send(request);
+                request.Headers.Add(HttpCommon.OriginHeader, serviceUri.Host); //the same as HttpCqrsClient, a server with allowed origins requires one
+
+                //headers only so the body streams instead of buffering, the response stays undisposed for a stream result
+                response = client.Send(request, HttpCompletionOption.ResponseHeadersRead);
 
                 responseStream = response.Content.ReadAsStream();
 
@@ -328,14 +330,14 @@ namespace Zerra.Web
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    var responseException = ExceptionSerializer.Deserialize(data.MessageType, serializer, responseStream);
+                    var responseException = ExceptionSerializer.Deserialize(providerType ?? String.Empty, serializer, responseStream);
                     throw responseException;
                 }
 
                 if (!getResponseData)
                 {
                     responseStream.Dispose();
-                    client.Dispose();
+                    response.Dispose();
                     return default!;
                 }
 
@@ -347,7 +349,7 @@ namespace Zerra.Web
                 {
                     var result = serializer.Deserialize<TReturn>(responseStream);
                     responseStream.Dispose();
-                    client.Dispose();
+                    response.Dispose();
                     return result!;
                 }
             }
@@ -360,8 +362,8 @@ namespace Zerra.Web
                         responseStream.Dispose();
                     }
                     catch { }
-                    client?.Dispose();
                 }
+                response?.Dispose(); //the client is shared by every request so only the response is disposed
                 throw;
             }
             finally
@@ -382,5 +384,8 @@ namespace Zerra.Web
             client.Dispose();
             handler.Dispose();
         }
+
+        //the request stream belongs to HttpClient, the encryption stream closes what it wraps when disposed
+        private sealed class LeaveOpenStream(Stream stream) : StreamWrapper(stream, true) { }
     }
 }

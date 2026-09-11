@@ -114,14 +114,14 @@ namespace Zerra.CQRS.Network
                         else
                         {
 #if NETSTANDARD2_0
-                            bytesRead += stream.Read(segmentLengthBufferSource, bytesRead, segmentLengthBufferLength - bytesRead);
+                            var read = stream.Read(segmentLengthBufferSource, bytesRead, segmentLengthBufferLength - bytesRead);
 #else
-                            bytesRead += stream.Read(segmentLengthBufferSource.AsSpan(bytesRead, segmentLengthBufferLength - bytesRead));
+                            var read = stream.Read(segmentLengthBufferSource.AsSpan(bytesRead, segmentLengthBufferLength - bytesRead));
 #endif
+                            if (read == 0)
+                                throw new ConnectionAbortedException();
+                            bytesRead += read;
                         }
-
-                        if (bytesRead == 0)
-                            throw new ConnectionAbortedException();
                     }
 #if NETSTANDARD2_0
                     segmentLength = BitConverter.ToInt32(segmentLengthBufferSource, 0);
@@ -151,6 +151,8 @@ namespace Zerra.CQRS.Network
 #else
                     bytesRead = stream.Read(buffer.Slice(totalBytesRead, bytesToRead));
 #endif
+                    if (bytesRead == 0)
+                        throw new ConnectionAbortedException(); //the segment isn't complete
                 }
                 segmentPosition += bytesRead;
                 totalBytesRead += bytesRead;
@@ -189,14 +191,14 @@ namespace Zerra.CQRS.Network
                         else
                         {
 #if NETSTANDARD2_0
-                            bytesRead += await stream.ReadAsync(segmentLengthBufferSource, bytesRead, segmentLengthBufferLength - bytesRead);
+                            var read = await stream.ReadAsync(segmentLengthBufferSource, bytesRead, segmentLengthBufferLength - bytesRead);
 #else
-                            bytesRead += await stream.ReadAsync(segmentLengthBufferSource.AsMemory(bytesRead, segmentLengthBufferLength - bytesRead), cancellationToken);
+                            var read = await stream.ReadAsync(segmentLengthBufferSource.AsMemory(bytesRead, segmentLengthBufferLength - bytesRead), cancellationToken);
 #endif
+                            if (read == 0)
+                                throw new ConnectionAbortedException();
+                            bytesRead += read;
                         }
-
-                        if (bytesRead == 0)
-                            throw new ConnectionAbortedException();
                     }
 #if NETSTANDARD2_0
                     segmentLength = BitConverter.ToInt32(segmentLengthBufferSource, 0);
@@ -226,9 +228,9 @@ namespace Zerra.CQRS.Network
 #else
                     bytesRead = await stream.ReadAsync(buffer.Slice(totalBytesRead, bytesToRead), cancellationToken);
 #endif
+                    if (bytesRead == 0)
+                        throw new ConnectionAbortedException(); //the segment isn't complete
                 }
-                if (bytesRead == 0)
-                    break;
 
                 segmentPosition += bytesRead;
                 totalBytesRead += bytesRead;

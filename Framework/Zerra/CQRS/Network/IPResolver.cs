@@ -30,16 +30,14 @@ namespace Zerra.CQRS.Network
             }
             else
             {
-                try
+                var ipAddresses = Dns.GetHostAddresses(uri.DnsSafeHost);
+                foreach (var ip in ipAddresses)
                 {
-                    var ipAddresses = Dns.GetHostAddresses(uri.DnsSafeHost);
-                    foreach (var ip in ipAddresses)
-                    {
-                        if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-                            endpoints.Add(new IPEndPoint(ip, port));
-                    }
+                    if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                        endpoints.Add(new IPEndPoint(ip, port));
                 }
-                catch { }
+                if (endpoints.Count == 0)
+                    throw new InvalidOperationException($"{uri.DnsSafeHost} did not resolve to an IP address");
             }
 
             return endpoints;
@@ -67,16 +65,15 @@ namespace Zerra.CQRS.Network
                 }
                 else
                 {
-                    try
+                    var ipAddresses = Dns.GetHostAddresses(uri.DnsSafeHost);
+                    var endpointCount = endpoints.Count;
+                    foreach (var ip in ipAddresses)
                     {
-                        var ipAddresses = Dns.GetHostAddresses(uri.DnsSafeHost);
-                        foreach (var ip in ipAddresses)
-                        {
-                            if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork || ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)
-                                endpoints.Add(new IPEndPoint(ip, port));
-                        }
+                        if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork || ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)
+                            endpoints.Add(new IPEndPoint(ip, port));
                     }
-                    catch { }
+                    if (endpoints.Count == endpointCount)
+                        throw new InvalidOperationException($"{uri.DnsSafeHost} did not resolve to an IP address");
                 }
             }
 

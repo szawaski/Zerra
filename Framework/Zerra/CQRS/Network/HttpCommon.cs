@@ -188,8 +188,21 @@ namespace Zerra.CQRS.Network
                                 }
                                 else if (key.Equals(TransferEncodingHeader.AsSpan(), StringComparison.OrdinalIgnoreCase))
                                 {
-                                    if (value.Equals(TransferEncodingChunked.AsSpan(), StringComparison.OrdinalIgnoreCase))
+                                    //a list of codings that may span header lines, only chunked is read so any other coding would leave the body unreadable and the connection out of step
+                                    var codings = value;
+                                    while (codings.Length > 0)
+                                    {
+                                        var codingEnd = codings.IndexOf(',');
+                                        var coding = (codingEnd >= 0 ? codings.Slice(0, codingEnd) : codings).Trim();
+                                        codings = codingEnd >= 0 ? codings.Slice(codingEnd + 1) : default;
+                                        if (coding.Length == 0)
+                                            continue; //empty list elements are allowed
+                                        if (headerInfo.Chuncked || !coding.Equals(TransferEncodingChunked.AsSpan(), StringComparison.OrdinalIgnoreCase))
+                                            throw new CqrsNetworkException($"Unsupported {TransferEncodingHeader}"); //chunked can only be applied once
                                         headerInfo.Chuncked = true;
+                                    }
+                                    if (!headerInfo.Chuncked)
+                                        throw new CqrsNetworkException($"Unsupported {TransferEncodingHeader}");
                                 }
                                 else if (key.Equals(ProviderTypeHeader.AsSpan(), StringComparison.OrdinalIgnoreCase))
                                 {
@@ -359,7 +372,7 @@ namespace Zerra.CQRS.Network
             var headerBuffer = new SpanWriter<byte>(buffer.Span);
 
             headerBuffer.Write(postRequestBytes);
-            headerBuffer.Advance(encoding.GetBytes(serviceUrl.ToString(), headerBuffer.Remaining));
+            headerBuffer.Advance(encoding.GetBytes(serviceUrl.PathAndQuery, headerBuffer.Remaining)); //the escaped path, the host goes in the Host header
             headerBuffer.Write(requestEndingBytes);
             headerBuffer.Write(newLineBytes);
 

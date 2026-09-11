@@ -83,6 +83,35 @@ namespace Zerra.Test.CQRS.Network
             Assert.Equal([1, 2, 3, 4, 5], await connection.ReadBodyBytesAsync(header, enc));
         }
 
+        [Fact(Timeout = timeout)]
+        public async Task Query_ReturnsStream_DisposesStream()
+        {
+            var resultStream = new DisposeSignalStream([1, 2, 3]);
+            using var server = StartQueryServer(out var port, null, (_, _, _, _, _, _) =>
+                Task.FromResult(new RemoteQueryCallResponse(resultStream)));
+
+            await using var connection = await TestConnection.ConnectAsync(port);
+            await connection.SendAsync(QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetStream)), null);
+
+            var header = await connection.ReadHeaderAsync();
+            Assert.NotNull(header);
+            Assert.Equal([1, 2, 3], await connection.ReadBodyBytesAsync(header, null));
+            await resultStream.Disposed.Task; //the handler's stream is released once it's sent, such as a file handle
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task Request_WithoutBodyLength_IsNotLeftWaiting()
+        {
+            using var server = StartQueryServer(out var port, null, (_, _, _, _, _, _) =>
+                Task.FromResult(new RemoteQueryCallResponse(1)));
+
+            //without Content-Length or chunked the body is empty, reading it as chunked would wait for data that never comes
+            await using var connection = await TestConnection.ConnectAsync(port);
+            await connection.SendRawAsync($"POST / HTTP/1.1\r\nContent-Type: {HttpCommon.ContentTypeBytes}\r\nHost: 127.0.0.1\r\n\r\n");
+
+            Assert.Equal("", await connection.ReadRawAsync()); //the empty request is rejected
+        }
+
         [Theory(Timeout = timeout)]
         [InlineData(false)]
         [InlineData(true)]
@@ -227,6 +256,23 @@ namespace Zerra.Test.CQRS.Network
 
             await using var connection = await TestConnection.ConnectAsync(port);
             await connection.SendAsync(QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), 21), null);
+
+            var header = await connection.ReadHeaderAsync();
+            Assert.NotNull(header);
+            Assert.False(header.IsError);
+        }
+
+        [Theory(Timeout = timeout)]
+        [InlineData("app.example.com", "https://App.Example.com")] //an allowed host matches a browser's full origin
+        [InlineData("HTTPS://APP.example.com", "https://app.example.com")] //case doesn't matter
+        [InlineData("127.0.0.1", null)] //the service host that HttpCqrsClient sends
+        public async Task Query_OriginMatchesAllowedOriginOrHost(string allowOrigin, string? origin)
+        {
+            using var server = StartQueryServer(out var port, null, (_, _, _, _, _, _) =>
+                Task.FromResult(new RemoteQueryCallResponse(1)), allowOrigins: [allowOrigin]);
+
+            await using var connection = await TestConnection.ConnectAsync(port);
+            await connection.SendAsync(QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), 21), null, origin: origin);
 
             var header = await connection.ReadHeaderAsync();
             Assert.NotNull(header);
@@ -402,6 +448,19 @@ namespace Zerra.Test.CQRS.Network
             _ = Assert.Throws<ObjectDisposedException>(() => ((IQueryServer)server).Open());
         }
 
+        [Fact(Timeout = timeout)]
+        public async Task NotSetup_ClosesConnection()
+        {
+            //opened without registering anything so a connection can't be handled, it must be closed instead of left open
+            var port = GetFreePort();
+            using var server = new HttpCqrsServer($"127.0.0.1:{port}", serializer, null, null, null);
+            ((IQueryServer)server).Open();
+
+            using var client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            await client.ConnectAsync(new IPEndPoint(IPAddress.Loopback, port), TestContext.Current.CancellationToken);
+            Assert.Equal(0, await client.ReceiveAsync(new byte[1], SocketFlags.None, TestContext.Current.CancellationToken));
+        }
+
         private static HttpCqrsServer StartQueryServer(out int port, IEncryptor? encryptor, QueryHandlerDelegate handler, ICqrsAuthorizer? authorizer = null, string[]? allowOrigins = null)
         {
             port = GetFreePort();
@@ -476,6 +535,16 @@ namespace Zerra.Test.CQRS.Network
         }
 
         //Speaks the client side of the HTTP protocol so the server can be tested without HttpCqrsClient
+        private sealed class DisposeSignalStream(byte[] data) : MemoryStream(data)
+        {
+            public TaskCompletionSource Disposed { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            protected override void Dispose(bool disposing)
+            {
+                _ = Disposed.TrySetResult();
+                base.Dispose(disposing);
+            }
+        }
+
         private sealed class TestConnection : IAsyncDisposable
         {
             private readonly NetworkStream stream;
@@ -494,10 +563,17 @@ namespace Zerra.Test.CQRS.Network
                 return new TestConnection(socket, port);
             }
 
-            public async Task SendAsync(CqrsRequestData data, IEncryptor? encryptor, ContentType? contentType = null, Dictionary<string, List<string?>>? authHeaders = null)
+            public async Task SendAsync(CqrsRequestData data, IEncryptor? encryptor, ContentType? contentType = null, Dictionary<string, List<string?>>? authHeaders = null, string? origin = null)
             {
                 var buffer = new byte[HttpCommon.BufferLength];
                 var headerLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, data.ProviderType ?? data.MessageType, contentType ?? serializer.ContentType, authHeaders);
+                if (origin is not null)
+                {
+                    //a browser sends its own origin instead of the service host
+                    var header = Encoding.UTF8.GetString(buffer, 0, headerLength).Replace($"Origin: {serviceUri.Host}\r\n", $"Origin: {origin}\r\n");
+                    buffer = Encoding.UTF8.GetBytes(header);
+                    headerLength = buffer.Length;
+                }
                 await stream.WriteAsync(buffer.AsMemory(0, headerLength));
 
                 var body = new HttpProtocolBodyStream(null, stream, null, true, true);

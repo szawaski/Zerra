@@ -164,6 +164,52 @@ namespace Zerra.Test.CQRS.Network
         }
 
         [Fact(Timeout = timeout)]
+        public async Task CallTaskGeneric_CanceledDuringResponse_DoesNotWaitForAbort()
+        {
+            using var server = new FakeServer(null, async request =>
+            {
+                //the header and part of a 100 byte segment, the rest never comes
+                var buffer = new byte[TcpCommon.BufferLength];
+                var headerLength = TcpCommon.BufferHeader(buffer, request.Header.ProviderType!, serializer.ContentType);
+                await request.WriteRawAsync(buffer[..headerLength].Concat(BitConverter.GetBytes(100)).Concat(new byte[10]).ToArray());
+            });
+            using var client = CreateClient(server, null);
+            using var cts = new CancellationTokenSource(300);
+
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, cts.Token));
+            stopwatch.Stop();
+
+            //the server already responded so there is no abort to acknowledge, waiting for one would add the abort timeout
+            Assert.True(stopwatch.ElapsedMilliseconds < 800, $"cancel took {stopwatch.ElapsedMilliseconds}ms");
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task CallTaskGeneric_CanceledDuringRequest_DoesNotWaitForAbort()
+        {
+            //the server accepts but never reads so a large request fills the socket buffers and the write waits
+            using var listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            listener.Bind(new IPEndPoint(IPAddress.Loopback, 0));
+            listener.Listen();
+            using var client = new TcpCqrsClient($"127.0.0.1:{((IPEndPoint)listener.LocalEndPoint!).Port}", serializer, null, null);
+            ((IQueryClient)client).RegisterInterfaceType(10, typeof(ITestQueryHandler));
+            using var cts = new CancellationTokenSource();
+
+            var call = ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(byte[])], [new byte[64 * 1024 * 1024]], source, cts.Token);
+            using var server = await listener.AcceptAsync(TestContext.Current.CancellationToken);
+            await Task.Delay(200, TestContext.Current.CancellationToken); //the request fills the buffers and waits
+
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            cts.Cancel();
+            _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => call);
+            stopwatch.Stop();
+
+            //the server doesn't have the whole request so there is no abort to acknowledge, waiting for one would add the abort timeout
+            Assert.True(stopwatch.ElapsedMilliseconds < 800, $"cancel took {stopwatch.ElapsedMilliseconds}ms");
+        }
+
+        [Fact(Timeout = timeout)]
         public async Task CallTaskGeneric_ReusesConnection()
         {
             using var server = new FakeServer(null, request => request.WriteModelAsync(42));

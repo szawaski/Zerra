@@ -14,6 +14,7 @@ namespace Zerra.CQRS.Network
         private bool disposed;
 
         private CancellationTokenSource? canceller;
+        private CancellationToken cancellationToken; //kept so an accept finishing during shutdown doesn't read a disposed canceller
 
         public SocketListener(Socket socket, Func<Socket, CancellationToken, Task> handler)
         {
@@ -36,6 +37,7 @@ namespace Zerra.CQRS.Network
                 socket.Listen(backlog);
 
                 this.canceller = new CancellationTokenSource();
+                this.cancellationToken = canceller.Token;
 
                 _ = Task.Run(AcceptConnections);
 
@@ -85,12 +87,20 @@ namespace Zerra.CQRS.Network
             if (!started)
                 return;
 
-            _ = beginAcceptWaiter.Release();
+            Socket incommingSocket;
+            try
+            {
+                _ = beginAcceptWaiter.Release();
 
-            var incommingSocket = socket.EndAccept(result);
+                incommingSocket = socket.EndAccept(result);
+            }
+            catch
+            {
+                return; //the connection reset before it was accepted or the listener closed, throwing in this callback would crash the process
+            }
             //incommingSocket copies settings of socket (ReceiveTimeout,SendTimeout,NoDelay,etc)
 
-            _ = Task.Run(() => handler(incommingSocket, canceller!.Token));
+            _ = Task.Run(() => handler(incommingSocket, cancellationToken));
         }
 
         ~SocketListener()

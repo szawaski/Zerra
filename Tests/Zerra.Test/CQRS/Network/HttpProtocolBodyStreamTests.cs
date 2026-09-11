@@ -473,18 +473,26 @@ namespace Zerra.Test.CQRS.Network
             public override void SetLength(long value) => throw new NotSupportedException();
         }
 
-        [Fact]
-        public void WriteWithContentLength_ThenFlush()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task WriteWithContentLength_ThenFlush_WritesOnlyBody(bool async)
         {
             var baseStream = new MemoryStream();
-            var stream = new HttpProtocolBodyStream(contentLength: 100, baseStream, new byte[] { }, writeMode: true, leaveOpen: false);
-            stream.Write([1, 2, 3, 4, 5], 0, 5);
+            var stream = new HttpProtocolBodyStream(contentLength: 5, baseStream, new byte[] { }, writeMode: true, leaveOpen: true);
+            if (async)
+            {
+                await stream.WriteAsync(new byte[] { 1, 2, 3, 4, 5 }, TestContext.Current.CancellationToken);
+                await stream.FlushAsync(TestContext.Current.CancellationToken);
+            }
+            else
+            {
+                stream.Write([1, 2, 3, 4, 5], 0, 5);
+                stream.Flush();
+            }
 
-            var lengthBeforeFlush = baseStream.Length;
-            stream.Flush();
-
-            // Flush writes ending bytes (0\r\n\r\n) - 5 bytes
-            Assert.Equal(lengthBeforeFlush + 5, baseStream.Length);
+            //the chunked ending would be read as the start of the next message
+            Assert.Equal([1, 2, 3, 4, 5], baseStream.ToArray());
         }
 
         [Fact]
@@ -596,6 +604,56 @@ namespace Zerra.Test.CQRS.Network
 
             Assert.Equal("hello", System.Text.Encoding.UTF8.GetString(ms.ToArray()));
             Assert.True(baseStream.AtEnd);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task ReadContentLength_BodyArrivesInPieces_ReadsWholeBody(bool async)
+        {
+            //each read asks for more than has arrived so the reads return in pieces
+            var data = Enumerable.Range(0, 100).Select(x => (byte)x).ToArray();
+            var baseStream = new NoReadPastEndStream(data[..30], data[30..60], data[60..]);
+            var stream = new HttpProtocolBodyStream(data.Length, baseStream, null, writeMode: false, leaveOpen: true);
+
+            using var ms = new MemoryStream();
+            var buffer = new byte[50];
+            int read;
+            while ((read = async ? await stream.ReadAsync(buffer, TestContext.Current.CancellationToken) : stream.Read(buffer, 0, buffer.Length)) > 0)
+                ms.Write(buffer, 0, read);
+
+            Assert.Equal(data, ms.ToArray());
+            Assert.True(baseStream.AtEnd);
+        }
+
+        [Theory(Timeout = 5000)]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task ReadChunked_StreamEndsInChunk_Throws(bool async)
+        {
+            //the chunk claims 5 bytes but the connection closes after 3
+            var stream = new HttpProtocolBodyStream(null, new MemoryStream(System.Text.Encoding.UTF8.GetBytes("5\r\nhel")), null, writeMode: false, leaveOpen: true);
+            var buffer = new byte[10];
+
+            if (async)
+                _ = await Assert.ThrowsAsync<ConnectionAbortedException>(async () => await stream.ReadAsync(buffer, TestContext.Current.CancellationToken));
+            else
+                _ = await Assert.ThrowsAsync<ConnectionAbortedException>(() => Task.Run(() => stream.Read(buffer, 0, buffer.Length), TestContext.Current.CancellationToken));
+        }
+
+        [Theory(Timeout = 5000)]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task ReadContentLength_StreamEndsEarly_Throws(bool async)
+        {
+            //the body claims 10 bytes but the connection closes after 3
+            var stream = new HttpProtocolBodyStream(10, new MemoryStream([1, 2, 3]), null, writeMode: false, leaveOpen: true);
+            var buffer = new byte[10];
+
+            if (async)
+                _ = await Assert.ThrowsAsync<ConnectionAbortedException>(async () => await stream.ReadAsync(buffer, TestContext.Current.CancellationToken));
+            else
+                _ = await Assert.ThrowsAsync<ConnectionAbortedException>(() => Task.Run(() => stream.Read(buffer, 0, buffer.Length), TestContext.Current.CancellationToken));
         }
 
         //returns each byte array from a separate read, and throws if read past the last one

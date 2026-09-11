@@ -81,6 +81,22 @@ namespace Zerra.Test.CQRS.Network
             Assert.Equal([1, 2, 3, 4, 5], await connection.ReadBodyBytesAsync(header, enc));
         }
 
+        [Fact(Timeout = timeout)]
+        public async Task Query_ReturnsStream_DisposesStream()
+        {
+            var resultStream = new DisposeSignalStream([1, 2, 3]);
+            using var server = StartQueryServer(out var port, null, (_, _, _, _, _, _) =>
+                Task.FromResult(new RemoteQueryCallResponse(resultStream)));
+
+            await using var connection = await TestConnection.ConnectAsync(port);
+            await connection.SendAsync(QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetStream)), null);
+
+            var header = await connection.ReadHeaderAsync();
+            Assert.NotNull(header);
+            Assert.Equal([1, 2, 3], await connection.ReadBodyBytesAsync(header, null));
+            await resultStream.Disposed.Task; //the handler's stream is released once it's sent, such as a file handle
+        }
+
         [Theory(Timeout = timeout)]
         [InlineData(false)]
         [InlineData(true)]
@@ -305,6 +321,19 @@ namespace Zerra.Test.CQRS.Network
             _ = Assert.Throws<ObjectDisposedException>(() => ((IQueryServer)server).Open());
         }
 
+        [Fact(Timeout = timeout)]
+        public async Task NotSetup_ClosesConnection()
+        {
+            //opened without registering anything so a connection can't be handled, it must be closed instead of left open
+            var port = GetFreePort();
+            using var server = new TcpCqrsServer($"127.0.0.1:{port}", serializer, null, null);
+            ((IQueryServer)server).Open();
+
+            using var client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            await client.ConnectAsync(new IPEndPoint(IPAddress.Loopback, port), TestContext.Current.CancellationToken);
+            Assert.Equal(0, await client.ReceiveAsync(new byte[1], SocketFlags.None, TestContext.Current.CancellationToken));
+        }
+
         private static TcpCqrsServer StartQueryServer(out int port, IEncryptor? encryptor, QueryHandlerDelegate handler)
         {
             port = GetFreePort();
@@ -363,6 +392,16 @@ namespace Zerra.Test.CQRS.Network
         }
 
         //Speaks the client side of the TCP protocol so the server can be tested without TcpCqrsClient
+        private sealed class DisposeSignalStream(byte[] data) : MemoryStream(data)
+        {
+            public TaskCompletionSource Disposed { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            protected override void Dispose(bool disposing)
+            {
+                _ = Disposed.TrySetResult();
+                base.Dispose(disposing);
+            }
+        }
+
         private sealed class TestConnection : IAsyncDisposable
         {
             private readonly NetworkStream stream;

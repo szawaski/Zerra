@@ -39,7 +39,7 @@ namespace Zerra.CQRS.Network
 
             this.serializer = serializer;
             if (!loginEndpoint.Contains("://"))
-                this.endpoint = new Uri($"tcp://{loginEndpoint}"); //hacky way to make it parse without scheme.
+                this.endpoint = new Uri($"http://{loginEndpoint}"); //hacky way to make it parse without scheme, http so HttpClient accepts it
             else
                 this.endpoint = new Uri(loginEndpoint, UriKind.RelativeOrAbsolute);
 

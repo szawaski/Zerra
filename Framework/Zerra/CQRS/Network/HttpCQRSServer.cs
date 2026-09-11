@@ -39,15 +39,31 @@ namespace Zerra.CQRS.Network
             this.encryptor = encryptor;
             this.authorizer = authorizer;
             if (allowOrigins is not null && !allowOrigins.Contains("*"))
-                this.allowOrigins = allowOrigins.Select(x => x.ToLower()).ToArray();
+                this.allowOrigins = allowOrigins;
             else
                 this.allowOrigins = null;
+        }
+
+        //browsers send the origin as scheme://host[:port] and HttpCqrsClient sends the host, an allowed value can be either, case doesn't matter
+        private bool IsOriginAllowed(string origin)
+        {
+            var originHost = Uri.TryCreate(origin, UriKind.Absolute, out var originUri) ? originUri.Host : null;
+            foreach (var allowOrigin in allowOrigins!)
+            {
+                if (String.Equals(allowOrigin, origin, StringComparison.OrdinalIgnoreCase) || (originHost is not null && String.Equals(allowOrigin, originHost, StringComparison.OrdinalIgnoreCase)))
+                    return true;
+            }
+            return false;
         }
 
         /// <inheritdoc />
         protected override async Task Handle(Socket socket, CancellationToken cancellationToken)
         {
-            if (throttle is null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
+            if (throttle is null)
+            {
+                socket.Dispose();
+                throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
+            }
 
             var stream = new NetworkStream(socket, false); //one stream for the connection instead of one per request
             try
@@ -62,6 +78,7 @@ namespace Zerra.CQRS.Network
 
                     Stream? requestBodyStream = null;
                     Stream? responseBodyStream = null;
+                    Stream? resultStream = null; //the handler's stream, disposed once sent
                     CryptoFlushStream? responseBodyCryptoStream = null;
                     var isCommand = false;
 
@@ -125,7 +142,7 @@ namespace Zerra.CQRS.Network
 
                         if (allowOrigins is not null && allowOrigins.Length > 0)
                         {
-                            if (!allowOrigins.Contains(requestHeader.Origin))
+                            if (requestHeader.Origin is null || !IsOriginAllowed(requestHeader.Origin))
                             {
                                 throw new CqrsNetworkException($"Origin Not Allowed {requestHeader.Origin}");
                             }
@@ -134,7 +151,8 @@ namespace Zerra.CQRS.Network
                         //Read Request Body
                         //------------------------------------------------------------------------------------------------------------
 
-                        requestBodyStream = new HttpProtocolBodyStream(requestHeader.ContentLength, stream, requestHeader.BodyStartBuffer, false, true);
+                        //chunked takes precedence, without either length the body is empty
+                        requestBodyStream = new HttpProtocolBodyStream(requestHeader.Chuncked ? null : (requestHeader.ContentLength ?? 0), stream, requestHeader.BodyStartBuffer, false, true);
 
                         if (encryptor is not null)
                             requestBodyStream = encryptor.Decrypt(requestBodyStream, false);
@@ -202,6 +220,7 @@ namespace Zerra.CQRS.Network
                                 monitorIsCancellationRequested = await monitor.DisposeAndGetIsCancellationRequestedAsync();
                             }
                             inHandlerContext = false;
+                            resultStream = result.Stream;
 
                             if (monitorIsCancellationRequested)
                             {
@@ -480,6 +499,14 @@ namespace Zerra.CQRS.Network
                             requestBodyStream.Dispose();
 #else
                             await requestBodyStream.DisposeAsync();
+#endif
+                        }
+                        if (resultStream is not null)
+                        {
+#if NETSTANDARD2_0
+                            resultStream.Dispose();
+#else
+                            await resultStream.DisposeAsync();
 #endif
                         }
                         ArrayPoolHelper<byte>.Return(bufferOwner);

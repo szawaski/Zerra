@@ -233,6 +233,51 @@ namespace Zerra.Test.CQRS.Network
             Assert.Equal(data, ms.ToArray());
         }
 
+        [Theory(Timeout = 5000)]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task Read_StreamEndsInSegment_Throws(bool async)
+        {
+            //the segment claims 10 bytes but the connection closes after 3
+            var stream = new TcpProtocolBodyStream(new MemoryStream([10, 0, 0, 0, 1, 2, 3]), Array.Empty<byte>(), writeMode: false, leaveOpen: true);
+            var buffer = new byte[10];
+
+            if (async)
+                _ = await Assert.ThrowsAsync<ConnectionAbortedException>(async () => await stream.ReadAsync(buffer, TestContext.Current.CancellationToken));
+            else
+                _ = await Assert.ThrowsAsync<ConnectionAbortedException>(() => Task.Run(() => stream.Read(buffer, 0, buffer.Length), TestContext.Current.CancellationToken));
+        }
+
+        [Theory(Timeout = 5000)]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task Read_StreamEndsInSegmentLength_Throws(bool async)
+        {
+            //only 2 of the 4 length bytes arrive before the connection closes
+            var stream = new TcpProtocolBodyStream(new MemoryStream([10, 0]), Array.Empty<byte>(), writeMode: false, leaveOpen: true);
+            var buffer = new byte[10];
+
+            if (async)
+                _ = await Assert.ThrowsAsync<ConnectionAbortedException>(async () => await stream.ReadAsync(buffer, TestContext.Current.CancellationToken));
+            else
+                _ = await Assert.ThrowsAsync<ConnectionAbortedException>(() => Task.Run(() => stream.Read(buffer, 0, buffer.Length), TestContext.Current.CancellationToken));
+        }
+
+        [Fact]
+        public void WriteByte_ReadByte_RoundTrips()
+        {
+            var baseStream = new MemoryStream();
+            var writer = new TcpProtocolBodyStream(baseStream, Array.Empty<byte>(), writeMode: true, leaveOpen: true);
+            writer.WriteByte(7);
+            writer.WriteByte(200);
+            writer.Flush();
+
+            var reader = new TcpProtocolBodyStream(new MemoryStream(baseStream.ToArray()), Array.Empty<byte>(), writeMode: false, leaveOpen: false);
+            Assert.Equal(7, reader.ReadByte());
+            Assert.Equal(200, reader.ReadByte());
+            Assert.Equal(-1, reader.ReadByte()); //the end of the body
+        }
+
         [Fact]
         public void Flush_TwiceThrows()
         {
