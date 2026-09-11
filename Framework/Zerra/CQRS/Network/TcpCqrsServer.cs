@@ -57,6 +57,7 @@ namespace Zerra.CQRS.Network
                     CryptoFlushStream? responseBodyCryptoStream = null;
                     var isCommand = false;
 
+                    var requestBodyRead = false;
                     var inHandlerContext = false;
                     var throttlerUsed = false;
                     var commandCounterUsedContinuation = false;
@@ -111,6 +112,7 @@ namespace Zerra.CQRS.Network
                         await requestBodyStream.DisposeAsync();
 #endif
                         requestBodyStream = null;
+                        requestBodyRead = true;
 
                         //Authroize
                         //------------------------------------------------------------------------------------------------------------
@@ -373,42 +375,45 @@ namespace Zerra.CQRS.Network
                             continue;
                         }
 
-                        if (!inHandlerContext || !socket.Connected)
+                        //the connection can only be reused if the request was completely read and nothing of the response was sent
+                        if (!requestBodyRead || responseStarted || requestHeader is null || !requestHeader.ContentType.HasValue || !socket.Connected)
                         {
                             log?.Error(ex);
-                            return; //aborted or network error
+                            return; //aborted, network error, or unreadable request
                         }
 
-                        if (!responseStarted && requestHeader is not null && requestHeader.ContentType.HasValue)
+                        //rejected before the handler, the server logs it and the caller gets the error
+                        if (!inHandlerContext)
+                            log?.Error(ex);
+
+                        try
                         {
-                            try
+                            //Response Header for Error
+                            var responseHeaderLength = TcpCommon.BufferErrorHeader(buffer, requestHeader.ProviderType, requestHeader.ContentType.Value);
+
+                            //Response Body, the header goes out with it
+                            responseBodyStream = new TcpProtocolBodyStream(stream, null, true, true, buffer.Slice(0, responseHeaderLength));
+                            if (encryptor is not null)
                             {
-                                //Response Header for Error
-                                var responseHeaderLength = TcpCommon.BufferErrorHeader(buffer, requestHeader.ProviderType, requestHeader.ContentType.Value);
+                                responseBodyCryptoStream = encryptor.Encrypt(responseBodyStream, true);
 
-                                //Response Body, the header goes out with it
-                                responseBodyStream = new TcpProtocolBodyStream(stream, null, true, true, buffer.Slice(0, responseHeaderLength));
-                                if (encryptor is not null)
-                                {
-                                    responseBodyCryptoStream = encryptor.Encrypt(responseBodyStream, true);
-
-                                    await ExceptionSerializer.SerializeAsync(serializer, responseBodyCryptoStream, ex, cancellationToken);
+                                await ExceptionSerializer.SerializeAsync(serializer, responseBodyCryptoStream, ex, cancellationToken);
 #if NET5_0_OR_GREATER
-                                    await responseBodyCryptoStream.FlushFinalBlockAsync(cancellationToken);
+                                await responseBodyCryptoStream.FlushFinalBlockAsync(cancellationToken);
 #else
-                                    responseBodyCryptoStream.FlushFinalBlock();
+                                responseBodyCryptoStream.FlushFinalBlock();
 #endif
-                                }
-                                else
-                                {
-                                    await ExceptionSerializer.SerializeAsync(serializer, responseBodyStream, ex, cancellationToken);
-                                    await responseBodyStream.FlushAsync(cancellationToken);
-                                }
                             }
-                            catch (Exception ex2)
+                            else
                             {
-                                log?.Error($"{nameof(TcpCqrsServer)} Error {socket.RemoteEndPoint}", ex2);
+                                await ExceptionSerializer.SerializeAsync(serializer, responseBodyStream, ex, cancellationToken);
+                                await responseBodyStream.FlushAsync(cancellationToken);
                             }
+                        }
+                        catch (Exception ex2)
+                        {
+                            log?.Error($"{nameof(TcpCqrsServer)} Error {socket.RemoteEndPoint}", ex2);
+                            return; //the error response did not complete
                         }
                     }
                     finally

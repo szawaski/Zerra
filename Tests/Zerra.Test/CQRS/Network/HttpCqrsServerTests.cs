@@ -140,8 +140,20 @@ namespace Zerra.Test.CQRS.Network
             await connection.SendAsync(QueryRequest(typeof(IOtherQueryHandler), nameof(IOtherQueryHandler.GetOther)), null);
 
             var header = await connection.ReadHeaderAsync();
-            Assert.True(header is null || header.IsError);
+            Assert.NotNull(header);
+            Assert.True(header.IsError);
+            var exception = await connection.ReadErrorAsync(header, null);
+            Assert.StartsWith("Unhandled Provider Type", exception.Message);
             Assert.False(handlerInvoked);
+
+            //the request was fully read so the connection is still usable
+            handlerInvoked = false;
+            await connection.SendAsync(QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), 21), null);
+            header = await connection.ReadHeaderAsync();
+            Assert.NotNull(header);
+            Assert.False(header.IsError);
+            Assert.Equal(1, await connection.ReadBodyAsync<int>(header, null));
+            Assert.True(handlerInvoked);
         }
 
         [Fact(Timeout = timeout)]
@@ -199,7 +211,10 @@ namespace Zerra.Test.CQRS.Network
             await connection.SendAsync(QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), 21), null);
 
             var header = await connection.ReadHeaderAsync();
-            Assert.True(header is null || header.IsError);
+            Assert.NotNull(header);
+            Assert.True(header.IsError);
+            var exception = await connection.ReadErrorAsync(header, null);
+            Assert.Equal(nameof(UnauthorizedAccessException), exception.ErrorType);
             Assert.False(handlerInvoked);
         }
 
