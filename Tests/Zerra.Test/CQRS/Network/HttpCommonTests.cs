@@ -61,6 +61,57 @@ namespace Zerra.Test.CQRS.Network
         }
 
         [Fact]
+        public void ReadToHeaderEnd_ShortRead_PositionNotNegative()
+        {
+            var buffer = new byte[] { 72 }; // H
+            var position = 0;
+
+            var result = HttpCommon.TryReadToHeaderEnd(buffer.AsMemory(), ref position);
+
+            Assert.False(result);
+            Assert.Equal(0, position);
+        }
+
+        [Fact]
+        public void ReadHeader_LowercaseHeaderNamesAndMediaTypeWithoutCharset()
+        {
+            var bytes = System.Text.Encoding.UTF8.GetBytes("POST / HTTP/1.1\r\ncontent-type: application/json\r\nprovider-type: Provider\r\ntransfer-encoding: Chunked\r\n\r\n");
+
+            var header = HttpCommon.ReadHeader(bytes, bytes.Length);
+
+            Assert.Equal(ContentType.Json, header.ContentType);
+            Assert.Equal("Provider", header.ProviderType);
+            Assert.True(header.Chuncked);
+        }
+
+        [Theory]
+        [InlineData("application/octet-stream", ContentType.Bytes)]
+        [InlineData("application/json; charset=utf-8", ContentType.Json)]
+        [InlineData("Application/JSON;charset=UTF-8", ContentType.Json)]
+        [InlineData("application/jsonnameless; charset=utf-8", ContentType.JsonNameless)]
+        public void ReadHeader_ContentTypeMatchesMediaType(string contentType, ContentType expected)
+        {
+            var bytes = System.Text.Encoding.UTF8.GetBytes($"POST / HTTP/1.1\r\nContent-Type: {contentType}\r\n\r\n");
+
+            var header = HttpCommon.ReadHeader(bytes, bytes.Length);
+
+            Assert.Equal(expected, header.ContentType);
+        }
+
+        [Fact]
+        public void BufferOkResponseHeader_WithoutBody_HasZeroContentLength()
+        {
+            var buffer = new byte[HttpCommon.BufferLength];
+
+            var length = HttpCommon.BufferOkResponseHeader(buffer, null, null, ContentType.Bytes, null, false);
+
+            var response = System.Text.Encoding.UTF8.GetString(buffer, 0, length);
+            Assert.Contains("Content-Length: 0\r\n", response);
+            Assert.DoesNotContain("Transfer-Encoding", response);
+            Assert.EndsWith("\r\n\r\n", response);
+        }
+
+        [Fact]
         public void BufferPreflightResponse_WithOrigin()
         {
             var buffer = new byte[HttpCommon.BufferLength];
@@ -69,8 +120,8 @@ namespace Zerra.Test.CQRS.Network
 
             var length = HttpCommon.BufferPreflightResponse(bufferMemory, origin);
 
-            Assert.True(length > 0);
-            Assert.True(length < HttpCommon.BufferLength);
+            var expected = "HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: https://example.com\r\nAccess-Control-Allow-Methods: *\r\nAccess-Control-Allow-Headers: *\r\nContent-Length: 0\r\n\r\n";
+            Assert.Equal(expected, System.Text.Encoding.UTF8.GetString(buffer, 0, length));
         }
 
         [Fact]
@@ -81,8 +132,8 @@ namespace Zerra.Test.CQRS.Network
 
             var length = HttpCommon.BufferPreflightResponse(bufferMemory, null);
 
-            Assert.True(length > 0);
-            Assert.True(length < HttpCommon.BufferLength);
+            var expected = "HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: *\r\nAccess-Control-Allow-Headers: *\r\nContent-Length: 0\r\n\r\n";
+            Assert.Equal(expected, System.Text.Encoding.UTF8.GetString(buffer, 0, length));
         }
 
         [Fact]

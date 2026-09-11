@@ -23,13 +23,14 @@ namespace Zerra.CQRS.Network
 
         public override int GetHashCode()
         {
+            //case-insensitive to match Equals
 #if NETSTANDARD2_0
             unchecked
             {
-                return (int)Math.Pow(Host.GetHashCode(), Port);
+                return (StringComparer.OrdinalIgnoreCase.GetHashCode(Host) * 397) ^ Port;
             }
 #else
-            return HashCode.Combine(Host, Port);
+            return HashCode.Combine(StringComparer.OrdinalIgnoreCase.GetHashCode(Host), Port);
 #endif
         }
     }

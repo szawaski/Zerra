@@ -1,4 +1,4 @@
-// Copyright © KaKush LLC
+// Copyright ï¿½ KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -388,6 +388,148 @@ namespace Zerra.Test.CQRS.Network
 
             // Without content length, flush adds ending bytes
             Assert.True(baseStream.Length > lengthBeforeFlush);
+        }
+
+        [Theory]
+        [InlineData("5\r\nhello\r\n0\r\n\r\n", "hello")]
+        [InlineData("3\r\nhel\r\n2\r\nlo\r\n0\r\n\r\n", "hello")]
+        [InlineData("0\r\n\r\n", "")]
+        public void ReadChunked_DoesNotReadPastBody(string body, string expected)
+        {
+            //a network stream blocks when read past the body, this throws instead
+            var baseStream = new NoReadPastEndStream(System.Text.Encoding.UTF8.GetBytes(body));
+            var stream = new HttpProtocolBodyStream(null, baseStream, null, writeMode: false, leaveOpen: true);
+
+            using var ms = new MemoryStream();
+            stream.CopyTo(ms);
+
+            Assert.Equal(expected, System.Text.Encoding.UTF8.GetString(ms.ToArray()));
+        }
+
+        [Theory]
+        [InlineData("5\r\nhello\r\n0\r\n\r\n", "hello")]
+        [InlineData("3\r\nhel\r\n2\r\nlo\r\n0\r\n\r\n", "hello")]
+        [InlineData("0\r\n\r\n", "")]
+        public async Task ReadChunkedAsync_DoesNotReadPastBody(string body, string expected)
+        {
+            //a network stream blocks when read past the body, this throws instead
+            var baseStream = new NoReadPastEndStream(System.Text.Encoding.UTF8.GetBytes(body));
+            var stream = new HttpProtocolBodyStream(null, baseStream, null, writeMode: false, leaveOpen: true);
+
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms, TestContext.Current.CancellationToken);
+
+            Assert.Equal(expected, System.Text.Encoding.UTF8.GetString(ms.ToArray()));
+        }
+
+        [Fact]
+        public async Task ReadChunkedAsync_BodyInReadStartBuffer_DoesNotReadStream()
+        {
+            //the whole body arrived with the header
+            var baseStream = new NoReadPastEndStream([]);
+            var stream = new HttpProtocolBodyStream(null, baseStream, System.Text.Encoding.UTF8.GetBytes("5\r\nhello\r\n0\r\n\r\n"), writeMode: false, leaveOpen: true);
+
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms, TestContext.Current.CancellationToken);
+
+            Assert.Equal("hello", System.Text.Encoding.UTF8.GetString(ms.ToArray()));
+        }
+
+        [Fact]
+        public async Task ReadChunkedAsync_RoundTripsWrittenBody()
+        {
+            var data = Enumerable.Range(0, 1000).Select(x => (byte)x).ToArray();
+            var baseStream = new MemoryStream();
+            var writer = new HttpProtocolBodyStream(null, baseStream, null, writeMode: true, leaveOpen: true);
+            await writer.WriteAsync(data.AsMemory(0, 600), TestContext.Current.CancellationToken);
+            await writer.WriteAsync(data.AsMemory(600), TestContext.Current.CancellationToken);
+            await writer.FlushAsync(TestContext.Current.CancellationToken);
+
+            var reader = new HttpProtocolBodyStream(null, new NoReadPastEndStream(baseStream.ToArray()), null, writeMode: false, leaveOpen: true);
+            using var ms = new MemoryStream();
+            await reader.CopyToAsync(ms, TestContext.Current.CancellationToken);
+
+            Assert.Equal(data, ms.ToArray());
+        }
+
+        [Fact]
+        public async Task ReadChunkedAsync_StreamEndsInSegmentLength_Throws()
+        {
+            var stream = new HttpProtocolBodyStream(null, new MemoryStream(System.Text.Encoding.UTF8.GetBytes("5\r\nhello\r\n")), null, writeMode: false, leaveOpen: true);
+
+            _ = await Assert.ThrowsAsync<ConnectionAbortedException>(() => stream.CopyToAsync(new MemoryStream(), TestContext.Current.CancellationToken));
+        }
+
+        [Fact]
+        public async Task ReadChunkedAsync_ConsumesLineBreakEndingBody()
+        {
+            //the line break ending the body arrives in a later read, leaving it would corrupt the next response on a reused connection
+            var baseStream = new NoReadPastEndStream(System.Text.Encoding.UTF8.GetBytes("5\r\nhello\r\n0\r\n"), System.Text.Encoding.UTF8.GetBytes("\r\n"));
+            var stream = new HttpProtocolBodyStream(null, baseStream, null, writeMode: false, leaveOpen: true);
+
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms, TestContext.Current.CancellationToken);
+
+            Assert.Equal("hello", System.Text.Encoding.UTF8.GetString(ms.ToArray()));
+            Assert.True(baseStream.AtEnd);
+        }
+
+        [Fact]
+        public void ReadChunked_ConsumesLineBreakEndingBody()
+        {
+            var baseStream = new NoReadPastEndStream(System.Text.Encoding.UTF8.GetBytes("5\r\nhello\r\n0\r\n"), System.Text.Encoding.UTF8.GetBytes("\r\n"));
+            var stream = new HttpProtocolBodyStream(null, baseStream, null, writeMode: false, leaveOpen: true);
+
+            using var ms = new MemoryStream();
+            stream.CopyTo(ms);
+
+            Assert.Equal("hello", System.Text.Encoding.UTF8.GetString(ms.ToArray()));
+            Assert.True(baseStream.AtEnd);
+        }
+
+        //returns each byte array from a separate read, and throws if read past the last one
+        private sealed class NoReadPastEndStream : Stream
+        {
+            private readonly byte[][] reads;
+            private int readIndex;
+            private int position;
+
+            public NoReadPastEndStream(params byte[][] reads)
+            {
+                this.reads = reads;
+            }
+
+            public bool AtEnd => readIndex == reads.Length || (readIndex == reads.Length - 1 && position == reads[readIndex].Length);
+
+            public override bool CanRead => true;
+            public override bool CanSeek => false;
+            public override bool CanWrite => false;
+            public override long Length => throw new NotSupportedException();
+            public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+
+            public override int Read(byte[] buffer, int offset, int count) => Read(buffer.AsSpan(offset, count));
+            public override int Read(Span<byte> buffer)
+            {
+                while (readIndex < reads.Length && position == reads[readIndex].Length)
+                {
+                    readIndex++;
+                    position = 0;
+                }
+                if (readIndex == reads.Length)
+                    throw new InvalidOperationException("Read past the end of the body");
+                var bytes = reads[readIndex];
+                var count = Math.Min(buffer.Length, bytes.Length - position);
+                bytes.AsSpan(position, count).CopyTo(buffer);
+                position += count;
+                return count;
+            }
+            public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default) => ValueTask.FromResult(Read(buffer.Span));
+            public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) => Task.FromResult(Read(buffer.AsSpan(offset, count)));
+
+            public override void Flush() { }
+            public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+            public override void SetLength(long value) => throw new NotSupportedException();
+            public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
         }
     }
 }

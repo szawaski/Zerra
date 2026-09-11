@@ -62,7 +62,7 @@ namespace Zerra.CQRS.Network
                 request.Content = new WriteStreamContent(async (postStream) =>
                 {
                     var data = System.Text.Encoding.UTF8.GetBytes(body);
-                    await serializer.SerializeAsync(postStream, data, cancellationToken);
+                    await postStream.WriteAsync(data, cancellationToken); //the body is already formatted for the content type
                 });
                 request.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
 
@@ -110,9 +110,7 @@ namespace Zerra.CQRS.Network
             try
             {
                 var data = System.Text.Encoding.UTF8.GetBytes(body);
-                using var postStream = new MemoryStream();
-                serializer.Serialize(postStream, data);
-                postStream.Position = 0;
+                using var postStream = new MemoryStream(data); //the body is already formatted for the content type
                 request.Content = new StreamContent(postStream);
                 request.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
 
@@ -195,6 +193,10 @@ namespace Zerra.CQRS.Network
                             {
                                 indexLength++;
                             }
+                            else
+                            {
+                                startIndex = index + 1; //skip leading spaces such as after the "; " separator
+                            }
                             break;
                         default:
                             indexLength++;
@@ -219,7 +221,7 @@ namespace Zerra.CQRS.Network
         }
 
         /// <inheritdoc/>
-        public Task Login(CancellationToken cancellationToken = default) => GetCookiesRequestAsync(serializer, endpoint, loginRequestBody, contentType, cancellationToken);
+        public async Task Login(CancellationToken cancellationToken = default) => cookies = await GetCookiesRequestAsync(serializer, endpoint, loginRequestBody, contentType, cancellationToken);
 
         /// <summary>
         /// Gets the cookies obtained from the login request.
@@ -232,7 +234,7 @@ namespace Zerra.CQRS.Network
             Dictionary<string, string>? cookies = null;
 
             if (headers.TryGetValue(cookieHeader, out var cookieHeaderValue))
-                cookies = CookiesFromString(cookieHeader);
+                cookies = CookiesFromString(String.Join("; ", cookieHeaderValue));
 
             AuthorizeCookies(cookies);
         }

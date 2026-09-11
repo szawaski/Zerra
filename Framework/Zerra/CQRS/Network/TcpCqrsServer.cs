@@ -148,7 +148,7 @@ namespace Zerra.CQRS.Network
                             var monitor = new SocketAbortMonitor(socket, cancellationToken);
                             try
                             {
-                                result = await this.providerHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, data.Source, false, serializer, monitor.Token);
+                                result = await this.providerHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, data.Source, serializer, monitor.Token);
                             }
                             finally
                             {
@@ -269,7 +269,7 @@ namespace Zerra.CQRS.Network
                                     var monitor = new SocketAbortMonitor(socket, cancellationToken);
                                     try
                                     {
-                                        result = await commandHandlerWithResultAwaitAsync(command, data.Source, false, monitor.Token);
+                                        result = await commandHandlerWithResultAwaitAsync(command, data.Source, monitor.Token);
                                     }
                                     finally
                                     {
@@ -283,7 +283,7 @@ namespace Zerra.CQRS.Network
                                     var monitor = new SocketAbortMonitor(socket, cancellationToken);
                                     try
                                     {
-                                        await commandHandlerAwaitAsync(command, data.Source, false, monitor.Token);
+                                        await commandHandlerAwaitAsync(command, data.Source, monitor.Token);
                                     }
                                     finally
                                     {
@@ -294,7 +294,7 @@ namespace Zerra.CQRS.Network
                                 else
                                 {
                                     if (commandHandlerAsync is null) throw new InvalidOperationException($"{nameof(TcpCqrsServer)} is not setup");
-                                    var commandHandlerTask = Task.Run(() => commandHandlerAsync(command, data.Source, false, default));
+                                    var commandHandlerTask = Task.Run(() => commandHandlerAsync(command, data.Source, default));
                                     if (commandCounter != null)
                                         _ = commandHandlerTask.ContinueWith(x => commandCounter.CompleteReceive(throttle));
                                     commandCounterUsedContinuation = true;
@@ -311,7 +311,7 @@ namespace Zerra.CQRS.Network
                                 inHandlerContext = true;
                                 if (eventHandlerAsync is null)
                                     throw new InvalidOperationException($"{nameof(TcpCqrsServer)} is not setup");
-                                _ = Task.Run(() => eventHandlerAsync(@event, data.Source, false));
+                                _ = Task.Run(() => eventHandlerAsync(@event, data.Source));
                                 hasResult = false;
                                 inHandlerContext = false;
                             }
@@ -356,6 +356,7 @@ namespace Zerra.CQRS.Network
                                 else
                                 {
                                     await serializer.SerializeAsync(responseBodyStream, result, cancellationToken);
+                                    await responseBodyStream.FlushAsync(cancellationToken);
                                 }
                             }
                             else
@@ -411,6 +412,7 @@ namespace Zerra.CQRS.Network
                                 else
                                 {
                                     await ExceptionSerializer.SerializeAsync(serializer, responseBodyStream, ex, cancellationToken);
+                                    await responseBodyStream.FlushAsync(cancellationToken);
                                 }
                             }
                             catch (Exception ex2)

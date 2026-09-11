@@ -55,28 +55,28 @@ namespace Zerra.Test.CQRS.Network
             public void AddQueryClient<TInterface>(IQueryClient queryClient) => throw new NotImplementedException();
             public void AddQueryServer<TInterface>(IQueryServer queryServer) => throw new NotImplementedException();
 
-            public Task<RemoteQueryCallResponse> RemoteHandleQueryCallAsync(Type interfaceType, string methodName, byte[]?[] arguments, string source, bool isApi, ISerializer serializer, CancellationToken cancellationToken)
+            public Task<RemoteQueryCallResponse> RemoteHandleQueryCallAsync(Type interfaceType, string methodName, byte[]?[] arguments, string source, ISerializer serializer, CancellationToken cancellationToken)
             {
                 return Task.FromResult(QueryResponse ?? new RemoteQueryCallResponse(null));
             }
 
-            public Task RemoteHandleCommandDispatchAsync(ICommand command, string source, bool isApi, CancellationToken cancellationToken)
+            public Task RemoteHandleCommandDispatchAsync(ICommand command, string source, CancellationToken cancellationToken)
             {
                 return Task.CompletedTask;
             }
 
-            public Task RemoteHandleCommandDispatchAwaitAsync(ICommand command, string source, bool isApi, CancellationToken cancellationToken)
+            public Task RemoteHandleCommandDispatchAwaitAsync(ICommand command, string source, CancellationToken cancellationToken)
             {
                 return Task.CompletedTask;
             }
 
-            public Task<object?> RemoteHandleCommandWithResultDispatchAwaitAsync(ICommand command, string source, bool isApi, CancellationToken cancellationToken)
+            public Task<object?> RemoteHandleCommandWithResultDispatchAwaitAsync(ICommand command, string source, CancellationToken cancellationToken)
             {
                 return Task.FromResult(CommandResult);
             }
 
 
-            public Task RemoteHandleEventDispatchAsync(IEvent @event, string source, bool isApi)
+            public Task RemoteHandleEventDispatchAsync(IEvent @event, string source)
             {
                 return Task.CompletedTask;
             }

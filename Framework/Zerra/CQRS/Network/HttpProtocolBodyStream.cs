@@ -143,12 +143,19 @@ namespace Zerra.CQRS.Network
                         }
 
                         var segmentLengthStringStart = 0;
+                        var segmentLengthStringEnd = 0;
+                        var readBuffered = segmentLengthBufferLength > 0; //leftover bytes may already hold the segment length, reading first would wait on data that never comes
                         while (segmentLengthBufferLength < segmentLengthBufferMaxLength)
                         {
                             if (segmentLengthBufferLength == segmentLengthBufferMaxLength)
                                 throw new ConnectionAbortedException();
 
-                            if (readStartBufferPosition < readStartBuffer.Length)
+                            if (readBuffered)
+                            {
+                                readBuffered = false;
+                                bytesRead = 0;
+                            }
+                            else if (readStartBufferPosition < readStartBuffer.Length)
                             {
                                 bytesToRead = Math.Min(readStartBuffer.Length - readStartBufferPosition, segmentLengthBufferMaxLength - segmentLengthBufferLength);
                                 readStartBuffer.Slice(readStartBufferPosition, bytesToRead).CopyTo(segmentLengthBuffer.Slice(segmentLengthBufferLength, bytesToRead));
@@ -162,6 +169,8 @@ namespace Zerra.CQRS.Network
 #else
                                 bytesRead = stream.Read(segmentLengthBuffer.Span[segmentLengthBufferLength..segmentLengthBufferMaxLength]);
 #endif
+                                if (bytesRead == 0)
+                                    throw new ConnectionAbortedException();
                             }
 
                             segmentLengthBufferLength += bytesRead;
@@ -172,21 +181,25 @@ namespace Zerra.CQRS.Network
                                 {
                                     segmentLengthStringStart = segmentLengthBufferPosition;
                                     if (!HttpCommon.ReadToBreak(segmentLengthBuffer[..segmentLengthBufferLength], ref segmentLengthBufferPosition))
+                                    {
                                         segmentLengthBufferPosition = 0;
-                                    else
-                                        break;
+                                        continue;
+                                    }
                                 }
-                                else
-                                {
+
+                                segmentLengthStringEnd = segmentLengthBufferPosition - 2;
+
+                                //the last segment "0" is followed by the line break ending the body, consumed so a reused connection doesn't start with it
+                                if (segmentLengthStringEnd - segmentLengthStringStart != 1 || segmentLengthBuffer.Span[segmentLengthStringStart] != '0' || HttpCommon.ReadToBreak(segmentLengthBuffer[..segmentLengthBufferLength], ref segmentLengthBufferPosition))
                                     break;
-                                }
+                                segmentLengthBufferPosition = 0;
                             }
                         }
 
 #if NETSTANDARD2_0
-                        var segmentLengthString = encoding.GetString(segmentLengthBufferSource, segmentLengthStringStart, segmentLengthBufferPosition - segmentLengthStringStart - 2);
+                        var segmentLengthString = encoding.GetString(segmentLengthBufferSource, segmentLengthStringStart, segmentLengthStringEnd - segmentLengthStringStart);
 #else
-                        var segmentLengthString = encoding.GetString(segmentLengthBuffer.Span.Slice(segmentLengthStringStart, segmentLengthBufferPosition - segmentLengthStringStart - 2));
+                        var segmentLengthString = encoding.GetString(segmentLengthBuffer.Span.Slice(segmentLengthStringStart, segmentLengthStringEnd - segmentLengthStringStart));
 #endif
                         segmentLength = Int32.Parse(segmentLengthString, NumberStyles.HexNumber);
                         if (segmentLength < 0)
@@ -296,12 +309,19 @@ namespace Zerra.CQRS.Network
                         }
 
                         var segmentLengthStringStart = 0;
+                        var segmentLengthStringEnd = 0;
+                        var readBuffered = segmentLengthBufferLength > 0; //leftover bytes may already hold the segment length, reading first would wait on data that never comes
                         while (segmentLengthBufferLength < segmentLengthBufferMaxLength)
                         {
                             if (segmentLengthBufferLength == segmentLengthBufferMaxLength)
                                 throw new CqrsNetworkException();
 
-                            if (readStartBufferPosition < readStartBuffer.Length)
+                            if (readBuffered)
+                            {
+                                readBuffered = false;
+                                bytesRead = 0;
+                            }
+                            else if (readStartBufferPosition < readStartBuffer.Length)
                             {
                                 bytesToRead = Math.Min(readStartBuffer.Length - readStartBufferPosition, segmentLengthBufferMaxLength - segmentLengthBufferLength);
                                 readStartBuffer.Slice(readStartBufferPosition, bytesToRead).CopyTo(segmentLengthBuffer.Slice(segmentLengthBufferLength, bytesToRead));
@@ -315,6 +335,8 @@ namespace Zerra.CQRS.Network
 #else
                                 bytesRead = await stream.ReadAsync(segmentLengthBuffer[segmentLengthBufferLength..segmentLengthBufferMaxLength], cancellationToken);
 #endif
+                                if (bytesRead == 0)
+                                    throw new ConnectionAbortedException();
                             }
 
                             segmentLengthBufferLength += bytesRead;
@@ -325,21 +347,25 @@ namespace Zerra.CQRS.Network
                                 {
                                     segmentLengthStringStart = segmentLengthBufferPosition;
                                     if (!HttpCommon.ReadToBreak(segmentLengthBuffer[..segmentLengthBufferLength], ref segmentLengthBufferPosition))
+                                    {
                                         segmentLengthBufferPosition = 0;
-                                    else
-                                        break;
+                                        continue;
+                                    }
                                 }
-                                else
-                                {
+
+                                segmentLengthStringEnd = segmentLengthBufferPosition - 2;
+
+                                //the last segment "0" is followed by the line break ending the body, consumed so a reused connection doesn't start with it
+                                if (segmentLengthStringEnd - segmentLengthStringStart != 1 || segmentLengthBuffer.Span[segmentLengthStringStart] != '0' || HttpCommon.ReadToBreak(segmentLengthBuffer[..segmentLengthBufferLength], ref segmentLengthBufferPosition))
                                     break;
-                                }
+                                segmentLengthBufferPosition = 0;
                             }
                         }
 
 #if NETSTANDARD2_0
-                        var segmentLengthString = encoding.GetString(segmentLengthBufferSource, segmentLengthStringStart, segmentLengthBufferPosition - segmentLengthStringStart - 2);
+                        var segmentLengthString = encoding.GetString(segmentLengthBufferSource, segmentLengthStringStart, segmentLengthStringEnd - segmentLengthStringStart);
 #else
-                        var segmentLengthString = encoding.GetString(segmentLengthBuffer.Span.Slice(segmentLengthStringStart, segmentLengthBufferPosition - segmentLengthStringStart - 2));
+                        var segmentLengthString = encoding.GetString(segmentLengthBuffer.Span.Slice(segmentLengthStringStart, segmentLengthStringEnd - segmentLengthStringStart));
 #endif
                         segmentLength = Int32.Parse(segmentLengthString, NumberStyles.HexNumber);
                         if (segmentLength < 0)

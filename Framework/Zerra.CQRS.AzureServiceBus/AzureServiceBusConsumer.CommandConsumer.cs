@@ -143,11 +143,11 @@ namespace Zerra.CQRS.AzureServiceBus
 
                     inHandlerContext = true;
                     if (message.HasResult)
-                        result = await handlerWithResultAwaitAsync(command, message.Source, false, canceller.Token);
+                        result = await handlerWithResultAwaitAsync(command, message.Source, canceller.Token);
                     else if (awaitResponse)
-                        await handlerAwaitAsync(command, message.Source, false, canceller.Token);
+                        await handlerAwaitAsync(command, message.Source, canceller.Token);
                     else
-                        await handlerAsync(command, message.Source, false, default);
+                        await handlerAsync(command, message.Source, default);
                     inHandlerContext = false;
                 }
                 catch (Exception ex)

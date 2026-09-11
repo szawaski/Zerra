@@ -22,12 +22,12 @@ namespace Zerra.CQRS.Network
         /// Creates a new Exception with the default error message and a specified inner exception.
         /// </summary>
         /// <param name="innerException">The inner exception that caused the failure.</param>
-        public CqrsNetworkException(Exception innerException) : base("A network error occured") { }
+        public CqrsNetworkException(Exception innerException) : base("A network error occured", innerException) { }
         /// <summary>
         /// Creates a new Exception with the specified error message and a specified inner exception.
         /// </summary>
         /// <param name="message">The exception message.</param>
         /// <param name="innerException">The inner exception that caused the failure.</param>
-        public CqrsNetworkException(string message, Exception innerException) : base("A network error occured", innerException) { }
+        public CqrsNetworkException(string message, Exception innerException) : base(message, innerException) { }
     }
 }

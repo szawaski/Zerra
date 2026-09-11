@@ -105,46 +105,41 @@ namespace Zerra.CQRS
         /// <param name="methodName">The method name of the query.</param>
         /// <param name="arguments">The serialized arguments for the query method.</param>
         /// <param name="source">The source of the remote call.</param>
-        /// <param name="isApi">Indicates whether the call is from an API.</param>
         /// <param name="serializer">The serializer to use for deserializing arguments and serializing results.</param>
         /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
         /// <returns>A task that returns the query call response.</returns>
-        Task<RemoteQueryCallResponse> RemoteHandleQueryCallAsync(Type interfaceType, string methodName, byte[]?[] arguments, string source, bool isApi, ISerializer serializer, CancellationToken cancellationToken);
+        Task<RemoteQueryCallResponse> RemoteHandleQueryCallAsync(Type interfaceType, string methodName, byte[]?[] arguments, string source, ISerializer serializer, CancellationToken cancellationToken);
         /// <summary>
         /// Handle a remote command dispatch without awaiting completion.
         /// </summary>
         /// <param name="command">The command to dispatch.</param>
         /// <param name="source">The source of the remote call.</param>
-        /// <param name="isApi">Indicates whether the call is from an API.</param>
         /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
         /// <returns>A task to complete handling the dispatch.</returns>
-        Task RemoteHandleCommandDispatchAsync(ICommand command, string source, bool isApi, CancellationToken cancellationToken);
+        Task RemoteHandleCommandDispatchAsync(ICommand command, string source, CancellationToken cancellationToken);
         /// <summary>
         /// Handle a remote command dispatch and await its completion.
         /// </summary>
         /// <param name="command">The command to dispatch.</param>
         /// <param name="source">The source of the remote call.</param>
-        /// <param name="isApi">Indicates whether the call is from an API.</param>
         /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
         /// <returns>A task to complete awaiting the command processing.</returns>
-        Task RemoteHandleCommandDispatchAwaitAsync(ICommand command, string source, bool isApi, CancellationToken cancellationToken);
+        Task RemoteHandleCommandDispatchAwaitAsync(ICommand command, string source, CancellationToken cancellationToken);
         /// <summary>
         /// Handle a remote command dispatch that returns a result and await its completion.
         /// </summary>
         /// <param name="command">The command to dispatch.</param>
         /// <param name="source">The source of the remote call.</param>
-        /// <param name="isApi">Indicates whether the call is from an API.</param>
         /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
         /// <returns>A task that returns the result of the command.</returns>
-        Task<object?> RemoteHandleCommandWithResultDispatchAwaitAsync(ICommand command, string source, bool isApi, CancellationToken cancellationToken);
+        Task<object?> RemoteHandleCommandWithResultDispatchAwaitAsync(ICommand command, string source, CancellationToken cancellationToken);
         /// <summary>
         /// Handle a remote event dispatch.
         /// </summary>
         /// <param name="event">The event to dispatch.</param>
         /// <param name="source">The source of the remote call.</param>
-        /// <param name="isApi">Indicates whether the call is from an API.</param>
         /// <returns>A task to complete handling the dispatch.</returns>
-        Task RemoteHandleEventDispatchAsync(IEvent @event, string source, bool isApi);
+        Task RemoteHandleEventDispatchAsync(IEvent @event, string source);
 
         /// <summary>
         /// Gets the logger instance for recording diagnostic and operational events for this handler.

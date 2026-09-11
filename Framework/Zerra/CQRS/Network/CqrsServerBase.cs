@@ -211,7 +211,6 @@ namespace Zerra.CQRS.Network
                     listeners = null;
                 }
                 types.Dispose();
-                types.Dispose();
                 disposed = true;
             }
             GC.SuppressFinalize(this);

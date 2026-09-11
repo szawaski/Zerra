@@ -42,11 +42,11 @@ namespace Zerra.CQRS
     /// A delegate that a command consumer will use to handle a received command.
     /// <see cref="Bus"/> will provide the delegate.
     /// </summary>
-    public delegate Task HandleRemoteCommandDispatch(ICommand command, string source, bool isApi, CancellationToken cancellationToken);
+    public delegate Task HandleRemoteCommandDispatch(ICommand command, string source, CancellationToken cancellationToken);
 
     /// <summary>
     /// A delegate that a command consumer will use to handle a received command with a result.
     /// <see cref="Bus"/> will provide the delegate.
     /// </summary>
-    public delegate Task<object?> HandleRemoteCommandWithResultDispatch(ICommand command, string source, bool isApi, CancellationToken cancellationToken);
+    public delegate Task<object?> HandleRemoteCommandWithResultDispatch(ICommand command, string source, CancellationToken cancellationToken);
 }

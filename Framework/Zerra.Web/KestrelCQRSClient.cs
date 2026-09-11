@@ -384,7 +384,7 @@ namespace Zerra.Web
         /// <remarks>
         /// Disposes the HTTP client and handler. After disposal, the client cannot be used.
         /// </remarks>
-        public new void Dispose()
+        public override void Dispose()
         {
             base.Dispose();
             client.Dispose();

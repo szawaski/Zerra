@@ -52,7 +52,7 @@ namespace Zerra.CQRS.Network
             else
                 this.serviceUri = new Uri(serviceUrl, UriKind.RelativeOrAbsolute);
             host = this.serviceUri.Host;
-            port = this.serviceUri.Port >= 0 ? this.serviceUri.Port : (String.Equals(this.serviceUri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) ? 443 : 80);
+            port = this.serviceUri.Port >= 0 ? this.serviceUri.Port : (String.Equals(this.serviceUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) ? 443 : 80);
 
             this.throttleByInterfaceType = new();
             this.topicsByMessageType = new();
@@ -289,7 +289,7 @@ namespace Zerra.CQRS.Network
         protected abstract Task DispatchInternal(SemaphoreSlim throttle, Type eventType, IEvent @event, string source, CancellationToken cancellationToken);
 
         /// <inheritdoc />
-        public void Dispose()
+        public virtual void Dispose()
         {
             foreach (var throttle in throttleByInterfaceType.Values)
                 throttle.Dispose();

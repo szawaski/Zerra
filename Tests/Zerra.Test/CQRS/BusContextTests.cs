@@ -33,11 +33,11 @@ namespace Zerra.Test.CQRS
             public void AddEventConsumer<TInterface>(IEventConsumer eventConsumer) => throw new NotImplementedException();
             public void AddQueryClient<TInterface>(IQueryClient queryClient) => throw new NotImplementedException();
             public void AddQueryServer<TInterface>(IQueryServer queryServer) => throw new NotImplementedException();
-            public Task<RemoteQueryCallResponse> RemoteHandleQueryCallAsync(Type interfaceType, string methodName, byte[]?[] arguments, string source, bool isApi, ISerializer serializer, CancellationToken cancellationToken) => throw new NotImplementedException();
-            public Task RemoteHandleCommandDispatchAsync(ICommand command, string source, bool isApi, CancellationToken cancellationToken) => throw new NotImplementedException();
-            public Task RemoteHandleCommandDispatchAwaitAsync(ICommand command, string source, bool isApi, CancellationToken cancellationToken) => throw new NotImplementedException();
-            public Task<object?> RemoteHandleCommandWithResultDispatchAwaitAsync(ICommand command, string source, bool isApi, CancellationToken cancellationToken) => throw new NotImplementedException();
-            public Task RemoteHandleEventDispatchAsync(IEvent @event, string source, bool isApi) => throw new NotImplementedException();
+            public Task<RemoteQueryCallResponse> RemoteHandleQueryCallAsync(Type interfaceType, string methodName, byte[]?[] arguments, string source, ISerializer serializer, CancellationToken cancellationToken) => throw new NotImplementedException();
+            public Task RemoteHandleCommandDispatchAsync(ICommand command, string source, CancellationToken cancellationToken) => throw new NotImplementedException();
+            public Task RemoteHandleCommandDispatchAwaitAsync(ICommand command, string source, CancellationToken cancellationToken) => throw new NotImplementedException();
+            public Task<object?> RemoteHandleCommandWithResultDispatchAwaitAsync(ICommand command, string source, CancellationToken cancellationToken) => throw new NotImplementedException();
+            public Task RemoteHandleEventDispatchAsync(IEvent @event, string source) => throw new NotImplementedException();
             public TInterface Call<TInterface>() where TInterface : notnull => throw new NotImplementedException();
             public Task DispatchAsync(ICommand command, CancellationToken? cancellationToken = null) => throw new NotImplementedException();
             public Task DispatchAwaitAsync(ICommand command, CancellationToken? cancellationToken = null) => throw new NotImplementedException();

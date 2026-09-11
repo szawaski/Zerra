@@ -37,6 +37,9 @@ namespace Zerra.CQRS.Network
         public const string ContentTypeJsonNameless = "application/jsonnameless; charset=utf-8";
         public const string TransferEncodingChunked = "chunked";
 
+        private const string mediaTypeJson = "application/json";
+        private const string mediaTypeJsonNameless = "application/jsonnameless";
+
         private const string headerSplit = ": ";
         private const string newLine = "\r\n";
 
@@ -49,6 +52,7 @@ namespace Zerra.CQRS.Network
         private static readonly byte[] serverErrorHeaderBytes = encoding.GetBytes(serverErrorResponse);
         private static readonly byte[] transferEncodingChunckedBytes = encoding.GetBytes("Transfer-Encoding: chunked");
         private static readonly byte[] providerTypeHeaderBytes = encoding.GetBytes($"{ProviderTypeHeader}{headerSplit}");
+        private static readonly byte[] contentLengthZeroBytes = encoding.GetBytes($"{ContentLengthHeader}{headerSplit}0");
 
         private static readonly byte[] contentTypeBytesHeaderBytes = encoding.GetBytes($"{ContentTypeHeader}{headerSplit}{ContentTypeBytes}");
         private static readonly byte[] contentTypeJsonHeaderBytes = encoding.GetBytes($"{ContentTypeHeader}{headerSplit}{ContentTypeJson}");
@@ -68,7 +72,7 @@ namespace Zerra.CQRS.Network
         private static unsafe (string?, Dictionary<string, List<string?>>) ParseHeaders(ReadOnlySpan<char> chars)
         {
             string? declarations = null;
-            var headers = new Dictionary<string, List<string?>>();
+            var headers = new Dictionary<string, List<string?>>(StringComparer.OrdinalIgnoreCase); //header names are case-insensitive
 
             var start = 0;
             var length = 0;
@@ -210,11 +214,15 @@ namespace Zerra.CQRS.Network
 
                 if (headers.TryGetValue(ContentTypeHeader, out var contentTypeHeaderValue))
                 {
-                    if (String.Equals(contentTypeHeaderValue[0], ContentTypeBytes, StringComparison.InvariantCultureIgnoreCase))
+                    //match the media type, parameters such as charset are optional
+                    var contentTypeValue = contentTypeHeaderValue[0].AsSpan();
+                    var contentTypeParametersIndex = contentTypeValue.IndexOf(';');
+                    var mediaType = (contentTypeParametersIndex >= 0 ? contentTypeValue.Slice(0, contentTypeParametersIndex) : contentTypeValue).Trim();
+                    if (mediaType.Equals(ContentTypeBytes.AsSpan(), StringComparison.OrdinalIgnoreCase))
                         headerInfo.ContentType = ContentType.Bytes;
-                    else if (String.Equals(contentTypeHeaderValue[0], ContentTypeJson, StringComparison.InvariantCultureIgnoreCase))
+                    else if (mediaType.Equals(mediaTypeJson.AsSpan(), StringComparison.OrdinalIgnoreCase))
                         headerInfo.ContentType = ContentType.Json;
-                    else if (String.Equals(contentTypeHeaderValue[0], ContentTypeJsonNameless, StringComparison.InvariantCultureIgnoreCase))
+                    else if (mediaType.Equals(mediaTypeJsonNameless.AsSpan(), StringComparison.OrdinalIgnoreCase))
                         headerInfo.ContentType = ContentType.JsonNameless;
                     else
                         throw new CqrsNetworkException("Invalid Header");
@@ -228,7 +236,7 @@ namespace Zerra.CQRS.Network
 
                 if (headers.TryGetValue(TransferEncodingHeader, out var transferEncodingHeaderValue))
                 {
-                    if (transferEncodingHeaderValue[0] == TransferEncodingChunked)
+                    if (String.Equals(transferEncodingHeaderValue[0], TransferEncodingChunked, StringComparison.OrdinalIgnoreCase))
                         headerInfo.Chuncked = true;
                 }
 
@@ -286,7 +294,7 @@ namespace Zerra.CQRS.Network
                     position++;
                 }
             }
-            position -= 3; //back off minimum for reattempt
+            position = Math.Max(0, position - 3); //back off minimum for reattempt
             return false;
         }
 
@@ -334,8 +342,13 @@ namespace Zerra.CQRS.Network
             else
             {
                 headerBuffer.Write(corsAllOriginsHeadersBytes);
+                headerBuffer.Write(newLineBytes);
             }
             headerBuffer.Write(corsAllowHeadersBytes);
+            headerBuffer.Write(newLineBytes);
+
+            headerBuffer.Write(contentLengthZeroBytes);
+            headerBuffer.Write(newLineBytes);
 
             headerBuffer.Write(newLineBytes);
 
@@ -471,7 +484,7 @@ namespace Zerra.CQRS.Network
             return headerBuffer.Position;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int BufferOkResponseHeader(Memory<byte> buffer, string? origion, string? providerType, ContentType? contentType, Dictionary<string, List<string?>>? authHeaders)
+        public static int BufferOkResponseHeader(Memory<byte> buffer, string? origion, string? providerType, ContentType? contentType, Dictionary<string, List<string?>>? authHeaders, bool hasBody = true)
         {
             var headerBuffer = new SpanWriter<byte>(buffer.Span);
 
@@ -537,7 +550,8 @@ namespace Zerra.CQRS.Network
             headerBuffer.Write(corsAllowHeadersBytes);
             headerBuffer.Write(newLineBytes);
 
-            headerBuffer.Write(transferEncodingChunckedBytes);
+            //a response without a body must not claim a chunked body
+            headerBuffer.Write(hasBody ? transferEncodingChunckedBytes : contentLengthZeroBytes);
             headerBuffer.Write(newLineBytes);
             headerBuffer.Write(newLineBytes);
 

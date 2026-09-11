@@ -308,5 +308,54 @@ namespace Zerra.Test.CQRS.Network
                 // Expected if no server is listening on localhost:80
             }
         }
+
+        [Fact(Timeout = 10000)]
+        public async Task BeginStreamAsync_ReusesHealthyConnectionWithoutWaiting()
+        {
+            using var listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            listener.Bind(new System.Net.IPEndPoint(System.Net.IPAddress.Loopback, 0));
+            listener.Listen();
+            var port = ((System.Net.IPEndPoint)listener.LocalEndPoint!).Port;
+            using var pool = new SocketClientPool();
+
+            var first = await pool.BeginStreamAsync("127.0.0.1", port, ProtocolType.Tcp, new byte[] { 1 }, false, TestContext.Current.CancellationToken);
+            using var server = await listener.AcceptAsync(TestContext.Current.CancellationToken);
+            Assert.True(first.IsNewConnection);
+            first.Dispose();
+
+            //checking a pooled connection must not wait, a wait is rounded up to the OS timer tick on every reuse
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            for (var i = 0; i < 20; i++)
+            {
+                var stream = await pool.BeginStreamAsync("127.0.0.1", port, ProtocolType.Tcp, new byte[] { 1 }, false, TestContext.Current.CancellationToken);
+                Assert.False(stream.IsNewConnection);
+                stream.Dispose();
+            }
+            stopwatch.Stop();
+
+            Assert.True(stopwatch.ElapsedMilliseconds < 100, $"20 reuses took {stopwatch.ElapsedMilliseconds}ms");
+        }
+
+        [Fact(Timeout = 10000)]
+        public async Task BeginStreamAsync_ConnectionWithUnreadData_IsNotReused()
+        {
+            using var listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            listener.Bind(new System.Net.IPEndPoint(System.Net.IPAddress.Loopback, 0));
+            listener.Listen();
+            var port = ((System.Net.IPEndPoint)listener.LocalEndPoint!).Port;
+            using var pool = new SocketClientPool();
+
+            var first = await pool.BeginStreamAsync("127.0.0.1", port, ProtocolType.Tcp, new byte[] { 1 }, false, TestContext.Current.CancellationToken);
+            using var server = await listener.AcceptAsync(TestContext.Current.CancellationToken);
+
+            //a response the client didn't finish reading
+            _ = await server.SendAsync(new byte[] { 1, 2, 3 }, SocketFlags.None, TestContext.Current.CancellationToken);
+            await Task.Delay(50, TestContext.Current.CancellationToken);
+            first.Dispose();
+
+            var second = await pool.BeginStreamAsync("127.0.0.1", port, ProtocolType.Tcp, new byte[] { 1 }, false, TestContext.Current.CancellationToken);
+            Assert.True(second.IsNewConnection);
+            second.Dispose();
+        }
     }
 }

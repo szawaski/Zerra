@@ -68,6 +68,7 @@ namespace Zerra.CQRS.Network
                 var buffer = bufferOwner.AsMemory();
 
                 var requireNewConnection = false;
+                var responseStarted = false; //once the server responds it has the request, retrying on a new connection could run it twice
             newconnection:
                 try
                 {
@@ -109,7 +110,7 @@ namespace Zerra.CQRS.Network
                         if (bytesRead == 0)
                         {
                             stream.DisposeSocket();
-                            if (stream.IsNewConnection)
+                            if (stream.IsNewConnection || responseStarted)
                             {
                                 stream = null;
                                 throw new ConnectionAbortedException();
@@ -122,6 +123,7 @@ namespace Zerra.CQRS.Network
                             }
                         }
                         headerLength += bytesRead;
+                        responseStarted = true;
 
                         requestHeaderEnd = TcpCommon.TryReadToHeaderEnd(buffer[..headerLength], ref headerPosition);
                     }
@@ -179,7 +181,7 @@ namespace Zerra.CQRS.Network
                         if (stream is not null)
                         {
                             stream.DisposeSocket();
-                            if (!stream.IsNewConnection)
+                            if (!stream.IsNewConnection && !responseStarted)
                             {
                                 log?.Error(ex);
                                 stream = null;
@@ -235,6 +237,7 @@ namespace Zerra.CQRS.Network
                 var buffer = bufferOwner.AsMemory();
 
                 var requireNewConnection = false;
+                var responseStarted = false; //once the server responds it has the request, retrying on a new connection could run it twice
             newconnection:
                 try
                 {
@@ -254,7 +257,7 @@ namespace Zerra.CQRS.Network
                         requestBodyCryptoStream = encryptor.Encrypt(requestBodyStream, true);
                         await serializer.SerializeAsync(requestBodyCryptoStream, data, cancellationToken);
 #if NET5_0_OR_GREATER
-                        await requestBodyCryptoStream.FlushFinalBlockAsync();
+                        await requestBodyCryptoStream.FlushFinalBlockAsync(cancellationToken);
 #else
                         requestBodyCryptoStream.FlushFinalBlock();
 #endif
@@ -296,7 +299,7 @@ namespace Zerra.CQRS.Network
                         if (bytesRead == 0)
                         {
                             stream.DisposeSocket();
-                            if (stream.IsNewConnection)
+                            if (stream.IsNewConnection || responseStarted)
                             {
                                 stream = null;
                                 throw new ConnectionAbortedException();
@@ -309,6 +312,7 @@ namespace Zerra.CQRS.Network
                             }
                         }
                         headerLength += bytesRead;
+                        responseStarted = true;
 
                         requestHeaderEnd = TcpCommon.TryReadToHeaderEnd(buffer[..headerLength], ref headerPosition);
                     }
@@ -399,7 +403,7 @@ namespace Zerra.CQRS.Network
                         if (stream is not null)
                         {
                             stream.DisposeSocket();
-                            if (!stream.IsNewConnection)
+                            if (!stream.IsNewConnection && !responseStarted)
                             {
                                 log?.Error(ex);
                                 stream = null;
@@ -457,6 +461,7 @@ namespace Zerra.CQRS.Network
                 var buffer = bufferOwner.AsMemory();
 
                 var requireNewConnection = false;
+                var responseStarted = false; //once the server responds it has the request, retrying on a new connection could run it twice
             newconnection:
                 try
                 {
@@ -519,7 +524,7 @@ namespace Zerra.CQRS.Network
                         if (bytesRead == 0)
                         {
                             stream.DisposeSocket();
-                            if (stream.IsNewConnection)
+                            if (stream.IsNewConnection || responseStarted)
                             {
                                 stream = null;
                                 throw new ConnectionAbortedException();
@@ -532,6 +537,7 @@ namespace Zerra.CQRS.Network
                             }
                         }
                         headerLength += bytesRead;
+                        responseStarted = true;
 
                         requestHeaderEnd = TcpCommon.TryReadToHeaderEnd(buffer[..headerLength], ref headerPosition);
                     }
@@ -605,7 +611,7 @@ namespace Zerra.CQRS.Network
                         if (stream is not null)
                         {
                             stream.DisposeSocket();
-                            if (!stream.IsNewConnection)
+                            if (!stream.IsNewConnection && !responseStarted)
                             {
                                 log?.Error(ex);
                                 stream = null;
@@ -662,6 +668,7 @@ namespace Zerra.CQRS.Network
                 var buffer = bufferOwner.AsMemory();
 
                 var requireNewConnection = false;
+                var responseStarted = false; //once the server responds it has the request, retrying on a new connection could run it twice
             newconnection:
                 try
                 {
@@ -724,7 +731,7 @@ namespace Zerra.CQRS.Network
                         if (bytesRead == 0)
                         {
                             stream.DisposeSocket();
-                            if (stream.IsNewConnection)
+                            if (stream.IsNewConnection || responseStarted)
                             {
                                 stream = null;
                                 throw new ConnectionAbortedException();
@@ -737,6 +744,7 @@ namespace Zerra.CQRS.Network
                             }
                         }
                         headerLength += bytesRead;
+                        responseStarted = true;
 
                         requestHeaderEnd = TcpCommon.TryReadToHeaderEnd(buffer[..headerLength], ref headerPosition);
                     }
@@ -819,7 +827,7 @@ namespace Zerra.CQRS.Network
                         if (stream is not null)
                         {
                             stream.DisposeSocket();
-                            if (!stream.IsNewConnection)
+                            if (!stream.IsNewConnection && !responseStarted)
                             {
                                 log?.Error(ex);
                                 stream = null;
@@ -877,6 +885,7 @@ namespace Zerra.CQRS.Network
                 var buffer = bufferOwner.AsMemory();
 
                 var requireNewConnection = false;
+                var responseStarted = false; //once the server responds it has the request, retrying on a new connection could run it twice
             newconnection:
                 try
                 {
@@ -939,7 +948,7 @@ namespace Zerra.CQRS.Network
                         if (bytesRead == 0)
                         {
                             stream.DisposeSocket();
-                            if (stream.IsNewConnection)
+                            if (stream.IsNewConnection || responseStarted)
                             {
                                 stream = null;
                                 throw new ConnectionAbortedException();
@@ -952,6 +961,7 @@ namespace Zerra.CQRS.Network
                             }
                         }
                         headerLength += bytesRead;
+                        responseStarted = true;
 
                         requestHeaderEnd = TcpCommon.TryReadToHeaderEnd(buffer[..headerLength], ref headerPosition);
                     }
@@ -1025,7 +1035,7 @@ namespace Zerra.CQRS.Network
                         if (stream is not null)
                         {
                             stream.DisposeSocket();
-                            if (!stream.IsNewConnection)
+                            if (!stream.IsNewConnection && !responseStarted)
                             {
                                 log?.Error(ex);
                                 stream = null;

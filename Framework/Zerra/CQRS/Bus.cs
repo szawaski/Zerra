@@ -348,7 +348,7 @@ namespace Zerra.CQRS
         }
 
         /// <inheritdoc />
-        public async Task<RemoteQueryCallResponse> RemoteHandleQueryCallAsync(Type interfaceType, string methodName, byte[]?[] arguments, string source, bool isApi, ISerializer serializer, CancellationToken cancellationToken)
+        public async Task<RemoteQueryCallResponse> RemoteHandleQueryCallAsync(Type interfaceType, string methodName, byte[]?[] arguments, string source, ISerializer serializer, CancellationToken cancellationToken)
         {
             var info = BusHandlers.GetMethod(interfaceType, methodName);
 
@@ -394,13 +394,13 @@ namespace Zerra.CQRS
                 return new RemoteQueryCallResponse(result);
         }
         /// <inheritdoc />
-        public Task RemoteHandleCommandDispatchAsync(ICommand command, string source, bool isApi, CancellationToken cancellationToken)
+        public Task RemoteHandleCommandDispatchAsync(ICommand command, string source, CancellationToken cancellationToken)
             => _DispatchCommandInternalAsync(command, command.GetType(), false, source, cancellationToken);
         /// <inheritdoc />
-        public Task RemoteHandleCommandDispatchAwaitAsync(ICommand command, string source, bool isApi, CancellationToken cancellationToken)
+        public Task RemoteHandleCommandDispatchAwaitAsync(ICommand command, string source, CancellationToken cancellationToken)
             => _DispatchCommandInternalAsync(command, command.GetType(), true, source, cancellationToken);
         /// <inheritdoc />
-        public async Task<object?> RemoteHandleCommandWithResultDispatchAwaitAsync(ICommand command, string source, bool isApi, CancellationToken cancellationToken)
+        public async Task<object?> RemoteHandleCommandWithResultDispatchAwaitAsync(ICommand command, string source, CancellationToken cancellationToken)
         {
             var commandType = command.GetType();
             var dispatcher = BusRouters.GetBusDispatcher(commandType);
@@ -410,7 +410,7 @@ namespace Zerra.CQRS
             return result;
         }
         /// <inheritdoc />
-        public Task RemoteHandleEventDispatchAsync(IEvent @event, string source, bool isApi)
+        public Task RemoteHandleEventDispatchAsync(IEvent @event, string source)
                 => _DispatchEventInternalAsync(@event, @event.GetType(), source, CancellationToken.None);
 
         /// <inheritdoc />
