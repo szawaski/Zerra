@@ -377,6 +377,39 @@ namespace Zerra.Test.CQRS.Network
             Assert.True(header.IsError);
         }
 
+        //the reason phrase differs by server, Kestrel and proxies send their own, any 4xx or 5xx status is an error
+        [Theory]
+        [InlineData("HTTP/1.1 500 Server Error", "500 Server Error")]
+        [InlineData("HTTP/1.1 500 Internal Server Error", "500 Internal Server Error")]
+        [InlineData("HTTP/1.1 502 Bad Gateway", "502 Bad Gateway")]
+        [InlineData("HTTP/1.1 400 Bad Request", "400 Bad Request")]
+        [InlineData("HTTP/1.1 401 Unauthorized", "401 Unauthorized")]
+        [InlineData("HTTP/1.1 404 Not Found", "404 Not Found")]
+        public void ReadHeader_ErrorStatus_IsError(string statusLine, string status)
+        {
+            var bytes = System.Text.Encoding.UTF8.GetBytes($"{statusLine}\r\nContent-Length: 0\r\n\r\n");
+
+            var header = HttpCommon.ReadHeader(bytes, bytes.Length);
+
+            Assert.True(header.IsError);
+            Assert.Equal(status, header.ErrorStatus);
+        }
+
+        [Theory]
+        [InlineData("HTTP/1.1 200 OK")]
+        [InlineData("HTTP/1.1 204 No Content")]
+        [InlineData("HTTP/1.1 304 Not Modified")]
+        [InlineData("POST /500 HTTP/1.1")] //a request line is never an error, even with a path that looks like a status
+        public void ReadHeader_NonErrorStatus_IsNotError(string firstLine)
+        {
+            var bytes = System.Text.Encoding.UTF8.GetBytes($"{firstLine}\r\nContent-Length: 0\r\n\r\n");
+
+            var header = HttpCommon.ReadHeader(bytes, bytes.Length);
+
+            Assert.False(header.IsError);
+            Assert.Null(header.ErrorStatus);
+        }
+
         [Fact]
         public void BufferPostRequestHeader_WithMultipleAuthHeaders()
         {

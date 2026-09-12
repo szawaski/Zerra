@@ -305,6 +305,104 @@ namespace Zerra.Test.CQRS.Network
             Assert.Equal(7, serializer.Deserialize<TestEvent>(request.Data.MessageData)!.Value);
         }
 
+        //Kestrel and proxies frame a body by its length where HttpCqrsServer chunks it
+        [Theory(Timeout = timeout)]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task CallTaskGeneric_LengthFramedResponse_ReturnsModel(bool encrypt)
+        {
+            var enc = encrypt ? encryptor : null;
+            using var server = new FakeServer(enc, request => request.WriteLengthFramedAsync("HTTP/1.1 200 OK", body => serializer.SerializeAsync(body, 42, default)));
+            using var client = CreateClient(server, enc);
+
+            var result = await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, default);
+
+            Assert.Equal(42, result);
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task Call_LengthFramedResponse_ReturnsModel()
+        {
+            using var server = new FakeServer(null, request => request.WriteLengthFramedAsync("HTTP/1.1 200 OK", body => serializer.SerializeAsync(body, 42, default)));
+            using var client = CreateClient(server, null);
+
+            var result = await Task.Run(() => ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source));
+
+            Assert.Equal(42, result);
+        }
+
+        //the reason phrase differs by server, the status code is what marks an error
+        [Theory(Timeout = timeout)]
+        [InlineData("HTTP/1.1 500 Internal Server Error")]
+        [InlineData("HTTP/1.1 503 Service Unavailable")]
+        [InlineData("HTTP/1.1 400 Bad Request")]
+        public async Task CallTaskGeneric_ErrorWithOtherStatusLine_ThrowsRemoteServiceException(string statusLine)
+        {
+            using var server = new FakeServer(null, request => request.WriteLengthFramedAsync(statusLine, body => ExceptionSerializer.SerializeAsync(serializer, body, new InvalidOperationException("query failed"), default)));
+            using var client = CreateClient(server, null);
+
+            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() =>
+                ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, default));
+
+            Assert.Equal("query failed", exception.Message);
+        }
+
+        //an error without a body, such as Kestrel's 401, can only report its status
+        [Theory(Timeout = timeout)]
+        [InlineData("HTTP/1.1 401 Unauthorized", "401 Unauthorized")]
+        [InlineData("HTTP/1.1 400 Bad Request", "400 Bad Request")]
+        [InlineData("HTTP/1.1 404 Not Found", "404 Not Found")]
+        public async Task CallTaskGeneric_EmptyErrorResponse_ThrowsWithStatus(string statusLine, string status)
+        {
+            using var server = new FakeServer(null, request => request.WriteLengthFramedAsync(statusLine));
+            using var client = CreateClient(server, null);
+
+            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() =>
+                ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, default));
+
+            Assert.Contains(status, exception.Message);
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task Call_EmptyErrorResponse_ThrowsWithStatus()
+        {
+            using var server = new FakeServer(null, request => request.WriteLengthFramedAsync("HTTP/1.1 401 Unauthorized"));
+            using var client = CreateClient(server, null);
+
+            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() => Task.Run(() =>
+                ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source)));
+
+            Assert.Contains("401 Unauthorized", exception.Message);
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task DispatchAwaitAsync_EmptyErrorResponse_ThrowsWithStatus()
+        {
+            using var server = new FakeServer(null, request => request.WriteLengthFramedAsync("HTTP/1.1 401 Unauthorized"));
+            using var client = CreateClient(server, null);
+
+            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() =>
+                ((ICommandProducer)client).DispatchAwaitAsync(new TestCommand { Value = 5 }, source, default));
+
+            Assert.Contains("401 Unauthorized", exception.Message);
+        }
+
+        //an empty error leaves nothing unread, so the connection goes back to the pool and the next call uses it
+        [Fact(Timeout = timeout)]
+        public async Task CallTaskGeneric_AfterEmptyErrorResponse_ReusesConnection()
+        {
+            var responses = 0;
+            using var server = new FakeServer(null, request => Interlocked.Increment(ref responses) == 1 ? request.WriteLengthFramedAsync("HTTP/1.1 401 Unauthorized") : request.WriteModelAsync(42));
+            using var client = CreateClient(server, null);
+
+            _ = await Assert.ThrowsAsync<RemoteServiceException>(() =>
+                ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, default));
+            var result = await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, default);
+
+            Assert.Equal(42, result);
+            Assert.Equal(1, server.ConnectionCount);
+        }
+
         [Fact]
         public void Call_UnregisteredInterface_Throws()
         {
@@ -500,6 +598,33 @@ namespace Zerra.Test.CQRS.Network
                 this.encryptor = encryptor;
                 this.Header = header;
                 this.Data = data;
+            }
+
+            //a response the way Kestrel or a proxy frames it, its own status line and the body sent by length instead of chunked
+            public async Task WriteLengthFramedAsync(string statusLine, Func<Stream, Task>? write = null)
+            {
+                var body = Array.Empty<byte>();
+                if (write is not null)
+                {
+                    var bodyStream = new MemoryStream();
+                    if (encryptor is not null)
+                    {
+                        var cryptoStream = encryptor.Encrypt(bodyStream, true);
+                        await write(cryptoStream);
+                        await cryptoStream.FlushFinalBlockAsync();
+                        await cryptoStream.DisposeAsync();
+                    }
+                    else
+                    {
+                        await write(bodyStream);
+                    }
+                    body = bodyStream.ToArray();
+                }
+
+                var contentTypeLine = body.Length > 0 ? $"{HttpCommon.ContentTypeHeader}: {HttpCommon.ContentTypeBytes}\r\n" : null;
+                var header = System.Text.Encoding.UTF8.GetBytes($"{statusLine}\r\n{contentTypeLine}{HttpCommon.ContentLengthHeader}: {body.Length}\r\n\r\n");
+                await stream.WriteAsync(header);
+                await stream.WriteAsync(body);
             }
 
             public async Task WriteModelAsync(object? model, bool splitHeader = false)

@@ -104,6 +104,64 @@ namespace Zerra.Test.Web
             Assert.Equal(42, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken));
         }
 
+        //an error without a body, such as the middleware's 401 or 400, can only report its status
+        [Theory(Timeout = timeout)]
+        [InlineData(401, "401 Unauthorized", false)]
+        [InlineData(401, "401 Unauthorized", true)]
+        [InlineData(400, "400 Bad Request", false)]
+        public async Task CallTaskGeneric_EmptyErrorResponse_ThrowsWithStatus(int statusCode, string status, bool encrypt)
+        {
+            var enc = encrypt ? encryptor : null;
+            using var server = new FakeServer(enc, _ => new FakeResponse(statusCode, []));
+            using var client = CreateClient(server, enc);
+
+            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() =>
+                ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken));
+
+            Assert.Contains(status, exception.Message);
+            Assert.EndsWith($"for {nameof(ITestQueryHandler)}.{nameof(ITestQueryHandler.GetThings)}", exception.Message);
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task Call_EmptyErrorResponse_ThrowsWithStatus()
+        {
+            using var server = new FakeServer(null, _ => new FakeResponse(401, []));
+            using var client = CreateClient(server, null);
+
+            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() => Task.Run(() =>
+                ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source)));
+
+            Assert.Contains("401 Unauthorized", exception.Message);
+            Assert.EndsWith($"for {nameof(ITestQueryHandler)}.{nameof(ITestQueryHandler.GetThings)}", exception.Message);
+        }
+
+        //messages have no method so the error names just the type, the short name rather than the assembly qualified one sent as the message type
+        [Fact(Timeout = timeout)]
+        public async Task DispatchAwaitAsync_EmptyErrorResponse_ThrowsWithStatusAndTypeName()
+        {
+            using var server = new FakeServer(null, _ => new FakeResponse(401, []));
+            using var client = CreateClient(server, null);
+
+            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() =>
+                ((ICommandProducer)client).DispatchAwaitAsync(new TestCommand { Value = 5 }, source, TestContext.Current.CancellationToken));
+
+            Assert.Contains("401 Unauthorized", exception.Message);
+            Assert.EndsWith($"for {nameof(TestCommand)}", exception.Message);
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task DispatchAsync_Event_EmptyErrorResponse_ThrowsWithStatusAndTypeName()
+        {
+            using var server = new FakeServer(null, _ => new FakeResponse(401, []));
+            using var client = CreateClient(server, null);
+
+            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() =>
+                ((IEventProducer)client).DispatchAsync(new TestEvent { Value = 7 }, source, TestContext.Current.CancellationToken));
+
+            Assert.Contains("401 Unauthorized", exception.Message);
+            Assert.EndsWith($"for {nameof(TestEvent)}", exception.Message);
+        }
+
         [Theory(Timeout = timeout)]
         [InlineData(false)]
         [InlineData(true)]
@@ -220,7 +278,7 @@ namespace Zerra.Test.Web
 
                         var response = Respond(request);
                         context.Response.StatusCode = response.StatusCode;
-                        if (encryptor is not null)
+                        if (encryptor is not null && response.Body.Length > 0) //the middleware sends nothing to decrypt for an empty response, such as a 401
                         {
                             var cryptoStream = encryptor.Encrypt(context.Response.OutputStream, true);
                             await cryptoStream.WriteAsync(response.Body);

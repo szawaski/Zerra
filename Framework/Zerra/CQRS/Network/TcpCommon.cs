@@ -9,7 +9,7 @@ namespace Zerra.CQRS.Network
     {
         public const int BufferLength = 1024 * 8; //Limits max header size
 
-        //{prefix} {providerType} {contentType}~{int-size:body}{int-size:body}{int-size:body}...{0:null}
+        //{prefix}|{providerType}|{contentType}~{int-size:body}{int-size:body}{int-size:body}...{0:null}
         private const string protocolRawPrefix = "RAW";
         private const string protocolErrorPrefix = "ERR";
         private const string nullProviderType = "*";

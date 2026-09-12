@@ -2,7 +2,9 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics.CodeAnalysis;
 using Xunit;
 using Zerra.CQRS;
@@ -62,6 +64,41 @@ namespace Zerra.Test.Web
             Assert.Equal(500, context.Response.StatusCode);
             var exception = ExceptionSerializer.Deserialize(source, serializer, ReadResponse(context));
             Assert.Equal("query failed", exception.Message);
+        }
+
+        //UseMiddleware picks a constructor by argument type and a null route matches none, a null route falls back to the constructor default and serves every path
+        [Fact(Timeout = timeout)]
+        public async Task UseCqrsApiGateway_NullRoute_ServesAnyPath()
+        {
+            var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
+            var builder = new ApplicationBuilder(new ServiceCollection().AddSingleton<IBus>(bus).AddSingleton(serializer).BuildServiceProvider());
+            _ = builder.UseCqrsApiGateway(null);
+            var app = builder.Build();
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21));
+            context.Request.Path = "/any/path";
+
+            await app(context);
+
+            Assert.Equal(200, context.Response.StatusCode);
+            Assert.Equal(42, serializer.Deserialize<int>(ReadResponse(context)));
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task UseCqrsApiGateway_DefaultRoute_OtherPathCallsNext()
+        {
+            var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
+            var builder = new ApplicationBuilder(new ServiceCollection().AddSingleton<IBus>(bus).AddSingleton(serializer).BuildServiceProvider());
+            _ = builder.UseCqrsApiGateway();
+            var nextInvoked = false;
+            _ = builder.Use(next => context => { nextInvoked = true; return Task.CompletedTask; });
+            var app = builder.Build();
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21));
+            context.Request.Path = "/other";
+
+            await app(context);
+
+            Assert.True(nextInvoked);
+            Assert.Null(bus.QueryInterfaceType);
         }
 
         private static ApiRequestData QueryRequest(string methodName, params object[] arguments) => new()

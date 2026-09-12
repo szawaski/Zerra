@@ -80,7 +80,7 @@ namespace Zerra.Web
             for (var i = 0; i < argumentTypes.Count; i++)
                 data.ProviderArguments[i] = serializer.SerializeBytes(arguments[i], argumentTypes[i]);
 
-            var model = Request<TReturn>(throttle, isStream, routeUri, providerName, data, true);
+            var model = Request<TReturn>(throttle, isStream, routeUri, providerName, providerName, data, true);
             return model;
         }
 
@@ -106,7 +106,7 @@ namespace Zerra.Web
             for (var i = 0; i < argumentTypes.Count; i++)
                 data.ProviderArguments[i] = serializer.SerializeBytes(arguments[i], argumentTypes[i]);
 
-            var model = RequestAsync<TReturn>(throttle, isStream, routeUri, providerName, data, true, cancellationToken);
+            var model = RequestAsync<TReturn>(throttle, isStream, routeUri, providerName, providerName, data, true, cancellationToken);
             return model;
         }
 
@@ -131,7 +131,7 @@ namespace Zerra.Web
                 Source = source
             };
 
-            return RequestAsync<object>(throttle, false, routeUri, messageType, data, false, cancellationToken);
+            return RequestAsync<object>(throttle, false, routeUri, messageType, commandType.Name, data, false, cancellationToken);
         }
         /// <inheritdoc />
         protected override Task<TResult> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source, CancellationToken cancellationToken) where TResult : default
@@ -154,7 +154,7 @@ namespace Zerra.Web
                 Source = source
             };
 
-            return RequestAsync<TResult>(throttle, isStream, routeUri, messageType, data, true, cancellationToken)!;
+            return RequestAsync<TResult>(throttle, isStream, routeUri, messageType, commandType.Name, data, true, cancellationToken)!;
         }
         /// <inheritdoc />
         protected override Task DispatchInternal(SemaphoreSlim throttle, Type eventType, IEvent @event, string source, CancellationToken cancellationToken)
@@ -177,10 +177,10 @@ namespace Zerra.Web
                 Source = source
             };
 
-            return RequestAsync<object>(throttle, false, routeUri, messageType, data, false, cancellationToken);
+            return RequestAsync<object>(throttle, false, routeUri, messageType, eventType.Name, data, false, cancellationToken);
         }
 
-        private async Task<TReturn> RequestAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, string? providerType, CqrsRequestData data, bool getResponseData, CancellationToken cancellationToken)
+        private async Task<TReturn> RequestAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, string? providerType, string sourceName, CqrsRequestData data, bool getResponseData, CancellationToken cancellationToken)
         {
             await throttle.WaitAsync(cancellationToken);
 
@@ -234,7 +234,11 @@ namespace Zerra.Web
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    var responseException = await ExceptionSerializer.DeserializeAsync(providerType ?? String.Empty, serializer, responseStream, cancellationToken);
+                    var errorSource = data.ProviderMethod is null ? sourceName : $"{sourceName}.{data.ProviderMethod}";
+                    //an error without a body, such as a 401 or a 400 sent before the request is read, has no details to read so the status is the error
+                    var responseException = response.Content.Headers.ContentLength == 0
+                        ? new RemoteServiceException(errorSource, $"Remote service responded {(int)response.StatusCode} {response.ReasonPhrase} without details for {errorSource}")
+                        : await ExceptionSerializer.DeserializeAsync(errorSource, serializer, responseStream, cancellationToken);
                     throw responseException;
                 }
 
@@ -276,7 +280,7 @@ namespace Zerra.Web
             }
         }
 
-        private TReturn Request<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, string? providerType, CqrsRequestData data, bool getResponseData)
+        private TReturn Request<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, string? providerType, string sourceName, CqrsRequestData data, bool getResponseData)
         {
             throttle.Wait();
 
@@ -330,7 +334,11 @@ namespace Zerra.Web
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    var responseException = ExceptionSerializer.Deserialize(providerType ?? String.Empty, serializer, responseStream);
+                    var errorSource = data.ProviderMethod is null ? sourceName : $"{sourceName}.{data.ProviderMethod}";
+                    //an error without a body, such as a 401 or a 400 sent before the request is read, has no details to read so the status is the error
+                    var responseException = response.Content.Headers.ContentLength == 0
+                        ? new RemoteServiceException(errorSource, $"Remote service responded {(int)response.StatusCode} {response.ReasonPhrase} without details for {errorSource}")
+                        : ExceptionSerializer.Deserialize(errorSource, serializer, responseStream);
                     throw responseException;
                 }
 

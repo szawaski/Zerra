@@ -49,8 +49,12 @@ namespace Zerra.Serialization.Bytes.State
         public ReadFrame Current;
 
         /// <summary>
-        /// Gets or sets the number of bytes needed for the current operation.
+        /// Gets or sets the total number of bytes the unfinished value needs, counted from where it starts.
         /// </summary>
+        /// <remarks>
+        /// A read that runs short returns the position of the value's start, so after the buffer is shifted
+        /// the value begins at index 0 and the buffer needs at least this many bytes, not this many more.
+        /// </remarks>
         public int SizeNeeded;
 
         /// <summary>

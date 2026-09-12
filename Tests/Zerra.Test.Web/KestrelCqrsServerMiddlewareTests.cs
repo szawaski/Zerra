@@ -2,7 +2,9 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using Zerra.CQRS;
 using Zerra.CQRS.Network;
@@ -262,6 +264,42 @@ namespace Zerra.Test.Web
             context.Request.Path = "/other";
 
             await middleware.Invoke(context);
+
+            Assert.True(nextInvoked);
+        }
+
+        //UseMiddleware picks a constructor by argument type and a null encryptor or log matches none, the extension builds the middleware itself
+        [Theory(Timeout = timeout)]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task UseKestrelCqrsServer_NullLog_ServesQuery(bool encrypt)
+        {
+            var enc = encrypt ? encryptor : null;
+            using var settings = CreateSettings(null, null, (_, _, arguments, _, _, _) => Task.FromResult(new RemoteQueryCallResponse(serializer.Deserialize<int>(arguments[0]) * 2)), null, null, null, null);
+            var builder = new ApplicationBuilder(new ServiceCollection().BuildServiceProvider());
+            _ = builder.UseKestrelCqrsServer(serializer, enc, null, settings);
+            var app = builder.Build();
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), enc);
+
+            await app(context);
+
+            Assert.Equal(200, context.Response.StatusCode);
+            Assert.Equal(42, serializer.Deserialize<int>(ReadResponse(context, enc)));
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task UseKestrelCqrsServer_OtherRoute_CallsNext()
+        {
+            using var settings = CreateSettings("/cqrs", null, null, null, null, null, null);
+            var builder = new ApplicationBuilder(new ServiceCollection().BuildServiceProvider());
+            _ = builder.UseKestrelCqrsServer(serializer, null, null, settings);
+            var nextInvoked = false;
+            _ = builder.Use(next => context => { nextInvoked = true; return Task.CompletedTask; });
+            var app = builder.Build();
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), null);
+            context.Request.Path = "/other";
+
+            await app(context);
 
             Assert.True(nextInvoked);
         }
