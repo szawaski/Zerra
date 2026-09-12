@@ -75,14 +75,16 @@ namespace Zerra.CQRS.Network
         //a response line is "HTTP/1.1 <status> <reason>", any 4xx or 5xx is an error
         //the reason is matched on the status alone because it differs by server, Kestrel sends "Internal Server Error" where this sends "Server Error"
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool IsErrorStatus(ReadOnlySpan<char> declarations)
+        private static bool IsErrorStatus(ReadOnlySpan<char> declarations, out ReadOnlySpan<char> status)
         {
+            status = default;
             if (!declarations.StartsWith(httpVersion.AsSpan()))
                 return false;
             var statusStart = declarations.IndexOf(' ') + 1;
             if (statusStart < 1 || statusStart == declarations.Length)
                 return false;
-            return declarations[statusStart] == '4' || declarations[statusStart] == '5';
+            status = declarations.Slice(statusStart);
+            return status[0] == '4' || status[0] == '5';
         }
 
         //known headers are read from the chars directly, the declarations string and headers dictionary are only built when asked for
@@ -108,7 +110,9 @@ namespace Zerra.CQRS.Network
                         case '\n':
                             {
                                 var declarations = chars.Slice(start, length);
-                                headerInfo.IsError = IsErrorStatus(declarations);
+                                headerInfo.IsError = IsErrorStatus(declarations, out var errorStatus);
+                                if (headerInfo.IsError)
+                                    headerInfo.ErrorStatus = errorStatus.ToString();
                                 headerInfo.Preflight = declarations.StartsWith(OptionsHeader.AsSpan());
                                 if (parseAllHeaders)
                                     headerInfo.Declarations = declarations.ToString();

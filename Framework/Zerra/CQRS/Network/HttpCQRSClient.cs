@@ -152,7 +152,10 @@ namespace Zerra.CQRS.Network
 
                     if (responseHeader.IsError)
                     {
-                        var responseException = ContentTypeSerializer.DeserializeException(contentType, responseBodyStream);
+                        //an error without a body, such as Kestrel's 401 or a 400 sent before the request is read, has no details to read so the status is the error
+                        var responseException = !responseHeader.Chuncked && (responseHeader.ContentLength ?? 0) == 0
+                            ? new RemoteServiceException($"Remote service responded {responseHeader.ErrorStatus} without details for {interfaceType.Name}.{methodName}")
+                            : ContentTypeSerializer.DeserializeException(contentType, responseBodyStream);
                         isThrowingRemote = true;
                         throw responseException;
                     }
@@ -348,7 +351,10 @@ namespace Zerra.CQRS.Network
 
                     if (responseHeader.IsError)
                     {
-                        var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseBodyStream, cancellationToken);
+                        //an error without a body, such as Kestrel's 401 or a 400 sent before the request is read, has no details to read so the status is the error
+                        var responseException = !responseHeader.Chuncked && (responseHeader.ContentLength ?? 0) == 0
+                            ? new RemoteServiceException($"Remote service responded {responseHeader.ErrorStatus} without details for {interfaceType.Name}.{methodName}")
+                            : await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseBodyStream, cancellationToken);
                         isThrowingRemote = true;
                         throw responseException;
                     }
@@ -572,7 +578,10 @@ namespace Zerra.CQRS.Network
 
                     if (responseHeader.IsError)
                     {
-                        var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseBodyStream, cancellationToken);
+                        //an error without a body, such as Kestrel's 401 or a 400 sent before the request is read, has no details to read so the status is the error
+                        var responseException = !responseHeader.Chuncked && (responseHeader.ContentLength ?? 0) == 0
+                            ? new RemoteServiceException($"Remote service responded {responseHeader.ErrorStatus} without details for {messageTypeName}")
+                            : await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseBodyStream, cancellationToken);
                         isThrowingRemote = true;
                         throw responseException;
                     }
@@ -787,7 +796,10 @@ namespace Zerra.CQRS.Network
 
                     if (responseHeader.IsError)
                     {
-                        var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseBodyStream, cancellationToken);
+                        //an error without a body, such as Kestrel's 401 or a 400 sent before the request is read, has no details to read so the status is the error
+                        var responseException = !responseHeader.Chuncked && (responseHeader.ContentLength ?? 0) == 0
+                            ? new RemoteServiceException($"Remote service responded {responseHeader.ErrorStatus} without details for {messageTypeName}")
+                            : await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseBodyStream, cancellationToken);
                         isThrowingRemote = true;
                         throw responseException;
                     }
@@ -1012,7 +1024,10 @@ namespace Zerra.CQRS.Network
 
                     if (responseHeader.IsError)
                     {
-                        var responseException = await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseBodyStream, cancellationToken);
+                        //an error without a body, such as Kestrel's 401 or a 400 sent before the request is read, has no details to read so the status is the error
+                        var responseException = !responseHeader.Chuncked && (responseHeader.ContentLength ?? 0) == 0
+                            ? new RemoteServiceException($"Remote service responded {responseHeader.ErrorStatus} without details for {messageTypeName}")
+                            : await ContentTypeSerializer.DeserializeExceptionAsync(contentType, responseBodyStream, cancellationToken);
                         isThrowingRemote = true;
                         throw responseException;
                     }
