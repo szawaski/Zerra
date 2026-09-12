@@ -2278,5 +2278,35 @@ namespace Zerra.Test.Serialization
             Assert.NotNull(model);
             Assert.Equal(String.Empty, model["key"]);
         }
+
+        [Fact]
+        public async Task LargeValueToExpandBuffer()
+        {
+            var model = new string('x', 10000);
+
+            using var stream1 = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream1, model, null, null, TestContext.Current.CancellationToken);
+            stream1.Position = 0;
+            var result1 = await JsonSerializer.DeserializeAsync<string>(stream1, null, null, TestContext.Current.CancellationToken);
+            AssertHelper.AreEqual(model, result1);
+
+            using var stream2 = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream2, model, null, null, TestContext.Current.CancellationToken);
+            stream2.Position = 0;
+            var result2 = await JsonSerializer.DeserializeAsync(stream2, typeof(string), null, null, TestContext.Current.CancellationToken);
+            AssertHelper.AreEqual(model, result2);
+
+            using var stream3 = new MemoryStream();
+            JsonSerializer.Serialize(stream3, model);
+            stream3.Position = 0;
+            var result3 = JsonSerializer.Deserialize<string>(stream3);
+            AssertHelper.AreEqual(model, result3);
+
+            using var stream4 = new MemoryStream();
+            JsonSerializer.Serialize(stream4, model);
+            stream4.Position = 0;
+            var result4 = JsonSerializer.Deserialize(stream4, typeof(string));
+            AssertHelper.AreEqual(model, result4);
+        }
     }
 }

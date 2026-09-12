@@ -168,7 +168,7 @@ namespace Zerra.Serialization.Bytes
                         length += read;
                     }
 
-                    if (length < totalSizeNeeded)
+                    if (length < state.SizeNeeded)
                         throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)} or the stream ended early");
 
                     state.SizeNeeded = 0;
@@ -280,7 +280,7 @@ namespace Zerra.Serialization.Bytes
                         length += read;
                     }
 
-                    if (length < totalSizeNeeded)
+                    if (length < state.SizeNeeded)
                         throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)} or the stream ended early");
 
                     state.SizeNeeded = 0;
@@ -392,7 +392,7 @@ namespace Zerra.Serialization.Bytes
                         length += read;
                     }
 
-                    if (length < totalSizeNeeded)
+                    if (length < state.SizeNeeded)
                         throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)} or the stream ended early");
 
                     state.SizeNeeded = 0;
@@ -507,7 +507,7 @@ namespace Zerra.Serialization.Bytes
                         length += read;
                     }
 
-                    if (length < totalSizeNeeded)
+                    if (length < state.SizeNeeded)
                         throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)} or the stream ended early");
 
                     state.SizeNeeded = 0;

@@ -283,7 +283,7 @@ namespace Zerra.Serialization.Json
                         length += read;
                     }
 
-                    if (length < totalSizeNeeded)
+                    if (length < state.SizeNeeded)
                         throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
 
                     state.SizeNeeded = 0;
@@ -400,7 +400,7 @@ namespace Zerra.Serialization.Json
                         length += read;
                     }
 
-                    if (length < totalSizeNeeded)
+                    if (length < state.SizeNeeded)
                         throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
 
                     state.SizeNeeded = 0;
@@ -517,7 +517,7 @@ namespace Zerra.Serialization.Json
                         length += read;
                     }
 
-                    if (length <  totalSizeNeeded)
+                    if (length < state.SizeNeeded)
                         throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
 
                     state.SizeNeeded = 0;
@@ -635,7 +635,7 @@ namespace Zerra.Serialization.Json
                         length += read;
                     }
 
-                    if (length < totalSizeNeeded)
+                    if (length < state.SizeNeeded)
                         throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
 
                     state.SizeNeeded = 0;

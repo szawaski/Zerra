@@ -180,8 +180,9 @@ namespace Zerra.Serialization.Json
                     Buffer.BlockCopy(buffer, bytesUsed, buffer, 0, length - bytesUsed);
                     position = length - position;
 
-                    if (position + state.SizeNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, position + state.SizeNeeded);
+                    var neededSize = position + state.SizeNeeded;
+                    if (neededSize > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, neededSize);
 
                     while (position < buffer.Length)
                     {

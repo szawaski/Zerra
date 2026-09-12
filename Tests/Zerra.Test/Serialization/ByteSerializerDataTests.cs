@@ -693,5 +693,75 @@ namespace Zerra.Test.Serialization
             var model2 = ByteSerializer.Deserialize<TypesBasicModel>(bytes, options);
             AssertHelper.AreEqual(model1, model2);
         }
+
+        [Fact]
+        public void LargeModel()
+        {
+            var options = new ByteSerializerOptions()
+            {
+                IndexType = ByteSerializerIndexType.UInt16
+            };
+
+            var models = new List<TypesAllModel>();
+            for (var i = 0; i < 1000; i++)
+                models.Add(TypesAllModel.Create());
+
+            var bytes = ByteSerializer.Serialize(models, options);
+            var result = ByteSerializer.Deserialize<TypesAllModel[]>(bytes, options);
+
+            for (var i = 0; i < models.Count; i++)
+                AssertHelper.AreEqual(models[i], result[i]);
+        }
+
+        [Fact]
+        public async Task LargeModelStream()
+        {
+            var options = new ByteSerializerOptions()
+            {
+                IndexType = ByteSerializerIndexType.UInt16
+            };
+
+            var models = new List<TypesAllModel>();
+            for (var i = 0; i < 10000; i++)
+                models.Add(TypesAllModel.Create());
+
+            using var stream = new MemoryStream();
+            await ByteSerializer.SerializeAsync(stream, models, options, TestContext.Current.CancellationToken);
+            stream.Position = 0;
+            var result = await ByteSerializer.DeserializeAsync<TypesAllModel[]>(stream, options, TestContext.Current.CancellationToken);
+
+            for (var i = 0; i < models.Count; i++)
+                AssertHelper.AreEqual(models[i], result[i]);
+        }
+
+        [Fact]
+        public async Task LargeValueToExpandBuffer()
+        {
+            var model = new string('x', 10000);
+
+            using var stream1 = new MemoryStream();
+            await ByteSerializer.SerializeAsync(stream1, model, null, TestContext.Current.CancellationToken);
+            stream1.Position = 0;
+            var result1 = await ByteSerializer.DeserializeAsync<string>(stream1, null, TestContext.Current.CancellationToken);
+            AssertHelper.AreEqual(model, result1);
+
+            using var stream2 = new MemoryStream();
+            await ByteSerializer.SerializeAsync(stream2, model, null, TestContext.Current.CancellationToken);
+            stream2.Position = 0;
+            var result2 = await ByteSerializer.DeserializeAsync(stream2, typeof(string), null, TestContext.Current.CancellationToken);
+            AssertHelper.AreEqual(model, result2);
+
+            using var stream3 = new MemoryStream();
+            ByteSerializer.Serialize(stream3, model);
+            stream3.Position = 0;
+            var result3 = ByteSerializer.Deserialize<string>(stream3);
+            AssertHelper.AreEqual(model, result3);
+
+            using var stream4 = new MemoryStream();
+            ByteSerializer.Serialize(stream4, model);
+            stream4.Position = 0;
+            var result4 = ByteSerializer.Deserialize(stream4, typeof(string));
+            AssertHelper.AreEqual(model, result4);
+        }
     }
 }

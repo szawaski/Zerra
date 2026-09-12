@@ -85,16 +85,16 @@ namespace Zerra.Serialization.Bytes.IO
             {
                 for (var i = 0; i < collectionLength; i++)
                 {
-                    sizeNeeded += 1;
-                    if (length - tempPosition < sizeNeeded)
+                    if (tempPosition >= length)
                         return false;
+                    sizeNeeded += 1;
                     if (pBuffer[tempPosition++] is not nullByte)
                     {
                         sizeNeeded += sizePerElement;
                         tempPosition += sizePerElement;
-                        if (length - tempPosition < sizeNeeded)
-                            return false;
                     }
+                    if (tempPosition > length)
+                        return false;
                 }
             }
 
