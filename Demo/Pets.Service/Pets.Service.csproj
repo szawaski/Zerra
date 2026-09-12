@@ -6,6 +6,13 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <PublishAot>true</PublishAot>
+        <OptimizationPreference>Size</OptimizationPreference>
+        <InvariantGlobalization>true</InvariantGlobalization>
+        <UseSystemResourceKeys>true</UseSystemResourceKeys>
+        <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+        <EventSourceSupport>false</EventSourceSupport>
+        <CopyOutputSymbolsToPublishDirectory>false</CopyOutputSymbolsToPublishDirectory>
+        <PublishDocumentationFiles>false</PublishDocumentationFiles>
     </PropertyGroup>
 
     <ItemGroup>
@@ -25,5 +32,12 @@
     <ItemGroup>
         <ProjectReference Include="..\..\Framework\Zerra.SourceGeneration\Zerra.SourceGeneration.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     </ItemGroup>
+
+    <!-- Referenced projects' .pdb files are useless in an AOT publish (their code is compiled into the exe) -->
+    <Target Name="RemoveIlPdbsFromAotPublish" AfterTargets="ComputeResolvedFilesToPublishList">
+        <ItemGroup>
+            <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="'%(Extension)' == '.pdb'" />
+        </ItemGroup>
+    </Target>
 
 </Project>
