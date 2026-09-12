@@ -184,8 +184,36 @@ namespace Zerra.Test.CQRS.Network
 
             var length = HttpCommon.BufferPreflightResponse(bufferMemory, origin);
 
-            var expected = "HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: https://example.com\r\nAccess-Control-Allow-Methods: *\r\nAccess-Control-Allow-Headers: *\r\nContent-Length: 0\r\n\r\n";
+            var expected = "HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: https://example.com\r\nVary: Origin\r\nAccess-Control-Allow-Methods: *\r\nAccess-Control-Allow-Headers: *\r\nContent-Length: 0\r\n\r\n";
             Assert.Equal(expected, System.Text.Encoding.UTF8.GetString(buffer, 0, length));
+        }
+
+        [Fact]
+        public void BufferPreflightResponse_OriginNotAllowed_HasNoAllowOrigin()
+        {
+            var buffer = new byte[HttpCommon.BufferLength];
+            var bufferMemory = buffer.AsMemory();
+
+            var length = HttpCommon.BufferPreflightResponse(bufferMemory, "https://evil.example.com", false);
+
+            var expected = "HTTP/1.1 200 OK\r\nVary: Origin\r\nAccess-Control-Allow-Methods: *\r\nAccess-Control-Allow-Headers: *\r\nContent-Length: 0\r\n\r\n";
+            Assert.Equal(expected, System.Text.Encoding.UTF8.GetString(buffer, 0, length));
+        }
+
+        [Fact]
+        public void BufferUnauthorizedResponseHeader_IsEmpty401()
+        {
+            var buffer = new byte[HttpCommon.BufferLength];
+            var bufferMemory = buffer.AsMemory();
+
+            var length = HttpCommon.BufferUnauthorizedResponseHeader(bufferMemory);
+
+            var expected = "HTTP/1.1 401 Unauthorized\r\nVary: Origin\r\nContent-Length: 0\r\n\r\n";
+            Assert.Equal(expected, System.Text.Encoding.UTF8.GetString(buffer, 0, length));
+
+            var header = HttpCommon.ReadHeader(bufferMemory[..length], length);
+            Assert.True(header.IsError);
+            Assert.Equal("401 Unauthorized", header.ErrorStatus);
         }
 
         [Fact]

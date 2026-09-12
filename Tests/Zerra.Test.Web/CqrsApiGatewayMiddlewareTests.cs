@@ -214,9 +214,9 @@ namespace Zerra.Test.Web
             Assert.Null(bus.QueryInterfaceType);
         }
 
-        //non-browser clients such as ApiClient send no origin, CORS does not apply to them
+        //like the other CQRS servers a request must have an origin when origins are restricted
         [Fact(Timeout = timeout)]
-        public async Task AllowOrigins_NoOrigin_Allowed()
+        public async Task AllowOrigins_NoOrigin_RespondsUnauthorized()
         {
             var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
             var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer, allowOrigins: ["https://app.example"]);
@@ -224,8 +224,23 @@ namespace Zerra.Test.Web
 
             await middleware.Invoke(context);
 
-            Assert.Equal(200, context.Response.StatusCode);
+            Assert.Equal(401, context.Response.StatusCode);
             Assert.False(context.Response.Headers.ContainsKey("Access-Control-Allow-Origin"));
+            Assert.Null(bus.QueryInterfaceType);
+        }
+
+        //ApiClient sends the gateway host as the origin
+        [Fact(Timeout = timeout)]
+        public async Task AllowOrigins_ApiClientHostOrigin_Allowed()
+        {
+            var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
+            var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer, allowOrigins: ["https://app.example", "gateway.example"]);
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21));
+            context.Request.Headers.Origin = "gateway.example";
+
+            await middleware.Invoke(context);
+
+            Assert.Equal(200, context.Response.StatusCode);
             Assert.Equal(42, serializer.Deserialize<int>(ReadResponse(context)));
         }
 

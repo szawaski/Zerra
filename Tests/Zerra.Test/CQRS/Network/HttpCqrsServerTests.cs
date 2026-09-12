@@ -290,15 +290,42 @@ namespace Zerra.Test.CQRS.Network
             }, allowOrigins: ["allowed.example.com"]);
 
             await using var connection = await TestConnection.ConnectAsync(port);
-            try
-            {
-                await connection.SendAsync(QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), 21), null);
-            }
-            catch (IOException) { } //server may reset the connection before the body is sent
+            await connection.SendAsync(QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), 21), null);
 
+            //an empty 401 like Kestrel so the client reports the status
             var header = await connection.ReadHeaderAsync();
-            Assert.True(header is null || header.IsError);
+            Assert.NotNull(header);
+            Assert.True(header.IsError);
+            Assert.Equal("401 Unauthorized", header.ErrorStatus);
+            Assert.Equal(0, header.ContentLength);
             Assert.False(handlerInvoked);
+
+            //the body was read so the connection is still usable
+            await connection.SendAsync(QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), 21), null, origin: "https://allowed.example.com");
+            header = await connection.ReadHeaderAsync();
+            Assert.NotNull(header);
+            Assert.False(header.IsError);
+            Assert.Equal(1, await connection.ReadBodyAsync<int>(header, null));
+            Assert.True(handlerInvoked);
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task Preflight_WithAllowOrigins_EchoesAllowedOriginOnly()
+        {
+            using var server = StartQueryServer(out var port, null, (_, _, _, _, _, _) =>
+                Task.FromResult(new RemoteQueryCallResponse(1)), allowOrigins: ["allowed.example.com"]);
+
+            await using var connection = await TestConnection.ConnectAsync(port);
+            await connection.SendRawAsync("OPTIONS / HTTP/1.1\r\nHost: 127.0.0.1\r\nOrigin: https://allowed.example.com\r\n\r\n");
+            var allowed = await connection.ReadRawAsync();
+            Assert.StartsWith("HTTP/1.1 200 OK\r\n", allowed);
+            Assert.Contains("Access-Control-Allow-Origin: https://allowed.example.com\r\n", allowed);
+            Assert.Contains("Vary: Origin\r\n", allowed);
+
+            await connection.SendRawAsync("OPTIONS / HTTP/1.1\r\nHost: 127.0.0.1\r\nOrigin: https://evil.example.com\r\n\r\n");
+            var disallowed = await connection.ReadRawAsync();
+            Assert.StartsWith("HTTP/1.1 200 OK\r\n", disallowed);
+            Assert.DoesNotContain("Access-Control-Allow-Origin", disallowed);
         }
 
         [Fact(Timeout = timeout)]

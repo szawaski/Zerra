@@ -315,9 +315,11 @@ app.UseCqrsApiGateway(route: "/api/cqrs", allowOrigins: ["https://myapp.com", "m
 
 With `allowOrigins` set:
 - An allowed request `Origin` is echoed back in `Access-Control-Allow-Origin` (with `Vary: Origin`)
-- A request whose `Origin` is not allowed gets `401 Unauthorized`, and its preflight gets no `Access-Control-Allow-Origin` header
-- Requests without an `Origin` header (non-browser clients such as `ApiClient`) are not subject to CORS and are processed normally
+- A request whose `Origin` is missing or not allowed gets `401 Unauthorized`, and a disallowed preflight gets no `Access-Control-Allow-Origin` header
+- `ApiClient` sends the gateway's host name as its `Origin` (as `HttpCqrsClient` and `KestrelCqrsClient` do for their servers), so include that host to keep .NET clients working, e.g. `allowOrigins: ["https://myapp.com", "api.myapp.com"]`
 - Passing `null`, an empty array, or `"*"` allows all origins
+
+`HttpCqrsServer` and `KestrelCqrsServerMiddleware` apply the same rules to their `allowOrigins`.
 
 CORS only constrains browsers; any other client can send any `Origin`. Use `ICqrsAuthorizer` and authentication to control who can call the gateway. Because the gateway writes its own CORS headers, configure origins with `allowOrigins` rather than an ASP.NET CORS policy.
 
@@ -1414,8 +1416,8 @@ app.UseCqrsApiGateway(); // Anyone can call any command!
 ### 4. Restrict Browser Origins in Production
 
 ```csharp
-// ✅ Good - only your front ends can call the gateway from a browser
-app.UseCqrsApiGateway(route: "/api/cqrs", allowOrigins: ["https://myapp.com", "https://mobile.myapp.com"]);
+// ✅ Good - only your front ends can call the gateway from a browser, plus ApiClient callers (the gateway's host)
+app.UseCqrsApiGateway(route: "/api/cqrs", allowOrigins: ["https://myapp.com", "https://mobile.myapp.com", "api.myapp.com"]);
 ```
 
 CORS restricts browsers only (see [CORS Configuration](#cors-configuration)), so still use `ICqrsAuthorizer` and authentication to control access.
@@ -1489,7 +1491,7 @@ Don't use when:
 
 **Solutions**:
 - A `400` means the `Content-Type` is missing or doesn't match the registered serializer, the `Accept` type can't be produced (see [Content Type Support](#content-type-support)), or the body had neither `ProviderType` (query) nor `MessageType` (command)
-- A `401` without an authorizer failure means the request's `Origin` isn't in `allowOrigins`
+- A `401` without an authorizer failure means the request's `Origin` is missing or isn't in `allowOrigins` (for `ApiClient`, add the gateway's host name)
 - Verify `MessageType` names a command type the gateway can resolve (events are rejected) and that the bus has a handler or producer for it
 - Verify `ProviderType` names a query interface registered with the bus
 

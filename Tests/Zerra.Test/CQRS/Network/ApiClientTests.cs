@@ -32,6 +32,19 @@ namespace Zerra.Test.CQRS.Network
             Assert.Equal(3, server.Requests.Count);
         }
 
+        //like HttpCqrsClient and KestrelCqrsClient, a gateway with allowed origins requires one
+        [Fact(Timeout = timeout)]
+        public async Task CallTaskGeneric_SendsHostAsOrigin()
+        {
+            using var server = new FakeGateway(_ => serializer.SerializeBytes(42));
+            using var client = CreateClient(server);
+
+            _ = await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, default);
+
+            Assert.True(server.Origins.TryDequeue(out var origin));
+            Assert.Equal("localhost", origin);
+        }
+
         [Fact(Timeout = timeout)]
         public async Task Call_CanBeCalledRepeatedly()
         {
@@ -145,6 +158,7 @@ namespace Zerra.Test.CQRS.Network
             private readonly Func<ApiRequestData, byte[]> respond;
 
             public ConcurrentQueue<ApiRequestData> Requests { get; } = new();
+            public ConcurrentQueue<string?> Origins { get; } = new();
             public string Url { get; }
 
             public FakeGateway(Func<ApiRequestData, byte[]> respond)
@@ -174,6 +188,7 @@ namespace Zerra.Test.CQRS.Network
                         var context = await listener.GetContextAsync();
                         var data = await serializer.DeserializeAsync<ApiRequestData>(context.Request.InputStream, default);
                         Requests.Enqueue(data!);
+                        Origins.Enqueue(context.Request.Headers["Origin"]);
 
                         var bytes = respond(data!);
                         context.Response.StatusCode = 200;

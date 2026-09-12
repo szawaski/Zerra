@@ -93,6 +93,8 @@ namespace Zerra.Test.Web
             Assert.Equal(200, context.Response.StatusCode);
             Assert.True(handlerInvoked);
             Assert.Equal("allowed.example.com", context.Response.Headers.AccessControlAllowOrigin);
+            //the allowed origin depends on the request origin so caches must vary by it
+            Assert.Equal("Origin", Assert.Single(context.Response.Headers.Vary));
         }
 
         [Theory(Timeout = timeout)]
@@ -193,6 +195,7 @@ namespace Zerra.Test.Web
 
             //browsers reject a list of origins so only the request's origin comes back
             Assert.Equal(origin, Assert.Single(context.Response.Headers.AccessControlAllowOrigin));
+            Assert.Equal("Origin", Assert.Single(context.Response.Headers.Vary));
         }
 
         [Fact(Timeout = timeout)]
@@ -215,6 +218,7 @@ namespace Zerra.Test.Web
             await middleware.Invoke(context);
 
             Assert.Equal("*", Assert.Single(context.Response.Headers.AccessControlAllowOrigin));
+            Assert.Equal(0, context.Response.Headers.Vary.Count);
         }
 
         [Fact(Timeout = timeout)]

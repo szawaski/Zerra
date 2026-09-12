@@ -85,6 +85,7 @@ namespace Zerra.Web
                 }
                 else
                 {
+                    context.Response.Headers.Append(HttpCommon.VaryHeader, HttpCommon.OriginHeader);
                     string? preflightOrigin = context.Request.Headers[HttpCommon.OriginHeader];
                     if (preflightOrigin is not null)
                     {
@@ -146,6 +147,9 @@ namespace Zerra.Web
             string? originRequestHeader;
             if (settings.AllowOrigins is not null)
             {
+                //the allow origin echoes the request origin so caches must vary by it
+                context.Response.Headers.Append(HttpCommon.VaryHeader, HttpCommon.OriginHeader);
+
                 if (!context.Request.Headers.TryGetValue(HttpCommon.OriginHeader, out var originRequestHeaderValue))
                 {
                     context.Response.StatusCode = 401;

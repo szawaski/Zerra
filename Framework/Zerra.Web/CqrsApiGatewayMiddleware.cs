@@ -72,7 +72,7 @@ namespace Zerra.Web
             }
 
             //browsers accept one origin or * so an allowed request origin is echoed, a disallowed one gets none
-            //browsers always send an origin on cross origin requests, a request without one is not from a browser so CORS does not apply
+            //with allowed origins a request must have an origin like the other CQRS servers, ApiClient sends the host of the gateway
             string? origin = context.Request.Headers[HttpCommon.OriginHeader];
             var originAllowed = true;
             if (allowOrigins is null)
@@ -82,11 +82,11 @@ namespace Zerra.Web
             else
             {
                 context.Response.Headers.Append(HttpCommon.VaryHeader, HttpCommon.OriginHeader);
+                originAllowed = false;
                 if (origin is not null)
                 {
-                    //browsers send the origin as scheme://host[:port], an allowed value can be either that or the host, case doesn't matter
+                    //browsers send the origin as scheme://host[:port] and ApiClient sends the host, an allowed value can be either, case doesn't matter
                     var originHost = Uri.TryCreate(origin, UriKind.Absolute, out var originUri) ? originUri.Host : null;
-                    originAllowed = false;
                     foreach (var allowOrigin in allowOrigins)
                     {
                         if (String.Equals(allowOrigin, origin, StringComparison.OrdinalIgnoreCase) || (originHost is not null && String.Equals(allowOrigin, originHost, StringComparison.OrdinalIgnoreCase)))
