@@ -20,7 +20,7 @@ namespace Zerra.CQRS.AzureServiceBus
     /// Supports command acknowledgements with automatic retry logic and optional message encryption.
     /// Thread-safe for concurrent operations.
     /// </remarks>
-    public sealed class AzureServiceBusProducer : ICommandProducer, IEventProducer, IAsyncDisposable
+    public sealed class AzureServiceBusProducer : ICommandProducer, IEventProducer, IDisposable, IAsyncDisposable
     {
         private bool listenerStarted = false;
         private readonly SemaphoreSlim listenerStartedLock = new(1, 1);
@@ -382,19 +382,24 @@ namespace Zerra.CQRS.AzureServiceBus
             }
         }
 
-        /// <summary>
-        /// Releases all resources used by the <see cref="AzureServiceBusProducer"/>.
-        /// </summary>
-        /// <remarks>
-        /// Cancels acknowledgement listening, closes the Service Bus client connection,
-        /// and releases semaphore resources.
-        /// </remarks>
+        /// <inheritdoc />
         public async ValueTask DisposeAsync()
         {
             canceller.Cancel();
             await client.DisposeAsync();
             listenerStartedLock.Dispose();
+            canceller.Dispose();
         }
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            canceller.Cancel();
+            _ = client.DisposeAsync();
+            listenerStartedLock.Dispose();
+            canceller.Dispose();
+        }
+
 
         void ICommandProducer.RegisterCommandType(int maxConcurrent, string topic, Type type)
         {

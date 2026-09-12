@@ -22,7 +22,20 @@ namespace Zerra.CQRS.Network
         /// <param name="data">The API request data containing the provider type, method, message type, or other routing information.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>The response from the API request, or null if the request could not be routed.</returns>
-        public static async Task<ApiResponseData?> HandleRequestAsync(IBus bus, ISerializer serializer, ApiRequestData data, CancellationToken cancellationToken)
+        public static Task<ApiResponseData?> HandleRequestAsync(IBus bus, ISerializer serializer, ApiRequestData data, CancellationToken cancellationToken)
+            => HandleRequestAsync(bus, serializer, serializer, data, cancellationToken);
+
+        /// <summary>
+        /// Handles an external API request by routing it to either a remote query call or a command dispatch,
+        /// serializing the response with a different serializer than the request.
+        /// </summary>
+        /// <param name="bus">The message bus used to dispatch commands or make remote queries.</param>
+        /// <param name="serializer">The serializer used to deserialize the request's query arguments.</param>
+        /// <param name="responseSerializer">The serializer used to serialize the response, such as a nameless JSON serializer when the client accepts it.</param>
+        /// <param name="data">The API request data containing the provider type, method, message type, or other routing information.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <returns>The response from the API request, or null if the request could not be routed.</returns>
+        public static async Task<ApiResponseData?> HandleRequestAsync(IBus bus, ISerializer serializer, ISerializer responseSerializer, ApiRequestData data, CancellationToken cancellationToken)
         {
             if (!String.IsNullOrWhiteSpace(data.ProviderType))
             {
@@ -34,7 +47,7 @@ namespace Zerra.CQRS.Network
                 }
                 else if (response.Model is not null)
                 {
-                    var bytes = serializer.SerializeBytes(response.Model);
+                    var bytes = responseSerializer.SerializeBytes(response.Model);
                     return new ApiResponseData(bytes);
                 }
                 else
@@ -47,7 +60,7 @@ namespace Zerra.CQRS.Network
                 if (data.MessageResult)
                 {
                     var result = await DispatchWithResult(bus, data, cancellationToken);
-                    var bytes = serializer.SerializeBytes(result);
+                    var bytes = responseSerializer.SerializeBytes(result);
                     return new ApiResponseData(bytes);
                 }
                 else

@@ -66,6 +66,53 @@ namespace Zerra.Test.Web
             Assert.Equal("query failed", exception.Message);
         }
 
+        [Fact(Timeout = timeout)]
+        public async Task Authorizer_ThrowsSecurityException_RespondsUnauthorized()
+        {
+            var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
+            var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer, authorizer: new RejectingAuthorizer());
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21));
+
+            await middleware.Invoke(context);
+
+            Assert.Equal(401, context.Response.StatusCode);
+            Assert.Null(bus.QueryInterfaceType);
+            var exception = ExceptionSerializer.Deserialize(source, serializer, ReadResponse(context));
+            Assert.Equal("not allowed", exception.Message);
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task Query_AcceptJsonNameless_RespondsNameless()
+        {
+            var jsonSerializer = new ZerraJsonSerializer();
+            var namelessSerializer = new ZerraJsonSerializer(new Zerra.Serialization.Json.JsonSerializerOptions() { Nameless = true });
+            var model = new TestModel { Id = 7, Name = "Seven" };
+            var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(model) };
+            var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, jsonSerializer);
+
+            var context = new DefaultHttpContext();
+            context.Request.Method = "POST";
+            context.Request.ContentType = "application/json; charset=utf-8";
+            context.Request.Headers.Accept = "application/jsonnameless; charset=utf-8";
+            context.Request.Body = new MemoryStream(jsonSerializer.SerializeBytes(new ApiRequestData()
+            {
+                ProviderType = typeof(ITestQueryHandler).AssemblyQualifiedName,
+                ProviderMethod = nameof(ITestQueryHandler.GetModel),
+                ProviderArguments = [],
+                Source = source
+            }));
+            context.Response.Body = new MemoryStream();
+
+            await middleware.Invoke(context);
+
+            Assert.Equal(200, context.Response.StatusCode);
+            Assert.StartsWith("application/jsonnameless", context.Response.ContentType);
+            var result = namelessSerializer.Deserialize<TestModel>(ReadResponse(context));
+            Assert.NotNull(result);
+            Assert.Equal(7, result.Id);
+            Assert.Equal("Seven", result.Name);
+        }
+
         //UseMiddleware picks a constructor by argument type and a null route matches none, a null route falls back to the constructor default and serves every path
         [Fact(Timeout = timeout)]
         public async Task UseCqrsApiGateway_NullRoute_ServesAnyPath()
@@ -181,10 +228,24 @@ namespace Zerra.Test.Web
             public bool TryGetService<TInterface>([NotNullWhen(true)] out TInterface? instance) where TInterface : notnull => throw new NotImplementedException();
         }
 
+        private sealed class RejectingAuthorizer : ICqrsAuthorizer
+        {
+            public void Authorize(Dictionary<string, List<string?>> headers) => throw new System.Security.SecurityException("not allowed");
+            public Dictionary<string, List<string?>> GetAuthorizationHeaders(CancellationToken cancellationToken = default) => new();
+            public ValueTask<Dictionary<string, List<string?>>> GetAuthorizationHeadersAsync(CancellationToken cancellationToken = default) => new(new Dictionary<string, List<string?>>());
+        }
+
+        public sealed class TestModel
+        {
+            public int Id { get; set; }
+            public string? Name { get; set; }
+        }
+
         public interface ITestQueryHandler : IQueryHandler
         {
             int GetThings(int value);
             Stream GetStream();
+            TestModel GetModel();
         }
     }
 }

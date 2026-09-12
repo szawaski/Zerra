@@ -17,7 +17,7 @@ namespace Zerra.CQRS.AzureServiceBus
     /// Manages multiple exchanges (queues/topics) with concurrent processing capabilities.
     /// Thread-safe for concurrent operations.
     /// </remarks>
-    public sealed partial class AzureServiceBusConsumer : ICommandConsumer, IEventConsumer, IAsyncDisposable
+    public sealed partial class AzureServiceBusConsumer : ICommandConsumer, IEventConsumer, IDisposable, IAsyncDisposable
     {
         private readonly string host;
         private readonly ISerializer serializer;
@@ -148,16 +148,18 @@ namespace Zerra.CQRS.AzureServiceBus
             }
         }
 
-        /// <summary>
-        /// Releases all resources used by the <see cref="AzureServiceBusConsumer"/>.
-        /// </summary>
-        /// <remarks>
-        /// Closes all open message exchanges and disposes the Service Bus client connection.
-        /// </remarks>
+        /// <inheritdoc />
         public async ValueTask DisposeAsync()
         {
             this.Close();
             await client.DisposeAsync();
+        }
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            this.Close();
+            _ = client.DisposeAsync();
         }
 
         void ICommandConsumer.RegisterCommandType(int maxConcurrent, string topic, Type type)

@@ -132,21 +132,22 @@ namespace Zerra.Web
                 }
             }
 
-            if (authorizer is not null)
-            {
-                var headers = context.Request.Headers.ToDictionary(x => x.Key, x => x.Value.ToList());
-                authorizer.Authorize(headers);
-            }
-
             var inHandlerContext = false;
             try
             {
+                //inside the try so an authorization SecurityException returns a 401 like the other CQRS servers
+                if (authorizer is not null)
+                {
+                    var headers = context.Request.Headers.ToDictionary(x => x.Key, x => x.Value.ToList());
+                    authorizer.Authorize(headers);
+                }
+
                 var data = await serializer.DeserializeAsync<ApiRequestData>(context.Request.Body, context.RequestAborted);
                 if (data is null)
                     throw new Exception("Invalid Request");
 
                 inHandlerContext = true;
-                var response = await ApiServerHandler.HandleRequestAsync(bus, serializer, data, context.RequestAborted);
+                var response = await ApiServerHandler.HandleRequestAsync(bus, serializer, acceptSerializer, data, context.RequestAborted);
                 inHandlerContext = false;
 
                 if (response is null)
@@ -160,7 +161,7 @@ namespace Zerra.Web
 
                 if (response.Bytes is not null)
                 {
-                    context.Response.ContentType = serializer.ContentType switch
+                    context.Response.ContentType = acceptSerializer.ContentType switch
                     {
                         ContentType.Bytes => "application/octet-stream",
                         ContentType.JsonNameless => "application/jsonnameless; charset=utf-8",

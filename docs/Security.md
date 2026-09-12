@@ -120,7 +120,7 @@ app.UseCqrsApiGateway(…)
         │
         ▼
 ICqrsAuthorizer.Authorize(headers)   ← validate headers; MUST set Thread.CurrentPrincipal
-        │  exception ──► request fails (see note below)
+        │  SecurityException ──► 401 Unauthorized
         ▼
 Zerra serializes Thread.CurrentPrincipal claims into the message envelope
         │
@@ -280,10 +280,8 @@ app.UseCqrsApiGateway(route: "/api/cqrs");
 
 The gateway middleware will:
 - Call `Authorize(headers)` for every inbound POST request.
-- Return `401 Unauthorized` if a handler throws a `SecurityException`.
-- Return `500 Internal Server Error` for any other handler exception.
-
-> **Note:** `Authorize()` currently runs before the gateway's own error handling, so an exception thrown from `Authorize()` itself propagates to the ASP.NET Core pipeline (typically a generic `500`) rather than producing the gateway's `401` response. Place exception handling middleware ahead of the gateway if clients need a specific status code for authorization failures.
+- Return `401 Unauthorized` if `Authorize()` or a handler throws a `SecurityException`.
+- Return `500 Internal Server Error` for any other exception.
 
 ### Implementing `ICqrsAuthorizer` for API Keys
 

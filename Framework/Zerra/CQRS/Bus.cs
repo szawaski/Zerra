@@ -108,18 +108,18 @@ namespace Zerra.CQRS
 
             var disposed = new HashSet<IDisposable>();
 
-            //if (commandProducers != null)
-            //{
-            //    foreach (var commandProducer in commandProducers.Values)
-            //    {
-            //        if (commandProducer is IDisposable disposable && !disposed.Contains(disposable))
-            //        {
-            //            disposable.Dispose();
-            //            _ = disposed.Add(disposable);
-            //        }
-            //    }
-            //    commandProducers.Clear();
-            //}
+            if (commandProducers != null)
+            {
+                foreach (var commandProducer in commandProducers.Values)
+                {
+                    if (commandProducer is IDisposable disposable && !disposed.Contains(disposable))
+                    {
+                        disposable.Dispose();
+                        _ = disposed.Add(disposable);
+                    }
+                }
+                commandProducers.Clear();
+            }
 
             if (commandConsumers != null)
             {
@@ -135,18 +135,18 @@ namespace Zerra.CQRS
                 commandConsumers.Clear();
             }
 
-            //if (eventProducers != null)
-            //{
-            //    foreach (var eventProducer in eventProducers.Values)
-            //    {
-            //        if (eventProducer is IDisposable disposable && !disposed.Contains(disposable))
-            //        {
-            //            disposable.Dispose();
-            //            _ = disposed.Add(disposable);
-            //        }
-            //    }
-            //    eventProducers.Clear();
-            //}
+            if (eventProducers != null)
+            {
+                foreach (var eventProducer in eventProducers.Values)
+                {
+                    if (eventProducer is IDisposable disposable && !disposed.Contains(disposable))
+                    {
+                        disposable.Dispose();
+                        _ = disposed.Add(disposable);
+                    }
+                }
+                eventProducers.Clear();
+            }
 
             if (eventConsumers != null)
             {
@@ -162,18 +162,18 @@ namespace Zerra.CQRS
                 eventConsumers.Clear();
             }
 
-            //if (queryClients != null)
-            //{
-            //    foreach (var client in queryClients.Values)
-            //    {
-            //        if (client is IDisposable disposable && !disposed.Contains(disposable))
-            //        {
-            //            disposable.Dispose();
-            //            _ = disposed.Add(disposable);
-            //        }
-            //    }
-            //    queryClients.Clear();
-            //}
+            if (queryClients != null)
+            {
+                foreach (var client in queryClients.Values)
+                {
+                    if (client is IDisposable disposable && !disposed.Contains(disposable))
+                    {
+                        disposable.Dispose();
+                        _ = disposed.Add(disposable);
+                    }
+                }
+                queryClients.Clear();
+            }
 
             if (queryServers != null)
             {
@@ -200,23 +200,23 @@ namespace Zerra.CQRS
             var asyncDisposed = new HashSet<IAsyncDisposable>();
             var disposed = new HashSet<IDisposable>();
 
-            //if (commandProducers != null)
-            //{
-            //    foreach (var commandProducer in commandProducers.Values)
-            //    {
-            //        if (commandProducer is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
-            //        {
-            //            await asyncDisposable.DisposeAsync();
-            //            _ = asyncDisposed.Add(asyncDisposable);
-            //        }
-            //        else if (commandProducer is IDisposable disposable && !disposed.Contains(disposable))
-            //        {
-            //            disposable.Dispose();
-            //            _ = disposed.Add(disposable);
-            //        }
-            //    }
-            //    commandProducers.Clear();
-            //}
+            if (commandProducers != null)
+            {
+                foreach (var commandProducer in commandProducers.Values)
+                {
+                    if (commandProducer is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
+                    {
+                        await asyncDisposable.DisposeAsync();
+                        _ = asyncDisposed.Add(asyncDisposable);
+                    }
+                    else if (commandProducer is IDisposable disposable && !disposed.Contains(disposable))
+                    {
+                        disposable.Dispose();
+                        _ = disposed.Add(disposable);
+                    }
+                }
+                commandProducers.Clear();
+            }
 
             if (commandConsumers != null)
             {
@@ -237,23 +237,23 @@ namespace Zerra.CQRS
                 commandConsumers.Clear();
             }
 
-            //if (eventProducers != null)
-            //{
-            //    foreach (var eventProducer in eventProducers.Values)
-            //    {
-            //        if (eventProducer is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
-            //        {
-            //            await asyncDisposable.DisposeAsync();
-            //            _ = asyncDisposed.Add(asyncDisposable);
-            //        }
-            //        else if (eventProducer is IDisposable disposable && !disposed.Contains(disposable))
-            //        {
-            //            disposable.Dispose();
-            //            _ = disposed.Add(disposable);
-            //        }
-            //    }
-            //    eventProducers.Clear();
-            //}
+            if (eventProducers != null)
+            {
+                foreach (var eventProducer in eventProducers.Values)
+                {
+                    if (eventProducer is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
+                    {
+                        await asyncDisposable.DisposeAsync();
+                        _ = asyncDisposed.Add(asyncDisposable);
+                    }
+                    else if (eventProducer is IDisposable disposable && !disposed.Contains(disposable))
+                    {
+                        disposable.Dispose();
+                        _ = disposed.Add(disposable);
+                    }
+                }
+                eventProducers.Clear();
+            }
 
             if (eventConsumers != null)
             {
@@ -274,23 +274,23 @@ namespace Zerra.CQRS
                 eventConsumers.Clear();
             }
 
-            //if (queryClients != null)
-            //{
-            //    foreach (var client in queryClients.Values)
-            //    {
-            //        if (client is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
-            //        {
-            //            await asyncDisposable.DisposeAsync();
-            //            _ = asyncDisposed.Add(asyncDisposable);
-            //        }
-            //        else if (client is IDisposable disposable && !disposed.Contains(disposable))
-            //        {
-            //            disposable.Dispose();
-            //            _ = disposed.Add(disposable);
-            //        }
-            //    }
-            //    queryClients.Clear();
-            //}
+            if (queryClients != null)
+            {
+                foreach (var client in queryClients.Values)
+                {
+                    if (client is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
+                    {
+                        await asyncDisposable.DisposeAsync();
+                        _ = asyncDisposed.Add(asyncDisposable);
+                    }
+                    else if (client is IDisposable disposable && !disposed.Contains(disposable))
+                    {
+                        disposable.Dispose();
+                        _ = disposed.Add(disposable);
+                    }
+                }
+                queryClients.Clear();
+            }
 
             if (queryServers != null)
             {

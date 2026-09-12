@@ -172,11 +172,9 @@ app.UseCqrsApiGateway(route: "/api/cqrs");
 ```
 
 The middleware will:
-- Call `Authorize()` for every incoming POST request
-- Return `401 Unauthorized` if a handler throws `SecurityException`
-- Return `500 Internal Server Error` for other handler exceptions
-
-> **Note:** `Authorize()` is currently called before the middleware's error handling, so an exception thrown from `Authorize()` itself propagates to the ASP.NET Core pipeline (typically a generic `500`) rather than producing the serialized `401` response. Add exception handling middleware ahead of the gateway if you need a specific status code for authorization failures.
+- Call `Authorize()` for every incoming POST request, before the message is dispatched
+- Return `401 Unauthorized` if `Authorize()` or a handler throws `SecurityException`
+- Return `500 Internal Server Error` for other exceptions
 
 ### 3. ASP.NET Authentication Integration
 
@@ -297,7 +295,7 @@ The request `Content-Type` must match the `ContentType` of the `ISerializer` reg
 | `ZerraJsonSerializer` with `Nameless = true` | `application/jsonnameless` |
 | `ZerraByteSerializer` | `application/octet-stream` |
 
-With a standard JSON serializer, clients may also send `Accept: application/jsonnameless` (the front end scripts do this automatically when a model type is supplied).
+With a standard JSON serializer, clients may also send `Accept: application/jsonnameless` to receive nameless JSON responses (the front end scripts do this automatically when a model type is supplied).
 
 ### CORS Configuration
 
@@ -772,7 +770,7 @@ builder.Services.AddSingleton<ISerializer>(new ZerraJsonSerializer());
 app.UseCqrsApiGateway();
 ```
 
-> **Note:** The gateway currently still writes standard JSON responses when a client sends `Accept: application/jsonnameless`, so responses arrive as regular JSON. The Bus utilities handle this transparently.
+When the request's `Accept` header is `application/jsonnameless`, the gateway deserializes the request with the registered JSON serializer and writes the response as nameless JSON (`Content-Type: application/jsonnameless`). Error responses are always standard JSON so browser code can read the exception.
 
 **Client Code:**
 ```javascript
@@ -1502,7 +1500,7 @@ Don't use when:
 - Verify `ICqrsAuthorizer` is registered in DI container
 - Check authorization headers are included in client requests
 - Ensure `Authorize()` method doesn't throw exceptions for valid requests
-- Remember that an exception from `Authorize()` itself currently surfaces through the ASP.NET pipeline rather than as the gateway's `401` response
+- Throw `SecurityException` (not other exception types) from `Authorize()` so the gateway responds with `401` rather than `500`
 - Use a debugger to inspect the headers received
 
 ### CORS Errors in Browser
