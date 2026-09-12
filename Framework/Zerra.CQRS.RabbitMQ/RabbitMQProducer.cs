@@ -40,7 +40,7 @@ namespace Zerra.CQRS.RabbitMQ
         /// <summary>
         /// Initializes a new instance of the <see cref="RabbitMQProducer"/> class.
         /// </summary>
-        /// <param name="host">The RabbitMQ server hostname or IP address.</param>
+        /// <param name="host">The RabbitMQ server hostname or IP address, or an AMQP URI (amqp://user:password@host:port/vhost, amqps:// for TLS) to also configure credentials, port, virtual host, and TLS.</param>
         /// <param name="serializer">The serializer for message serialization and deserialization.</param>
         /// <param name="encryptor">Optional encryptor for message encryption. If null, messages are not encrypted.</param>
         /// <param name="log">Optional logger for diagnostic information and errors.</param>
@@ -59,7 +59,7 @@ namespace Zerra.CQRS.RabbitMQ
             this.topicsByEventType = new();
             this.throttleByTopic = new();
 
-            this.factory = new ConnectionFactory() { HostName = host };
+            this.factory = RabbitMQCommon.CreateConnectionFactory(host);
             try
             {
                 this.connection = factory.CreateConnection();

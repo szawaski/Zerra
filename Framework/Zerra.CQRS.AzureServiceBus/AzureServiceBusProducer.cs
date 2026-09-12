@@ -395,7 +395,7 @@ namespace Zerra.CQRS.AzureServiceBus
         public void Dispose()
         {
             canceller.Cancel();
-            _ = client.DisposeAsync();
+            _ = client.DisposeAsync().AsTask();
             listenerStartedLock.Dispose();
             canceller.Dispose();
         }

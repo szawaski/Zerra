@@ -44,18 +44,6 @@ namespace Zerra.CQRS.Network
                 this.allowOrigins = null;
         }
 
-        //browsers send the origin as scheme://host[:port] and HttpCqrsClient sends the host, an allowed value can be either, case doesn't matter
-        private bool IsOriginAllowed(string origin)
-        {
-            var originHost = Uri.TryCreate(origin, UriKind.Absolute, out var originUri) ? originUri.Host : null;
-            foreach (var allowOrigin in allowOrigins!)
-            {
-                if (String.Equals(allowOrigin, origin, StringComparison.OrdinalIgnoreCase) || (originHost is not null && String.Equals(allowOrigin, originHost, StringComparison.OrdinalIgnoreCase)))
-                    return true;
-            }
-            return false;
-        }
-
         /// <inheritdoc />
         protected override async Task Handle(Socket socket, CancellationToken cancellationToken)
         {
@@ -142,7 +130,22 @@ namespace Zerra.CQRS.Network
 
                         if (allowOrigins is not null && allowOrigins.Length > 0)
                         {
-                            if (requestHeader.Origin is null || !IsOriginAllowed(requestHeader.Origin))
+                            //browsers send the origin as scheme://host[:port] and HttpCqrsClient sends the host, an allowed value can be either, case doesn't matter
+                            var originAllowed = false;
+                            if (requestHeader.Origin is not null)
+                            {
+                                var originHost = Uri.TryCreate(requestHeader.Origin, UriKind.Absolute, out var originUri) ? originUri.Host : null;
+                                foreach (var allowOrigin in allowOrigins)
+                                {
+                                    if (String.Equals(allowOrigin, requestHeader.Origin, StringComparison.OrdinalIgnoreCase) || (originHost is not null && String.Equals(allowOrigin, originHost, StringComparison.OrdinalIgnoreCase)))
+                                    {
+                                        originAllowed = true;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            if (!originAllowed)
                             {
                                 throw new CqrsNetworkException($"Origin Not Allowed {requestHeader.Origin}");
                             }

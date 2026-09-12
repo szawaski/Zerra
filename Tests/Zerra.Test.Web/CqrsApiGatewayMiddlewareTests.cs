@@ -113,6 +113,188 @@ namespace Zerra.Test.Web
             Assert.Equal("Seven", result.Name);
         }
 
+        [Fact(Timeout = timeout)]
+        public async Task ContentTypeMissing_RespondsBadRequest()
+        {
+            var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
+            var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer);
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21));
+            context.Request.ContentType = null;
+
+            await middleware.Invoke(context);
+
+            Assert.Equal(400, context.Response.StatusCode);
+            Assert.Null(bus.QueryInterfaceType);
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task ContentTypeNotMatchingSerializer_RespondsBadRequest()
+        {
+            var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
+            var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer);
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21));
+            context.Request.ContentType = "application/json";
+
+            await middleware.Invoke(context);
+
+            Assert.Equal(400, context.Response.StatusCode);
+            Assert.Null(bus.QueryInterfaceType);
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task AcceptNotSupported_RespondsBadRequest()
+        {
+            var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
+            var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer);
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21));
+            context.Request.Headers.Accept = "application/json";
+
+            await middleware.Invoke(context);
+
+            Assert.Equal(400, context.Response.StatusCode);
+            Assert.Null(bus.QueryInterfaceType);
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task NoAllowOrigins_AllowsAnyOrigin()
+        {
+            var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
+            var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer);
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21));
+            context.Request.Headers.Origin = "https://anywhere.example";
+
+            await middleware.Invoke(context);
+
+            Assert.Equal(200, context.Response.StatusCode);
+            Assert.Equal("*", context.Response.Headers.AccessControlAllowOrigin.ToString());
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task AllowOrigins_AllowedOrigin_EchoesOrigin()
+        {
+            var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
+            var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer, allowOrigins: ["https://app.example"]);
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21));
+            context.Request.Headers.Origin = "https://app.example";
+
+            await middleware.Invoke(context);
+
+            Assert.Equal(200, context.Response.StatusCode);
+            Assert.Equal("https://app.example", context.Response.Headers.AccessControlAllowOrigin.ToString());
+            Assert.Equal("Origin", context.Response.Headers.Vary.ToString());
+            Assert.Equal(42, serializer.Deserialize<int>(ReadResponse(context)));
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task AllowOrigins_AllowedHost_EchoesOrigin()
+        {
+            var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
+            var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer, allowOrigins: ["app.example"]);
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21));
+            context.Request.Headers.Origin = "https://APP.example:8443";
+
+            await middleware.Invoke(context);
+
+            Assert.Equal(200, context.Response.StatusCode);
+            Assert.Equal("https://APP.example:8443", context.Response.Headers.AccessControlAllowOrigin.ToString());
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task AllowOrigins_DisallowedOrigin_RespondsUnauthorized()
+        {
+            var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
+            var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer, allowOrigins: ["https://app.example"]);
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21));
+            context.Request.Headers.Origin = "https://evil.example";
+
+            await middleware.Invoke(context);
+
+            Assert.Equal(401, context.Response.StatusCode);
+            Assert.False(context.Response.Headers.ContainsKey("Access-Control-Allow-Origin"));
+            Assert.Null(bus.QueryInterfaceType);
+        }
+
+        //non-browser clients such as ApiClient send no origin, CORS does not apply to them
+        [Fact(Timeout = timeout)]
+        public async Task AllowOrigins_NoOrigin_Allowed()
+        {
+            var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
+            var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer, allowOrigins: ["https://app.example"]);
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21));
+
+            await middleware.Invoke(context);
+
+            Assert.Equal(200, context.Response.StatusCode);
+            Assert.False(context.Response.Headers.ContainsKey("Access-Control-Allow-Origin"));
+            Assert.Equal(42, serializer.Deserialize<int>(ReadResponse(context)));
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task AllowOrigins_Preflight_EchoesAllowedOriginOnly()
+        {
+            var bus = new MockBus();
+            var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer, allowOrigins: ["https://app.example"]);
+
+            var allowed = new DefaultHttpContext();
+            allowed.Request.Method = "OPTIONS";
+            allowed.Request.Headers.Origin = "https://app.example";
+            await middleware.Invoke(allowed);
+            Assert.Equal("https://app.example", allowed.Response.Headers.AccessControlAllowOrigin.ToString());
+
+            var disallowed = new DefaultHttpContext();
+            disallowed.Request.Method = "OPTIONS";
+            disallowed.Request.Headers.Origin = "https://evil.example";
+            await middleware.Invoke(disallowed);
+            Assert.False(disallowed.Response.Headers.ContainsKey("Access-Control-Allow-Origin"));
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task AllowOrigins_Wildcard_AllowsAnyOrigin()
+        {
+            var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
+            var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer, allowOrigins: ["*"]);
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21));
+            context.Request.Headers.Origin = "https://anywhere.example";
+
+            await middleware.Invoke(context);
+
+            Assert.Equal(200, context.Response.StatusCode);
+            Assert.Equal("*", context.Response.Headers.AccessControlAllowOrigin.ToString());
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task UseCqrsApiGateway_WithAllowOrigins_AppliesOrigins()
+        {
+            var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
+            var builder = new ApplicationBuilder(new ServiceCollection().AddSingleton<IBus>(bus).AddSingleton(serializer).BuildServiceProvider());
+            _ = builder.UseCqrsApiGateway("/api", ["https://app.example"]);
+            var app = builder.Build();
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21));
+            context.Request.Path = "/api";
+            context.Request.Headers.Origin = "https://evil.example";
+
+            await app(context);
+
+            Assert.Equal(401, context.Response.StatusCode);
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task UseCqrsApiGateway_NullRouteWithAllowOrigins_ServesAnyPath()
+        {
+            var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
+            var builder = new ApplicationBuilder(new ServiceCollection().AddSingleton<IBus>(bus).AddSingleton(serializer).BuildServiceProvider());
+            _ = builder.UseCqrsApiGateway(null, ["https://app.example"]);
+            var app = builder.Build();
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21));
+            context.Request.Path = "/any/path";
+            context.Request.Headers.Origin = "https://app.example";
+
+            await app(context);
+
+            Assert.Equal(200, context.Response.StatusCode);
+            Assert.Equal("https://app.example", context.Response.Headers.AccessControlAllowOrigin.ToString());
+        }
+
         //UseMiddleware picks a constructor by argument type and a null route matches none, a null route falls back to the constructor default and serves every path
         [Fact(Timeout = timeout)]
         public async Task UseCqrsApiGateway_NullRoute_ServesAnyPath()

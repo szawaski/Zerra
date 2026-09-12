@@ -159,7 +159,7 @@ namespace Zerra.CQRS.AzureServiceBus
         public void Dispose()
         {
             this.Close();
-            _ = client.DisposeAsync();
+            _ = client.DisposeAsync().AsTask();
         }
 
         void ICommandConsumer.RegisterCommandType(int maxConcurrent, string topic, Type type)

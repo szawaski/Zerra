@@ -314,7 +314,7 @@ finally
 
 ```csharp
 public RabbitMQProducer(
-    string host,              // RabbitMQ server hostname or IP address
+    string host,              // RabbitMQ host name, or an AMQP URI (see below)
     ISerializer serializer,   // Message serializer
     IEncryptor? encryptor,   // Optional message encryptor
     ILogger? log,            // Optional logger
@@ -325,18 +325,29 @@ public RabbitMQProducer(
 
 ```csharp
 public RabbitMQConsumer(
-    string host,              // RabbitMQ server hostname or IP address
+    string host,              // RabbitMQ host name, or an AMQP URI (see below)
     ISerializer serializer,   // Message serializer
     IEncryptor? encryptor,   // Optional message decryptor
     ILogger? log,            // Optional logger
     string? environment)     // Optional environment prefix for exchanges
 ```
 
-## Advanced Connection Configuration
+## Connection Configuration (Credentials, Port, Virtual Host, TLS)
 
-The `host` parameter is used only as the RabbitMQ `ConnectionFactory.HostName`. The connection factory is created internally and is not exposed, so the RabbitMQ client defaults apply for everything else: port `5672`, the `guest`/`guest` credentials, the default virtual host, and no TLS.
+The `host` parameter accepts either a plain host name or an AMQP URI:
 
-Username, password, virtual host, port, and SSL are not currently configurable through `RabbitMQProducer` / `RabbitMQConsumer`. For production deployments that need them, extend the implementation to accept those settings.
+- **Host name** (e.g. `"localhost"`): the RabbitMQ client defaults apply for everything else: port `5672`, the `guest`/`guest` credentials, the default virtual host `/`, and no TLS.
+- **AMQP URI**: configures credentials, port, virtual host, and TLS in one value. Use `amqps://` for TLS (default port `5671`). URL-encode special characters in the user name or password (e.g. `@` as `%40`).
+
+```csharp
+// Credentials, custom port, and virtual host
+var producer = new RabbitMQProducer("amqp://myUser:myPassword@rabbit.example.com:5672/myVhost", serializer, encryptor, logger, "prod");
+
+// TLS
+var consumer = new RabbitMQConsumer("amqps://myUser:myPassword@rabbit.example.com/myVhost", serializer, encryptor, logger, "prod");
+```
+
+The URI contains secrets, so load it from configuration or a secret store rather than hard-coding it. Zerra never logs the host value.
 
 ## Environment Isolation
 

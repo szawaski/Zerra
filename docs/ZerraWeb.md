@@ -287,7 +287,7 @@ Every gateway resolves the same `IBus` and `ISerializer` from DI, so multiple ro
 
 ### Content Type Support
 
-The request `Content-Type` must match the `ContentType` of the `ISerializer` registered in DI; any other content type is rejected:
+The request `Content-Type` must match the `ContentType` of the `ISerializer` registered in DI; a missing or different content type gets `400 Bad Request`:
 
 | Registered serializer | Required `Content-Type` |
 |---|---|
@@ -295,11 +295,11 @@ The request `Content-Type` must match the `ContentType` of the `ISerializer` reg
 | `ZerraJsonSerializer` with `Nameless = true` | `application/jsonnameless` |
 | `ZerraByteSerializer` | `application/octet-stream` |
 
-With a standard JSON serializer, clients may also send `Accept: application/jsonnameless` to receive nameless JSON responses (the front end scripts do this automatically when a model type is supplied).
+With a standard JSON serializer, clients may also send `Accept: application/jsonnameless` to receive nameless JSON responses (the front end scripts do this automatically when a model type is supplied). An `Accept` type the gateway can't produce also gets `400 Bad Request`.
 
 ### CORS Configuration
 
-The gateway always writes permissive CORS headers on the requests it handles and answers `OPTIONS` preflight requests itself:
+The gateway handles CORS itself, including `OPTIONS` preflight requests. By default it allows every origin:
 
 ```http
 Access-Control-Allow-Origin: *
@@ -307,23 +307,19 @@ Access-Control-Allow-Methods: *
 Access-Control-Allow-Headers: *
 ```
 
-Because these headers are always appended, an ASP.NET CORS policy placed before the gateway does not narrow them. Rely on `ICqrsAuthorizer` and ASP.NET authentication to restrict access. You can still configure ASP.NET CORS for the rest of your application:
+To restrict browser access, pass `allowOrigins`. Each value can be a full origin (`scheme://host[:port]`) or just a host name; matching is case-insensitive:
 
 ```csharp
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("MyPolicy", policy =>
-    {
-        policy.WithOrigins("https://myapp.com")
-              .AllowAnyMethod()
-              .AllowAnyHeader();
-    });
-});
-
-var app = builder.Build();
-app.UseCors("MyPolicy");
-app.UseCqrsApiGateway(route: "/api/cqrs");
+app.UseCqrsApiGateway(route: "/api/cqrs", allowOrigins: ["https://myapp.com", "mobile.myapp.com"]);
 ```
+
+With `allowOrigins` set:
+- An allowed request `Origin` is echoed back in `Access-Control-Allow-Origin` (with `Vary: Origin`)
+- A request whose `Origin` is not allowed gets `401 Unauthorized`, and its preflight gets no `Access-Control-Allow-Origin` header
+- Requests without an `Origin` header (non-browser clients such as `ApiClient`) are not subject to CORS and are processed normally
+- Passing `null`, an empty array, or `"*"` allows all origins
+
+CORS only constrains browsers; any other client can send any `Origin`. Use `ICqrsAuthorizer` and authentication to control who can call the gateway. Because the gateway writes its own CORS headers, configure origins with `allowOrigins` rather than an ASP.NET CORS policy.
 
 ## Usage Examples
 
@@ -1415,9 +1411,14 @@ app.UseCqrsApiGateway(); // Anyone can call any command!
 }
 ```
 
-### 4. Don't Rely on CORS for Access Control
+### 4. Restrict Browser Origins in Production
 
-The gateway always responds with `Access-Control-Allow-Origin: *` (see [CORS Configuration](#cors-configuration)), so CORS does not restrict which sites can call it. Use `ICqrsAuthorizer` and authentication to control access.
+```csharp
+// ✅ Good - only your front ends can call the gateway from a browser
+app.UseCqrsApiGateway(route: "/api/cqrs", allowOrigins: ["https://myapp.com", "https://mobile.myapp.com"]);
+```
+
+CORS restricts browsers only (see [CORS Configuration](#cors-configuration)), so still use `ICqrsAuthorizer` and authentication to control access.
 
 ### 5. Use Rate Limiting
 
@@ -1487,8 +1488,8 @@ Don't use when:
 **Problem**: API Gateway rejects requests
 
 **Solutions**:
-- A `400` means the body had neither `ProviderType` (query) nor `MessageType` (command); check the `ApiRequestData` shape
-- Verify the `Content-Type` header matches the registered serializer (see [Content Type Support](#content-type-support)); a mismatch is rejected
+- A `400` means the `Content-Type` is missing or doesn't match the registered serializer, the `Accept` type can't be produced (see [Content Type Support](#content-type-support)), or the body had neither `ProviderType` (query) nor `MessageType` (command)
+- A `401` without an authorizer failure means the request's `Origin` isn't in `allowOrigins`
 - Verify `MessageType` names a command type the gateway can resolve (events are rejected) and that the bus has a handler or producer for it
 - Verify `ProviderType` names a query interface registered with the bus
 
@@ -1508,8 +1509,9 @@ Don't use when:
 **Problem**: Browser shows CORS policy errors
 
 **Solutions**:
+- If you set `allowOrigins`, verify the page's origin (or its host name) is in the list
 - Verify the request path matches the gateway `route`; requests to other paths are passed on and don't get the gateway's CORS headers
-- Check that another CORS middleware isn't adding a conflicting `Access-Control-Allow-Origin` header (the gateway always appends `*`)
+- Check that another CORS middleware isn't adding a conflicting `Access-Control-Allow-Origin` header
 - Check that preflight OPTIONS requests reach the gateway (it answers them automatically)
 
 ### Performance Issues

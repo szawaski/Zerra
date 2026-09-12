@@ -27,6 +27,7 @@ namespace Zerra.Web
         private readonly ILogger? log;
         private readonly string? route;
         private readonly ICqrsAuthorizer? authorizer;
+        private readonly string[]? allowOrigins;
 
         private ISerializer? namelessSerializer = null;
 
@@ -39,7 +40,8 @@ namespace Zerra.Web
         /// <param name="log">Optional logger for diagnostic information and errors.</param>
         /// <param name="authorizer">Optional authorizer for custom request authentication and authorization. If null, no authorization is performed.</param>
         /// <param name="route">Optional route path to restrict the middleware to specific requests (e.g., "/cqrs"). If null, all POST/OPTIONS requests are processed.</param>
-        public CqrsApiGatewayMiddleware(RequestDelegate requestDelegate, IBus bus, ISerializer serializer, ILogger? log = null, ICqrsAuthorizer? authorizer = null, string? route = null)
+        /// <param name="allowOrigins">Optional CORS origins allowed to call the gateway, as scheme://host[:port] or host. If null, empty, or containing "*", all origins are allowed.</param>
+        public CqrsApiGatewayMiddleware(RequestDelegate requestDelegate, IBus bus, ISerializer serializer, ILogger? log = null, ICqrsAuthorizer? authorizer = null, string? route = null, string[]? allowOrigins = null)
         {
             this.requestDelegate = requestDelegate;
             this.bus = bus;
@@ -47,6 +49,7 @@ namespace Zerra.Web
             this.log = log;
             this.authorizer = authorizer;
             this.route = route;
+            this.allowOrigins = allowOrigins is null || allowOrigins.Length == 0 || allowOrigins.Contains("*") ? null : allowOrigins;
         }
 
         /// <summary>
@@ -68,33 +71,67 @@ namespace Zerra.Web
                 return;
             }
 
-            context.Response.Headers.Append(HttpCommon.AccessControlAllowOriginHeader, "*");
+            //browsers accept one origin or * so an allowed request origin is echoed, a disallowed one gets none
+            //browsers always send an origin on cross origin requests, a request without one is not from a browser so CORS does not apply
+            string? origin = context.Request.Headers[HttpCommon.OriginHeader];
+            var originAllowed = true;
+            if (allowOrigins is null)
+            {
+                context.Response.Headers.Append(HttpCommon.AccessControlAllowOriginHeader, "*");
+            }
+            else
+            {
+                context.Response.Headers.Append(HttpCommon.VaryHeader, HttpCommon.OriginHeader);
+                if (origin is not null)
+                {
+                    //browsers send the origin as scheme://host[:port], an allowed value can be either that or the host, case doesn't matter
+                    var originHost = Uri.TryCreate(origin, UriKind.Absolute, out var originUri) ? originUri.Host : null;
+                    originAllowed = false;
+                    foreach (var allowOrigin in allowOrigins)
+                    {
+                        if (String.Equals(allowOrigin, origin, StringComparison.OrdinalIgnoreCase) || (originHost is not null && String.Equals(allowOrigin, originHost, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            originAllowed = true;
+                            break;
+                        }
+                    }
+
+                    if (originAllowed)
+                        context.Response.Headers.Append(HttpCommon.AccessControlAllowOriginHeader, origin);
+                }
+            }
             context.Response.Headers.Append(HttpCommon.AccessControlAllowMethodsHeader, "*");
             context.Response.Headers.Append(HttpCommon.AccessControlAllowHeadersHeader, "*");
 
             if (context.Request.Method == "OPTIONS")
                 return;
 
+            if (!originAllowed)
+            {
+                log?.Warn($"{nameof(CqrsApiGatewayMiddleware)} Origin Not Allowed {origin}");
+                context.Response.StatusCode = 401;
+                return;
+            }
+
             var requestContentType = context.Request.ContentType;
             ContentType contentType;
-            if (requestContentType is not null)
-            {
-                if (requestContentType.StartsWith("application/octet-stream"))
-                    contentType = ContentType.Bytes;
-                else if (requestContentType.StartsWith("application/jsonnameless"))
-                    contentType = ContentType.JsonNameless;
-                else if (requestContentType.StartsWith("application/json"))
-                    contentType = ContentType.Json;
-                else
-                    throw new Exception("Invalid Request");
-            }
+            if (requestContentType is not null && requestContentType.StartsWith("application/octet-stream"))
+                contentType = ContentType.Bytes;
+            else if (requestContentType is not null && requestContentType.StartsWith("application/jsonnameless"))
+                contentType = ContentType.JsonNameless;
+            else if (requestContentType is not null && requestContentType.StartsWith("application/json"))
+                contentType = ContentType.Json;
             else
             {
-                throw new Exception("Invalid Request");
+                context.Response.StatusCode = 400;
+                return;
             }
 
             if (contentType != serializer.ContentType)
-                throw new Exception("Invalid Request");
+            {
+                context.Response.StatusCode = 400;
+                return;
+            }
 
             var accepts = (string?)context.Request.Headers.Accept;
             ContentType? acceptContentType;
@@ -128,7 +165,8 @@ namespace Zerra.Web
                 }
                 else
                 {
-                    throw new Exception("Invalid Request");
+                    context.Response.StatusCode = 400;
+                    return;
                 }
             }
 

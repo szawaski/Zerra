@@ -57,18 +57,6 @@ namespace Zerra.Web
             settings.Dispose();
         }
 
-        //browsers send the origin as scheme://host[:port] and KestrelCqrsClient sends the host, an allowed value can be either, case doesn't matter
-        private bool IsOriginAllowed(string origin)
-        {
-            var originHost = Uri.TryCreate(origin, UriKind.Absolute, out var originUri) ? originUri.Host : null;
-            foreach (var allowOrigin in settings.AllowOrigins!)
-            {
-                if (String.Equals(allowOrigin, origin, StringComparison.OrdinalIgnoreCase) || (originHost is not null && String.Equals(allowOrigin, originHost, StringComparison.OrdinalIgnoreCase)))
-                    return true;
-            }
-            return false;
-        }
-
         /// <summary>
         /// Invokes the middleware to process HTTP requests from CQRS clients.
         /// </summary>
@@ -98,8 +86,19 @@ namespace Zerra.Web
                 else
                 {
                     string? preflightOrigin = context.Request.Headers[HttpCommon.OriginHeader];
-                    if (preflightOrigin is not null && IsOriginAllowed(preflightOrigin))
-                        context.Response.Headers.Append(HttpCommon.AccessControlAllowOriginHeader, preflightOrigin);
+                    if (preflightOrigin is not null)
+                    {
+                        //browsers send the origin as scheme://host[:port] and KestrelCqrsClient sends the host, an allowed value can be either, case doesn't matter
+                        var preflightOriginHost = Uri.TryCreate(preflightOrigin, UriKind.Absolute, out var preflightOriginUri) ? preflightOriginUri.Host : null;
+                        foreach (var allowOrigin in settings.AllowOrigins)
+                        {
+                            if (String.Equals(allowOrigin, preflightOrigin, StringComparison.OrdinalIgnoreCase) || (preflightOriginHost is not null && String.Equals(allowOrigin, preflightOriginHost, StringComparison.OrdinalIgnoreCase)))
+                            {
+                                context.Response.Headers.Append(HttpCommon.AccessControlAllowOriginHeader, preflightOrigin);
+                                break;
+                            }
+                        }
+                    }
                 }
                 context.Response.Headers.Append(HttpCommon.AccessControlAllowMethodsHeader, "*");
                 context.Response.Headers.Append(HttpCommon.AccessControlAllowHeadersHeader, "*");
@@ -154,7 +153,22 @@ namespace Zerra.Web
                 }
                 originRequestHeader = originRequestHeaderValue;
 
-                if (originRequestHeader is null || !IsOriginAllowed(originRequestHeader))
+                //browsers send the origin as scheme://host[:port] and KestrelCqrsClient sends the host, an allowed value can be either, case doesn't matter
+                var originAllowed = false;
+                if (originRequestHeader is not null)
+                {
+                    var originHost = Uri.TryCreate(originRequestHeader, UriKind.Absolute, out var originUri) ? originUri.Host : null;
+                    foreach (var allowOrigin in settings.AllowOrigins)
+                    {
+                        if (String.Equals(allowOrigin, originRequestHeader, StringComparison.OrdinalIgnoreCase) || (originHost is not null && String.Equals(allowOrigin, originHost, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            originAllowed = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!originAllowed)
                 {
                     log?.Warn($"{nameof(KestrelCqrsServerMiddleware)} Origin Not Allowed {originRequestHeader}");
                     context.Response.StatusCode = 401;
