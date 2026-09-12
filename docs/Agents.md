@@ -178,7 +178,7 @@ await bus.StopServicesAsync();  // Explicit shutdown
 await bus.WaitForExitAsync(cancellationToken);  // Wait for exit signal
 ```
 
-Both close and dispose consumers/servers and stop processing new messages. Producers and clients are not disposed by the bus.
+Both close consumers/servers, dispose all producers/consumers/clients/servers, and stop processing new messages.
 
 ## Integration Points
 

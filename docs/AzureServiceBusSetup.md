@@ -156,8 +156,8 @@ catch (Exception ex)
 }
 finally
 {
-    // Cleanup
-    await producer.DisposeAsync();
+    // Stops the bus and disposes its producers
+    await bus.StopServicesAsync();
 }
 ```
 
@@ -294,19 +294,9 @@ Console.CancelKeyPress += (sender, e) =>
     cts.Cancel();
 };
 
-try
-{
-    await bus.WaitForExitAsync(cts.Token);
-}
-catch (OperationCanceledException)
-{
-    Console.WriteLine("Shutdown requested...");
-}
-finally
-{
-    await consumer.DisposeAsync();
-    Console.WriteLine("Azure Service Bus Server stopped");
-}
+// Waits for process exit or cancellation, then stops the bus and disposes its consumers
+await bus.WaitForExitAsync(cts.Token);
+Console.WriteLine("Azure Service Bus Server stopped");
 ```
 
 ## Configuration Options

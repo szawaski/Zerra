@@ -139,7 +139,7 @@ Console.CancelKeyPress += (sender, e) =>
     cts.Cancel();
 };
 
-// Waits for process exit or cancellation, then stops and disposes all consumers and servers
+// Waits for process exit or cancellation, then stops the bus and disposes all producers, consumers, clients, and servers
 await bus.WaitForExitAsync(cts.Token);
 Console.WriteLine("User Service stopped");
 ```
@@ -237,7 +237,7 @@ public class BusHostedService : BackgroundService
         logger.LogInformation("Bus service starting...");
 
         // Returns when the host stops (stoppingToken is cancelled) or the process exits,
-        // after stopping and disposing all consumers and servers
+        // after stopping and disposing all producers, consumers, clients, and servers
         await bus.WaitForExitAsync(stoppingToken);
 
         logger.LogInformation("Bus service stopped");
@@ -445,7 +445,7 @@ await bus.WaitForExitAsync(cancellationToken);
 
 ### Cancellation Token Shutdown
 
-`WaitForExitAsync` returns when the process is exiting or the token is cancelled; it does not throw on cancellation. In both cases it stops and disposes all consumers and servers before returning.
+`WaitForExitAsync` returns when the process is exiting or the token is cancelled; it does not throw on cancellation. In both cases it stops the bus and disposes all producers, consumers, clients, and servers before returning.
 
 ```csharp
 using var cts = new CancellationTokenSource();

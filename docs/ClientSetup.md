@@ -124,8 +124,8 @@ catch (Exception ex)
 }
 finally
 {
-    // Producers and clients are not disposed by the bus; dispose them when done
-    client.Dispose();
+    // Stops the bus and disposes its producers and clients
+    await bus.StopServicesAsync();
 }
 ```
 

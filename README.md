@@ -451,9 +451,9 @@ await bus.StopServicesAsync();
 await bus.WaitForExitAsync(cancellationToken);
 
 // Both will:
-// - Close and dispose all consumers/servers
+// - Close all consumers/servers
+// - Dispose all producers/consumers/clients/servers
 // - Stop processing new messages
-// Producers and clients are not disposed by the bus; dispose them yourself when done
 ```
 
 ## Source Generation
