@@ -41,7 +41,7 @@ namespace Zerra.CQRS.RabbitMQ
             this.topicsByEventType = new();
             this.throttleByTopic = new();
 
-            this.factory = new ConnectionFactory() { HostName = host };
+            this.factory = RabbitMQCommon.CreateConnectionFactory(host);
             try
             {
                 this.connection = factory.CreateConnection();

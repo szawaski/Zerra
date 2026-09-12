@@ -15,6 +15,7 @@ namespace Zerra.CQRS.Network
         private const string requestEnding = " HTTP/1.1";
 
         private const string okResponse = "HTTP/1.1 200 OK";
+        private const string unauthorizedResponse = "HTTP/1.1 401 Unauthorized";
         private const string notFoundResponse = "HTTP/1.1 404 Not Found";
         private const string serverErrorResponse = "HTTP/1.1 500 Server Error";
         public const string OptionsHeader = "OPTIONS";
@@ -24,6 +25,7 @@ namespace Zerra.CQRS.Network
         public const string ProviderTypeHeader = "Provider-Type";
         public const string TransferEncodingHeader = "Transfer-Encoding";
         public const string OriginHeader = "Origin";
+        public const string VaryHeader = "Vary";
         public const string HostHeader = "Host";
 
         public const string RelayServiceRemove = "remove";
@@ -51,6 +53,7 @@ namespace Zerra.CQRS.Network
         private static readonly byte[] postRequestBytes = encoding.GetBytes(postRequest);
         private static readonly byte[] requestEndingBytes = encoding.GetBytes(requestEnding);
         private static readonly byte[] okHeaderBytes = encoding.GetBytes(okResponse);
+        private static readonly byte[] unauthorizedHeaderBytes = encoding.GetBytes(unauthorizedResponse);
         private static readonly byte[] notFoundHeaderBytes = encoding.GetBytes(notFoundResponse);
         private static readonly byte[] serverErrorHeaderBytes = encoding.GetBytes(serverErrorResponse);
         private static readonly byte[] transferEncodingChunckedBytes = encoding.GetBytes("Transfer-Encoding: chunked");
@@ -69,6 +72,7 @@ namespace Zerra.CQRS.Network
         private static readonly byte[] corsAllowOriginHeadersBytes = encoding.GetBytes($"{AccessControlAllowOriginHeader}: ");
         private static readonly byte[] corsAllOriginsHeadersBytes = encoding.GetBytes($"{AccessControlAllowOriginHeader}: *");
         private static readonly byte[] corsAllowHeadersBytes = encoding.GetBytes($"{AccessControlAllowMethodsHeader}: *\r\n{AccessControlAllowHeadersHeader}: *");
+        private static readonly byte[] varyOriginHeaderBytes = encoding.GetBytes($"{VaryHeader}: {OriginHeader}");
 
         private static readonly byte[] hostHeadersBytes = encoding.GetBytes($"{HostHeader}: ");
 
@@ -365,17 +369,25 @@ namespace Zerra.CQRS.Network
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int BufferPreflightResponse(Memory<byte> buffer, string? origin)
+        public static int BufferPreflightResponse(Memory<byte> buffer, string? origin, bool originAllowed = true)
         {
             var headerBuffer = new SpanWriter<byte>(buffer.Span);
 
             headerBuffer.Write(okHeaderBytes);
             headerBuffer.Write(newLineBytes);
 
-            if (!String.IsNullOrWhiteSpace(origin))
+            if (!originAllowed)
+            {
+                //a disallowed origin gets no allow origin so the browser blocks the request
+                headerBuffer.Write(varyOriginHeaderBytes);
+                headerBuffer.Write(newLineBytes);
+            }
+            else if (!String.IsNullOrWhiteSpace(origin))
             {
                 headerBuffer.Write(corsAllowOriginHeadersBytes);
                 headerBuffer.Advance(EncodeTo(origin!, headerBuffer.Remaining));
+                headerBuffer.Write(newLineBytes);
+                headerBuffer.Write(varyOriginHeaderBytes);
                 headerBuffer.Write(newLineBytes);
             }
             else
@@ -478,6 +490,8 @@ namespace Zerra.CQRS.Network
                 headerBuffer.Write(corsAllowOriginHeadersBytes);
                 headerBuffer.Advance(EncodeTo(origin!, headerBuffer.Remaining));
                 headerBuffer.Write(newLineBytes);
+                headerBuffer.Write(varyOriginHeaderBytes);
+                headerBuffer.Write(newLineBytes);
             }
             else
             {
@@ -489,6 +503,25 @@ namespace Zerra.CQRS.Network
 
             headerBuffer.Write(contentLengthHeaderBytes);
             headerBuffer.Advance(EncodeTo(contentLength.ToString(System.Globalization.CultureInfo.InvariantCulture), headerBuffer.Remaining));
+            headerBuffer.Write(newLineBytes);
+            headerBuffer.Write(newLineBytes);
+
+            return headerBuffer.Position;
+        }
+
+        //an empty response the client reads as an error with the status as the details, sent for a disallowed origin
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int BufferUnauthorizedResponseHeader(Memory<byte> buffer)
+        {
+            var headerBuffer = new SpanWriter<byte>(buffer.Span);
+
+            headerBuffer.Write(unauthorizedHeaderBytes);
+            headerBuffer.Write(newLineBytes);
+
+            headerBuffer.Write(varyOriginHeaderBytes);
+            headerBuffer.Write(newLineBytes);
+
+            headerBuffer.Write(contentLengthZeroBytes);
             headerBuffer.Write(newLineBytes);
             headerBuffer.Write(newLineBytes);
 
@@ -565,6 +598,8 @@ namespace Zerra.CQRS.Network
             {
                 headerBuffer.Write(corsAllowOriginHeadersBytes);
                 headerBuffer.Advance(EncodeTo(origion!, headerBuffer.Remaining));
+                headerBuffer.Write(newLineBytes);
+                headerBuffer.Write(varyOriginHeaderBytes);
                 headerBuffer.Write(newLineBytes);
             }
 

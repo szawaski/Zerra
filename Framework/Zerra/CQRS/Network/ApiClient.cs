@@ -174,6 +174,8 @@ namespace Zerra.CQRS.Network
                 if (!String.IsNullOrWhiteSpace(providerType))
                     request.Headers.Add(HttpCommon.ProviderTypeHeader, providerType);
 
+                request.Headers.Add(HttpCommon.OriginHeader, serviceUri.Host); //the same as HttpCqrsClient, a gateway with allowed origins requires one
+
                 //headers only so the body streams instead of buffering, the response stays undisposed for a stream result
 #if NET5_0_OR_GREATER
                 response = client.Send(request, HttpCompletionOption.ResponseHeadersRead);
@@ -258,6 +260,8 @@ namespace Zerra.CQRS.Network
 
                 if (!String.IsNullOrWhiteSpace(providerType))
                     request.Headers.Add(HttpCommon.ProviderTypeHeader, providerType);
+
+                request.Headers.Add(HttpCommon.OriginHeader, serviceUri.Host); //the same as HttpCqrsClient, a gateway with allowed origins requires one
 
                 //headers only so the body streams instead of buffering, the response stays undisposed for a stream result
                 response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);

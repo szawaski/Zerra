@@ -16,6 +16,7 @@ namespace Zerra.Web
         public const string ContentTypeJsonNameless = "application/jsonnameless; charset=utf-8";
 
         public const string OriginHeader = "Origin";
+        public const string VaryHeader = "Vary";
         public const string AccessControlAllowOriginHeader = "Access-Control-Allow-Origin";
         public const string AccessControlAllowMethodsHeader = "Access-Control-Allow-Methods";
         public const string AccessControlAllowHeadersHeader = "Access-Control-Allow-Headers";

@@ -398,6 +398,7 @@ namespace Zerra.CQRS.Kafka
             canceller.Cancel();
             producer.Dispose();
             listenerStartedLock.Dispose();
+            canceller.Dispose();
         }
 
         void ICommandProducer.RegisterCommandType(int maxConcurrent, string topic, Type type)

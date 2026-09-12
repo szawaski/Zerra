@@ -40,22 +40,10 @@ namespace Zerra.CQRS.Network
             this.contentType = contentType;
             this.symmetricConfig = symmetricConfig;
             this.authorizer = authorizer;
-            if (allowOrigins is not null && !allowOrigins.Contains("*"))
+            if (allowOrigins is not null && allowOrigins.Length > 0 && !allowOrigins.Contains("*"))
                 this.allowOrigins = allowOrigins;
             else
                 this.allowOrigins = null;
-        }
-
-        //browsers send the origin as scheme://host[:port] and HttpCqrsClient sends the host, an allowed value can be either, case doesn't matter
-        private bool IsOriginAllowed(string origin)
-        {
-            var originHost = Uri.TryCreate(origin, UriKind.Absolute, out var originUri) ? originUri.Host : null;
-            foreach (var allowOrigin in allowOrigins!)
-            {
-                if (String.Equals(allowOrigin, origin, StringComparison.OrdinalIgnoreCase) || (originHost is not null && String.Equals(allowOrigin, originHost, StringComparison.OrdinalIgnoreCase)))
-                    return true;
-            }
-            return false;
         }
 
         /// <inheritdoc />
@@ -120,11 +108,30 @@ namespace Zerra.CQRS.Network
                             throw new CqrsNetworkException("Invalid Content Type");
                         }
 
+                        //browsers send the origin as scheme://host[:port] and HttpCqrsClient sends the host, an allowed value can be either, case doesn't matter
+                        var originAllowed = true;
+                        if (allowOrigins is not null)
+                        {
+                            originAllowed = false;
+                            if (requestHeader.Origin is not null)
+                            {
+                                var originHost = Uri.TryCreate(requestHeader.Origin, UriKind.Absolute, out var originUri) ? originUri.Host : null;
+                                foreach (var allowOrigin in allowOrigins)
+                                {
+                                    if (String.Equals(allowOrigin, requestHeader.Origin, StringComparison.OrdinalIgnoreCase) || (originHost is not null && String.Equals(allowOrigin, originHost, StringComparison.OrdinalIgnoreCase)))
+                                    {
+                                        originAllowed = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
                         if (requestHeader.Preflight)
                         {
                             _ = Log.TraceAsync($"{nameof(HttpCqrsServer)} Received Preflight {socket.RemoteEndPoint}");
 
-                            var preflightLength = HttpCommon.BufferPreflightResponse(buffer, requestHeader.Origin);
+                            var preflightLength = HttpCommon.BufferPreflightResponse(buffer, requestHeader.Origin, originAllowed);
 #if NETSTANDARD2_0
                             await stream.WriteAsync(bufferOwner, 0, preflightLength, cancellationToken);
 #else
@@ -141,12 +148,29 @@ namespace Zerra.CQRS.Network
                             throw new CqrsNetworkException("Invalid Content Type");
                         }
 
-                        if (allowOrigins is not null && allowOrigins.Length > 0)
+                        if (!originAllowed)
                         {
-                            if (requestHeader.Origin is null || !IsOriginAllowed(requestHeader.Origin))
-                            {
-                                throw new CqrsNetworkException($"Origin Not Allowed {requestHeader.Origin}");
-                            }
+                            _ = Log.WarnAsync($"{nameof(HttpCqrsServer)} Origin Not Allowed {requestHeader.Origin}");
+
+                            //the unused body is read so the connection stays usable, the client reuses it after an error
+                            requestBodyStream = new HttpProtocolBodyStream(requestHeader.Chuncked ? null : (requestHeader.ContentLength ?? 0), stream, requestHeader.BodyStartBuffer, false, true);
+                            await requestBodyStream.CopyToAsync(Stream.Null, 81920, cancellationToken);
+#if NETSTANDARD2_0
+                            requestBodyStream.Dispose();
+#else
+                            await requestBodyStream.DisposeAsync();
+#endif
+                            requestBodyStream = null;
+                            requestBodyRead = true;
+
+                            var unauthorizedLength = HttpCommon.BufferUnauthorizedResponseHeader(buffer);
+#if NETSTANDARD2_0
+                            await stream.WriteAsync(bufferOwner, 0, unauthorizedLength, cancellationToken);
+#else
+                            await stream.WriteAsync(buffer.Slice(0, unauthorizedLength), cancellationToken);
+#endif
+                            await stream.FlushAsync(cancellationToken);
+                            continue;
                         }
 
                         //Read Request Body

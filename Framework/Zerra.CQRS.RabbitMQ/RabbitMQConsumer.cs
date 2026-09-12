@@ -79,7 +79,8 @@ namespace Zerra.CQRS.RabbitMQ
 
             try
             {
-                var factory = new ConnectionFactory() { HostName = host, DispatchConsumersAsync = true };
+                var factory = RabbitMQCommon.CreateConnectionFactory(host);
+                factory.DispatchConsumersAsync = true;
                 this.connection = factory.CreateConnection();
             }
             catch (Exception ex)
