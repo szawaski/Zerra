@@ -11,6 +11,7 @@ namespace Zerra.CQRS.Network
         public const int BufferLength = 1024 * 16; //Limits max header size
 
         private const string postRequest = "POST ";
+        private const string httpVersion = "HTTP/";
         private const string requestEnding = " HTTP/1.1";
 
         private const string okResponse = "HTTP/1.1 200 OK";
@@ -39,6 +40,9 @@ namespace Zerra.CQRS.Network
         public const string ContentTypeJsonNameless = "application/jsonnameless; charset=utf-8";
         public const string TransferEncodingChunked = "chunked";
 
+        private const string mediaTypeJson = "application/json";
+        private const string mediaTypeJsonNameless = "application/jsonnameless";
+
         private const string headerSplit = ": ";
         private const string newLine = "\r\n";
 
@@ -51,6 +55,8 @@ namespace Zerra.CQRS.Network
         private static readonly byte[] serverErrorHeaderBytes = encoding.GetBytes(serverErrorResponse);
         private static readonly byte[] transferEncodingChunckedBytes = encoding.GetBytes("Transfer-Encoding: chunked");
         private static readonly byte[] providerTypeHeaderBytes = encoding.GetBytes($"{ProviderTypeHeader}{headerSplit}");
+        private static readonly byte[] contentLengthZeroBytes = encoding.GetBytes($"{ContentLengthHeader}{headerSplit}0");
+        private static readonly byte[] contentLengthHeaderBytes = encoding.GetBytes($"{ContentLengthHeader}{headerSplit}");
 
         private static readonly byte[] contentTypeBytesHeaderBytes = encoding.GetBytes($"{ContentTypeHeader}{headerSplit}{ContentTypeBytes}");
         private static readonly byte[] contentTypeJsonHeaderBytes = encoding.GetBytes($"{ContentTypeHeader}{headerSplit}{ContentTypeJson}");
@@ -66,11 +72,26 @@ namespace Zerra.CQRS.Network
 
         private static readonly byte[] hostHeadersBytes = encoding.GetBytes($"{HostHeader}: ");
 
+        //a response line is "HTTP/1.1 <status> <reason>", any 4xx or 5xx is an error
+        //the reason is matched on the status alone because it differs by server, Kestrel sends "Internal Server Error" where this sends "Server Error"
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe (List<string>, Dictionary<string, List<string?>>) ParseHeaders(ReadOnlySpan<char> chars)
+        private static bool IsErrorStatus(ReadOnlySpan<char> declarations)
         {
-            var declarations = new List<string>();
-            var headers = new Dictionary<string, List<string?>>();
+            if (!declarations.StartsWith(httpVersion.AsSpan()))
+                return false;
+            var statusStart = declarations.IndexOf(' ') + 1;
+            if (statusStart < 1 || statusStart == declarations.Length)
+                return false;
+            return declarations[statusStart] == '4' || declarations[statusStart] == '5';
+        }
+
+        //known headers are read from the chars directly, the declarations string and headers dictionary are only built when asked for
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static unsafe bool ParseHeaders(ReadOnlySpan<char> chars, HttpRequestHeader headerInfo, bool parseAllHeaders)
+        {
+            var hasDeclarations = false;
+            var headerCount = 0;
+            var headers = parseAllHeaders ? new Dictionary<string, List<string?>>(StringComparer.OrdinalIgnoreCase) : null; //header names are case-insensitive
 
             var start = 0;
             var length = 0;
@@ -83,27 +104,15 @@ namespace Zerra.CQRS.Network
                     var c = pChars[index];
                     switch (c)
                     {
-                        case ' ':
-                            {
-#if NETSTANDARD2_0
-                                var value = new string(chars.Slice(start, length).ToArray());
-#else
-                                var value = chars.Slice(start, length).ToString();
-#endif
-                                declarations.Add(value);
-                                start = index + 1;
-                                length = 0;
-                                break;
-                            }
                         case '\r':
                         case '\n':
                             {
-#if NETSTANDARD2_0
-                                var value = new string(chars.Slice(start, length).ToArray());
-#else
-                                var value = chars.Slice(start, length).ToString();
-#endif
-                                declarations.Add(value);
+                                var declarations = chars.Slice(start, length);
+                                headerInfo.IsError = IsErrorStatus(declarations);
+                                headerInfo.Preflight = declarations.StartsWith(OptionsHeader.AsSpan());
+                                if (parseAllHeaders)
+                                    headerInfo.Declarations = declarations.ToString();
+                                hasDeclarations = true;
                                 start = index + 1;
                                 length = 0;
                                 firstLineDone = true;
@@ -117,7 +126,8 @@ namespace Zerra.CQRS.Network
                         break;
                 }
 
-                string? key = null;
+                var keyStart = 0;
+                var keyLength = 0;
                 var keyPartDone = false;
                 for (var index = start; index < chars.Length; index++)
                 {
@@ -127,11 +137,8 @@ namespace Zerra.CQRS.Network
                         case ':':
                             if (!keyPartDone)
                             {
-#if NETSTANDARD2_0
-                                key = new string(chars.Slice(start, length).ToArray());
-#else
-                                key = chars.Slice(start, length).ToString();
-#endif
+                                keyStart = start;
+                                keyLength = length;
                                 keyPartDone = true;
                                 start = index + 1;
                                 length = 0;
@@ -155,22 +162,94 @@ namespace Zerra.CQRS.Network
                         case '\n':
                             if (keyPartDone)
                             {
+                                var key = chars.Slice(keyStart, keyLength);
+                                var value = chars.Slice(start, length);
+                                //when all headers are kept the value string is shared with the known header
+                                var valueString = headers is not null ? value.ToString() : null;
+                                headerCount++;
+
+                                //the first value of a known header is used
+                                if (key.Equals(ContentTypeHeader.AsSpan(), StringComparison.OrdinalIgnoreCase))
+                                {
+                                    if (!headerInfo.ContentType.HasValue)
+                                    {
+                                        //match the media type, parameters such as charset are optional
+                                        var contentTypeParametersIndex = value.IndexOf(';');
+                                        var mediaType = (contentTypeParametersIndex >= 0 ? value.Slice(0, contentTypeParametersIndex) : value).Trim();
+                                        if (mediaType.Equals(ContentTypeBytes.AsSpan(), StringComparison.OrdinalIgnoreCase))
+                                            headerInfo.ContentType = ContentType.Bytes;
+                                        else if (mediaType.Equals(mediaTypeJson.AsSpan(), StringComparison.OrdinalIgnoreCase))
+                                            headerInfo.ContentType = ContentType.Json;
+                                        else if (mediaType.Equals(mediaTypeJsonNameless.AsSpan(), StringComparison.OrdinalIgnoreCase))
+                                            headerInfo.ContentType = ContentType.JsonNameless;
+                                        else
+                                            throw new CqrsNetworkException("Invalid Header");
+                                    }
+                                }
+                                else if (key.Equals(ContentLengthHeader.AsSpan(), StringComparison.OrdinalIgnoreCase))
+                                {
 #if NETSTANDARD2_0
-                                var value = new string(chars.Slice(start, length).ToArray());
+                                    if (!headerInfo.ContentLength.HasValue && Int32.TryParse(valueString ?? value.ToString(), out var contentLength))
 #else
-                                var value = chars.Slice(start, length).ToString();
+                                    if (!headerInfo.ContentLength.HasValue && Int32.TryParse(value, out var contentLength))
 #endif
-                                if (headers.TryGetValue(key!, out var values))
-                                {
-                                    values.Add(value);
+                                        headerInfo.ContentLength = contentLength;
                                 }
-                                else
+                                else if (key.Equals(TransferEncodingHeader.AsSpan(), StringComparison.OrdinalIgnoreCase))
                                 {
-                                    values = new List<string?>();
-                                    values.Add(value);
-                                    headers.Add(key!, values);
+                                    //a list of codings that may span header lines, only chunked is read so any other coding would leave the body unreadable and the connection out of step
+                                    var codings = value;
+                                    while (codings.Length > 0)
+                                    {
+                                        var codingEnd = codings.IndexOf(',');
+                                        var coding = (codingEnd >= 0 ? codings.Slice(0, codingEnd) : codings).Trim();
+                                        codings = codingEnd >= 0 ? codings.Slice(codingEnd + 1) : default;
+                                        if (coding.Length == 0)
+                                            continue; //empty list elements are allowed
+                                        if (headerInfo.Chuncked || !coding.Equals(TransferEncodingChunked.AsSpan(), StringComparison.OrdinalIgnoreCase))
+                                            throw new CqrsNetworkException($"Unsupported {TransferEncodingHeader}"); //chunked can only be applied once
+                                        headerInfo.Chuncked = true;
+                                    }
+                                    if (!headerInfo.Chuncked)
+                                        throw new CqrsNetworkException($"Unsupported {TransferEncodingHeader}");
                                 }
-                                key = null;
+                                else if (key.Equals(ProviderTypeHeader.AsSpan(), StringComparison.OrdinalIgnoreCase))
+                                {
+                                    headerInfo.ProviderType ??= valueString ?? value.ToString();
+                                }
+                                else if (key.Equals(OriginHeader.AsSpan(), StringComparison.OrdinalIgnoreCase))
+                                {
+                                    headerInfo.Origin ??= valueString ?? value.ToString();
+                                }
+                                else if (key.Equals(RelayServiceHeader.AsSpan(), StringComparison.OrdinalIgnoreCase))
+                                {
+                                    if (!headerInfo.RelayServiceAddRemove.HasValue)
+                                    {
+                                        if (value.SequenceEqual(RelayServiceAdd.AsSpan()))
+                                            headerInfo.RelayServiceAddRemove = true;
+                                        else if (value.SequenceEqual(RelayServiceRemove.AsSpan()))
+                                            headerInfo.RelayServiceAddRemove = false;
+                                    }
+                                }
+                                else if (key.Equals(RelayKeyHeader.AsSpan(), StringComparison.OrdinalIgnoreCase))
+                                {
+                                    headerInfo.RelayKey ??= valueString ?? value.ToString();
+                                }
+
+                                if (headers is not null)
+                                {
+                                    var keyString = key.ToString();
+                                    if (headers.TryGetValue(keyString, out var values))
+                                    {
+                                        values.Add(valueString);
+                                    }
+                                    else
+                                    {
+                                        values = new List<string?>();
+                                        values.Add(valueString);
+                                        headers.Add(keyString, values);
+                                    }
+                                }
                                 keyPartDone = false;
                             }
                             start = index + 1;
@@ -182,11 +261,12 @@ namespace Zerra.CQRS.Network
                     }
                 }
             }
-            return (declarations, headers);
+            headerInfo.Headers = headers;
+            return hasDeclarations && headerCount > 0;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static HttpRequestHeader ReadHeader(ReadOnlyMemory<byte> buffer, int position, int length)
+        public static HttpRequestHeader ReadHeader(ReadOnlyMemory<byte> buffer, int position, bool parseAllHeaders = false)
         {
 #if NETSTANDARD2_0
             var chars = encoding.GetChars(buffer.Span.Slice(0, position).ToArray());
@@ -197,64 +277,11 @@ namespace Zerra.CQRS.Network
             {
                 var charsLength = encoding.GetChars(buffer.Span.Slice(0, position), chars.AsSpan());
 #endif
-                (var declarations, var headers) = ParseHeaders(chars.AsSpan().Slice(0, charsLength));
-
-                if (declarations.Count == 0 || headers.Count == 0)
+                var headerInfo = new HttpRequestHeader();
+                if (!ParseHeaders(chars.AsSpan().Slice(0, charsLength), headerInfo, parseAllHeaders))
                     throw new Exception("Invalid Header");
 
-                var headerInfo = new HttpRequestHeader()
-                {
-                    Declarations = declarations,
-                    Headers = headers
-                };
-
-                headerInfo.IsError = declarations[0].StartsWith(serverErrorResponse);
-
-                if (headers.TryGetValue(ContentTypeHeader, out var contentTypeHeaderValue))
-                {
-                    if (String.Equals(contentTypeHeaderValue[0], ContentTypeBytes, StringComparison.InvariantCultureIgnoreCase))
-                        headerInfo.ContentType = ContentType.Bytes;
-                    else if (String.Equals(contentTypeHeaderValue[0], ContentTypeJson, StringComparison.InvariantCultureIgnoreCase))
-                        headerInfo.ContentType = ContentType.Json;
-                    else if (String.Equals(contentTypeHeaderValue[0], ContentTypeJsonNameless, StringComparison.InvariantCultureIgnoreCase))
-                        headerInfo.ContentType = ContentType.JsonNameless;
-                    else
-                        throw new CqrsNetworkException("Invalid Header");
-                }
-
-                if (headers.TryGetValue(ContentLengthHeader, out var contentLengthHeaderValue))
-                {
-                    if (Int32.TryParse(contentLengthHeaderValue[0], out var contentLengthHeaderValueParsed))
-                        headerInfo.ContentLength = contentLengthHeaderValueParsed;
-                }
-
-                if (headers.TryGetValue(TransferEncodingHeader, out var transferEncodingHeaderValue))
-                {
-                    if (transferEncodingHeaderValue[0] == TransferEncodingChunked)
-                        headerInfo.Chuncked = true;
-                }
-
-                if (headers.TryGetValue(ProviderTypeHeader, out var providerTypeHeaderValue))
-                    headerInfo.ProviderType = providerTypeHeaderValue[0];
-
-                if (headers.TryGetValue(OriginHeader, out var originHeaderValue))
-                    headerInfo.Origin = originHeaderValue[0];
-
-                if (declarations.Count > 0 && declarations[0] == OptionsHeader)
-                    headerInfo.Preflight = true;
-
-                if (headers.TryGetValue(RelayServiceHeader, out var relayServiceHeaderValue))
-                {
-                    if (relayServiceHeaderValue[0] == RelayServiceAdd)
-                        headerInfo.RelayServiceAddRemove = true;
-                    else if (relayServiceHeaderValue[0] == RelayServiceRemove)
-                        headerInfo.RelayServiceAddRemove = false;
-                }
-
-                if (headers.TryGetValue(RelayKeyHeader, out var relayKeyHeaderValue))
-                    headerInfo.RelayKey = relayKeyHeaderValue[0];
-
-                headerInfo.BodyStartBuffer = buffer.Slice(position, length - position);
+                headerInfo.BodyStartBuffer = buffer.Slice(position);
 
                 return headerInfo;
 #if !NETSTANDARD2_0
@@ -267,12 +294,12 @@ namespace Zerra.CQRS.Network
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe bool ReadToHeaderEnd(Memory<byte> buffer, ref int position, int length)
+        public static unsafe bool TryReadToHeaderEnd(ReadOnlySpan<byte> buffer, ref int position)
         {
             var headerEndSequence = 0;
-            fixed (byte* pHeaderBuffer = buffer.Span)
+            fixed (byte* pHeaderBuffer = buffer)
             {
-                while (position < length)
+                while (position < buffer.Length)
                 {
                     var b = pHeaderBuffer[position];
                     if (b == (headerEndSequence % 2 == 0 ? '\r' : '\n'))
@@ -288,17 +315,17 @@ namespace Zerra.CQRS.Network
                     position++;
                 }
             }
-            position -= 3; //back off minimum for reattempt
+            position = Math.Max(0, position - 3); //back off minimum for reattempt
             return false;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe bool ReadToBreak(Memory<byte> buffer, ref int position, int length)
+        public static unsafe bool ReadToBreak(ReadOnlySpan<byte> buffer, ref int position)
         {
             var headerEndSequence = 0;
-            fixed (byte* pHeaderBuffer = buffer.Span)
+            fixed (byte* pHeaderBuffer = buffer)
             {
-                while (position < length)
+                while (position < buffer.Length)
                 {
                     var b = pHeaderBuffer[position];
                     if (b == (headerEndSequence % 2 == 0 ? '\r' : '\n'))
@@ -318,6 +345,21 @@ namespace Zerra.CQRS.Network
             return false;
         }
 
+        //encodes straight into the header buffer, netstandard2.0 has no span overload
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static unsafe int EncodeTo(string value, Span<byte> destination)
+        {
+#if NETSTANDARD2_0
+            fixed (char* pChars = value)
+            fixed (byte* pBytes = destination)
+            {
+                return encoding.GetBytes(pChars, value.Length, pBytes, destination.Length);
+            }
+#else
+            return encoding.GetBytes(value, destination);
+#endif
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int BufferPreflightResponse(Memory<byte> buffer, string? origin)
         {
@@ -328,16 +370,20 @@ namespace Zerra.CQRS.Network
 
             if (!String.IsNullOrWhiteSpace(origin))
             {
-                var allowOriginBytes = encoding.GetBytes(origin);
                 headerBuffer.Write(corsAllowOriginHeadersBytes);
-                headerBuffer.Write(allowOriginBytes);
+                headerBuffer.Advance(EncodeTo(origin!, headerBuffer.Remaining));
                 headerBuffer.Write(newLineBytes);
             }
             else
             {
                 headerBuffer.Write(corsAllOriginsHeadersBytes);
+                headerBuffer.Write(newLineBytes);
             }
             headerBuffer.Write(corsAllowHeadersBytes);
+            headerBuffer.Write(newLineBytes);
+
+            headerBuffer.Write(contentLengthZeroBytes);
+            headerBuffer.Write(newLineBytes);
 
             headerBuffer.Write(newLineBytes);
 
@@ -345,21 +391,19 @@ namespace Zerra.CQRS.Network
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int BufferPostRequestHeader(Memory<byte> buffer, Uri serviceUrl, string? origion, string? providerType, ContentType? contentType, Dictionary<string, List<string?>>? authHeaders)
+        public static int BufferPostRequestHeader(Memory<byte> buffer, Uri serviceUrl, string? providerType, ContentType? contentType, Dictionary<string, List<string?>>? authHeaders)
         {
             var headerBuffer = new SpanWriter<byte>(buffer.Span);
 
-            var destinationUrlBytes = encoding.GetBytes(serviceUrl.ToString());
             headerBuffer.Write(postRequestBytes);
-            headerBuffer.Write(destinationUrlBytes);
+            headerBuffer.Advance(EncodeTo(serviceUrl.PathAndQuery, headerBuffer.Remaining)); //the escaped path, the host goes in the Host header
             headerBuffer.Write(requestEndingBytes);
             headerBuffer.Write(newLineBytes);
 
             if (!String.IsNullOrWhiteSpace(providerType))
             {
-                var providerTypeBytes = encoding.GetBytes(providerType);
                 headerBuffer.Write(providerTypeHeaderBytes);
-                headerBuffer.Write(providerTypeBytes);
+                headerBuffer.Advance(EncodeTo(providerType!, headerBuffer.Remaining));
                 headerBuffer.Write(newLineBytes);
             }
 
@@ -390,49 +434,35 @@ namespace Zerra.CQRS.Network
                     {
                         if (authHeaderValue is null)
                             continue;
-                        headerBuffer.Write(encoding.GetBytes(authHeader.Key));
+                        headerBuffer.Advance(EncodeTo(authHeader.Key, headerBuffer.Remaining));
                         headerBuffer.Write(headerSplitBytes);
-                        headerBuffer.Write(encoding.GetBytes(authHeaderValue));
+                        headerBuffer.Advance(EncodeTo(authHeaderValue, headerBuffer.Remaining));
                         headerBuffer.Write(newLineBytes);
                     }
                 }
             }
 
-            if (String.IsNullOrWhiteSpace(origion))
-            {
-                headerBuffer.Write(corsAllOriginsHeadersBytes);
-                headerBuffer.Write(newLineBytes);
-            }
-            else
-            {
-                var allowOriginBytes = encoding.GetBytes(origion);
-                headerBuffer.Write(corsAllowOriginHeadersBytes);
-                headerBuffer.Write(allowOriginBytes);
-                headerBuffer.Write(newLineBytes);
-            }
-
-            headerBuffer.Write(corsAllowHeadersBytes);
-            headerBuffer.Write(newLineBytes);
+            //Access-Control-Allow headers are only for responses so a request doesn't send them
 
             headerBuffer.Write(transferEncodingChunckedBytes);
             headerBuffer.Write(newLineBytes);
 
-            var hostBytes = encoding.GetBytes(serviceUrl.Authority);
             headerBuffer.Write(hostHeadersBytes);
-            headerBuffer.Write(hostBytes);
+            headerBuffer.Advance(EncodeTo(serviceUrl.Authority, headerBuffer.Remaining));
             headerBuffer.Write(newLineBytes);
 
-            var originBytes = encoding.GetBytes(serviceUrl.Host);
             headerBuffer.Write(corsOriginHeadersBytes);
-            headerBuffer.Write(originBytes);
+            headerBuffer.Advance(EncodeTo(serviceUrl.Host, headerBuffer.Remaining));
             headerBuffer.Write(newLineBytes);
 
             headerBuffer.Write(newLineBytes);
             return headerBuffer.Position;
         }
 
+        //the error body is sent with its length instead of chunked
+        //5.3 clients never see the error status so they read the body as a result, with a length they fail on it loudly instead of returning whatever it decodes to
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int BufferErrorResponseHeader(Memory<byte> buffer, string? origin)
+        public static int BufferErrorResponseHeader(Memory<byte> buffer, string? origin, int contentLength)
         {
             var headerBuffer = new SpanWriter<byte>(buffer.Span);
 
@@ -441,9 +471,8 @@ namespace Zerra.CQRS.Network
 
             if (!String.IsNullOrWhiteSpace(origin))
             {
-                var allowOriginBytes = encoding.GetBytes(origin);
                 headerBuffer.Write(corsAllowOriginHeadersBytes);
-                headerBuffer.Write(allowOriginBytes);
+                headerBuffer.Advance(EncodeTo(origin!, headerBuffer.Remaining));
                 headerBuffer.Write(newLineBytes);
             }
             else
@@ -454,7 +483,8 @@ namespace Zerra.CQRS.Network
             headerBuffer.Write(corsAllowHeadersBytes);
             headerBuffer.Write(newLineBytes);
 
-            headerBuffer.Write(transferEncodingChunckedBytes);
+            headerBuffer.Write(contentLengthHeaderBytes);
+            headerBuffer.Advance(EncodeTo(contentLength.ToString(System.Globalization.CultureInfo.InvariantCulture), headerBuffer.Remaining));
             headerBuffer.Write(newLineBytes);
             headerBuffer.Write(newLineBytes);
 
@@ -473,7 +503,7 @@ namespace Zerra.CQRS.Network
             return headerBuffer.Position;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int BufferOkResponseHeader(Memory<byte> buffer, string? origion, string? providerType, ContentType? contentType, Dictionary<string, List<string?>>? authHeaders)
+        public static int BufferOkResponseHeader(Memory<byte> buffer, string? origion, string? providerType, ContentType? contentType, Dictionary<string, List<string?>>? authHeaders, bool hasBody = true)
         {
             var headerBuffer = new SpanWriter<byte>(buffer.Span);
 
@@ -482,9 +512,8 @@ namespace Zerra.CQRS.Network
 
             if (!String.IsNullOrWhiteSpace(providerType))
             {
-                var providerTypeBytes = encoding.GetBytes(providerType);
                 headerBuffer.Write(providerTypeHeaderBytes);
-                headerBuffer.Write(providerTypeBytes);
+                headerBuffer.Advance(EncodeTo(providerType!, headerBuffer.Remaining));
                 headerBuffer.Write(newLineBytes);
             }
 
@@ -515,9 +544,9 @@ namespace Zerra.CQRS.Network
                     {
                         if (authHeaderValue is null)
                             continue;
-                        headerBuffer.Write(encoding.GetBytes(authHeader.Key));
+                        headerBuffer.Advance(EncodeTo(authHeader.Key, headerBuffer.Remaining));
                         headerBuffer.Write(headerSplitBytes);
-                        headerBuffer.Write(encoding.GetBytes(authHeaderValue));
+                        headerBuffer.Advance(EncodeTo(authHeaderValue, headerBuffer.Remaining));
                         headerBuffer.Write(newLineBytes);
                     }
                 }
@@ -530,16 +559,16 @@ namespace Zerra.CQRS.Network
             }
             else
             {
-                var allowOriginBytes = encoding.GetBytes(origion);
                 headerBuffer.Write(corsAllowOriginHeadersBytes);
-                headerBuffer.Write(allowOriginBytes);
+                headerBuffer.Advance(EncodeTo(origion!, headerBuffer.Remaining));
                 headerBuffer.Write(newLineBytes);
             }
 
             headerBuffer.Write(corsAllowHeadersBytes);
             headerBuffer.Write(newLineBytes);
 
-            headerBuffer.Write(transferEncodingChunckedBytes);
+            //a response without a body must not claim a chunked body
+            headerBuffer.Write(hasBody ? transferEncodingChunckedBytes : contentLengthZeroBytes);
             headerBuffer.Write(newLineBytes);
             headerBuffer.Write(newLineBytes);
 

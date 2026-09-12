@@ -27,6 +27,7 @@ namespace Zerra.Web
         public ContentType ContentType { get; }
 
         private string[]? allowOrigins;
+        //each value can be a full origin such as https://app.example.com or just the host such as app.example.com, compared without case
         public string[]? AllowOrigins
         {
             get
@@ -56,16 +57,11 @@ namespace Zerra.Web
             this.ContentType = contentType;
 
             Types = new();
-            Types = new();
             this.allowOriginsString = "*";
         }
 
         public void Dispose()
         {
-            foreach (var throttle in Types.Values)
-                throttle.Dispose();
-            Types.Clear();
-
             foreach (var throttle in Types.Values)
                 throttle.Dispose();
             Types.Clear();

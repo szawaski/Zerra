@@ -11,7 +11,8 @@ namespace Zerra.CQRS.Network
     {
         public ReadOnlyMemory<byte> BodyStartBuffer { get; set; }
 
-        public List<string>? Declarations { get; set; }
+        //only set when all headers are parsed, the known headers below are always set
+        public string? Declarations { get; set; }
         public Dictionary<string, List<string?>>? Headers { get; set; }
         public bool IsError { get; set; }
         public ContentType? ContentType { get; set; }

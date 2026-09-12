@@ -122,10 +122,14 @@ namespace Zerra.Web
                 }
                 else if (response.Stream is not null)
                 {
-                    context.Response.ContentType = "application/octet-stream";
+                    //the stream may hold a pooled connection to another service, it's only released on dispose
+                    await using (response.Stream)
+                    {
+                        context.Response.ContentType = "application/octet-stream";
 
-                    await response.Stream.CopyToAsync(context.Response.Body, context.RequestAborted);
-                    await context.Response.Body.FlushAsync(context.RequestAborted);
+                        await response.Stream.CopyToAsync(context.Response.Body, context.RequestAborted);
+                        await context.Response.Body.FlushAsync(context.RequestAborted);
+                    }
                 }
                 else
                 {

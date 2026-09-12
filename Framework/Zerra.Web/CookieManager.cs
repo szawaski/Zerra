@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Collections.Generic;
 using System.Text;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.DataProtection;
@@ -96,16 +97,16 @@ namespace Zerra.Web
         private void PersistCookie(string name, string? value, TimeSpan? maxAge, SameSiteMode sameSite, bool httpOnly, bool secure)
         {
             value ??= String.Empty;
-            var cookieSeriesCount = value.Length * 2 / maxCookieSizeBytes + 1;
+            var seriesValues = SplitValue(value);
 
-            if (cookieSeriesCount > maxCookiesPerDomain)
+            if (seriesValues.Count > maxCookiesPerDomain)
                 throw new Exception("Cookie too large");
 
             int x;
-            for (x = 0; x < cookieSeriesCount; x++)
+            for (x = 0; x < seriesValues.Count; x++)
             {
                 var seriesName = x == 0 ? name : $"{name}-{x}";
-                var seriesValue = value.Substring(x * maxCookieSizeBytes / 2, Math.Min(maxCookieSizeBytes / 2, value.Length - x * maxCookieSizeBytes / 2));
+                var seriesValue = seriesValues[x];
 
                 context.Response.Cookies.Delete(seriesName);
                 context.Response.Cookies.Append(seriesName, seriesValue, new CookieOptions()
@@ -133,6 +134,45 @@ namespace Zerra.Web
                 }
             }
         }
+        //values are sent URL escaped so each piece is measured escaped, leaving room for the name and attributes within the size limit
+        private const int maxSeriesValueBytes = maxCookieSizeBytes - 256;
+        private static List<string> SplitValue(string value)
+        {
+            var seriesValues = new List<string>();
+            var start = 0;
+            var escapedLength = 0;
+            for (var i = 0; i < value.Length; i++)
+            {
+                var c = value[i];
+                var charCount = 1;
+                int charEscapedLength;
+                if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-' || c == '_' || c == '.' || c == '~')
+                    charEscapedLength = 1;
+                else if (c < 0x80)
+                    charEscapedLength = 3; //%XX
+                else if (c < 0x800)
+                    charEscapedLength = 6; //two UTF-8 bytes
+                else if (Char.IsHighSurrogate(c) && i + 1 < value.Length && Char.IsLowSurrogate(value[i + 1]))
+                {
+                    charEscapedLength = 12; //four UTF-8 bytes, the pair isn't split
+                    charCount = 2;
+                }
+                else
+                    charEscapedLength = 9; //three UTF-8 bytes
+
+                if (escapedLength + charEscapedLength > maxSeriesValueBytes)
+                {
+                    seriesValues.Add(value.Substring(start, i - start));
+                    start = i;
+                    escapedLength = 0;
+                }
+                escapedLength += charEscapedLength;
+                i += charCount - 1;
+            }
+            seriesValues.Add(value.Substring(start));
+            return seriesValues;
+        }
+
         private string? ReadCookie(string name)
         {
             var sb = new StringBuilder();

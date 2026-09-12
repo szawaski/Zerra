@@ -23,6 +23,19 @@ namespace Zerra.Web
             this.middlewareAdded = false;
         }
 
+        //the middleware is built here instead of UseMiddleware because that resolves the constructor by argument type and a null symmetricConfig matches nothing
+        private void AddMiddleware(SymmetricConfig? symmetricConfig)
+        {
+            if (middlewareAdded)
+                return;
+            middlewareAdded = true;
+            _ = applicationBuilder!.Use(next =>
+            {
+                var middleware = new KestrelCqrsServerMiddleware(next, symmetricConfig, settings);
+                return middleware.Invoke;
+            });
+        }
+
         public ICommandProducer? CreateCommandProducer(string messageHost, SymmetricConfig? symmetricConfig)
         {
             if (String.IsNullOrWhiteSpace(messageHost))
@@ -35,11 +48,7 @@ namespace Zerra.Web
             if (applicationBuilder is null)
                 throw new NotSupportedException($"{nameof(KestrelServiceCreator)} needs {nameof(IApplicationBuilder)} for {nameof(CreateCommandConsumer)}");
 
-            if (!middlewareAdded)
-            {
-                middlewareAdded = true;
-                _ = applicationBuilder.UseMiddleware<KestrelCqrsServerMiddleware>(symmetricConfig, settings);
-            }
+            AddMiddleware(symmetricConfig);
             return new KestrelCqrsServerCommandConsumer(settings);
         }
 
@@ -55,11 +64,7 @@ namespace Zerra.Web
             if (applicationBuilder is null)
                 throw new NotSupportedException($"{nameof(KestrelServiceCreator)} needs {nameof(IApplicationBuilder)} for {nameof(CreateCommandConsumer)}");
 
-            if (!middlewareAdded)
-            {
-                middlewareAdded = true;
-                _ = applicationBuilder.UseMiddleware<KestrelCqrsServerMiddleware>(symmetricConfig, settings);
-            }
+            AddMiddleware(symmetricConfig);
             return new KestrelCqrsServerEventConsumer(settings);
         }
 
@@ -75,11 +80,7 @@ namespace Zerra.Web
             if (applicationBuilder is null)
                 throw new NotSupportedException($"{nameof(KestrelServiceCreator)} needs {nameof(IApplicationBuilder)} for {nameof(CreateQueryServer)}");
 
-            if (!middlewareAdded)
-            {
-                middlewareAdded = true;
-                _ = applicationBuilder.UseMiddleware<KestrelCqrsServerMiddleware>(symmetricConfig, settings);
-            }
+            AddMiddleware(symmetricConfig);
             return new KestrelCqrsServerQueryServer(settings);
         }
     }

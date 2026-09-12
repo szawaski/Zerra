@@ -29,7 +29,7 @@ namespace Zerra.CQRS.Network
         public ApiCqrsCookieAuthorizer(string loginEndpoint, string loginRequestBody, string contentType)
         {
             if (!loginEndpoint.Contains("://"))
-                this.endpoint = new Uri($"tcp://{loginEndpoint}"); //hacky way to make it parse without scheme.
+                this.endpoint = new Uri($"http://{loginEndpoint}"); //hacky way to make it parse without scheme, http so HttpClient accepts it
             else
                 this.endpoint = new Uri(loginEndpoint, UriKind.RelativeOrAbsolute);
 
@@ -52,13 +52,9 @@ namespace Zerra.CQRS.Network
                 request.Content = new WriteStreamContent(async (postStream) =>
                 {
                     var data = System.Text.Encoding.UTF8.GetBytes(body);
-                    await ContentTypeSerializer.SerializeAsync(ContentType.Json, postStream, data, cancellationToken);
+                    await postStream.WriteAsync(data, 0, data.Length, cancellationToken); //the body is already formatted for the content type
                 });
                 request.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
-
-                request.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, "*");
-                request.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
-                request.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
 
                 using var response = await client.SendAsync(request, cancellationToken);
 
@@ -162,6 +158,10 @@ namespace Zerra.CQRS.Network
                             {
                                 indexLength++;
                             }
+                            else
+                            {
+                                startIndex = index + 1; //skip leading spaces such as after the "; " separator
+                            }
                             break;
                         default:
                             indexLength++;
@@ -185,7 +185,7 @@ namespace Zerra.CQRS.Network
             return cookies;
         }
 
-        public Task Login(CancellationToken cancellationToken = default) => GetCookiesRequest(endpoint, loginRequestBody, contentType, cancellationToken);
+        public async Task Login(CancellationToken cancellationToken = default) => cookies = await GetCookiesRequest(endpoint, loginRequestBody, contentType, cancellationToken); //kept for the authorization headers
 
         public CookieCollection? Cookies => cookies;
 
@@ -194,7 +194,7 @@ namespace Zerra.CQRS.Network
             Dictionary<string, string>? cookies = null;
 
             if (headers.TryGetValue(cookieHeader, out var cookieHeaderValue))
-                cookies = CookiesFromString(cookieHeader);
+                cookies = CookiesFromString(String.Join("; ", cookieHeaderValue));
 
             AuthorizeCookies(cookies);
         }

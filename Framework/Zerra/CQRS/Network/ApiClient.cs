@@ -55,9 +55,6 @@ namespace Zerra.CQRS.Network
         protected override TReturn? CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source) where TReturn : default
         {
             var providerName = interfaceType.Name;
-            var stringArguments = new string?[arguments.Length];
-            for (var i = 0; i < arguments.Length; i++)
-                stringArguments[i] = JsonSerializer.Serialize(arguments);
 
             var data = new ApiRequestData()
             {
@@ -76,9 +73,6 @@ namespace Zerra.CQRS.Network
         protected override Task<TReturn?> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, object[] arguments, string source, CancellationToken cancellationToken) where TReturn : default
         {
             var providerName = interfaceType.Name;
-            var stringArguments = new string?[arguments.Length];
-            for (var i = 0; i < arguments.Length; i++)
-                stringArguments[i] = JsonSerializer.Serialize(arguments);
 
             var data = new ApiRequestData()
             {
@@ -103,7 +97,7 @@ namespace Zerra.CQRS.Network
             {
                 MessageType = commendTypeName,
                 MessageData = commandData,
-                MessageAwait = true,
+                MessageAwait = messageAwait,
 
                 Source = source
             };
@@ -121,6 +115,7 @@ namespace Zerra.CQRS.Network
                 MessageType = commendTypeName,
                 MessageData = commandData,
                 MessageAwait = true,
+                MessageResult = true,
 
                 Source = source
             };
@@ -151,6 +146,7 @@ namespace Zerra.CQRS.Network
         {
             throttle.Wait();
 
+            HttpResponseMessage? response = null;
             Stream? responseStream = null;
             try
             {
@@ -168,10 +164,6 @@ namespace Zerra.CQRS.Network
                     _ => throw new NotImplementedException(),
                 };
 
-                request.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, "*");
-                request.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
-                request.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
-
                 if (authorizer is not null)
                 {
                     var authHeaders = Task.Run(() => authorizer.GetAuthorizationHeadersAsync().AsTask()).GetAwaiter().GetResult();
@@ -182,13 +174,14 @@ namespace Zerra.CQRS.Network
                 if (!String.IsNullOrWhiteSpace(providerType))
                     request.Headers.Add(HttpCommon.ProviderTypeHeader, providerType);
 
-
+                //headers only so the body streams instead of buffering, the response stays undisposed for a stream result
 #if NET5_0_OR_GREATER
-                using var response = client.Send(request);
+                response = client.Send(request, HttpCompletionOption.ResponseHeadersRead);
                 responseStream = response.Content.ReadAsStream();
 #else
-                using var response = Task.Run(() => client.SendAsync(request)).GetAwaiter().GetResult();
-                responseStream = Task.Run(() => response.Content.ReadAsStreamAsync()).GetAwaiter().GetResult();
+                response = Task.Run(() => client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead)).GetAwaiter().GetResult();
+                var responseContent = response.Content;
+                responseStream = Task.Run(() => responseContent.ReadAsStreamAsync()).GetAwaiter().GetResult();
 #endif
 
                 if (!response.IsSuccessStatusCode)
@@ -200,7 +193,7 @@ namespace Zerra.CQRS.Network
                 if (!getResponseData)
                 {
                     responseStream.Dispose();
-                    client.Dispose();
+                    response.Dispose(); //the client is shared by every request so only the response is disposed
                     return default!;
                 }
 
@@ -212,7 +205,7 @@ namespace Zerra.CQRS.Network
                 {
                     var result = ContentTypeSerializer.Deserialize<TReturn>(contentType, responseStream);
                     responseStream.Dispose();
-                    client.Dispose();
+                    response.Dispose();
                     return result;
                 }
             }
@@ -225,8 +218,8 @@ namespace Zerra.CQRS.Network
                         responseStream.Dispose();
                     }
                     catch { }
-                    client?.Dispose();
                 }
+                response?.Dispose();
                 throw;
             }
             finally
@@ -238,6 +231,7 @@ namespace Zerra.CQRS.Network
         {
             await throttle.WaitAsync(cancellationToken);
 
+            HttpResponseMessage? response = null;
             Stream? responseStream = null;
             try
             {
@@ -255,13 +249,9 @@ namespace Zerra.CQRS.Network
                     _ => throw new NotImplementedException(),
                 };
 
-                request.Headers.Add(HttpCommon.AccessControlAllowOriginHeader, "*");
-                request.Headers.Add(HttpCommon.AccessControlAllowHeadersHeader, "*");
-                request.Headers.Add(HttpCommon.AccessControlAllowMethodsHeader, "*");
-
                 if (authorizer is not null)
                 {
-                    var authHeaders = await authorizer.GetAuthorizationHeadersAsync();
+                    var authHeaders = await authorizer.GetAuthorizationHeadersAsync(cancellationToken);
                     foreach (var authHeader in authHeaders)
                         request.Headers.Add(authHeader.Key, authHeader.Value);
                 }
@@ -269,7 +259,8 @@ namespace Zerra.CQRS.Network
                 if (!String.IsNullOrWhiteSpace(providerType))
                     request.Headers.Add(HttpCommon.ProviderTypeHeader, providerType);
 
-                using var response = await client.SendAsync(request);
+                //headers only so the body streams instead of buffering, the response stays undisposed for a stream result
+                response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
                 responseStream = await response.Content.ReadAsStreamAsync();
 
@@ -286,7 +277,7 @@ namespace Zerra.CQRS.Network
 #else
                     await responseStream.DisposeAsync();
 #endif
-                    client.Dispose();
+                    response.Dispose(); //the client is shared by every request so only the response is disposed
                     return default!;
                 }
 
@@ -302,7 +293,7 @@ namespace Zerra.CQRS.Network
 #else
                     await responseStream.DisposeAsync();
 #endif
-                    client.Dispose();
+                    response.Dispose();
                     return result;
                 }
             }
@@ -319,8 +310,8 @@ namespace Zerra.CQRS.Network
 #endif
                     }
                     catch { }
-                    client?.Dispose();
                 }
+                response?.Dispose();
                 throw;
             }
             finally
@@ -330,7 +321,7 @@ namespace Zerra.CQRS.Network
         }
 
         /// <inheritdoc />
-        public new void Dispose()
+        public override void Dispose()
         {
             base.Dispose();
             client.Dispose();

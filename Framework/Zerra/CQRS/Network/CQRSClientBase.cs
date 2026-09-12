@@ -47,11 +47,11 @@ namespace Zerra.CQRS.Network
 
             this.serviceUrl = serviceUrl;
             if (!serviceUrl.Contains("://"))
-                this.serviceUri = new Uri($"tcp://{serviceUrl}"); //hacky way to make it parse without scheme.
+                this.serviceUri = new Uri($"http://{serviceUrl}"); //hacky way to make it parse without scheme, http so HttpClient based clients accept it
             else
                 this.serviceUri = new Uri(serviceUrl, UriKind.RelativeOrAbsolute);
             host = this.serviceUri.Host;
-            port = this.serviceUri.Port >= 0 ? this.serviceUri.Port : (String.Equals(this.serviceUri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) ? 443 : 80);
+            port = this.serviceUri.Port >= 0 ? this.serviceUri.Port : (String.Equals(this.serviceUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) ? 443 : 80);
 
             this.throttleByInterfaceType = new();
             this.topicsByMessageType = new();
@@ -163,7 +163,7 @@ namespace Zerra.CQRS.Network
 
             try
             {
-                return DispatchInternal(throttle, commandType, command, false, source, cancellationToken);
+                return LogFailure(DispatchInternal(throttle, commandType, command, false, source, cancellationToken), "Dispatch Failed");
             }
             catch (Exception ex)
             {
@@ -181,7 +181,7 @@ namespace Zerra.CQRS.Network
 
             try
             {
-                return DispatchInternal(throttle, commandType, command, true, source, cancellationToken);
+                return LogFailure(DispatchInternal(throttle, commandType, command, true, source, cancellationToken), "Dispatch Failed");
             }
             catch (Exception ex)
             {
@@ -202,7 +202,7 @@ namespace Zerra.CQRS.Network
 
             try
             {
-                return DispatchInternal<TResult>(throttle, isStream, commandType, command, source, cancellationToken);
+                return LogFailure(DispatchInternal<TResult>(throttle, isStream, commandType, command, source, cancellationToken), "Dispatch Failed");
             }
             catch (Exception ex)
             {
@@ -221,11 +221,39 @@ namespace Zerra.CQRS.Network
 
             try
             {
-                return DispatchInternal(throttle, commandType, @event, source, cancellationToken);
+                return LogFailure(DispatchInternal(throttle, commandType, @event, source, cancellationToken), "Dispatch Failed");
             }
             catch (Exception ex)
             {
                 _ = Log.ErrorAsync($"Dispatch Failed", ex);
+                throw;
+            }
+        }
+
+        //async failures happen in the returned task instead of when it's created, the extra await is skipped without a logger
+        private static Task LogFailure(Task task, string message) => Resolver.TryGetSingle<ILoggingProvider>(out _) ? LogFailureAsync(task, message) : task;
+        private static Task<T> LogFailure<T>(Task<T> task, string message) => Resolver.TryGetSingle<ILoggingProvider>(out _) ? LogFailureAsync(task, message) : task;
+        private static async Task LogFailureAsync(Task task, string message)
+        {
+            try
+            {
+                await task;
+            }
+            catch (Exception ex)
+            {
+                _ = Log.ErrorAsync(message, ex);
+                throw;
+            }
+        }
+        private static async Task<T> LogFailureAsync<T>(Task<T> task, string message)
+        {
+            try
+            {
+                return await task;
+            }
+            catch (Exception ex)
+            {
+                _ = Log.ErrorAsync(message, ex);
                 throw;
             }
         }
@@ -266,7 +294,7 @@ namespace Zerra.CQRS.Network
         protected abstract Task DispatchInternal(SemaphoreSlim throttle, Type eventType, IEvent @event, string source, CancellationToken cancellationToken);
 
         /// <inheritdoc />
-        public void Dispose()
+        public virtual void Dispose()
         {
             foreach (var throttle in throttleByInterfaceType.Values)
                 throttle.Dispose();

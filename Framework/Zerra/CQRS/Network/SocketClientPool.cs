@@ -14,7 +14,7 @@ namespace Zerra.CQRS.Network
 {
     internal class SocketClientPool : IDisposable
     {
-        private const int pollWaitMicroseconds = 1000;
+        private const int pollWaitMicroseconds = 0; //any wait blocks a healthy idle socket for the full time, rounded up to the OS timer tick
 
         public static readonly SocketClientPool Shared = new();
 
@@ -78,10 +78,12 @@ namespace Zerra.CQRS.Network
                             }
                             catch (Exception ex)
                             {
+                                stream.DisposeNoReturnSocket();
                                 if (ex.GetBaseException() is not SocketException)
+                                {
+                                    holder.Socket.Dispose(); //part of the request may have been written so the socket can't go back to the pool
                                     throw;
-
-                                stream.Dispose();
+                                }
                             }
                         }
                         holder.Socket.Dispose();
@@ -129,6 +131,8 @@ namespace Zerra.CQRS.Network
                     {
                         socket?.Dispose();
                         stream?.DisposeNoReturnSocket();
+                        if (ex is OperationCanceledException)
+                            throw; //canceled, not a failed address to move past
                         lastex = ex;
                     }
                 }
@@ -154,7 +158,15 @@ namespace Zerra.CQRS.Network
             var pool = poolByHostAndPort.GetOrAdd(hostAndPort, static () => new());
 
             var noRelease = false;
-            await throttle.WaitAsync(canceller.Token); //disposing stream releases throttle so we enter again
+            if (cancellationToken.CanBeCanceled)
+            {
+                using var waitCanceller = CancellationTokenSource.CreateLinkedTokenSource(canceller.Token, cancellationToken);
+                await throttle.WaitAsync(waitCanceller.Token); //disposing stream releases throttle so we enter again
+            }
+            else
+            {
+                await throttle.WaitAsync(canceller.Token); //disposing stream releases throttle so we enter again
+            }
             try
             {
                 SocketPoolStream? stream = null;
@@ -180,10 +192,12 @@ namespace Zerra.CQRS.Network
                             }
                             catch (Exception ex)
                             {
+                                stream.DisposeNoReturnSocket();
                                 if (ex.GetBaseException() is not SocketException)
+                                {
+                                    holder.Socket.Dispose(); //part of the request may have been written so the socket can't go back to the pool
                                     throw;
-
-                                stream.Dispose();
+                                }
                             }
                         }
                         holder.Socket.Dispose();
@@ -231,6 +245,8 @@ namespace Zerra.CQRS.Network
                     {
                         socket?.Dispose();
                         stream?.DisposeNoReturnSocket();
+                        if (ex is OperationCanceledException)
+                            throw; //canceled, not a failed address to move past
                         lastex = ex;
                     }
                 }
@@ -282,10 +298,12 @@ namespace Zerra.CQRS.Network
                             }
                             catch (Exception ex)
                             {
+                                stream.DisposeNoReturnSocket();
                                 if (ex.GetBaseException() is not SocketException)
+                                {
+                                    holder.Socket.Dispose(); //part of the request may have been written so the socket can't go back to the pool
                                     throw;
-
-                                stream.Dispose();
+                                }
                             }
                         }
                         holder.Socket.Dispose();
@@ -333,6 +351,8 @@ namespace Zerra.CQRS.Network
                     {
                         socket?.Dispose();
                         stream?.DisposeNoReturnSocket();
+                        if (ex is OperationCanceledException)
+                            throw; //canceled, not a failed address to move past
                         lastex = ex;
                     }
                 }
@@ -358,7 +378,15 @@ namespace Zerra.CQRS.Network
             var pool = poolByHostAndPort.GetOrAdd(hostAndPort, static (maxConnectionsPerHost) => new());
 
             var noRelease = false;
-            await throttle.WaitAsync(canceller.Token); //disposing stream releases throttle so we enter again
+            if (cancellationToken.CanBeCanceled)
+            {
+                using var waitCanceller = CancellationTokenSource.CreateLinkedTokenSource(canceller.Token, cancellationToken);
+                await throttle.WaitAsync(waitCanceller.Token); //disposing stream releases throttle so we enter again
+            }
+            else
+            {
+                await throttle.WaitAsync(canceller.Token); //disposing stream releases throttle so we enter again
+            }
             try
             {
                 SocketPoolStream? stream = null;
@@ -385,10 +413,12 @@ namespace Zerra.CQRS.Network
                             }
                             catch (Exception ex)
                             {
+                                stream.DisposeNoReturnSocket();
                                 if (ex.GetBaseException() is not SocketException)
+                                {
+                                    holder.Socket.Dispose(); //part of the request may have been written so the socket can't go back to the pool
                                     throw;
-
-                                stream.Dispose();
+                                }
                             }
                         }
                         holder.Socket.Dispose();
@@ -444,6 +474,8 @@ namespace Zerra.CQRS.Network
                     {
                         socket?.Dispose();
                         stream?.DisposeNoReturnSocket();
+                        if (ex is OperationCanceledException)
+                            throw; //canceled, not a failed address to move past
                         lastex = ex;
                     }
                 }
@@ -465,7 +497,7 @@ namespace Zerra.CQRS.Network
         {
             try
             {
-                if (!closeSocket && socket.Connected)
+                if (!closeSocket && socket.Connected && socket.Available == 0) //unread bytes means the response wasn't fully read
                 {
                     if (poolByHostAndPort.TryGetValue(hostAndPort, out var pool))
                     {
@@ -521,7 +553,8 @@ namespace Zerra.CQRS.Network
             }
         }
 
-        private static bool IsConnected(Socket socket) => !(socket.Poll(pollWaitMicroseconds, SelectMode.SelectRead) && socket.Available == 0);
+        //an idle pooled socket is readable only if the peer closed or it has leftover bytes from a partially read response, neither can be reused
+        private static bool IsConnected(Socket socket) => !socket.Poll(pollWaitMicroseconds, SelectMode.SelectRead);
 
         public void Dispose()
         {
