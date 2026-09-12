@@ -32,8 +32,8 @@ using MyApp.Services;
 // Configure components
 ISerializer serializer = new ZerraByteSerializer();
 IEncryptor encryptor = new ZerraEncryptor("mySecurePassword", SymmetricAlgorithmType.AESwithPrefix);
-ILogger logger = new Logger();
-IBusLogger busLogger = new BusLogger();
+ILogger logger = new ConsoleLogger();          // your ILogger implementation (see Logging.md)
+IBusLogger busLogger = new ConsoleBusLogger(); // your IBusLogger implementation (optional)
 
 // Configure services
 var busServices = new BusServices();
@@ -42,10 +42,10 @@ busServices.AddService<IEmailService>(new EmailService(smtpConfig));
 
 // Create the bus
 var bus = Bus.New(
-    service: "UserService",
+    serviceName: "UserService",
     log: logger,
     busLog: busLogger,
-    busScopes: busServices
+    busServices: busServices
 );
 
 // Register handlers
@@ -109,10 +109,10 @@ busServices.AddService<ICacheService>(cacheService);
 
 // Create the bus
 var bus = Bus.New(
-    service: serviceName,
+    serviceName: serviceName,
     log: logger,
     busLog: busLogger,
-    busScopes: busServices
+    busServices: busServices
 );
 
 // Create and register handlers
@@ -139,21 +139,9 @@ Console.CancelKeyPress += (sender, e) =>
     cts.Cancel();
 };
 
-try
-{
-    // Wait for shutdown signal
-    await bus.WaitForExitAsync(cts.Token);
-}
-catch (OperationCanceledException)
-{
-    Console.WriteLine("Shutdown requested...");
-}
-finally
-{
-    // Cleanup
-    (server as IDisposable)?.Dispose();
-    Console.WriteLine("User Service stopped");
-}
+// Waits for process exit or cancellation, then stops and disposes all consumers and servers
+await bus.WaitForExitAsync(cts.Token);
+Console.WriteLine("User Service stopped");
 ```
 
 ### ASP.NET Core Worker Service
@@ -179,7 +167,9 @@ builder.Services.AddSingleton<IEmailService, EmailService>();
 builder.Services.AddSingleton<ICacheService, RedisCacheService>();
 
 // Configure Zerra Bus
-builder.Services.AddSingleton<IBus>(serviceProvider =>
+// Bus.New returns IBusSetup (which extends IBus); register it as IBusSetup so the hosted service can
+// call WaitForExitAsync, and also expose it as IBus for components that only dispatch and call.
+builder.Services.AddSingleton<IBusSetup>(serviceProvider =>
 {
     var configuration = serviceProvider.GetRequiredService<IConfiguration>();
 
@@ -191,7 +181,8 @@ builder.Services.AddSingleton<IBus>(serviceProvider =>
     // Create components
     ISerializer serializer = new ZerraByteSerializer();
     IEncryptor encryptor = new ZerraEncryptor(encryptionKey, SymmetricAlgorithmType.AESwithPrefix);
-    ILogger logger = new AspNetCoreLogger(serviceProvider.GetRequiredService<ILogger<Program>>());
+    // Your Zerra.Logging.ILogger adapter over Microsoft.Extensions.Logging (fully qualified to avoid ambiguity)
+    Zerra.Logging.ILogger logger = new AspNetCoreLogger(serviceProvider.GetRequiredService<ILogger<Program>>());
     IBusLogger busLogger = new AspNetCoreBusLogger();
 
     // Create services
@@ -202,10 +193,10 @@ builder.Services.AddSingleton<IBus>(serviceProvider =>
 
     // Create bus
     var bus = Bus.New(
-        service: serviceName,
+        serviceName: serviceName,
         log: logger,
         busLog: busLogger,
-        busScopes: busServices
+        busServices: busServices
     );
 
     // Register handlers
@@ -221,6 +212,7 @@ builder.Services.AddSingleton<IBus>(serviceProvider =>
 
     return bus;
 });
+builder.Services.AddSingleton<IBus>(sp => sp.GetRequiredService<IBusSetup>());
 
 // Add background service to keep bus running
 builder.Services.AddHostedService<BusHostedService>();
@@ -231,10 +223,10 @@ await host.RunAsync();
 // Background service implementation
 public class BusHostedService : BackgroundService
 {
-    private readonly IBus bus;
+    private readonly IBusSetup bus;
     private readonly ILogger<BusHostedService> logger;
 
-    public BusHostedService(IBus bus, ILogger<BusHostedService> logger)
+    public BusHostedService(IBusSetup bus, ILogger<BusHostedService> logger)
     {
         this.bus = bus;
         this.logger = logger;
@@ -244,19 +236,11 @@ public class BusHostedService : BackgroundService
     {
         logger.LogInformation("Bus service starting...");
 
-        try
-        {
-            await bus.WaitForExitAsync(stoppingToken);
-        }
-        catch (OperationCanceledException)
-        {
-            logger.LogInformation("Bus service stopping...");
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Bus service error");
-            throw;
-        }
+        // Returns when the host stops (stoppingToken is cancelled) or the process exits,
+        // after stopping and disposing all consumers and servers
+        await bus.WaitForExitAsync(stoppingToken);
+
+        logger.LogInformation("Bus service stopped");
     }
 }
 ```
@@ -269,7 +253,7 @@ High-performance binary protocol over TCP:
 
 ```csharp
 var server = new TcpCqrsServer(
-    address: "localhost:9001",
+    serverUrl: "localhost:9001",
     serializer: serializer,
     encryptor: encryptor,
     log: logger
@@ -286,14 +270,17 @@ HTTP-based protocol for firewall-friendly communication:
 
 ```csharp
 var server = new HttpCqrsServer(
-    address: "http://localhost:8080",
+    serverUrl: "localhost:8080",
     serializer: serializer,
     encryptor: encryptor,
+    authorizer: null,       // optional ICqrsAuthorizer to validate request headers
+    allowOrigins: null,     // optional CORS origins
     log: logger
 );
 
 bus.AddCommandConsumer<IUserCommandHandler>(server);
 bus.AddQueryServer<IUserQueries>(server);
+bus.AddEventConsumer<IUserEventHandler>(server);
 ```
 
 ### Multiple Protocols
@@ -307,27 +294,29 @@ bus.AddCommandConsumer<IUserCommandHandler>(tcpServer);
 bus.AddQueryServer<IUserQueries>(tcpServer);
 
 // HTTP server for web clients
-var httpServer = new HttpCqrsServer("http://localhost:8080", serializer, encryptor, logger);
+var httpServer = new HttpCqrsServer("localhost:8080", serializer, encryptor, null, null, logger);
 bus.AddCommandConsumer<IUserCommandHandler>(httpServer);
 bus.AddQueryServer<IUserQueries>(httpServer);
 ```
 
 ## Message Broker Integration
 
+Each broker consumer handles both commands and events. Topics/queues are named after the handler interface (e.g. `IUserCommandHandler`), prefixed with the optional `environment`.
+
 ### Kafka Consumer
 
 ```csharp
 using Zerra.CQRS.Kafka;
 
-// Configure Kafka consumer
-var kafkaConfig = new KafkaConsumerConfig
-{
-    BootstrapServers = "localhost:9092",
-    GroupId = "user-service-group",
-    Topic = "user-commands"
-};
-
-var kafkaConsumer = new KafkaConsumer(kafkaConfig, serializer, encryptor, logger);
+var kafkaConsumer = new KafkaConsumer(
+    host: "localhost:9092",   // bootstrap servers
+    serializer: serializer,
+    encryptor: encryptor,
+    log: logger,
+    environment: "dev",       // optional topic prefix
+    userName: null,           // optional SASL username
+    password: null            // optional SASL password
+);
 bus.AddCommandConsumer<IUserCommandHandler>(kafkaConsumer);
 bus.AddEventConsumer<IUserEventHandler>(kafkaConsumer);
 ```
@@ -337,17 +326,13 @@ bus.AddEventConsumer<IUserEventHandler>(kafkaConsumer);
 ```csharp
 using Zerra.CQRS.RabbitMQ;
 
-// Configure RabbitMQ consumer
-var rabbitConfig = new RabbitMQConsumerConfig
-{
-    HostName = "localhost",
-    Port = 5672,
-    QueueName = "user-commands",
-    UserName = "guest",
-    Password = "guest"
-};
-
-var rabbitConsumer = new RabbitMQConsumer(rabbitConfig, serializer, encryptor, logger);
+var rabbitConsumer = new RabbitMQConsumer(
+    host: "localhost",        // RabbitMQ host name
+    serializer: serializer,
+    encryptor: encryptor,
+    log: logger,
+    environment: "dev"        // optional exchange/queue prefix
+);
 bus.AddCommandConsumer<IUserCommandHandler>(rabbitConsumer);
 bus.AddEventConsumer<IUserEventHandler>(rabbitConsumer);
 ```
@@ -357,17 +342,18 @@ bus.AddEventConsumer<IUserEventHandler>(rabbitConsumer);
 ```csharp
 using Zerra.CQRS.AzureServiceBus;
 
-// Configure Azure Service Bus consumer
-var asbConfig = new AzureServiceBusConsumerConfig
-{
-    ConnectionString = configuration["AzureServiceBus:ConnectionString"],
-    QueueName = "user-commands"
-};
-
-var asbConsumer = new AzureServiceBusConsumer(asbConfig, serializer, encryptor, logger);
+var asbConsumer = new AzureServiceBusConsumer(
+    host: configuration["AzureServiceBus:ConnectionString"],
+    serializer: serializer,
+    encryptor: encryptor,
+    log: logger,
+    environment: "dev"        // optional queue/topic prefix
+);
 bus.AddCommandConsumer<IUserCommandHandler>(asbConsumer);
 bus.AddEventConsumer<IUserEventHandler>(asbConsumer);
 ```
+
+See [Kafka Setup](KafkaSetup.md), [RabbitMQ Setup](RabbitMQSetup.md), and [Azure Service Bus Setup](AzureServiceBusSetup.md) for details.
 
 ## Configuration Options
 
@@ -414,18 +400,18 @@ var useEncryption = zerraConfig.GetValue<bool>("UseEncryption");
 var useBinarySerializer = zerraConfig.GetValue<bool>("UseBinarySerializer");
 var commandsUntilExit = zerraConfig.GetValue<int?>("CommandToReceiveUntilExit");
 
-// Timeout settings
+// Timeout settings (milliseconds in config, TimeSpan for Bus.New)
 var timeoutConfig = zerraConfig.GetSection("Timeouts");
-var defaultCallTimeout = timeoutConfig.GetValue<int>("DefaultCall");
-var defaultDispatchTimeout = timeoutConfig.GetValue<int>("DefaultDispatch");
-var defaultDispatchAwaitTimeout = timeoutConfig.GetValue<int>("DefaultDispatchAwait");
+var defaultCallTimeout = TimeSpan.FromMilliseconds(timeoutConfig.GetValue<int>("DefaultCall"));
+var defaultDispatchTimeout = TimeSpan.FromMilliseconds(timeoutConfig.GetValue<int>("DefaultDispatch"));
+var defaultDispatchAwaitTimeout = TimeSpan.FromMilliseconds(timeoutConfig.GetValue<int>("DefaultDispatchAwait"));
 
 // Create bus with configuration
 var bus = Bus.New(
-    service: serviceName,
+    serviceName: serviceName,
     log: logger,
     busLog: busLogger,
-    busScopes: busServices,
+    busServices: busServices,
     commandToReceiveUntilExit: commandsUntilExit,
     defaultCallTimeout: defaultCallTimeout,
     defaultDispatchTimeout: defaultDispatchTimeout,
@@ -441,10 +427,10 @@ Process a specific number of commands before exiting (useful for container envir
 
 ```csharp
 var bus = Bus.New(
-    service: "UserService",
+    serviceName: "UserService",
     log: logger,
     busLog: busLogger,
-    busScopes: busServices,
+    busServices: busServices,
     commandToReceiveUntilExit: 100  // Exit after processing 100 commands
 );
 
@@ -459,7 +445,7 @@ await bus.WaitForExitAsync(cancellationToken);
 
 ### Cancellation Token Shutdown
 
-Use cancellation token for graceful shutdown:
+`WaitForExitAsync` returns when the process is exiting or the token is cancelled; it does not throw on cancellation. In both cases it stops and disposes all consumers and servers before returning.
 
 ```csharp
 using var cts = new CancellationTokenSource();
@@ -471,34 +457,23 @@ Console.CancelKeyPress += (sender, e) =>
     cts.Cancel();
 };
 
-try
-{
-    await bus.WaitForExitAsync(cts.Token);
-}
-catch (OperationCanceledException)
-{
-    logger.Info("Shutdown initiated");
-}
+await bus.WaitForExitAsync(cts.Token);
+logger.Info("Shutdown complete");
 ```
 
-### SIGTERM Handler (Docker/Kubernetes)
+### SIGTERM (Docker/Kubernetes)
+
+No extra handler is needed: `WaitForExitAsync` already subscribes to `AppDomain.CurrentDomain.ProcessExit`, which is raised on SIGTERM.
 
 ```csharp
-using var cts = new CancellationTokenSource();
-
-// Handle SIGTERM for containerized environments
-AppDomain.CurrentDomain.ProcessExit += (sender, e) =>
-{
-    logger.Info("SIGTERM received, initiating shutdown");
-    cts.Cancel();
-};
-
-await bus.WaitForExitAsync(cts.Token);
+await bus.WaitForExitAsync();
 ```
 
 ## Microservices Architecture
 
 ### Service per Domain
+
+Each service below typically runs in its own process (`Bus.New` also sets the process-wide static `Bus`):
 
 ```csharp
 // User Service

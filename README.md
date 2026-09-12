@@ -52,17 +52,17 @@ using Zerra.Logging;
 // Configure serialization, encryption, and logging
 ISerializer serializer = new ZerraByteSerializer();
 IEncryptor encryptor = new ZerraEncryptor("mySecurePassword", SymmetricAlgorithmType.AESwithPrefix);
-ILogger logger = new Logger();
-IBusLogger busLogger = new BusLogger();
-BusScopes busScopes = new BusScopes();
-busScopes.AddService<IUserRepository>(userRepository);
+ILogger logger = new ConsoleLogger();          // your ILogger implementation (see docs/Logging.md)
+IBusLogger busLogger = new ConsoleBusLogger(); // your IBusLogger implementation (optional)
+BusServices busServices = new BusServices();
+busServices.AddService<IUserRepository>(userRepository);
 
 // Create the bus
 var bus = Bus.New(
-    service: "UserService",
+    serviceName: "UserService",
     log: logger,
     busLog: busLogger,
-    busScopes: busScopes
+    busServices: busServices
 );
 
 // Register local handlers and services
@@ -90,16 +90,16 @@ using Zerra.Logging;
 // Configure serialization, encryption, and logging (must match server)
 ISerializer serializer = new ZerraByteSerializer();
 IEncryptor encryptor = new ZerraEncryptor("mySecurePassword", SymmetricAlgorithmType.AESwithPrefix);
-ILogger logger = new Logger();
-IBusLogger busLogger = new BusLogger();
-BusScopes busScopes = new BusScopes();
+ILogger logger = new ConsoleLogger();
+IBusLogger busLogger = new ConsoleBusLogger();
+BusServices busServices = new BusServices();
 
 // Create the bus
 var bus = Bus.New(
-    service: "ClientService",
+    serviceName: "ClientService",
     log: logger,
     busLog: busLogger,
-    busScopes: busScopes
+    busServices: busServices
 );
 
 // Create TCP CQRS client with configured serializer, encryptor, and logger
@@ -108,9 +108,9 @@ bus.AddCommandProducer<IUserCommandHandlers>(client);
 bus.AddQueryClient<IUserQueries>(client);
 
 // Now dispatch commands and queries to remote UserService
-var user = await bus.DispatchAwaitAsync(new CreateUserCommand { Email = "user@example.com" });
+await bus.DispatchAwaitAsync(new CreateUserCommand { Email = "user@example.com" });
 
-await bus.DispatchAwaitAsync(new UpdateUserCommand { Id = user.Id, Email = "updated@example.com" });
+var user = await bus.DispatchAwaitAsync(new UpdateUserCommand { Id = 1, Email = "updated@example.com" });
 
 var activeUsers = await bus.Call<IUserQueries>().GetActiveUsers(cancellationToken);
 ```
@@ -135,19 +135,19 @@ public class UserQueryHandler : BaseHandler, IUserQueries
 {
     public async Task<User> GetUserById(int id, CancellationToken cancellationToken)
     {
-        var repository = GetService<IUserRepository>();
+        var repository = Context.GetService<IUserRepository>();
         return await repository.GetByIdAsync(id, cancellationToken);
     }
 
     public async Task<List<User>> GetActiveUsers(CancellationToken cancellationToken)
     {
-        var repository = GetService<IUserRepository>();
+        var repository = Context.GetService<IUserRepository>();
         return await repository.GetActiveAsync(cancellationToken);
     }
 
     public async Task<Stream> ExportUsers(CancellationToken cancellationToken)
     {
-        var repository = GetService<IUserRepository>();
+        var repository = Context.GetService<IUserRepository>();
         return await repository.ExportStreamAsync(cancellationToken);
     }
 }
@@ -181,13 +181,13 @@ public class UserCommandHandler : BaseHandler,
 {
     public async Task Handle(CreateUserCommand command, CancellationToken ct)
     {
-        var repository = GetService<IUserRepository>();
+        var repository = Context.GetService<IUserRepository>();
         await repository.CreateAsync(command.Email, ct);
     }
 
     public async Task<User> Handle(UpdateUserCommand command, CancellationToken ct)
     {
-        var repository = GetService<IUserRepository>();
+        var repository = Context.GetService<IUserRepository>();
         return await repository.UpdateAsync(command.Id, command.Email, ct);
     }
 }
@@ -218,7 +218,7 @@ public class UserEventHandler : BaseHandler,
 {
     public async Task Handle(UserCreatedEvent @event)
     {
-        var emailService = this.Context.Get<IEmailService>();
+        var emailService = this.Context.GetService<IEmailService>();
         await emailService.SendWelcomeEmail(@event.Email);
     }
 }
@@ -273,15 +273,15 @@ var user = await bus.Call<IUserQueries>().GetUserById(123, cancellationToken);
 #### HTTP CQRS
 
 ```csharp
-// Server side
-var httpServer = new HttpCqrsServer("localhost:9001", serializer, encryptor, log);
+// Server side (authorizer and allowOrigins are optional)
+var httpServer = new HttpCqrsServer("localhost:9001", serializer, encryptor, authorizer: null, allowOrigins: null, log: log);
 bus.AddHandler<IUserQueries>(userQueryHandler);
 bus.AddHandler<IUserCommandHandlers>(userCommandHandler);
 bus.AddQueryServer<IUserQueries>(httpServer);
 bus.AddCommandConsumer<IUserCommandHandlers>(httpServer);
 
 // Client side
-var httpClient = new HttpCqrsClient("localhost:9001", serializer, encryptor, log);
+var httpClient = new HttpCqrsClient("localhost:9001", serializer, encryptor, authorizer: null, log: log);
 bus.AddQueryClient<IUserQueries>(httpClient);
 bus.AddCommandProducer<IUserCommandHandlers>(httpClient);
 
@@ -291,88 +291,52 @@ var user = await bus.Call<IUserQueries>().GetUserById(123, cancellationToken);
 
 ### Remote Command/Event Processing
 
-#### TCP CQRS
+#### TCP / HTTP CQRS
+
+The TCP and HTTP servers are also command and event consumers, and the clients are command and event producers:
 
 ```csharp
 // Server side
 var tcpServer = new TcpCqrsServer("localhost:9001", serializer, encryptor, log);
 bus.AddHandler<IUserCommandHandlers>(userCommandHandler);
-bus.AddCommandConsumer<IUserCommandHandlers, IUserQueries>(tcpServer);
+bus.AddHandler<IUserEvents>(userEventHandler);
+bus.AddCommandConsumer<IUserCommandHandlers>(tcpServer);
+bus.AddEventConsumer<IUserEvents>(tcpServer);
 
 // Client side
 var tcpClient = new TcpCqrsClient("localhost:9001", serializer, encryptor, log);
-bus.AddCommandProducer<IUserCommandHandlers, IUserQueries>(tcpClient);
+bus.AddCommandProducer<IUserCommandHandlers>(tcpClient);
+bus.AddEventProducer<IUserEvents>(tcpClient);
 ```
 
-#### HTTP CQRS
+#### Message Brokers
+
+Each broker package provides a single producer class (commands and events) and a single consumer class (commands and events):
+
+| Package | Producer | Consumer |
+|---------|----------|----------|
+| `Zerra.CQRS.Kafka` | `KafkaProducer` | `KafkaConsumer` |
+| `Zerra.CQRS.RabbitMQ` | `RabbitMQProducer` | `RabbitMQConsumer` |
+| `Zerra.CQRS.AzureServiceBus` | `AzureServiceBusProducer` | `AzureServiceBusConsumer` |
 
 ```csharp
-// Server side
-var httpServer = new HttpCqrsServer("localhost:9001", serializer, encryptor, log);
-bus.AddHandler<IUserCommandHandlers>(userCommandHandler);
-bus.AddCommandConsumer<IUserCommandHandlers, IUserQueries>(httpServer);
-
-// Client side
-var httpClient = new HttpCqrsClient("localhost:9001", serializer, encryptor, log);
-bus.AddCommandProducer<IUserCommandHandlers, IUserQueries>(httpClient);
-```
-
-#### Kafka
-
-```csharp
-// Server side
-var kafkaConsumer = new KafkaCommandConsumer(kafkaConfig);
-var kafkaEventConsumer = new KafkaEventConsumer(kafkaConfig);
+// Server side (Kafka shown; RabbitMQ and Azure Service Bus follow the same pattern)
+var kafkaConsumer = new KafkaConsumer("localhost:9092", serializer, encryptor, log, environment: "dev", userName: null, password: null);
 bus.AddHandler<IUserCommandHandlers>(userCommandHandler);
 bus.AddHandler<IUserEvents>(userEventHandler);
 bus.AddCommandConsumer<IUserCommandHandlers>(kafkaConsumer);
-bus.AddEventConsumer<IUserEvents>(kafkaEventConsumer);
+bus.AddEventConsumer<IUserEvents>(kafkaConsumer);
 
 // Client side
-var kafkaProducer = new KafkaCommandProducer(kafkaConfig);
+var kafkaProducer = new KafkaProducer("localhost:9092", serializer, encryptor, log, environment: "dev", userName: null, password: null);
 bus.AddCommandProducer<IUserCommandHandlers>(kafkaProducer);
+bus.AddEventProducer<IUserEvents>(kafkaProducer);
 
-var kafkaEventProducer = new KafkaEventProducer(kafkaConfig);
-bus.AddEventProducer<IUserEvents>(kafkaEventProducer);
+// RabbitMQ:          new RabbitMQProducer(host, serializer, encryptor, log, environment)
+// Azure Service Bus: new AzureServiceBusProducer(connectionString, serializer, encryptor, log, environment)
 ```
 
-#### RabbitMQ
-
-```csharp
-// Server side
-var rabbitmqConsumer = new RabbitMQCommandConsumer(rabbitmqConfig);
-var rabbitmqEventConsumer = new RabbitMQEventConsumer(rabbitmqConfig);
-bus.AddHandler<IUserCommandHandlers>(userCommandHandler);
-bus.AddHandler<IUserEvents>(userEventHandler);
-bus.AddCommandConsumer<IUserCommandHandlers>(rabbitmqConsumer);
-bus.AddEventConsumer<IUserEvents>(rabbitmqEventConsumer);
-
-// Client side
-var rabbitmqProducer = new RabbitMQCommandProducer(rabbitmqConfig);
-bus.AddCommandProducer<IUserCommandHandlers>(rabbitmqProducer);
-
-var rabbitmqEventProducer = new RabbitMQEventProducer(rabbitmqConfig);
-bus.AddEventProducer<IUserEvents>(rabbitmqEventProducer);
-```
-
-#### Azure Service Bus
-
-```csharp
-// Server side
-var asbConsumer = new AzureServiceBusCommandConsumer(asbConfig);
-var asbEventConsumer = new AzureServiceBusEventConsumer(asbConfig);
-bus.AddHandler<IUserCommandHandlers>(userCommandHandler);
-bus.AddHandler<IUserEvents>(userEventHandler);
-bus.AddCommandConsumer<IUserCommandHandlers>(asbConsumer);
-bus.AddEventConsumer<IUserEvents>(asbEventConsumer);
-
-// Client side
-var asbProducer = new AzureServiceBusCommandProducer(asbConfig);
-bus.AddCommandProducer<IUserCommandHandlers>(asbProducer);
-
-var asbEventProducer = new AzureServiceBusEventProducer(asbConfig);
-bus.AddEventProducer<IUserEvents>(asbEventProducer);
-```
+See [Kafka Setup](docs/KafkaSetup.md), [RabbitMQ Setup](docs/RabbitMQSetup.md), and [Azure Service Bus Setup](docs/AzureServiceBusSetup.md) for details.
 
 ## Configuration
 
@@ -380,10 +344,10 @@ bus.AddEventProducer<IUserEvents>(asbEventProducer);
 
 ```csharp
 var bus = Bus.New(
-    service: "MyService",
+    serviceName: "MyService",
     log: logger,
     busLog: busLogger,
-    busScopes: dependencyScopes,
+    busServices: busServices,
     commandToReceiveUntilExit: 100,                    // Optional: graceful shutdown after N commands
     defaultCallTimeout: TimeSpan.FromSeconds(30),      // Query timeout
     defaultDispatchTimeout: TimeSpan.FromSeconds(5),   // Command/event dispatch timeout
@@ -397,15 +361,14 @@ var bus = Bus.New(
 ### Dependency Injection
 
 ```csharp
-// Register dependencies in BusScopes
-var scopes = new BusScopes();
-scopes.AddService<IUserRepository>(userRepository);
-scopes.AddService<IEmailService>(emailService);
+// Register dependencies in BusServices (registration is by interface type)
+var busServices = new BusServices();
+busServices.AddService<IUserRepository>(userRepository);
+busServices.AddService<IEmailService>(emailService);
 
 var bus = Bus.New(
-    service: "MyService",
-    busScopes: scopes,
-    // ...
+    serviceName: "MyService",
+    busServices: busServices
 );
 
 // Access dependencies in handlers via BusContext
@@ -416,18 +379,18 @@ public class UserCommandHandler : BaseHandler,
     public async Task Handle(CreateUserCommand command, CancellationToken ct)
     {
         // Get scoped dependencies from context
-        var repository = GetService<IUserRepository>();
-        var emailService = GetService<IEmailService>();
+        var repository = Context.GetService<IUserRepository>();
+        var emailService = Context.GetService<IEmailService>();
         
         // Use dependencies
-        this.Context.Log.Info($"Creating user: {command.Email}");
+        Log?.Info($"Creating user: {command.Email}");
         var user = await repository.CreateAsync(command.Email, ct);
         await emailService.SendWelcomeEmail(user.Email, ct);
     }
 
     public async Task<User> Handle(UpdateUserCommand command, CancellationToken ct)
     {
-        var repository = GetService<IUserRepository>();
+        var repository = Context.GetService<IUserRepository>();
         return await repository.UpdateAsync(command.Id, command.Email, ct);
     }
 }
@@ -437,7 +400,7 @@ public class UserQueryHandler : BaseHandler, IUserQueries
 {
     public async Task<User> GetUserById(int id, CancellationToken cancellationToken)
     {
-        var repository = this.Context.Get<IUserRepository>();
+        var repository = this.Context.GetService<IUserRepository>();
         return await repository.GetByIdAsync(id, cancellationToken);
     }
 }
@@ -446,7 +409,7 @@ public class UserEventHandler : BaseHandler, IEventHandler<UserCreatedEvent>
 {
     public async Task Handle(UserCreatedEvent @event)
     {
-        var emailService = this.Context.Get<IEmailService>();
+        var emailService = this.Context.GetService<IEmailService>();
         await emailService.SendWelcomeEmail(@event.Email);
     }
 }
@@ -471,9 +434,8 @@ public class MyBusLogger : IBusLogger
 }
 
 var bus = Bus.New(
-    service: "MyService",
-    busLog: new MyBusLogger(),
-    // ...
+    serviceName: "MyService",
+    busLog: new MyBusLogger()
 );
 ```
 
@@ -489,9 +451,9 @@ await bus.StopServicesAsync();
 await bus.WaitForExitAsync(cancellationToken);
 
 // Both will:
-// - Close all consumers/servers
-// - Dispose all producers/consumers/servers
+// - Close and dispose all consumers/servers
 // - Stop processing new messages
+// Producers and clients are not disposed by the bus; dispose them yourself when done
 ```
 
 ## Source Generation
@@ -514,7 +476,7 @@ This eliminates reflection overhead and enables AOT compilation.
 
 1. **Group handlers by interface** - One interface for related commands/events
 2. **Keep query interfaces focused** - Single responsibility per interface
-3. **Use scoped dependencies** - Register in `BusScopes` for handler access
+3. **Use scoped dependencies** - Register in `BusServices` for handler access
 4. **Handle exceptions properly** - They propagate from handlers to callers
 5. **Design for eventual consistency** - Events represent completed changes, not intents
 6. **Make handlers idempotent** - Especially for commands/events that might be retried
@@ -526,6 +488,7 @@ This eliminates reflection overhead and enables AOT compilation.
 - **Zerra.CQRS.RabbitMQ** - RabbitMQ message broker support
 - **Zerra.CQRS.AzureServiceBus** - Azure Service Bus support
 - **Zerra.Web** - ASP.NET Core integration, including API gateway
+- **Zerra.Repository** (experimental) - Data store agnostic LINQ-based repository, with providers in `Zerra.Repository.MsSql`, `Zerra.Repository.MySql`, `Zerra.Repository.MariaDb`, `Zerra.Repository.PostgreSql`, `Zerra.Repository.Memory`, and `Zerra.Repository.KurrentDB` (see [Repository](docs/Repository.md))
 
 ## License
 

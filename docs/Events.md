@@ -138,14 +138,14 @@ public interface IEmailEventHandler :
 
 ### Handler Implementation
 
-Handlers inherit from `BaseHandler` to access bus context:
+Handlers inherit from `BaseHandler` to access bus context. Unlike command handlers, `IEventHandler<T>.Handle` takes only the event (`Task Handle(T @event)`) with no `CancellationToken`:
 
 ```csharp
 public class UserEventHandler : BaseHandler, IUserEventHandler
 {
     public async Task Handle(UserCreatedEvent @event)
     {
-        Log?.Info($"User created event received: {@@event.UserId}");
+        Log?.Info($"User created event received: {@event.UserId}");
 
         // Send welcome email
         var emailService = Context.GetService<IEmailService>();
@@ -158,11 +158,11 @@ public class UserEventHandler : BaseHandler, IUserEventHandler
 
     public async Task Handle(UserUpdatedEvent @event)
     {
-        Log?.Info($"User updated event received: {@@event.UserId}");
+        Log?.Info($"User updated event received: {@event.UserId}");
 
         // Invalidate cache
         var cache = Context.GetService<ICacheService>();
-        await cache.RemoveAsync($"user:{@@event.UserId}");
+        await cache.RemoveAsync($"user:{@event.UserId}");
 
         // Update search index
         var searchService = Context.GetService<ISearchService>();
@@ -171,11 +171,11 @@ public class UserEventHandler : BaseHandler, IUserEventHandler
 
     public async Task Handle(UserDeletedEvent @event)
     {
-        Log?.Info($"User deleted event received: {@@event.UserId}");
+        Log?.Info($"User deleted event received: {@event.UserId}");
 
         // Remove from cache
         var cache = Context.GetService<ICacheService>();
-        await cache.RemoveAsync($"user:{@@event.UserId}");
+        await cache.RemoveAsync($"user:{@event.UserId}");
 
         // Archive user data
         var archiveService = Context.GetService<IArchiveService>();
@@ -194,7 +194,7 @@ public class EmailEventHandler : BaseHandler, IEmailEventHandler
 {
     public async Task Handle(UserCreatedEvent @event)
     {
-        Log?.Info($"Sending welcome email to {@@event.Email}");
+        Log?.Info($"Sending welcome email to {@event.Email}");
 
         var emailService = Context.GetService<IEmailService>();
         await emailService.SendWelcomeEmailAsync(@event.Email);
@@ -202,7 +202,7 @@ public class EmailEventHandler : BaseHandler, IEmailEventHandler
 
     public async Task Handle(OrderPlacedEvent @event)
     {
-        Log?.Info($"Sending order confirmation for order {@@event.OrderId}");
+        Log?.Info($"Sending order confirmation for order {@event.OrderId}");
 
         var emailService = Context.GetService<IEmailService>();
         await emailService.SendOrderConfirmationAsync(@event.OrderId);
@@ -214,7 +214,7 @@ public class AnalyticsEventHandler : BaseHandler, IAnalyticsEventHandler
 {
     public async Task Handle(UserCreatedEvent @event)
     {
-        Log?.Info($"Tracking user creation: {@@event.UserId}");
+        Log?.Info($"Tracking user creation: {@event.UserId}");
 
         var analytics = Context.GetService<IAnalyticsService>();
         await analytics.TrackEventAsync("UserCreated", new 
@@ -226,7 +226,7 @@ public class AnalyticsEventHandler : BaseHandler, IAnalyticsEventHandler
 
     public async Task Handle(OrderPlacedEvent @event)
     {
-        Log?.Info($"Tracking order placement: {@@event.OrderId}");
+        Log?.Info($"Tracking order placement: {@event.OrderId}");
 
         var analytics = Context.GetService<IAnalyticsService>();
         await analytics.TrackEventAsync("OrderPlaced", new 
@@ -255,7 +255,7 @@ public class OrderEventHandler : BaseHandler, IOrderEventHandler
         ILogger? logger = this.Log;  // or Context.Log
 
         // Get service name
-        string serviceName = Context.Service;
+        string serviceName = Context.ServiceName;
 
         // Retrieve injected services
         var inventoryService = Context.GetService<IInventoryService>();
@@ -402,11 +402,11 @@ await bus.DispatchAsync(new UserCreatedEvent
 using Zerra.CQRS.Kafka;
 
 // Publisher side
-var kafkaProducer = new KafkaProducer(kafkaConfig, serializer, encryptor, logger);
+var kafkaProducer = new KafkaProducer("localhost:9092", serializer, encryptor, logger, environment: null, userName: null, password: null);
 bus.AddEventProducer<IUserEventHandler>(kafkaProducer);
 
 // Consumer side
-var kafkaConsumer = new KafkaConsumer(kafkaConfig, serializer, encryptor, logger);
+var kafkaConsumer = new KafkaConsumer("localhost:9092", serializer, encryptor, logger, environment: null, userName: null, password: null);
 bus.AddHandler<IUserEventHandler>(new UserEventHandler());
 bus.AddEventConsumer<IUserEventHandler>(kafkaConsumer);
 
@@ -425,11 +425,11 @@ await bus.DispatchAsync(new UserCreatedEvent
 using Zerra.CQRS.RabbitMQ;
 
 // Publisher side
-var rabbitProducer = new RabbitMQProducer(rabbitConfig, serializer, encryptor, logger);
+var rabbitProducer = new RabbitMQProducer("localhost", serializer, encryptor, logger, environment: null);
 bus.AddEventProducer<IUserEventHandler>(rabbitProducer);
 
 // Consumer side
-var rabbitConsumer = new RabbitMQConsumer(rabbitConfig, serializer, encryptor, logger);
+var rabbitConsumer = new RabbitMQConsumer("localhost", serializer, encryptor, logger, environment: null);
 bus.AddHandler<IUserEventHandler>(new UserEventHandler());
 bus.AddEventConsumer<IUserEventHandler>(rabbitConsumer);
 ```
@@ -440,11 +440,11 @@ bus.AddEventConsumer<IUserEventHandler>(rabbitConsumer);
 using Zerra.CQRS.AzureServiceBus;
 
 // Publisher side
-var asbProducer = new AzureServiceBusProducer(asbConfig, serializer, encryptor, logger);
+var asbProducer = new AzureServiceBusProducer(asbConnectionString, serializer, encryptor, logger, environment: null);
 bus.AddEventProducer<IUserEventHandler>(asbProducer);
 
 // Consumer side
-var asbConsumer = new AzureServiceBusConsumer(asbConfig, serializer, encryptor, logger);
+var asbConsumer = new AzureServiceBusConsumer(asbConnectionString, serializer, encryptor, logger, environment: null);
 bus.AddHandler<IUserEventHandler>(new UserEventHandler());
 bus.AddEventConsumer<IUserEventHandler>(asbConsumer);
 ```
@@ -458,7 +458,7 @@ Events can be handled both locally and remotely:
 bus.AddHandler<IUserEventHandler>(new LocalUserEventHandler());
 
 // Register remote producer
-var kafkaProducer = new KafkaProducer(kafkaConfig, serializer, encryptor, logger);
+var kafkaProducer = new KafkaProducer("localhost:9092", serializer, encryptor, logger, environment: null, userName: null, password: null);
 bus.AddEventProducer<IUserEventHandler>(kafkaProducer);
 
 // Dispatch - executes locally AND publishes to Kafka
@@ -481,16 +481,16 @@ public class UserEventHandler : BaseHandler, IUserEventHandler
     {
         try
         {
-            Log?.Info($"Processing UserCreatedEvent for user {@@event.UserId}");
+            Log?.Info($"Processing UserCreatedEvent for user {@event.UserId}");
 
             var emailService = Context.GetService<IEmailService>();
             await emailService.SendWelcomeEmailAsync(@event.Email);
 
-            Log?.Info($"Successfully processed UserCreatedEvent for user {@@event.UserId}");
+            Log?.Info($"Successfully processed UserCreatedEvent for user {@event.UserId}");
         }
         catch (Exception ex)
         {
-            Log?.Error($"Failed to process UserCreatedEvent for user {@@event.UserId}", ex);
+            Log?.Error($"Failed to process UserCreatedEvent for user {@event.UserId}", ex);
 
             // Option 1: Swallow error (event processing continues)
             // return;
@@ -510,12 +510,12 @@ Design handlers to be idempotent since events may be delivered multiple times:
 public async Task Handle(UserCreatedEvent @event)
 {
     var cache = Context.GetService<ICacheService>();
-    var processedKey = $"event:UserCreated:{@@event.UserId}";
+    var processedKey = $"event:UserCreated:{@event.UserId}";
 
     // Check if already processed
     if (await cache.ExistsAsync(processedKey))
     {
-        Log?.Debug($"Event already processed: UserCreatedEvent for user {@@event.UserId}");
+        Log?.Debug($"Event already processed: UserCreatedEvent for user {@event.UserId}");
         return;
     }
 
@@ -528,11 +528,11 @@ public async Task Handle(UserCreatedEvent @event)
         // Mark as processed
         await cache.SetAsync(processedKey, true, TimeSpan.FromDays(7));
 
-        Log?.Info($"Successfully processed UserCreatedEvent for user {@@event.UserId}");
+        Log?.Info($"Successfully processed UserCreatedEvent for user {@event.UserId}");
     }
     catch (Exception ex)
     {
-        Log?.Error($"Failed to process UserCreatedEvent for user {@@event.UserId}", ex);
+        Log?.Error($"Failed to process UserCreatedEvent for user {@event.UserId}", ex);
         throw;
     }
 }
@@ -718,7 +718,7 @@ public async Task Handle(UserCreatedEvent @event)
     }
     catch (Exception ex)
     {
-        Log?.Error($"Failed to send welcome email to {@@event.Email}", ex);
+        Log?.Error($"Failed to send welcome email to {@event.Email}", ex);
         // Continue - don't let email failure break event processing
     }
 

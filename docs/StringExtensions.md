@@ -178,14 +178,14 @@ ulong? result = "42".ToUInt64Nullable();       // 42
 ulong? result = "invalid".ToUInt64Nullable();  // null
 ```
 
-#### Single (float)
+#### Float (Single)
 
 ```csharp
-float result = "3.14".ToSingle();              // 3.14f
-float result = "invalid".ToSingle(0.0f);       // 0.0f (custom default)
+float result = "3.14".ToFloat();               // 3.14f
+float result = "invalid".ToFloat(0.0f);        // 0.0f (custom default)
 
-float? result = "3.14".ToSingleNullable();     // 3.14f
-float? result = "invalid".ToSingleNullable();  // null
+float? result = "3.14".ToFloatNullable();      // 3.14f
+float? result = "invalid".ToFloatNullable();   // null
 ```
 
 #### Double
@@ -262,15 +262,9 @@ TimeOnly? result = "invalid".ToTimeOnlyNullable(); // null
 
 ### Other Conversions
 
-#### Char
+#### Enum
 
-```csharp
-char result = "A".ToChar();                    // 'A'
-char result = "invalid".ToChar('?');           // '?' (custom default)
-
-char? result = "A".ToCharNullable();           // 'A'
-char? result = "invalid".ToCharNullable();     // null
-```
+`ToEnum<T>()` and `ToEnumNullable<T>()` parse enum names, including custom names from `[EnumName]` (see [EnumName](EnumName.md)).
 
 #### Guid
 
@@ -280,6 +274,15 @@ Guid result = "invalid".ToGuid(Guid.Empty);
 
 Guid? result = "12345678-1234-1234-1234-123456789abc".ToGuidNullable();
 Guid? result = "invalid".ToGuidNullable();     // null
+```
+
+### Wildcard Matching
+
+The wildcard matches zero or more characters.
+
+```csharp
+bool match = "Zerra.CQRS.Bus".MatchWildcard("Zerra.*");             // true
+bool match2 = "report-2024.csv".MatchWildcard("report-?.csv", '?'); // true, using a custom wildcard character
 ```
 
 ## Common Use Cases

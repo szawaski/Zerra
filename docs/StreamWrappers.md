@@ -138,30 +138,34 @@ public class CustomStreamWrapper : StreamWrapper
 
 ## StreamTransform
 
-`StreamTransform` is a specialized wrapper for transforming bytes as they're read from or written to the stream. Unlike `StreamWrapper`, it requires implementing Length, Position, Seek, and SetLength as the transformation may affect these values.
+`StreamTransform` is a specialized wrapper for transforming bytes as they're read from or written to the stream. All of the public `Read`/`Write` overloads (array, span, async, and single byte) are sealed and funnel into four span/memory-based methods, so you implement each transformation once. It also requires implementing `Length`, `Position`, `Seek`, and `SetLength`, since the transformation may affect these values.
 
 ### Abstract Members
 
-Classes deriving from `StreamTransform` must implement:
+Classes deriving from `StreamTransform` must implement (signatures only; see the full example below):
 
 ```csharp
-public abstract class MyTransform : StreamTransform
+public class MyTransform : StreamTransform
 {
     public MyTransform(Stream stream, bool leaveOpen)
         : base(stream, leaveOpen)
     {
     }
 
-    // Must implement these abstract members
-    public override abstract long Length { get; }
-    public override abstract long Position { get; set; }
-    public override abstract long Seek(long offset, SeekOrigin origin);
-    public override abstract void SetLength(long value);
+    public override long Length { get; }
+    public override long Position { get; set; }
+    public override long Seek(long offset, SeekOrigin origin);
+    public override void SetLength(long value);
 
-    // Override transformation methods
-    protected abstract int Transform(Span<byte> buffer, bool isRead);
+    // Transformation methods - every Read/Write overload routes through these
+    protected override int InternalRead(Span<byte> buffer);
+    protected override ValueTask<int> InternalReadAsync(Memory<byte> buffer, CancellationToken cancellationToken);
+    protected override void InternalWrite(ReadOnlySpan<byte> buffer);
+    protected override ValueTask InternalWriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken);
 }
 ```
+
+The wrapped stream is available as the protected `stream` field.
 
 ### Example: XOR Encryption Transform
 
@@ -169,7 +173,6 @@ public abstract class MyTransform : StreamTransform
 public class XorStreamTransform : StreamTransform
 {
     private readonly byte key;
-    private long position;
 
     public XorStreamTransform(Stream stream, byte key, bool leaveOpen = false)
         : base(stream, leaveOpen)
@@ -181,51 +184,46 @@ public class XorStreamTransform : StreamTransform
 
     public override long Position
     {
-        get => position;
-        set
-        {
-            position = value;
-            stream.Position = value;
-        }
+        get => stream.Position;
+        set => stream.Position = value;
     }
 
-    public override long Seek(long offset, SeekOrigin origin)
+    public override long Seek(long offset, SeekOrigin origin) => stream.Seek(offset, origin);
+
+    public override void SetLength(long value) => stream.SetLength(value);
+
+    protected override int InternalRead(Span<byte> buffer)
     {
-        position = stream.Seek(offset, origin);
-        return position;
-    }
-
-    public override void SetLength(long value)
-    {
-        stream.SetLength(value);
-    }
-
-    public override int Read(byte[] buffer, int offset, int count)
-    {
-        int bytesRead = stream.Read(buffer, offset, count);
-
-        // XOR each byte
-        for (int i = 0; i < bytesRead; i++)
-        {
-            buffer[offset + i] ^= key;
-        }
-
-        position += bytesRead;
+        var bytesRead = stream.Read(buffer);
+        for (var i = 0; i < bytesRead; i++)
+            buffer[i] ^= key;
         return bytesRead;
     }
 
-    public override void Write(byte[] buffer, int offset, int count)
+    protected override async ValueTask<int> InternalReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
     {
-        // Create temporary buffer for XOR'd data
-        byte[] transformed = new byte[count];
+        var bytesRead = await stream.ReadAsync(buffer, cancellationToken);
+        var span = buffer.Span;
+        for (var i = 0; i < bytesRead; i++)
+            span[i] ^= key;
+        return bytesRead;
+    }
 
-        for (int i = 0; i < count; i++)
-        {
-            transformed[i] = (byte)(buffer[offset + i] ^ key);
-        }
+    protected override void InternalWrite(ReadOnlySpan<byte> buffer)
+    {
+        var transformed = new byte[buffer.Length];
+        for (var i = 0; i < buffer.Length; i++)
+            transformed[i] = (byte)(buffer[i] ^ key);
+        stream.Write(transformed);
+    }
 
-        stream.Write(transformed, 0, count);
-        position += count;
+    protected override ValueTask InternalWriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken)
+    {
+        var transformed = new byte[buffer.Length];
+        var span = buffer.Span;
+        for (var i = 0; i < span.Length; i++)
+            transformed[i] = (byte)(span[i] ^ key);
+        return stream.WriteAsync(transformed, cancellationToken);
     }
 }
 
@@ -247,9 +245,11 @@ using Zerra.IO;
 
 // Read entire stream into byte array
 byte[] data = stream.ToArray();
+byte[] dataAsync = await stream.ToArrayAsync(cancellationToken);
 
-// Copy stream with custom buffer size
-await sourceStream.CopyToAsync(destStream, bufferSize: 81920, cancellationToken);
+// Read until the span/memory is full (or the stream ends); returns the number of bytes read
+int read = stream.ReadToSpan(buffer.AsSpan());
+int readAsync = await stream.ReadToMemoryAsync(buffer.AsMemory(), cancellationToken);
 ```
 
 ## Common Use Cases
@@ -259,11 +259,11 @@ await sourceStream.CopyToAsync(destStream, bufferSize: 81920, cancellationToken)
 ```csharp
 public class LoggingStream : StreamWrapper
 {
-    private readonly ILogger logger;
+    private readonly Microsoft.Extensions.Logging.ILogger logger;
     private long totalBytesRead;
     private long totalBytesWritten;
 
-    public LoggingStream(Stream stream, ILogger logger, bool leaveOpen = false)
+    public LoggingStream(Stream stream, Microsoft.Extensions.Logging.ILogger logger, bool leaveOpen = false)
         : base(stream, leaveOpen)
     {
         this.logger = logger;
@@ -423,17 +423,30 @@ public class CompressionStream : StreamTransform
         throw new NotSupportedException("Compression streams don't support SetLength");
     }
 
-    public override int Read(byte[] buffer, int offset, int count)
+    protected override int InternalRead(Span<byte> buffer)
     {
-        int bytesRead = gzipStream.Read(buffer, offset, count);
+        var bytesRead = gzipStream.Read(buffer);
         position += bytesRead;
         return bytesRead;
     }
 
-    public override void Write(byte[] buffer, int offset, int count)
+    protected override async ValueTask<int> InternalReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
     {
-        gzipStream.Write(buffer, offset, count);
-        position += count;
+        var bytesRead = await gzipStream.ReadAsync(buffer, cancellationToken);
+        position += bytesRead;
+        return bytesRead;
+    }
+
+    protected override void InternalWrite(ReadOnlySpan<byte> buffer)
+    {
+        gzipStream.Write(buffer);
+        position += buffer.Length;
+    }
+
+    protected override async ValueTask InternalWriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken)
+    {
+        await gzipStream.WriteAsync(buffer, cancellationToken);
+        position += buffer.Length;
     }
 
     protected override void Dispose(bool disposing)
@@ -462,7 +475,7 @@ public class CompressionStream : StreamTransform
 - **Minimal overhead** - Wrappers add minimal overhead when not overriding methods
 - **Async efficiency** - Override async methods to avoid sync-over-async
 - **Buffer pooling** - Consider using ArrayPool for temporary buffers
-- **Stack allocation** - StreamTransform uses stack allocation where possible
+- **Single code path** - StreamTransform routes every Read/Write overload through the `Internal*` span/memory methods
 - **Virtual calls** - Override costs one virtual call per operation
 
 ## Limitations
@@ -470,7 +483,7 @@ public class CompressionStream : StreamTransform
 - **Seeking** - Some wrappers (compression, transformation) may not support seeking
 - **Length** - Transformed streams may have different length than base stream
 - **Position** - Position may not correspond 1:1 with base stream
-- **Span support** - Override span-based methods for best performance on modern runtimes
+- **Span support** - For `StreamWrapper`, override the span/memory-based methods for best performance on modern runtimes (`StreamTransform` already requires them)
 
 ## See Also
 

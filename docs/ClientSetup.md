@@ -28,16 +28,16 @@ using Zerra.Logging;
 // Configure components
 ISerializer serializer = new ZerraByteSerializer();
 IEncryptor encryptor = new ZerraEncryptor("mySecurePassword", SymmetricAlgorithmType.AESwithPrefix);
-ILogger logger = new Logger();
-IBusLogger busLogger = new BusLogger();
+ILogger logger = new ConsoleLogger();          // your ILogger implementation (see Logging.md)
+IBusLogger busLogger = new ConsoleBusLogger(); // your IBusLogger implementation (optional)
 var busServices = new BusServices();
 
 // Create the bus
 var bus = Bus.New(
-    service: "ClientApp",
+    serviceName: "ClientApp",
     log: logger,
     busLog: busLogger,
-    busScopes: busServices
+    busServices: busServices
 );
 
 // Create TCP client
@@ -88,10 +88,10 @@ var busServices = new BusServices();
 
 // Create the bus
 var bus = Bus.New(
-    service: serviceName,
+    serviceName: serviceName,
     log: logger,
     busLog: busLogger,
-    busScopes: busServices
+    busServices: busServices
 );
 
 // Create and configure network client
@@ -124,8 +124,8 @@ catch (Exception ex)
 }
 finally
 {
-    // Cleanup
-    (client as IDisposable)?.Dispose();
+    // Producers and clients are not disposed by the bus; dispose them when done
+    client.Dispose();
 }
 ```
 
@@ -162,16 +162,17 @@ builder.Services.AddSingleton<IBus>(serviceProvider =>
     // Create components
     ISerializer serializer = new ZerraByteSerializer();
     IEncryptor encryptor = new ZerraEncryptor(encryptionKey, SymmetricAlgorithmType.AESwithPrefix);
-    ILogger logger = new AspNetCoreLogger(serviceProvider.GetRequiredService<ILogger<Program>>());
+    // Your Zerra.Logging.ILogger adapter over Microsoft.Extensions.Logging (fully qualified to avoid ambiguity)
+    Zerra.Logging.ILogger logger = new AspNetCoreLogger(serviceProvider.GetRequiredService<ILogger<Program>>());
     IBusLogger busLogger = new AspNetCoreBusLogger();
     var busServices = new BusServices();
 
     // Create bus
     var bus = Bus.New(
-        service: serviceName,
+        serviceName: serviceName,
         log: logger,
         busLog: busLogger,
-        busScopes: busServices
+        busServices: busServices
     );
 
     // Configure network client
@@ -255,7 +256,7 @@ High-performance binary protocol over TCP:
 
 ```csharp
 var client = new TcpCqrsClient(
-    address: "localhost:9001",
+    serviceUrl: "localhost:9001",
     serializer: serializer,
     encryptor: encryptor,
     log: logger
@@ -271,9 +272,10 @@ HTTP-based protocol for firewall-friendly communication:
 
 ```csharp
 var client = new HttpCqrsClient(
-    address: "http://localhost:8080",
+    serviceUrl: "http://localhost:8080",
     serializer: serializer,
     encryptor: encryptor,
+    authorizer: null,   // optional ICqrsAuthorizer that supplies request headers
     log: logger
 );
 
@@ -297,7 +299,7 @@ bus.AddCommandProducer<IOrderCommandHandler>(orderClient);
 bus.AddQueryClient<IOrderQueries>(orderClient);
 
 // Product service
-var productClient = new HttpCqrsClient("http://productservice:8080", serializer, encryptor, logger);
+var productClient = new HttpCqrsClient("http://productservice:8080", serializer, encryptor, null, logger);
 bus.AddQueryClient<IProductQueries>(productClient);
 ```
 
@@ -331,7 +333,7 @@ var serverAddress = zerraConfig["ServerAddress"];
 var encryptionKey = zerraConfig["EncryptionKey"];
 var useEncryption = zerraConfig.GetValue<bool>("UseEncryption");
 var useBinarySerializer = zerraConfig.GetValue<bool>("UseBinarySerializer");
-var defaultTimeout = zerraConfig.GetValue<int>("DefaultTimeout");
+var defaultTimeout = TimeSpan.FromMilliseconds(zerraConfig.GetValue<int>("DefaultTimeout"));
 
 // Create components based on configuration
 ISerializer serializer = useBinarySerializer 
@@ -343,10 +345,10 @@ IEncryptor? encryptor = useEncryption
     : null;
 
 var bus = Bus.New(
-    service: serviceName,
+    serviceName: serviceName,
     log: logger,
     busLog: busLogger,
-    busScopes: busServices,
+    busServices: busServices,
     defaultCallTimeout: defaultTimeout
 );
 ```
@@ -384,13 +386,13 @@ Configure timeouts for remote calls:
 
 ```csharp
 var bus = Bus.New(
-    service: "ClientApp",
+    serviceName: "ClientApp",
     log: logger,
     busLog: busLogger,
-    busScopes: busServices,
-    defaultCallTimeout: 30000,              // 30 seconds for queries
-    defaultDispatchTimeout: 5000,           // 5 seconds for fire-and-forget commands
-    defaultDispatchAwaitTimeout: 60000      // 60 seconds for commands awaiting completion
+    busServices: busServices,
+    defaultCallTimeout: TimeSpan.FromSeconds(30),          // queries
+    defaultDispatchTimeout: TimeSpan.FromSeconds(5),       // fire-and-forget commands and events
+    defaultDispatchAwaitTimeout: TimeSpan.FromSeconds(60)  // commands awaiting completion
 );
 ```
 

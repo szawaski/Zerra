@@ -1,3 +1,5 @@
+[← Back to Documentation](Index.md)
+
 # Security
 
 ## Trust Model
@@ -56,9 +58,9 @@ This propagation happens for every transport:
 Because `Thread.CurrentPrincipal` is set before the handler is called, you can read claims anywhere inside it using standard .NET APIs.
 
 ```csharp
-public class OrderCommandHandler : ICommandHandler<PlaceOrderCommand>
+public class OrderCommandHandler : BaseHandler, ICommandHandler<PlaceOrderCommand>
 {
-    public async ValueTask Handle(PlaceOrderCommand command, CancellationToken cancellationToken)
+    public async Task Handle(PlaceOrderCommand command, CancellationToken cancellationToken)
     {
         if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
         {
@@ -85,7 +87,7 @@ If `Thread.CurrentPrincipal` on the calling thread is `null` or is not a `Claims
 Zerra does not enforce authorization automatically — that is intentional so you keep full control. Throw a `SecurityException` inside a handler to signal an authorization failure. The framework catches `SecurityException` and returns an appropriate error response to the caller (e.g., `401 Unauthorized` when using the HTTP transport or Zerra.Web API gateway).
 
 ```csharp
-public async ValueTask Handle(DeleteUserCommand command, CancellationToken cancellationToken)
+public async Task Handle(DeleteUserCommand command, CancellationToken cancellationToken)
 {
     if (Thread.CurrentPrincipal is not ClaimsPrincipal principal || !principal.IsInRole("Admin"))
         throw new SecurityException("Only admins can delete users.");
@@ -118,7 +120,7 @@ app.UseCqrsApiGateway(…)
         │
         ▼
 ICqrsAuthorizer.Authorize(headers)   ← validate headers; MUST set Thread.CurrentPrincipal
-        │  SecurityException ──► 401 Unauthorized
+        │  exception ──► request fails (see note below)
         ▼
 Zerra serializes Thread.CurrentPrincipal claims into the message envelope
         │
@@ -161,12 +163,14 @@ public class AspNetCqrsAuthorizer : ICqrsAuthorizer
         Thread.CurrentPrincipal = user;
     }
 
+    // Return whatever headers the client should send (e.g. Bearer token)
+    public Dictionary<string, List<string?>> GetAuthorizationHeaders(
+        CancellationToken cancellationToken = default)
+        => new Dictionary<string, List<string?>>();
+
     public ValueTask<Dictionary<string, List<string?>>> GetAuthorizationHeadersAsync(
         CancellationToken cancellationToken = default)
-    {
-        // Return whatever headers the client should send (e.g. Bearer token)
-        return new ValueTask<Dictionary<string, List<string?>>>(new Dictionary<string, List<string?>>());
-    }
+        => new(GetAuthorizationHeaders(cancellationToken));
 }
 ```
 
@@ -236,18 +240,21 @@ public class JwtCqrsAuthorizer : ICqrsAuthorizer
 
     // Called by the client side when sending outbound requests through the gateway.
     // Return the headers that carry the caller's credentials.
-    public ValueTask<Dictionary<string, List<string?>>> GetAuthorizationHeadersAsync(
+    public Dictionary<string, List<string?>> GetAuthorizationHeaders(
         CancellationToken cancellationToken = default)
     {
         // Obtain the token from wherever the client stores it (e.g. a token cache)
         var token = TokenCache.GetCurrentToken();
 
-        var headers = new Dictionary<string, List<string?>>
+        return new Dictionary<string, List<string?>>
         {
             ["Authorization"] = new List<string?> { $"Bearer {token}" }
         };
-        return new ValueTask<Dictionary<string, List<string?>>>(headers);
     }
+
+    public ValueTask<Dictionary<string, List<string?>>> GetAuthorizationHeadersAsync(
+        CancellationToken cancellationToken = default)
+        => new(GetAuthorizationHeaders(cancellationToken));
 }
 ```
 
@@ -272,9 +279,11 @@ app.UseCqrsApiGateway(route: "/api/cqrs");
 ```
 
 The gateway middleware will:
-- Call `Authorize(headers)` for every inbound request.
-- Return `401 Unauthorized` if a `SecurityException` is thrown.
-- Return `500 Internal Server Error` for any other exception.
+- Call `Authorize(headers)` for every inbound POST request.
+- Return `401 Unauthorized` if a handler throws a `SecurityException`.
+- Return `500 Internal Server Error` for any other handler exception.
+
+> **Note:** `Authorize()` currently runs before the gateway's own error handling, so an exception thrown from `Authorize()` itself propagates to the ASP.NET Core pipeline (typically a generic `500`) rather than producing the gateway's `401` response. Place exception handling middleware ahead of the gateway if clients need a specific status code for authorization failures.
 
 ### Implementing `ICqrsAuthorizer` for API Keys
 
@@ -297,15 +306,16 @@ public class ApiKeyCqrsAuthorizer : ICqrsAuthorizer
         Thread.CurrentPrincipal = new ClaimsPrincipal(identity);
     }
 
-    public ValueTask<Dictionary<string, List<string?>>> GetAuthorizationHeadersAsync(
+    public Dictionary<string, List<string?>> GetAuthorizationHeaders(
         CancellationToken cancellationToken = default)
-    {
-        var headers = new Dictionary<string, List<string?>>
+        => new Dictionary<string, List<string?>>
         {
             ["X-API-Key"] = new List<string?> { _validKey }
         };
-        return new ValueTask<Dictionary<string, List<string?>>>(headers);
-    }
+
+    public ValueTask<Dictionary<string, List<string?>>> GetAuthorizationHeadersAsync(
+        CancellationToken cancellationToken = default)
+        => new(GetAuthorizationHeaders(cancellationToken));
 }
 ```
 

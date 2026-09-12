@@ -48,24 +48,17 @@ See [ByteSerializer](ByteSerializer.md) for detailed documentation.
 ```csharp
 using Zerra.Serialization;
 
-// Create the serializer
+// Create the serializer (optionally pass ByteSerializerOptions; see ByteSerializer.md)
 ISerializer serializer = new ZerraByteSerializer();
 
-// Use in Bus configuration
-var bus = Bus.New(
-    service: "MyService",
-    log: logger,
-    busLog: busLogger,
-    busScopes: busScopes
-);
-
+// Serializers are passed to network components, not to Bus.New
 // Use in TCP CQRS
 var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, log);
 var client = new TcpCqrsClient("localhost:9001", serializer, encryptor, log);
 
-// Use in HTTP CQRS
-var httpServer = new HttpCqrsServer("localhost:8080", serializer, encryptor, log);
-var httpClient = new HttpCqrsClient("localhost:8080", serializer, encryptor, log);
+// Use in HTTP CQRS (authorizer / allowOrigins are optional)
+var httpServer = new HttpCqrsServer("localhost:8080", serializer, encryptor, null, null, log);
+var httpClient = new HttpCqrsClient("localhost:8080", serializer, encryptor, null, log);
 ```
 
 ### When to Use
@@ -87,15 +80,15 @@ See [JsonSerializer](JsonSerializer.md) for detailed documentation.
 
 - **Human Readable**: JSON format for easy debugging and inspection
 - **Interoperable**: Compatible with any system that can parse JSON
-- **Flexible**: Optional configuration via `JsonSerializerOptions`
+- **Flexible**: Optional configuration via `Zerra.Serialization.Json.JsonSerializerOptions`
 - **Nameless Mode**: Compact JSON without property names (nameless JSON)
-- **Standards-Based**: Uses System.Text.Json for serialization
+- **Zerra Implementation**: Zerra's own source-generated JSON serializer (not System.Text.Json)
 
 ### Usage
 
 ```csharp
 using Zerra.Serialization;
-using System.Text.Json;
+using Zerra.Serialization.Json;
 
 // Create with default options
 ISerializer serializer = new ZerraJsonSerializer();
@@ -103,18 +96,9 @@ ISerializer serializer = new ZerraJsonSerializer();
 // Create with custom options
 var options = new JsonSerializerOptions
 {
-    WriteIndented = true,
-    PropertyNameCaseInsensitive = true
+    IgnoreCase = true
 };
 ISerializer serializer = new ZerraJsonSerializer(options);
-
-// Use in Bus configuration
-var bus = Bus.New(
-    service: "MyService",
-    log: logger,
-    busLog: busLogger,
-    busScopes: busScopes
-);
 
 // Use in network components
 var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, log);
@@ -123,15 +107,19 @@ var client = new TcpCqrsClient("localhost:9001", serializer, encryptor, log);
 
 ### Configuration Options
 
-The `ZerraJsonSerializer` accepts `JsonSerializerOptions` for customization:
+`ZerraJsonSerializer` accepts `Zerra.Serialization.Json.JsonSerializerOptions` (not the System.Text.Json type of the same name):
 
 ```csharp
+using Zerra.Serialization.Json;
+
 var options = new JsonSerializerOptions
 {
-    WriteIndented = true,              // Pretty-print for debugging
-    PropertyNameCaseInsensitive = true, // Case-insensitive deserialization
-    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    // Additional System.Text.Json options...
+    Nameless = false,                    // Write arrays of values instead of named properties
+    DoNotWriteNullProperties = true,     // Omit properties whose value is null
+    DoNotWriteDefaultProperties = false, // Omit properties whose value is the type default
+    EnumAsNumber = false,                // Write enums as numbers instead of names
+    ErrorOnTypeMismatch = false,         // Throw when a JSON value doesn't match the target type
+    IgnoreCase = true                    // Case-insensitive property name matching
 };
 
 ISerializer serializer = new ZerraJsonSerializer(options);
@@ -189,6 +177,7 @@ The `SystemTextJsonSerializer` provides standard Microsoft System.Text.Json seri
 ```csharp
 using Zerra.Serialization;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 // Create with default options
 ISerializer serializer = new SystemTextJsonSerializer();
@@ -221,8 +210,10 @@ Choose `SystemTextJsonSerializer` when:
 
 | Feature | ZerraJsonSerializer | SystemTextJsonSerializer |
 |---------|---------------------|--------------------------|
-| **Base Library** | System.Text.Json | System.Text.Json |
+| **Base Library** | Zerra (source generated) | System.Text.Json |
+| **Options Type** | `Zerra.Serialization.Json.JsonSerializerOptions` | `System.Text.Json.JsonSerializerOptions` |
 | **Nameless Mode** | ✅ Supported | ❌ Not supported |
+| **Graph Support** | ✅ Via `JsonSerializer` | ❌ No |
 | **Zerra Extensions** | ✅ Yes | ❌ No |
 | **Standard JSON** | ✅ Yes | ✅ Yes |
 | **Use Case** | Compact browser endpoints | Standard JSON APIs |
@@ -231,7 +222,7 @@ Choose `SystemTextJsonSerializer` when:
 
 ## ISerializer Interface
 
-Both serializers implement the `ISerializer` interface with consistent methods:
+All serializers implement the `ISerializer` interface with consistent methods:
 
 ```csharp
 public interface ISerializer
@@ -309,7 +300,7 @@ var client = new TcpCqrsClient("localhost:9001", new ZerraByteSerializer(), encr
 ```csharp
 // Use JSON serializer for easy debugging
 #if DEBUG
-    ISerializer serializer = new ZerraJsonSerializer(new JsonSerializerOptions { WriteIndented = true });
+    ISerializer serializer = new ZerraJsonSerializer();
 #else
     ISerializer serializer = new ZerraByteSerializer();
 #endif

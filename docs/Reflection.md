@@ -170,18 +170,25 @@ foreach (var member in members)
 {
     string name = member.Name;
     Type memberType = member.Type;
-    bool canRead = member.CanRead;
-    bool canWrite = member.CanWrite;
+    bool canRead = member.HasGetter;
+    bool canWrite = member.HasSetter;
 
-    // Get value from instance
     var user = new User { Name = "John" };
-    object? value = member.GetterBoxed(user);
 
-    // Set value on instance
-    member.SetterBoxed(user, "Jane");
+    // Get value from instance (GetterBoxed is null when there is no getter)
+    if (member.HasGetter)
+    {
+        object? value = member.GetterBoxed!(user);
+    }
+
+    // Set value on instance (SetterBoxed is null when there is no setter)
+    if (member.HasSetter && member.Type == typeof(string))
+    {
+        member.SetterBoxed!(user, "Jane");
+    }
 
     // Check for attributes
-    var attributes = member.GetCustomAttributes();
+    IReadOnlyList<Attribute> attributes = member.Attributes;
 }
 ```
 
@@ -354,14 +361,14 @@ public object? GetPropertyValue(object obj, string propertyName)
 {
     var typeDetail = TypeAnalyzer.GetTypeDetail(obj.GetType());
     var member = typeDetail.Members.FirstOrDefault(m => m.Name == propertyName);
-    return member?.GetterBoxed(obj);
+    return member?.GetterBoxed?.Invoke(obj);
 }
 
 public void SetPropertyValue(object obj, string propertyName, object? value)
 {
     var typeDetail = TypeAnalyzer.GetTypeDetail(obj.GetType());
     var member = typeDetail.Members.FirstOrDefault(m => m.Name == propertyName);
-    member?.SetterBoxed(obj, value);
+    member?.SetterBoxed?.Invoke(obj, value);
 }
 ```
 
@@ -404,9 +411,9 @@ public void SerializeObject(object obj, Stream stream)
 
     foreach (var member in typeDetail.Members)
     {
-        if (member.CanRead)
+        if (member.HasGetter)
         {
-            var value = member.GetterBoxed(obj);
+            var value = member.GetterBoxed!(obj);
             // Write value to stream
             WriteValue(stream, member.Name, value, member.Type);
         }
@@ -426,15 +433,15 @@ public TTarget MapProperties<TSource, TTarget>(TSource source)
 
     foreach (var sourceMember in sourceDetail.Members)
     {
-        if (!sourceMember.CanRead) continue;
+        if (!sourceMember.HasGetter) continue;
 
         var targetMember = targetDetail.Members
-            .FirstOrDefault(m => m.Name == sourceMember.Name && m.CanWrite);
+            .FirstOrDefault(m => m.Name == sourceMember.Name && m.HasSetter);
 
         if (targetMember != null)
         {
-            var value = sourceMember.GetterBoxed(source);
-            targetMember.SetterBoxed(target, value);
+            var value = sourceMember.GetterBoxed!(source!);
+            targetMember.SetterBoxed!(target!, value);
         }
     }
 

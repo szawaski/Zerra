@@ -31,18 +31,21 @@ Zerra is a CQRS (Command Query Responsibility Segregation) framework for .NET 10
 Central message router created via `Bus.New()`:
 
 **Key Parameters:**
-- `service`: Service identifier
-- `log`: Logger instance
-- `busLog`: IBusLogger for cross-service logging
-- `busScopes`: BusScopes containing scoped dependencies
+- `serviceName`: Service identifier (required)
+- `log`: Optional `ILogger` instance
+- `busLog`: Optional `IBusLogger` for cross-service logging
+- `busServices`: Optional `BusServices` containing registered dependencies
 - `commandToReceiveUntilExit`: Optional count for graceful shutdown
-- `defaultCallTimeout`, `defaultDispatchTimeout`, `defaultDispatchAwaitTimeout`: Timeout configuration
+- `defaultCallTimeout`, `defaultDispatchTimeout`, `defaultDispatchAwaitTimeout`: Optional `TimeSpan` timeouts
+- `maxConcurrentQueries`, `maxConcurrentCommandsPerTopic`, `maxConcurrentEventsPerTopic`: Optional concurrency limits
+
+`Bus.New()` returns `IBusSetup` (which extends `IBus`) and also sets the static `Bus` instance.
 
 **Responsibilities:**
 - Routes commands/events/queries to local handlers or remote producers
 - Manages lifecycle of consumers, producers, clients, servers
 - Provides `BusContext` to handlers
-- Tracks command processing with `CommandCounter`
+- Counts received commands with `CommandCounter` to support exit-after-N-commands
 
 ## Handlers
 
@@ -52,30 +55,31 @@ All handlers inherit from `BaseHandler` (implements `IHandler`).
 
 | Type | Interface | Purpose |
 |------|-----------|---------|
-| Command Handler | `ICommandHandler<T>` where `T : ICommand` | Process command, return `Task` |
-| Command Result Handler | `ICommandHandler<T, TResult>` where `T : ICommand<TResult>` | Process command, return `Task<TResult>` |
-| Event Handler | `IEventHandler<T>` where `T : IEvent` | Handle event, return `Task` |
+| Command Handler | `ICommandHandler<T>` where `T : ICommand` | `Task Handle(T command, CancellationToken cancellationToken)` |
+| Command Result Handler | `ICommandHandler<T, TResult>` where `T : ICommand<TResult>` | `Task<TResult> Handle(T command, CancellationToken cancellationToken)` |
+| Event Handler | `IEventHandler<T>` where `T : IEvent` | `Task Handle(T @event)` (no `CancellationToken`) |
 | Query Handler | `IQueryHandler` (marker) | Base for query interfaces |
 
 ### BusContext Access
 
 Handlers receive `BusContext` via `this.Context`:
-- `this.Bus`: Access to bus for dispatching
-- `this.Log`: Optional logger
-- `Context.Get<TInterface>()`: Retrieve scoped dependencies
-- `Context.Service`: Current service name
+- `this.Bus`: Access to bus for dispatching (same as `Context.Bus`)
+- `this.Log`: Optional logger (same as `Context.Log`)
+- `Context.GetService<TInterface>()`: Retrieve registered dependencies (throws if not registered)
+- `Context.TryGetService<TInterface>(out var service)`: Retrieve optional dependencies
+- `Context.ServiceName`: Current service name
 
 ## Routing Modes
 
 ### Local Processing
-Handler registered locally ? invoked in-process immediately
+Handler registered locally → invoked in-process immediately
 
 ### Remote Processing
-- **Commands**: Producer sends to broker ? Consumer receives and processes
+- **Commands**: Producer sends to broker or server → Consumer receives and processes
   - `DispatchAsync()`: Fire-and-forget
   - `DispatchAwaitAsync()`: Wait for completion signal
-- **Events**: Producer publishes ? Multiple consumers subscribe (parallel processing)
-- **Queries**: Client sends HTTP/TCP request ? Server processes and responds
+- **Events**: Producer publishes → Multiple consumers subscribe (parallel processing)
+- **Queries**: Client sends HTTP/TCP request → Server processes and responds
 
 ## Message Flow
 
@@ -124,7 +128,7 @@ maxConcurrentEventsPerTopic = Environment.ProcessorCount * 16
 
 **CommandCounter** enables graceful shutdown after N commands:
 ```csharp
-new Bus(..., commandToReceiveUntilExit: 100)
+var bus = Bus.New("MyService", commandToReceiveUntilExit: 100);
 ```
 
 ## Logging
@@ -149,10 +153,13 @@ Three configurable levels:
 - `defaultDispatchTimeout`: Dispatch without await
 - `defaultDispatchAwaitTimeout`: Dispatch with await
 
-Override per-call:
+Override per-call with a `TimeSpan` or a `CancellationToken`:
 ```csharp
+await bus.DispatchAsync(command, TimeSpan.FromSeconds(5));
 await bus.DispatchAsync(command, new CancellationTokenSource(TimeSpan.FromSeconds(5)).Token);
 ```
+
+Timeouts surface as `TimeoutException`.
 
 ## Lifecycle
 
@@ -171,7 +178,7 @@ await bus.StopServicesAsync();  // Explicit shutdown
 await bus.WaitForExitAsync(cancellationToken);  // Wait for exit signal
 ```
 
-Both close consumers/servers, dispose resources, stop processing new messages.
+Both close and dispose consumers/servers and stop processing new messages. Producers and clients are not disposed by the bus.
 
 ## Integration Points
 
@@ -181,30 +188,30 @@ Both close consumers/servers, dispose resources, stop processing new messages.
 - `Zerra.CQRS.AzureServiceBus`: Azure Service Bus producer/consumer
 
 ### HTTP/Network
-- Query servers host HTTP endpoints
-- Query clients make HTTP requests
-- Cross-platform communication support
+- `TcpCqrsServer` / `HttpCqrsServer` act as query servers and command/event consumers
+- `TcpCqrsClient` / `HttpCqrsClient` act as query clients and command/event producers
+- `Zerra.Web` hosts the bus in ASP.NET Core and provides the external API gateway
 
 ## Best Practices
 
 1. **Group handlers by interface**: One interface for related commands/events
 2. **Keep query interfaces focused**: One responsibility per query interface
-3. **Use scoped dependencies**: Register in `BusScopes` for handler access
+3. **Register dependencies**: Register in `BusServices` for handler access
 4. **Handle exceptions**: Propagate from handlers to callers; use `IBusLogger` for tracking
 5. **Eventual consistency**: Events for loose coupling, commands for intent, handle duplicates
-6. **Dependency injection**: Handlers receive dependencies via `BusContext.Get<T>()`
+6. **Dependency injection**: Handlers receive dependencies via `BusContext.GetService<T>()`
 
 ## Architecture Summary
 
 ```
-Application ? Bus (Router) ? Handlers/Producers/Consumers/Clients/Servers
-                    ?
+Application → Bus (Router) → Handlers/Producers/Consumers/Clients/Servers
+                    ↓
                 Logging (IBusLogger)
-                Command Counter (Throttling)
+                Command Counter (Exit after N commands)
                 Bus Context (Dependency Access)
-                    ?
-            Message Broker / HTTP Network
-                    ?
+                    ↓
+            Message Broker / TCP / HTTP Network
+                    ↓
             Remote Services (same pattern)
 ```
 
@@ -232,7 +239,7 @@ When working with Zerra code:
 ### When Creating Handlers
 - Always inherit from `BaseHandler`
 - Implement the appropriate handler interface (`ICommandHandler<T>`, `IEventHandler<T>`, etc.)
-- Access dependencies via `this.Context.Get<TInterface>()`
+- Access dependencies via `this.Context.GetService<TInterface>()`
 - Use `this.Context.Bus` to dispatch additional commands/events
 
 ### When Adding Bus Routes

@@ -97,7 +97,7 @@ public class UserQueryHandler : BaseHandler, IUserQueries
         ILogger? logger = this.Log;  // or Context.Log
 
         // Get service name
-        string serviceName = Context.Service;
+        string serviceName = Context.ServiceName;
 
         // Retrieve injected services
         var repository = Context.GetService<IUserRepository>();
@@ -315,7 +315,7 @@ public interface IUserQueries : IQueryHandler
     User GetUserById(int id);
 
     // ✅ Recommended - async
-    Task<int> GetCountAsync();
+    Task<int> GetCountAsync(CancellationToken cancellationToken);
     Task<User> GetUserByIdAsync(int id, CancellationToken cancellationToken);
 }
 ```

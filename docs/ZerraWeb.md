@@ -8,7 +8,7 @@
 
 `Zerra.Web` provides:
 - **IIS/Kestrel Hosting** - Run CQRS bus within ASP.NET Core applications
-- **API Gateway** - Expose CQRS commands, queries, and events as HTTP endpoints
+- **API Gateway** - Expose CQRS commands and queries as HTTP endpoints (events are intentionally not accepted from external callers)
 - **Azure App Services** - Compatible with IIS-hosted Azure App Services
 - **Custom Authorization** - Integrate with ASP.NET authentication/authorization
 - **Logging Integration** - Bridge Zerra logging with Microsoft.Extensions.Logging
@@ -25,7 +25,7 @@ dotnet add package Zerra.Web
 
 ### 1. CQRS API Gateway (Main Feature)
 
-The API Gateway exposes your CQRS bus to external HTTP clients, allowing browsers, mobile apps, and other services to invoke commands, queries, and events without knowledge of your internal architecture.
+The API Gateway exposes your CQRS bus to external HTTP clients, allowing browsers, mobile apps, and other services to invoke commands and queries without knowledge of your internal architecture. Events are not accepted through the gateway; a request whose `MessageType` is not a command is rejected.
 
 #### Basic Setup
 
@@ -41,13 +41,13 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Configure CQRS components
 ISerializer serializer = new ZerraJsonSerializer(); // Use JSON for external clients
-IEncryptor encryptor = new ZerraEncryptor("mySecurePassword", SymmetricAlgorithmType.AESwithPrefix);
-ILogger log = new Logger();
-IBusLogger busLog = new BusLogger();
+// Fully qualified: ASP.NET implicit usings also bring Microsoft.Extensions.Logging.ILogger into scope
+Zerra.Logging.ILogger log = new ConsoleLogger(); // your ILogger implementation (see Logging.md)
+IBusLogger busLog = new ConsoleBusLogger();
 
 // Create the CQRS bus
 var bus = Bus.New(
-    service: "MyService",
+    serviceName: "MyService",
     log: log,
     busLog: busLog
 );
@@ -56,8 +56,10 @@ var bus = Bus.New(
 bus.AddHandler<IUserCommandHandler>(new UserCommandHandler());
 bus.AddHandler<IUserQueries>(new UserQueryHandler());
 
-// Add Bus and components to DI container
-builder.Services.AddSingleton(bus);
+// Add Bus and components to DI container - the gateway resolves IBus, ISerializer,
+// and optionally Zerra.Logging.ILogger and ICqrsAuthorizer from DI.
+// Bus.New returns IBusSetup, so register it explicitly as IBus.
+builder.Services.AddSingleton<IBus>(bus);
 builder.Services.AddSingleton(serializer);
 builder.Services.AddSingleton(log);
 
@@ -72,34 +74,45 @@ await app.RunAsync();
 #### How It Works
 
 The API Gateway:
-1. Listens for HTTP POST requests at the specified route (default: `/CQRS`)
-2. Deserializes the request body to determine which command/query/event to invoke
-3. Dispatches the message to the CQRS bus
-4. Serializes the response and returns it to the client
+1. Listens for HTTP POST (and CORS preflight OPTIONS) requests at the specified route (default: `/CQRS`)
+2. Calls the registered `ICqrsAuthorizer`, if any
+3. Deserializes the request body (`ApiRequestData`) to determine which query or command to invoke
+4. Dispatches the message to the CQRS bus
+5. Serializes the response and returns it to the client
 
-**Request Format:**
+The request body is an `ApiRequestData` object. The front end scripts and `ApiClient` build it for you; the shapes are shown here for reference.
+
+**Query request** (`ProviderArguments` holds each argument as its own serialized JSON value):
 ```json
 POST /api/cqrs
 Content-Type: application/json
 
 {
-  "MessageType": "MyApp.Commands.CreateUserCommand",
-  "Message": {
-    "Email": "user@example.com",
-    "Name": "John Doe"
-  }
+  "ProviderType": "IUserQueries",
+  "ProviderMethod": "GetUserById",
+  "ProviderArguments": ["123"],
+  "Source": "JavaScript"
 }
 ```
 
-**Response Format:**
+**Command request** (`MessageData` is the command serialized as a JSON string):
 ```json
-HTTP/1.1 200 OK
+POST /api/cqrs
 Content-Type: application/json
 
 {
-  "UserId": "12345"
+  "MessageType": "CreateUserCommand",
+  "MessageData": "{\"Email\":\"user@example.com\",\"Name\":\"John Doe\"}",
+  "MessageAwait": true,
+  "MessageResult": true,
+  "Source": "JavaScript"
 }
 ```
+
+- `MessageAwait` - `false` for fire-and-forget, `true` to wait for the handler to complete
+- `MessageResult` - `true` for `ICommand<TResult>` commands; the response body is the serialized result
+
+**Response:** the serialized query result or command result, an empty `200` for commands without a result, or a raw stream for queries that return `Stream`.
 
 ### 2. Custom Authorization
 
@@ -129,15 +142,18 @@ public class ApiKeyAuthorizer : ICqrsAuthorizer
     }
 
     // Client-side: Add authorization headers
-    public ValueTask<Dictionary<string, List<string?>>> GetAuthorizationHeadersAsync(
+    public Dictionary<string, List<string?>> GetAuthorizationHeaders(
         CancellationToken cancellationToken = default)
     {
-        var headers = new Dictionary<string, List<string?>>
+        return new Dictionary<string, List<string?>>
         {
             ["X-API-Key"] = new List<string?> { _validApiKey }
         };
-        return new ValueTask<Dictionary<string, List<string?>>>(headers);
     }
+
+    public ValueTask<Dictionary<string, List<string?>>> GetAuthorizationHeadersAsync(
+        CancellationToken cancellationToken = default)
+        => new(GetAuthorizationHeaders(cancellationToken));
 }
 ```
 
@@ -156,9 +172,11 @@ app.UseCqrsApiGateway(route: "/api/cqrs");
 ```
 
 The middleware will:
-- Call `Authorize()` for every incoming request
-- Return `401 Unauthorized` if `SecurityException` is thrown
-- Return `500 Internal Server Error` for other exceptions
+- Call `Authorize()` for every incoming POST request
+- Return `401 Unauthorized` if a handler throws `SecurityException`
+- Return `500 Internal Server Error` for other handler exceptions
+
+> **Note:** `Authorize()` is currently called before the middleware's error handling, so an exception thrown from `Authorize()` itself propagates to the ASP.NET Core pipeline (typically a generic `500`) rather than producing the serialized `401` response. Add exception handling middleware ahead of the gateway if you need a specific status code for authorization failures.
 
 ### 3. ASP.NET Authentication Integration
 
@@ -193,19 +211,22 @@ public class JwtCqrsAuthorizer : ICqrsAuthorizer
         }
     }
 
-    public ValueTask<Dictionary<string, List<string?>>> GetAuthorizationHeadersAsync(
+    public Dictionary<string, List<string?>> GetAuthorizationHeaders(
         CancellationToken cancellationToken = default)
     {
         // Get JWT token from current context
         var context = _httpContextAccessor.HttpContext;
         var token = context?.Request.Headers.Authorization.ToString();
 
-        var headers = new Dictionary<string, List<string?>>
+        return new Dictionary<string, List<string?>>
         {
             ["Authorization"] = new List<string?> { token }
         };
-        return new ValueTask<Dictionary<string, List<string?>>>(headers);
     }
+
+    public ValueTask<Dictionary<string, List<string?>>> GetAuthorizationHeadersAsync(
+        CancellationToken cancellationToken = default)
+        => new(GetAuthorizationHeaders(cancellationToken));
 }
 
 // Configure in Startup
@@ -229,12 +250,14 @@ using Zerra.Logging;
 using Zerra.Web;
 using Microsoft.Extensions.Logging;
 
-// Create Zerra logger
-ILogger zerraLogger = new Logger();
+// Create Zerra logger (your implementation)
+Zerra.Logging.ILogger zerraLogger = new ConsoleLogger();
 
 // Add Zerra logger to ASP.NET logging
 builder.Logging.ClearProviders();
-builder.Logging.AddZerraLogger(zerraLogger);
+builder.Logging.AddProvider(new ZerraLoggerProvider(zerraLogger));
+
+// Alternatively, on an existing ILoggerFactory: loggerFactory.AddZerraLogger(zerraLogger);
 
 // Now ASP.NET components log through Zerra
 var app = builder.Build();
@@ -258,27 +281,27 @@ app.UseCqrsApiGateway(); // Listens at /CQRS
 // Custom route
 app.UseCqrsApiGateway(route: "/api/v1/gateway");
 
-// Multiple gateways (different buses)
-app.UseCqrsApiGateway(route: "/api/users");
-app.UseCqrsApiGateway(route: "/api/orders");
+// Handle POST requests on any path
+app.UseCqrsApiGateway(route: null);
 ```
+
+Every gateway resolves the same `IBus` and `ISerializer` from DI, so multiple routes expose the same bus.
 
 ### Content Type Support
 
-The API Gateway automatically supports multiple content types:
+The request `Content-Type` must match the `ContentType` of the `ISerializer` registered in DI; any other content type is rejected:
 
-```csharp
-// Client specifies content type
-Content-Type: application/json              // Standard JSON
-Content-Type: application/jsonnameless     // Compact nameless JSON
-Content-Type: application/octet-stream     // Binary (ZerraByteSerializer)
+| Registered serializer | Required `Content-Type` |
+|---|---|
+| `ZerraJsonSerializer` | `application/json` |
+| `ZerraJsonSerializer` with `Nameless = true` | `application/jsonnameless` |
+| `ZerraByteSerializer` | `application/octet-stream` |
 
-// Gateway uses the same serializer for request and response
-```
+With a standard JSON serializer, clients may also send `Accept: application/jsonnameless` (the front end scripts do this automatically when a model type is supplied).
 
 ### CORS Configuration
 
-CORS is automatically enabled with permissive defaults:
+The gateway always writes permissive CORS headers on the requests it handles and answers `OPTIONS` preflight requests itself:
 
 ```http
 Access-Control-Allow-Origin: *
@@ -286,7 +309,7 @@ Access-Control-Allow-Methods: *
 Access-Control-Allow-Headers: *
 ```
 
-For production, configure ASP.NET CORS middleware before the gateway:
+Because these headers are always appended, an ASP.NET CORS policy placed before the gateway does not narrow them. Rely on `ICqrsAuthorizer` and ASP.NET authentication to restrict access. You can still configure ASP.NET CORS for the rest of your application:
 
 ```csharp
 builder.Services.AddCors(options =>
@@ -323,7 +346,7 @@ var bus = Bus.New("MyService");
 bus.AddHandler<IMyCommands>(new MyCommandHandler());
 bus.AddHandler<IMyQueries>(new MyQueryHandler());
 
-builder.Services.AddSingleton(bus);
+builder.Services.AddSingleton<IBus>(bus);
 builder.Services.AddSingleton(serializer);
 
 var app = builder.Build();
@@ -395,9 +418,9 @@ Or use an absolute path if needed:
 <#@ assembly name="C:\MyProject\Scripts\Binaries\Zerra.T4.dll" #>
 ```
 
-**Original template reference (example):**
+**Shipped template reference (expects `Zerra.T4.dll` to be resolvable next to the template):**
 ```csharp
-<#@ assembly name="Framework\Zerra.T4.TestDev\bin\Release\net48\Zerra.T4.dll" #>
+<#@ assembly name="Zerra.T4.dll" #>
 ```
 
 **Step 3: Configure Project Build**
@@ -447,8 +470,8 @@ Bus.setHeader("X-API-Key", "my-secret-key");
 IUserQueries.GetUser("12345", function(user) {
     console.log("User:", user);
     document.getElementById("userName").innerText = user.Name;
-}, function(jqXHR, textStatus, errorThrown) {
-    console.error("Error:", textStatus, errorThrown);
+}, function(errorText) {
+    console.error("Error:", errorText);
 });
 
 // Example 2: Query returning a list
@@ -457,33 +480,33 @@ IUserQueries.GetAllUsers(function(users) {
     users.forEach(function(user) {
         console.log(user.Name + " - " + user.Email);
     });
-}, function(jqXHR, textStatus, errorThrown) {
-    console.error("Error loading users:", textStatus);
+}, function(errorText) {
+    console.error("Error loading users:", errorText);
 });
 
-// Example 3: Dispatch a command with result
+// Example 3: Dispatch a command and wait for its result (DispatchAwait)
 const createCommand = new CreateUserCommand({
     Email: "user@example.com",
     Name: "John Doe"
 });
 
-Bus.Dispatch(createCommand, function(result) {
+Bus.DispatchAwait(createCommand, function(result) {
     console.log("User created with ID:", result.UserId);
-}, function(jqXHR, textStatus, errorThrown) {
-    console.error("Failed to create user:", textStatus);
+}, function(errorText) {
+    console.error("Failed to create user:", errorText);
 });
 
-// Example 4: Dispatch command without awaiting result (fire and forget)
+// Example 4: Dispatch a command without waiting for it to complete (fire and forget)
 const updateCommand = new UpdateUserCommand({
     UserId: "12345",
     Name: "Jane Doe"
 });
 
-Bus.DispatchAwait(updateCommand);
+Bus.Dispatch(updateCommand);
 
 // Example 5: Using Bus.Call directly for more control
 Bus.Call(
-    "MyApp.Queries.IUserQueries",
+    "IUserQueries",
     "SearchUsers",
     ["john", 10, 0],  // searchTerm, pageSize, offset
     UserModelType,
@@ -491,28 +514,40 @@ Bus.Call(
     function(users) {
         console.log("Search results:", users);
     },
-    function(jqXHR, textStatus, errorThrown) {
-        console.error("Search failed:", textStatus);
+    function(errorText) {
+        console.error("Search failed:", errorText);
     }
 );
 
-// Global error handler
-BusFail = function(message, url) {
-    console.error("CQRS Error at " + url + ": " + message);
-    alert("An error occurred. Please try again.");
-};
 </script>
 ```
 
+For a global error handler, edit the `BusFail` function declared in `BusRoutes.js` (it is a `const`, so it cannot be reassigned from page script):
+
+```javascript
+// BusRoutes.js
+const BusFail = function (message, url) {
+    console.error("CQRS Error at " + url + ": " + message);
+    alert("An error occurred. Please try again.");
+};
+```
+
+The `onFail` callback on each call receives a single error message string.
+
 #### Using the TypeScript Bus
+
+`Bus.ts` exposes `Bus.Call(provider, method, args, modelType, hasMany)`, `Bus.DispatchAsync(command)` (fire and forget), `Bus.DispatchAwaitAsync(command)` (wait, and return the result for commands with results), and `Bus.SetHeader(header, value)`. All return promises. `TypeScriptModels.tt` generates a typed static class per query interface and a class per command, so you rarely call `Bus.Call` directly.
 
 ```typescript
 import { Bus } from "./Bus";
 import { SetBusRoute, SetBusFailCallback } from "./BusConfig";
-import { User, UserSettings, GetUserQuery, GetAllUsersQuery, CreateUserCommand, UpdateUserSettingsCommand } from "./TypeScriptModels";
+import { IUserQueries, CreateUserCommand, UpdateUserSettingsCommand } from "./TypeScriptModels";
 
 // Configure routes
 SetBusRoute("Gateway", "https://myapp.azurewebsites.net/api/cqrs");
+
+// Set custom headers (e.g., API key)
+Bus.SetHeader("X-API-Key", "my-secret-key");
 
 // Set global error handler
 SetBusFailCallback((message: string) => {
@@ -520,19 +555,9 @@ SetBusFailCallback((message: string) => {
     alert(`An error occurred: ${message}`);
 });
 
-// Example 1: Simple query with parameters
-const query = new GetUserQuery();
-query.UserId = "12345";
-
+// Example 1: Simple query with parameters (generated, typed proxy)
 try {
-    const user = await Bus.Call<User>(
-        "MyApp.Queries.IUserQueries",
-        "GetUser",
-        [query],
-        User,    // Type for IntelliSense and deserialization
-        false    // hasMany = false for single result
-    );
-
+    const user = await IUserQueries.GetUser("12345");
     console.log(`User: ${user.Name} (${user.Email})`); // Full IntelliSense support
 } catch (error) {
     console.error("Failed to load user:", error);
@@ -540,48 +565,43 @@ try {
 
 // Example 2: Query returning array
 try {
-    const users = await Bus.Call<User[]>(
-        "MyApp.Queries.IUserQueries",
-        "GetAllUsers",
-        [],
-        User,
-        true     // hasMany = true for arrays
-    );
-
+    const users = await IUserQueries.GetAllUsers();
     console.log(`Loaded ${users.length} users`);
     users.forEach(u => console.log(`${u.Name} - ${u.Email}`));
 } catch (error) {
     console.error("Failed to load users:", error);
 }
 
-// Example 3: Dispatch command with result
-const createCommand = new CreateUserCommand();
-createCommand.Email = "user@example.com";
-createCommand.Name = "John Doe";
+// Example 3: Dispatch command and wait for its result
+const createCommand = new CreateUserCommand({
+    Email: "user@example.com",
+    Name: "John Doe"
+});
 
 try {
-    const result = await Bus.Dispatch(createCommand);
+    const result = await Bus.DispatchAwaitAsync(createCommand);
     console.log(`User created with ID: ${result.UserId}`);
 } catch (error) {
     console.error("Failed to create user:", error);
 }
 
-// Example 4: Complex command with nested objects
-const updateCommand = new UpdateUserSettingsCommand();
-updateCommand.UserId = "12345";
-updateCommand.Settings = {
-    FirstName: "Jane",
-    LastName: "Doe",
-    TimeZone: "America/New_York",
-    EmailNotifications: true,
-    Theme: "dark"
-};
+// Example 4: Fire-and-forget command with nested objects
+const updateCommand = new UpdateUserSettingsCommand({
+    UserId: "12345",
+    Settings: {
+        FirstName: "Jane",
+        LastName: "Doe",
+        TimeZone: "America/New_York",
+        EmailNotifications: true,
+        Theme: "dark"
+    }
+});
 
 try {
-    await Bus.Dispatch(updateCommand);
-    console.log("Settings updated successfully");
+    await Bus.DispatchAsync(updateCommand);
+    console.log("Settings update sent");
 } catch (error) {
-    console.error("Failed to update settings:", error);
+    console.error("Failed to send settings update:", error);
 }
 ```
 
@@ -592,9 +612,9 @@ try {
 
 import { Bus } from "./Bus";
 import { 
-    UserSettings, 
-    GetSettingsQuery, 
-    UpdateUserSettingsCommand 
+    UserSettings,
+    IUserQueries,
+    UpdateUserSettingsCommand
 } from "./TypeScriptModels";
 
 class SettingsPage {
@@ -609,16 +629,7 @@ class SettingsPage {
         try {
             this.showLoading(true);
 
-            const query = new GetSettingsQuery();
-            query.UserId = this.currentUserId;
-
-            this.originalSettings = await Bus.Call<UserSettings>(
-                "MyApp.Queries.IUserQueries",
-                "GetSettings",
-                [query],
-                UserSettings,
-                false
-            );
+            this.originalSettings = await IUserQueries.GetSettings(this.currentUserId);
 
             this.populateForm(this.originalSettings);
             this.showForm(true);
@@ -640,16 +651,17 @@ class SettingsPage {
         try {
             this.setSaveButtonState(true, "Saving...");
 
-            const command = new UpdateUserSettingsCommand();
-            command.UserId = this.currentUserId;
-            command.FirstName = settings.FirstName;
-            command.LastName = settings.LastName;
-            command.Email = settings.Email;
-            command.TimeZone = settings.TimeZone;
-            command.EmailNotifications = settings.EmailNotifications;
-            command.Theme = settings.Theme;
+            const command = new UpdateUserSettingsCommand({
+                UserId: this.currentUserId,
+                FirstName: settings.FirstName,
+                LastName: settings.LastName,
+                Email: settings.Email,
+                TimeZone: settings.TimeZone,
+                EmailNotifications: settings.EmailNotifications,
+                Theme: settings.Theme
+            });
 
-            const result = await Bus.Dispatch(command);
+            const result = await Bus.DispatchAwaitAsync(command);
 
             if (result.Success) {
                 this.showSuccess("Settings saved successfully!");
@@ -746,18 +758,21 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("btnReset")!.addEventListener("click", () => settingsPage.resetForm());
 });
 ```
-```
 
 #### Nameless JSON Support
 
-The Bus utilities automatically detect and deserialize Nameless JSON responses:
+The Bus utilities request Nameless JSON with an `Accept: application/jsonnameless` header whenever a model type is known, and decode the response based on its `Content-Type`. They handle either response format.
 
 **Server Configuration:**
+
+Keep the standard JSON serializer. The front end scripts always send `Content-Type: application/json`, and the gateway rejects requests whose content type does not match the registered serializer, so do not register a `Nameless = true` serializer for browser clients.
+
 ```csharp
-var options = new JsonSerializerOptions { Nameless = true };
-var serializer = new ZerraJsonSerializer(options);
+builder.Services.AddSingleton<ISerializer>(new ZerraJsonSerializer());
 app.UseCqrsApiGateway();
 ```
+
+> **Note:** The gateway currently still writes standard JSON responses when a client sends `Accept: application/jsonnameless`, so responses arrive as regular JSON. The Bus utilities handle this transparently.
 
 **Client Code:**
 ```javascript
@@ -779,8 +794,8 @@ IUserQueries.GetAllUsers(function(users) {
         console.log(user.Name + " (" + user.Email + ")");
         console.log("Created:", user.CreatedDate.toLocaleDateString());
     });
-}, function(jqXHR, textStatus, errorThrown) {
-    console.error("Error:", textStatus);
+}, function(errorText) {
+    console.error("Error:", errorText);
 });
 
 // For custom queries with Bus.Call, specify the model type:
@@ -793,8 +808,8 @@ Bus.Call(
     function(users) {
         console.log("Found users:", users);
     },
-    function(jqXHR, textStatus, errorThrown) {
-        console.error("Search failed:", textStatus);
+    function(errorText) {
+        console.error("Search failed:", errorText);
     }
 );
 ```
@@ -841,8 +856,8 @@ function loadSettings() {
         // Hide loading, show form
         $("#loading").hide();
         $("#settingsForm").show();
-    }, function(jqXHR, textStatus, errorThrown) {
-        console.error("Failed to load settings:", textStatus, errorThrown);
+    }, function(errorText) {
+        console.error("Failed to load settings:", errorText);
         $("#loading").hide();
         $("#error").text("Failed to load settings. Please refresh the page.").show();
     });
@@ -893,9 +908,9 @@ function saveSettings() {
         } else {
             alert("Error: " + result.ErrorMessage);
         }
-    }, function(jqXHR, textStatus, errorThrown) {
+    }, function(errorText) {
         $("#btnSave").prop("disabled", false).text("Save Changes");
-        console.error("Failed to save settings:", textStatus, errorThrown);
+        console.error("Failed to save settings:", errorText);
         alert("Failed to save settings. Please try again.");
     });
 }
@@ -1007,7 +1022,7 @@ using Zerra.Logging;
 
 // Configure components
 ISerializer serializer = new ZerraJsonSerializer();
-ILogger logger = new Logger();
+ILogger logger = new ConsoleLogger();
 
 // Create API client
 var apiClient = new ApiClient(
@@ -1069,15 +1084,18 @@ public class ApiKeyAuthorizer : ICqrsAuthorizer
         throw new NotImplementedException();
     }
 
-    public ValueTask<Dictionary<string, List<string?>>> GetAuthorizationHeadersAsync(
+    public Dictionary<string, List<string?>> GetAuthorizationHeaders(
         CancellationToken cancellationToken = default)
     {
-        var headers = new Dictionary<string, List<string?>>
+        return new Dictionary<string, List<string?>>
         {
             ["X-API-Key"] = new List<string?> { _apiKey }
         };
-        return new ValueTask<Dictionary<string, List<string?>>>(headers);
     }
+
+    public ValueTask<Dictionary<string, List<string?>>> GetAuthorizationHeadersAsync(
+        CancellationToken cancellationToken = default)
+        => new(GetAuthorizationHeaders(cancellationToken));
 }
 
 // Use the authorizer with ApiClient
@@ -1350,7 +1368,7 @@ var orderServiceClient = new TcpCqrsClient("order-service:9002", serializer, nul
 bus.AddCommandProducer<IOrderCommands>(orderServiceClient);
 bus.AddQueryClient<IOrderQueries>(orderServiceClient);
 
-builder.Services.AddSingleton(bus);
+builder.Services.AddSingleton<IBus>(bus);
 builder.Services.AddSingleton(serializer);
 
 var app = builder.Build();
@@ -1399,33 +1417,22 @@ app.UseCqrsApiGateway(); // Anyone can call any command!
 }
 ```
 
-### 4. Configure CORS Properly
+### 4. Don't Rely on CORS for Access Control
 
-```csharp
-// ✅ Good - specific origins in production
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("Production", policy =>
-    {
-        policy.WithOrigins("https://myapp.com", "https://mobile.myapp.com")
-              .AllowAnyMethod()
-              .AllowAnyHeader();
-    });
-});
-```
+The gateway always responds with `Access-Control-Allow-Origin: *` (see [CORS Configuration](#cors-configuration)), so CORS does not restrict which sites can call it. Use `ICqrsAuthorizer` and authentication to control access.
 
 ### 5. Use Rate Limiting
 
 ```csharp
-using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 
 builder.Services.AddRateLimiter(options =>
 {
-    options.AddFixedWindowLimiter("api", opt =>
-    {
-        opt.Window = TimeSpan.FromMinutes(1);
-        opt.PermitLimit = 100;
-    });
+    // The gateway is middleware rather than an endpoint, so use a global limiter instead of a named policy
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions { Window = TimeSpan.FromMinutes(1), PermitLimit = 100 }));
 });
 
 var app = builder.Build();
@@ -1436,12 +1443,12 @@ app.UseCqrsApiGateway();
 ### 6. Log Gateway Activity
 
 ```csharp
-ILogger log = new Logger();
-IBusLogger busLog = new BusLogger();
+Zerra.Logging.ILogger log = new ConsoleLogger();
+IBusLogger busLog = new ConsoleBusLogger();
 
 var bus = Bus.New("MyService", log: log, busLog: busLog);
 
-// BusLogger will track all commands/queries/events through the gateway
+// The bus logger tracks the commands and queries received through the gateway
 ```
 
 ### 7. Use Front End Scripts for Browser Clients
@@ -1456,7 +1463,6 @@ var bus = Bus.New("MyService", log: log, busLog: busLog);
 
 // Copy Bus.js/Bus.ts and generated models to your web project
 // See examples in "Front End Scripts (JavaScript/TypeScript)" section
-```
 ```
 
 ## When to Use Zerra.Web
@@ -1478,24 +1484,25 @@ Don't use when:
 
 ## Troubleshooting
 
-### Gateway Returns 400 Bad Request
+### Gateway Returns 400 or 500
 
-**Problem**: API Gateway returns 400 for valid requests
+**Problem**: API Gateway rejects requests
 
 **Solutions**:
-- Verify `MessageType` is the fully-qualified type name (e.g., `MyApp.Commands.CreateUserCommand`)
-- Check that the message type is registered with the bus
-- Ensure request body matches the command/query/event structure
-- Verify `Content-Type` header matches the serializer
+- A `400` means the body had neither `ProviderType` (query) nor `MessageType` (command); check the `ApiRequestData` shape
+- Verify the `Content-Type` header matches the registered serializer (see [Content Type Support](#content-type-support)); a mismatch is rejected
+- Verify `MessageType` names a command type the gateway can resolve (events are rejected) and that the bus has a handler or producer for it
+- Verify `ProviderType` names a query interface registered with the bus
 
 ### Authorization Fails
 
-**Problem**: API Gateway returns 401 Unauthorized
+**Problem**: Requests fail authorization
 
 **Solutions**:
 - Verify `ICqrsAuthorizer` is registered in DI container
 - Check authorization headers are included in client requests
 - Ensure `Authorize()` method doesn't throw exceptions for valid requests
+- Remember that an exception from `Authorize()` itself currently surfaces through the ASP.NET pipeline rather than as the gateway's `401` response
 - Use a debugger to inspect the headers received
 
 ### CORS Errors in Browser
@@ -1503,10 +1510,9 @@ Don't use when:
 **Problem**: Browser shows CORS policy errors
 
 **Solutions**:
-- Configure ASP.NET CORS middleware before the gateway
-- Verify `Access-Control-Allow-Origin` includes your client domain
-- Check that preflight OPTIONS requests are handled (gateway does this automatically)
-- Ensure client sends correct `Origin` header
+- Verify the request path matches the gateway `route`; requests to other paths are passed on and don't get the gateway's CORS headers
+- Check that another CORS middleware isn't adding a conflicting `Access-Control-Allow-Origin` header (the gateway always appends `*`)
+- Check that preflight OPTIONS requests reach the gateway (it answers them automatically)
 
 ### Performance Issues
 

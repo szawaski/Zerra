@@ -62,7 +62,7 @@ public sealed class PetDataModel
 Call this at application startup, passing your `DataContext` type, the model types to manage, and an `ILogger` to receive the generation output:
 
 ```csharp
-ILogger log = new Logger(); // your ILogger implementation
+ILogger log = new ConsoleLogger(); // your ILogger implementation
 
 CodeFirstGeneration.Generate<MyMsSqlContext>(
     DataStoreGenerationType.CodeFirst,

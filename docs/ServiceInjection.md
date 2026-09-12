@@ -2,16 +2,16 @@
 
 # Service Injection
 
-Zerra provides a simple dependency injection mechanism through the `BusServices` class, allowing handlers to access scoped dependencies during message processing.
+Zerra provides a simple dependency injection mechanism through the `BusServices` class, allowing handlers to access registered service instances during message processing.
 
 ## Overview
 
 The `BusServices` class:
 - Manages service dependencies for bus initialization
-- Provides a container for registering service instances
+- Provides a container for registering service instances (one shared instance per interface)
 - Makes dependencies available to handlers via `BusContext`
 - Supports interface-based dependency registration
-- Thread-safe and efficient for handler execution
+- Is read-only during handler execution; complete registration before creating the bus
 
 ## BusServices Class
 
@@ -32,10 +32,10 @@ busServices.AddService<IConfiguration>(configuration);
 
 // Pass to Bus.New()
 var bus = Bus.New(
-    service: "MyService",
+    serviceName: "MyService",
     log: logger,
     busLog: busLogger,
-    busScopes: busServices
+    busServices: busServices
 );
 ```
 
@@ -116,7 +116,7 @@ For optional dependencies, use `TryGetService`:
 public class UserCommandHandler : BaseHandler, ICommandHandler<CreateUserCommand>
 {
     public async Task Handle(CreateUserCommand command, CancellationToken cancellationToken)
-{
+    {
         // Try to get optional service
         if (Context.TryGetService<IEmailService>(out var emailService))
         {
@@ -156,7 +156,7 @@ public class MyHandler : BaseHandler, ICommandHandler<MyCommand>
         ILogger? logViaContext = Context.Log; // Same instance
 
         // Access current service name (only via Context)
-        string serviceName = Context.Service;
+        string serviceName = Context.ServiceName;
 
         // Get registered service
         var repository = Context.GetService<IRepository>();
@@ -188,11 +188,11 @@ public interface IUserRepository
 // Register
 busServices.AddService<IUserRepository>(new UserRepository(connectionString));
 
-// Use in handler
-public async Task Handle(GetUserQuery query, CancellationToken cancellationToken)
+// Use in a query handler method
+public async Task<User> GetUserById(int userId, CancellationToken cancellationToken)
 {
     var repository = Context.GetService<IUserRepository>();
-    return await repository.GetByIdAsync(query.UserId, cancellationToken);
+    return await repository.GetByIdAsync(userId, cancellationToken);
 }
 ```
 
@@ -208,11 +208,11 @@ public interface IEmailService
 // Register
 busServices.AddService<IEmailService>(new EmailService(smtpConfig));
 
-// Use in handler
-public async Task Handle(UserCreatedEvent @event, CancellationToken cancellationToken)
+// Use in an event handler (event handlers do not receive a CancellationToken)
+public async Task Handle(UserCreatedEvent @event)
 {
     var emailService = Context.GetService<IEmailService>();
-    await emailService.SendWelcomeEmailAsync(@event.Email, cancellationToken);
+    await emailService.SendWelcomeEmailAsync(@event.Email, CancellationToken.None);
 }
 ```
 
@@ -248,22 +248,22 @@ public interface ICacheService
 // Register
 busServices.AddService<ICacheService>(new RedisCacheService(redisConnection));
 
-// Use in handler
-public async Task<User> Handle(GetUserQuery query, CancellationToken cancellationToken)
+// Use in a query handler method
+public async Task<User> GetUserById(int userId, CancellationToken cancellationToken)
 {
     var cache = Context.GetService<ICacheService>();
 
     // Try cache first
-    var cachedUser = await cache.GetAsync<User>($"user:{query.UserId}", cancellationToken);
+    var cachedUser = await cache.GetAsync<User>($"user:{userId}", cancellationToken);
     if (cachedUser != null)
         return cachedUser;
 
     // Not in cache - get from repository
     var repository = Context.GetService<IUserRepository>();
-    var user = await repository.GetByIdAsync(query.UserId, cancellationToken);
+    var user = await repository.GetByIdAsync(userId, cancellationToken);
 
     // Cache for next time
-    await cache.SetAsync($"user:{query.UserId}", user, TimeSpan.FromMinutes(5), cancellationToken);
+    await cache.SetAsync($"user:{userId}", user, TimeSpan.FromMinutes(5), cancellationToken);
 
     return user;
 }
@@ -292,7 +292,7 @@ public class UserCommandHandler : BaseHandlerWithRepo, ICommandHandler<CreateUse
     {
         // Access via Repo property
         var user = new User { Email = command.Email };
-        await Repo.CreateAsync(user, cancellationToken);
+        await Repo.CreateAsync(user);
     }
 }
 ```
@@ -303,6 +303,7 @@ public class UserCommandHandler : BaseHandlerWithRepo, ICommandHandler<CreateUse
 
 ```csharp
 using Zerra.CQRS;
+using Zerra.CQRS.Network;
 using Zerra.Serialization;
 using Zerra.Encryption;
 using Zerra.Logging;
@@ -324,10 +325,10 @@ busServices.AddService<IConfiguration>(configuration);
 
 // Create bus with services
 var bus = Bus.New(
-    service: "UserService",
-    log: new Logger(),
-    busLog: new BusLogger(),
-    busScopes: busServices
+    serviceName: "UserService",
+    log: new ConsoleLogger(),
+    busLog: new ConsoleBusLogger(),
+    busServices: busServices
 );
 
 // Register handlers
@@ -337,7 +338,7 @@ bus.AddHandler<IUserQueries>(new UserQueryHandler());
 // Setup network components
 var serializer = new ZerraByteSerializer();
 var encryptor = new ZerraEncryptor("securePassword", SymmetricAlgorithmType.AESwithPrefix);
-var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, new Logger());
+var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, new ConsoleLogger());
 
 bus.AddCommandConsumer<IUserCommandHandler>(server);
 bus.AddQueryServer<IUserQueries>(server);
@@ -349,6 +350,7 @@ await bus.WaitForExitAsync(cancellationToken);
 
 ```csharp
 using Zerra.CQRS;
+using Zerra.CQRS.Network;
 using Zerra.Serialization;
 using Zerra.Encryption;
 using Zerra.Logging;
@@ -358,16 +360,16 @@ var busServices = new BusServices();
 
 // Create bus
 var bus = Bus.New(
-    service: "ClientApp",
-    log: new Logger(),
-    busLog: new BusLogger(),
-    busScopes: busServices
+    serviceName: "ClientApp",
+    log: new ConsoleLogger(),
+    busLog: new ConsoleBusLogger(),
+    busServices: busServices
 );
 
 // Setup network client
 var serializer = new ZerraByteSerializer();
 var encryptor = new ZerraEncryptor("securePassword", SymmetricAlgorithmType.AESwithPrefix);
-var client = new TcpCqrsClient("localhost:9001", serializer, encryptor, new Logger());
+var client = new TcpCqrsClient("localhost:9001", serializer, encryptor, new ConsoleLogger());
 
 bus.AddCommandProducer<IUserCommandHandler>(client);
 bus.AddQueryClient<IUserQueries>(client);
@@ -407,8 +409,8 @@ var emailService = Context.GetService<IEmailService>(); // Throws if not registe
 // ✅ Good - validate at startup
 var bus = Bus.New("MyService", logger, busLogger, busServices);
 
-// Verify required services are registered
-if (!busServices.Dependencies.ContainsKey(typeof(IUserRepository)))
+// Verify required services are registered (IBus exposes the same GetService/TryGetService as BusContext)
+if (!bus.TryGetService<IUserRepository>(out _))
     throw new InvalidOperationException("IUserRepository not registered");
 ```
 
@@ -456,10 +458,13 @@ busServices.AddService<IEmailService>(emailService);
 
 var bus = Bus.New("MyService", logger, busLogger, busServices);
 
-// ❌ Wrong - can't add services after bus creation
+// ❌ Avoid - registering after the bus is created and consumers/servers are running
 var bus = Bus.New("MyService", logger, busLogger, busServices);
-busServices.AddService<IUserRepository>(userRepository); // Services already passed to bus
+bus.AddCommandConsumer<IUserCommandHandler>(server);
+busServices.AddService<IUserRepository>(userRepository); // races with handlers reading the registrations
 ```
+
+The bus reads the same underlying registrations, so a late registration does become visible, but the container is not thread-safe for writes while handlers are resolving services. Complete all registrations before creating the bus.
 
 ## Singleton vs Scoped Services
 
@@ -510,19 +515,16 @@ public class UnsafeRepository : IUserRepository
 For ASP.NET Core integration, you can bridge the two systems:
 
 ```csharp
-// In Startup.cs or Program.cs
-public void ConfigureServices(IServiceCollection services)
-{
-    // Register in ASP.NET Core DI
-    services.AddSingleton<IUserRepository, UserRepository>();
-    services.AddSingleton<IEmailService, EmailService>();
-}
+// Program.cs - register in ASP.NET Core DI
+builder.Services.AddSingleton<IUserRepository, UserRepository>();
+builder.Services.AddSingleton<IEmailService, EmailService>();
 
-// Create BusServices from ASP.NET Core DI
-var serviceProvider = app.Services;
+var app = builder.Build();
+
+// Create BusServices from the built ASP.NET Core container
 var busServices = new BusServices();
-busServices.AddService<IUserRepository>(serviceProvider.GetRequiredService<IUserRepository>());
-busServices.AddService<IEmailService>(serviceProvider.GetRequiredService<IEmailService>());
+busServices.AddService<IUserRepository>(app.Services.GetRequiredService<IUserRepository>());
+busServices.AddService<IEmailService>(app.Services.GetRequiredService<IEmailService>());
 
 var bus = Bus.New("MyService", logger, busLogger, busServices);
 ```

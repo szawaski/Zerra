@@ -199,7 +199,7 @@ public class UserCommandHandler : BaseHandler, IUserCommandHandler
         ILogger? logger = this.Log;  // or Context.Log
 
         // Get service name
-        string serviceName = Context.Service;
+        string serviceName = Context.ServiceName;
 
         // Retrieve injected services
         var repository = Context.GetService<IUserRepository>();
@@ -309,7 +309,7 @@ catch (OperationCanceledException)
 {
     // Thrown if cancelled before dispatch completes
     // Remote handler continues executing
-    Log?.Warning("Dispatch was cancelled, but remote handler continues");
+    Log?.Warn("Dispatch was cancelled, but remote handler continues");
 }
 ```
 
@@ -380,12 +380,14 @@ using Zerra.CQRS.RabbitMQ;
 using Zerra.CQRS.AzureServiceBus;
 
 // Server side - Kafka consumer
-var kafkaConsumer = new KafkaConsumer(kafkaConfig, serializer, encryptor, logger);
+var kafkaConsumer = new KafkaConsumer("localhost:9092", serializer, encryptor, logger, environment: null, userName: null, password: null);
 bus.AddCommandConsumer<IUserCommandHandler>(kafkaConsumer);
 
 // Client side - Kafka producer
-var kafkaProducer = new KafkaProducer(kafkaConfig, serializer, encryptor, logger);
+var kafkaProducer = new KafkaProducer("localhost:9092", serializer, encryptor, logger, environment: null, userName: null, password: null);
 bus.AddCommandProducer<IUserCommandHandler>(kafkaProducer);
+
+// RabbitMQProducer/RabbitMQConsumer and AzureServiceBusProducer/AzureServiceBusConsumer follow the same pattern
 
 // Dispatch - sends to Kafka topic
 await bus.DispatchAsync(new CreateUserCommand 
@@ -395,53 +397,13 @@ await bus.DispatchAsync(new CreateUserCommand
 });
 ```
 
-## Dispatching Methods
+## Timeouts
 
-### DispatchAsync vs DispatchAwaitAsync
-
-Zerra provides two dispatch methods with different behaviors:
-
-#### DispatchAsync - Fire and Forget
+Every dispatch method has an overload that takes a `CancellationToken` and one that takes a `TimeSpan`. When neither is supplied, the bus's `defaultDispatchTimeout` / `defaultDispatchAwaitTimeout` apply (see [Client Setup](ClientSetup.md#timeout-configuration)). A timeout surfaces as `TimeoutException`.
 
 ```csharp
-// ✅ Fire and forget - returns immediately after sending
-await bus.DispatchAsync(new CreateUserCommand 
-{ 
-    Email = "user@example.com",
-    Name = "John Doe"
-});
-
-// Continues execution immediately (command may still be processing)
-Log?.Info("Command dispatched");
+await bus.DispatchAwaitAsync(new CreateUserCommand { Email = "user@example.com", Name = "John Doe" }, TimeSpan.FromSeconds(10));
 ```
-
-**Use when:**
-- You don't need to wait for completion
-- You want maximum throughput
-- The command is idempotent
-- You're using message brokers for eventual consistency
-
-#### DispatchAwaitAsync - Wait for Completion
-
-```csharp
-// ✅ Wait for command to complete on remote service
-await bus.DispatchAwaitAsync(new CreateUserCommand 
-{ 
-    Email = "user@example.com",
-    Name = "John Doe"
-});
-
-// Command has completed (or failed with exception)
-Console.WriteLine("Command completed");
-```
-
-**Use when:**
-- You need confirmation of completion
-- You want to handle failures immediately
-- Order of operations matters
-- You need a result from the command
-
-**Always prefer async methods for better scalability and resource utilization.**
 
 ## Error Handling
 
@@ -502,13 +464,13 @@ catch (RemoteServiceException ex)
     else if (ex.ErrorType == nameof(InvalidOperationException))
         Log?.Error("Business rule violation on server");
     else if (ex.ErrorType == nameof(KeyNotFoundException))
-        Log?.Warning("Entity not found on server");
+        Log?.Warn("Entity not found on server");
 }
 catch (TimeoutException)
 {
     // The server did not respond in time.
     // The command may or may not have been processed.
-    Log?.Warning("Command timed out");
+    Log?.Warn("Command timed out");
 }
 catch (Exception ex)
 {

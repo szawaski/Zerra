@@ -179,7 +179,7 @@ graph.RemoveMembers(
 
 ```csharp
 bool hasId = graph.HasMember(x => x.Id);
-bool hasPassword = graph.HasRemovedMember(x => x.Password);
+bool hasPasswordExplicitly = graph.HasMemberExplicitly(x => x.Password); // explicitly added and not removed
 
 bool hasAnyAdded = graph.HasAddedMembers;
 bool hasAnyRemoved = graph.HasRemovedMembers;

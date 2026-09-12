@@ -10,7 +10,7 @@ Encryption in Zerra:
 - Transparent to application code - encryption/decryption happens automatically
 - Symmetric encryption using shared keys
 - Support for multiple algorithms (AES, DES, TripleDES, RC2)
-- Optional prefix mode for algorithm identification
+- Optional prefix or shift modes that make identical messages encrypt differently each time
 - Configured once and applied to all messages
 
 ## ZerraEncryptor
@@ -33,25 +33,31 @@ using Zerra.Encryption;
 
 // Create encryptor with password and algorithm
 IEncryptor encryptor = new ZerraEncryptor(
-    password: "mySecurePassword123!",
-    algorithmType: SymmetricAlgorithmType.AESwithPrefix
+    key: "mySecurePassword123!",
+    algorithm: SymmetricAlgorithmType.AESwithPrefix
 );
 
-// Use in Bus configuration
-var bus = Bus.New(
-    service: "MyService",
-    log: logger,
-    busLog: busLogger,
-    busScopes: busScopes
-);
-
-// Use in network components
+// Encryptors are passed to network components and message broker producers/consumers, not to Bus.New
 var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, log);
 var client = new TcpCqrsClient("localhost:9001", serializer, encryptor, log);
 
-var httpServer = new HttpCqrsServer("localhost:8080", serializer, encryptor, log);
-var httpClient = new HttpCqrsClient("localhost:8080", serializer, encryptor, log);
+var httpServer = new HttpCqrsServer("localhost:8080", serializer, encryptor, null, null, log);
+var httpClient = new HttpCqrsClient("localhost:8080", serializer, encryptor, null, log);
 ```
+
+### Constructor Parameters
+
+```csharp
+public ZerraEncryptor(
+    string key,                                         // Password the symmetric key is derived from
+    SymmetricAlgorithmType algorithm,                   // Algorithm and mode (see below)
+    SymmetricKeySize keySize = SymmetricKeySize.Bits_256,
+    SymmetricBlockSize blockSize = SymmetricBlockSize.Bits_128,
+    HashAlgorithmName? hashAlgorithm = null,            // Hash used for key derivation
+    int deriveKeyIterations = 1000)                     // Key derivation iterations
+```
+
+All of these values must match on both sides.
 
 ### Without Encryption
 
@@ -138,13 +144,17 @@ The "withPrefix" variants add a random prefix to encrypted data, which combined 
 IEncryptor encryptor = new ZerraEncryptor("myPassword", SymmetricAlgorithmType.AESwithPrefix);
 
 // Encrypting the same data twice produces different results
-var data = "Hello World";
+var data = Encoding.UTF8.GetBytes("Hello World");
 var encrypted1 = encryptor.Encrypt(data);  // e.g., [random prefix 1][encrypted bytes 1]
 var encrypted2 = encryptor.Encrypt(data);  // e.g., [random prefix 2][encrypted bytes 2]
 
 // encrypted1 != encrypted2 (different ciphertext for same plaintext)
 // But both decrypt back to "Hello World"
 ```
+
+### Shift Mode
+
+The "withShift" variants (`AESwithShift`, `DESwithShift`, `TripleDESwithShift`, `RC2withShift`) reach the same goal differently. They insert a random block that shifts all other blocks, so identical plaintext still encrypts to different ciphertext each time. Choose one mode and use it on both sides; prefix, shift, and plain variants are not interchangeable.
 
 ### Security Benefit
 
@@ -230,7 +240,8 @@ IEncryptor encryptor = new ZerraEncryptor("abc", SymmetricAlgorithmType.AESwithP
 ⚠️ **Critical**: Both client and server must use:
 1. The same encryption password
 2. The same algorithm
-3. The same prefix mode
+3. The same mode (plain, prefix, or shift)
+4. The same key size, block size, hash algorithm, and key derivation iterations (if overridden)
 
 ```csharp
 // ❌ Will NOT work - different passwords
@@ -261,8 +272,8 @@ var clientEncryptor = new ZerraEncryptor("sharedPassword", SymmetricAlgorithmTyp
 
 ```csharp
 IEncryptor encryptor = new ZerraEncryptor(
-    password: GetSecurePassword(),
-    algorithmType: SymmetricAlgorithmType.AESwithPrefix
+    key: GetSecurePassword(),
+    algorithm: SymmetricAlgorithmType.AESwithPrefix
 );
 ```
 
@@ -312,23 +323,31 @@ To implement custom encryption, create a class implementing `IEncryptor`:
 ```csharp
 public interface IEncryptor
 {
-    byte[] Encrypt(byte[] data);
-    byte[] Decrypt(byte[] data);
+    byte[] Encrypt(byte[] bytes);
+    byte[] Decrypt(byte[] bytes);
+    Span<byte> Encrypt(ReadOnlySpan<byte> bytes);
+    Span<byte> Decrypt(ReadOnlySpan<byte> bytes);
+    CryptoFlushStream Encrypt(Stream stream, bool write);   // used for streamed payloads
+    CryptoFlushStream Decrypt(Stream stream, bool write);
 }
 
 public class CustomEncryptor : IEncryptor
 {
-    public byte[] Encrypt(byte[] data)
+    public byte[] Encrypt(byte[] bytes)
     {
         // Your custom encryption logic
     }
 
-    public byte[] Decrypt(byte[] data)
+    public byte[] Decrypt(byte[] bytes)
     {
         // Your custom decryption logic
     }
+
+    // ...plus the Span and Stream overloads
 }
 ```
+
+Stream encryption returns a `CryptoFlushStream` (namespace `Zerra.Encryption`), which wraps a stream and exposes `FlushFinalBlock`/`FlushFinalBlockAsync`.
 
 ## Common Scenarios
 
@@ -361,7 +380,7 @@ IEncryptor encryptor = new ZerraEncryptor(
 
 ```csharp
 // Disable encryption for local debugging
-IEncryptor encryptor = null;
+IEncryptor? encryptor = null;
 var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, log);
 ```
 

@@ -201,48 +201,68 @@ string json = JsonSerializer.Serialize(user, options: options);
 
 Extend `JsonSerializer` with custom type conversion:
 
+Converters are resumable: the reader and writer work on buffered segments, so each method returns `true` when it completed and `false` when it needs more data (for writes, set `state.SizeNeeded`). Values that fit in a single token, like the one below, can set `StackRequired => false` and complete in one call.
+
 ```csharp
+using System.Globalization;
+using System.Text;
 using Zerra.Serialization.Json;
 using Zerra.Serialization.Json.Converters;
+using Zerra.Serialization.Json.IO;
+using Zerra.Serialization.Json.State;
 
-public class CustomDateTimeConverter : JsonConverter<DateTime>
+public sealed class DateOnlyStringConverter : JsonConverter<DateTime>
 {
-    public override DateTime Read(ref JsonReader reader)
+    protected override bool StackRequired => false;
+
+    protected override bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonToken token, out DateTime value)
     {
-        // Custom deserialization logic
-        var str = reader.ReadString();
-        return DateTime.ParseExact(str, "yyyy-MM-dd", null);
+        if (token != JsonToken.String)
+        {
+            value = default;
+            return true;
+        }
+
+        var text = reader.UseBytes ? Encoding.UTF8.GetString(reader.ValueBytes) : reader.ValueChars.ToString();
+        value = DateTime.ParseExact(text, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+        return true;
     }
 
-    public override void Write(ref JsonWriter writer, DateTime value)
-    {
-        // Custom serialization logic
-        writer.Write(value.ToString("yyyy-MM-dd"));
-    }
+    protected override bool TryWriteValue(ref JsonWriter writer, ref WriteState state, in DateTime value)
+        => writer.TryWriteQuoted(value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), out state.SizeNeeded);
 }
 
 // Register converter before first use
-JsonSerializer.AddConverter(typeof(DateTime), () => new CustomDateTimeConverter());
+JsonSerializer.AddConverter(typeof(DateTime), () => new DateOnlyStringConverter());
 ```
+
+See the built-in converters under `Zerra.Serialization.Json.Converters` for objects, collections, and other multi-token values.
 
 ## Configuration Options
 
 ### JsonSerializerOptions
 
-`JsonSerializer` accepts optional configuration:
+`JsonSerializer` accepts optional configuration (`Zerra.Serialization.Json.JsonSerializerOptions`):
 
 ```csharp
 using Zerra.Serialization.Json;
 
 var options = new JsonSerializerOptions
 {
-    WriteIndented = true,              // Pretty-print JSON  
-    Nameless = true,                   // Compact array mode
-    PropertyNameCaseInsensitive = true // Case-insensitive deserialization
+    Nameless = false,                    // Write arrays of values instead of named properties
+    DoNotWriteNullProperties = true,     // Omit properties whose value is null
+    DoNotWriteDefaultProperties = false, // Omit properties whose value is the type default
+    EnumAsNumber = false,                // Write enums as numbers instead of names
+    ErrorOnTypeMismatch = false,         // Throw when a JSON value doesn't match the target type
+    IgnoreCase = true                    // Case-insensitive property name matching (slower)
 };
 
 string json = JsonSerializer.Serialize(obj, options: options);
 ```
+
+Output is always compact; there is no indented/pretty-print option.
+
+Member-level control is available with `[JsonPropertyName("name")]` and `[JsonIgnore]` (with a `JsonIgnoreCondition`: `Always`, `WhenReading`, `WhenWriting`, `WhenWritingDefault`, `WhenWritingNull`) from `Zerra.Serialization.Json`.
 
 ### For CQRS Bus Usage
 
@@ -254,7 +274,7 @@ using Zerra.Serialization.Json;
 
 var options = new JsonSerializerOptions
 {
-    WriteIndented = false  // Compact for production
+    DoNotWriteNullProperties = true  // Smaller payloads
 };
 
 var serializer = new ZerraJsonSerializer(options);
@@ -313,7 +333,7 @@ using Zerra.Serialization;
 using Zerra.Serialization.Json;
 
 // Wrap JsonSerializer for Bus usage
-var options = new JsonSerializerOptions { WriteIndented = false };
+var options = new JsonSerializerOptions { DoNotWriteNullProperties = true };
 var serializer = new ZerraJsonSerializer(options);
 var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, logger);
 ```
@@ -509,20 +529,19 @@ var clientSerializer = new ZerraJsonSerializer();
 ### 5. Configure for Environment
 
 ```csharp
-// Production - compact
+// Production - smallest payloads
 var prodOptions = new JsonSerializerOptions
 {
-    WriteIndented = false
+    DoNotWriteNullProperties = true,
+    EnumAsNumber = true
 };
 
-// Development - readable
+// Development - strict and readable
 var devOptions = new JsonSerializerOptions
 {
-    WriteIndented = true
+    ErrorOnTypeMismatch = true
 };
 ```
-
-## When to Use JsonSerializer
 
 ## When to Use JsonSerializer
 
@@ -545,14 +564,12 @@ See [Serializers Overview](Serializers.md) for comparison with other serializati
 
 ## Troubleshooting
 
-## Troubleshooting
-
 ### Deserialization Fails
 
-**Problem**: JSON deserialization throws exception
+**Problem**: JSON deserialization throws exception or leaves properties unset
 
 **Solutions**:
-- Enable case-insensitive deserialization: `PropertyNameCaseInsensitive = true`
+- Enable case-insensitive deserialization: `IgnoreCase = true`
 - Verify JSON property names match .NET property names
 - Ensure both client and server use `ZerraJsonSerializer`
 - Check that type definitions match between sender and receiver

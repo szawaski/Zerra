@@ -55,7 +55,7 @@ var copy = original.Copy();
 
 // Copy using runtime type
 object obj = GetComplexObject();
-var objCopy = obj.CopyObject();
+var objCopy = obj.Copy(obj.GetType());
 ```
 
 ## Automatic Property Mapping
@@ -568,13 +568,16 @@ Implement `IMapDefinition` when you need custom mapping logic:
 // Map to new instance (inferred source type)
 TTarget Map<TTarget>(this object source, Graph? graph = null)
 
+// Map to new instance (runtime source type)
+TTarget Map<TTarget>(this object source, Type sourceType, Graph? graph = null)
+object Map(this object source, Type sourceType, Type targetType, Graph? graph = null)
+
 // Map to new instance (explicit source and target types)
 TTarget Map<TSource, TTarget>(this TSource source, Graph? graph = null)
 
 // Map to existing instance
 void MapTo<TSource, TTarget>(this TSource source, TTarget target, Graph? graph = null)
-    where TSource : notnull
-    where TTarget : notnull
+void MapTo(this object source, Type sourceType, object target, Type targetType, Graph? graph = null)
 ```
 
 ### Copy Extension Methods
@@ -583,8 +586,11 @@ void MapTo<TSource, TTarget>(this TSource source, TTarget target, Graph? graph =
 // Deep copy (generic)
 TTarget Copy<TTarget>(this TTarget source, Graph? graph = null)
 
-// Deep copy (object)
-object CopyObject(this object source, Graph? graph = null)
+// Deep copy to a specified type (object source)
+TTarget Copy<TTarget>(this object source, Graph? graph = null)
+
+// Deep copy (runtime type)
+object Copy(this object source, Type sourceType, Graph? graph = null)
 ```
 
 ### Mapper Static Methods

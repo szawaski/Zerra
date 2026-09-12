@@ -27,7 +27,8 @@ dotnet add package Zerra.CQRS.AzureServiceBus
 ## Prerequisites
 
 - An Azure Service Bus namespace with connection string
-- Required NuGet packages: `Zerra.CQRS`, `Zerra.CQRS.AzureServiceBus`
+- Required NuGet packages: `Zerra`, `Zerra.CQRS.AzureServiceBus`
+- Examples use the sample `ConsoleLogger` / `ConsoleBusLogger` implementations from [Logging](Logging.md); substitute your own
 
 ## Client Setup (Producer)
 
@@ -57,10 +58,10 @@ var busServices = new BusServices();
 
 // Create the bus
 var bus = Bus.New(
-    service: serviceName,
+    serviceName: serviceName,
     log: logger,
     busLog: busLogger,
-    busScopes: busServices
+    busServices: busServices
 );
 
 // Create Azure Service Bus producer
@@ -112,10 +113,10 @@ var busServices = new BusServices();
 
 // Create bus
 var bus = Bus.New(
-    service: serviceName,
+    serviceName: serviceName,
     log: logger,
     busLog: busLogger,
-    busScopes: busServices
+    busServices: busServices
 );
 
 // Create and configure Azure Service Bus producer
@@ -192,10 +193,10 @@ busServices.AddService<IUserRepository>(new UserRepository(connectionString));
 
 // Create the bus
 var bus = Bus.New(
-    service: serviceName,
+    serviceName: serviceName,
     log: logger,
     busLog: busLogger,
-    busScopes: busServices
+    busServices: busServices
 );
 
 // Register handlers
@@ -259,10 +260,10 @@ busServices.AddService<IEmailService>(emailService);
 
 // Create bus
 var bus = Bus.New(
-    service: serviceName,
+    serviceName: serviceName,
     log: logger,
     busLog: busLogger,
-    busScopes: busServices
+    busServices: busServices
 );
 
 // Register handlers
@@ -344,9 +345,9 @@ var devProducer = new AzureServiceBusProducer(connectionString, serializer, encr
 var prodProducer = new AzureServiceBusProducer(connectionString, serializer, encryptor, logger, "prod");
 ```
 
-Queues/topics will be named like:
-- `dev_UserCommandQueue`
-- `prod_UserCommandQueue`
+Queue (commands) and topic (events) names are the handler interface name (e.g. `IUserCommandHandler`) prefixed with the environment:
+- `dev_IUserCommandHandler`
+- `prod_IUserCommandHandler`
 
 ## See Also
 

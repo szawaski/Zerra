@@ -47,13 +47,13 @@ using Zerra.Encryption;
 // Configure services
 ISerializer serializer = new ZerraByteSerializer();
 IEncryptor encryptor = new ZerraEncryptor("mySecurePassword", SymmetricAlgorithmType.AESwithPrefix);
-BusScopes busScopes = new BusScopes();
-busScopes.AddService<IUserRepository>(userRepository);
+BusServices busServices = new BusServices();
+busServices.AddService<IUserRepository>(userRepository);
 
 // Create the bus
 var bus = Bus.New(
-    service: "UserService",
-    busScopes: busScopes
+    serviceName: "UserService",
+    busServices: busServices
 );
 
 // Register local handlers
@@ -61,7 +61,7 @@ bus.AddHandler<IUserCommandHandlers>(userCommandHandler);
 bus.AddHandler<IUserQueries>(userQueryHandler);
 
 // Create TCP CQRS server
-var server = new TcpCqrsServer("localhost:9001", serializer, encryptor);
+var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, log: null);
 bus.AddCommandConsumer<IUserCommandHandlers>(server);
 bus.AddQueryServer<IUserQueries>(server);
 
@@ -74,6 +74,8 @@ await bus.WaitForExitAsync(cancellationToken);
 ```csharp
 using Zerra.CQRS;
 using Zerra.CQRS.Network;
+using Zerra.Serialization;
+using Zerra.Encryption;
 
 // Configure services (must match server)
 ISerializer serializer = new ZerraByteSerializer();
@@ -83,12 +85,12 @@ IEncryptor encryptor = new ZerraEncryptor("mySecurePassword", SymmetricAlgorithm
 var bus = Bus.New(service: "ClientService");
 
 // Create TCP CQRS client
-var client = new TcpCqrsClient("localhost:9001", serializer, encryptor);
+var client = new TcpCqrsClient("localhost:9001", serializer, encryptor, log: null);
 bus.AddCommandProducer<IUserCommandHandlers>(client);
 bus.AddQueryClient<IUserQueries>(client);
 
 // Dispatch commands and queries
-var user = await bus.DispatchAwaitAsync(new CreateUserCommand { Email = "user@example.com" });
+await bus.DispatchAwaitAsync(new CreateUserCommand { Email = "user@example.com" });
 var activeUsers = await bus.Call<IUserQueries>().GetActiveUsers(cancellationToken);
 ```
 
@@ -111,7 +113,7 @@ public class UserQueryHandler : BaseHandler, IUserQueries
 {
     public async Task<User> GetUserById(int id, CancellationToken cancellationToken)
     {
-        var repository = GetService<IUserRepository>();
+        var repository = Context.GetService<IUserRepository>();
         return await repository.GetByIdAsync(id, cancellationToken);
     }
 }
@@ -136,7 +138,7 @@ public class UserCommandHandler : BaseHandler, ICommandHandler<CreateUserCommand
 {
     public async Task Handle(CreateUserCommand command, CancellationToken ct)
     {
-        var repository = GetService<IUserRepository>();
+        var repository = Context.GetService<IUserRepository>();
         await repository.CreateAsync(command.Email, ct);
     }
 }
@@ -162,7 +164,7 @@ public class UserEventHandler : BaseHandler, IEventHandler<UserCreatedEvent>
 {
     public async Task Handle(UserCreatedEvent @event)
     {
-        var emailService = GetService<IEmailService>();
+        var emailService = Context.GetService<IEmailService>();
         await emailService.SendWelcomeEmail(@event.Email);
     }
 }
@@ -215,6 +217,7 @@ For comprehensive guides and examples, visit the [GitHub repository](https://git
 - **Zerra.CQRS.RabbitMQ** - RabbitMQ message broker support
 - **Zerra.CQRS.AzureServiceBus** - Azure Service Bus support
 - **Zerra.Web** - ASP.NET Core integration and API gateway
+- **Zerra.Repository** (experimental) - Data store agnostic LINQ-based repository with SQL Server, MySQL, MariaDB, PostgreSQL, in-memory, and KurrentDB providers
 
 ## License
 

@@ -236,8 +236,6 @@ bus.AddCommandProducer<IUserCommandHandler>(client);
 
 ### File Serialization
 
-### File Serialization
-
 ```csharp
 using Zerra.Serialization.Bytes;
 
@@ -262,7 +260,49 @@ using (var stream = File.OpenRead("users.bin"))
 }
 ```
 
-## Best Practices
+## Configuration Options
+
+`ByteSerializer` and `ZerraByteSerializer` accept optional `ByteSerializerOptions` (namespace `Zerra.Serialization.Bytes`):
+
+```csharp
+using Zerra.Serialization;
+using Zerra.Serialization.Bytes;
+
+var options = new ByteSerializerOptions
+{
+    IndexType = ByteSerializerIndexType.Byte, // Byte (default, up to 254 members), UInt16 (up to 65,534), or MemberNames
+    UseTypes = false,                         // Embed type information (needed for boxed/interface-typed members)
+    IgnoreIndexAttribute = false              // Ignore [SerializerIndex] attributes
+};
+
+var bytes = ByteSerializer.Serialize(command, options);
+ISerializer serializer = new ZerraByteSerializer(options);
+```
+
+The same options must be used to serialize and deserialize.
+
+### Versioning Members
+
+By default, members are identified by their declaration order, so adding, removing, or reordering members breaks compatibility with previously serialized data. Two options make types version-tolerant:
+
+- **`[SerializerIndex]`**: assign a stable, unique index to each member. Once any member of a type uses the attribute, only attributed members are serialized.
+- **`ByteSerializerIndexType.MemberNames`**: identify members by name. It's the most flexible option, but also the slowest and largest.
+
+```csharp
+using Zerra.Serialization.Bytes;
+
+public class CreateUserCommand : ICommand
+{
+    [SerializerIndex(1)] public required string Email { get; set; }
+    [SerializerIndex(2)] public required string Name { get; set; }
+    // Added later without breaking existing data:
+    [SerializerIndex(3)] public string? PhoneNumber { get; set; }
+}
+```
+
+### Custom Converters
+
+Register a custom `ByteConverter<T>` (namespace `Zerra.Serialization.Bytes.Converters`) with `ByteSerializer.AddConverter(typeof(T), () => new MyConverter())` before first use.
 
 ## Best Practices
 
@@ -289,13 +329,9 @@ var clientSerializer = new ZerraByteSerializer();
 
 ### 3. Use Source Generation for AOT
 
-```csharp
-// Add to .csproj for AOT support:
-// <ProjectReference Include="Zerra.SourceGeneration.csproj" 
-//                   OutputItemType="Analyzer" 
-//                   ReferenceOutputAssembly="false" />
+The source generator is included in the `Zerra` NuGet package; reference the package in every project that defines serialized types (see [AOT](AOT.md)). With the generator, serialization uses generated metadata instead of runtime reflection:
 
-// All serialization uses generated code - no reflection
+```csharp
 var bytes = ByteSerializer.Serialize(command);
 ```
 
@@ -319,7 +355,7 @@ public class UserCommand : ICommand
     public required string Name { get; set; }
 }
 
-// ❌ Avoid - complex constructors, private setters without init
+// ⚠️ Works, but only via constructor parameter names - the parameter must match a member name
 public class ComplexCommand : ICommand
 {
     private string _email;
@@ -332,12 +368,14 @@ public class ComplexCommand : ICommand
 }
 ```
 
+Types are created with a parameterless constructor when one exists; otherwise the constructor whose parameter names match the serialized member names is used (this is how positional records work). Read-only members that are not constructor parameters are not deserialized.
+
 ## Limitations
 
 1. **Binary Format Only**: Not human-readable; use [JsonSerializer](JsonSerializer.md) for debugging
 2. **.NET Specific**: Both client and server must be .NET applications
 3. **Type Compatibility**: Sender and receiver must have matching type definitions
-4. **No Versioning Support**: Adding/removing properties breaks compatibility (design for forward compatibility)
+4. **Order-Based by Default**: Adding/removing/reordering members breaks compatibility unless you use `[SerializerIndex]` or `ByteSerializerIndexType.MemberNames` (see [Versioning Members](#versioning-members))
 
 ## When to Use ByteSerializer
 
@@ -359,9 +397,9 @@ See [Serializers Overview](Serializers.md) for comparison with other serializati
 **Problem**: `Deserialize` throws exception
 
 **Solutions**:
-- Ensure both client and server use same binary serializer
-- Verify type definitions match exactly between sender and receiver
-- Check that [Zerra.SourceGeneration](AOT.md) is referenced in both projects
+- Ensure both client and server use same binary serializer and the same `ByteSerializerOptions`
+- Verify type definitions match exactly between sender and receiver (or use `[SerializerIndex]` for versioning)
+- Check that the [Zerra package (source generator)](AOT.md) is referenced in both projects
 - Ensure encryption keys match if using encryption
 
 ### Poor Performance
@@ -379,9 +417,10 @@ See [Serializers Overview](Serializers.md) for comparison with other serializati
 **Problem**: Custom type fails to serialize
 
 **Solutions**:
-- Ensure type has a parameterless constructor
+- Ensure type has a parameterless constructor, or a constructor whose parameter names match its members
 - Use public properties with getters and setters
-- Reference [Zerra.SourceGeneration](AOT.md) to generate type metadata
+- For members typed as `object` or an interface, enable `UseTypes`
+- Reference the [Zerra package (source generator)](AOT.md) to generate type metadata
 - Simplify complex type hierarchies
 
 ## See Also

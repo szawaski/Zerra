@@ -28,7 +28,8 @@ dotnet add package Zerra.CQRS.RabbitMQ
 ## Prerequisites
 
 - A running RabbitMQ server
-- Required NuGet packages: `Zerra.CQRS`, `Zerra.CQRS.RabbitMQ`
+- Required NuGet packages: `Zerra`, `Zerra.CQRS.RabbitMQ`
+- Examples use the sample `ConsoleLogger` / `ConsoleBusLogger` implementations from [Logging](Logging.md); substitute your own
 
 ## Client Setup (Producer)
 
@@ -58,10 +59,10 @@ var busServices = new BusServices();
 
 // Create the bus
 var bus = Bus.New(
-    service: serviceName,
+    serviceName: serviceName,
     log: logger,
     busLog: busLogger,
-    busScopes: busServices
+    busServices: busServices
 );
 
 // Create RabbitMQ producer
@@ -112,10 +113,10 @@ var busServices = new BusServices();
 
 // Create bus
 var bus = Bus.New(
-    service: serviceName,
+    serviceName: serviceName,
     log: logger,
     busLog: busLogger,
-    busScopes: busServices
+    busServices: busServices
 );
 
 // Create and configure RabbitMQ producer
@@ -192,10 +193,10 @@ busServices.AddService<IUserRepository>(new UserRepository(connectionString));
 
 // Create the bus
 var bus = Bus.New(
-    service: serviceName,
+    serviceName: serviceName,
     log: logger,
     busLog: busLogger,
-    busScopes: busServices
+    busServices: busServices
 );
 
 // Register handlers
@@ -258,10 +259,10 @@ busServices.AddService<IEmailService>(emailService);
 
 // Create bus
 var bus = Bus.New(
-    service: serviceName,
+    serviceName: serviceName,
     log: logger,
     busLog: busLogger,
-    busScopes: busServices
+    busServices: busServices
 );
 
 // Register handlers
@@ -333,9 +334,9 @@ public RabbitMQConsumer(
 
 ## Advanced Connection Configuration
 
-For advanced RabbitMQ connection settings (username, password, virtual host, port, SSL), you can configure the connection factory before creating the producer/consumer. The basic implementation uses default settings connecting to `localhost:5672` with guest credentials.
+The `host` parameter is used only as the RabbitMQ `ConnectionFactory.HostName`. The connection factory is created internally and is not exposed, so the RabbitMQ client defaults apply for everything else: port `5672`, the `guest`/`guest` credentials, the default virtual host, and no TLS.
 
-For production use, consider creating your own connection string format or extending the implementation to support additional parameters.
+Username, password, virtual host, port, and SSL are not currently configurable through `RabbitMQProducer` / `RabbitMQConsumer`. For production deployments that need them, extend the implementation to accept those settings.
 
 ## Environment Isolation
 
@@ -349,9 +350,9 @@ var devProducer = new RabbitMQProducer("localhost", serializer, encryptor, logge
 var prodProducer = new RabbitMQProducer("localhost", serializer, encryptor, logger, "prod");
 ```
 
-Exchanges will be named like:
-- `dev_UserCommandExchange`
-- `prod_UserCommandExchange`
+Names are the handler interface name (e.g. `IUserCommandHandler`) prefixed with the environment:
+- `dev_IUserCommandHandler`
+- `prod_IUserCommandHandler`
 
 ## See Also
 

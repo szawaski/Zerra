@@ -87,16 +87,14 @@ The source generator automatically discovers and generates code for:
 
 ### Generated Code
 
-The generator creates a hidden file (typically `ZerraGeneratedInitializer.g.cs`) containing:
+The generator adds an initializer file, `ZerraSourceGenerationInitializer.cs`, plus one generated class per bus router and empty implementation. The initializer calls `Zerra.Reflection.Register` methods like the following (shapes simplified):
 
 #### 1. Type Registration
 
 ```csharp
 // Generated type metadata (simplified example)
 global::Zerra.Reflection.Register.Type(new global::Zerra.Reflection.TypeDetail<MyCommand>(
-    members: new[] { /* property/field metadata */ },
-    constructors: new[] { /* constructor metadata */ },
-    // ... additional metadata
+    /* member, constructor, and method metadata */
 ));
 ```
 
@@ -107,22 +105,27 @@ global::Zerra.Reflection.Register.Type(new global::Zerra.Reflection.TypeDetail<M
 global::Zerra.Reflection.Register.Handler(
     typeof(IMyQueryHandler),
     "GetPetById",
-    isAsync: true,
-    taskInnerType: typeof(Pet),
-    parameterTypes: new[] { typeof(Guid) },
-    returnType: typeof(Task<Pet>)
+    /* isTask */ true,
+    /* taskInnerType */ typeof(Pet),
+    /* parameterTypes */ [typeof(Guid)],
+    /* method */ static (object instance, object?[]? args) => ((IMyQueryHandler)instance).GetPetById((Guid)args![0]!),
+    /* taskResult */ static (object task) => ((Task<Pet>)task).Result
 );
 ```
 
 #### 3. Bus Router Registration
 
 ```csharp
-// Generated routing registration (simplified example)
-global::Zerra.CQRS.Register.CommandOrEvent(
-    typeof(CreatePetCommand),
-    handlerInterface: typeof(IPetsCommandHandler),
-    methodName: "Handle-CreatePetCommand"
+// Generated command/event routing metadata (simplified example)
+global::Zerra.Reflection.Register.CommandOrEventInfo(
+    typeof(IPetsCommandHandler),
+    "IPetsCommandHandler",
+    [typeof(CreatePetCommand)],   // command types
+    []                            // event types
 );
+
+// Generated query proxy class (Caller_IPetsQueryHandler) used by bus.Call<IPetsQueryHandler>()
+global::Zerra.Reflection.Register.Router(typeof(IPetsQueryHandler), static (global::Zerra.CQRS.IBusInternal bus, string source) => new global::Pets.Domain.SourceGeneration.Caller_IPetsQueryHandler(bus, source));
 ```
 
 #### 4. Serialization Code
@@ -150,9 +153,9 @@ var value = instance.MyProperty; // Direct access
 ```
 
 **Performance Improvements:**
-- 🚀 **10-100x faster** type operations
-- ⚡ **Instant startup** - no runtime type scanning
-- 💾 **Lower memory usage** - no cached reflection data
+- 🚀 **Faster type operations** - direct delegates instead of reflection invocation
+- ⚡ **Faster startup** - no runtime assembly/type scanning
+- 💾 **Less reflection work at runtime** - metadata is built at compile time
 
 ### AOT Compatibility
 
@@ -194,13 +197,13 @@ The source generator automatically runs in each project and generates metadata f
 
 To inspect what the source generator creates:
 
-1. **Visual Studio**: Enable "Show All Files" and look in `obj/Debug/generated/`
-2. **Command Line**: Check `obj/Debug/net10.0/generated/Zerra.SourceGeneration/`
+1. **Visual Studio**: Expand **Dependencies → Analyzers → Zerra.SourceGeneration** in Solution Explorer
+2. **Command Line**: Set `<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>` in the project, build, then look under `obj/Debug/net10.0/generated/Zerra.SourceGeneration/`
 3. **Build Output**: Enable detailed build output to see generation messages
 
-The generated file is typically named:
+The initializer file is named:
 ```
-ZerraGeneratedInitializer.g.cs
+ZerraSourceGenerationInitializer.cs
 ```
 
 ## Troubleshooting
@@ -222,7 +225,7 @@ dotnet build
 **Checklist**:
 - ✅ Zerra package is referenced in the project
 - ✅ Project contains CQRS types (commands, queries, events, or handlers)
-- ✅ Project targets .NET Standard 2.0 or higher
+- ✅ Project targets `net10.0` (the Zerra package targets .NET 10)
 - ✅ Clean and rebuild the project
 
 ### AOT Publishing Warnings
@@ -256,19 +259,9 @@ The source generator works seamlessly with all Zerra features:
 - ✅ **Bus Routing** - [Commands](Commands.md), [Queries](Queries.md), and [Events](Events.md) use generated routing logic
 - ✅ **EnumName** - [EnumName](EnumName.md) enum name mappings are prebuilt by the source generator for AOT-safe string conversion and parsing
 
-## Performance Comparison
-
-| Operation | Runtime Reflection | Source Generated | Improvement |
-|-----------|-------------------|------------------|-------------|
-| Type Discovery | ~1000 µs | ~1 µs | **1000x faster** |
-| Property Access | ~100 µs | ~0.1 µs | **1000x faster** |
-| Method Invocation | ~500 µs | ~5 µs | **100x faster** |
-| Serialization | ~2000 µs | ~50 µs | **40x faster** |
-| Startup Time | 2-5 seconds | 10-50 ms | **100-500x faster** |
-
-*Benchmarks approximate, actual performance depends on hardware and data complexity*
-
 ## Example: Full Setup
+
+The generator runs only in projects that reference the Zerra package directly: NuGet does not flow analyzers through project references by default. So reference `Zerra` in each project that defines or handles CQRS types.
 
 Here's a complete example showing source generator setup in a real project:
 
@@ -299,6 +292,10 @@ Here's a complete example showing source generator setup in a real project:
     <ItemGroup>
         <ProjectReference Include="..\Pets.Domain\Pets.Domain.csproj" />
     </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Zerra" Version="*" />
+    </ItemGroup>
 </Project>
 ```
 
@@ -313,6 +310,10 @@ Here's a complete example showing source generator setup in a real project:
 
     <ItemGroup>
         <ProjectReference Include="..\Pets.Domain\Pets.Domain.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Zerra" Version="*" />
     </ItemGroup>
 </Project>
 ```

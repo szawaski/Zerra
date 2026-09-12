@@ -28,7 +28,8 @@ dotnet add package Zerra.CQRS.Kafka
 ## Prerequisites
 
 - A running Kafka cluster with accessible bootstrap servers
-- Required NuGet packages: `Zerra.CQRS`, `Zerra.CQRS.Kafka`
+- Required NuGet packages: `Zerra`, `Zerra.CQRS.Kafka`
+- Examples use the sample `ConsoleLogger` / `ConsoleBusLogger` implementations from [Logging](Logging.md); substitute your own
 
 ## Client Setup (Producer)
 
@@ -58,10 +59,10 @@ var busServices = new BusServices();
 
 // Create the bus
 var bus = Bus.New(
-    service: serviceName,
+    serviceName: serviceName,
     log: logger,
     busLog: busLogger,
-    busScopes: busServices
+    busServices: busServices
 );
 
 // Create Kafka producer
@@ -118,10 +119,10 @@ var busServices = new BusServices();
 
 // Create bus
 var bus = Bus.New(
-    service: serviceName,
+    serviceName: serviceName,
     log: logger,
     busLog: busLogger,
-    busScopes: busServices
+    busServices: busServices
 );
 
 // Create and configure Kafka producer
@@ -200,10 +201,10 @@ busServices.AddService<IUserRepository>(new UserRepository(connectionString));
 
 // Create the bus
 var bus = Bus.New(
-    service: serviceName,
+    serviceName: serviceName,
     log: logger,
     busLog: busLogger,
-    busScopes: busServices
+    busServices: busServices
 );
 
 // Register handlers
@@ -272,10 +273,10 @@ busServices.AddService<IEmailService>(emailService);
 
 // Create bus
 var bus = Bus.New(
-    service: serviceName,
+    serviceName: serviceName,
     log: logger,
     busLog: busLogger,
-    busScopes: busServices
+    busServices: busServices
 );
 
 // Register handlers
@@ -381,9 +382,9 @@ var devProducer = new KafkaProducer(bootstrapServers, serializer, encryptor, log
 var prodProducer = new KafkaProducer(bootstrapServers, serializer, encryptor, logger, "prod", null, null);
 ```
 
-Topics will be named like:
-- `dev_UserCommandTopic`
-- `prod_UserCommandTopic`
+Topic names are the handler interface name (e.g. `IUserCommandHandler`) prefixed with the environment:
+- `dev_IUserCommandHandler`
+- `prod_IUserCommandHandler`
 
 ## See Also
 

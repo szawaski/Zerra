@@ -28,30 +28,30 @@ namespace Zerra.Logging
         void Debug(string message);
         void Info(string message);
         void Warn(string message);
-        void Error(string message);
-        void Error(Exception exception);
-        void Error(string message, Exception exception);
-        void Fatal(string message);
-        void Fatal(Exception exception);
-        void Fatal(string message, Exception exception);
+        void Error(string? message = null, Exception? ex = null);
+        void Error(Exception? ex = null);
+        void Critical(string? message = null, Exception? ex = null);
+        void Critical(Exception? ex = null);
     }
 }
 ```
+
+Zerra does not ship a concrete `ILogger` in the core package; implement it over the logging library of your choice (see [Implementation Examples](#implementation-examples)). The `ConsoleLogger` and `ConsoleBusLogger` used throughout these docs are the sample implementations shown below.
 
 ### Usage
 
 ```csharp
 using Zerra.Logging;
 
-// Create logger instance
-ILogger logger = new Logger();
+// Create logger instance (your ILogger implementation)
+ILogger logger = new ConsoleLogger();
 
 // Configure Bus with logger
 var bus = Bus.New(
-    service: "MyService",
+    serviceName: "MyService",
     log: logger,
     busLog: busLogger,
-    busScopes: busScopes
+    busServices: busServices
 );
 
 // Use logger in network components
@@ -94,7 +94,21 @@ public class UserCommandHandler : BaseHandler, ICommandHandler<CreateUserCommand
 | Info | General information | Operation started/completed |
 | Warn | Warning conditions | Recoverable errors, deprecated usage |
 | Error | Error conditions | Exceptions, failures |
-| Fatal | Critical failures | System crash, data corruption |
+| Critical | Critical failures | System crash, data corruption |
+
+### Static `Log` Class
+
+For code that does not have access to a handler's `Log` property, `Zerra.Logging.Log` provides static methods that forward to a process-wide logger. Set it once at startup:
+
+```csharp
+using Zerra.Logging;
+
+Log.SetLog(new ConsoleLogger());
+
+Log.Info("Service starting");
+Log.Error("Something failed", ex);
+await Log.WarnAsync("Async variant");   // TraceAsync, DebugAsync, InfoAsync, WarnAsync, ErrorAsync, CriticalAsync
+```
 
 ## IBusLogger Interface
 
@@ -126,14 +140,14 @@ namespace Zerra.CQRS
 using Zerra.CQRS;
 
 // Create bus logger instance
-IBusLogger busLogger = new BusLogger();
+IBusLogger busLogger = new ConsoleBusLogger();
 
 // Configure Bus with bus logger
 var bus = Bus.New(
-    service: "MyService",
+    serviceName: "MyService",
     log: logger,
     busLog: busLogger,
-    busScopes: busScopes
+    busServices: busServices
 );
 ```
 
@@ -229,12 +243,10 @@ public class ConsoleLogger : ILogger
     public void Debug(string message) => Console.WriteLine($"[DEBUG] {message}");
     public void Info(string message) => Console.WriteLine($"[INFO] {message}");
     public void Warn(string message) => Console.WriteLine($"[WARN] {message}");
-    public void Error(string message) => Console.WriteLine($"[ERROR] {message}");
-    public void Error(Exception exception) => Console.WriteLine($"[ERROR] {exception}");
-    public void Error(string message, Exception exception) => Console.WriteLine($"[ERROR] {message}: {exception}");
-    public void Fatal(string message) => Console.WriteLine($"[FATAL] {message}");
-    public void Fatal(Exception exception) => Console.WriteLine($"[FATAL] {exception}");
-    public void Fatal(string message, Exception exception) => Console.WriteLine($"[FATAL] {message}: {exception}");
+    public void Error(string? message = null, Exception? ex = null) => Console.WriteLine($"[ERROR] {message} {ex}");
+    public void Error(Exception? ex = null) => Console.WriteLine($"[ERROR] {ex}");
+    public void Critical(string? message = null, Exception? ex = null) => Console.WriteLine($"[CRITICAL] {message} {ex}");
+    public void Critical(Exception? ex = null) => Console.WriteLine($"[CRITICAL] {ex}");
 }
 ```
 
@@ -303,12 +315,10 @@ public class SerilogLogger : ILogger
     public void Debug(string message) => logger.Debug(message);
     public void Info(string message) => logger.Information(message);
     public void Warn(string message) => logger.Warning(message);
-    public void Error(string message) => logger.Error(message);
-    public void Error(Exception exception) => logger.Error(exception, "An error occurred");
-    public void Error(string message, Exception exception) => logger.Error(exception, message);
-    public void Fatal(string message) => logger.Fatal(message);
-    public void Fatal(Exception exception) => logger.Fatal(exception, "A fatal error occurred");
-    public void Fatal(string message, Exception exception) => logger.Fatal(exception, message);
+    public void Error(string? message = null, Exception? ex = null) => logger.Error(ex, message ?? "An error occurred");
+    public void Error(Exception? ex = null) => logger.Error(ex, "An error occurred");
+    public void Critical(string? message = null, Exception? ex = null) => logger.Fatal(ex, message ?? "A critical error occurred");
+    public void Critical(Exception? ex = null) => logger.Fatal(ex, "A critical error occurred");
 }
 ```
 
@@ -415,10 +425,10 @@ Log?.Info($"Failed to send email notification: {ex}");
 ILogger logger = new ProductionLogger();
 IBusLogger busLogger = new ProductionBusLogger();
 
-var bus = Bus.New("MyService", logger, busLogger, busScopes);
+var bus = Bus.New("MyService", logger, busLogger, busServices);
 
 // ⚠️ Development only
-var bus = Bus.New("MyService", null, null, busScopes);
+var bus = Bus.New("MyService", null, null, busServices);
 ```
 
 ## Common Scenarios
@@ -430,7 +440,7 @@ var bus = Bus.New("MyService", null, null, busScopes);
 ILogger logger = new ConsoleLogger();
 IBusLogger busLogger = new ConsoleBusLogger();
 
-var bus = Bus.New("DevService", logger, busLogger, busScopes);
+var bus = Bus.New("DevService", logger, busLogger, busServices);
 ```
 
 ### Production with Structured Logging
@@ -440,14 +450,14 @@ var bus = Bus.New("DevService", logger, busLogger, busScopes);
 ILogger logger = new SerilogLogger();
 IBusLogger busLogger = new ApplicationInsightsBusLogger();
 
-var bus = Bus.New("ProdService", logger, busLogger, busScopes);
+var bus = Bus.New("ProdService", logger, busLogger, busServices);
 ```
 
 ### No Logging (Not Recommended)
 
 ```csharp
 // Disable logging (development/testing only)
-var bus = Bus.New("TestService", null, null, busScopes);
+var bus = Bus.New("TestService", null, null, busServices);
 ```
 
 ## Performance Considerations
@@ -458,9 +468,11 @@ var bus = Bus.New("TestService", null, null, busScopes);
 4. **Buffering**: Use buffered logging for better performance
 5. **Conditional Logging**: Check log levels before expensive operations
 
+`ILogger` has no level-check members, so an implementation that filters by level still receives the already-formatted message. Guard expensive formatting with your own configuration flag:
+
 ```csharp
-// ✅ Efficient - only formats if needed
-if (logger.IsDebugEnabled)
+// ✅ Efficient - only formats if needed (debugLoggingEnabled is your own setting)
+if (debugLoggingEnabled)
 {
     var expensiveDebugInfo = BuildDebugInfo();
     logger.Debug($"Debug info: {expensiveDebugInfo}");
@@ -480,6 +492,8 @@ Zerra's logging interfaces can easily integrate with:
 - **log4net**: Enterprise logging
 - **Application Insights**: Azure monitoring
 - **OpenTelemetry**: Distributed tracing
+
+`Zerra.Web` also includes the reverse bridge: `ZerraLoggerProvider` (register with `builder.Logging.AddProvider(new ZerraLoggerProvider(zerraLogger))`, or `loggerFactory.AddZerraLogger(zerraLogger)`) routes ASP.NET Core `Microsoft.Extensions.Logging` output into your Zerra `ILogger`. See [Zerra.Web](ZerraWeb.md#4-logging-integration).
 
 ## See Also
 
