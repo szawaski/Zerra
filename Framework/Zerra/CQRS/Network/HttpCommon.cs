@@ -9,6 +9,7 @@ namespace Zerra.CQRS.Network
         public const int BufferLength = 1024 * 16; //Limits max header size
 
         private const string postRequest = "POST ";
+        private const string httpVersion = "HTTP/";
         private const string requestEnding = " HTTP/1.1";
 
         private const string okResponse = "HTTP/1.1 200 OK";
@@ -68,6 +69,19 @@ namespace Zerra.CQRS.Network
 
         private static readonly byte[] hostHeadersBytes = encoding.GetBytes($"{HostHeader}: ");
 
+        //a response line is "HTTP/1.1 <status> <reason>", any 4xx or 5xx is an error
+        //the status alone is checked because the reason differs by server, Kestrel sends "Internal Server Error" where this sends "Server Error", and a proxy sends its own
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsErrorStatus(ReadOnlySpan<char> declarations)
+        {
+            if (!declarations.StartsWith(httpVersion.AsSpan()))
+                return false;
+            var statusStart = declarations.IndexOf(' ') + 1;
+            if (statusStart < 1 || statusStart == declarations.Length)
+                return false;
+            return declarations[statusStart] == '4' || declarations[statusStart] == '5';
+        }
+
         //known headers are read from the chars directly, the declarations string and headers dictionary are only built when asked for
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static unsafe bool ParseHeaders(ReadOnlySpan<char> chars, HttpRequestHeader headerInfo, bool parseAllHeaders)
@@ -103,7 +117,7 @@ namespace Zerra.CQRS.Network
                         case '\n':
                             {
                                 var declarations = chars.Slice(start, length);
-                                headerInfo.IsError = declarations.StartsWith(serverErrorResponse.AsSpan());
+                                headerInfo.IsError = IsErrorStatus(declarations);
                                 headerInfo.Preflight = declarations.StartsWith(OptionsHeader.AsSpan());
                                 if (parseAllHeaders)
                                     headerInfo.Declarations = declarations.ToString();

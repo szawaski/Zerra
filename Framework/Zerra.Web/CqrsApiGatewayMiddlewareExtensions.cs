@@ -27,7 +27,8 @@ namespace Zerra.Web
         /// <returns>The application builder for method chaining.</returns>
         public static IApplicationBuilder UseCqrsApiGateway(this IApplicationBuilder builder, string? route = "/CQRS")
         {
-            return builder.UseMiddleware<CqrsApiGatewayMiddleware>(route);
+            //UseMiddleware picks the constructor by argument type and a null route matches none, without it the constructor's null default is used
+            return route is null ? builder.UseMiddleware<CqrsApiGatewayMiddleware>() : builder.UseMiddleware<CqrsApiGatewayMiddleware>(route);
         }
     }
 }

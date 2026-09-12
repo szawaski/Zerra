@@ -138,9 +138,9 @@ namespace Zerra.CQRS.Network
 
                     //Response Body
                     if (isStream)
-                        responseBodyStream = new HttpProtocolBodyStream(null, stream, responseHeader.BodyStartBuffer.ToArray(), false, false);
+                        responseBodyStream = new HttpProtocolBodyStream(responseHeader.Chuncked ? null : (responseHeader.ContentLength ?? 0), stream, responseHeader.BodyStartBuffer.ToArray(), false, false);
                     else
-                        responseBodyStream = new HttpProtocolBodyStream(null, stream, responseHeader.BodyStartBuffer, false, false);
+                        responseBodyStream = new HttpProtocolBodyStream(responseHeader.Chuncked ? null : (responseHeader.ContentLength ?? 0), stream, responseHeader.BodyStartBuffer, false, false);
 
                     if (encryptor is not null)
                         responseBodyStream = encryptor.Decrypt(responseBodyStream, false);
@@ -333,9 +333,9 @@ namespace Zerra.CQRS.Network
 
                     //Response Body
                     if (isStream)
-                        responseBodyStream = new HttpProtocolBodyStream(null, stream, responseHeader.BodyStartBuffer.ToArray(), false, false);
+                        responseBodyStream = new HttpProtocolBodyStream(responseHeader.Chuncked ? null : (responseHeader.ContentLength ?? 0), stream, responseHeader.BodyStartBuffer.ToArray(), false, false);
                     else
-                        responseBodyStream = new HttpProtocolBodyStream(null, stream, responseHeader.BodyStartBuffer, false, false);
+                        responseBodyStream = new HttpProtocolBodyStream(responseHeader.Chuncked ? null : (responseHeader.ContentLength ?? 0), stream, responseHeader.BodyStartBuffer, false, false);
 
                     if (encryptor is not null)
                         responseBodyStream = encryptor.Decrypt(responseBodyStream, false);
@@ -563,7 +563,7 @@ namespace Zerra.CQRS.Network
                     var responseHeader = HttpCommon.ReadHeader(buffer[..headerLength], headerPosition);
 
                     //Response Body
-                    responseBodyStream = new HttpProtocolBodyStream(null, stream, responseHeader.BodyStartBuffer, false, false);
+                    responseBodyStream = new HttpProtocolBodyStream(responseHeader.Chuncked ? null : (responseHeader.ContentLength ?? 0), stream, responseHeader.BodyStartBuffer, false, false);
 
                     if (encryptor is not null)
                         responseBodyStream = encryptor.Decrypt(responseBodyStream, false);
@@ -781,7 +781,7 @@ namespace Zerra.CQRS.Network
                     var responseHeader = HttpCommon.ReadHeader(buffer[..headerLength], headerPosition);
 
                     //Response Body
-                    responseBodyStream = new HttpProtocolBodyStream(null, stream, responseHeader.BodyStartBuffer, false, false);
+                    responseBodyStream = new HttpProtocolBodyStream(responseHeader.Chuncked ? null : (responseHeader.ContentLength ?? 0), stream, responseHeader.BodyStartBuffer, false, false);
 
                     if (encryptor is not null)
                         responseBodyStream = encryptor.Decrypt(responseBodyStream, false);
@@ -1009,7 +1009,7 @@ namespace Zerra.CQRS.Network
                     var responseHeader = HttpCommon.ReadHeader(buffer[..headerLength], headerPosition);
 
                     //Response Body
-                    responseBodyStream = new HttpProtocolBodyStream(null, stream, responseHeader.BodyStartBuffer, false, false);
+                    responseBodyStream = new HttpProtocolBodyStream(responseHeader.Chuncked ? null : (responseHeader.ContentLength ?? 0), stream, responseHeader.BodyStartBuffer, false, false);
 
                     if (encryptor is not null)
                         responseBodyStream = encryptor.Decrypt(responseBodyStream, false);
